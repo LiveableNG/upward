@@ -198,8 +198,12 @@ export class SubscriptionBillingScheduler {
         where: { pmId: sub.pmId },
       });
       const currentBalance = wallet?.balance || 0;
-      const isDeficit = currentBalance < upcomingMonthAmount;
-      const deficitAmount = Math.max(0, upcomingMonthAmount - currentBalance);
+      const totalPreInvoiceAmount = isFirstCycle ? upcomingMonthAmount * 2 : upcomingMonthAmount;
+      const isDeficit = currentBalance < totalPreInvoiceAmount;
+      const deficitAmount = Math.max(0, totalPreInvoiceAmount - currentBalance);
+      const billingExplanation = isFirstCycle
+        ? `Initial billing covers 2 monthly periods for your ${unitCount} managed units: the completed inaugural month in arrears plus the upcoming month in advance.`
+        : undefined;
 
       const targetDeductionDate = this.getAnniversaryDate(sub.anniversaryDate, 0);
       const formattedDeductionDate = targetDeductionDate.toLocaleDateString('en-US', {
@@ -218,9 +222,11 @@ export class SubscriptionBillingScheduler {
           type: 'PM_SUBSCRIPTION_PRE_INVOICE',
           context: {
             pmName: recipient.pmName,
-            amountDue: upcomingMonthAmount,
-            formattedAmountDue: upcomingMonthAmount.toLocaleString(),
+            amountDue: totalPreInvoiceAmount,
+            formattedAmountDue: totalPreInvoiceAmount.toLocaleString(),
             unitCount,
+            billingExplanation,
+            billingNote: billingExplanation ? ` (Note: ${billingExplanation})` : '',
             deductionDate: formattedDeductionDate,
             currentBalance,
             formattedCurrentBalance: currentBalance.toLocaleString(),
@@ -234,11 +240,15 @@ export class SubscriptionBillingScheduler {
         });
       }
 
+      const preInvoiceMessage = isFirstCycle
+        ? `Your initial subscription charge of NGN ${totalPreInvoiceAmount.toLocaleString()} (covering inaugural month + upcoming month for ${unitCount} units) will be deducted on ${formattedDeductionDate}. Current wallet balance: NGN ${currentBalance.toLocaleString()}.`
+        : `Your upcoming monthly subscription charge of NGN ${upcomingMonthAmount.toLocaleString()} will be deducted on ${formattedDeductionDate}. Current wallet balance: NGN ${currentBalance.toLocaleString()}.`;
+
       await this.prisma.upward_pm_notification.create({
         data: {
           pmId: sub.pmId,
           title: 'Upcoming subscription renewal',
-          message: `Your upcoming monthly subscription charge of NGN ${upcomingMonthAmount.toLocaleString()} will be deducted on ${formattedDeductionDate}. Current wallet balance: NGN ${currentBalance.toLocaleString()}.`,
+          message: preInvoiceMessage,
           type: 'PAYMENT_PENDING',
           isPopup: isDeficit,
           url: '/subscription/wallet',
@@ -338,7 +348,12 @@ export class SubscriptionBillingScheduler {
           day: 'numeric',
           year: 'numeric',
         });
-        const unitCount = pendingInvoices.reduce((sum, inv) => sum + inv.unitCount, 0);
+        const actualUnitCount =
+          pendingInvoices[0]?.unitCount || (await this.countManagedUnits(sub.pmId, sub.unitBillingMode));
+        const isMultiCycle = pendingInvoices.length > 1;
+        const billingExplanation = isMultiCycle
+          ? `Initial billing covers ${pendingInvoices.length} monthly cycles for your ${actualUnitCount} managed units: the completed inaugural month plus the upcoming month in advance.`
+          : undefined;
 
         if (recipient && recipient.email) {
           await this.unifiedCommService.processCommunication({
@@ -351,7 +366,9 @@ export class SubscriptionBillingScheduler {
               pmName: recipient.pmName,
               amount: totalDue,
               formattedAmount: totalDue.toLocaleString(),
-              unitCount,
+              unitCount: actualUnitCount,
+              billingExplanation,
+              billingNote: billingExplanation ? ` (Note: ${billingExplanation})` : '',
               walletBalance: txResult.newWalletBalance,
               formattedWalletBalance: txResult.newWalletBalance.toLocaleString(),
               nextBillingDate: formattedNextBillingDate,
@@ -368,11 +385,15 @@ export class SubscriptionBillingScheduler {
           });
         }
 
+        const notifMessage = isMultiCycle
+          ? `Your initial subscription payment of NGN ${totalDue.toLocaleString()} (covering ${pendingInvoices.length} monthly cycles for ${actualUnitCount} units) was successfully deducted from your wallet.`
+          : `Your monthly subscription payment of NGN ${totalDue.toLocaleString()} was successfully deducted from your wallet.`;
+
         await this.prisma.upward_pm_notification.create({
           data: {
             pmId: sub.pmId,
             title: 'Subscription payment successful',
-            message: `Your monthly subscription payment of NGN ${totalDue.toLocaleString()} was successfully deducted from your wallet.`,
+            message: notifMessage,
             type: 'PAYMENT_COMPLETED',
             isPopup: false,
             url: '/subscription/wallet',
