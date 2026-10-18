@@ -11,16 +11,18 @@ let package = Package(
             targets: ["CapApp-SPM"])
     ],
     dependencies: [
-        .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", exact: "8.2.0"),
-        .package(name: "CapacitorApp", path: "../../../../../../node_modules/.pnpm/@capacitor+app@8.1.0_@capacitor+core@8.2.0/node_modules/@capacitor/app"),
-        .package(name: "CapacitorCamera", path: "../../../../../../node_modules/.pnpm/@capacitor+camera@8.2.1_@capacitor+core@8.2.0/node_modules/@capacitor/camera"),
-        .package(name: "CapacitorFilesystem", path: "../../../../../../node_modules/.pnpm/@capacitor+filesystem@8.1.2_@capacitor+core@8.2.0/node_modules/@capacitor/filesystem"),
-        .package(name: "CapacitorPreferences", path: "../../../../../../node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.2.0/node_modules/@capacitor/preferences"),
-        .package(name: "CapacitorPushNotifications", path: "../../../../../../node_modules/.pnpm/@capacitor+push-notifications@8.0.0_@capacitor+core@8.2.0/node_modules/@capacitor/push-notifications"),
-        .package(name: "CapacitorShare", path: "../../../../../../node_modules/.pnpm/@capacitor+share@8.0.1_@capacitor+core@8.2.0/node_modules/@capacitor/share"),
-        .package(name: "CapawesomeCapacitorAppleSignIn", path: "../../../../../../node_modules/.pnpm/@capawesome+capacitor-apple-sign-in@0.1.4_@capacitor+core@8.2.0/node_modules/@capawesome/capacitor-apple-sign-in"),
-        .package(name: "CapawesomeCapacitorGoogleSignIn", path: "../../../../../../node_modules/.pnpm/@capawesome+capacitor-google-sign-in@0.1.2_@capacitor+core@8.2.0/node_modules/@capawesome/capacitor-google-sign-in"),
-        .package(name: "CapgoCapacitorNativeBiometric", path: "../../../../../../node_modules/.pnpm/@capgo+capacitor-native-biometric@8.4.2_@capacitor+core@8.2.0/node_modules/@capgo/capacitor-native-biometric")
+        .package(url: "https://github.com/ionic-team/capacitor-swift-pm.git", exact: "8.5.2"),
+        .package(name: "CapacitorApp", path: "../../../../../../node_modules/.pnpm/@capacitor+app@8.1.1_@capacitor+core@8.5.2/node_modules/@capacitor/app"),
+        .package(name: "CapacitorCamera", path: "../../../../../../node_modules/.pnpm/@capacitor+camera@8.2.4_@capacitor+core@8.5.2/node_modules/@capacitor/camera"),
+        .package(name: "CapacitorFilesystem", path: "../../../../../../node_modules/.pnpm/@capacitor+filesystem@8.1.3_@capacitor+core@8.5.2/node_modules/@capacitor/filesystem"),
+        .package(name: "CapacitorHaptics", path: "../../../../../../node_modules/.pnpm/@capacitor+haptics@8.0.2_@capacitor+core@8.5.2/node_modules/@capacitor/haptics"),
+        .package(name: "CapacitorNetwork", path: "../../../../../../node_modules/.pnpm/@capacitor+network@8.0.1_@capacitor+core@8.5.2/node_modules/@capacitor/network"),
+        .package(name: "CapacitorPreferences", path: "../../../../../../node_modules/.pnpm/@capacitor+preferences@8.0.1_@capacitor+core@8.5.2/node_modules/@capacitor/preferences"),
+        .package(name: "CapacitorPushNotifications", path: "../../../../../../node_modules/.pnpm/@capacitor+push-notifications@8.1.2_@capacitor+core@8.5.2/node_modules/@capacitor/push-notifications"),
+        .package(name: "CapacitorShare", path: "../../../../../../node_modules/.pnpm/@capacitor+share@8.0.2_@capacitor+core@8.5.2/node_modules/@capacitor/share"),
+        .package(name: "CapawesomeCapacitorAppleSignIn", path: "../../../../../../node_modules/.pnpm/@capawesome+capacitor-apple-sign-in@0.1.4_@capacitor+core@8.5.2/node_modules/@capawesome/capacitor-apple-sign-in"),
+        .package(name: "CapawesomeCapacitorGoogleSignIn", path: "../../../../../../node_modules/.pnpm/@capawesome+capacitor-google-sign-in@0.1.4_@capacitor+core@8.5.2/node_modules/@capawesome/capacitor-google-sign-in"),
+        .package(name: "CapgoCapacitorNativeBiometric", path: "../../../../../../node_modules/.pnpm/@capgo+capacitor-native-biometric@8.6.11_@capacitor+core@8.5.2/node_modules/@capgo/capacitor-native-biometric")
     ],
     targets: [
         .target(
@@ -31,6 +33,8 @@ let package = Package(
                 .product(name: "CapacitorApp", package: "CapacitorApp"),
                 .product(name: "CapacitorCamera", package: "CapacitorCamera"),
                 .product(name: "CapacitorFilesystem", package: "CapacitorFilesystem"),
+                .product(name: "CapacitorHaptics", package: "CapacitorHaptics"),
+                .product(name: "CapacitorNetwork", package: "CapacitorNetwork"),
                 .product(name: "CapacitorPreferences", package: "CapacitorPreferences"),
                 .product(name: "CapacitorPushNotifications", package: "CapacitorPushNotifications"),
                 .product(name: "CapacitorShare", package: "CapacitorShare"),
