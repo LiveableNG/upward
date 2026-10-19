@@ -11,6 +11,7 @@ export interface UserProfile {
   email: string
   firstName: string
   lastName: string
+  role?: string | null
   phone?: string | null
   dateOfBirth?: string
   isIdentityVerified?: boolean
@@ -93,4 +94,5 @@ export interface AuthResponse {
   accessToken: string
   user: UserProfile
   refreshToken?: string
+  isNewUser?: boolean
 }

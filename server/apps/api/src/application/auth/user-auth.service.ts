@@ -1280,7 +1280,9 @@ export class UserAuthService extends BaseAuthService {
     provider: 'google' | 'apple',
     idToken: string,
     profileData?: { firstName?: string; lastName?: string },
-  ): Promise<UserAuthResponse & { refreshToken: string }> {
+    ipAddress?: string,
+    userAgent?: string,
+  ): Promise<UserAuthResponse & { refreshToken: string; isNewUser: boolean }> {
     if (provider !== 'google' && provider !== 'apple') {
       throw new BadRequestException('Unsupported social provider')
     }
@@ -1452,12 +1454,14 @@ export class UserAuthService extends BaseAuthService {
       lastName = isEmail(rawLastName) ? '' : rawLastName
     }
 
+    let isNewUser = false
     let user = await this.userRepository.findByProviderId(providerId)
     if (!user) {
       user = await this.userRepository.findByEmail(email)
     }
 
     if (user) {
+      isNewUser = false
       const isShadow =
         user.passwordHash === PASS_PLACEHOLDERS.INVITED ||
         user.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
@@ -1504,6 +1508,7 @@ export class UserAuthService extends BaseAuthService {
         user = await this.userRepository.findByUuid(user.uuid)
       }
     } else {
+      isNewUser = true
       const waitlistEntry = await this.prisma.upward_waitlist.findFirst({
         where: {
           email,
@@ -1582,7 +1587,11 @@ export class UserAuthService extends BaseAuthService {
       throw new Error(`Failed to resolve user after ${provider} sign-in`)
     }
 
-    return this.generateFullAuthResponse(user)
+    const authResponse = await this.generateFullAuthResponse(user, ipAddress, userAgent)
+    return {
+      ...authResponse,
+      isNewUser,
+    }
   }
 
   async findByEmail(email: string) {

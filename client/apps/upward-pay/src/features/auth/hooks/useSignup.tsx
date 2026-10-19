@@ -13,19 +13,19 @@ export function useSignup(redirect: string = '/dashboard', onSuccess?: () => voi
   const queryClient = useQueryClient()
 
   const signupMutation = useMutation({
-    mutationFn: (data: { 
-      email: string; 
-      password: string; 
-      firstName: string; 
-      lastName: string;
-      dateOfBirth?: string;
-      phone?: string;
-      rentEndDate?: string;
-      address?: string;
-      isFromInvite?: boolean;
-      hearAboutUs?: string;
+    mutationFn: (data: {
+      email: string
+      password: string
+      firstName: string
+      lastName: string
+      dateOfBirth?: string
+      phone?: string
+      rentEndDate?: string
+      address?: string
+      isFromInvite?: boolean
+      hearAboutUs?: string
     }) => authSignup(data),
-    onSuccess: (result, variables) => {
+    onSuccess: async (result, variables) => {
       if (result.accessToken) {
         setAccessToken(result.accessToken)
         setCookie('pay_access_token', result.accessToken)
@@ -38,7 +38,7 @@ export function useSignup(redirect: string = '/dashboard', onSuccess?: () => voi
         BiometricsService.saveCredentials(variables.email, variables.password).catch(() => {})
       }
 
-      setAuthUser(result.user)
+      await setAuthUser(result.user, { isNewUser: true, provider: 'email' })
       queryClient.setQueryData(['user'], result.user)
       if (onSuccess) {
         onSuccess()
@@ -49,23 +49,23 @@ export function useSignup(redirect: string = '/dashboard', onSuccess?: () => voi
   })
 
   return {
-    signup: (data: { 
-      email: string; 
-      password: string; 
-      firstName: string; 
-      lastName: string;
-      dateOfBirth?: string;
-      phone?: string;
-      rentEndDate?: string;
-      address?: string;
-      isFromWaitlist?: boolean;
-      isFromInvite?: boolean;
-      hearAboutUs?: string;
+    signup: (data: {
+      email: string
+      password: string
+      firstName: string
+      lastName: string
+      dateOfBirth?: string
+      phone?: string
+      rentEndDate?: string
+      address?: string
+      isFromWaitlist?: boolean
+      isFromInvite?: boolean
+      hearAboutUs?: string
       properties?: Array<{
-        address: string;
-        rentEndDate: string;
-        companyName?: string;
-        managerName?: string;
+        address: string
+        rentEndDate: string
+        companyName?: string
+        managerName?: string
       }>
     }) => signupMutation.mutate(data),
     loading: signupMutation.isPending,

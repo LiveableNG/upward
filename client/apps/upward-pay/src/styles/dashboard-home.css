@@ -26,7 +26,10 @@
   text-align: left;
   font-family: inherit;
   cursor: pointer;
-  transition: border-color 0.2s ease, background 0.2s ease, transform 0.15s ease;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    transform 0.15s ease;
 }
 
 .dash-home__benefits-card:active {
@@ -401,9 +404,10 @@
   position: relative;
   overflow: hidden;
   -webkit-tap-highlight-color: transparent;
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
-              box-shadow 0.2s ease,
-              filter 0.2s ease;
+  transition:
+    transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.2s ease,
+    filter 0.2s ease;
 }
 
 .dash-home__score:hover {
@@ -507,7 +511,11 @@
   font-weight: 700;
   border: 1px solid rgba(255, 255, 255, 0.22);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
-  transition: background 0.2s ease, transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .dash-home__score-pill-arrow {
@@ -1042,6 +1050,18 @@
   font-weight: 700;
   color: var(--text, #1a1714);
   cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.dash-home__app-store-btn:hover {
+  background: #fdfcfb;
+  border-color: #d8cdbf;
+  transform: translateY(-1px);
+}
+
+.dash-home__app-store-btn:active {
+  transform: scale(0.98);
 }
 
 .dash-home__app-banner-dismiss {

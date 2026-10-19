@@ -5,18 +5,28 @@ import { type UserProfile } from './types'
 import { getMe, logout as authLogout } from './services/authService'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { setAccessToken, setRefreshToken, getAccessToken, getRefreshToken, initStoredTokens } from '@/lib/auth-token'
+import {
+  setAccessToken,
+  setRefreshToken,
+  getAccessToken,
+  getRefreshToken,
+  initStoredTokens,
+} from '@/lib/auth-token'
 import { deleteCookie } from '@/lib/cookie-utils'
-import { usePushNotifications, PushNotificationService } from '@/features/notifications/services/pushNotificationService'
+import {
+  usePushNotifications,
+  PushNotificationService,
+} from '@/features/notifications/services/pushNotificationService'
 import { App } from '@capacitor/app'
 import { Capacitor } from '@capacitor/core'
+import { sessionTracker } from '@/lib/sessionTracker'
 
 interface AuthContextType {
   user: UserProfile | null
   loading: boolean
   isLoggedIn: boolean
   isPinLocked: boolean
-  login: (user: UserProfile) => void
+  login: (user: UserProfile, options?: { isNewUser?: boolean; provider?: string }) => Promise<void>
   logout: () => Promise<void>
   refreshUser: () => Promise<void>
 }
@@ -87,9 +97,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           keysToInvalidate.forEach((key) => {
             queryClient.invalidateQueries({ queryKey: [key] })
           })
-          
+
           window.dispatchEvent(new CustomEvent('upward:payment.succeeded', { detail: data }))
-        } else if (data.type === 'payment.request.created' || data.type === 'payment.request.updated') {
+        } else if (
+          data.type === 'payment.request.created' ||
+          data.type === 'payment.request.updated'
+        ) {
           const keysToInvalidate = [
             'dashboard',
             'notifications',
@@ -102,7 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           keysToInvalidate.forEach((key) => {
             queryClient.invalidateQueries({ queryKey: [key] })
           })
-          
+
           window.dispatchEvent(new CustomEvent('upward:payment.request.changed', { detail: data }))
         }
       } catch (err) {
@@ -126,6 +139,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const profile = await getMe()
       setUser(profile)
       userRef.current = profile
+      sessionTracker.identify({
+        id: profile.id ? Number(profile.id) : undefined,
+        email: profile.email,
+        role: profile.role || 'TENANT',
+      })
       if (typeof window !== 'undefined') {
         localStorage.setItem('upward_cached_user_profile', JSON.stringify(profile))
       }
@@ -133,7 +151,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.warn('[Auth] refreshUser error:', err)
       const isAuthRejected = err?.status === 401 || err?.message === 'Session expired'
       if (Capacitor.isNativePlatform() && !isAuthRejected && userRef.current) {
-        console.warn('[Auth] Retaining session on native platform during temporary network fluctuation.')
+        console.warn(
+          '[Auth] Retaining session on native platform during temporary network fluctuation.',
+        )
       } else {
         setUser(null)
         userRef.current = null
@@ -190,17 +210,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  const login = async (newUser: UserProfile) => {
+  const login = async (
+    newUser: UserProfile,
+    options?: { isNewUser?: boolean; provider?: string },
+  ) => {
     setUser(newUser)
     userRef.current = newUser
+    // Start a fresh, unique session for this authentic login
+    sessionTracker.startNewSession({
+      id: newUser.id ? Number(newUser.id) : undefined,
+      email: newUser.email,
+      role: newUser.role || 'TENANT',
+    })
+
+    if (options?.isNewUser) {
+      sessionTracker.trackEvent('SIGNUP_SUCCESS', {
+        email: newUser.email,
+        provider: options.provider || 'email',
+        isOAuth: !!options.provider && options.provider !== 'email',
+      })
+    } else {
+      sessionTracker.trackEvent('LOGIN_SUCCESS', {
+        email: newUser.email,
+        provider: options?.provider || 'email',
+        isOAuth: !!options?.provider && options.provider !== 'email',
+      })
+    }
+    await sessionTracker.flush(false)
     setLoading(false)
     if (typeof window !== 'undefined') {
       localStorage.setItem('upward_cached_user_profile', JSON.stringify(newUser))
+      if (newUser.uuid) {
+        localStorage.removeItem(`upward_profile_setup_skipped_${newUser.uuid}`)
+      }
     }
   }
 
   const logout = async () => {
     console.log('[Auth] Logging out...')
+    sessionTracker.trackEvent('LOGOUT')
+    await sessionTracker.endSession('LOGOUT').catch(() => {})
+    sessionTracker.resetSession()
     setUser(null)
     userRef.current = null
     setAccessToken(null)
@@ -215,10 +265,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await Promise.allSettled([
         PushNotificationService.unregisterDevice(),
-        Promise.race([
-          authLogout(),
-          new Promise((resolve) => setTimeout(resolve, 2000)),
-        ]),
+        Promise.race([authLogout(), new Promise((resolve) => setTimeout(resolve, 2000))]),
       ])
 
       deleteCookie('pay_access_token')
@@ -234,12 +281,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           'upward_cached_user_profile',
           'exclusive_home_applications',
           'exclusive_home_requests',
+          'upward_session_id',
+          'upward_session_last_active',
         ]
         keysToRemove.forEach((k) => localStorage.removeItem(k))
 
         const allKeys = Object.keys(localStorage)
         allKeys.forEach((k) => {
-          if (k.startsWith('profile_popup_dismissed_') || k.startsWith('rent_support_policy_')) {
+          if (
+            k.startsWith('profile_popup_dismissed_') ||
+            k.startsWith('rent_support_policy_') ||
+            k.startsWith('upward_profile_setup_skipped_')
+          ) {
             localStorage.removeItem(k)
           }
         })

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { Check, TrendingUp, X } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { useToast } from '@/components/common/Toast'
+import { haptics } from '@/lib/haptics'
 
 export function GlobalPaymentSuccessModal() {
   const [isOpen, setIsOpen] = useState(false)
@@ -19,7 +20,10 @@ export function GlobalPaymentSuccessModal() {
       if (typeof window !== 'undefined') {
         const pathname = window.location.pathname
         if (pathname.includes('/pay/') || pathname.includes('/pay-rent')) {
-          console.log('[GlobalPaymentSuccessModal] Suppressing modal: user is on checkout page', pathname)
+          console.log(
+            '[GlobalPaymentSuccessModal] Suppressing modal: user is on checkout page',
+            pathname,
+          )
           return
         }
       }
@@ -29,6 +33,7 @@ export function GlobalPaymentSuccessModal() {
 
       const amountPaid = detail?.data?.amountPaid || detail?.amount || detail?.data?.amount || 0
       const formattedAmount = amountPaid > 0 ? formatCurrency(amountPaid) : 'Payment'
+      haptics.success()
       success(`${formattedAmount} received and confirmed`, 'Payment Successful')
     }
 
@@ -78,7 +83,10 @@ export function GlobalPaymentSuccessModal() {
         onClick={(e) => e.stopPropagation()}
       >
         <button
-          onClick={() => setIsOpen(false)}
+          onClick={() => {
+            haptics.light()
+            setIsOpen(false)
+          }}
           style={{
             position: 'absolute',
             top: 14,

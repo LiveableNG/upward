@@ -91,6 +91,16 @@ function clearUserAuthCookies(reply: FastifyReply) {
   reply.clearCookie('pm_access_token', options)
 }
 
+function isMobileClient(req: any): boolean {
+  const p = (req.headers?.['x-client-platform'] || '').toLowerCase()
+  return (
+    p === 'capacitor' ||
+    p === 'ios' ||
+    p === 'android' ||
+    /capacitor/i.test(req.headers?.['user-agent'] || '')
+  )
+}
+
 @Controller('user/auth')
 export class UserController {
   constructor(
@@ -134,8 +144,14 @@ export class UserController {
       ? req.headers['x-forwarded-for'].split(',')[0].trim()
       : req.ip
     const userAgent = req.headers['user-agent']
-    const isCapacitor = req.headers?.['x-client-platform'] === 'capacitor'
+    const isCapacitor = isMobileClient(req)
     const { refreshToken, ...rest } = await this.userAuthService.signup(body, ipAddress, userAgent)
+    req.user = {
+      sub: rest.user.uuid,
+      email: rest.user.email,
+      role: (rest.user as any).role || 'TENANT',
+    }
+    req.authResult = rest
     setUserAuthCookies(reply, rest.accessToken, refreshToken)
     reply.status(HttpStatus.CREATED).send(isCapacitor ? { ...rest, refreshToken } : rest)
   }
@@ -157,12 +173,20 @@ export class UserController {
       ? req.headers['x-forwarded-for'].split(',')[0].trim()
       : req.ip
     const userAgent = req.headers['user-agent']
-    const isCapacitor = req.headers?.['x-client-platform'] === 'capacitor'
+    const isCapacitor = isMobileClient(req)
     const { refreshToken, ...rest } = await this.userAuthService.socialSignIn(
       body.provider,
       body.idToken,
       { firstName: body.firstName, lastName: body.lastName },
+      ipAddress,
+      userAgent,
     )
+    req.user = {
+      sub: rest.user.uuid,
+      email: rest.user.email,
+      role: (rest.user as any).role || 'TENANT',
+    }
+    req.authResult = rest
     setUserAuthCookies(reply, rest.accessToken, refreshToken)
     reply.status(HttpStatus.OK).send(isCapacitor ? { ...rest, refreshToken } : rest)
   }
@@ -179,7 +203,7 @@ export class UserController {
       ? req.headers['x-forwarded-for'].split(',')[0].trim()
       : req.ip
     const userAgent = req.headers['user-agent']
-    const isCapacitor = req.headers?.['x-client-platform'] === 'capacitor'
+    const isCapacitor = isMobileClient(req)
     const { refreshToken, ...rest } = await this.completeUserProfile.execute({
       email: body.email,
       passwordPlain: body.password,
@@ -209,7 +233,7 @@ export class UserController {
       ? req.headers['x-forwarded-for'].split(',')[0].trim()
       : req.ip
     const userAgent = req.headers['user-agent']
-    const isCapacitor = req.headers?.['x-client-platform'] === 'capacitor'
+    const isCapacitor = isMobileClient(req)
     const { refreshToken, ...rest } = await this.userAuthService.login(
       body.email,
       body.password,
@@ -217,6 +241,12 @@ export class UserController {
       userAgent,
       type,
     )
+    req.user = {
+      sub: rest.user.uuid,
+      email: rest.user.email,
+      role: (rest.user as any).role || 'TENANT',
+    }
+    req.authResult = rest
     setUserAuthCookies(reply, rest.accessToken, refreshToken)
     reply.status(HttpStatus.OK).send(isCapacitor ? { ...rest, refreshToken } : rest)
   }
@@ -228,7 +258,7 @@ export class UserController {
     @Body() body: { refreshToken?: string },
     @Res({ passthrough: false }) reply: FastifyReply,
   ) {
-    const isCapacitor = req.headers?.['x-client-platform'] === 'capacitor'
+    const isCapacitor = isMobileClient(req)
     const token =
       req.cookies?.[REFRESH_COOKIE_NAME] ||
       body?.refreshToken ||
@@ -407,12 +437,18 @@ export class UserController {
       ? req.headers['x-forwarded-for'].split(',')[0].trim()
       : req.ip
     const userAgent = req.headers['user-agent']
-    const isCapacitor = req.headers?.['x-client-platform'] === 'capacitor'
+    const isCapacitor = isMobileClient(req)
     const { refreshToken, ...rest } = await this.userAuthService.generateFullAuthResponse(
       user,
       ipAddress,
       userAgent,
     )
+    req.user = {
+      sub: rest.user.uuid,
+      email: rest.user.email,
+      role: (rest.user as any).role || 'TENANT',
+    }
+    req.authResult = rest
     setUserAuthCookies(reply, rest.accessToken, refreshToken)
     reply.status(HttpStatus.OK).send(isCapacitor ? { ...rest, refreshToken } : rest)
   }

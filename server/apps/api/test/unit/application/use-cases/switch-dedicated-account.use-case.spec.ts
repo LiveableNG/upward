@@ -176,4 +176,37 @@ describe('SwitchDedicatedAccountUseCase', () => {
     expect(result.accountNumber).toBe('1111111111')
     expect(result.isDefault).toBe(false)
   })
+
+  it('should switch back from Wema to Titan when Titan is still default in DB', async () => {
+    mockPrisma.upward_user_property.findUnique.mockResolvedValue({
+      id: 10,
+      user: { email: 'tenant@upward.ng', firstName: 'John', lastName: 'Doe' },
+    })
+
+    const titanAccount = {
+      id: 2,
+      accountNumber: '2222222222',
+      bankName: 'Paystack-Titan',
+      bankSlug: 'titan-paystack',
+      isDefault: true,
+      userPropertyId: 10,
+    } as any
+    const wemaAccount = {
+      id: 1,
+      accountNumber: '1111111111',
+      bankName: 'Wema Bank',
+      bankSlug: 'wema-bank',
+      isDefault: false,
+      userPropertyId: 10,
+    } as any
+
+    mockDvaRepo.findAllByUserPropertyId.mockResolvedValue([titanAccount, wemaAccount])
+
+    const result = await useCase.execute({ userPropertyId: 10, preferredBank: 'titan-paystack' })
+
+    expect(mockDvaRepo.setDefault).toHaveBeenCalledWith(2, 10)
+    expect(result.accountNumber).toBe('2222222222')
+    expect(result.isDefault).toBe(true)
+    expect(mockResolveUseCase.execute).not.toHaveBeenCalled()
+  })
 })

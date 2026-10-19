@@ -67,6 +67,16 @@ export class GetAdminPmDetailUseCase {
         tenants: true,
         verification: true,
         subscription: true,
+        wallet: true,
+        dedicatedVirtualAccount: true,
+        walletTransactions: {
+          orderBy: { createdAt: 'desc' },
+          take: 50,
+        },
+        subscriptionInvoices: {
+          orderBy: { deductionDate: 'desc' },
+          take: 50,
+        },
       },
     })
 
@@ -110,10 +120,14 @@ export class GetAdminPmDetailUseCase {
       const firstManager = company.managers && company.managers[0]
       let resolvedFirstName = ''
       let resolvedLastName = ''
-      
+
       if (firstManager) {
-        resolvedFirstName = firstManager.firstName ? this.encryption.decrypt(firstManager.firstName).trim() : ''
-        resolvedLastName = firstManager.lastName ? this.encryption.decrypt(firstManager.lastName).trim() : ''
+        resolvedFirstName = firstManager.firstName
+          ? this.encryption.decrypt(firstManager.firstName).trim()
+          : ''
+        resolvedLastName = firstManager.lastName
+          ? this.encryption.decrypt(firstManager.lastName).trim()
+          : ''
       }
 
       // Map tenancy properties to standard property/units layout
@@ -161,41 +175,43 @@ export class GetAdminPmDetailUseCase {
               currency: p.currency,
               status: p.user ? 'OCCUPIED' : 'VACANT',
               tenant: tenantInfo,
-            }
-          ]
+            },
+          ],
         }
       })
 
       // Get tenants list
-      const companyTenants = company.properties.map((p) => {
-        if (!p.user) return null
-        let email = ''
-        let firstName = ''
-        let lastName = ''
-        let phone = ''
+      const companyTenants = company.properties
+        .map((p) => {
+          if (!p.user) return null
+          let email = ''
+          let firstName = ''
+          let lastName = ''
+          let phone = ''
 
-        try {
-          email = this.encryption.decrypt(p.user.email)
-          firstName = this.encryption.decrypt(p.user.firstName)
-          lastName = this.encryption.decrypt(p.user.lastName)
-          phone = p.user.phone ? this.encryption.decrypt(p.user.phone) : ''
-        } catch (err) {
-          email = p.user.email
-          firstName = p.user.firstName
-          lastName = p.user.lastName
-          phone = p.user.phone || ''
-        }
+          try {
+            email = this.encryption.decrypt(p.user.email)
+            firstName = this.encryption.decrypt(p.user.firstName)
+            lastName = this.encryption.decrypt(p.user.lastName)
+            phone = p.user.phone ? this.encryption.decrypt(p.user.phone) : ''
+          } catch (err) {
+            email = p.user.email
+            firstName = p.user.firstName
+            lastName = p.user.lastName
+            phone = p.user.phone || ''
+          }
 
-        return {
-          id: p.user.id,
-          uuid: p.user.uuid,
-          email,
-          firstName,
-          lastName,
-          phone,
-          inviteStatus: 'ACCEPTED',
-        }
-      }).filter(Boolean)
+          return {
+            id: p.user.id,
+            uuid: p.user.uuid,
+            email,
+            firstName,
+            lastName,
+            phone,
+            inviteStatus: 'ACCEPTED',
+          }
+        })
+        .filter(Boolean)
 
       return {
         type: 'PM',
@@ -214,6 +230,13 @@ export class GetAdminPmDetailUseCase {
         rentPayments: [],
         activityLogs: [],
         verification: null,
+        subscription: null,
+        subscriptionLogs: [],
+        wallet: null,
+        dedicatedVirtualAccount: null,
+        walletTransactions: [],
+        subscriptionInvoices: [],
+        billingSummary: null,
       }
     }
 
@@ -259,22 +282,19 @@ export class GetAdminPmDetailUseCase {
 
         return {
           ...unit,
-          tenant: tenantInfo
+          tenant: tenantInfo,
         }
       })
       return {
         ...prop,
-        units: decryptedUnits
+        units: decryptedUnits,
       }
     })
 
     // Fetch activity logs
     const activityLogs = await this.prisma.upward_app_activity_log.findMany({
       where: {
-        OR: [
-          { pmId: pm.id },
-          { userEmail: pm.email },
-        ],
+        OR: [{ pmId: pm.id }, { userEmail: pm.email }],
       },
       orderBy: { createdAt: 'desc' },
       take: 100,
@@ -292,6 +312,73 @@ export class GetAdminPmDetailUseCase {
       orderBy: { paymentDate: 'desc' },
       take: 100,
     })
+
+    // Calculate subscription, billing runway, and next billing date
+    let nextBillingDate: string | null = null
+    let daysUntilNextBilling: number | null = null
+    const sub = pm.subscription
+
+    if (sub && sub.tier !== 'FREE' && sub.anniversaryDate) {
+      const today = new Date()
+      // Look for pending invoice with scheduled deduction date
+      const pendingInvoice = pm.subscriptionInvoices?.find(
+        (inv) => inv.paymentStatus === 'PENDING' && new Date(inv.deductionDate) >= today,
+      )
+
+      let targetDate: Date
+      if (pendingInvoice) {
+        targetDate = new Date(pendingInvoice.deductionDate)
+      } else {
+        const anniversaryDay = sub.anniversaryDate
+        const currentYear = today.getFullYear()
+        const currentMonth = today.getMonth()
+        const currentDay = today.getDate()
+
+        if (currentDay < anniversaryDay) {
+          targetDate = new Date(currentYear, currentMonth, anniversaryDay)
+        } else {
+          targetDate = new Date(currentYear, currentMonth + 1, anniversaryDay)
+        }
+      }
+
+      nextBillingDate = targetDate.toISOString()
+      const diffMs = targetDate.getTime() - today.getTime()
+      daysUntilNextBilling = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)))
+    }
+
+    let totalUnitsCount = 0
+    let occupiedUnitsCount = 0
+    for (const prop of decryptedProperties || []) {
+      for (const unit of prop.units || []) {
+        totalUnitsCount++
+        if (unit.tenant) {
+          occupiedUnitsCount++
+        }
+      }
+    }
+
+    const billableUnits = sub?.unitBillingMode === 'ALL' ? totalUnitsCount : occupiedUnitsCount
+    const yearlyRate = sub?.tier === 'TIER_2' ? 1500 : sub?.tier === 'TIER_3' ? 2250 : 0
+    const monthlySpend = Math.round(billableUnits * (yearlyRate / 12))
+    const yearlySpend = billableUnits * yearlyRate
+    const currentBalance = pm.wallet?.balance ?? 0
+    const coverageMonths =
+      monthlySpend > 0
+        ? Number((currentBalance / monthlySpend).toFixed(1))
+        : sub?.tier === 'FREE'
+          ? null
+          : 999
+
+    let walletStatus = 'HEALTHY'
+    if (sub && sub.tier !== 'FREE') {
+      if (currentBalance < monthlySpend) {
+        walletStatus = 'ACTION_REQUIRED'
+      } else if (currentBalance < monthlySpend * 2) {
+        walletStatus = 'LOW_BALANCE'
+      } else {
+        walletStatus = 'HEALTHY'
+      }
+    }
 
     return {
       type: 'PM',
@@ -316,6 +403,33 @@ export class GetAdminPmDetailUseCase {
       verification: pm.verification,
       subscription: pm.subscription,
       subscriptionLogs,
+      wallet: pm.wallet || {
+        balance: 0,
+        currency: 'NGN',
+        isActive: true,
+      },
+      dedicatedVirtualAccount: pm.dedicatedVirtualAccount
+        ? {
+            accountNumber: pm.dedicatedVirtualAccount.accountNumber,
+            accountName: pm.dedicatedVirtualAccount.accountName,
+            bankName: pm.dedicatedVirtualAccount.bankName,
+            bankCode: pm.dedicatedVirtualAccount.bankCode,
+          }
+        : null,
+      walletTransactions: pm.walletTransactions || [],
+      subscriptionInvoices: pm.subscriptionInvoices || [],
+      billingSummary: {
+        totalUnitsCount,
+        occupiedUnitsCount,
+        billableUnits,
+        yearlyRate,
+        monthlySpend,
+        yearlySpend,
+        coverageMonths,
+        walletStatus,
+        nextBillingDate,
+        daysUntilNextBilling,
+      },
     }
   }
 }

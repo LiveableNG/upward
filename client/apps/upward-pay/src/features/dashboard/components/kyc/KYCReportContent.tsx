@@ -3,7 +3,6 @@
 import { useRouter } from 'next/navigation'
 import {
   ShieldCheck,
-  Share2,
   CheckCircle2,
   Home,
   TrendingUp,
@@ -11,23 +10,20 @@ import {
   Clock,
   Zap,
   BadgeCheck,
-  Mail,
-  MessageCircle,
-  MessageSquare,
   Copy,
-  X,
-  ImageIcon,
+  Check,
 } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { UpwardLogo } from '@/components/PoweredByUpward'
 import { useAuth } from '@/features/auth/AuthContext'
 import { Capacitor } from '@capacitor/core'
 import FallbackSuspense from '@/components/FallbackSuspense'
-import { PayFlowPrimaryButton, PayPageShell } from '@/features/dashboard/components/payment/PayPageShell'
+import {
+  PayFlowPrimaryButton,
+  PayPageShell,
+} from '@/features/dashboard/components/payment/PayPageShell'
 import { useToast } from '@/components/common/Toast'
 import { useScoreProfile, usePublicScoreProfile } from '../../services/scoreService'
-import { ShareScorePreviewModal } from '../share/ShareScorePreviewModal'
-import { getScoreRankColor } from '../share/shareScoreImage'
 import { PublicProfileShell } from './PublicProfileShell'
 
 interface KYCReportContentProps {
@@ -38,6 +34,88 @@ interface KYCReportContentProps {
 function formatMonthYear(value?: string | null) {
   if (!value) return null
   return new Date(value).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })
+}
+
+function KYCReportSkeleton() {
+  return (
+    <div className="credibility-page animate-pulse" aria-hidden="true">
+      <div className="kyc-report">
+        <div
+          style={{
+            padding: '36px 24px 20px',
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+          }}
+        >
+          <div
+            style={{
+              width: 68,
+              height: 68,
+              borderRadius: '50%',
+              backgroundColor: 'var(--shell-border, #ede8e1)',
+              marginBottom: 14,
+            }}
+          />
+          <div
+            style={{
+              width: 140,
+              height: 18,
+              borderRadius: 6,
+              backgroundColor: 'var(--shell-border, #ede8e1)',
+              marginBottom: 8,
+            }}
+          />
+          <div
+            style={{
+              width: 90,
+              height: 12,
+              borderRadius: 4,
+              backgroundColor: 'var(--shell-border, #ede8e1)',
+              marginBottom: 24,
+            }}
+          />
+          <div
+            style={{
+              width: '100%',
+              height: 96,
+              borderRadius: 14,
+              backgroundColor: 'var(--shell-border, #ede8e1)',
+            }}
+          />
+        </div>
+        <div style={{ padding: '0 24px 24px' }}>
+          <div
+            style={{
+              width: 120,
+              height: 14,
+              borderRadius: 4,
+              backgroundColor: 'var(--shell-border, #ede8e1)',
+              marginBottom: 12,
+            }}
+          />
+          <div
+            style={{
+              width: '100%',
+              height: 72,
+              borderRadius: 12,
+              backgroundColor: 'var(--shell-border, #ede8e1)',
+              marginBottom: 12,
+            }}
+          />
+          <div
+            style={{
+              width: '100%',
+              height: 72,
+              borderRadius: 12,
+              backgroundColor: 'var(--shell-border, #ede8e1)',
+            }}
+          />
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportContentProps) {
@@ -51,107 +129,94 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
       setIsApp(true)
     }
   }, [])
-  
+
   const privateProfile = useScoreProfile()
   const publicProfile = usePublicScoreProfile(publicSlug || '')
-  
+
   const { data: scoreProfile, isLoading } = isPublic ? publicProfile : privateProfile
-  
-  const [showShareMenu, setShowShareMenu] = useState(false)
-  const [showImagePreview, setShowImagePreview] = useState(false)
 
-  const handleShare = () => {
-    setShowShareMenu(true)
-  }
+  const [copied, setCopied] = useState(false)
 
-  const handleShareImage = () => {
-    setShowShareMenu(false)
-    setShowImagePreview(true)
-  }
-
-  const handleShareSocial = async (platform: 'whatsapp' | 'email' | 'sms' | 'copy') => {
+  const handleCopyLink = async () => {
     const p = scoreProfile?.data?.profile
-    const identifier = p?.uuid
-    const defaultWebUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'
-    const baseUrl = Capacitor.isNativePlatform() 
-      ? defaultWebUrl 
-      : (typeof window !== 'undefined' ? window.location.origin : defaultWebUrl)
-
-    const url = `${baseUrl}/profile/${identifier}`
-    const shareText = `Check out my Rent Credibility Portfolio on Upward: ${url}`
-
-    setShowShareMenu(false)
-
-    if (platform === 'copy') {
-      navigator.clipboard.writeText(url)
-      success('Link copied to clipboard!')
+    const identifier = p?.profileSlug || p?.uuid
+    if (!identifier) {
+      toastError('Profile link not available')
       return
     }
+    const defaultWebUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'
+    const baseUrl = Capacitor.isNativePlatform()
+      ? defaultWebUrl
+      : typeof window !== 'undefined'
+        ? window.location.origin
+        : defaultWebUrl
 
-    let shareUrl = ''
-    if (platform === 'whatsapp') {
-      if (Capacitor.isNativePlatform()) {
-        shareUrl = `whatsapp://send?text=${encodeURIComponent(shareText)}`
-      } else {
-        shareUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`
-      }
-    } else if (platform === 'email') {
-      shareUrl = `mailto:?subject=${encodeURIComponent('Rent Credibility Portfolio')}&body=${encodeURIComponent(shareText)}`
-    } else if (platform === 'sms') {
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream
-      if (isIOS) {
-        shareUrl = `sms:&body=${encodeURIComponent(shareText)}`
-      } else {
-        shareUrl = `sms:?body=${encodeURIComponent(shareText)}`
-      }
-    }
+    const url = `${baseUrl}/profile/${identifier}`
 
-    if (shareUrl) {
-      if (Capacitor.isNativePlatform()) {
-        try {
-          const { Share } = await import('@capacitor/share')
-          await Share.share({
-            title: 'Rent Credibility Portfolio',
-            text: shareText,
-            url: url
-          })
-        } catch (e) {
-          window.open(shareUrl, '_system')
-        }
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url)
       } else {
-        window.open(shareUrl, '_blank')
+        const textArea = document.createElement('textarea')
+        textArea.value = url
+        document.body.appendChild(textArea)
+        textArea.select()
+        document.execCommand('copy')
+        document.body.removeChild(textArea)
       }
+      setCopied(true)
+      success('Link copied to clipboard!')
+      setTimeout(() => setCopied(false), 2500)
+    } catch {
+      toastError('Failed to copy link')
     }
   }
-
-
 
   if (isLoading || !scoreProfile) {
     if (isPublic) {
       return (
         <PublicProfileShell showSignup={!isLoggedIn} onJoin={() => router.push('/signup')}>
-          <FallbackSuspense />
+          <KYCReportSkeleton />
         </PublicProfileShell>
       )
     }
     return (
-      <PayPageShell
-        title="Credibility Profile"
-        showBack
-        onBack={() => router.push('/dashboard')}
-      >
-        <FallbackSuspense />
+      <PayPageShell title="Credibility Profile" showBack onBack={() => router.push('/dashboard')}>
+        <KYCReportSkeleton />
       </PayPageShell>
     )
   }
 
-  const { isScorable, score, maxScore, rank, band, metrics, profile, cycles, properties = [] } = scoreProfile.data
+  const {
+    isScorable,
+    score,
+    maxScore,
+    rank,
+    band,
+    metrics,
+    profile,
+    cycles,
+    properties = [],
+  } = scoreProfile.data
   const isFaded = !isScorable
-  const paidPaymentsCount = cycles.filter((c: any) => c.status && (c.status.includes('PAID') || c.status.includes('PARTIAL'))).length
-  const hasVerifiedPmProperty = properties.some((p: any) => p.isVerified && (p.isPmVerified || p.isPlatformLinked || p.pm?.isVerified || !!p.company?.platformId))
+  const paidPaymentsCount = cycles.filter(
+    (c: any) => c.status && (c.status.includes('PAID') || c.status.includes('PARTIAL')),
+  ).length
+  const hasVerifiedPmProperty = properties.some(
+    (p: any) =>
+      p.isVerified &&
+      (p.isPmVerified || p.isPlatformLinked || p.pm?.isVerified || !!p.company?.platformId),
+  )
   const verificationOn = profile?.verificationOn ?? true
-  const isVerified = (verificationOn === false || !!profile.isIdentityVerified) && paidPaymentsCount > 0 && hasVerifiedPmProperty
-  const initials = profile.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2)
+  const isVerified =
+    (verificationOn === false || !!profile.isIdentityVerified) &&
+    paidPaymentsCount > 0 &&
+    hasVerifiedPmProperty
+  const initials = profile.name
+    .split(' ')
+    .map((n: string) => n[0])
+    .join('')
+    .substring(0, 2)
 
   const getRankColor = () => {
     if (!isScorable) return isPublic ? '#c2501f' : '#928e89'
@@ -172,287 +237,234 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
     <button
       type="button"
       className="pay-flow__icon-btn"
-      onClick={handleShare}
-      title="Share portfolio"
-      aria-label="Share portfolio"
+      onClick={handleCopyLink}
+      title={copied ? 'Link copied' : 'Copy profile link'}
+      aria-label={copied ? 'Link copied' : 'Copy profile link'}
     >
-      <Share2 size={18} />
+      {copied ? <Check size={18} color="var(--clay)" /> : <Copy size={18} />}
     </button>
   )
 
-  const shareImageModal = !isPublic ? (
-    <ShareScorePreviewModal
-      open={showImagePreview}
-      onClose={() => setShowImagePreview(false)}
-      cardProps={{
-        profileUuid: profile.uuid,
-        name: profile.name,
-        profilePic: profile.profilePic,
-        initials,
-        score,
-        maxScore,
-        rank,
-        band,
-        isScorable,
-        onTimePct: metrics.ptPercentage,
-        longestStreak: metrics.longestStreak,
-        profileRef: `UPW-${profile.profileSlug || 'CORE'}`,
-        rankColor: getScoreRankColor(rank, isScorable, isVerified),
-      }}
-      onShared={(mode) => {
-        if (mode === 'shared') success('Image ready — pick WhatsApp, Instagram, or another app.')
-        else success('Image saved to your device.')
-      }}
-      onError={(message) => toastError(message)}
-    />
-  ) : null
-
-  const shareModal = showShareMenu ? (
-    <div className="share-overlay" onClick={() => setShowShareMenu(false)}>
-      <div className="share-menu" onClick={(e) => e.stopPropagation()}>
-        <div className="share-menu__header">
-          <h4>Share Portfolio</h4>
-          <button type="button" className="share-menu__close" onClick={() => setShowShareMenu(false)}>
-            <X size={16} />
-          </button>
-        </div>
-        <div className="share-menu__options">
-          <button
-            type="button"
-            className="share-menu__option share-menu__option--featured"
-            onClick={handleShareImage}
-          >
-            <div className="share-menu__icon image-color">
-              <ImageIcon size={20} />
-            </div>
-            <span className="share-menu__text">Share as image (Story / WhatsApp)</span>
-          </button>
-          <button type="button" className="share-menu__option" onClick={() => handleShareSocial('whatsapp')}>
-            <div className="share-menu__icon whatsapp-color">
-              <MessageCircle size={20} />
-            </div>
-            <span className="share-menu__text">WhatsApp</span>
-          </button>
-          <button type="button" className="share-menu__option" onClick={() => handleShareSocial('email')}>
-            <div className="share-menu__icon email-color">
-              <Mail size={20} />
-            </div>
-            <span className="share-menu__text">Email</span>
-          </button>
-          <button type="button" className="share-menu__option" onClick={() => handleShareSocial('sms')}>
-            <div className="share-menu__icon sms-color">
-              <MessageSquare size={20} />
-            </div>
-            <span className="share-menu__text">SMS</span>
-          </button>
-          <button type="button" className="share-menu__option" onClick={() => handleShareSocial('copy')}>
-            <div className="share-menu__icon copy-color">
-              <Copy size={20} />
-            </div>
-            <span className="share-menu__text">Copy Link</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  ) : null
-
   const reportCard = (
     <div className="kyc-report">
-          <div className="kyc-report__watermark">
-            <UpwardLogo size={240} color="var(--clay)" />
-          </div>
+      <div className="kyc-report__watermark">
+        <UpwardLogo size={240} color="var(--clay)" />
+      </div>
 
-          <div className="kyc-report__header">
-            <div className="kyc-report__badge">
-              <ShieldCheck size={12} /> Official Tenant Credential
-            </div>
+      <div className="kyc-report__header">
+        <div className="kyc-report__badge">
+          <ShieldCheck size={12} /> Official Tenant Credential
+        </div>
 
-            <div className="kyc-report__avatar-wrap">
-              {profile.profilePic ? (
-                 <img src={profile.profilePic} alt={profile.name} className="kyc-report__avatar-img" />
-              ) : (
-                <span>{initials}</span>
-              )}
-              <div className="kyc-report__avatar-verified">
-                <CheckCircle2 size={12} strokeWidth={3} />
-              </div>
-            </div>
-
-            <h1 className="kyc-report__name">{profile.name}</h1>
-            
-            <div className="kyc-report__meta">
-              {isVerified ? (
-                <>
-                  <ShieldCheck size={13} color="var(--success)" />
-                  Verified Score
-                </>
-              ) : (
-                <>
-                  <BadgeCheck size={13} color="var(--text-muted)" />
-                  Unverified Tenant
-                </>
-              )}
-              <span className="kyc-report__meta-dot" />
-              Credibility Rating
-              <span className="kyc-report__meta-dot" />
-              {paidPaymentsCount} Payments Made
-            </div>
-            
-            {profile.bio && (
-                <p className="kyc-report__bio">{profile.bio}</p>
-            )}
-
-            <div
-              className={[
-                'kyc-report__score-box',
-                isFaded && !isPublic && 'opacity-50',
-                isFaded && isPublic && 'kyc-report__score-box--building',
-              ]
-                .filter(Boolean)
-                .join(' ')}
-            >
-              <div className="kyc-report__score-left">
-                <span className="kyc-report__score-label">{isScorable ? 'Rent Credibility Score' : 'Score Building'}</span>
-                <div className="kyc-report__score-value-wrap">
-                   <div className="kyc-report__score-value">{score}</div>
-                   <div className="kyc-report__score-max">/ {maxScore ?? 0}</div>
-                </div>
-                <div className="kyc-report__score-tier">
-                  <Star size={12} fill={getRankColor()} color={getRankColor()} />
-                  {isScorable ? `Tier: ${rank} (${band})` : 'New profile building history'}
-                </div>
-              </div>
-              <div className="kyc-report__score-gauge">
-                <div className="kyc-report__score-gauge-inner" style={{ color: getRankColor() }}>
-                  {Math.round(scorePct)}%
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="kyc-report__body">
-            {/* Real Properties Listing */}
-            <section className="kyc-report__section">
-              <p className="kyc-report__section-title">
-                <Home size={14} color={isVerified || isPublic ? 'var(--clay)' : '#928e89'} />
-                Tenancy History
-              </p>
-              <div className="kyc-report__properties-list">
-                {properties.length === 0 ? (
-                  <div className="kyc-report__property-empty">No verified properties linked yet.</div>
-                ) : (
-                  properties.map((p: any, i: number) => {
-                    const isPmVerified = p.isPmVerified || p.pm?.isVerified;
-                    const isPlatformLinked = p.isPlatformLinked || !!p.company?.platformId;
-                    
-                    return (
-                      <div key={i} className="kyc-report__property-item">
-                         <div className="kyc-report__property-head">
-                            <span className="kyc-report__property-addr">{p.location?.address || 'Property Address'}, {p.location?.area || 'Area'}</span>
-                            <div className="kyc-report__property-badges">
-                              {p.isVerified ? (
-                                 <span className="kyc-report__property-badge kyc-report__property-badge--verified">Verified Connection</span>
-                              ) : (
-                                 <span className="kyc-report__property-badge kyc-report__property-badge--pending">Pending Connection</span>
-                              )}
-                              
-                              {isPlatformLinked && p.isVerified && (
-                                 <span className="kyc-report__property-badge kyc-report__property-badge--platform">Platform Synced</span>
-                              )}
-                              
-                              {!isPlatformLinked && p.isVerified && (
-                                 isPmVerified ? (
-                                    <span className="kyc-report__property-badge kyc-report__property-badge--pm">Verified PM</span>
-                                 ) : (
-                                    <span className="kyc-report__property-badge kyc-report__property-badge--muted">Unverified PM</span>
-                                 )
-                              )}
-                            </div>
-                         </div>
-                         <div className="kyc-report__property-meta">
-                            <span>{p.location?.state}, {p.location?.country}</span>
-                            <span className="kyc-report__meta-dot" />
-                            <span>
-                              {p.rentStartDate ? formatMonthYear(p.rentStartDate) : 'N/A'}
-                              {p.isPastTenancy || (p.rentEndDate && new Date(p.rentEndDate) < new Date())
-                                ? ` — ${p.rentEndDate ? formatMonthYear(p.rentEndDate) : 'Present'}`
-                                : ' — Present'}
-                            </span>
-                         </div>
-                      </div>
-                    )
-                  })
-                )}
-              </div>
-            </section>
-
-            <section className="kyc-report__section">
-              <p className="kyc-report__section-title">
-                <Clock size={14} color={isVerified || isPublic ? 'var(--clay)' : '#928e89'} />
-                Recent Observations
-              </p>
-              <div className="kyc-report__timeline">
-                {cycles.filter((c: any) => !c.excluded).length === 0 ? (
-                  <p className="kyc-report__timeline-empty">No recent payment history observed on this profile.</p>
-                ) : (
-                  cycles.filter((c: any) => !c.excluded).slice(0, 5).map((t: any, i: number) => (
-                    <div key={i} className="kyc-report__timeline-item">
-                      <div className="kyc-report__timeline-dot">
-                        <Home size={13} />
-                      </div>
-                      <div className="kyc-report__timeline-content">
-                        <div className="kyc-report__timeline-row">
-                          <div>
-                            <p className="kyc-report__timeline-title">Performance: {t.status}</p>
-                            <p className="kyc-report__timeline-sub">
-                              Due: {new Date(t.dueDate).toLocaleDateString()} 
-                              {t.paidDate && ` · Paid: ${new Date(t.paidDate).toLocaleDateString()}`}
-                            </p>
-
-                          </div>
-                          <span className={`${t.ptValue >= 1 ? 'status-tag--perfect' : t.ptValue >= 0.7 ? 'status-tag--grace' : 'status-tag--late'} kyc-report__status-tag`}>
-                             {(() => {
-                               const isPerfect = t.ptValue >= 1;
-                               const isGrace = t.ptValue >= 0.7 && t.ptValue < 1;
-                               const isLate = t.ptValue < 0.7;
-                               if (isGrace) return 'Grace';
-                               if (t.paidDate && t.dueDate) {
-                                 const dueDate = new Date(t.dueDate);
-                                 const paidDate = new Date(t.paidDate);
-                                 const diffTime = dueDate.getTime() - paidDate.getTime();
-                                 const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                                 if (isPerfect && diffDays > 0) return `${diffDays} days before due date`;
-                                 if (isLate && diffDays < 0) return `${Math.abs(diffDays)} days after due date`;
-                               }
-                               return isPerfect ? 'On-Time' : 'Late';
-                             })()}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </section>
-          </div>
-
-          <div className="kyc-report__footer">
-            <div className="kyc-report__brand">
-              <UpwardLogo size={14} color="var(--clay)" />
-              <span>Verified Portolio by Upward</span>
-            </div>
-            <p className="kyc-report__ref">
-              Updated: {new Date().toLocaleDateString()} · Ref: UPW-{profile.profileSlug || 'CORE'}
-            </p>
+        <div className="kyc-report__avatar-wrap">
+          {profile.profilePic ? (
+            <img src={profile.profilePic} alt={profile.name} className="kyc-report__avatar-img" />
+          ) : (
+            <span>{initials}</span>
+          )}
+          <div className="kyc-report__avatar-verified">
+            <CheckCircle2 size={12} strokeWidth={3} />
           </div>
         </div>
+
+        <h1 className="kyc-report__name">{profile.name}</h1>
+
+        <div className="kyc-report__meta">
+          {isVerified ? (
+            <>
+              <ShieldCheck size={13} color="var(--success)" />
+              Verified Score
+            </>
+          ) : (
+            <>
+              <BadgeCheck size={13} color="var(--text-muted)" />
+              Unverified Tenant
+            </>
+          )}
+          <span className="kyc-report__meta-dot" />
+          Credibility Rating
+          <span className="kyc-report__meta-dot" />
+          {paidPaymentsCount} Payments Made
+        </div>
+
+        {profile.bio && <p className="kyc-report__bio">{profile.bio}</p>}
+
+        <div
+          className={[
+            'kyc-report__score-box',
+            isFaded && !isPublic && 'opacity-50',
+            isFaded && isPublic && 'kyc-report__score-box--building',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+        >
+          <div className="kyc-report__score-left">
+            <span className="kyc-report__score-label">
+              {isScorable ? 'Rent Credibility Score' : 'Score Building'}
+            </span>
+            <div className="kyc-report__score-value-wrap">
+              <div className="kyc-report__score-value">{score}</div>
+              <div className="kyc-report__score-max">/ {maxScore ?? 0}</div>
+            </div>
+            <div className="kyc-report__score-tier">
+              <Star size={12} fill={getRankColor()} color={getRankColor()} />
+              {isScorable ? `Tier: ${rank} (${band})` : 'New profile building history'}
+            </div>
+          </div>
+          <div className="kyc-report__score-gauge">
+            <div className="kyc-report__score-gauge-inner" style={{ color: getRankColor() }}>
+              {Math.round(scorePct)}%
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="kyc-report__body">
+        {/* Real Properties Listing */}
+        <section className="kyc-report__section">
+          <p className="kyc-report__section-title">
+            <Home size={14} color={isVerified || isPublic ? 'var(--clay)' : '#928e89'} />
+            Tenancy History
+          </p>
+          <div className="kyc-report__properties-list">
+            {properties.length === 0 ? (
+              <div className="kyc-report__property-empty">No verified properties linked yet.</div>
+            ) : (
+              properties.map((p: any, i: number) => {
+                const isPmVerified = p.isPmVerified || p.pm?.isVerified
+                const isPlatformLinked = p.isPlatformLinked || !!p.company?.platformId
+
+                return (
+                  <div key={i} className="kyc-report__property-item">
+                    <div className="kyc-report__property-head">
+                      <span className="kyc-report__property-addr">
+                        {p.location?.address || 'Property Address'}, {p.location?.area || 'Area'}
+                      </span>
+                      <div className="kyc-report__property-badges">
+                        {p.isVerified ? (
+                          <span className="kyc-report__property-badge kyc-report__property-badge--verified">
+                            Verified Connection
+                          </span>
+                        ) : (
+                          <span className="kyc-report__property-badge kyc-report__property-badge--pending">
+                            Pending Connection
+                          </span>
+                        )}
+
+                        {isPlatformLinked && p.isVerified && (
+                          <span className="kyc-report__property-badge kyc-report__property-badge--platform">
+                            Platform Synced
+                          </span>
+                        )}
+
+                        {!isPlatformLinked &&
+                          p.isVerified &&
+                          (isPmVerified ? (
+                            <span className="kyc-report__property-badge kyc-report__property-badge--pm">
+                              Verified PM
+                            </span>
+                          ) : (
+                            <span className="kyc-report__property-badge kyc-report__property-badge--muted">
+                              Unverified PM
+                            </span>
+                          ))}
+                      </div>
+                    </div>
+                    <div className="kyc-report__property-meta">
+                      <span>
+                        {p.location?.state}, {p.location?.country}
+                      </span>
+                      <span className="kyc-report__meta-dot" />
+                      <span>
+                        {p.rentStartDate ? formatMonthYear(p.rentStartDate) : 'N/A'}
+                        {p.isPastTenancy || (p.rentEndDate && new Date(p.rentEndDate) < new Date())
+                          ? ` — ${p.rentEndDate ? formatMonthYear(p.rentEndDate) : 'Present'}`
+                          : ' — Present'}
+                      </span>
+                    </div>
+                  </div>
+                )
+              })
+            )}
+          </div>
+        </section>
+
+        <section className="kyc-report__section">
+          <p className="kyc-report__section-title">
+            <Clock size={14} color={isVerified || isPublic ? 'var(--clay)' : '#928e89'} />
+            Recent Observations
+          </p>
+          <div className="kyc-report__timeline">
+            {cycles.filter((c: any) => !c.excluded).length === 0 ? (
+              <p className="kyc-report__timeline-empty">
+                No recent payment history observed on this profile.
+              </p>
+            ) : (
+              cycles
+                .filter((c: any) => !c.excluded)
+                .slice(0, 5)
+                .map((t: any, i: number) => (
+                  <div key={i} className="kyc-report__timeline-item">
+                    <div className="kyc-report__timeline-dot">
+                      <Home size={13} />
+                    </div>
+                    <div className="kyc-report__timeline-content">
+                      <div className="kyc-report__timeline-row">
+                        <div>
+                          <p className="kyc-report__timeline-title">Performance: {t.status}</p>
+                          <p className="kyc-report__timeline-sub">
+                            Due: {new Date(t.dueDate).toLocaleDateString()}
+                            {t.paidDate && ` · Paid: ${new Date(t.paidDate).toLocaleDateString()}`}
+                          </p>
+                        </div>
+                        <span
+                          className={`${t.ptValue >= 1 ? 'status-tag--perfect' : t.ptValue >= 0.7 ? 'status-tag--grace' : 'status-tag--late'} kyc-report__status-tag`}
+                        >
+                          {(() => {
+                            const isPerfect = t.ptValue >= 1
+                            const isGrace = t.ptValue >= 0.7 && t.ptValue < 1
+                            const isLate = t.ptValue < 0.7
+                            if (isGrace) return 'Grace'
+                            if (t.paidDate && t.dueDate) {
+                              const dueDate = new Date(t.dueDate)
+                              const paidDate = new Date(t.paidDate)
+                              const diffTime = dueDate.getTime() - paidDate.getTime()
+                              const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+                              if (isPerfect && diffDays > 0)
+                                return `${diffDays} days before due date`
+                              if (isLate && diffDays < 0)
+                                return `${Math.abs(diffDays)} days after due date`
+                            }
+                            return isPerfect ? 'On-Time' : 'Late'
+                          })()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))
+            )}
+          </div>
+        </section>
+      </div>
+
+      <div className="kyc-report__footer">
+        <div className="kyc-report__brand">
+          <UpwardLogo size={14} color="var(--clay)" />
+          <span>Verified Portolio by Upward</span>
+        </div>
+        <p className="kyc-report__ref">
+          Updated: {new Date().toLocaleDateString()} · Ref: UPW-{profile.profileSlug || 'CORE'}
+        </p>
+      </div>
+    </div>
   )
 
   const unverifiedNotice = !isVerified ? (
     <div className="credibility-page__notice">
       <ShieldCheck size={16} />
       <span>
-        <strong>Profile not fully verified.</strong> Connect with an Upward partner landlord and complete payments to unlock your live score.
+        <strong>Profile not fully verified.</strong> Connect with an Upward partner landlord and
+        complete payments to unlock your live score.
       </span>
     </div>
   ) : null
@@ -488,7 +500,7 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
           </section>
         ) : null}
 
-        {shareModal}
+        {/* public view ends */}
       </PublicProfileShell>
     )
   }
@@ -502,9 +514,9 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
       rightElement={shareHeaderButton}
       footer={
         !isApp ? (
-          <PayFlowPrimaryButton onClick={handleShare}>
-            <Share2 size={18} />
-            Share portfolio
+          <PayFlowPrimaryButton onClick={handleCopyLink}>
+            {copied ? <Check size={18} /> : <Copy size={18} />}
+            {copied ? 'Link copied!' : 'Copy profile link'}
           </PayFlowPrimaryButton>
         ) : undefined
       }
@@ -513,8 +525,6 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
         {unverifiedNotice}
         {reportCard}
       </div>
-      {shareModal}
-      {shareImageModal}
     </PayPageShell>
   )
 }

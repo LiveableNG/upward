@@ -5,6 +5,7 @@ import { AuthProvider } from '@/features/auth/AuthContext'
 import { LaunchDarklyProvider } from '@/features/premium/components/LaunchDarklyProvider'
 import Providers from './Providers'
 import { SmartAppBanner } from '@/components/common/SmartAppBanner'
+import { OfflineBanner } from '@/components/common/OfflineBanner'
 import './globals.css'
 
 const inter = Inter({
@@ -18,7 +19,6 @@ const plusJakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
   weight: ['400', '500', '600', '700', '800'],
 })
-
 
 export const metadata: Metadata = {
   title: 'Upward Pay — Secure Rent Payments',
@@ -55,11 +55,11 @@ export default function RootLayout({
           <AuthProvider>
             <LaunchDarklyProvider>
               <SmartAppBanner />
+              <OfflineBanner />
               {children}
             </LaunchDarklyProvider>
           </AuthProvider>
         </Providers>
-
 
         {GA_ID && (
           <>

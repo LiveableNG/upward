@@ -71,7 +71,9 @@ export class SwitchDedicatedAccountUseCase {
       targetUserPropertyId = prop.id
       tenantUser = prop.user
     } else {
-      throw new BadRequestException('Either userPropertyId, paymentRequestUuid, or userId must be provided')
+      throw new BadRequestException(
+        'Either userPropertyId, paymentRequestUuid, or userId must be provided',
+      )
     }
 
     const existingAccounts = await this.dvaRepo.findAllByUserPropertyId(targetUserPropertyId)
@@ -111,8 +113,10 @@ export class SwitchDedicatedAccountUseCase {
     })
     const isTargetTitan = targetBank === 'titan-paystack'
 
-    if (matchingExisting && matchingExisting.accountNumber !== currentActive?.accountNumber) {
-      this.logger.log(`Activating existing cached DVA for ${targetBank}: ${matchingExisting.accountNumber}`)
+    if (matchingExisting) {
+      this.logger.log(
+        `Activating existing cached DVA for ${targetBank}: ${matchingExisting.accountNumber}`,
+      )
       // Only set as permanent default if target bank is Titan or if user has no Titan account
       if (!hasTitan || isTargetTitan) {
         await this.dvaRepo.setDefault(matchingExisting.id, targetUserPropertyId)

@@ -5,6 +5,7 @@ import { UpwardLogo } from '../../../../components/PoweredByUpward'
 import { api } from '@/lib/api'
 import DedicatedAccountCheckout from './DedicatedAccountCheckout'
 import { useToast } from '@/components/common/Toast'
+import { sessionTracker } from '@/lib/sessionTracker'
 
 interface PaystackEmbeddedProps {
   email: string
@@ -24,7 +25,6 @@ interface PaystackEmbeddedProps {
   gatewayFee?: number
   paymentRequestUuid?: string
 }
-
 
 export default function PaystackEmbeddedCheckout({
   email,
@@ -79,7 +79,7 @@ export default function PaystackEmbeddedCheckout({
             lineItems: parsedLineItems,
             paymentType,
             propertyAddress,
-          }
+          },
         })
 
         if (res && res.type === 'DVA') {
@@ -87,20 +87,24 @@ export default function PaystackEmbeddedCheckout({
             type: 'DVA',
             dva: res.dva,
             reference: res.reference,
-            amount: res.amount
+            amount: res.amount,
           })
         } else if (res && res.type === 'PAYSTACK') {
           if (!res.accessCode) {
-            throw new Error('Standard checkout is required, but the payment access code could not be resolved. Please contact support.')
+            throw new Error(
+              'Standard checkout is required, but the payment access code could not be resolved. Please contact support.',
+            )
           }
           setConfig({
             type: 'PAYSTACK',
             accessCode: res.accessCode,
             reference: res.reference,
-            amount: res.amount
+            amount: res.amount,
           })
         } else {
-          throw new Error('Direct bank transfer is required for this property, but the payment account could not be resolved. Please contact support.')
+          throw new Error(
+            'Direct bank transfer is required for this property, but the payment account could not be resolved. Please contact support.',
+          )
         }
       } catch (err: any) {
         console.error('Failed to initialize payment:', err)
@@ -110,26 +114,82 @@ export default function PaystackEmbeddedCheckout({
       }
     }
     init()
-  }, [accessCode, amount, companyName, lineItemsStr, metadataStr, paymentRequestUuid, paymentType, propertyAddress, reference])
+  }, [
+    accessCode,
+    amount,
+    companyName,
+    lineItemsStr,
+    metadataStr,
+    paymentRequestUuid,
+    paymentType,
+    propertyAddress,
+    reference,
+  ])
 
   useEffect(() => {
+    sessionTracker.trackEvent(
+      'OPEN_CHECKOUT_MODAL',
+      {
+        amount,
+        paymentType,
+        companyName,
+        paymentRequestUuid,
+      },
+      'CHECKOUT_MODAL',
+    )
+
     if (config?.type === 'PAYSTACK' && config.accessCode) {
       const scriptId = 'paystack-inline-js'
       let script = document.getElementById(scriptId) as HTMLScriptElement
 
       const openPaystackPopup = () => {
         try {
+          sessionTracker.trackEvent(
+            'INITIATE_PAYSTACK',
+            {
+              accessCode: config.accessCode,
+              amount: config.amount,
+              reference: config.reference,
+            },
+            'PAYSTACK_POPUP',
+          )
+
           const popup = new (window as any).PaystackPop()
           popup.resumeTransaction(config.accessCode, {
             onSuccess: (transaction: any) => {
+              sessionTracker.trackEvent(
+                'PAYMENT_SUCCESS',
+                {
+                  reference: transaction.reference,
+                  amount: config.amount,
+                },
+                'PAYMENT_COMPLETE',
+              )
               onSuccess(transaction.reference)
             },
             onCancel: () => {
+              sessionTracker.trackEvent(
+                'PAYSTACK_CLOSED_UNPAID',
+                {
+                  amount: config.amount,
+                  accessCode: config.accessCode,
+                  reference: config.reference,
+                },
+                'PAYSTACK_CANCELLED',
+              )
               onClose()
-            }
+            },
           })
-        } catch (popupErr) {
+        } catch (popupErr: any) {
           console.error('Paystack popup error:', popupErr)
+          sessionTracker.trackEvent(
+            'PAYMENT_ERROR',
+            {
+              error: popupErr?.message || 'Failed to open Paystack secure checkout popup',
+              accessCode: config.accessCode,
+            },
+            'PAYSTACK_ERROR',
+          )
           setError('Failed to open Paystack secure checkout popup.')
           toast.error('Failed to load payment modal', 'Payment Error')
         }
@@ -142,6 +202,13 @@ export default function PaystackEmbeddedCheckout({
         script.async = true
         script.onload = openPaystackPopup
         script.onerror = () => {
+          sessionTracker.trackEvent(
+            'PAYMENT_ERROR',
+            {
+              error: 'Failed to load Paystack payment script from CDN',
+            },
+            'CDN_ERROR',
+          )
           setError('Failed to load Paystack payment library.')
           toast.error('Could not load Paystack checkout script', 'Network Error')
         }
@@ -154,7 +221,7 @@ export default function PaystackEmbeddedCheckout({
         }
       }
     }
-  }, [config, onSuccess, onClose, toast])
+  }, [config, onSuccess, onClose, toast, amount, paymentType, companyName, paymentRequestUuid])
 
   if (config?.type === 'DVA') {
     return (
@@ -200,7 +267,7 @@ export default function PaystackEmbeddedCheckout({
         </p>
       ) : (
         <div style={{ marginTop: 32, display: 'flex', gap: 16 }}>
-          <button 
+          <button
             onClick={onClose}
             style={{
               padding: '12px 24px',
@@ -216,8 +283,8 @@ export default function PaystackEmbeddedCheckout({
             Go Back
           </button>
           {error.includes('phone number') && (
-            <button 
-              onClick={() => window.location.href = '/dashboard?tab=profile'} 
+            <button
+              onClick={() => (window.location.href = '/dashboard?tab=profile')}
               style={{
                 padding: '12px 24px',
                 borderRadius: '8px',

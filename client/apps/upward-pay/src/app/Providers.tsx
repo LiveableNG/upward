@@ -1,8 +1,8 @@
 'use client'
-const originalToLocaleString = Number.prototype.toLocaleString;
+const originalToLocaleString = Number.prototype.toLocaleString
 Number.prototype.toLocaleString = function (locales, options) {
-  return originalToLocaleString.call(this, locales || 'en-US', options);
-};
+  return originalToLocaleString.call(this, locales || 'en-US', options)
+}
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
@@ -14,6 +14,8 @@ import { Capacitor } from '@capacitor/core'
 import { ToastProvider } from '@/components/common/Toast'
 import { ThemeProvider } from '@/features/dashboard/components/ThemeProvider'
 import { GlobalPaymentSuccessModal } from '@/components/common/GlobalPaymentSuccessModal'
+import { SessionRouteTracker } from '@/components/common/SessionRouteTracker'
+import { AppUpdateProvider } from '@/features/update/AppUpdateProvider'
 import { request } from '@/lib/api-client'
 
 export default function Providers({ children }: { children: React.ReactNode }) {
@@ -56,7 +58,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       console.log('[DeepLink] Processing URL:', urlString)
       try {
         const url = new URL(urlString)
-        
+
         let targetPath = ''
         if (url.protocol === 'upward:') {
           targetPath = `/${url.host}${url.pathname}${url.search}${url.hash}`
@@ -69,10 +71,10 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         }
 
         console.log('[DeepLink] Final targetPath:', targetPath)
-        
+
         // Give the router a moment to be ready
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+
         if (Capacitor.isNativePlatform()) {
           if (targetPath.startsWith('/invite/')) {
             const t = targetPath.split('/invite/')[1]?.split(/[?#]/)[0]
@@ -118,45 +120,15 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     }
   }, [router])
 
-  useEffect(() => {
-    const trackAppInstall = async () => {
-      try {
-        const isTrackingDone = localStorage.getItem('upward_pay_install_tracked')
-        if (!isTrackingDone) {
-          const platform = Capacitor.getPlatform()
-          
-          let installationId = localStorage.getItem('upward_pay_installation_id')
-          if (!installationId) {
-            installationId = crypto.randomUUID()
-            localStorage.setItem('upward_pay_installation_id', installationId)
-          }
-
-          await request('/public/tracking/install', {
-            method: 'POST',
-            body: JSON.stringify({
-              platform,
-              installationId,
-              deviceModel: typeof window !== 'undefined' ? window.navigator.userAgent : 'unknown',
-              osVersion: typeof window !== 'undefined' ? window.navigator.platform : 'unknown',
-            }),
-          })
-          
-          localStorage.setItem('upward_pay_install_tracked', 'true')
-        }
-      } catch (err) {
-        console.error('Failed to track app install:', err)
-      }
-    }
-
-    trackAppInstall()
-  }, [])
-
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <ToastProvider>
-          {children}
-          <GlobalPaymentSuccessModal />
+          <AppUpdateProvider>
+            <SessionRouteTracker />
+            {children}
+            <GlobalPaymentSuccessModal />
+          </AppUpdateProvider>
         </ToastProvider>
       </ThemeProvider>
       <ReactQueryDevtools initialIsOpen={false} />

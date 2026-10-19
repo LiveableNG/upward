@@ -1,37 +1,52 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { OnEvent } from '@nestjs/event-emitter';
-import { PrismaService } from '../prisma/prisma.service';
-import { AppActivityEvent } from './activity-tracking.service';
+import { Injectable, Logger } from '@nestjs/common'
+import { OnEvent } from '@nestjs/event-emitter'
+import { PrismaService } from '../prisma/prisma.service'
+import { AppActivityEvent } from './activity-tracking.service'
 
 @Injectable()
 export class ActivityTrackingListener {
-  private readonly logger = new Logger(ActivityTrackingListener.name);
+  private readonly logger = new Logger(ActivityTrackingListener.name)
 
   constructor(private readonly prisma: PrismaService) {}
 
   @OnEvent('app.activity')
   async handleActivity(event: AppActivityEvent) {
     try {
-      let userId: number | null = null;
-      let pmId: number | null = null;
+      let userId: number | null = null
+      let pmId: number | null = null
 
       if (event.userUuid) {
         if (event.userRole === 'PM') {
           const pm = await this.prisma.upward_property_manager.findUnique({
             where: { uuid: event.userUuid },
             select: { id: true },
-          });
+          })
           if (pm) {
-            pmId = pm.id;
+            pmId = pm.id
           }
-        } else if (event.userRole === 'TENANT') {
+        } else if (event.userRole === 'TENANT' || !event.userRole || event.userRole === 'GUEST') {
           const user = await this.prisma.upward_user.findUnique({
             where: { uuid: event.userUuid },
             select: { id: true },
-          });
+          })
           if (user) {
-            userId = user.id;
+            userId = user.id
           }
+        }
+      }
+
+      // Fallback: If userId not resolved yet, but we have userEmail
+      if (
+        !userId &&
+        event.userEmail &&
+        (event.userRole === 'TENANT' || !event.userRole || event.userRole === 'GUEST')
+      ) {
+        const user = await this.prisma.upward_user.findFirst({
+          where: { email: { equals: event.userEmail, mode: 'insensitive' } },
+          select: { id: true },
+        })
+        if (user) {
+          userId = user.id
         }
       }
 
@@ -50,9 +65,12 @@ export class ActivityTrackingListener {
           ipAddress: event.ipAddress || null,
           userAgent: event.userAgent || null,
         },
-      });
+      })
     } catch (error: any) {
-      this.logger.error(`Failed to record app activity log: ${error?.message || error}`, error?.stack);
+      this.logger.error(
+        `Failed to record app activity log: ${error?.message || error}`,
+        error?.stack,
+      )
     }
   }
 }

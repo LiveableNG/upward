@@ -16,10 +16,7 @@ export class CronController {
   constructor(private readonly scheduleService: ScheduleService) {}
 
   @Get('run')
-  async runCron(
-    @Query('secret') secret: string,
-    @Query('tasks') tasks?: string,
-  ) {
+  async runCron(@Query('secret') secret: string, @Query('tasks') tasks?: string) {
     const cronSecret = process.env.CRON_SECRET
     if (!cronSecret) {
       throw new UnauthorizedException('CRON_SECRET is not configured')
@@ -40,14 +37,18 @@ export class CronController {
         paymentreminders: 'reminders',
         processscheduledrequests: 'reminders',
         refunds: 'settlements',
+        billing: 'subscriptionBilling',
+        subscriptions: 'subscriptionBilling',
       }
 
-      for (const raw of tasks.split(',').map((t) => t.trim()).filter(Boolean)) {
+      for (const raw of tasks
+        .split(',')
+        .map((t) => t.trim())
+        .filter(Boolean)) {
         const name = alias[raw.toLowerCase()] || raw
         Object.assign(results, await this.scheduleService.runTask(name))
       }
     }
-
 
     return {
       success: true,

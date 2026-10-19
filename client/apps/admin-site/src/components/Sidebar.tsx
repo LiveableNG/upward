@@ -20,6 +20,7 @@ import {
   MousePointer,
   Sparkles,
   Inbox,
+  Download,
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -51,7 +52,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
   const sections: NavSection[] = []
 
   // 1. Overview
-  const overviewItems: NavItem[] = [{ name: 'Dashboard', path: '/', icon: LayoutDashboard }]
+  const overviewItems: NavItem[] = [
+    { name: 'Dashboard', path: '/', icon: LayoutDashboard },
+    { name: 'App Releases', path: '/app-releases', icon: Download },
+    { name: 'App Telemetry', path: '/app-activity', icon: Smartphone },
+  ]
   if (showSandboxTools) {
     overviewItems.push({ name: 'Campaigns', path: '/campaigns', icon: CalendarClock })
     overviewItems.push({ name: 'Fee Overrides', path: '/overrides', icon: SlidersHorizontal })
@@ -100,9 +105,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
     devItems.push({ name: 'Demo Bank Simulator', path: '/demo-bank', icon: Landmark })
   }
   if (isSuperadmin) {
-    if (showSandboxTools) {
-      devItems.push({ name: 'App Activity Logs', path: '/app-activity', icon: Smartphone })
-    }
     devItems.push({ name: 'User Feedback', path: '/feedback', icon: MessageSquare })
     if (showSandboxTools) {
       devItems.push({ name: 'Dev Email Sandbox', path: '/dev-emails', icon: Mail })

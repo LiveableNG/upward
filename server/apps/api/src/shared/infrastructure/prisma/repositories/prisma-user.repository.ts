@@ -44,7 +44,7 @@ export class PrismaUserRepository implements UserRepository {
         },
       },
     },
-  };
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private toDomain(model: any): User {
@@ -76,139 +76,173 @@ export class PrismaUserRepository implements UserRepository {
       termsAcceptedAt: model.termsAcceptedAt,
       termsVersion: model.termsVersion,
       hearAboutUs: model.hearAboutUs,
-      properties: model.properties ? model.properties.map((p: any) => ({
-        id: p.id,
-        uuid: p.uuid,
-        rentStartDate: p.pmUnit?.rentPayments?.[0]?.periodStart ? p.pmUnit.rentPayments[0].periodStart : p.rentStartDate,
-        rentEndDate: p.pmUnit?.rentPayments?.[0]?.periodEnd ? p.pmUnit.rentPayments[0].periodEnd : p.rentEndDate,
-        rentAmount: p.rentAmount,
-        amountPaid: p.amountPaid,
-        amountRemaining: p.amountRemaining,
-        initialAmountPaid: p.initialAmountPaid ?? 0,
-        isFirstRent: !!p.isFirstRent,
-        currency: p.currency,
-        location: p.location,
-        unitName: p.pmUnit?.unitName || undefined,
-        isManaged: !!(p.pmId && p.isVerified) || !!((p.company?.platformId || p.platformId) && p.isVerified),
-        isVerified: !!p.isVerified,
-        isPmVerified: p.pm ? !!p.pm.isVerified : false,
-        isPlatformLinked: !!(p.company?.platformId || p.platformId),
-        externalUnitId: p.externalUnitId ?? undefined,
-        isPastTenancy: p.isPastTenancy,
-        verificationStatus: p.verificationStatus,
-        rejectionReason: p.rejectionReason,
-        updatedAt: p.updatedAt,
-        manager: p.manager ? {
-          ...p.manager,
-          firstName: p.manager.firstName ? this.encryption.decrypt(p.manager.firstName) : undefined,
-          lastName: p.manager.lastName ? this.encryption.decrypt(p.manager.lastName) : undefined,
-          email: p.manager.email ? this.encryption.decrypt(p.manager.email) : undefined,
-          phone: p.manager.phone ? this.encryption.decrypt(p.manager.phone) : undefined,
-        } : (p.pm ? {
-          id: p.pm.id,
-          uuid: p.pm.uuid,
-          firstName: this.encryption.decrypt(p.pm.firstName),
-          lastName: this.encryption.decrypt(p.pm.lastName),
-          email: this.encryption.decrypt(p.pm.email),
-          phone: p.pm.phone ? this.encryption.decrypt(p.pm.phone) : undefined,
-          passwordHash: p.pm.passwordHash,
-        } : undefined),
-        company: p.company ? {
-          ...p.company,
-          name: p.company.name ? this.encryption.decrypt(p.company.name) : undefined,
-          email: p.company.email ? this.encryption.decrypt(p.company.email) : undefined,
-          phone: p.company.phone ? this.encryption.decrypt(p.company.phone) : undefined,
-        } : (p.pm && p.pm.businessName ? {
-          name: this.encryption.decrypt(p.pm.businessName),
-        } : undefined),
-        subaccount: p.subaccount ? {
-          subaccountCode: p.subaccount.subaccountCode,
-          accountNumber: p.subaccount.accountNumber,
-          bankCode: p.subaccount.bankCode,
-          businessName: p.subaccount.businessName
-        } : undefined,
-        dedicatedAccount: (() => {
-          const d = Array.isArray(p.dedicatedAccounts)
-            ? (p.dedicatedAccounts.find((acc: any) => acc.isDefault) || p.dedicatedAccounts[0])
-            : p.dedicatedAccount
-          return d ? {
-            accountNumber: d.accountNumber,
-            accountName: d.accountName,
-            bankName: d.bankName,
-            bankCode: d.bankCode,
-            bankSlug: d.bankSlug,
-            isDefault: d.isDefault,
-          } : undefined
-        })(),
-        dedicatedAccounts: Array.isArray(p.dedicatedAccounts) ? p.dedicatedAccounts.map((d: any) => ({
-          accountNumber: d.accountNumber,
-          accountName: d.accountName,
-          bankName: d.bankName,
-          bankCode: d.bankCode,
-          bankSlug: d.bankSlug,
-          isDefault: d.isDefault,
-        })) : [],
-        manualAccount: p.manualAccount ? {
-          accountNumber: p.manualAccount.accountNumber,
-          accountName: p.manualAccount.accountName,
-          bankName: p.manualAccount.bankName,
-          bankCode: p.manualAccount.bankCode
-        } : undefined,
-        pmManualAccount: (() => {
-          const directManual =
-            p.pmUnit?.property?.settlementAccount?.manualAccount ||
-            p.pmUnit?.property?.manualAccount;
-          if (directManual && directManual.accountNumber) {
-            return {
-              accountNumber: directManual.accountNumber,
-              accountName: directManual.accountName,
-              bankName: directManual.bankName,
-              bankCode: directManual.bankCode
-            };
-          }
-          const pmSettlementAccounts =
-            p.pmUnit?.property?.pm?.settlementAccounts ||
-            p.pm?.settlementAccounts ||
-            [];
-          const primarySettlement =
-            pmSettlementAccounts.find((a: any) => a.isPrimary) || pmSettlementAccounts[0];
-          if (primarySettlement?.manualAccount && primarySettlement.manualAccount.accountNumber) {
-            return {
-              accountNumber: primarySettlement.manualAccount.accountNumber,
-              accountName: primarySettlement.manualAccount.accountName,
-              bankName: primarySettlement.manualAccount.bankName,
-              bankCode: primarySettlement.manualAccount.bankCode
-            };
-          }
-          const pmAccounts = p.pmUnit?.property?.pm?.manualAccounts || p.pm?.manualAccounts || [];
-          const primaryAccount = pmAccounts.find((a: any) => a.isPrimary) || pmAccounts[0];
-          if (primaryAccount && primaryAccount.accountNumber) {
-            return {
-              accountNumber: primaryAccount.accountNumber,
-              accountName: primaryAccount.accountName,
-              bankName: primaryAccount.bankName,
-              bankCode: primaryAccount.bankCode
-            };
-          }
-          if (p.manualAccount && p.manualAccount.accountNumber) {
-            return {
-              accountNumber: p.manualAccount.accountNumber,
-              accountName: p.manualAccount.accountName,
-              bankName: p.manualAccount.bankName,
-              bankCode: p.manualAccount.bankCode
-            };
-          }
-          return undefined;
-        })()
-      })) : [],
-      companyUsers: model.companyUsers ? model.companyUsers.map((cu: any) => ({
-        id: cu.id,
-        company: cu.company ? {
-          ...cu.company,
-          name: cu.company.name ? this.encryption.decrypt(cu.company.name) : undefined
-        } : undefined,
-        invitedAt: cu.invitedAt,
-      })) : [],
+      properties: model.properties
+        ? model.properties.map((p: any) => ({
+            id: p.id,
+            uuid: p.uuid,
+            rentStartDate: p.pmUnit?.rentPayments?.[0]?.periodStart
+              ? p.pmUnit.rentPayments[0].periodStart
+              : p.rentStartDate,
+            rentEndDate: p.pmUnit?.rentPayments?.[0]?.periodEnd
+              ? p.pmUnit.rentPayments[0].periodEnd
+              : p.rentEndDate,
+            rentAmount: p.rentAmount,
+            amountPaid: p.amountPaid,
+            amountRemaining: p.amountRemaining,
+            initialAmountPaid: p.initialAmountPaid ?? 0,
+            isFirstRent: !!p.isFirstRent,
+            currency: p.currency,
+            location: p.location,
+            unitName: p.pmUnit?.unitName || undefined,
+            isManaged:
+              !!(p.pmId && p.isVerified) ||
+              !!((p.company?.platformId || p.platformId) && p.isVerified),
+            isVerified: !!p.isVerified,
+            isPmVerified: p.pm ? !!p.pm.isVerified : false,
+            isPlatformLinked: !!(p.company?.platformId || p.platformId),
+            externalUnitId: p.externalUnitId ?? undefined,
+            isPastTenancy: p.isPastTenancy,
+            verificationStatus: p.verificationStatus,
+            rejectionReason: p.rejectionReason,
+            updatedAt: p.updatedAt,
+            manager: p.manager
+              ? {
+                  ...p.manager,
+                  firstName: p.manager.firstName
+                    ? this.encryption.decrypt(p.manager.firstName)
+                    : undefined,
+                  lastName: p.manager.lastName
+                    ? this.encryption.decrypt(p.manager.lastName)
+                    : undefined,
+                  email: p.manager.email ? this.encryption.decrypt(p.manager.email) : undefined,
+                  phone: p.manager.phone ? this.encryption.decrypt(p.manager.phone) : undefined,
+                }
+              : p.pm
+                ? {
+                    id: p.pm.id,
+                    uuid: p.pm.uuid,
+                    firstName: this.encryption.decrypt(p.pm.firstName),
+                    lastName: this.encryption.decrypt(p.pm.lastName),
+                    email: this.encryption.decrypt(p.pm.email),
+                    phone: p.pm.phone ? this.encryption.decrypt(p.pm.phone) : undefined,
+                    passwordHash: p.pm.passwordHash,
+                  }
+                : undefined,
+            company: p.company
+              ? {
+                  ...p.company,
+                  name: p.company.name ? this.encryption.decrypt(p.company.name) : undefined,
+                  email: p.company.email ? this.encryption.decrypt(p.company.email) : undefined,
+                  phone: p.company.phone ? this.encryption.decrypt(p.company.phone) : undefined,
+                }
+              : p.pm && p.pm.businessName
+                ? {
+                    name: this.encryption.decrypt(p.pm.businessName),
+                  }
+                : undefined,
+            subaccount: p.subaccount
+              ? {
+                  subaccountCode: p.subaccount.subaccountCode,
+                  accountNumber: p.subaccount.accountNumber,
+                  bankCode: p.subaccount.bankCode,
+                  businessName: p.subaccount.businessName,
+                }
+              : undefined,
+            dedicatedAccount: (() => {
+              const d = Array.isArray(p.dedicatedAccounts)
+                ? p.dedicatedAccounts.find((acc: any) => acc.isDefault) || p.dedicatedAccounts[0]
+                : p.dedicatedAccount
+              return d
+                ? {
+                    accountNumber: d.accountNumber,
+                    accountName: d.accountName,
+                    bankName: d.bankName,
+                    bankCode: d.bankCode,
+                    bankSlug: d.bankSlug,
+                    isDefault: d.isDefault,
+                  }
+                : undefined
+            })(),
+            dedicatedAccounts: Array.isArray(p.dedicatedAccounts)
+              ? p.dedicatedAccounts.map((d: any) => ({
+                  accountNumber: d.accountNumber,
+                  accountName: d.accountName,
+                  bankName: d.bankName,
+                  bankCode: d.bankCode,
+                  bankSlug: d.bankSlug,
+                  isDefault: d.isDefault,
+                }))
+              : [],
+            manualAccount: p.manualAccount
+              ? {
+                  accountNumber: p.manualAccount.accountNumber,
+                  accountName: p.manualAccount.accountName,
+                  bankName: p.manualAccount.bankName,
+                  bankCode: p.manualAccount.bankCode,
+                }
+              : undefined,
+            pmManualAccount: (() => {
+              const directManual =
+                p.pmUnit?.property?.settlementAccount?.manualAccount ||
+                p.pmUnit?.property?.manualAccount
+              if (directManual && directManual.accountNumber) {
+                return {
+                  accountNumber: directManual.accountNumber,
+                  accountName: directManual.accountName,
+                  bankName: directManual.bankName,
+                  bankCode: directManual.bankCode,
+                }
+              }
+              const pmSettlementAccounts =
+                p.pmUnit?.property?.pm?.settlementAccounts || p.pm?.settlementAccounts || []
+              const primarySettlement =
+                pmSettlementAccounts.find((a: any) => a.isPrimary) || pmSettlementAccounts[0]
+              if (
+                primarySettlement?.manualAccount &&
+                primarySettlement.manualAccount.accountNumber
+              ) {
+                return {
+                  accountNumber: primarySettlement.manualAccount.accountNumber,
+                  accountName: primarySettlement.manualAccount.accountName,
+                  bankName: primarySettlement.manualAccount.bankName,
+                  bankCode: primarySettlement.manualAccount.bankCode,
+                }
+              }
+              const pmAccounts =
+                p.pmUnit?.property?.pm?.manualAccounts || p.pm?.manualAccounts || []
+              const primaryAccount = pmAccounts.find((a: any) => a.isPrimary) || pmAccounts[0]
+              if (primaryAccount && primaryAccount.accountNumber) {
+                return {
+                  accountNumber: primaryAccount.accountNumber,
+                  accountName: primaryAccount.accountName,
+                  bankName: primaryAccount.bankName,
+                  bankCode: primaryAccount.bankCode,
+                }
+              }
+              if (p.manualAccount && p.manualAccount.accountNumber) {
+                return {
+                  accountNumber: p.manualAccount.accountNumber,
+                  accountName: p.manualAccount.accountName,
+                  bankName: p.manualAccount.bankName,
+                  bankCode: p.manualAccount.bankCode,
+                }
+              }
+              return undefined
+            })(),
+          }))
+        : [],
+      companyUsers: model.companyUsers
+        ? model.companyUsers.map((cu: any) => ({
+            id: cu.id,
+            company: cu.company
+              ? {
+                  ...cu.company,
+                  name: cu.company.name ? this.encryption.decrypt(cu.company.name) : undefined,
+                }
+              : undefined,
+            invitedAt: cu.invitedAt,
+          }))
+        : [],
       resetPasswordOTP: model.resetPasswordOTP,
       resetPasswordExpires: model.resetPasswordExpires,
       createdAt: model.createdAt,
@@ -227,10 +261,10 @@ export class PrismaUserRepository implements UserRepository {
         },
         companyUsers: {
           include: {
-            company: true
-          }
-        }
-      }
+            company: true,
+          },
+        },
+      },
     })
     return record ? this.toDomain(record) : null
   }
@@ -246,10 +280,10 @@ export class PrismaUserRepository implements UserRepository {
         },
         companyUsers: {
           include: {
-            company: true
-          }
-        }
-      }
+            company: true,
+          },
+        },
+      },
     })
     return record ? this.toDomain(record) : null
   }
@@ -282,10 +316,10 @@ export class PrismaUserRepository implements UserRepository {
         },
         companyUsers: {
           include: {
-            company: true
-          }
-        }
-      }
+            company: true,
+          },
+        },
+      },
     })
     return record ? this.toDomain(record) : null
   }
@@ -300,17 +334,17 @@ export class PrismaUserRepository implements UserRepository {
         },
         companyUsers: {
           include: {
-            company: true
-          }
-        }
-      }
+            company: true,
+          },
+        },
+      },
     })
     return record ? this.toDomain(record) : null
   }
 
   async findBySlug(profileSlug: string, tx?: any): Promise<User | null> {
     const prisma = tx || this.prisma
-    const record = await prisma.upward_user.findUnique({
+    let record = await prisma.upward_user.findUnique({
       where: { profileSlug },
       include: {
         properties: {
@@ -318,11 +352,54 @@ export class PrismaUserRepository implements UserRepository {
         },
         companyUsers: {
           include: {
-            company: true
+            company: true,
+          },
+        },
+      },
+    })
+
+    if (!record) {
+      // Fallback: check if slug ends with an 8-char hex UUID prefix (e.g. "sarah-doe-7870b539")
+      const parts = profileSlug.split('-')
+      const possibleUuidPrefix = parts[parts.length - 1]
+      if (
+        possibleUuidPrefix &&
+        possibleUuidPrefix.length >= 6 &&
+        /^[0-9a-fA-F]+$/.test(possibleUuidPrefix)
+      ) {
+        record = await prisma.upward_user.findFirst({
+          where: {
+            uuid: {
+              startsWith: possibleUuidPrefix,
+            },
+          },
+          include: {
+            properties: {
+              include: this.defaultPropertyInclude,
+            },
+            companyUsers: {
+              include: {
+                company: true,
+              },
+            },
+          },
+        })
+
+        // If found and user has no profileSlug yet, backfill it so future lookups hit the unique index directly
+        if (record && !record.profileSlug) {
+          try {
+            await prisma.upward_user.update({
+              where: { id: record.id },
+              data: { profileSlug },
+            })
+            record.profileSlug = profileSlug
+          } catch {
+            // Ignore unique constraint collision
           }
         }
       }
-    })
+    }
+
     return record ? this.toDomain(record) : null
   }
 
@@ -335,10 +412,10 @@ export class PrismaUserRepository implements UserRepository {
         },
         companyUsers: {
           include: {
-            company: true
-          }
-        }
-      }
+            company: true,
+          },
+        },
+      },
     })
     return records.map((record: any) => this.toDomain(record))
   }
@@ -378,16 +455,31 @@ export class PrismaUserRepository implements UserRepository {
     })
     return this.toDomain(record)
   }
-  
+
   async update(id: number, data: Partial<User>, tx?: any): Promise<User> {
     const prisma = tx || this.prisma
     const updateData: any = {}
-    
+
     // Pick direct scalar fields
     const scalarFields = [
-      'passwordHash', 'authProvider', 'providerId', 'gender', 'dateOfBirth', 'isIdentityVerified',
-      'isFromWaitlist', 'isFromInvite', 'invitedAt', 'joinedAt', 'profilePic', 'profileSlug', 
-      'bio', 'termsAcceptedAt', 'termsVersion', 'hearAboutUs', 'resetPasswordOTP', 'resetPasswordExpires'
+      'passwordHash',
+      'authProvider',
+      'providerId',
+      'gender',
+      'dateOfBirth',
+      'isIdentityVerified',
+      'isFromWaitlist',
+      'isFromInvite',
+      'invitedAt',
+      'joinedAt',
+      'profilePic',
+      'profileSlug',
+      'bio',
+      'termsAcceptedAt',
+      'termsVersion',
+      'hearAboutUs',
+      'resetPasswordOTP',
+      'resetPasswordExpires',
     ]
 
     for (const field of scalarFields) {
@@ -422,22 +514,27 @@ export class PrismaUserRepository implements UserRepository {
         },
         companyUsers: {
           include: {
-            company: true
-          }
-        }
-      }
+            company: true,
+          },
+        },
+      },
     })
     return this.toDomain(record)
   }
 
-  async updatePmTenantEmail(oldEmailHash: string, newEmailEncrypted: string, newEmailHash: string, tx?: any): Promise<void> {
+  async updatePmTenantEmail(
+    oldEmailHash: string,
+    newEmailEncrypted: string,
+    newEmailHash: string,
+    tx?: any,
+  ): Promise<void> {
     const prisma = tx || this.prisma
     await prisma.upward_pm_tenant.updateMany({
       where: { emailHash: oldEmailHash },
       data: {
         emailEncrypted: newEmailEncrypted,
         emailHash: newEmailHash,
-      }
+      },
     })
   }
 }

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Loader2, ArrowDown } from 'lucide-react'
+import { haptics } from '@/lib/haptics'
 
 interface PullToRefreshProps {
   onRefresh: () => Promise<unknown>
@@ -24,6 +25,7 @@ export function PullToRefresh({
   const [isRefreshing, setIsRefreshing] = useState(false)
   const startY = useRef(0)
   const isPulling = useRef(false)
+  const hasTriggeredHaptic = useRef(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
   const handleTouchStart = useCallback(
@@ -40,9 +42,10 @@ export function PullToRefresh({
       if (scrollTop <= 2) {
         startY.current = e.touches[0].clientY
         isPulling.current = true
+        hasTriggeredHaptic.current = false
       }
     },
-    [disabled, isRefreshing]
+    [disabled, isRefreshing],
   )
 
   const handleTouchMove = useCallback(
@@ -57,6 +60,13 @@ export function PullToRefresh({
         const distance = Math.min(diff * RESISTANCE, MAX_PULL)
         setPullDistance(distance)
 
+        if (distance >= THRESHOLD && !hasTriggeredHaptic.current) {
+          hasTriggeredHaptic.current = true
+          haptics.light()
+        } else if (distance < THRESHOLD && hasTriggeredHaptic.current) {
+          hasTriggeredHaptic.current = false
+        }
+
         // Prevent native overscroll when dragging down at top
         if (e.cancelable && distance > 5) {
           e.preventDefault()
@@ -66,7 +76,7 @@ export function PullToRefresh({
         setPullDistance(0)
       }
     },
-    [disabled, isRefreshing]
+    [disabled, isRefreshing],
   )
 
   const handleTouchEnd = useCallback(async () => {
@@ -74,6 +84,7 @@ export function PullToRefresh({
     isPulling.current = false
 
     if (pullDistance >= THRESHOLD && !isRefreshing) {
+      haptics.medium()
       setIsRefreshing(true)
       setPullDistance(52) // Hold at spinner height
       try {

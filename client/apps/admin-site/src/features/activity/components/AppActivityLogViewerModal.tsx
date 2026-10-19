@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { X, Copy, Check } from 'lucide-react'
+import { Copy, Check, FileText } from 'lucide-react'
+import { Modal } from '../../../components/common/modal/Modal'
 
 interface AppActivityLogViewerModalProps {
   selectedLog: any | null
@@ -21,46 +22,31 @@ export const AppActivityLogViewerModal: React.FC<AppActivityLogViewerModalProps>
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div
-        className="modal-content card"
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          maxWidth: '650px',
-          padding: '24px',
-          position: 'relative',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '16px',
-        }}
-      >
+    <Modal
+      isOpen={!!selectedLog}
+      onClose={onClose}
+      title="Activity Log Details"
+      description={`UUID: ${selectedLog.uuid || 'N/A'}`}
+      icon={<FileText size={20} />}
+      maxWidth="680px"
+      footerActions={
         <button
+          type="button"
           onClick={onClose}
-          style={{
-            position: 'absolute',
-            top: '16px',
-            right: '16px',
-            background: 'transparent',
-            color: 'var(--text-muted)',
-            cursor: 'pointer',
-            border: 'none',
-          }}
+          className="btn btn-primary"
+          style={{ padding: '8px 18px', borderRadius: '8px', fontSize: '13px' }}
         >
-          <X size={20} />
+          Close View
         </button>
-
-        <div>
-          <h3 style={{ fontSize: '18px', fontWeight: 800, margin: '0 0 4px 0' }}>Log Details</h3>
-          <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: 0 }}>
-            UUID: {selectedLog.uuid}
-          </p>
-        </div>
-
+      }
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <div
           style={{
             background: 'var(--surface)',
-            padding: '12px',
-            borderRadius: '8px',
+            padding: '14px',
+            borderRadius: '10px',
+            border: '1px solid var(--border)',
             fontSize: '13px',
             display: 'flex',
             flexDirection: 'column',
@@ -68,25 +54,36 @@ export const AppActivityLogViewerModal: React.FC<AppActivityLogViewerModalProps>
           }}
         >
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontWeight: 600 }}>App:</span>
+            <span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>Action:</span>
+            <span style={{ fontWeight: 700 }}>{selectedLog.action}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>App:</span>
             <span>{selectedLog.app}</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontWeight: 600 }}>IP Address:</span>
-            <span>{selectedLog.ipAddress || '—'}</span>
+            <span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>User:</span>
+            <span>
+              {selectedLog.userEmail ||
+                (selectedLog.userId ? `User #${selectedLog.userId}` : 'Guest')}
+            </span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{ fontWeight: 600 }}>User Agent:</span>
+            <span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>IP Address:</span>
+            <span style={{ fontFamily: 'monospace' }}>{selectedLog.ipAddress || '—'}</span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>Device:</span>
             <span
               style={{
-                maxWidth: '300px',
+                maxWidth: '350px',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
               }}
               title={selectedLog.userAgent || ''}
             >
-              {selectedLog.userAgent || '—'}
+              {selectedLog.deviceSummary || selectedLog.userAgent || '—'}
             </span>
           </div>
         </div>
@@ -100,10 +97,18 @@ export const AppActivityLogViewerModal: React.FC<AppActivityLogViewerModalProps>
               marginBottom: '8px',
             }}
           >
-            <span className="section-label" style={{ fontSize: '12px' }}>
+            <span
+              style={{
+                fontSize: '12px',
+                fontWeight: 700,
+                color: 'var(--text-muted)',
+                textTransform: 'uppercase',
+              }}
+            >
               Request Payload & Metadata
             </span>
             <button
+              type="button"
               onClick={() => copyToClipboard(JSON.stringify(selectedLog.metadata || {}, null, 2))}
               style={{
                 background: 'transparent',
@@ -117,23 +122,20 @@ export const AppActivityLogViewerModal: React.FC<AppActivityLogViewerModalProps>
                 cursor: 'pointer',
               }}
             >
-              {copied ? (
-                <Check size={14} style={{ color: 'var(--success)' }} />
-              ) : (
-                <Copy size={14} />
-              )}
+              {copied ? <Check size={14} style={{ color: '#059669' }} /> : <Copy size={14} />}
               {copied ? 'Copied!' : 'Copy JSON'}
             </button>
           </div>
           <pre
             style={{
-              background: '#1e293b',
-              color: '#f8fafc',
-              padding: '16px',
+              background: 'var(--bg)',
+              color: 'var(--text)',
+              border: '1px solid var(--border)',
+              padding: '14px',
               borderRadius: '10px',
               fontSize: '12px',
               overflowX: 'auto',
-              maxHeight: '300px',
+              maxHeight: '260px',
               margin: 0,
               fontFamily: 'monospace',
             }}
@@ -141,17 +143,7 @@ export const AppActivityLogViewerModal: React.FC<AppActivityLogViewerModalProps>
             {JSON.stringify(selectedLog.metadata || {}, null, 2)}
           </pre>
         </div>
-
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
-          <button
-            onClick={onClose}
-            className="btn btn-primary"
-            style={{ padding: '8px 16px', borderRadius: '8px' }}
-          >
-            Close View
-          </button>
-        </div>
       </div>
-    </div>
+    </Modal>
   )
 }

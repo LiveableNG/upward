@@ -1,0 +1,221 @@
+/* ── Upward Pay Editorial Branded 404 Experience ── */
+
+.not-found-screen {
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: calc(var(--safe-top, 0px) + 32px) var(--shell-px, 20px)
+    calc(var(--safe-bottom, 0px) + 36px);
+  background: var(--bg, #faf8f5);
+  box-sizing: border-box;
+  position: relative;
+  font-family: var(--font, var(--font-inter, system-ui, sans-serif));
+  overflow-x: hidden;
+  color: var(--text, #1a1714);
+}
+
+.not-found-screen__container {
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-sizing: border-box;
+  animation: notFoundFadeIn 0.3s ease-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .not-found-screen__container {
+    animation: none;
+  }
+}
+
+/* Subtle, authentic brand mark presentation */
+.not-found-screen__brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  background: #fbf0e8;
+  border: 1px solid rgba(194, 80, 31, 0.12);
+  margin-bottom: 24px;
+  box-sizing: border-box;
+}
+
+:root.theme--dark .not-found-screen__brand-mark {
+  background: rgba(194, 80, 31, 0.12);
+  border-color: rgba(194, 80, 31, 0.24);
+}
+
+/* Understated, secondary status code */
+.not-found-screen__code {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--clay, #c2501f);
+  margin-bottom: 12px;
+}
+
+/* Clear, confident editorial headline */
+.not-found-screen__title {
+  font-size: clamp(24px, 6vw, 30px);
+  font-weight: 750;
+  color: var(--text, #1a1714);
+  line-height: 1.25;
+  letter-spacing: -0.025em;
+  margin: 0 0 12px;
+}
+
+:root.theme--dark .not-found-screen__title {
+  color: #faf9f5;
+}
+
+/* Calm, helpful supporting copy */
+.not-found-screen__description {
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--text-secondary, #7a7268);
+  margin: 0 0 32px;
+  max-width: 380px;
+}
+
+:root.theme--dark .not-found-screen__description {
+  color: #a9a096;
+}
+
+/* Action group with clear visual hierarchy */
+.not-found-screen__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+
+/* Primary Action: Go to dashboard */
+.not-found-screen__btn-primary {
+  height: 52px;
+  min-height: 48px;
+  width: 100%;
+  border-radius: 14px;
+  border: none;
+  background: var(--clay, #c2501f);
+  color: #ffffff;
+  font-family: inherit;
+  font-weight: 650;
+  font-size: 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 8px 20px -6px rgba(194, 80, 31, 0.45);
+  transition:
+    transform 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+  box-sizing: border-box;
+}
+
+.not-found-screen__btn-primary:hover {
+  background: var(--clay-hover, #a8410f);
+  box-shadow: 0 10px 24px -6px rgba(194, 80, 31, 0.55);
+}
+
+.not-found-screen__btn-primary:active {
+  transform: scale(0.985);
+}
+
+.not-found-screen__btn-primary:focus-visible {
+  outline: 2px solid var(--clay, #c2501f);
+  outline-offset: 3px;
+}
+
+/* Secondary Action: Go back */
+.not-found-screen__btn-secondary {
+  height: 48px;
+  min-height: 48px;
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid var(--border, #eae2d7);
+  background: transparent;
+  color: var(--text, #1a1714);
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 14.5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  text-decoration: none;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+  box-sizing: border-box;
+}
+
+:root.theme--dark .not-found-screen__btn-secondary {
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #faf9f5;
+}
+
+.not-found-screen__btn-secondary:hover {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: #d8cebf;
+}
+
+:root.theme--dark .not-found-screen__btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.not-found-screen__btn-secondary:active {
+  transform: scale(0.985);
+}
+
+.not-found-screen__btn-secondary:focus-visible {
+  outline: 2px solid var(--clay, #c2501f);
+  outline-offset: 3px;
+}
+
+/* Discreet support link */
+.not-found-screen__support {
+  margin-top: 28px;
+  font-size: 13px;
+  color: var(--text-muted, #a9a096);
+}
+
+.not-found-screen__support-link {
+  color: var(--text-secondary, #7a7268);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.15s ease;
+}
+
+.not-found-screen__support-link:hover {
+  color: var(--clay, #c2501f);
+}
+
+/* Restrained entrance transition */
+@keyframes notFoundFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
