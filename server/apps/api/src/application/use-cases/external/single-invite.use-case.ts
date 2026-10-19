@@ -290,6 +290,20 @@ export class SingleInviteUseCase {
       const locData = propData.location
       const rentData = propData.rent
 
+      // Derive rentEndDate if omitted but leasePeriod (e.g. "3 weeks", "4 months") is present
+      if (!rentData.rentEndDate) {
+        const leasePeriodStr = (rentData as any).leasePeriod || (rentData.rentType && !['Annually', 'Monthly', 'Quarterly', 'Bi-Annually', 'Weekly', 'Shortlet'].includes(rentData.rentType) ? rentData.rentType : undefined);
+        if (leasePeriodStr) {
+          const computedEnd = this.rentalPeriodService.calculateEndDateFromPeriod(
+            rentData.rentStartDate || new Date(),
+            leasePeriodStr,
+          );
+          if (computedEnd) {
+            rentData.rentEndDate = computedEnd.toISOString();
+          }
+        }
+      }
+
       if (!rentData.rentAmount || !rentData.rentEndDate) {
         throw new BadRequestException('Rent amount and rent end date are compulsory for all properties');
       }
@@ -375,8 +389,27 @@ export class SingleInviteUseCase {
         }
       }
 
-      const leaseYears = rentData.leaseYears ?? 1
-      const rentType = rentData.rentType || 'Annually'
+      const canonicalStart = this.rentalPeriodService.parseCalendarDate(rentData.rentStartDate) || this.rentalPeriodService.parseCalendarDate(new Date())!
+      const canonicalEnd = this.rentalPeriodService.parseCalendarDate(rentData.rentEndDate)!
+      const diffDays = Math.ceil(Math.abs(canonicalEnd.getTime() - canonicalStart.getTime()) / (1000 * 60 * 60 * 24))
+
+      let inferredRentType = rentData.rentType
+      if (!inferredRentType || ['lease', 'fixed lease', 'long lease'].includes(inferredRentType.toLowerCase())) {
+        if (diffDays < 28) {
+          inferredRentType = (diffDays % 7 === 0 || (diffDays + 1) % 7 === 0) ? 'Weekly' : 'Shortlet'
+        } else if (diffDays <= 45) {
+          inferredRentType = 'Monthly'
+        } else if (diffDays <= 135) {
+          inferredRentType = 'Quarterly'
+        } else if (diffDays <= 240) {
+          inferredRentType = 'Bi-Annually'
+        } else {
+          inferredRentType = 'Annually'
+        }
+      }
+
+      const leaseYears = rentData.leaseYears ?? (diffDays > 400 ? Math.max(1, Math.round(diffDays / 365)) : 1)
+      const rentType = inferredRentType
 
       const rentalState = this.rentalPeriodService.initializeRentalState({
         rentAmount: rentData.rentAmount,
