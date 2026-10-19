@@ -95,7 +95,7 @@ export class ScheduleService implements OnModuleInit {
     s.call('homeRequestDigest', () => this.sendHomeRequestDigestUseCase.execute())
       .dailyAt('08:00')
       .withoutOverlapping()
-      .description('Daily email digest of prior day\'s home requests, sent to all PMs')
+      .description("Daily email digest of prior day's home requests, sent to all PMs")
 
     s.call('savingsInterest', async () => {
       await this.applyDailySavingsInterestUseCase.execute()
@@ -109,14 +109,18 @@ export class ScheduleService implements OnModuleInit {
     })
       .dailyAt('09:00')
       .withoutOverlapping()
-      .description('Daily digest to admins listing 10, 20, and 30+ day disabled accounts pending deletion')
+      .description(
+        'Daily digest to admins listing 10, 20, and 30+ day disabled accounts pending deletion',
+      )
 
     s.call('universityApplicationDigest', async () => {
       await this.sendUniversityApplicationDailyDigestUseCase.execute()
     })
       .dailyAt('09:00')
       .withoutOverlapping()
-      .description('Daily email digest summarizing yesterday\'s Upward Academy applications to admins')
+      .description(
+        "Daily email digest summarizing yesterday's Upward Academy applications to admins",
+      )
 
     s.call('cleanupDevEmails', async () => {
       this.logger.log('Starting daily dev-emails S3 and database cleanup task...')

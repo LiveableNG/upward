@@ -66,9 +66,7 @@ export const FeatureGatedModal: React.FC<FeatureGatedModalProps> = ({
               <h2 id="app-feature-gate-title" className="app-update-sheet__title">
                 {title || `Update Required for ${featureLabel}`}
               </h2>
-              <span className="app-update-sheet__version-badge">
-                Security v{latestVersion}
-              </span>
+              <span className="app-update-sheet__version-badge">Security v{latestVersion}</span>
             </div>
             <p id="app-feature-gate-desc" className="app-update-sheet__subtitle">
               {message ||
@@ -79,19 +77,11 @@ export const FeatureGatedModal: React.FC<FeatureGatedModalProps> = ({
 
         {/* Actions */}
         <div className="app-update-sheet__actions">
-          <button
-            type="button"
-            onClick={handleUpdate}
-            className="app-update-sheet__btn-primary"
-          >
+          <button type="button" onClick={handleUpdate} className="app-update-sheet__btn-primary">
             <span>Update now</span>
             <ArrowRight size={16} strokeWidth={2.2} />
           </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="app-update-sheet__btn-secondary"
-          >
+          <button type="button" onClick={onClose} className="app-update-sheet__btn-secondary">
             Cancel & return
           </button>
         </div>

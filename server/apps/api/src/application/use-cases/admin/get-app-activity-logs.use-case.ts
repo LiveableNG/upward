@@ -33,7 +33,21 @@ export class GetAppActivityLogsUseCase {
       andConditions.push({ action: query.actionFilter })
     } else {
       andConditions.push({
-        action: { in: ['SIGNUP', 'LOGIN', 'LOGOUT', 'LOGIN_FAILED', 'SIGNUP_FAILED', 'PAYMENT', 'DEPOSIT', 'CREDIBILITY_REQUEST', 'UPDATE', 'CREATE', 'DELETE'] },
+        action: {
+          in: [
+            'SIGNUP',
+            'LOGIN',
+            'LOGOUT',
+            'LOGIN_FAILED',
+            'SIGNUP_FAILED',
+            'PAYMENT',
+            'DEPOSIT',
+            'CREDIBILITY_REQUEST',
+            'UPDATE',
+            'CREATE',
+            'DELETE',
+          ],
+        },
       })
     }
 
@@ -107,9 +121,7 @@ export class GetAppActivityLogsUseCase {
       } else if (p === 'web') {
         andConditions.push({
           NOT: {
-            OR: [
-              { userAgent: { contains: 'Capacitor', mode: 'insensitive' } },
-            ],
+            OR: [{ userAgent: { contains: 'Capacitor', mode: 'insensitive' } }],
           },
         })
       }
@@ -149,23 +161,23 @@ export class GetAppActivityLogsUseCase {
     logs.forEach((log) => {
       if (log.action === 'SIGNUP' && !log.userEmail && log.metadata) {
         try {
-          const meta = typeof log.metadata === 'string' ? JSON.parse(log.metadata) : log.metadata;
-          const email = meta?.body?.email;
+          const meta = typeof log.metadata === 'string' ? JSON.parse(log.metadata) : log.metadata
+          const email = meta?.body?.email
           if (email && typeof email === 'string') {
-            emails.push(email);
+            emails.push(email)
             // Dynamically set userEmail so mapping looks it up correctly
-            log.userEmail = email;
+            log.userEmail = email
           }
         } catch (e) {
           // ignore
         }
       }
-    });
+    })
 
     const tenantUuids = logs
       .filter((l) => l.entityType === 'TENANT' && l.entityId)
       .map((l) => l.entityId) as string[]
-    
+
     // Hash emails for database query lookups
     const uniqueEmails = Array.from(new Set(emails))
     const emailHashes = uniqueEmails.map((email) => this.encryption.hash(email))
@@ -257,7 +269,7 @@ export class GetAppActivityLogsUseCase {
     const userMap = new Map<number, any>()
     const userMapByEmail = new Map<string, any>()
     const userMapByUuid = new Map<string, any>()
-    
+
     const allUsers = [...usersById, ...usersByHash, ...usersByUuid]
     allUsers.forEach((u) => {
       let email = ''
@@ -290,7 +302,7 @@ export class GetAppActivityLogsUseCase {
 
     const pmMap = new Map<number, any>()
     const pmMapByEmail = new Map<string, any>()
-    
+
     const allPms = [...pmsById, ...pmsByHash]
     allPms.forEach((p) => {
       let email = ''
@@ -334,7 +346,8 @@ export class GetAppActivityLogsUseCase {
     // Enrich logs and format readable text
     const enrichedLogs = logs.map((log) => {
       // If it's a tenant entity operation (like invite or create tenant), the target user is the tenant
-      const targetTenant = log.entityType === 'TENANT' && log.entityId ? userMapByUuid.get(log.entityId) : null
+      const targetTenant =
+        log.entityType === 'TENANT' && log.entityId ? userMapByUuid.get(log.entityId) : null
 
       let user = log.userId ? userMap.get(log.userId) : null
       if (!user && log.userEmail) {
@@ -356,19 +369,29 @@ export class GetAppActivityLogsUseCase {
 
       // Format human-readable event description
       let readableText = log.description || ''
-      
-      const metaObj = log.metadata ? (typeof log.metadata === 'string' ? JSON.parse(log.metadata) : log.metadata) : null;
-      const metaEmail = metaObj?.body?.email || metaObj?.body?.identifier;
-      const userEmailLink = user?.email || log.userEmail || metaEmail || '';
-      const userNameStr = user ? `${user.firstName} ${user.lastName}` : '';
-      const userDisplayName = userNameStr.trim() ? `${userNameStr} (${userEmailLink})` : userEmailLink;
 
-      const pmNameStr = pm ? pm.businessName : '';
-      const pmEmailLink = pm?.email || '';
-      const pmDisplayName = pmNameStr ? `${pmNameStr} (${pmEmailLink})` : pmEmailLink;
+      const metaObj = log.metadata
+        ? typeof log.metadata === 'string'
+          ? JSON.parse(log.metadata)
+          : log.metadata
+        : null
+      const metaEmail = metaObj?.body?.email || metaObj?.body?.identifier
+      const userEmailLink = user?.email || log.userEmail || metaEmail || ''
+      const userNameStr = user ? `${user.firstName} ${user.lastName}` : ''
+      const userDisplayName = userNameStr.trim()
+        ? `${userNameStr} (${userEmailLink})`
+        : userEmailLink
+
+      const pmNameStr = pm ? pm.businessName : ''
+      const pmEmailLink = pm?.email || ''
+      const pmDisplayName = pmNameStr ? `${pmNameStr} (${pmEmailLink})` : pmEmailLink
 
       const resolvePlatformAndDevice = (item: any) => {
-        const meta = item.metadata ? (typeof item.metadata === 'string' ? JSON.parse(item.metadata) : item.metadata) : {}
+        const meta = item.metadata
+          ? typeof item.metadata === 'string'
+            ? JSON.parse(item.metadata)
+            : item.metadata
+          : {}
         let platform: 'ios' | 'android' | 'web' = 'web'
         if (meta.platform) {
           const p = String(meta.platform).toLowerCase()
@@ -406,12 +429,23 @@ export class GetAppActivityLogsUseCase {
 
       const { platform, deviceSummary } = resolvePlatformAndDevice(log)
 
-      const meta = log.metadata ? (typeof log.metadata === 'string' ? JSON.parse(log.metadata) : log.metadata) : {}
-      const providerName = (meta.provider || meta.authProvider || user?.authProvider || '').toLowerCase()
-      const oauthLabel = providerName === 'google' ? ' via Google' : providerName === 'apple' ? ' via Apple' : ''
+      const meta = log.metadata
+        ? typeof log.metadata === 'string'
+          ? JSON.parse(log.metadata)
+          : log.metadata
+        : {}
+      const providerName = (
+        meta.provider ||
+        meta.authProvider ||
+        user?.authProvider ||
+        ''
+      ).toLowerCase()
+      const oauthLabel =
+        providerName === 'google' ? ' via Google' : providerName === 'apple' ? ' via Apple' : ''
 
       if (log.action === 'SIGNUP') {
-        const platformLabel = platform === 'ios' ? 'iOS App' : platform === 'android' ? 'Android App' : 'Web'
+        const platformLabel =
+          platform === 'ios' ? 'iOS App' : platform === 'android' ? 'Android App' : 'Web'
         if (log.userRole === 'PM' || log.app === 'upward-pm') {
           readableText = `Property Manager ${pmDisplayName || 'Unknown PM'} registered a new account via ${platformLabel}.`
         } else {
@@ -426,23 +460,35 @@ export class GetAppActivityLogsUseCase {
           }
         }
       } else if (log.action === 'LOGIN') {
-        const platformLabel = platform === 'ios' ? 'iOS App' : platform === 'android' ? 'Android App' : 'Web'
+        const platformLabel =
+          platform === 'ios' ? 'iOS App' : platform === 'android' ? 'Android App' : 'Web'
         readableText = `${userDisplayName || 'Tenant'} logged in${oauthLabel} via ${platformLabel} (${deviceSummary}).`
       } else if (log.action === 'LOGIN_FAILED' || log.action === 'AUTH_FAILED') {
-        const platformLabel = platform === 'ios' ? 'iOS App' : platform === 'android' ? 'Android App' : 'Web'
+        const platformLabel =
+          platform === 'ios' ? 'iOS App' : platform === 'android' ? 'Android App' : 'Web'
         const reason = meta.error || log.description.split(': ')[1] || 'Authentication error'
         readableText = `${userDisplayName || 'User'} sign-in attempt failed${oauthLabel} via ${platformLabel}: ${reason}`
       } else if (log.action === 'SIGNUP_FAILED') {
-        const platformLabel = platform === 'ios' ? 'iOS App' : platform === 'android' ? 'Android App' : 'Web'
+        const platformLabel =
+          platform === 'ios' ? 'iOS App' : platform === 'android' ? 'Android App' : 'Web'
         const reason = meta.error || log.description.split(': ')[1] || 'Registration error'
         readableText = `${userDisplayName || 'User'} registration attempt failed${oauthLabel} via ${platformLabel}: ${reason}`
       } else if (log.action === 'LOGOUT') {
-        const platformLabel = platform === 'ios' ? 'iOS App' : platform === 'android' ? 'Android App' : 'Web'
+        const platformLabel =
+          platform === 'ios' ? 'iOS App' : platform === 'android' ? 'Android App' : 'Web'
         readableText = `${userDisplayName || 'Tenant'} logged out via ${platformLabel}.`
-      } else if (log.action === 'PAYMENT' || log.entityType === 'PAYMENT' || log.entityType === 'RENT') {
+      } else if (
+        log.action === 'PAYMENT' ||
+        log.entityType === 'PAYMENT' ||
+        log.entityType === 'RENT'
+      ) {
         let amountStr = ''
         try {
-          const meta = log.metadata ? (typeof log.metadata === 'string' ? JSON.parse(log.metadata) : log.metadata) : {}
+          const meta = log.metadata
+            ? typeof log.metadata === 'string'
+              ? JSON.parse(log.metadata)
+              : log.metadata
+            : {}
           if (meta.amount) {
             amountStr = ` of ₦${Number(meta.amount).toLocaleString()}`
           }
@@ -455,7 +501,11 @@ export class GetAppActivityLogsUseCase {
       } else if (log.action === 'DEPOSIT' || log.entityType === 'WALLET') {
         let amountStr = ''
         try {
-          const meta = log.metadata ? (typeof log.metadata === 'string' ? JSON.parse(log.metadata) : log.metadata) : {}
+          const meta = log.metadata
+            ? typeof log.metadata === 'string'
+              ? JSON.parse(log.metadata)
+              : log.metadata
+            : {}
           if (meta.amount) {
             amountStr = ` of ₦${Number(meta.amount).toLocaleString()}`
           }

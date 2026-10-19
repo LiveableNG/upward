@@ -119,11 +119,7 @@ export const HardUpdateModal: React.FC<HardUpdateModalProps> = ({
           style={{ marginTop: isMaintenance ? '20px' : '16px' }}
         >
           {!isMaintenance ? (
-            <button
-              type="button"
-              onClick={handleUpdate}
-              className="app-update-sheet__btn-primary"
-            >
+            <button type="button" onClick={handleUpdate} className="app-update-sheet__btn-primary">
               <span>Update now</span>
               <ArrowRight size={16} strokeWidth={2.2} />
             </button>

@@ -18,9 +18,7 @@ export class GetAppVersionPoliciesUseCase {
     // Ensure default rows exist for both ios and android for upward-pay
     const platforms = ['ios', 'android']
     for (const platform of platforms) {
-      const exists = policies.find(
-        (p) => p.app === 'upward-pay' && p.platform === platform,
-      )
+      const exists = policies.find((p) => p.app === 'upward-pay' && p.platform === platform)
       if (!exists) {
         const seeded = await this.versionRepo.upsertPolicy({
           app: 'upward-pay',
@@ -33,7 +31,8 @@ export class GetAppVersionPoliciesUseCase {
           maintenanceMode: false,
           gatedFeatures: [],
           title: platform === 'ios' ? 'New iOS Version Available' : 'New Android Version Available',
-          message: 'Update your Upward Pay app to access the latest features and performance enhancements.',
+          message:
+            'Update your Upward Pay app to access the latest features and performance enhancements.',
           releaseNotes: [
             'Faster one-tap card checkout',
             'Instant rent receipt generation and sharing',

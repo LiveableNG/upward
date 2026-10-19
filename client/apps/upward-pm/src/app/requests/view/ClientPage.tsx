@@ -13,7 +13,13 @@ function RequestContent() {
 
 export default function ClientPage() {
   return (
-    <Suspense fallback={<div className="public-fulfillment"><div className="public-fulfillment__container">Loading...</div></div>}>
+    <Suspense
+      fallback={
+        <div className="public-fulfillment">
+          <div className="public-fulfillment__container">Loading...</div>
+        </div>
+      }
+    >
       <RequestContent />
     </Suspense>
   )

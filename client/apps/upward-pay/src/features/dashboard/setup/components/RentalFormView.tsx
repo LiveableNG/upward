@@ -34,7 +34,12 @@ import {
   PaymentAccountForm,
   isPaymentAccountResolved,
 } from '@/features/dashboard/components/payment/PaymentAccountForm'
-import { toDateInputValue, validateRentDates, calculateRentEndDate, type LeaseDurationUnit } from '../rentalDates'
+import {
+  toDateInputValue,
+  validateRentDates,
+  calculateRentEndDate,
+  type LeaseDurationUnit,
+} from '../rentalDates'
 import { formatCurrency } from '@/lib/utils'
 import { PmSearchSelect } from './PmSearchSelect'
 
@@ -58,7 +63,7 @@ export function RentalFormView() {
         draft.formData.rentStartDate,
         draft.formData.rentType || 'Annually',
         draft.formData.leaseDuration || '1',
-        draft.formData.leaseUnit || 'years'
+        draft.formData.leaseUnit || 'years',
       )
       if (computed && computed !== draft.formData.rentEndDate) {
         updateDraft({
@@ -124,7 +129,10 @@ export function RentalFormView() {
         return false
       }
       if (paid >= numAmount) {
-        toast.error('Amount already paid must be less than the total rent. Select "Already paid this period" if fully paid.', 'Invalid Amount')
+        toast.error(
+          'Amount already paid must be less than the total rent. Select "Already paid this period" if fully paid.',
+          'Invalid Amount',
+        )
         return false
       }
     }
@@ -137,14 +145,14 @@ export function RentalFormView() {
 
     const hasEnteredPayment = Boolean(
       draft.paymentDetails.accountNumber.trim() ||
-        draft.paymentDetails.bankCode.trim() ||
-        draft.paymentDetails.accountName.trim(),
+      draft.paymentDetails.bankCode.trim() ||
+      draft.paymentDetails.accountName.trim(),
     )
     const hasEnteredManager = Boolean(
       draft.pmEmail.trim() ||
-        draft.formData.pmName.trim() ||
-        draft.pmInviteEmail.trim() ||
-        (draft.pmFound && draft.pmDetails),
+      draft.formData.pmName.trim() ||
+      draft.pmInviteEmail.trim() ||
+      (draft.pmFound && draft.pmDetails),
     )
 
     // If skippable and completely empty, mark skipped and pass
@@ -205,14 +213,14 @@ export function RentalFormView() {
 
     const hasEnteredManager = Boolean(
       draft.pmEmail.trim() ||
-        draft.formData.pmName.trim() ||
-        draft.pmInviteEmail.trim() ||
-        (draft.pmFound && draft.pmDetails),
+      draft.formData.pmName.trim() ||
+      draft.pmInviteEmail.trim() ||
+      (draft.pmFound && draft.pmDetails),
     )
     const hasEnteredPayment = Boolean(
       draft.paymentDetails.accountNumber.trim() ||
-        draft.paymentDetails.bankCode.trim() ||
-        draft.paymentDetails.accountName.trim(),
+      draft.paymentDetails.bankCode.trim() ||
+      draft.paymentDetails.accountName.trim(),
     )
     updateDraft({ landlordSkipped: canSkipLandlord && !hasEnteredManager && !hasEnteredPayment })
     goToConfirm()
@@ -297,7 +305,10 @@ export function RentalFormView() {
       try {
         const uploadData = new FormData()
         uploadData.append('file', selected)
-        const uploadRes: any = await api.post('/user/pm-connection/onboarding-proof/upload', uploadData)
+        const uploadRes: any = await api.post(
+          '/user/pm-connection/onboarding-proof/upload',
+          uploadData,
+        )
         const proofData = uploadRes?.data || uploadRes
         if (proofData?.url) {
           updateDraft({
@@ -474,7 +485,7 @@ export function RentalFormView() {
                       draft.formData.rentStartDate,
                       newType,
                       draft.formData.leaseDuration || '1',
-                      draft.formData.leaseUnit || 'years'
+                      draft.formData.leaseUnit || 'years',
                     )
                     updateDraft({
                       formData: {
@@ -494,7 +505,14 @@ export function RentalFormView() {
               {draft.formData.rentType === 'Lease' && (
                 <div className="setup-page__field">
                   <label>Lease duration</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.3fr)', gap: 8, minWidth: 0 }}>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1.3fr)',
+                      gap: 8,
+                      minWidth: 0,
+                    }}
+                  >
                     <input
                       type="number"
                       min="1"
@@ -507,7 +525,7 @@ export function RentalFormView() {
                           draft.formData.rentStartDate,
                           'Lease',
                           newDur,
-                          draft.formData.leaseUnit || 'years'
+                          draft.formData.leaseUnit || 'years',
                         )
                         updateDraft({
                           formData: {
@@ -527,7 +545,7 @@ export function RentalFormView() {
                           draft.formData.rentStartDate,
                           'Lease',
                           draft.formData.leaseDuration || '1',
-                          newUnit
+                          newUnit,
                         )
                         updateDraft({
                           formData: {
@@ -583,7 +601,9 @@ export function RentalFormView() {
                 {/* Option 1: NEW_CYCLE */}
                 <div
                   className={`setup-page__status-card ${
-                    draft.formData.tenancyStatus === 'NEW_CYCLE' ? 'setup-page__status-card--selected' : ''
+                    draft.formData.tenancyStatus === 'NEW_CYCLE'
+                      ? 'setup-page__status-card--selected'
+                      : ''
                   }`}
                   onClick={() => {
                     haptics.selection()
@@ -614,7 +634,9 @@ export function RentalFormView() {
                 {/* Option 2: PAYING_BALANCE */}
                 <div
                   className={`setup-page__status-card ${
-                    draft.formData.tenancyStatus === 'PAYING_BALANCE' ? 'setup-page__status-card--selected' : ''
+                    draft.formData.tenancyStatus === 'PAYING_BALANCE'
+                      ? 'setup-page__status-card--selected'
+                      : ''
                   }`}
                   onClick={() => {
                     haptics.selection()
@@ -635,7 +657,9 @@ export function RentalFormView() {
                 {/* Option 3: ALREADY_PAID */}
                 <div
                   className={`setup-page__status-card ${
-                    draft.formData.tenancyStatus === 'ALREADY_PAID' ? 'setup-page__status-card--selected' : ''
+                    draft.formData.tenancyStatus === 'ALREADY_PAID'
+                      ? 'setup-page__status-card--selected'
+                      : ''
                   }`}
                   onClick={() => {
                     haptics.selection()
@@ -664,7 +688,15 @@ export function RentalFormView() {
 
             {/* Dynamic Inputs for PAYING_BALANCE */}
             {draft.formData.tenancyStatus === 'PAYING_BALANCE' && (
-              <div className="setup-page__status-section" style={{ background: '#fcfaf7', padding: 16, borderRadius: 14, border: '1px solid #eae2d7' }}>
+              <div
+                className="setup-page__status-section"
+                style={{
+                  background: '#fcfaf7',
+                  padding: 16,
+                  borderRadius: 14,
+                  border: '1px solid #eae2d7',
+                }}
+              >
                 <div className="setup-page__field" style={{ marginBottom: 12 }}>
                   <label>Amount already paid to landlord</label>
                   <div className="setup-page__input-row">
@@ -704,7 +736,8 @@ export function RentalFormView() {
                   >
                     <CheckCircle2 size={18} />
                     <span>
-                      Remaining balance to pay on Upward: <strong>{formatCurrency(remainingNum, 'NGN')}</strong>
+                      Remaining balance to pay on Upward:{' '}
+                      <strong>{formatCurrency(remainingNum, 'NGN')}</strong>
                     </span>
                   </div>
                 )}
@@ -712,7 +745,8 @@ export function RentalFormView() {
             )}
 
             {/* Dynamic Inputs for Proof of Payment (Single File Constraint) */}
-            {(draft.formData.tenancyStatus === 'PAYING_BALANCE' || draft.formData.tenancyStatus === 'ALREADY_PAID') && (
+            {(draft.formData.tenancyStatus === 'PAYING_BALANCE' ||
+              draft.formData.tenancyStatus === 'ALREADY_PAID') && (
               <div className="setup-page__field" style={{ marginTop: 12 }}>
                 <label>
                   {draft.formData.tenancyStatus === 'PAYING_BALANCE'
@@ -732,8 +766,20 @@ export function RentalFormView() {
                       border: '1px solid #e5dbcd',
                     }}
                   >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: 1 }}>
-                      <FileText size={22} color="var(--skin-primary, #c2501f)" style={{ flexShrink: 0 }} />
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        minWidth: 0,
+                        flex: 1,
+                      }}
+                    >
+                      <FileText
+                        size={22}
+                        color="var(--skin-primary, #c2501f)"
+                        style={{ flexShrink: 0 }}
+                      />
                       <div style={{ minWidth: 0, flex: 1 }}>
                         <strong
                           style={{
@@ -745,7 +791,9 @@ export function RentalFormView() {
                             whiteSpace: 'nowrap',
                           }}
                         >
-                          {draft.formData.proofFileMeta?.name || draft.formData.proofFile?.name || 'Attached Proof'}
+                          {draft.formData.proofFileMeta?.name ||
+                            draft.formData.proofFile?.name ||
+                            'Attached Proof'}
                         </strong>
                         <span style={{ fontSize: 11.5, color: '#7a7268' }}>
                           Ready for submission
@@ -783,7 +831,11 @@ export function RentalFormView() {
                       textAlign: 'center',
                     }}
                   >
-                    <UploadCloud size={28} color="var(--skin-primary, #c2501f)" style={{ marginBottom: 6 }} />
+                    <UploadCloud
+                      size={28}
+                      color="var(--skin-primary, #c2501f)"
+                      style={{ marginBottom: 6 }}
+                    />
                     <span style={{ fontSize: 13.5, fontWeight: 600, color: '#1a1714' }}>
                       Tap to attach bank receipt or transfer slip
                     </span>
@@ -821,7 +873,7 @@ export function RentalFormView() {
                       rentStartDate,
                       draft.formData.rentType || 'Annually',
                       draft.formData.leaseDuration || '1',
-                      draft.formData.leaseUnit || 'years'
+                      draft.formData.leaseUnit || 'years',
                     )
                     updateDraft({
                       formData: {
@@ -841,7 +893,14 @@ export function RentalFormView() {
                       ? 'Current cycle due date'
                       : 'Next rent due date'}
                 </label>
-                <div style={{ position: 'relative', width: '100%', minWidth: 0, boxSizing: 'border-box' }}>
+                <div
+                  style={{
+                    position: 'relative',
+                    width: '100%',
+                    minWidth: 0,
+                    boxSizing: 'border-box',
+                  }}
+                >
                   <input
                     className="setup-page__input"
                     type="date"
@@ -899,7 +958,11 @@ export function RentalFormView() {
               }}
             >
               {canSkipLandlord ? (
-                <Sparkles size={18} color="var(--skin-primary, #c2501f)" style={{ flexShrink: 0 }} />
+                <Sparkles
+                  size={18}
+                  color="var(--skin-primary, #c2501f)"
+                  style={{ flexShrink: 0 }}
+                />
               ) : (
                 <ShieldCheck size={18} color="#b45309" style={{ flexShrink: 0 }} />
               )}
@@ -913,11 +976,14 @@ export function RentalFormView() {
               >
                 {canSkipLandlord ? (
                   <>
-                    <strong>Next step (Landlord details) is optional:</strong> You can skip entering landlord contact & bank info now and add it anytime from your dashboard.
+                    <strong>Next step (Landlord details) is optional:</strong> You can skip entering
+                    landlord contact & bank info now and add it anytime from your dashboard.
                   </>
                 ) : (
                   <>
-                    <strong>Landlord contact required in next step:</strong> Because you are logging an offline payment, your landlord or manager will be invited to verify your receipt.
+                    <strong>Landlord contact required in next step:</strong> Because you are logging
+                    an offline payment, your landlord or manager will be invited to verify your
+                    receipt.
                   </>
                 )}
               </p>
@@ -942,13 +1008,32 @@ export function RentalFormView() {
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <Sparkles size={20} color="var(--skin-primary, #c2501f)" style={{ flexShrink: 0 }} />
+                  <Sparkles
+                    size={20}
+                    color="var(--skin-primary, #c2501f)"
+                    style={{ flexShrink: 0 }}
+                  />
                   <div>
-                    <strong style={{ display: 'block', fontSize: 13.5, color: '#1a1714', fontWeight: 700 }}>
+                    <strong
+                      style={{
+                        display: 'block',
+                        fontSize: 13.5,
+                        color: '#1a1714',
+                        fontWeight: 700,
+                      }}
+                    >
                       Landlord details are optional
                     </strong>
-                    <p style={{ margin: '2px 0 0', fontSize: 12, color: '#7a7268', lineHeight: 1.45 }}>
-                      You can skip this step now and add landlord details anytime from your dashboard.
+                    <p
+                      style={{
+                        margin: '2px 0 0',
+                        fontSize: 12,
+                        color: '#7a7268',
+                        lineHeight: 1.45,
+                      }}
+                    >
+                      You can skip this step now and add landlord details anytime from your
+                      dashboard.
                     </p>
                   </div>
                 </div>
@@ -999,7 +1084,9 @@ export function RentalFormView() {
               >
                 <ShieldCheck size={18} style={{ flexShrink: 0 }} />
                 <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.45 }}>
-                  <strong>Landlord verification needed:</strong> Because you uploaded payment proof, we need your landlord or manager&apos;s contact details so they can verify your receipt.
+                  <strong>Landlord verification needed:</strong> Because you uploaded payment proof,
+                  we need your landlord or manager&apos;s contact details so they can verify your
+                  receipt.
                 </p>
               </div>
             )}
@@ -1069,7 +1156,11 @@ export function RentalFormView() {
             <PaymentAccountForm
               value={draft.paymentDetails}
               onChange={(paymentDetails) => updateDraft({ paymentDetails })}
-              intro={canSkipLandlord ? "Where do you pay your rent? (Optional: enter bank details now or later)." : "Where do you pay your rent? Enter your landlord or manager's bank account details."}
+              intro={
+                canSkipLandlord
+                  ? 'Where do you pay your rent? (Optional: enter bank details now or later).'
+                  : "Where do you pay your rent? Enter your landlord or manager's bank account details."
+              }
               disabled={draft.isManagedProperty}
             />
 
@@ -1078,7 +1169,8 @@ export function RentalFormView() {
                 Landlord or Manager Contact
               </label>
               <p style={{ fontSize: 12.5, color: '#7a7268', marginBottom: 12, lineHeight: 1.45 }}>
-                Search by manager name, company name, email, or phone number in real time, or send an invitation.
+                Search by manager name, company name, email, or phone number in real time, or send
+                an invitation.
               </p>
 
               <PmSearchSelect
@@ -1093,8 +1185,7 @@ export function RentalFormView() {
                 }}
                 onChange={(patch) => {
                   const autoPayment =
-                    !draft.paymentDetails.accountNumber &&
-                    patch.pmDetails?.defaultSettlementAccount
+                    !draft.paymentDetails.accountNumber && patch.pmDetails?.defaultSettlementAccount
                       ? {
                           paymentDetails: {
                             bankName: patch.pmDetails.defaultSettlementAccount.bankName,

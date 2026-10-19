@@ -124,7 +124,10 @@ export const AppReleases: React.FC<AppReleasesProps> = ({ token }) => {
     }
   }
 
-  const handleQuickToggle = async (key: 'forceUpdate' | 'maintenanceMode', currentValue: boolean) => {
+  const handleQuickToggle = async (
+    key: 'forceUpdate' | 'maintenanceMode',
+    currentValue: boolean,
+  ) => {
     try {
       const newValue = !currentValue
       setFormData((prev) => ({ ...prev, [key]: newValue }))
@@ -207,7 +210,8 @@ export const AppReleases: React.FC<AppReleasesProps> = ({ token }) => {
           </h2>
         </div>
         <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '6px' }}>
-          Manage in-app update prompts, emergency force-update locks, and feature gating independently for iOS and Android.
+          Manage in-app update prompts, emergency force-update locks, and feature gating
+          independently for iOS and Android.
         </p>
       </div>
 
@@ -232,7 +236,8 @@ export const AppReleases: React.FC<AppReleasesProps> = ({ token }) => {
             fontWeight: 700,
             fontSize: '14px',
             cursor: 'pointer',
-            border: selectedPlatform === 'ios' ? '2px solid var(--accent)' : '1px solid var(--border)',
+            border:
+              selectedPlatform === 'ios' ? '2px solid var(--accent)' : '1px solid var(--border)',
             backgroundColor: selectedPlatform === 'ios' ? 'var(--accent-faint)' : 'var(--surface)',
             color: selectedPlatform === 'ios' ? 'var(--accent)' : 'var(--text)',
             transition: 'all 0.15s ease',
@@ -266,8 +271,12 @@ export const AppReleases: React.FC<AppReleasesProps> = ({ token }) => {
             fontWeight: 700,
             fontSize: '14px',
             cursor: 'pointer',
-            border: selectedPlatform === 'android' ? '2px solid var(--accent)' : '1px solid var(--border)',
-            backgroundColor: selectedPlatform === 'android' ? 'var(--accent-faint)' : 'var(--surface)',
+            border:
+              selectedPlatform === 'android'
+                ? '2px solid var(--accent)'
+                : '1px solid var(--border)',
+            backgroundColor:
+              selectedPlatform === 'android' ? 'var(--accent-faint)' : 'var(--surface)',
             color: selectedPlatform === 'android' ? 'var(--accent)' : 'var(--text)',
             transition: 'all 0.15s ease',
           }}
@@ -291,16 +300,28 @@ export const AppReleases: React.FC<AppReleasesProps> = ({ token }) => {
       </div>
 
       {/* Main Grid: Form Left, Preview Right */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: '24px' }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)',
+          gap: '24px',
+        }}
+      >
         {/* Controls Column */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {/* Status & Store Identification Card */}
           <div className="card" style={{ padding: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>STORE IDENTIFIER</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-                  <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 700 }}>{storeBadge.name}</h4>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                  STORE IDENTIFIER
+                </span>
+                <div
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}
+                >
+                  <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 700 }}>
+                    {storeBadge.name}
+                  </h4>
                   <span
                     style={{
                       background: 'var(--surface-hover)',
@@ -336,7 +357,9 @@ export const AppReleases: React.FC<AppReleasesProps> = ({ token }) => {
 
           {/* Emergency Switches */}
           <div className="card" style={{ padding: '20px' }}>
-            <h4 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '14px' }}>Emergency Gating Controls</h4>
+            <h4 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '14px' }}>
+              Emergency Gating Controls
+            </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               {/* Force Update Switch */}
               <div
@@ -346,17 +369,25 @@ export const AppReleases: React.FC<AppReleasesProps> = ({ token }) => {
                   alignItems: 'center',
                   padding: '12px 14px',
                   borderRadius: '12px',
-                  backgroundColor: formData.forceUpdate ? 'rgba(239, 68, 68, 0.1)' : 'var(--surface-hover)',
-                  border: formData.forceUpdate ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid var(--border)',
+                  backgroundColor: formData.forceUpdate
+                    ? 'rgba(239, 68, 68, 0.1)'
+                    : 'var(--surface-hover)',
+                  border: formData.forceUpdate
+                    ? '1px solid rgba(239, 68, 68, 0.3)'
+                    : '1px solid var(--border)',
                 }}
               >
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <ShieldAlert size={16} color={formData.forceUpdate ? '#ef4444' : 'var(--text-muted)'} />
+                    <ShieldAlert
+                      size={16}
+                      color={formData.forceUpdate ? '#ef4444' : 'var(--text-muted)'}
+                    />
                     <strong style={{ fontSize: '14px' }}>Global Force Update (Hard Lockout)</strong>
                   </div>
                   <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
-                    Forces all active apps to update immediately before allowing login or navigation.
+                    Forces all active apps to update immediately before allowing login or
+                    navigation.
                   </p>
                 </div>
                 <button
@@ -385,13 +416,20 @@ export const AppReleases: React.FC<AppReleasesProps> = ({ token }) => {
                   alignItems: 'center',
                   padding: '12px 14px',
                   borderRadius: '12px',
-                  backgroundColor: formData.maintenanceMode ? 'rgba(245, 158, 11, 0.1)' : 'var(--surface-hover)',
-                  border: formData.maintenanceMode ? '1px solid rgba(245, 158, 11, 0.3)' : '1px solid var(--border)',
+                  backgroundColor: formData.maintenanceMode
+                    ? 'rgba(245, 158, 11, 0.1)'
+                    : 'var(--surface-hover)',
+                  border: formData.maintenanceMode
+                    ? '1px solid rgba(245, 158, 11, 0.3)'
+                    : '1px solid var(--border)',
                 }}
               >
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <AlertTriangle size={16} color={formData.maintenanceMode ? '#f59e0b' : 'var(--text-muted)'} />
+                    <AlertTriangle
+                      size={16}
+                      color={formData.maintenanceMode ? '#f59e0b' : 'var(--text-muted)'}
+                    />
                     <strong style={{ fontSize: '14px' }}>Scheduled Maintenance Shield</strong>
                   </div>
                   <p style={{ margin: '2px 0 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
@@ -420,27 +458,52 @@ export const AppReleases: React.FC<AppReleasesProps> = ({ token }) => {
 
           {/* Version Thresholds */}
           <div className="card" style={{ padding: '20px' }}>
-            <h4 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '14px' }}>Version Constraints & Semver</h4>
+            <h4 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '14px' }}>
+              Version Constraints & Semver
+            </h4>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
               <div>
-                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', display: 'block' }}>
+                <label
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: 'var(--text-muted)',
+                    display: 'block',
+                  }}
+                >
                   Minimum Supported Version
                 </label>
                 <input
                   type="text"
                   value={formData.minSupportedVersion || ''}
-                  onChange={(e) => setFormData({ ...formData, minSupportedVersion: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, minSupportedVersion: e.target.value })
+                  }
                   placeholder="e.g. 1.0.0"
                   className="input-field"
                   style={{ width: '100%', marginTop: '6px' }}
                 />
-                <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                <span
+                  style={{
+                    fontSize: '11px',
+                    color: 'var(--text-muted)',
+                    marginTop: '4px',
+                    display: 'block',
+                  }}
+                >
                   Versions older than this get hard-locked.
                 </span>
               </div>
 
               <div>
-                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', display: 'block' }}>
+                <label
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: 'var(--text-muted)',
+                    display: 'block',
+                  }}
+                >
                   Latest Store Version
                 </label>
                 <input
@@ -451,34 +514,69 @@ export const AppReleases: React.FC<AppReleasesProps> = ({ token }) => {
                   className="input-field"
                   style={{ width: '100%', marginTop: '6px' }}
                 />
-                <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                <span
+                  style={{
+                    fontSize: '11px',
+                    color: 'var(--text-muted)',
+                    marginTop: '4px',
+                    display: 'block',
+                  }}
+                >
                   Versions between Min & Latest get soft alert.
                 </span>
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '16px' }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '16px',
+                marginTop: '16px',
+              }}
+            >
               <div>
-                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', display: 'block' }}>
+                <label
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: 'var(--text-muted)',
+                    display: 'block',
+                  }}
+                >
                   Minimum Build Number
                 </label>
                 <input
                   type="number"
                   value={formData.minBuildNumber ?? 1}
-                  onChange={(e) => setFormData({ ...formData, minBuildNumber: parseInt(e.target.value, 10) || 1 })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, minBuildNumber: parseInt(e.target.value, 10) || 1 })
+                  }
                   className="input-field"
                   style={{ width: '100%', marginTop: '6px' }}
                 />
               </div>
 
               <div>
-                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', display: 'block' }}>
+                <label
+                  style={{
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: 'var(--text-muted)',
+                    display: 'block',
+                  }}
+                >
                   Latest Build Number
                 </label>
                 <input
                   type="number"
                   value={formData.latestBuildNumber ?? 11}
-                  onChange={(e) => setFormData({ ...formData, latestBuildNumber: parseInt(e.target.value, 10) || 1 })}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      latestBuildNumber: parseInt(e.target.value, 10) || 1,
+                    })
+                  }
                   className="input-field"
                   style={{ width: '100%', marginTop: '6px' }}
                 />
@@ -488,9 +586,12 @@ export const AppReleases: React.FC<AppReleasesProps> = ({ token }) => {
 
           {/* Feature Gating Matrix */}
           <div className="card" style={{ padding: '20px' }}>
-            <h4 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '6px' }}>Feature-Level Gating</h4>
+            <h4 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '6px' }}>
+              Feature-Level Gating
+            </h4>
             <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '0 0 14px 0' }}>
-              Allow users to use the rest of the app, but lock out specific sensitive flows until they update.
+              Allow users to use the rest of the app, but lock out specific sensitive flows until
+              they update.
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -546,10 +647,14 @@ export const AppReleases: React.FC<AppReleasesProps> = ({ token }) => {
 
           {/* Release Notes & Announcement Text */}
           <div className="card" style={{ padding: '20px' }}>
-            <h4 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '14px' }}>Modal Content & Release Notes</h4>
+            <h4 style={{ fontSize: '15px', fontWeight: 700, marginBottom: '14px' }}>
+              Modal Content & Release Notes
+            </h4>
 
             <div style={{ marginBottom: '14px' }}>
-              <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>Custom Dialog Title</label>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                Custom Dialog Title
+              </label>
               <input
                 type="text"
                 value={formData.title || ''}
@@ -561,7 +666,9 @@ export const AppReleases: React.FC<AppReleasesProps> = ({ token }) => {
             </div>
 
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>Dialog Message</label>
+              <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
+                Dialog Message
+              </label>
               <textarea
                 value={formData.message || ''}
                 onChange={(e) => setFormData({ ...formData, message: e.target.value })}
@@ -627,7 +734,12 @@ export const AppReleases: React.FC<AppReleasesProps> = ({ token }) => {
                     <button
                       type="button"
                       onClick={() => removeReleaseNote(index)}
-                      style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        color: '#ef4444',
+                        cursor: 'pointer',
+                      }}
                     >
                       <Trash2 size={14} />
                     </button>
@@ -659,16 +771,22 @@ export const AppReleases: React.FC<AppReleasesProps> = ({ token }) => {
             }}
           >
             <Save size={18} />
-            <span>{saving ? 'Saving Changes...' : `Save ${selectedPlatform.toUpperCase()} Policy`}</span>
+            <span>
+              {saving ? 'Saving Changes...' : `Save ${selectedPlatform.toUpperCase()} Policy`}
+            </span>
           </button>
         </div>
 
         {/* Live Preview Column */}
         <div>
           <div style={{ position: 'sticky', top: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
+            <div
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}
+            >
               <Sparkles size={16} style={{ color: 'var(--accent)' }} />
-              <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700 }}>Mobile Tenant Live Preview</h4>
+              <h4 style={{ margin: 0, fontSize: '14px', fontWeight: 700 }}>
+                Mobile Tenant Live Preview
+              </h4>
             </div>
 
             {/* Mock Phone Frame */}
@@ -719,9 +837,32 @@ export const AppReleases: React.FC<AppReleasesProps> = ({ token }) => {
                   pointerEvents: 'none',
                 }}
               >
-                <div style={{ width: '45%', height: '12px', background: '#3f3f46', borderRadius: '4px', marginBottom: '18px' }} />
-                <div style={{ width: '100%', height: '80px', background: '#27272a', borderRadius: '14px', marginBottom: '14px' }} />
-                <div style={{ width: '100%', height: '60px', background: '#27272a', borderRadius: '14px' }} />
+                <div
+                  style={{
+                    width: '45%',
+                    height: '12px',
+                    background: '#3f3f46',
+                    borderRadius: '4px',
+                    marginBottom: '18px',
+                  }}
+                />
+                <div
+                  style={{
+                    width: '100%',
+                    height: '80px',
+                    background: '#27272a',
+                    borderRadius: '14px',
+                    marginBottom: '14px',
+                  }}
+                />
+                <div
+                  style={{
+                    width: '100%',
+                    height: '60px',
+                    background: '#27272a',
+                    borderRadius: '14px',
+                  }}
+                />
               </div>
 
               {/* Dimmed Backdrop */}
@@ -763,7 +904,14 @@ export const AppReleases: React.FC<AppReleasesProps> = ({ token }) => {
                 />
 
                 {/* Header */}
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '14px' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '10px',
+                    marginBottom: '14px',
+                  }}
+                >
                   <div
                     style={{
                       width: '40px',
@@ -782,9 +930,26 @@ export const AppReleases: React.FC<AppReleasesProps> = ({ token }) => {
                   </div>
 
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px', marginBottom: '3px' }}>
-                      <h4 style={{ fontSize: '15px', fontWeight: 700, margin: 0, color: '#faf9f5', lineHeight: 1.25 }}>
-                        {formData.title || (formData.forceUpdate ? 'Update Required' : 'A new version is available')}
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        flexWrap: 'wrap',
+                        gap: '6px',
+                        marginBottom: '3px',
+                      }}
+                    >
+                      <h4
+                        style={{
+                          fontSize: '15px',
+                          fontWeight: 700,
+                          margin: 0,
+                          color: '#faf9f5',
+                          lineHeight: 1.25,
+                        }}
+                      >
+                        {formData.title ||
+                          (formData.forceUpdate ? 'Update Required' : 'A new version is available')}
                       </h4>
                       {formData.latestVersion && (
                         <span
@@ -803,7 +968,8 @@ export const AppReleases: React.FC<AppReleasesProps> = ({ token }) => {
                       )}
                     </div>
                     <p style={{ fontSize: '11px', color: '#b0aba8', margin: 0, lineHeight: 1.4 }}>
-                      {formData.message || 'Update Upward Pay to get the latest improvements and a smoother experience.'}
+                      {formData.message ||
+                        'Update Upward Pay to get the latest improvements and a smoother experience.'}
                     </p>
                   </div>
                 </div>
@@ -839,7 +1005,10 @@ export const AppReleases: React.FC<AppReleasesProps> = ({ token }) => {
                           'Enhanced security and reliability updates.',
                         ]
                     ).map((note, idx) => (
-                      <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                      <div
+                        key={idx}
+                        style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}
+                      >
                         <span
                           style={{
                             width: '16px',
@@ -857,7 +1026,9 @@ export const AppReleases: React.FC<AppReleasesProps> = ({ token }) => {
                         >
                           <Check size={9} strokeWidth={3} />
                         </span>
-                        <span style={{ fontSize: '11px', color: '#b0aba8', lineHeight: 1.35, flex: 1 }}>
+                        <span
+                          style={{ fontSize: '11px', color: '#b0aba8', lineHeight: 1.35, flex: 1 }}
+                        >
                           {note}
                         </span>
                       </div>

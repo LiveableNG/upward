@@ -8,7 +8,16 @@ import { haptics } from '@/lib/haptics'
 
 const SIDE_NAV_ITEMS = [
   { label: 'Home', icon: Home, href: '/dashboard', requiresMyHome: false, hideOnDashboard: true },
-  { label: 'My Home', icon: Building2, href: '/dashboard/my-home', requiresMyHome: true, hideOnMyHome: true, hideOnPayRent: true, hideOnTransactions: true, hideOnProfile: true },
+  {
+    label: 'My Home',
+    icon: Building2,
+    href: '/dashboard/my-home',
+    requiresMyHome: true,
+    hideOnMyHome: true,
+    hideOnPayRent: true,
+    hideOnTransactions: true,
+    hideOnProfile: true,
+  },
   { label: 'Pay Rent', icon: CreditCard, href: '/dashboard/pay-rent', requiresMyHome: false },
   { label: 'Transactions', icon: History, href: '/dashboard/transactions', requiresMyHome: false },
   { label: 'Me', icon: User, href: '/dashboard/me', requiresMyHome: false },
@@ -35,8 +44,7 @@ export function BottomNav() {
     pathname === '/dashboard/pay-rent' || !!pathname?.startsWith('/dashboard/pay-rent/')
   const isTransactionsRoute =
     pathname === '/dashboard/transactions' || !!pathname?.startsWith('/dashboard/transactions/')
-  const isProfileRoute =
-    pathname === '/dashboard/me' || !!pathname?.startsWith('/dashboard/me/')
+  const isProfileRoute = pathname === '/dashboard/me' || !!pathname?.startsWith('/dashboard/me/')
 
   const items = SIDE_NAV_ITEMS.filter((item) => {
     if ('hideOnDashboard' in item && item.hideOnDashboard && isDashboardHome) return false

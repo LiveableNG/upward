@@ -24,7 +24,12 @@ import { OTPInput } from '@/components/common/OTPInput'
 import { useAuth } from '@/features/auth/AuthContext'
 import { haptics } from '@/lib/haptics'
 import { useQueryClient } from '@tanstack/react-query'
-import { checkEmail, requestOTP, verifyOTP, loginWithOTP } from '@/features/auth/services/authService'
+import {
+  checkEmail,
+  requestOTP,
+  verifyOTP,
+  loginWithOTP,
+} from '@/features/auth/services/authService'
 import { setAccessToken, setRefreshToken } from '@/lib/auth-token'
 import { setCookie } from '@/lib/cookie-utils'
 import { PasswordStrengthMeter } from './PasswordStrengthMeter'
@@ -38,7 +43,11 @@ interface SignupFormFlowProps {
   initialEmail?: string
 }
 
-export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail = '' }: SignupFormFlowProps) {
+export function SignupFormFlow({
+  onBackToWelcome,
+  onSignupSuccess,
+  initialEmail = '',
+}: SignupFormFlowProps) {
   const router = useRouter()
   const { login: setAuthUser } = useAuth()
   const queryClient = useQueryClient()
@@ -78,7 +87,9 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
     }
   }, [initialEmail])
 
-  const [effectiveContext, setEffectiveContext] = useState<'SIGNUP' | 'LOGIN' | 'INVITE' | 'WAITLIST'>('SIGNUP')
+  const [effectiveContext, setEffectiveContext] = useState<
+    'SIGNUP' | 'LOGIN' | 'INVITE' | 'WAITLIST'
+  >('SIGNUP')
 
   const [isNative, setIsNative] = useState(false)
 
@@ -97,7 +108,11 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
 
   const emailCheckTimeout = useRef<NodeJS.Timeout | null>(null)
 
-  const { signup, loading: signupLoading, error: signupError } = useSignup('', () => {
+  const {
+    signup,
+    loading: signupLoading,
+    error: signupError,
+  } = useSignup('', () => {
     onSignupSuccess(email, password)
   })
 
@@ -106,9 +121,17 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
     setEmailExists(false)
     setIsInvited(false)
     setIsWaitlist(false)
-    const identifier = identifierType === 'phone' ? (phone.startsWith('+') ? phone : `+234${phone.replace(/^0/, '')}`) : email
+    const identifier =
+      identifierType === 'phone'
+        ? phone.startsWith('+')
+          ? phone
+          : `+234${phone.replace(/^0/, '')}`
+        : email
 
-    if (identifier && (identifierType === 'phone' ? identifier.length >= 10 : isValidEmail(identifier))) {
+    if (
+      identifier &&
+      (identifierType === 'phone' ? identifier.length >= 10 : isValidEmail(identifier))
+    ) {
       if (emailCheckTimeout.current) clearTimeout(emailCheckTimeout.current)
       emailCheckTimeout.current = setTimeout(async () => {
         setIsCheckingEmail(true)
@@ -135,7 +158,9 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
 
     if (identifierType === 'email') {
       if (!isValidEmail(email)) {
-        setLocalError('Please enter a valid email address with a valid domain (e.g. name@example.com)')
+        setLocalError(
+          'Please enter a valid email address with a valid domain (e.g. name@example.com)',
+        )
         return
       }
     }
@@ -160,7 +185,12 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
       return
     }
 
-    const identifier = identifierType === 'phone' ? (phone.startsWith('+') ? phone : `+234${phone.replace(/^0/, '')}`) : email
+    const identifier =
+      identifierType === 'phone'
+        ? phone.startsWith('+')
+          ? phone
+          : `+234${phone.replace(/^0/, '')}`
+        : email
 
     setIsRequestingOTP(true)
     try {
@@ -176,10 +206,17 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
 
   const handleInviteProceed = async () => {
     if (identifierType === 'email' && !isValidEmail(email)) {
-      setLocalError('Please enter a valid email address with a valid domain (e.g. name@example.com)')
+      setLocalError(
+        'Please enter a valid email address with a valid domain (e.g. name@example.com)',
+      )
       return
     }
-    const identifier = identifierType === 'phone' ? (phone.startsWith('+') ? phone : `+234${phone.replace(/^0/, '')}`) : email
+    const identifier =
+      identifierType === 'phone'
+        ? phone.startsWith('+')
+          ? phone
+          : `+234${phone.replace(/^0/, '')}`
+        : email
     setIsRequestingOTP(true)
     try {
       const res: any = await requestOTP(identifier, 'INVITE', identifierType, phoneChannel)
@@ -192,13 +229,19 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
     }
   }
 
-
   const handleWaitlistProceed = async () => {
     if (identifierType === 'email' && !isValidEmail(email)) {
-      setLocalError('Please enter a valid email address with a valid domain (e.g. name@example.com)')
+      setLocalError(
+        'Please enter a valid email address with a valid domain (e.g. name@example.com)',
+      )
       return
     }
-    const identifier = identifierType === 'phone' ? (phone.startsWith('+') ? phone : `+234${phone.replace(/^0/, '')}`) : email
+    const identifier =
+      identifierType === 'phone'
+        ? phone.startsWith('+')
+          ? phone
+          : `+234${phone.replace(/^0/, '')}`
+        : email
     setIsRequestingOTP(true)
     try {
       const res: any = await requestOTP(identifier, 'WAITLIST', identifierType, phoneChannel)
@@ -213,7 +256,12 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
 
   const handleVerifyOTP = async (otp: string) => {
     setOtpError(null)
-    const identifier = identifierType === 'phone' ? (phone.startsWith('+') ? phone : `+234${phone.replace(/^0/, '')}`) : email
+    const identifier =
+      identifierType === 'phone'
+        ? phone.startsWith('+')
+          ? phone
+          : `+234${phone.replace(/^0/, '')}`
+        : email
 
     try {
       if (effectiveContext === 'LOGIN') {
@@ -258,15 +306,31 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
           haptics.error()
           setOtpError('Invite verification failed. Please try again.')
         } else {
-          const hearAboutUsValue = hearAboutUs === 'other'
-            ? (hearAboutUsOther.trim() ? `Other: ${hearAboutUsOther.trim()}` : 'Other')
-            : (HEAR_ABOUT_US_OPTIONS.find(o => o.id === hearAboutUs)?.label || hearAboutUs)
+          const hearAboutUsValue =
+            hearAboutUs === 'other'
+              ? hearAboutUsOther.trim()
+                ? `Other: ${hearAboutUsOther.trim()}`
+                : 'Other'
+              : HEAR_ABOUT_US_OPTIONS.find((o) => o.id === hearAboutUs)?.label || hearAboutUs
 
           if (identifierType === 'phone') {
             const generatedEmail = `${identifier.replace('+', '')}@upward.com`
-            signup({ email: generatedEmail, password, firstName, lastName, phone: identifier, hearAboutUs: hearAboutUsValue || undefined })
+            signup({
+              email: generatedEmail,
+              password,
+              firstName,
+              lastName,
+              phone: identifier,
+              hearAboutUs: hearAboutUsValue || undefined,
+            })
           } else {
-            signup({ email, password, firstName, lastName, hearAboutUs: hearAboutUsValue || undefined })
+            signup({
+              email,
+              password,
+              firstName,
+              lastName,
+              hearAboutUs: hearAboutUsValue || undefined,
+            })
           }
         }
       }
@@ -278,7 +342,12 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
 
   const handleResendOTP = async (channel?: 'SMS' | 'WHATSAPP') => {
     haptics.light()
-    const identifier = identifierType === 'phone' ? (phone.startsWith('+') ? phone : `+234${phone.replace(/^0/, '')}`) : email
+    const identifier =
+      identifierType === 'phone'
+        ? phone.startsWith('+')
+          ? phone
+          : `+234${phone.replace(/^0/, '')}`
+        : email
     await requestOTP(identifier, effectiveContext, identifierType, channel || phoneChannel)
   }
 
@@ -286,7 +355,11 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
     return (
       <div className="auth-shell auth-shell--signup">
         <div className="auth-shell__top">
-          <button className="auth-shell__back" onClick={() => setStep('form')} disabled={signupLoading}>
+          <button
+            className="auth-shell__back"
+            onClick={() => setStep('form')}
+            disabled={signupLoading}
+          >
             <ChevronLeft size={20} />
           </button>
         </div>
@@ -295,13 +368,22 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
             <UpwardLogo size={28} color="var(--clay)" />
           </div>
         ) : (
-          <a href={process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'} className="auth-shell__brand">
+          <a
+            href={process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}
+            className="auth-shell__brand"
+          >
             <UpwardLogo size={28} color="var(--clay)" />
           </a>
         )}
         <div className="auth-stage">
           <OTPInput
-            email={identifierType === 'phone' ? (phone.startsWith('+') ? phone : `+234${phone.replace(/^0/, '')}`) : email}
+            email={
+              identifierType === 'phone'
+                ? phone.startsWith('+')
+                  ? phone
+                  : `+234${phone.replace(/^0/, '')}`
+                : email
+            }
             onVerify={handleVerifyOTP}
             onResend={handleResendOTP}
             onChangeEmail={() => setStep('form')}
@@ -326,7 +408,10 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
           <UpwardLogo size={28} color="var(--clay)" />
         </div>
       ) : (
-        <a href={process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'} className="auth-shell__brand">
+        <a
+          href={process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}
+          className="auth-shell__brand"
+        >
           <UpwardLogo size={28} color="var(--clay)" />
         </a>
       )}
@@ -353,7 +438,9 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
 
           <div className="auth-form__field">
             <div className="auth-form__label-row">
-              <label htmlFor="signup-identifier">{identifierType === 'email' ? 'Email Address' : 'Phone Number'}</label>
+              <label htmlFor="signup-identifier">
+                {identifierType === 'email' ? 'Email Address' : 'Phone Number'}
+              </label>
               <button
                 type="button"
                 className="auth-form__link auth-form__link--quiet"
@@ -365,7 +452,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
                 Sign up with {identifierType === 'email' ? 'Phone Number' : 'Email'}
               </button>
             </div>
-            
+
             {identifierType === 'email' ? (
               <div
                 className={
@@ -390,28 +477,101 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <div 
-                  className="input-wrapper" 
-                  style={{ position: 'relative', display: 'flex', alignItems: 'center', border: emailExists && !isInvited && !isWaitlist ? '1px solid #ff4b4b' : '1px solid #e2e2e2', borderRadius: '14px', padding: '0 16px', background: '#fff', transition: 'border-color 0.2s', height: '46px' }}
+                <div
+                  className="input-wrapper"
+                  style={{
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                    border:
+                      emailExists && !isInvited && !isWaitlist
+                        ? '1px solid #ff4b4b'
+                        : '1px solid #e2e2e2',
+                    borderRadius: '14px',
+                    padding: '0 16px',
+                    background: '#fff',
+                    transition: 'border-color 0.2s',
+                    height: '46px',
+                  }}
                 >
-                  <span className="country-code" style={{ fontFamily: 'Plus Jakarta Sans', fontSize: '13.5px', color: '#7a7268', borderRight: '1px solid #eee', paddingRight: '8px', marginRight: '8px' }}>+234</span>
-                  <input 
-                    type="tel" 
+                  <span
+                    className="country-code"
+                    style={{
+                      fontFamily: 'Plus Jakarta Sans',
+                      fontSize: '13.5px',
+                      color: '#7a7268',
+                      borderRight: '1px solid #eee',
+                      paddingRight: '8px',
+                      marginRight: '8px',
+                    }}
+                  >
+                    +234
+                  </span>
+                  <input
+                    type="tel"
                     inputMode="numeric"
-                    placeholder="800 000 0000" 
-                    style={{ border: 'none', outline: 'none', height: '100%', width: '100%', fontFamily: 'Plus Jakarta Sans', fontSize: '13.5px', background: 'transparent' }}
+                    placeholder="800 000 0000"
+                    style={{
+                      border: 'none',
+                      outline: 'none',
+                      height: '100%',
+                      width: '100%',
+                      fontFamily: 'Plus Jakarta Sans',
+                      fontSize: '13.5px',
+                      background: 'transparent',
+                    }}
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     required={identifierType === 'phone'}
                   />
-                  {isCheckingEmail && <Loader2 className="input-spinner animate-spin" size={16} style={{ position: 'absolute', right: '16px' }} />}
+                  {isCheckingEmail && (
+                    <Loader2
+                      className="input-spinner animate-spin"
+                      size={16}
+                      style={{ position: 'absolute', right: '16px' }}
+                    />
+                  )}
                 </div>
-                <div style={{ display: 'flex', gap: '16px', marginTop: '12px', paddingLeft: '4px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', color: 'var(--text)' }}>
-                    <input type="radio" name="phoneChannelSignup" checked={phoneChannel === 'SMS'} onChange={() => setPhoneChannel('SMS')} style={{ accentColor: 'var(--clay)' }} /> SMS
+                <div
+                  style={{ display: 'flex', gap: '16px', marginTop: '12px', paddingLeft: '4px' }}
+                >
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      color: 'var(--text)',
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="phoneChannelSignup"
+                      checked={phoneChannel === 'SMS'}
+                      onChange={() => setPhoneChannel('SMS')}
+                      style={{ accentColor: 'var(--clay)' }}
+                    />{' '}
+                    SMS
                   </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', color: 'var(--text)' }}>
-                    <input type="radio" name="phoneChannelSignup" checked={phoneChannel === 'WHATSAPP'} onChange={() => setPhoneChannel('WHATSAPP')} style={{ accentColor: 'var(--clay)' }} /> WhatsApp
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      fontSize: '13px',
+                      cursor: 'pointer',
+                      color: 'var(--text)',
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="phoneChannelSignup"
+                      checked={phoneChannel === 'WHATSAPP'}
+                      onChange={() => setPhoneChannel('WHATSAPP')}
+                      style={{ accentColor: 'var(--clay)' }}
+                    />{' '}
+                    WhatsApp
                   </label>
                 </div>
               </div>
@@ -419,7 +579,11 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
             {emailExists && !isInvited && !isWaitlist && (
               <div className="auth-field-hint auth-field-hint--error">
                 <AlertCircle size={12} /> This email is already registered.{' '}
-                <button type="button" className="auth-field-hint__link" onClick={() => setShowExistsModal(true)}>
+                <button
+                  type="button"
+                  className="auth-field-hint__link"
+                  onClick={() => setShowExistsModal(true)}
+                >
                   Log in instead?
                 </button>
               </div>
@@ -428,7 +592,11 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
             {emailExists && isInvited && (
               <div className="auth-field-hint auth-field-hint--accent">
                 <AlertCircle size={12} /> Your manager already invited you —{' '}
-                <button type="button" className="auth-field-hint__link" onClick={handleInviteProceed}>
+                <button
+                  type="button"
+                  className="auth-field-hint__link"
+                  onClick={handleInviteProceed}
+                >
                   Verify to set your password
                 </button>
               </div>
@@ -437,7 +605,11 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
             {emailExists && isWaitlist && (
               <div className="auth-field-hint auth-field-hint--accent">
                 <Sparkles size={12} /> You have priority access!{' '}
-                <button type="button" className="auth-field-hint__link" onClick={handleWaitlistProceed}>
+                <button
+                  type="button"
+                  className="auth-field-hint__link"
+                  onClick={handleWaitlistProceed}
+                >
                   Claim your account
                 </button>
               </div>
@@ -495,9 +667,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
-            {password.length > 0 && (
-              <PasswordStrengthMeter password={password} />
-            )}
+            {password.length > 0 && <PasswordStrengthMeter password={password} />}
           </div>
 
           <div className="auth-form__field">
@@ -534,7 +704,16 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
           <div className="auth-form__field">
             <div className="auth-form__label-row">
               <label htmlFor="signup-hear-about-us">Where did you hear about us?</label>
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, fontStyle: 'italic' }}>Optional</span>
+              <span
+                style={{
+                  fontSize: '11px',
+                  color: 'var(--text-muted)',
+                  fontWeight: 500,
+                  fontStyle: 'italic',
+                }}
+              >
+                Optional
+              </span>
             </div>
             <div className="input-with-icon" style={{ position: 'relative' }}>
               <Compass size={17} />
@@ -589,21 +768,47 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
           </div>
 
           <div className="auth-form__field" style={{ marginTop: '16px' }}>
-            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer', fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: '8px',
+                cursor: 'pointer',
+                fontSize: '12px',
+                color: 'var(--text-muted)',
+                lineHeight: '1.4',
+              }}
+            >
               <input
                 type="checkbox"
                 checked={termsAgreed}
                 onChange={(e) => setTermsAgreed(e.target.checked)}
                 required
-                style={{ accentColor: 'var(--clay)', marginTop: '2px', width: '15px', height: '15px', cursor: 'pointer' }}
+                style={{
+                  accentColor: 'var(--clay)',
+                  marginTop: '2px',
+                  width: '15px',
+                  height: '15px',
+                  cursor: 'pointer',
+                }}
               />
               <span>
                 I agree to the{' '}
-                <a href={`${process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}/legal/terms`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--clay)', fontWeight: 600 }}>
+                <a
+                  href={`${process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}/legal/terms`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'var(--clay)', fontWeight: 600 }}
+                >
                   Terms of Use
                 </a>{' '}
                 and{' '}
-                <a href={`${process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}/legal/privacy`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--clay)', fontWeight: 600 }}>
+                <a
+                  href={`${process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}/legal/privacy`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'var(--clay)', fontWeight: 600 }}
+                >
                   Privacy Policy
                 </a>
               </span>
@@ -623,19 +828,17 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
               !firstName ||
               !lastName ||
               !password ||
-              !(/.{8,}/.test(password) && /[A-Z]/.test(password) && /[0-9!@#$%^&*(),.?":{}|<> ]/.test(password)) ||
+              !(
+                /.{8,}/.test(password) &&
+                /[A-Z]/.test(password) &&
+                /[0-9!@#$%^&*(),.?":{}|<> ]/.test(password)
+              ) ||
               !confirmPassword ||
               password !== confirmPassword ||
               !termsAgreed
             }
-
           >
-
-            {isRequestingOTP
-              ? 'Sending Code…'
-              : 'Create account'}{' '}
-
-            <ArrowRight size={17} />
+            {isRequestingOTP ? 'Sending Code…' : 'Create account'} <ArrowRight size={17} />
           </button>
         </form>
 
@@ -647,24 +850,30 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
               </div>
               <h3 className="modal-title">Account Found</h3>
               <p>
-                An account with <strong>{email}</strong> already exists. Would you like to log in instead?
+                An account with <strong>{email}</strong> already exists. Would you like to log in
+                instead?
               </p>
               <div className="modal-actions">
                 <button
                   type="button"
                   className="btn btn--primary btn--full btn--pay"
-                  onClick={() => router.push(`/signup?mode=login&email=${encodeURIComponent(email)}`)}
+                  onClick={() =>
+                    router.push(`/signup?mode=login&email=${encodeURIComponent(email)}`)
+                  }
                 >
                   Log in to my account
                 </button>
-                <button type="button" className="auth-btn-ghost-link btn--full" onClick={() => setShowExistsModal(false)}>
+                <button
+                  type="button"
+                  className="auth-btn-ghost-link btn--full"
+                  onClick={() => setShowExistsModal(false)}
+                >
                   Use a different email
                 </button>
               </div>
             </div>
           </div>
         )}
-
       </div>
     </div>
   )

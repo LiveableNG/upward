@@ -11,10 +11,34 @@ import { DashboardHeader } from '@/features/dashboard/components/DashboardHeader
 import { isProfileSetupComplete } from '@/features/dashboard/utils/profileCompletion'
 import { useScoreProfile } from '@/features/dashboard/services/scoreService'
 
-const AnnouncementManager = dynamic(() => import('@/features/dashboard/components/AnnouncementManager').then(mod => mod.AnnouncementManager), { ssr: false })
-const RentReminderManager = dynamic(() => import('@/features/dashboard/components/RentReminderManager').then(mod => mod.RentReminderManager), { ssr: false })
-const ProfileSetupBlocker = dynamic(() => import('@/features/dashboard/components/ProfileSetupBlocker').then(mod => mod.ProfileSetupBlocker), { ssr: false })
-const TermsAcceptanceModal = dynamic(() => import('@/features/auth/components/TermsAcceptanceModal').then(mod => mod.TermsAcceptanceModal), { ssr: false })
+const AnnouncementManager = dynamic(
+  () =>
+    import('@/features/dashboard/components/AnnouncementManager').then(
+      (mod) => mod.AnnouncementManager,
+    ),
+  { ssr: false },
+)
+const RentReminderManager = dynamic(
+  () =>
+    import('@/features/dashboard/components/RentReminderManager').then(
+      (mod) => mod.RentReminderManager,
+    ),
+  { ssr: false },
+)
+const ProfileSetupBlocker = dynamic(
+  () =>
+    import('@/features/dashboard/components/ProfileSetupBlocker').then(
+      (mod) => mod.ProfileSetupBlocker,
+    ),
+  { ssr: false },
+)
+const TermsAcceptanceModal = dynamic(
+  () =>
+    import('@/features/auth/components/TermsAcceptanceModal').then(
+      (mod) => mod.TermsAcceptanceModal,
+    ),
+  { ssr: false },
+)
 import { PageTransition } from '@/components/common/PageTransition'
 import { DashboardSkeleton } from '@/features/dashboard/components/DashboardSkeleton'
 import { api } from '@/lib/api'
@@ -41,17 +65,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setBlockerDismissed(true)
   }
 
-  const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
-
-
+  const searchParams =
+    typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
 
   // Global Deep Link Handler: Mark as read if notif_id is present
   useEffect(() => {
     const notifId = searchParams?.get('notif_id')
     if (notifId && isLoggedIn) {
-      api.markNotificationRead(notifId).then(() => {
-        // Optionally refresh counts
-      }).catch(err => console.error('Failed to auto-mark read', err))
+      api
+        .markNotificationRead(notifId)
+        .then(() => {
+          // Optionally refresh counts
+        })
+        .catch((err) => console.error('Failed to auto-mark read', err))
     }
   }, [searchParams, isLoggedIn])
 
@@ -71,11 +97,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isHomeRequestRoute = pathname?.startsWith('/dashboard/exclusive-homes/request')
   const showTermsGate = user && !user.termsAcceptedAt
   const showProfileBlocker =
-    !showTermsGate &&
-    isDashboardHome &&
-    user &&
-    !isProfileSetupComplete(user) &&
-    !isDismissed
+    !showTermsGate && isDashboardHome && user && !isProfileSetupComplete(user) && !isDismissed
   const hideBottomNav =
     !!showProfileBlocker ||
     !!pathname?.startsWith('/dashboard/setup') ||
@@ -87,10 +109,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     !!pathname?.startsWith('/dashboard/my-home/visitors')
 
   return (
-    <div className={`dashboard-layout${showProfileBlocker || showTermsGate ? ' dashboard-layout--blocker' : ''}`}>
-      {showTermsGate && (
-        <TermsAcceptanceModal onAccepted={() => window.location.reload()} />
-      )}
+    <div
+      className={`dashboard-layout${showProfileBlocker || showTermsGate ? ' dashboard-layout--blocker' : ''}`}
+    >
+      {showTermsGate && <TermsAcceptanceModal onAccepted={() => window.location.reload()} />}
       {showProfileBlocker && user && (
         <ProfileSetupBlocker
           user={user}
@@ -118,4 +140,3 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </div>
   )
 }
-

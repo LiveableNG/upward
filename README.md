@@ -14,6 +14,8 @@ If you are new to the project, please review the developer onboarding documents 
 4.  **[4. Git Workflow & Deployment](./onboarding/4-git-workflow.md)**: Branch naming conventions, Conventional Commit standards, and Vercel preview environments.
 5.  **[5. Payment Infrastructure](./onboarding/5-payment-infrastructure.md)**: Technical breakdown of our Paystack integration, split payouts, Dedicated Virtual Accounts, and webhook log retries.
 6.  **[6. Database Maintenance & Scripts](./onboarding/6-database-maintenance-scripts.md)**: Guide on using and writing local operational scripts for database management.
+7.  **[7. React Native Migration Specification](./onboarding/7-react-native-migration-spec.md)** ([Download PDF](./onboarding/7-react-native-migration-spec.pdf)): Full mobile spec detailing all screens, user flows, native device capabilities, and backend API contracts for the React Native team.
+8.  **[8. React Native vs. Capacitor Comparison (PDF)](./onboarding/React_Native_vs_Capacitor_Comparison.pdf)**: Architectural evaluation & performance benchmark analysis between React Native and Capacitor.
 
 ---
 

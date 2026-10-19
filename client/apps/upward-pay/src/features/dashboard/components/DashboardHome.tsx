@@ -16,7 +16,11 @@ import {
   X,
   Zap,
 } from 'lucide-react'
-import { useHasMyHome, useMyHomeProperties, useAllPendingBills } from '@/features/my-home/hooks/useMyHome'
+import {
+  useHasMyHome,
+  useMyHomeProperties,
+  useAllPendingBills,
+} from '@/features/my-home/hooks/useMyHome'
 import { formatCurrency, formatDate, formatTime } from '@/lib/utils'
 import { AppleIcon, PlayStoreIcon } from '@/components/StoreIcons'
 import { type CompletedPayment, type PendingPayment } from '../types'
@@ -61,7 +65,10 @@ interface DashboardHomeProps {
 
 function formatPropertyShort(address?: string): string {
   if (!address) return 'Your property'
-  const parts = address.split(',').map((p) => p.trim()).filter(Boolean)
+  const parts = address
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean)
   if (parts.length >= 2) return `${parts[parts.length - 2]}, ${parts[parts.length - 1]}`
   return address
 }
@@ -178,14 +185,32 @@ export function DashboardHome({
     return (
       <div className="dash-home animate-pulse">
         <div className="dash-home__main">
-          <div style={{ height: '240px', backgroundColor: 'var(--border)', borderRadius: '16px', marginBottom: '24px' }}></div>
-          <div style={{ height: '80px', backgroundColor: 'var(--border)', borderRadius: '16px' }}></div>
+          <div
+            style={{
+              height: '240px',
+              backgroundColor: 'var(--border)',
+              borderRadius: '16px',
+              marginBottom: '24px',
+            }}
+          ></div>
+          <div
+            style={{ height: '80px', backgroundColor: 'var(--border)', borderRadius: '16px' }}
+          ></div>
         </div>
         <div className="dash-home__aside">
-          <div style={{ height: '100px', backgroundColor: 'var(--border)', borderRadius: '16px' }}></div>
+          <div
+            style={{ height: '100px', backgroundColor: 'var(--border)', borderRadius: '16px' }}
+          ></div>
         </div>
         <div className="dash-home__wide">
-          <div style={{ height: '200px', backgroundColor: 'var(--border)', borderRadius: '16px', marginTop: '24px' }}></div>
+          <div
+            style={{
+              height: '200px',
+              backgroundColor: 'var(--border)',
+              borderRadius: '16px',
+              marginTop: '24px',
+            }}
+          ></div>
         </div>
       </div>
     )
@@ -212,9 +237,7 @@ export function DashboardHome({
         ? 'Strong on-time record'
         : '3 more on-time payments'
   const nudgeDesc =
-    streak >= 3
-      ? 'Share your credibility with landlords.'
-      : '= a stronger profile for lenders.'
+    streak >= 3 ? 'Share your credibility with landlords.' : '= a stronger profile for lenders.'
 
   return (
     <div className="dash-home">
@@ -262,7 +285,9 @@ export function DashboardHome({
         </button>
       )}
       {showActivityCenter && (
-        <div className={`dash-home__activity-center activity-center ${activityCritical ? 'activity-center--critical' : ''}`}>
+        <div
+          className={`dash-home__activity-center activity-center ${activityCritical ? 'activity-center--critical' : ''}`}
+        >
           <div className="activity-center__header">
             <h3 className="activity-center__title">
               {activityCritical ? 'CRITICAL ACTIONS' : 'Activity Center'}
@@ -272,7 +297,8 @@ export function DashboardHome({
               className="activity-center__see-all"
               onClick={() => router.push('/dashboard/notifications?tab=Activities')}
             >
-              See all {notifCount > 0 && <span className="activity-center__badge">{notifCount}</span>}
+              See all{' '}
+              {notifCount > 0 && <span className="activity-center__badge">{notifCount}</span>}
             </button>
           </div>
           <ActionCarousel
@@ -323,17 +349,34 @@ export function DashboardHome({
 
         <div className="dash-home__metrics">
           <div className="dash-home__metric">
-            <Flame size={18} className={streak > 0 ? 'dash-home__metric-icon--active' : 'dash-home__metric-icon--muted'} />
+            <Flame
+              size={18}
+              className={
+                streak > 0 ? 'dash-home__metric-icon--active' : 'dash-home__metric-icon--muted'
+              }
+            />
             <span className="dash-home__metric-val">{streak}</span>
             <span className="dash-home__metric-lbl">Streak</span>
           </div>
           <div className="dash-home__metric">
-            <ShieldCheck size={18} className={onTimePct > 0 ? 'dash-home__metric-icon--active' : 'dash-home__metric-icon--muted'} />
+            <ShieldCheck
+              size={18}
+              className={
+                onTimePct > 0 ? 'dash-home__metric-icon--active' : 'dash-home__metric-icon--muted'
+              }
+            />
             <span className="dash-home__metric-val">{onTimePct}%</span>
             <span className="dash-home__metric-lbl">On-time</span>
           </div>
           <div className="dash-home__metric">
-            <Zap size={18} className={profileCompletion > 0 ? 'dash-home__metric-icon--active' : 'dash-home__metric-icon--muted'} />
+            <Zap
+              size={18}
+              className={
+                profileCompletion > 0
+                  ? 'dash-home__metric-icon--active'
+                  : 'dash-home__metric-icon--muted'
+              }
+            />
             <span className="dash-home__metric-val">{profileCompletion}%</span>
             <span className="dash-home__metric-lbl">Profile</span>
           </div>
@@ -373,7 +416,11 @@ export function DashboardHome({
         </div> */}
 
         <div className="dash-home__actions">
-          <button type="button" className="dash-home__action dash-home__action--primary" onClick={() => router.push('/dashboard/pay-rent')}>
+          <button
+            type="button"
+            className="dash-home__action dash-home__action--primary"
+            onClick={() => router.push('/dashboard/pay-rent')}
+          >
             Pay Rent
           </button>
           {savingsEnabled ? (
@@ -395,7 +442,11 @@ export function DashboardHome({
               <span className="dash-home__action-soon">Coming soon</span>
             </button>
           )}
-          <button type="button" className="dash-home__action dash-home__action--secondary" onClick={() => router.push('/dashboard/save-for-home')}>
+          <button
+            type="button"
+            className="dash-home__action dash-home__action--secondary"
+            onClick={() => router.push('/dashboard/save-for-home')}
+          >
             Save for Home
           </button>
         </div>
@@ -415,17 +466,27 @@ export function DashboardHome({
                 {rentDue.isRejected ? (
                   <span style={{ color: 'var(--error)' }}>Upload new proof or pay online</span>
                 ) : rentDue.isReviewing ? (
-                  <span style={{ color: 'var(--warning-text)' }}>Your document is being reviewed</span>
-                ) : rentDue.isOverdue
-                  ? `Overdue · ${rentDue.address}`
-                  : `Due in ${rentDue.days} days · ${rentDue.address}`}
+                  <span style={{ color: 'var(--warning-text)' }}>
+                    Your document is being reviewed
+                  </span>
+                ) : rentDue.isOverdue ? (
+                  `Overdue · ${rentDue.address}`
+                ) : (
+                  `Due in ${rentDue.days} days · ${rentDue.address}`
+                )}
               </div>
             </div>
-            <div className={`dash-home__rent-due-badge ${rentDue.isOverdue || rentDue.isRejected ? 'dash-home__rent-due-badge--overdue' : rentDue.isReviewing ? 'dash-home__rent-due-badge--review' : ''}`}>
-              <div className={`dash-home__rent-due-days ${rentDue.isOverdue ? 'dash-home__rent-due-days--overdue' : ''}`}>
+            <div
+              className={`dash-home__rent-due-badge ${rentDue.isOverdue || rentDue.isRejected ? 'dash-home__rent-due-badge--overdue' : rentDue.isReviewing ? 'dash-home__rent-due-badge--review' : ''}`}
+            >
+              <div
+                className={`dash-home__rent-due-days ${rentDue.isOverdue ? 'dash-home__rent-due-days--overdue' : ''}`}
+              >
                 {rentDue.days}
               </div>
-              <div className={`dash-home__rent-due-days-label ${rentDue.isOverdue ? 'dash-home__rent-due-days-label--overdue' : ''}`}>
+              <div
+                className={`dash-home__rent-due-days-label ${rentDue.isOverdue ? 'dash-home__rent-due-days-label--overdue' : ''}`}
+              >
                 {rentDue.daysLabel}
               </div>
             </div>
@@ -434,7 +495,11 @@ export function DashboardHome({
       </div>
 
       <div className="dash-home__aside">
-        <button type="button" className="dash-home__nudge" onClick={() => router.push('/dashboard/kyc')}>
+        <button
+          type="button"
+          className="dash-home__nudge"
+          onClick={() => router.push('/dashboard/kyc')}
+        >
           <span className="dash-home__nudge-icon">
             <TrendingUp size={18} />
           </span>
@@ -455,14 +520,21 @@ export function DashboardHome({
 
         {showAppBanner && (
           <div className="dash-home__app-banner">
-            <button type="button" className="dash-home__app-banner-dismiss" onClick={onDismissAppBanner} aria-label="Dismiss">
+            <button
+              type="button"
+              className="dash-home__app-banner-dismiss"
+              onClick={onDismissAppBanner}
+              aria-label="Dismiss"
+            >
               <X size={16} />
             </button>
             <div className="dash-home__app-banner-icon">
               <Smartphone size={22} />
             </div>
             <h4 className="dash-home__app-banner-title">Get the Upward App</h4>
-            <p className="dash-home__app-banner-desc">Manage your lease and build credit on the go.</p>
+            <p className="dash-home__app-banner-desc">
+              Manage your lease and build credit on the go.
+            </p>
             <div className="dash-home__app-banner-btns">
               <a
                 href="https://apps.apple.com/us/app/upwardpay/id6807898152"
@@ -499,7 +571,11 @@ export function DashboardHome({
         <div className="dash-home__section-head">
           <h2 className="dash-home__section-title">Recent Activity</h2>
           {recent.length > 0 && (
-            <button type="button" className="dash-home__section-link" onClick={() => router.push('/dashboard/transactions')}>
+            <button
+              type="button"
+              className="dash-home__section-link"
+              onClick={() => router.push('/dashboard/transactions')}
+            >
               View all →
             </button>
           )}
@@ -514,7 +590,11 @@ export function DashboardHome({
             <div className="dash-home__activity-empty-desc">
               Make your first payment to start building your score.
             </div>
-            <button type="button" className="dash-home__activity-empty-btn" onClick={() => router.push('/dashboard/pay-rent')}>
+            <button
+              type="button"
+              className="dash-home__activity-empty-btn"
+              onClick={() => router.push('/dashboard/pay-rent')}
+            >
               Pay Rent Now
             </button>
           </div>
@@ -529,16 +609,21 @@ export function DashboardHome({
                   className="dash-home__activity-item"
                   onClick={() => router.push(`/dashboard/receipts?id=${tx.uuid}`)}
                 >
-                  <span className={`dash-home__activity-item-icon ${isCredit ? 'dash-home__activity-item-icon--credit' : 'dash-home__activity-item-icon--debit'}`}>
+                  <span
+                    className={`dash-home__activity-item-icon ${isCredit ? 'dash-home__activity-item-icon--credit' : 'dash-home__activity-item-icon--debit'}`}
+                  >
                     {isCredit ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
                   </span>
                   <span className="dash-home__activity-item-info">
                     <div className="dash-home__activity-item-title">{tx.company_name}</div>
                     <div className="dash-home__activity-item-meta">
-                      {tx.channel || 'Paystack'} · {formatDate(tx.paid_at)} · {formatTime(tx.paid_at)}
+                      {tx.channel || 'Paystack'} · {formatDate(tx.paid_at)} ·{' '}
+                      {formatTime(tx.paid_at)}
                     </div>
                   </span>
-                  <span className={`dash-home__activity-item-amount ${isCredit ? 'dash-home__activity-item-amount--credit' : ''}`}>
+                  <span
+                    className={`dash-home__activity-item-amount ${isCredit ? 'dash-home__activity-item-amount--credit' : ''}`}
+                  >
                     {isCredit ? '+' : '-'}
                     {formatCurrency(tx.amount, tx.currency)}
                   </span>

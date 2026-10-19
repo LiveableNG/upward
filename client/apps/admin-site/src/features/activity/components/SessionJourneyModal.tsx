@@ -34,7 +34,9 @@ export const SessionJourneyModal: React.FC<SessionJourneyModalProps> = ({
   const [copied, setCopied] = useState(false)
   const [expandedSteps, setExpandedSteps] = useState<Record<number, boolean>>({})
   const [searchQuery, setSearchQuery] = useState('')
-  const [categoryFilter, setCategoryFilter] = useState<'ALL' | 'SCREENS' | 'AUTH' | 'PAYMENTS' | 'ERRORS'>('ALL')
+  const [categoryFilter, setCategoryFilter] = useState<
+    'ALL' | 'SCREENS' | 'AUTH' | 'PAYMENTS' | 'ERRORS'
+  >('ALL')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
 
   useEffect(() => {
@@ -46,7 +48,10 @@ export const SessionJourneyModal: React.FC<SessionJourneyModalProps> = ({
     const fetchJourney = async () => {
       setLoading(true)
       try {
-        const res = await apiService.get(`/admin/app-activity/sessions?sessionId=${sessionId}`, token)
+        const res = await apiService.get(
+          `/admin/app-activity/sessions?sessionId=${sessionId}`,
+          token,
+        )
         if (res && res.session) {
           setSessionData(res.session)
         }
@@ -127,7 +132,13 @@ export const SessionJourneyModal: React.FC<SessionJourneyModalProps> = ({
     chronologicalEvents.forEach((e) => {
       const n = (e.eventName || '').toUpperCase()
       if (n.includes('SCREEN') || n.includes('VIEW')) counts.SCREENS++
-      if (n.includes('LOGIN') || n.includes('SIGNUP') || n.includes('IDENTIF') || n.includes('LOGOUT')) counts.AUTH++
+      if (
+        n.includes('LOGIN') ||
+        n.includes('SIGNUP') ||
+        n.includes('IDENTIF') ||
+        n.includes('LOGOUT')
+      )
+        counts.AUTH++
       if (n.includes('PAY') || n.includes('DEPOSIT') || n.includes('CHECKOUT')) counts.PAYMENTS++
       if (n.includes('ERROR') || n.includes('FAILED') || e.metadata?.error) counts.ERRORS++
     })
@@ -140,11 +151,18 @@ export const SessionJourneyModal: React.FC<SessionJourneyModalProps> = ({
 
     // Category filter
     if (categoryFilter === 'SCREENS') {
-      list = list.filter((e) => (e.eventName || '').includes('SCREEN') || (e.eventName || '').includes('VIEW'))
+      list = list.filter(
+        (e) => (e.eventName || '').includes('SCREEN') || (e.eventName || '').includes('VIEW'),
+      )
     } else if (categoryFilter === 'AUTH') {
       list = list.filter((e) => {
         const n = (e.eventName || '').toUpperCase()
-        return n.includes('LOGIN') || n.includes('SIGNUP') || n.includes('IDENTIF') || n.includes('LOGOUT')
+        return (
+          n.includes('LOGIN') ||
+          n.includes('SIGNUP') ||
+          n.includes('IDENTIF') ||
+          n.includes('LOGOUT')
+        )
       })
     } else if (categoryFilter === 'PAYMENTS') {
       list = list.filter((e) => {
@@ -184,7 +202,10 @@ export const SessionJourneyModal: React.FC<SessionJourneyModalProps> = ({
       title={
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span>{sessionData?.userEmail || (sessionData?.userId ? `User #${sessionData.userId}` : 'Guest Visitor')}</span>
+            <span>
+              {sessionData?.userEmail ||
+                (sessionData?.userId ? `User #${sessionData.userId}` : 'Guest Visitor')}
+            </span>
             <span
               style={{
                 fontSize: '11px',
@@ -199,7 +220,16 @@ export const SessionJourneyModal: React.FC<SessionJourneyModalProps> = ({
               Session Journey
             </span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '11px',
+              color: 'var(--text-muted)',
+              fontFamily: 'monospace',
+            }}
+          >
             <span>{sessionId}</span>
             <button
               type="button"
@@ -221,7 +251,15 @@ export const SessionJourneyModal: React.FC<SessionJourneyModalProps> = ({
         </div>
       }
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minWidth: '580px', maxWidth: '780px' }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px',
+          minWidth: '580px',
+          maxWidth: '780px',
+        }}
+      >
         {loading && !sessionData ? (
           <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
             Loading timeline breadcrumbs...
@@ -246,7 +284,14 @@ export const SessionJourneyModal: React.FC<SessionJourneyModalProps> = ({
               }}
             >
               <div>
-                <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '11px', marginBottom: '2px' }}>
+                <span
+                  style={{
+                    color: 'var(--text-muted)',
+                    display: 'block',
+                    fontSize: '11px',
+                    marginBottom: '2px',
+                  }}
+                >
                   Platform
                 </span>
                 <span style={{ fontWeight: 700, textTransform: 'capitalize' }}>
@@ -255,7 +300,14 @@ export const SessionJourneyModal: React.FC<SessionJourneyModalProps> = ({
               </div>
 
               <div>
-                <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '11px', marginBottom: '2px' }}>
+                <span
+                  style={{
+                    color: 'var(--text-muted)',
+                    display: 'block',
+                    fontSize: '11px',
+                    marginBottom: '2px',
+                  }}
+                >
                   Location & IP
                 </span>
                 <span style={{ fontWeight: 700 }}>
@@ -264,16 +316,31 @@ export const SessionJourneyModal: React.FC<SessionJourneyModalProps> = ({
               </div>
 
               <div>
-                <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '11px', marginBottom: '2px' }}>
+                <span
+                  style={{
+                    color: 'var(--text-muted)',
+                    display: 'block',
+                    fontSize: '11px',
+                    marginBottom: '2px',
+                  }}
+                >
                   Duration & Events
                 </span>
                 <span style={{ fontWeight: 700 }}>
-                  {formatDuration(sessionData.durationSeconds)} • {sessionData.eventsCount || sessionData.events?.length || 0} events
+                  {formatDuration(sessionData.durationSeconds)} •{' '}
+                  {sessionData.eventsCount || sessionData.events?.length || 0} events
                 </span>
               </div>
 
               <div>
-                <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '11px', marginBottom: '2px' }}>
+                <span
+                  style={{
+                    color: 'var(--text-muted)',
+                    display: 'block',
+                    fontSize: '11px',
+                    marginBottom: '2px',
+                  }}
+                >
                   Drop-off Status
                 </span>
                 {sessionData.dropOffStage && sessionData.dropOffStage !== 'COMPLETED' ? (
@@ -308,7 +375,15 @@ export const SessionJourneyModal: React.FC<SessionJourneyModalProps> = ({
                 border: '1px solid var(--border)',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '10px',
+                  flexWrap: 'wrap',
+                }}
+              >
                 {/* Search Bar */}
                 <div style={{ position: 'relative', flex: '1 1 220px' }}>
                   <Search
@@ -384,7 +459,9 @@ export const SessionJourneyModal: React.FC<SessionJourneyModalProps> = ({
 
                   <button
                     type="button"
-                    onClick={() => toggleExpandAll(Object.keys(expandedSteps).length < displayedEvents.length)}
+                    onClick={() =>
+                      toggleExpandAll(Object.keys(expandedSteps).length < displayedEvents.length)
+                    }
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -407,7 +484,14 @@ export const SessionJourneyModal: React.FC<SessionJourneyModalProps> = ({
 
               {/* Category Filter Pills */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    color: 'var(--text-muted)',
+                    textTransform: 'uppercase',
+                  }}
+                >
                   Filter:
                 </span>
                 {(
@@ -430,7 +514,8 @@ export const SessionJourneyModal: React.FC<SessionJourneyModalProps> = ({
                       fontWeight: 600,
                       border: 'none',
                       cursor: 'pointer',
-                      background: categoryFilter === cat.key ? 'var(--text)' : 'var(--surface-hover)',
+                      background:
+                        categoryFilter === cat.key ? 'var(--text)' : 'var(--surface-hover)',
                       color: categoryFilter === cat.key ? 'var(--white)' : 'var(--text-secondary)',
                       transition: 'all 0.15s ease',
                     }}
@@ -452,8 +537,24 @@ export const SessionJourneyModal: React.FC<SessionJourneyModalProps> = ({
                 gap: '10px',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '4px 0 2px 0' }}>
-                <h4 style={{ fontSize: '13px', fontWeight: 800, margin: 0, textTransform: 'uppercase', letterSpacing: '0.04em', color: 'var(--text-muted)' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  margin: '4px 0 2px 0',
+                }}
+              >
+                <h4
+                  style={{
+                    fontSize: '13px',
+                    fontWeight: 800,
+                    margin: 0,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.04em',
+                    color: 'var(--text-muted)',
+                  }}
+                >
                   Playback Timeline ({displayedEvents.length})
                 </h4>
                 {displayedEvents.length > 0 && (
@@ -464,7 +565,17 @@ export const SessionJourneyModal: React.FC<SessionJourneyModalProps> = ({
               </div>
 
               {displayedEvents.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)', fontSize: '13px', background: 'var(--surface)', borderRadius: '10px', border: '1px solid var(--border)' }}>
+                <div
+                  style={{
+                    textAlign: 'center',
+                    padding: '32px',
+                    color: 'var(--text-muted)',
+                    fontSize: '13px',
+                    background: 'var(--surface)',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border)',
+                  }}
+                >
                   {searchQuery || categoryFilter !== 'ALL'
                     ? 'No matching events found for this filter or search query.'
                     : 'No breadcrumb events recorded for this session yet.'}
@@ -481,7 +592,9 @@ export const SessionJourneyModal: React.FC<SessionJourneyModalProps> = ({
                   const prevEvt = idx > 0 ? displayedEvents[idx - 1] : null
                   if (prevEvt && evt.clientTimestamp && prevEvt.clientTimestamp) {
                     const diff = Math.round(
-                      (new Date(evt.clientTimestamp).getTime() - new Date(prevEvt.clientTimestamp).getTime()) / 1000
+                      (new Date(evt.clientTimestamp).getTime() -
+                        new Date(prevEvt.clientTimestamp).getTime()) /
+                        1000,
                     )
                     deltaSecs = Math.abs(diff)
                   }
@@ -522,9 +635,19 @@ export const SessionJourneyModal: React.FC<SessionJourneyModalProps> = ({
 
                       {/* Event Details */}
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap' }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: '8px',
+                            flexWrap: 'wrap',
+                          }}
+                        >
                           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <span style={{ fontWeight: 800, fontSize: '13px', color: 'var(--text)' }}>
+                            <span
+                              style={{ fontWeight: 800, fontSize: '13px', color: 'var(--text)' }}
+                            >
                               {evt.eventName}
                             </span>
                             {evt.screenName && (
@@ -543,13 +666,23 @@ export const SessionJourneyModal: React.FC<SessionJourneyModalProps> = ({
                             )}
                           </div>
 
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: 'var(--text-muted)' }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              fontSize: '11px',
+                              color: 'var(--text-muted)',
+                            }}
+                          >
                             {deltaSecs !== null && (
                               <span style={{ color: 'var(--accent)', fontWeight: 600 }}>
                                 +{deltaSecs}s
                               </span>
                             )}
-                            <span>{new Date(evt.clientTimestamp || evt.createdAt).toLocaleTimeString()}</span>
+                            <span>
+                              {new Date(evt.clientTimestamp || evt.createdAt).toLocaleTimeString()}
+                            </span>
                           </div>
                         </div>
 
@@ -607,7 +740,14 @@ export const SessionJourneyModal: React.FC<SessionJourneyModalProps> = ({
           </>
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '10px', borderTop: '1px solid var(--border)' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            paddingTop: '10px',
+            borderTop: '1px solid var(--border)',
+          }}
+        >
           <button
             type="button"
             onClick={onClose}

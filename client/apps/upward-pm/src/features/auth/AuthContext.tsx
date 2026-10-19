@@ -44,27 +44,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (err) {
       setUser(null)
       setAccessToken(null)
-      
+
       const isPortal = window.location.pathname.startsWith('/portal')
       const isPortalLoginPath = window.location.pathname === '/portal/login'
       const isPortalSignupPath = window.location.pathname === '/portal/signup'
-      const isPortalPublic = isPortalLoginPath || isPortalSignupPath || window.location.pathname.startsWith('/portal/reset-password')
+      const isPortalPublic =
+        isPortalLoginPath ||
+        isPortalSignupPath ||
+        window.location.pathname.startsWith('/portal/reset-password')
 
       // Redirect to login if we're on a protected page and auth fails
-      const isPublicPage = window.location.pathname === '/' ||
-                           window.location.pathname === '/welcome' ||
-                           window.location.pathname === '/login' || 
-                           window.location.pathname === '/signup' ||
-                           window.location.pathname === '/pm-login' || 
-                           window.location.pathname === '/pm-signup' ||
-                           window.location.pathname === '/forgot-password' ||
-                           window.location.pathname === '/pm-forgot-password' ||
-                           window.location.pathname.startsWith('/invite') ||
-                           window.location.pathname.startsWith('/pm-invite') ||
-                           window.location.pathname.startsWith('/public') ||
-                           window.location.pathname.startsWith('/reset-password') ||
-                           isPortalPublic
-      
+      const isPublicPage =
+        window.location.pathname === '/' ||
+        window.location.pathname === '/welcome' ||
+        window.location.pathname === '/login' ||
+        window.location.pathname === '/signup' ||
+        window.location.pathname === '/pm-login' ||
+        window.location.pathname === '/pm-signup' ||
+        window.location.pathname === '/forgot-password' ||
+        window.location.pathname === '/pm-forgot-password' ||
+        window.location.pathname.startsWith('/invite') ||
+        window.location.pathname.startsWith('/pm-invite') ||
+        window.location.pathname.startsWith('/public') ||
+        window.location.pathname.startsWith('/reset-password') ||
+        isPortalPublic
+
       if (!isPublicPage) {
         toastError('Your session has expired. Please login again.', 'Session Expired')
         // Use window.location.href for a hard redirect to ensure navigation happens
@@ -81,19 +85,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const initSession = async () => {
-      const sessionActive = typeof window !== 'undefined' ? sessionStorage.getItem('upward_session_active') : null
-      
+      const sessionActive =
+        typeof window !== 'undefined' ? sessionStorage.getItem('upward_session_active') : null
+
       if (Capacitor.isNativePlatform()) {
         const launchUrl = await App.getLaunchUrl()
-        const isDeepLink = !!(launchUrl?.url && (
-          launchUrl.url.includes('/login') ||
-          launchUrl.url.includes('/signup') ||
-          launchUrl.url.includes('/invite') ||
-          launchUrl.url.includes('/invited') ||
-          launchUrl.url.includes('/welcome') ||
-          launchUrl.url.includes('/public') ||
-          launchUrl.url.includes('/reset-password')
-        )) || (
+        const isDeepLink =
+          !!(
+            launchUrl?.url &&
+            (launchUrl.url.includes('/login') ||
+              launchUrl.url.includes('/signup') ||
+              launchUrl.url.includes('/invite') ||
+              launchUrl.url.includes('/invited') ||
+              launchUrl.url.includes('/welcome') ||
+              launchUrl.url.includes('/public') ||
+              launchUrl.url.includes('/reset-password'))
+          ) ||
           window.location.pathname.startsWith('/login') ||
           window.location.pathname.startsWith('/signup') ||
           window.location.pathname.startsWith('/invite') ||
@@ -102,7 +109,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           window.location.pathname.startsWith('/welcome') ||
           window.location.pathname.startsWith('/public') ||
           window.location.pathname.startsWith('/reset-password')
-        )
 
         if (!sessionActive && !isDeepLink) {
           setLoading(false)
@@ -124,7 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         })
       }
-      
+
       await refreshUser()
     }
 
@@ -156,9 +162,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setAccessToken(null)
       setUser(null)
 
-      const opts = (options && typeof options === 'object' && 'redirectTo' in options)
-        ? (options as { redirectTo?: string | null })
-        : undefined
+      const opts =
+        options && typeof options === 'object' && 'redirectTo' in options
+          ? (options as { redirectTo?: string | null })
+          : undefined
 
       if (opts?.redirectTo === null) {
         return
@@ -168,8 +175,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         window.location.href = opts.redirectTo
         return
       }
-      
-      const isPortal = typeof window !== 'undefined' && window.location.pathname.startsWith('/portal')
+
+      const isPortal =
+        typeof window !== 'undefined' && window.location.pathname.startsWith('/portal')
       if (isPortal) {
         window.location.href = '/portal/login'
       } else if (Capacitor.isNativePlatform()) {

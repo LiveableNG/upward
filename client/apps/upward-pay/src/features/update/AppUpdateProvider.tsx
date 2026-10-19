@@ -132,7 +132,10 @@ export const AppUpdateProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         return
       }
 
-      console.warn('[AppUpdateProvider] Received upward:version-upgrade-required event:', event.detail)
+      console.warn(
+        '[AppUpdateProvider] Received upward:version-upgrade-required event:',
+        event.detail,
+      )
       const detail = event.detail
       if (detail?.type === 'FEATURE_GATED') {
         setActiveGatedFeature(detail.feature || 'PAYMENTS')
@@ -183,18 +186,19 @@ export const AppUpdateProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       {children}
 
       {/* 1. Hard Gate / Maintenance Lockout */}
-      {(status === 'HARD_UPDATE' || policyData?.forceUpdate || policyData?.maintenance) && policyData && (
-        <HardUpdateModal
-          currentVersion={policyData.currentVersion}
-          latestVersion={policyData.latestVersion}
-          title={policyData.policy.title}
-          message={policyData.policy.message}
-          releaseNotes={policyData.policy.releaseNotes}
-          storeUrl={policyData.policy.storeUrl}
-          fallbackStoreUrl={policyData.policy.fallbackStoreUrl}
-          isMaintenance={policyData.maintenance}
-        />
-      )}
+      {(status === 'HARD_UPDATE' || policyData?.forceUpdate || policyData?.maintenance) &&
+        policyData && (
+          <HardUpdateModal
+            currentVersion={policyData.currentVersion}
+            latestVersion={policyData.latestVersion}
+            title={policyData.policy.title}
+            message={policyData.policy.message}
+            releaseNotes={policyData.policy.releaseNotes}
+            storeUrl={policyData.policy.storeUrl}
+            fallbackStoreUrl={policyData.policy.fallbackStoreUrl}
+            isMaintenance={policyData.maintenance}
+          />
+        )}
 
       {/* 2. Soft Update Bottom Sheet */}
       {status === 'SOFT_UPDATE' && showSoftUpdate && policyData && (

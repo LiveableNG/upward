@@ -13,17 +13,17 @@ export function useSignup(redirect: string = '/dashboard', onSuccess?: () => voi
   const queryClient = useQueryClient()
 
   const signupMutation = useMutation({
-    mutationFn: (data: { 
-      email: string; 
-      password: string; 
-      firstName: string; 
-      lastName: string;
-      dateOfBirth?: string;
-      phone?: string;
-      rentEndDate?: string;
-      address?: string;
-      isFromInvite?: boolean;
-      hearAboutUs?: string;
+    mutationFn: (data: {
+      email: string
+      password: string
+      firstName: string
+      lastName: string
+      dateOfBirth?: string
+      phone?: string
+      rentEndDate?: string
+      address?: string
+      isFromInvite?: boolean
+      hearAboutUs?: string
     }) => authSignup(data),
     onSuccess: async (result, variables) => {
       if (result.accessToken) {
@@ -49,23 +49,23 @@ export function useSignup(redirect: string = '/dashboard', onSuccess?: () => voi
   })
 
   return {
-    signup: (data: { 
-      email: string; 
-      password: string; 
-      firstName: string; 
-      lastName: string;
-      dateOfBirth?: string;
-      phone?: string;
-      rentEndDate?: string;
-      address?: string;
-      isFromWaitlist?: boolean;
-      isFromInvite?: boolean;
-      hearAboutUs?: string;
+    signup: (data: {
+      email: string
+      password: string
+      firstName: string
+      lastName: string
+      dateOfBirth?: string
+      phone?: string
+      rentEndDate?: string
+      address?: string
+      isFromWaitlist?: boolean
+      isFromInvite?: boolean
+      hearAboutUs?: string
       properties?: Array<{
-        address: string;
-        rentEndDate: string;
-        companyName?: string;
-        managerName?: string;
+        address: string
+        rentEndDate: string
+        companyName?: string
+        managerName?: string
       }>
     }) => signupMutation.mutate(data),
     loading: signupMutation.isPending,

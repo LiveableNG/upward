@@ -45,7 +45,7 @@ export function PullToRefresh({
         hasTriggeredHaptic.current = false
       }
     },
-    [disabled, isRefreshing]
+    [disabled, isRefreshing],
   )
 
   const handleTouchMove = useCallback(
@@ -76,7 +76,7 @@ export function PullToRefresh({
         setPullDistance(0)
       }
     },
-    [disabled, isRefreshing]
+    [disabled, isRefreshing],
   )
 
   const handleTouchEnd = useCallback(async () => {

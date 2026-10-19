@@ -1,5 +1,3 @@
-
-
 export interface SavedLandlord {
   id: number
   uuid: string
@@ -18,7 +16,10 @@ export interface SavedLandlord {
 }
 
 export interface ISavedLandlordRepository {
-  create(data: Omit<SavedLandlord, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>, tx?: any): Promise<SavedLandlord>
+  create(
+    data: Omit<SavedLandlord, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>,
+    tx?: any,
+  ): Promise<SavedLandlord>
   findByUserId(userId: number): Promise<SavedLandlord[]>
   findById(id: number): Promise<SavedLandlord | null>
   findByUuid(uuid: string): Promise<SavedLandlord | null>
@@ -49,7 +50,10 @@ export interface Transaction {
 }
 
 export interface ITransactionRepository {
-  create(data: Omit<Transaction, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>, tx?: any): Promise<Transaction>
+  create(
+    data: Omit<Transaction, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>,
+    tx?: any,
+  ): Promise<Transaction>
   findByUserId(userId: number, tx?: any): Promise<Transaction[]>
   findById(id: number, tx?: any): Promise<Transaction | null>
   findByUuid(uuid: string, tx?: any): Promise<Transaction | null>
@@ -113,6 +117,14 @@ export interface IPaymentGateway {
     reference: string
     narration?: string
   }): Promise<any>
+  validateCustomerIdentification?(data: {
+    customerCode: string
+    country?: string
+    type: 'bvn' | 'bank_account'
+    value: string
+    firstName: string
+    lastName: string
+  }): Promise<{ status: boolean; message: string }>
 }
 
 export interface PaymentLineItem {
@@ -129,10 +141,16 @@ export interface PaymentLineItem {
 }
 
 export interface IPaymentLineItemRepository {
-  create(data: Omit<PaymentLineItem, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>, tx?: any): Promise<PaymentLineItem>
+  create(
+    data: Omit<PaymentLineItem, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>,
+    tx?: any,
+  ): Promise<PaymentLineItem>
   findByPaymentRequestId(paymentRequestId: number, tx?: any): Promise<PaymentLineItem[]>
   update(id: number, data: Partial<PaymentLineItem>, tx?: any): Promise<PaymentLineItem>
-  bulkCreate(items: Omit<PaymentLineItem, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>[], tx?: any): Promise<PaymentLineItem[]>
+  bulkCreate(
+    items: Omit<PaymentLineItem, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>[],
+    tx?: any,
+  ): Promise<PaymentLineItem[]>
   deleteByPaymentRequestId(paymentRequestId: number, tx?: any): Promise<void>
 }
 
@@ -178,7 +196,10 @@ export interface PaymentRequest {
 }
 
 export interface IPaymentRequestRepository {
-  create(data: Omit<PaymentRequest, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>, tx?: any): Promise<PaymentRequest>
+  create(
+    data: Omit<PaymentRequest, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>,
+    tx?: any,
+  ): Promise<PaymentRequest>
   findById(id: number, tx?: any): Promise<PaymentRequest | null>
   findByUuid(uuid: string, tx?: any): Promise<PaymentRequest | null>
   findByUserId(userId: number, tx?: any): Promise<PaymentRequest[]>
@@ -199,7 +220,10 @@ export interface PaystackSubaccount {
 }
 
 export interface ISubaccountRepository {
-  create(data: Omit<PaystackSubaccount, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>, tx?: any): Promise<PaystackSubaccount>
+  create(
+    data: Omit<PaystackSubaccount, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>,
+    tx?: any,
+  ): Promise<PaystackSubaccount>
   findByAccountInfo(accountNumber: string, bankCode: string): Promise<PaystackSubaccount | null>
 }
 
@@ -250,12 +274,14 @@ export interface Overpayment {
 }
 
 export interface IOverpaymentRepository {
-  create(data: Omit<Overpayment, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>, tx?: any): Promise<Overpayment>
+  create(
+    data: Omit<Overpayment, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>,
+    tx?: any,
+  ): Promise<Overpayment>
   findByUserId(userId: number, tx?: any): Promise<Overpayment[]>
   findByUserIdAndStatus(userId: number, status: string, tx?: any): Promise<Overpayment[]>
   update(id: number, data: Partial<Overpayment>, tx?: any): Promise<Overpayment>
 }
-
 
 export interface DVAAccount {
   id: number
@@ -275,7 +301,10 @@ export interface DVAAccount {
 }
 
 export interface IDVAAccountRepository {
-  create(data: Omit<DVAAccount, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>, tx?: any): Promise<DVAAccount>
+  create(
+    data: Omit<DVAAccount, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>,
+    tx?: any,
+  ): Promise<DVAAccount>
   findByUserPropertyId(userPropertyId: number): Promise<DVAAccount | null>
   findAllByUserPropertyId(userPropertyId: number): Promise<DVAAccount[]>
   setDefault(id: number, userPropertyId: number, tx?: any): Promise<void>
@@ -303,15 +332,8 @@ export interface IBenefitsSubscriptionRepository {
     data: Omit<BenefitsSubscription, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>,
     tx?: any,
   ): Promise<BenefitsSubscription>
-  findActiveByUser(
-    userId: number,
-    tx?: any,
-  ): Promise<BenefitsSubscription | null>
-  update(
-    id: number,
-    data: Partial<BenefitsSubscription>,
-    tx?: any,
-  ): Promise<BenefitsSubscription>
+  findActiveByUser(userId: number, tx?: any): Promise<BenefitsSubscription | null>
+  update(id: number, data: Partial<BenefitsSubscription>, tx?: any): Promise<BenefitsSubscription>
 }
 
 export const SAVED_LANDLORD_REPOSITORY = Symbol('SAVED_LANDLORD_REPOSITORY')

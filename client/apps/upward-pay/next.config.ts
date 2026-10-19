@@ -1,8 +1,8 @@
 import type { NextConfig } from 'next'
 
 const isStaticExport = process.env['NEXT_OUTPUT'] === 'export'
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://upward-api.vercel.app/api/v1'
-const PM_URL = process.env.NEXT_PUBLIC_PM_URL || 'http://localhost:3002'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4500/api/v1'
+const PM_URL = process.env.NEXT_PUBLIC_PM_URL || 'http://localhost:4503'
 
 const nextConfig: NextConfig = {
   // Production only: gateway (localhost:3000 / Vercel) proxies /_upward_pay/* to this app.

@@ -22,7 +22,7 @@ function isTokenExpired(token: string): boolean {
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://upward-pay.vercel.app'
 const PM_URL = process.env.NEXT_PUBLIC_PM_URL || 'https://upward-pm.vercel.app'
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://upward-api.vercel.app/api/v1'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4500/api/v1'
 
 const PM_ROUTE_PREFIXES = [
   '/pm-login',
@@ -156,7 +156,8 @@ export async function middleware(request: NextRequest) {
       headers: {
         'Access-Control-Allow-Origin': request.headers.get('origin') || '*',
         'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, x-proxy-source',
+        'Access-Control-Allow-Headers':
+          'Content-Type, Authorization, X-Requested-With, x-proxy-source',
         'Access-Control-Max-Age': '86400',
       },
     })
@@ -228,7 +229,10 @@ export async function middleware(request: NextRequest) {
             if (refData.clientPhone) redirectParams.set('clientPhone', refData.clientPhone)
 
             return NextResponse.redirect(
-              new URL(`/alliance/${refData.listing.uuid}?${redirectParams.toString()}`, request.url)
+              new URL(
+                `/alliance/${refData.listing.uuid}?${redirectParams.toString()}`,
+                request.url,
+              ),
             )
           }
         }
@@ -371,9 +375,7 @@ export async function middleware(request: NextRequest) {
 
   // 6. Redirect logged-in users away from auth pages
   const isPmAuthPage =
-    pathname === '/pm-login' ||
-    pathname === '/pm-signup' ||
-    pathname === '/pm-forgot-password'
+    pathname === '/pm-login' || pathname === '/pm-signup' || pathname === '/pm-forgot-password'
 
   const isPayAuthPage =
     pathname === '/' ||
@@ -384,14 +386,14 @@ export async function middleware(request: NextRequest) {
   if (isPmAuthPage || isPayAuthPage) {
     const currentRedirect = request.nextUrl.searchParams.get('redirect')
     const alreadyGoingToDashboard = currentRedirect === '/dashboard'
-    
+
     if (!alreadyGoingToDashboard) {
       const dashboardUrl = new URL('/dashboard', request.url)
-      
+
       if (isPmAuthPage && hasActivePmToken) {
         return NextResponse.redirect(dashboardUrl)
       }
-      
+
       if (isPayAuthPage && hasActivePayToken) {
         return NextResponse.redirect(dashboardUrl)
       }

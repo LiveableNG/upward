@@ -17,6 +17,12 @@ export interface UserProfile {
   isIdentityVerified?: boolean
   savingsWalletEnabled?: boolean
   verificationOn?: boolean
+  kycVerification?: {
+    idType: 'BVN' | 'NIN' | string
+    idNumberMasked?: string | null
+    verifiedAt?: string | null
+    status?: string
+  } | null
   gender?: string
   address?: string
   rentEndDate?: string
@@ -26,56 +32,56 @@ export interface UserProfile {
   termsAcceptedAt?: string | null
   termsVersion?: string | null
   properties?: Array<{
-    id: number;
-    uuid?: string;
-    address: string;
-    rentStartDate?: string;
-    rentEndDate: string;
-    rentAmount?: number;
-    rentType?: string;
-    initialAmountPaid?: number;
-    pmId?: number;
-    managerId?: number;
-    pmUnitId?: string;
-    paymentProofs?: any[];
-    isManaged?: boolean;
-    isVerified?: boolean;
-    isPmVerified?: boolean;
-    isPlatformLinked?: boolean;
-    platformId?: number;
-    company?: any;
-    manager?: any;
-    pm?: any;
-    externalUnitId?: string;
-    managerName?: string;
-    managerPhone?: string;
-    managerEmail?: string;
-    companyName?: string;
-    companyPhone?: string;
-    companyEmail?: string;
-    isPastTenancy?: boolean;
+    id: number
+    uuid?: string
+    address: string
+    rentStartDate?: string
+    rentEndDate: string
+    rentAmount?: number
+    rentType?: string
+    initialAmountPaid?: number
+    pmId?: number
+    managerId?: number
+    pmUnitId?: string
+    paymentProofs?: any[]
+    isManaged?: boolean
+    isVerified?: boolean
+    isPmVerified?: boolean
+    isPlatformLinked?: boolean
+    platformId?: number
+    company?: any
+    manager?: any
+    pm?: any
+    externalUnitId?: string
+    managerName?: string
+    managerPhone?: string
+    managerEmail?: string
+    companyName?: string
+    companyPhone?: string
+    companyEmail?: string
+    isPastTenancy?: boolean
     location?: {
-      area?: string;
-      subarea?: string;
-      address?: string;
-      state?: string;
-      country?: string;
+      area?: string
+      subarea?: string
+      address?: string
+      state?: string
+      country?: string
     }
-    unitName?: string;
+    unitName?: string
     manualAccount?: {
-      accountNumber: string;
-      accountName: string;
-      bankName: string;
-      bankCode?: string;
+      accountNumber: string
+      accountName: string
+      bankName: string
+      bankCode?: string
     }
     pmManualAccount?: {
-      accountNumber: string;
-      accountName: string;
-      bankName: string;
-      bankCode?: string;
-    };
-    amountPaid?: number;
-    amountRemaining?: number;
+      accountNumber: string
+      accountName: string
+      bankName: string
+      bankCode?: string
+    }
+    amountPaid?: number
+    amountRemaining?: number
   }>
   isFromWaitlist: boolean
   isFromInvite: boolean

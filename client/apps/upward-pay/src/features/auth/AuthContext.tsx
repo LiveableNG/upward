@@ -5,9 +5,18 @@ import { type UserProfile } from './types'
 import { getMe, logout as authLogout } from './services/authService'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
-import { setAccessToken, setRefreshToken, getAccessToken, getRefreshToken, initStoredTokens } from '@/lib/auth-token'
+import {
+  setAccessToken,
+  setRefreshToken,
+  getAccessToken,
+  getRefreshToken,
+  initStoredTokens,
+} from '@/lib/auth-token'
 import { deleteCookie } from '@/lib/cookie-utils'
-import { usePushNotifications, PushNotificationService } from '@/features/notifications/services/pushNotificationService'
+import {
+  usePushNotifications,
+  PushNotificationService,
+} from '@/features/notifications/services/pushNotificationService'
 import { App } from '@capacitor/app'
 import { Capacitor } from '@capacitor/core'
 import { sessionTracker } from '@/lib/sessionTracker'
@@ -88,9 +97,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           keysToInvalidate.forEach((key) => {
             queryClient.invalidateQueries({ queryKey: [key] })
           })
-          
+
           window.dispatchEvent(new CustomEvent('upward:payment.succeeded', { detail: data }))
-        } else if (data.type === 'payment.request.created' || data.type === 'payment.request.updated') {
+        } else if (
+          data.type === 'payment.request.created' ||
+          data.type === 'payment.request.updated'
+        ) {
           const keysToInvalidate = [
             'dashboard',
             'notifications',
@@ -103,7 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           keysToInvalidate.forEach((key) => {
             queryClient.invalidateQueries({ queryKey: [key] })
           })
-          
+
           window.dispatchEvent(new CustomEvent('upward:payment.request.changed', { detail: data }))
         }
       } catch (err) {
@@ -127,7 +139,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const profile = await getMe()
       setUser(profile)
       userRef.current = profile
-      sessionTracker.identify({ id: profile.id ? Number(profile.id) : undefined, email: profile.email, role: profile.role || 'TENANT' })
+      sessionTracker.identify({
+        id: profile.id ? Number(profile.id) : undefined,
+        email: profile.email,
+        role: profile.role || 'TENANT',
+      })
       if (typeof window !== 'undefined') {
         localStorage.setItem('upward_cached_user_profile', JSON.stringify(profile))
       }
@@ -135,7 +151,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.warn('[Auth] refreshUser error:', err)
       const isAuthRejected = err?.status === 401 || err?.message === 'Session expired'
       if (Capacitor.isNativePlatform() && !isAuthRejected && userRef.current) {
-        console.warn('[Auth] Retaining session on native platform during temporary network fluctuation.')
+        console.warn(
+          '[Auth] Retaining session on native platform during temporary network fluctuation.',
+        )
       } else {
         setUser(null)
         userRef.current = null
@@ -247,10 +265,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await Promise.allSettled([
         PushNotificationService.unregisterDevice(),
-        Promise.race([
-          authLogout(),
-          new Promise((resolve) => setTimeout(resolve, 2000)),
-        ]),
+        Promise.race([authLogout(), new Promise((resolve) => setTimeout(resolve, 2000))]),
       ])
 
       deleteCookie('pay_access_token')

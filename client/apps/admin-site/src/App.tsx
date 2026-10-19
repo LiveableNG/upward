@@ -109,7 +109,10 @@ function AppRoutes() {
           <Route path="/app-releases" element={<AppReleases token={auth.token} />} />
 
           <Route path="/area-price-guide" element={<AreaPriceGuide token={auth.token} />} />
-          <Route path="/settlements" element={<Settlements token={auth.token} adminRole={auth.user?.role} />} />
+          <Route
+            path="/settlements"
+            element={<Settlements token={auth.token} adminRole={auth.user?.role} />}
+          />
           <Route path="/support" element={<SupportTickets token={auth.token} />} />
           <Route path="/verifications" element={<Verifications token={auth.token} />} />
           <Route path="/requests" element={<Requests token={auth.token} />} />

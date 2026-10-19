@@ -15,7 +15,7 @@
     "db:seed": "prisma db seed --schema=prisma/schema"
   },
   "prisma": {
-    "seed": "tsx prisma/seed-admin.ts"
+    "seed": "tsx prisma/seed.ts"
   },
   "jest": {
     "moduleFileExtensions": [

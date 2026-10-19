@@ -65,8 +65,8 @@ export function GoogleSignInButton({ onSuccess, disabled }: GoogleSignInButtonPr
 
   const isNative = typeof window !== 'undefined' && Capacitor.isNativePlatform()
   const clientId = isNative
-    ? (process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID_MOBILE || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID)
-    : (process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID_WEB || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID)
+    ? process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID_MOBILE || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
+    : process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID_WEB || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
   const isGoogleEnabled = isGoogleAuthEnabled()
 
   useEffect(() => {
@@ -204,4 +204,3 @@ export function GoogleSignInButton({ onSuccess, disabled }: GoogleSignInButtonPr
     </div>
   )
 }
-

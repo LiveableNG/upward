@@ -10,8 +10,7 @@ class HapticFeedback {
     if (!this.isNative) return
     try {
       await Haptics.selectionChanged()
-    } catch {
-    }
+    } catch {}
   }
 
   async light(): Promise<void> {
@@ -51,7 +50,6 @@ class HapticFeedback {
       await Haptics.notification({ type: NotificationType.Warning })
     } catch {}
   }
-
 
   async error(): Promise<void> {
     if (!this.isNative) return
