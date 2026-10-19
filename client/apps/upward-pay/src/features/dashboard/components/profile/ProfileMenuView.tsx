@@ -14,6 +14,7 @@ import {
   MessageCircle,
   FileText,
   Home,
+  ShieldCheck,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { UserAvatar } from '@/components/common/UserAvatar'
@@ -133,6 +134,17 @@ export function ProfileMenuView({
       onClick: () => router.push('/dashboard/setup/rental?mode=edit'),
     },
     {
+      id: 'identity',
+      title: 'Identity Verification (KYC)',
+      desc: profile.isIdentityVerified
+        ? profile.kycVerification?.idType
+          ? `Verified with ${profile.kycVerification.idType}`
+          : 'Verified Account'
+        : 'Verify BVN or NIN to unlock savings',
+      icon: ShieldCheck,
+      onClick: () => router.push('/dashboard/verify-identity'),
+    },
+    {
       id: 'banking',
       title: 'Banking & Payouts',
       desc: 'Manage your bank accounts',
@@ -224,9 +236,7 @@ export function ProfileMenuView({
 
         <div className="profile-page__hero-info">
           <h2 className="profile-page__hero-name">{displayName}</h2>
-          {locationLabel ? (
-            <p className="profile-page__hero-location">{locationLabel}</p>
-          ) : null}
+          {locationLabel ? <p className="profile-page__hero-location">{locationLabel}</p> : null}
 
           {onboardingComplete ? (
             <span className="profile-page__hero-badge profile-page__hero-badge--verified">
@@ -251,7 +261,8 @@ export function ProfileMenuView({
             const Icon = item.icon
             const showWarning =
               (item.id === 'personal' && !isPersonalProfileRich) ||
-              (item.id === 'rental' && !onboardingComplete)
+              (item.id === 'rental' && !onboardingComplete) ||
+              (item.id === 'identity' && !profile.isIdentityVerified)
 
             return (
               <button
@@ -268,7 +279,11 @@ export function ProfileMenuView({
                   <span className="profile-page__menu-desc">{item.desc}</span>
                 </span>
                 <span className="profile-page__menu-trail">
-                  {showWarning ? (
+                  {item.id === 'identity' && profile.isIdentityVerified ? (
+                    <span className="profile-page__menu-badge profile-page__menu-badge--verified">
+                      Verified
+                    </span>
+                  ) : showWarning ? (
                     <span className="profile-page__menu-warning" title="Incomplete" />
                   ) : null}
                   <ChevronRight size={16} />

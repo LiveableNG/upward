@@ -1,8 +1,23 @@
-import { Injectable, UnauthorizedException, ConflictException, Inject, ForbiddenException, BadRequestException } from '@nestjs/common'
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+  Inject,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
-import { UserRepository, USER_REPOSITORY, User, PASS_PLACEHOLDERS } from '../../domains/users/user.repository'
-import { VerificationTokenRepository, VERIFICATION_TOKEN_REPOSITORY } from '../../domains/auth/verification-token.repository'
+import {
+  UserRepository,
+  USER_REPOSITORY,
+  User,
+  PASS_PLACEHOLDERS,
+} from '../../domains/users/user.repository'
+import {
+  VerificationTokenRepository,
+  VERIFICATION_TOKEN_REPOSITORY,
+} from '../../domains/auth/verification-token.repository'
 import { EmailService } from '../../shared/infrastructure/email/email.service'
 import { PrismaService } from '../../shared/infrastructure/prisma/prisma.service'
 import { SmsService } from '../../shared/infrastructure/sms/sms.service'
@@ -53,7 +68,8 @@ export class UserAuthService extends BaseAuthService {
 
   constructor(
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
-    @Inject(VERIFICATION_TOKEN_REPOSITORY) private readonly tokenRepository: VerificationTokenRepository,
+    @Inject(VERIFICATION_TOKEN_REPOSITORY)
+    private readonly tokenRepository: VerificationTokenRepository,
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
     private readonly smsService: SmsService,
@@ -97,7 +113,7 @@ export class UserAuthService extends BaseAuthService {
     })
 
     if (activeSessions.length >= 5) {
-      const sessionsToDelete = activeSessions.slice(4).map(s => s.id)
+      const sessionsToDelete = activeSessions.slice(4).map((s) => s.id)
       await this.prisma.upward_auth_session.deleteMany({
         where: { id: { in: sessionsToDelete } },
       })
@@ -125,7 +141,7 @@ export class UserAuthService extends BaseAuthService {
         userAgent: userAgent || null,
         country,
         city,
-      }
+      },
     })
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -134,6 +150,17 @@ export class UserAuthService extends BaseAuthService {
       userNoPass.profilePic = await this.s3Service.getDownloadUrl(userNoPass.profilePic)
     }
     ;(userNoPass as any).verificationOn = process.env.VERIFICATION_ON !== 'false'
+    const latestKyc = await this.prisma.upward_kyc_verification.findFirst({
+      where: { userId: user.id!, status: 'VERIFIED' },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        idType: true,
+        idNumberMasked: true,
+        verifiedAt: true,
+        status: true,
+      },
+    })
+    ;(userNoPass as any).kycVerification = latestKyc || null
     return {
       accessToken,
       refreshToken,
@@ -149,21 +176,21 @@ export class UserAuthService extends BaseAuthService {
       lastName: string
       phone?: string
       properties?: Array<{
-        uuid?: string;
-        address: string;
-        subarea?: string;
-        state?: string;
-        country?: string;
-        rentDueDate?: string;
-        rentAmount?: number;
-        rentType?: string;
-        companyName?: string;
-        companyPhone?: string;
-        companyEmail?: string;
-        managerName?: string;
-        managerPhone?: string;
-        managerEmail?: string;
-        isPastTenancy?: boolean;
+        uuid?: string
+        address: string
+        subarea?: string
+        state?: string
+        country?: string
+        rentDueDate?: string
+        rentAmount?: number
+        rentType?: string
+        companyName?: string
+        companyPhone?: string
+        companyEmail?: string
+        managerName?: string
+        managerPhone?: string
+        managerEmail?: string
+        isPastTenancy?: boolean
       }>
       isFromWaitlist?: boolean
       isFromInvite?: boolean
@@ -174,12 +201,14 @@ export class UserAuthService extends BaseAuthService {
     userAgent?: string,
   ): Promise<UserAuthResponse & { refreshToken: string }> {
     if (dto.phone && !/^\+?\d{7,15}$/.test(dto.phone.replace(/[\s\-\(\)]/g, ''))) {
-      throw new Error('Phone number must be a valid international phone number');
+      throw new Error('Phone number must be a valid international phone number')
     }
     if (dto.dateOfBirth) {
-      const parsed = new Date(dto.dateOfBirth);
+      const parsed = new Date(dto.dateOfBirth)
       if (isNaN(parsed.getTime()) || parsed > new Date()) {
-        throw new BadRequestException('Invalid date of birth. Date of birth cannot be in the future.');
+        throw new BadRequestException(
+          'Invalid date of birth. Date of birth cannot be in the future.',
+        )
       }
     }
     let existing = await this.userRepository.findByEmail(dto.email)
@@ -189,9 +218,10 @@ export class UserAuthService extends BaseAuthService {
     }
 
     if (existing) {
-      const isShadow = existing.passwordHash === PASS_PLACEHOLDERS.INVITED || 
-                       existing.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
-                       !!(existing.passwordHash && !existing.passwordHash.startsWith('$2'));
+      const isShadow =
+        existing.passwordHash === PASS_PLACEHOLDERS.INVITED ||
+        existing.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
+        !!(existing.passwordHash && !existing.passwordHash.startsWith('$2'))
 
       if (isShadow || !existing.passwordHash) {
         const passwordHash = await bcrypt.hash(dto.password, 10)
@@ -218,57 +248,66 @@ export class UserAuthService extends BaseAuthService {
             data: {
               emailEncrypted: (this.userRepository as any).encryption.encrypt(dto.email),
               emailHash: newEmailHash,
-            }
+            },
           })
         }
 
         const user = await this.userRepository.findByEmail(dto.email)
         if (!user) throw new Error('Failed to update user after invite conversion')
-        
+
         if (dto.properties && dto.properties.length > 0) {
           await this.syncProperties(user.id!, dto.properties)
         }
         await this.syncTenantStatuses(dto.email)
-        this.emailService.sendCustomerSupportNotification('USER', String(user.id)).catch(e => console.error('Failed to send CS notification', e));
-        
-        let pmName: string | undefined = undefined;
+        this.emailService
+          .sendCustomerSupportNotification('USER', String(user.id))
+          .catch((e) => console.error('Failed to send CS notification', e))
+
+        let pmName: string | undefined = undefined
         if (user.companyUsers && user.companyUsers.length > 0) {
-          pmName = user.companyUsers[0].company?.name;
+          pmName = user.companyUsers[0].company?.name
         }
         if (!pmName && user.properties && user.properties.length > 0) {
-          const prop = user.properties[0];
+          const prop = user.properties[0]
           if (prop.company?.name) {
-            pmName = prop.company.name;
+            pmName = prop.company.name
           } else if (prop.manager) {
-            pmName = `${prop.manager.firstName || ''} ${prop.manager.lastName || ''}`.trim() || undefined;
+            pmName =
+              `${prop.manager.firstName || ''} ${prop.manager.lastName || ''}`.trim() || undefined
           }
         }
 
         // Channel eligibility:
         //   WhatsApp → user has a real phone number
         //   Email    → user has a real (non-@upward.com) email AND no phone
-        const hasPhone_conv = !!user.phone;
-        const isPhoneOnlyEmail_conv = user.email.toLowerCase().endsWith('@upward.com');
+        const hasPhone_conv = !!user.phone
+        const isPhoneOnlyEmail_conv = user.email.toLowerCase().endsWith('@upward.com')
 
         if (hasPhone_conv) {
-          this.initializeUserSequenceUseCase.execute({
-            userId: user.id!,
-            firstName: dto.firstName,
-            phoneEncrypted: user.phone,
-            phoneHash: user.phoneHash,
-            pmName: pmName,
-          }).catch(e => console.error('Failed to init WA sequence', e));
+          this.initializeUserSequenceUseCase
+            .execute({
+              userId: user.id!,
+              firstName: dto.firstName,
+              phoneEncrypted: user.phone,
+              phoneHash: user.phoneHash,
+              pmName: pmName,
+            })
+            .catch((e) => console.error('Failed to init WA sequence', e))
         }
 
         if (!isPhoneOnlyEmail_conv && !hasPhone_conv) {
-          this.initializeEmailSequenceUseCase.execute({
-            userId: user.id!,
-            email: user.email,
-          }).catch(e => console.error('Failed to init email sequence', e));
+          this.initializeEmailSequenceUseCase
+            .execute({
+              userId: user.id!,
+              email: user.email,
+            })
+            .catch((e) => console.error('Failed to init email sequence', e))
         }
 
         // Send welcome messages instantly
-        this.sendWelcomeMessages(user, dto.firstName, pmName).catch(e => console.error('Failed to send welcome messages', e));
+        this.sendWelcomeMessages(user, dto.firstName, pmName).catch((e) =>
+          console.error('Failed to send welcome messages', e),
+        )
 
         return this.generateFullAuthResponse(user, ipAddress, userAgent)
       }
@@ -318,54 +357,63 @@ export class UserAuthService extends BaseAuthService {
     }
 
     await this.syncTenantStatuses(dto.email)
-    this.emailService.sendCustomerSupportNotification('USER', String(user.id)).catch(e => console.error('Failed to send CS notification', e));
+    this.emailService
+      .sendCustomerSupportNotification('USER', String(user.id))
+      .catch((e) => console.error('Failed to send CS notification', e))
 
-    let pmName: string | undefined = undefined;
+    let pmName: string | undefined = undefined
     if (user.companyUsers && user.companyUsers.length > 0) {
-      pmName = user.companyUsers[0].company?.name;
+      pmName = user.companyUsers[0].company?.name
     }
     if (!pmName && user.properties && user.properties.length > 0) {
-      const prop = user.properties[0];
+      const prop = user.properties[0]
       if (prop.company?.name) {
-        pmName = prop.company.name;
+        pmName = prop.company.name
       } else if (prop.manager) {
-        pmName = `${prop.manager.firstName || ''} ${prop.manager.lastName || ''}`.trim() || undefined;
+        pmName =
+          `${prop.manager.firstName || ''} ${prop.manager.lastName || ''}`.trim() || undefined
       }
     }
 
-    const isPhoneOnlyEmail = dto.email.toLowerCase().endsWith('@upward.com');
-    const hasPhone = !!user.phone;
-    const sendWhatsapp = hasPhone;
-    const sendEmail = !isPhoneOnlyEmail && !hasPhone;
+    const isPhoneOnlyEmail = dto.email.toLowerCase().endsWith('@upward.com')
+    const hasPhone = !!user.phone
+    const sendWhatsapp = hasPhone
+    const sendEmail = !isPhoneOnlyEmail && !hasPhone
 
     if (sendWhatsapp && user.phone) {
-      this.initializeUserSequenceUseCase.execute({
-        userId: user.id!,
-        firstName: dto.firstName,
-        phoneEncrypted: user.phone,
-        phoneHash: user.phoneHash,
-        pmName: pmName,
-      }).catch(e => console.error('Failed to init WA sequence', e));
+      this.initializeUserSequenceUseCase
+        .execute({
+          userId: user.id!,
+          firstName: dto.firstName,
+          phoneEncrypted: user.phone,
+          phoneHash: user.phoneHash,
+          pmName: pmName,
+        })
+        .catch((e) => console.error('Failed to init WA sequence', e))
     }
 
     if (sendEmail) {
-      this.initializeEmailSequenceUseCase.execute({
-        userId: user.id!,
-        email: user.email,
-      }).catch(e => console.error('Failed to init email sequence', e));
+      this.initializeEmailSequenceUseCase
+        .execute({
+          userId: user.id!,
+          email: user.email,
+        })
+        .catch((e) => console.error('Failed to init email sequence', e))
     }
 
     // Send welcome messages instantly
-    this.sendWelcomeMessages(user, dto.firstName, pmName).catch(e => console.error('Failed to send welcome messages', e));
+    this.sendWelcomeMessages(user, dto.firstName, pmName).catch((e) =>
+      console.error('Failed to send welcome messages', e),
+    )
 
     return this.generateFullAuthResponse(user, ipAddress, userAgent)
   }
 
   async sendWelcomeMessages(user: User, firstName: string, pmName?: string) {
-    const isPhoneOnlyEmail = user.email.toLowerCase().endsWith('@upward.com');
-    const hasPhone = !!user.phone;
-    const sendWhatsapp = hasPhone;
-    const sendEmail = !isPhoneOnlyEmail && !hasPhone;
+    const isPhoneOnlyEmail = user.email.toLowerCase().endsWith('@upward.com')
+    const hasPhone = !!user.phone
+    const sendWhatsapp = hasPhone
+    const sendEmail = !isPhoneOnlyEmail && !hasPhone
 
     if (sendEmail) {
       // 1. Send Welcome Email
@@ -378,8 +426,8 @@ export class UserAuthService extends BaseAuthService {
         context: {
           firstName,
           stage: 'WELCOME',
-        }
-      });
+        },
+      })
     }
 
     // 2. Send Welcome WhatsApp
@@ -387,8 +435,8 @@ export class UserAuthService extends BaseAuthService {
       try {
         const parameters = [
           { type: 'text', text: firstName },
-          { type: 'text', text: pmName || 'Upward' }
-        ];
+          { type: 'text', text: pmName || 'Upward' },
+        ]
 
         await this.whatsappService.sendMessage({
           to: user.phone,
@@ -398,10 +446,10 @@ export class UserAuthService extends BaseAuthService {
               {
                 type: 'body',
                 parameters,
-              }
+              },
             ],
           },
-        });
+        })
 
         await this.prisma.upward_communication_log.create({
           data: {
@@ -413,10 +461,10 @@ export class UserAuthService extends BaseAuthService {
             recipient: user.phone,
             body: 'Template: upward_seq_welcome_v2',
             sentAt: new Date(),
-          }
-        });
+          },
+        })
       } catch (error: any) {
-        console.error(`Failed to send Welcome WhatsApp to ${user.id}: ${error.message}`);
+        console.error(`Failed to send Welcome WhatsApp to ${user.id}: ${error.message}`)
       }
     }
   }
@@ -426,32 +474,37 @@ export class UserAuthService extends BaseAuthService {
     password: string,
     ipAddress?: string,
     userAgent?: string,
-    type: 'email' | 'phone' = 'email'
+    type: 'email' | 'phone' = 'email',
   ): Promise<UserAuthResponse & { refreshToken: string }> {
-    let user = null;
+    let user = null
     if (type === 'phone') {
-      user = await this.userRepository.findByPhone(identifier);
+      user = await this.userRepository.findByPhone(identifier)
     } else {
-      user = await this.userRepository.findByEmail(identifier);
+      user = await this.userRepository.findByEmail(identifier)
     }
 
     if (!user) {
       throw new UnauthorizedException('Invalid credentials')
     }
 
-    const isShadow = user.passwordHash === PASS_PLACEHOLDERS.INVITED || 
-                     user.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
-                     !!(user.passwordHash && !user.passwordHash.startsWith('$2'));
+    const isShadow =
+      user.passwordHash === PASS_PLACEHOLDERS.INVITED ||
+      user.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
+      !!(user.passwordHash && !user.passwordHash.startsWith('$2'))
 
     if (isShadow) {
       throw new ForbiddenException({
         message: 'Your account was invited by a property manager. Complete your profile to login.',
         code: 'INVITE_PENDING',
-        userId: user.uuid
+        userId: user.uuid,
       })
     }
 
-    if (user.passwordHash === PASS_PLACEHOLDERS.SOCIAL || user.authProvider === 'google' || user.authProvider === 'apple') {
+    if (
+      user.passwordHash === PASS_PLACEHOLDERS.SOCIAL ||
+      user.authProvider === 'google' ||
+      user.authProvider === 'apple'
+    ) {
       const providerLabel = user.authProvider === 'apple' ? 'Apple' : 'Google'
       throw new ForbiddenException({
         message: `This account uses ${providerLabel} sign-in. Please continue with ${providerLabel}.`,
@@ -520,7 +573,7 @@ export class UserAuthService extends BaseAuthService {
     // Rotate the token
     const newAccessToken = this.generateAccessToken({ sub: user.uuid, email: user.email })
     const newRefreshToken = this.generateRefreshToken({ sub: user.uuid, sid })
-    
+
     await this.prisma.upward_auth_session.update({
       where: { id: sid },
       data: {
@@ -530,7 +583,7 @@ export class UserAuthService extends BaseAuthService {
         userAgent: userAgent || session.userAgent,
         country: country || session.country,
         city: city || session.city,
-      }
+      },
     })
 
     const { passwordHash: _, ...userNoPass } = user
@@ -568,12 +621,23 @@ export class UserAuthService extends BaseAuthService {
       profile.profilePic = await this.s3Service.getDownloadUrl(profile.profilePic)
     }
 
-    profile.properties = (user.properties || []).map(p => ({
+    profile.properties = (user.properties || []).map((p) => ({
       ...p,
       verificationStatus: p.verificationStatus || (p.isVerified ? 'VERIFIED' : 'PENDING'),
     }))
-
     ;(profile as any).verificationOn = process.env.VERIFICATION_ON !== 'false'
+
+    const latestKyc = await this.prisma.upward_kyc_verification.findFirst({
+      where: { userId: user.id!, status: 'VERIFIED' },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        idType: true,
+        idNumberMasked: true,
+        verifiedAt: true,
+        status: true,
+      },
+    })
+    ;(profile as any).kycVerification = latestKyc || null
 
     return profile
   }
@@ -583,12 +647,14 @@ export class UserAuthService extends BaseAuthService {
     if (!user) throw new UnauthorizedException('User not found')
 
     if (data.phone && !/^\+?\d{7,15}$/.test(data.phone.replace(/[\s\-\(\)]/g, ''))) {
-      throw new Error('Phone number must be a valid international phone number');
+      throw new Error('Phone number must be a valid international phone number')
     }
     if (data.dateOfBirth) {
-      const parsed = new Date(data.dateOfBirth);
+      const parsed = new Date(data.dateOfBirth)
       if (isNaN(parsed.getTime()) || parsed > new Date()) {
-        throw new BadRequestException('Invalid date of birth. Date of birth cannot be in the future.');
+        throw new BadRequestException(
+          'Invalid date of birth. Date of birth cannot be in the future.',
+        )
       }
     }
 
@@ -606,7 +672,8 @@ export class UserAuthService extends BaseAuthService {
           if (prop.company?.name) {
             pmName = prop.company.name
           } else if (prop.manager) {
-            pmName = `${prop.manager.firstName || ''} ${prop.manager.lastName || ''}`.trim() || undefined
+            pmName =
+              `${prop.manager.firstName || ''} ${prop.manager.lastName || ''}`.trim() || undefined
           }
         }
 
@@ -618,7 +685,7 @@ export class UserAuthService extends BaseAuthService {
             phoneHash: updatedUser.phoneHash || this.encryption.hash(updatedUser.phone),
             pmName,
           })
-          .catch(e => console.error('Failed to sync sequence channel on profile update', e))
+          .catch((e) => console.error('Failed to sync sequence channel on profile update', e))
       }
     }
 
@@ -632,38 +699,41 @@ export class UserAuthService extends BaseAuthService {
     return this.getProfile(userUuid)
   }
 
-  private async syncProperties(userId: number, properties: Array<{
-    uuid?: string;
-    address: string;
-    subarea?: string;
-    state?: string;
-    country?: string;
-    rentDueDate?: string;
-    rentStartDate?: string;
-    rentAmount?: number;
-    rentType?: string;
-    companyName?: string;
-    managerName?: string;
-    companyEmail?: string;
-    companyPhone?: string;
-    managerEmail?: string;
-    managerPhone?: string;
-    location?: {
-      country?: string;
-      state?: string;
-      area?: string;
-      subarea?: string;
-      address?: string;
-    }
-    isPastTenancy?: boolean;
-  }>) {
-    const phoneRegex = /^\+234\d{10}$/;
+  private async syncProperties(
+    userId: number,
+    properties: Array<{
+      uuid?: string
+      address: string
+      subarea?: string
+      state?: string
+      country?: string
+      rentDueDate?: string
+      rentStartDate?: string
+      rentAmount?: number
+      rentType?: string
+      companyName?: string
+      managerName?: string
+      companyEmail?: string
+      companyPhone?: string
+      managerEmail?: string
+      managerPhone?: string
+      location?: {
+        country?: string
+        state?: string
+        area?: string
+        subarea?: string
+        address?: string
+      }
+      isPastTenancy?: boolean
+    }>,
+  ) {
+    const phoneRegex = /^\+234\d{10}$/
     for (const prop of properties) {
       if (prop.companyPhone && !phoneRegex.test(prop.companyPhone)) {
-        throw new Error('Company phone must be in format +2348000000000');
+        throw new Error('Company phone must be in format +2348000000000')
       }
       if (prop.managerPhone && !phoneRegex.test(prop.managerPhone)) {
-        throw new Error('Manager phone must be in format +2348000000000');
+        throw new Error('Manager phone must be in format +2348000000000')
       }
       let locationId: number | undefined
       let companyId: number | undefined
@@ -673,7 +743,7 @@ export class UserAuthService extends BaseAuthService {
       let existingProperty = null
       if (prop.uuid) {
         existingProperty = await this.prisma.upward_user_property.findFirst({
-          where: { uuid: prop.uuid, userId }
+          where: { uuid: prop.uuid, userId },
         })
       }
 
@@ -683,53 +753,55 @@ export class UserAuthService extends BaseAuthService {
         subarea: prop.location?.subarea || prop.subarea || '',
         address: prop.location?.address || '',
         state: prop.location?.state || prop.state || '',
-        country: prop.location?.country || prop.country || ''
+        country: prop.location?.country || prop.country || '',
       }
 
       if (existingProperty?.locationId) {
         await this.prisma.upward_location.update({
           where: { id: existingProperty.locationId },
-          data: locationData
+          data: locationData,
         })
         locationId = existingProperty.locationId
       } else {
         const location = await this.prisma.upward_location.create({
-          data: locationData
+          data: locationData,
         })
         locationId = location.id
       }
 
       // 3. Handle Company
-      let propertyCompanyId: number | null | undefined = undefined;
-      
+      let propertyCompanyId: number | null | undefined = undefined
+
       if (prop.companyName !== undefined) {
         if (prop.companyName && prop.companyName.trim() !== '') {
           const nameHash = this.encryption.hash(prop.companyName)
-          const companyEmailHash = prop.companyEmail ? this.encryption.hash(prop.companyEmail) : null
-          
+          const companyEmailHash = prop.companyEmail
+            ? this.encryption.hash(prop.companyEmail)
+            : null
+
           let company = null
-          
+
           if (companyEmailHash) {
             company = await this.prisma.upward_company.findUnique({
-              where: { emailHash: companyEmailHash }
+              where: { emailHash: companyEmailHash },
             })
           }
-          
+
           if (!company) {
             company = await this.prisma.upward_company.findFirst({
-              where: { nameHash }
+              where: { nameHash },
             })
           }
           if (!company) {
             company = await this.prisma.upward_company.create({
-              data: { 
+              data: {
                 name: this.encryption.encrypt(prop.companyName),
                 nameHash,
                 email: prop.companyEmail ? this.encryption.encrypt(prop.companyEmail) : null,
                 emailHash: prop.companyEmail ? this.encryption.hash(prop.companyEmail) : null,
                 phone: prop.companyPhone ? this.encryption.encrypt(prop.companyPhone) : null,
-                phoneHash: prop.companyPhone ? this.encryption.hash(prop.companyPhone) : null
-              }
+                phoneHash: prop.companyPhone ? this.encryption.hash(prop.companyPhone) : null,
+              },
             })
           } else if (prop.companyEmail || prop.companyPhone) {
             const updateData: any = {}
@@ -743,13 +815,13 @@ export class UserAuthService extends BaseAuthService {
             }
             await this.prisma.upward_company.update({
               where: { id: company.id },
-              data: updateData
+              data: updateData,
             })
           }
           companyId = company.id
           propertyCompanyId = companyId
         } else {
-          propertyCompanyId = null; // Clear company if empty string provided
+          propertyCompanyId = null // Clear company if empty string provided
         }
       } else if (existingProperty?.companyId) {
         companyId = existingProperty.companyId
@@ -757,61 +829,63 @@ export class UserAuthService extends BaseAuthService {
       }
 
       // 4. Handle Manager
-      let propertyManagerId: number | null | undefined = undefined;
+      let propertyManagerId: number | null | undefined = undefined
 
       if (prop.managerName !== undefined) {
         if (prop.managerName && prop.managerName.trim() !== '') {
-          let managerCompanyId = companyId;
-          
+          let managerCompanyId = companyId
+
           if (!managerCompanyId) {
-            const fallbackCompanyName = "Independent Management";
-            const fallbackNameHash = this.encryption.hash(fallbackCompanyName);
-            
+            const fallbackCompanyName = 'Independent Management'
+            const fallbackNameHash = this.encryption.hash(fallbackCompanyName)
+
             let fallbackCompany = await this.prisma.upward_company.findFirst({
-              where: { nameHash: fallbackNameHash }
-            });
-            
+              where: { nameHash: fallbackNameHash },
+            })
+
             if (!fallbackCompany) {
               fallbackCompany = await this.prisma.upward_company.create({
                 data: {
                   name: this.encryption.encrypt(fallbackCompanyName),
-                  nameHash: fallbackNameHash
-                }
-              });
+                  nameHash: fallbackNameHash,
+                },
+              })
             }
-            managerCompanyId = fallbackCompany.id;
+            managerCompanyId = fallbackCompany.id
           }
 
           const firstNameHash = this.encryption.hash(prop.managerName)
-          const managerEmailHash = prop.managerEmail ? this.encryption.hash(prop.managerEmail) : null
-          
+          const managerEmailHash = prop.managerEmail
+            ? this.encryption.hash(prop.managerEmail)
+            : null
+
           let manager = null
-          
+
           // Try finding by email first as it is unique
           if (managerEmailHash) {
             manager = await this.prisma.upward_manager.findUnique({
-              where: { emailHash: managerEmailHash }
+              where: { emailHash: managerEmailHash },
             })
           }
-          
+
           // Fallback to name + company if no email or not found by email
           if (!manager) {
             manager = await this.prisma.upward_manager.findFirst({
-              where: { firstNameHash, companyId: managerCompanyId }
+              where: { firstNameHash, companyId: managerCompanyId },
             })
           }
 
           if (!manager) {
             manager = await this.prisma.upward_manager.create({
-              data: { 
+              data: {
                 firstName: this.encryption.encrypt(prop.managerName),
                 firstNameHash,
                 companyId: managerCompanyId,
                 email: prop.managerEmail ? this.encryption.encrypt(prop.managerEmail) : null,
                 emailHash: managerEmailHash,
                 phone: prop.managerPhone ? this.encryption.encrypt(prop.managerPhone) : null,
-                phoneHash: prop.managerPhone ? this.encryption.hash(prop.managerPhone) : null
-              }
+                phoneHash: prop.managerPhone ? this.encryption.hash(prop.managerPhone) : null,
+              },
             })
           } else if (prop.managerEmail || prop.managerPhone) {
             const updateData: any = {}
@@ -825,13 +899,13 @@ export class UserAuthService extends BaseAuthService {
             }
             await this.prisma.upward_manager.update({
               where: { id: manager.id },
-              data: updateData
+              data: updateData,
             })
           }
           managerId = manager.id
           propertyManagerId = managerId
         } else {
-          propertyManagerId = null; // Clear manager if empty string provided
+          propertyManagerId = null // Clear manager if empty string provided
         }
       } else if (existingProperty?.managerId) {
         managerId = existingProperty.managerId
@@ -845,7 +919,11 @@ export class UserAuthService extends BaseAuthService {
         companyId: propertyCompanyId, // Link property to company ONLY if name was provided
         managerId: propertyManagerId,
         rentAmount: prop.rentAmount || (prop as any).rentAmount || 0,
-        rentEndDate: prop.rentDueDate ? new Date(prop.rentDueDate) : (prop as any).rentEndDate ? new Date((prop as any).rentEndDate) : null,
+        rentEndDate: prop.rentDueDate
+          ? new Date(prop.rentDueDate)
+          : (prop as any).rentEndDate
+            ? new Date((prop as any).rentEndDate)
+            : null,
         isPastTenancy: prop.isPastTenancy ?? (prop as any).isPastTenancy ?? false,
         rentType: prop.rentType || (prop as any).rentType || 'Annually',
       }
@@ -862,18 +940,18 @@ export class UserAuthService extends BaseAuthService {
 
       if (existingProperty) {
         if (existingProperty.isVerified) {
-          continue;
+          continue
         }
         await this.prisma.upward_user_property.update({
           where: { id: existingProperty.id },
-          data: propertyData
+          data: propertyData,
         })
       } else {
         await this.prisma.upward_user_property.create({
           data: {
             ...propertyData,
-            uuid: crypto.randomUUID()
-          }
+            uuid: crypto.randomUUID(),
+          },
         })
       }
     }
@@ -925,7 +1003,7 @@ export class UserAuthService extends BaseAuthService {
         message: 'We received a request to reset your password. Use the code below to proceed.',
         expiryText: 'This code expires in 15 minutes.',
       },
-    });
+    })
   }
 
   async resetPassword(email: string, otp: string, newPlain: string): Promise<void> {
@@ -993,54 +1071,66 @@ export class UserAuthService extends BaseAuthService {
     return Array.from(variants)
   }
 
-  async checkEmail(identifier: string, type: 'email' | 'phone' = 'email'): Promise<{ 
-    exists: boolean; 
-    hasPassword?: boolean; 
-    isInvited?: boolean; 
-    isWaitlist?: boolean;
-    uuid?: string;
-    authProvider?: string;
+  async checkEmail(
+    identifier: string,
+    type: 'email' | 'phone' = 'email',
+  ): Promise<{
+    exists: boolean
+    hasPassword?: boolean
+    isInvited?: boolean
+    isWaitlist?: boolean
+    uuid?: string
+    authProvider?: string
   }> {
-    let user = null;
+    let user = null
     if (type === 'phone') {
-      user = await this.userRepository.findByPhone(identifier);
+      user = await this.userRepository.findByPhone(identifier)
     } else {
       user = await this.userRepository.findByEmail(identifier)
     }
-    
+
     if (!user) {
       const phoneVariants = type === 'phone' ? this.getPhoneVariants(identifier) : []
       const waitlistEntry = await this.prisma.upward_waitlist.findFirst({
-        where: type === 'phone'
-          ? { phone: { in: phoneVariants }, role: { not: 'OWNER' } }
-          : { email: identifier, role: { not: 'OWNER' } }
+        where:
+          type === 'phone'
+            ? { phone: { in: phoneVariants }, role: { not: 'OWNER' } }
+            : { email: identifier, role: { not: 'OWNER' } },
       })
       if (waitlistEntry) {
-        return { 
-          exists: true, 
-          isWaitlist: true, 
+        return {
+          exists: true,
+          isWaitlist: true,
         }
       }
       return { exists: false }
     }
 
-    const isShadow = user.passwordHash === PASS_PLACEHOLDERS.INVITED || 
-                     user.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
-                     !!(user.passwordHash && !user.passwordHash.startsWith('$2'));
-    const isSocial = user.passwordHash === PASS_PLACEHOLDERS.SOCIAL || user.authProvider === 'google' || user.authProvider === 'apple'
+    const isShadow =
+      user.passwordHash === PASS_PLACEHOLDERS.INVITED ||
+      user.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
+      !!(user.passwordHash && !user.passwordHash.startsWith('$2'))
+    const isSocial =
+      user.passwordHash === PASS_PLACEHOLDERS.SOCIAL ||
+      user.authProvider === 'google' ||
+      user.authProvider === 'apple'
     return {
       exists: true,
       isInvited: isShadow,
       hasPassword: !!user.passwordHash && user.passwordHash !== '' && !isShadow && !isSocial,
       authProvider: user.authProvider ?? 'email',
     }
-
   }
 
-  async requestOTP(identifier: string, context: 'SIGNUP' | 'LOGIN' | 'INVITE' | 'PAYMENT' | 'WAITLIST', type: 'email' | 'phone' = 'email', channel: 'SMS' | 'WHATSAPP' = 'SMS'): Promise<{ context: string }> {
-    let existing = null;
+  async requestOTP(
+    identifier: string,
+    context: 'SIGNUP' | 'LOGIN' | 'INVITE' | 'PAYMENT' | 'WAITLIST',
+    type: 'email' | 'phone' = 'email',
+    channel: 'SMS' | 'WHATSAPP' = 'SMS',
+  ): Promise<{ context: string }> {
+    let existing = null
     if (type === 'phone') {
-      existing = await this.userRepository.findByPhone(identifier);
+      existing = await this.userRepository.findByPhone(identifier)
     } else {
       existing = await this.userRepository.findByEmail(identifier)
     }
@@ -1051,18 +1141,24 @@ export class UserAuthService extends BaseAuthService {
       throw new UnauthorizedException('No account found with this identifier.')
     }
 
-    let waitlistEntry: any = null;
+    let waitlistEntry: any = null
     if (context === 'WAITLIST') {
       const phoneVariants = type === 'phone' ? this.getPhoneVariants(identifier) : []
       waitlistEntry = await this.prisma.upward_waitlist.findFirst({
-        where: type === 'phone'
-          ? { phone: { in: phoneVariants }, role: { not: 'OWNER' } }
-          : { email: identifier, role: { not: 'OWNER' } }
+        where:
+          type === 'phone'
+            ? { phone: { in: phoneVariants }, role: { not: 'OWNER' } }
+            : { email: identifier, role: { not: 'OWNER' } },
       })
       if (!waitlistEntry) throw new ForbiddenException('You are not on the priority waitlist.')
     }
 
-    if (context === 'SIGNUP' && existing && existing.passwordHash && existing.passwordHash !== 'INVITED') {
+    if (
+      context === 'SIGNUP' &&
+      existing &&
+      existing.passwordHash &&
+      existing.passwordHash !== 'INVITED'
+    ) {
       // Seamlessly switch to login flow
       effectiveContext = 'LOGIN'
     }
@@ -1085,7 +1181,7 @@ export class UserAuthService extends BaseAuthService {
     // 4. Send via Unified Communication Architecture
     await this.unifiedCommService.processCommunication({
       recipientEmail: type === 'email' ? identifier : waitlistEntry?.email,
-      recipientPhone: type === 'phone' ? identifier : (waitlistEntry?.phone || undefined),
+      recipientPhone: type === 'phone' ? identifier : waitlistEntry?.phone || undefined,
       recipientName: waitlistEntry?.firstName || existing?.firstName || undefined,
       recipientRole: 'TENANT',
       type: 'AUTH_OTP',
@@ -1095,13 +1191,24 @@ export class UserAuthService extends BaseAuthService {
         context: effectiveContext,
         firstName: waitlistEntry?.firstName || existing?.firstName || 'there',
         displayName: waitlistEntry?.firstName || existing?.firstName || 'there',
-        title: effectiveContext === 'SIGNUP' ? 'Verify your email' : effectiveContext === 'WAITLIST' ? 'Claim Your Waitlist Spot' : 'Login Verification',
+        title:
+          effectiveContext === 'SIGNUP'
+            ? 'Verify your email'
+            : effectiveContext === 'WAITLIST'
+              ? 'Claim Your Waitlist Spot'
+              : 'Login Verification',
       },
-    });
+    })
     return { context: effectiveContext }
   }
 
-  async verifyOTP(identifier: string, otp: string, context: string, deleteOnSuccess = true, type: 'email' | 'phone' = 'email'): Promise<{ success: boolean; message?: string; inviteToken?: string; user?: any }> {
+  async verifyOTP(
+    identifier: string,
+    otp: string,
+    context: string,
+    deleteOnSuccess = true,
+    type: 'email' | 'phone' = 'email',
+  ): Promise<{ success: boolean; message?: string; inviteToken?: string; user?: any }> {
     const record = await this.tokenRepository.findByIdentifier(identifier, context)
 
     if (!record || !record.otp || record.expiresAt < new Date()) {
@@ -1117,11 +1224,11 @@ export class UserAuthService extends BaseAuthService {
       await this.tokenRepository.delete(record.id!)
     }
 
-    let user = null;
+    let user = null
     if (type === 'phone') {
-      user = await this.userRepository.findByPhone(identifier);
+      user = await this.userRepository.findByPhone(identifier)
     } else {
-      user = await this.userRepository.findByEmail(identifier);
+      user = await this.userRepository.findByEmail(identifier)
     }
 
     if (context === 'INVITE') {
@@ -1132,7 +1239,7 @@ export class UserAuthService extends BaseAuthService {
           token: inviteToken,
           context: 'INVITE',
           identifier: user.uuid,
-          expiresAt: new Date(Date.now() + 60 * 60 * 1000) // 1 hour
+          expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour
         })
         return { success: true, inviteToken, user }
       }
@@ -1141,9 +1248,10 @@ export class UserAuthService extends BaseAuthService {
     if (context === 'WAITLIST') {
       const phoneVariants = type === 'phone' ? this.getPhoneVariants(identifier) : []
       const entry = await this.prisma.upward_waitlist.findFirst({
-        where: type === 'phone'
-          ? { phone: { in: phoneVariants }, role: { not: 'OWNER' } }
-          : { email: identifier, role: { not: 'OWNER' } }
+        where:
+          type === 'phone'
+            ? { phone: { in: phoneVariants }, role: { not: 'OWNER' } }
+            : { email: identifier, role: { not: 'OWNER' } },
       })
       if (entry) {
         return { success: true, inviteToken: entry.uuid, user }
@@ -1152,7 +1260,6 @@ export class UserAuthService extends BaseAuthService {
 
     return { success: true, user }
   }
-
 
   maskEmail(email: string): string {
     const [local, domain] = email.split('@')
@@ -1189,7 +1296,7 @@ export class UserAuthService extends BaseAuthService {
         throw new BadRequestException('Google sign-in is not configured')
       }
 
-      const allowedClientIds = googleClientIdConfig.split(',').map(id => id.trim())
+      const allowedClientIds = googleClientIdConfig.split(',').map((id) => id.trim())
 
       let payload: {
         sub?: string
@@ -1239,8 +1346,9 @@ export class UserAuthService extends BaseAuthService {
       lastName = isEmail(rawLastName) ? '' : rawLastName
     } else {
       // Apple Sign-In
-      const appleClientIdConfig = this.configService.get<string>('APPLE_CLIENT_ID') || 'com.goodtenants.upward'
-      const allowedAppleClientIds = appleClientIdConfig.split(',').map(id => id.trim())
+      const appleClientIdConfig =
+        this.configService.get<string>('APPLE_CLIENT_ID') || 'com.goodtenants.upward'
+      const allowedAppleClientIds = appleClientIdConfig.split(',').map((id) => id.trim())
 
       const [headerB64, payloadB64, signatureB64] = idToken.split('.')
       if (!headerB64 || !payloadB64 || !signatureB64) {
@@ -1271,11 +1379,11 @@ export class UserAuthService extends BaseAuthService {
       const kid = header.kid
 
       let keys = await this.getApplePublicKeys()
-      let matchingKey = keys.find(k => k.kid === kid)
+      let matchingKey = keys.find((k) => k.kid === kid)
       if (!matchingKey) {
         this.appleKeysCache = null
         keys = await this.getApplePublicKeys()
-        matchingKey = keys.find(k => k.kid === kid)
+        matchingKey = keys.find((k) => k.kid === kid)
       }
 
       if (!matchingKey) {
@@ -1312,7 +1420,7 @@ export class UserAuthService extends BaseAuthService {
       }
 
       const audMatches = Array.isArray(payload.aud)
-        ? payload.aud.some(a => allowedAppleClientIds.includes(a))
+        ? payload.aud.some((a) => allowedAppleClientIds.includes(a))
         : allowedAppleClientIds.includes(payload.aud || '')
 
       if (!audMatches) {
@@ -1332,7 +1440,9 @@ export class UserAuthService extends BaseAuthService {
       } else if (tokenEmail) {
         email = tokenEmail
       } else {
-        throw new UnauthorizedException('Apple account is missing email. Please try signing in again.')
+        throw new UnauthorizedException(
+          'Apple account is missing email. Please try signing in again.',
+        )
       }
 
       const rawFirstName = profileData?.firstName || 'User'
@@ -1348,13 +1458,19 @@ export class UserAuthService extends BaseAuthService {
     }
 
     if (user) {
-      const isShadow = user.passwordHash === PASS_PLACEHOLDERS.INVITED ||
+      const isShadow =
+        user.passwordHash === PASS_PLACEHOLDERS.INVITED ||
         user.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
-        !!(user.passwordHash && !user.passwordHash.startsWith('$2') && user.passwordHash !== PASS_PLACEHOLDERS.SOCIAL)
+        !!(
+          user.passwordHash &&
+          !user.passwordHash.startsWith('$2') &&
+          user.passwordHash !== PASS_PLACEHOLDERS.SOCIAL
+        )
 
       if (isShadow) {
         throw new ForbiddenException({
-          message: 'Your account was invited by a property manager. Complete your profile to login.',
+          message:
+            'Your account was invited by a property manager. Complete your profile to login.',
           code: 'INVITE_PENDING',
           userId: user.uuid,
         })
@@ -1365,7 +1481,7 @@ export class UserAuthService extends BaseAuthService {
 
       // Only update first name if current is empty or looks like an email,
       // and the social name is valid (non-empty & not an email)
-      const currentFirstEmptyOrEmail = !user.firstName?.trim() || (user.firstName.includes('@'))
+      const currentFirstEmptyOrEmail = !user.firstName?.trim() || user.firstName.includes('@')
       const newFirstValid = firstName.trim() !== '' && !firstName.includes('@')
       if (currentFirstEmptyOrEmail && newFirstValid) {
         updates.firstName = firstName
@@ -1373,7 +1489,7 @@ export class UserAuthService extends BaseAuthService {
 
       // Only update last name if current is empty or looks like an email,
       // and the social name is valid (non-empty & not an email)
-      const currentLastEmptyOrEmail = !user.lastName?.trim() || (user.lastName.includes('@'))
+      const currentLastEmptyOrEmail = !user.lastName?.trim() || user.lastName.includes('@')
       const newLastValid = lastName.trim() !== '' && !lastName.includes('@')
       if (currentLastEmptyOrEmail && newLastValid) {
         updates.lastName = lastName
@@ -1413,44 +1529,53 @@ export class UserAuthService extends BaseAuthService {
       if (!user) throw new Error(`Failed to create user after ${provider} sign-in`)
       await this.syncTenantStatuses(email)
 
-      this.emailService.sendCustomerSupportNotification('USER', String(user.id)).catch(e => console.error('Failed to send CS notification', e));
+      this.emailService
+        .sendCustomerSupportNotification('USER', String(user.id))
+        .catch((e) => console.error('Failed to send CS notification', e))
 
-      let pmName: string | undefined = undefined;
+      let pmName: string | undefined = undefined
       if (user.companyUsers && user.companyUsers.length > 0) {
-        pmName = user.companyUsers[0].company?.name;
+        pmName = user.companyUsers[0].company?.name
       }
       if (!pmName && user.properties && user.properties.length > 0) {
-        const prop = user.properties[0];
+        const prop = user.properties[0]
         if (prop.company?.name) {
-          pmName = prop.company.name;
+          pmName = prop.company.name
         } else if (prop.manager) {
-          pmName = `${prop.manager.firstName || ''} ${prop.manager.lastName || ''}`.trim() || undefined;
+          pmName =
+            `${prop.manager.firstName || ''} ${prop.manager.lastName || ''}`.trim() || undefined
         }
       }
 
-      const isPhoneOnlyEmail = email.toLowerCase().endsWith('@upward.com');
-      const hasPhone = !!user.phone;
-      const sendWhatsapp = hasPhone;
-      const sendEmail = !isPhoneOnlyEmail && !hasPhone;
+      const isPhoneOnlyEmail = email.toLowerCase().endsWith('@upward.com')
+      const hasPhone = !!user.phone
+      const sendWhatsapp = hasPhone
+      const sendEmail = !isPhoneOnlyEmail && !hasPhone
 
       if (sendWhatsapp && user.phone) {
-        this.initializeUserSequenceUseCase.execute({
-          userId: user.id!,
-          firstName: firstName,
-          phoneEncrypted: user.phone,
-          phoneHash: user.phoneHash,
-          pmName: pmName,
-        }).catch(e => console.error('Failed to init WA sequence', e));
+        this.initializeUserSequenceUseCase
+          .execute({
+            userId: user.id!,
+            firstName: firstName,
+            phoneEncrypted: user.phone,
+            phoneHash: user.phoneHash,
+            pmName: pmName,
+          })
+          .catch((e) => console.error('Failed to init WA sequence', e))
       }
 
       if (sendEmail) {
-        this.initializeEmailSequenceUseCase.execute({
-          userId: user.id!,
-          email: user.email,
-        }).catch(e => console.error('Failed to init email sequence', e));
+        this.initializeEmailSequenceUseCase
+          .execute({
+            userId: user.id!,
+            email: user.email,
+          })
+          .catch((e) => console.error('Failed to init email sequence', e))
       }
 
-      this.sendWelcomeMessages(user, firstName, pmName).catch(e => console.error('Failed to send welcome messages', e));
+      this.sendWelcomeMessages(user, firstName, pmName).catch((e) =>
+        console.error('Failed to send welcome messages', e),
+      )
     }
 
     if (!user) {
@@ -1466,12 +1591,12 @@ export class UserAuthService extends BaseAuthService {
 
   async getWaitlistClaimData(uuid: string) {
     const entry = await this.prisma.upward_waitlist.findFirst({
-      where: { 
+      where: {
         uuid,
-        role: { not: 'OWNER' }
-      }
+        role: { not: 'OWNER' },
+      },
     })
-    
+
     if (!entry) {
       throw new ForbiddenException('Waitlist entry not found')
     }
@@ -1499,16 +1624,17 @@ export class UserAuthService extends BaseAuthService {
       firstName: entry.firstName || '',
       lastName: entry.lastName || '',
       phone: formattedPhone,
-      hasPassword: !!existingUser?.passwordHash && 
-                   existingUser?.passwordHash !== PASS_PLACEHOLDERS.INVITED && 
-                   existingUser?.passwordHash !== PASS_PLACEHOLDERS.SHADOW && 
-                   existingUser?.passwordHash.startsWith('$2')
+      hasPassword:
+        !!existingUser?.passwordHash &&
+        existingUser?.passwordHash !== PASS_PLACEHOLDERS.INVITED &&
+        existingUser?.passwordHash !== PASS_PLACEHOLDERS.SHADOW &&
+        existingUser?.passwordHash.startsWith('$2'),
     }
   }
 
   async deleteWaitlistEntry(uuid: string) {
     await this.prisma.upward_waitlist.delete({
-      where: { uuid }
+      where: { uuid },
     })
   }
 
@@ -1518,15 +1644,14 @@ export class UserAuthService extends BaseAuthService {
       await this.prisma.upward_pm_tenant.updateMany({
         where: {
           emailHash,
-          inviteStatus: { in: ['PENDING', 'SENT'] }
+          inviteStatus: { in: ['PENDING', 'SENT'] },
         },
         data: {
-          inviteStatus: 'ON_UPWARD'
-        }
+          inviteStatus: 'ON_UPWARD',
+        },
       })
     } catch (error) {
       console.error('Failed to sync tenant statuses:', error)
-
     }
   }
 }

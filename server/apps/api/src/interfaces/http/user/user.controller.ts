@@ -21,6 +21,7 @@ import { RequestCredibilityRecordsUseCase } from '../../../application/use-cases
 import { GetCredibilityRequestsUseCase } from '../../../application/use-cases/user/get-credibility-requests.use-case'
 import { GenerateKYCReportPdfUseCase } from '../../../application/use-cases/user/generate-kyc-report-pdf.use-case'
 import { VerifyBvnUseCase } from '../../../application/use-cases/user/verify-bvn.use-case'
+import { VerifyKycUseCase } from '../../../application/use-cases/user/verify-kyc.use-case'
 
 import { CheckSlugAvailabilityUseCase } from '../../../application/use-cases/user/check-slug-availability.use-case'
 import { AcceptTermsUseCase } from '../../../application/use-cases/user/accept-terms.use-case'
@@ -90,7 +91,6 @@ function clearUserAuthCookies(reply: FastifyReply) {
   reply.clearCookie('pm_access_token', options)
 }
 
-
 @Controller('user/auth')
 export class UserController {
   constructor(
@@ -104,27 +104,29 @@ export class UserController {
     private readonly generateKYCPdf: GenerateKYCReportPdfUseCase,
     private readonly checkSlugAvailability: CheckSlugAvailabilityUseCase,
     private readonly verifyBvnUseCase: VerifyBvnUseCase,
+    private readonly verifyKycUseCase: VerifyKycUseCase,
     private readonly acceptTermsUseCase: AcceptTermsUseCase,
     private readonly deleteUserAccountUseCase: DeleteUserAccountUseCase,
     private readonly requestDeleteAccountOtpUseCase: RequestDeleteAccountOtpUseCase,
-  ) { }
+  ) {}
 
   @Post('signup')
   @HttpCode(HttpStatus.CREATED)
   async signup(
     @Req() req: any,
-    @Body() body: {
-      email: string;
-      password: string;
-      firstName: string;
-      lastName: string;
-      phone?: string;
-      rentEndDate?: string;
-      address?: string;
-      isFromWaitlist?: boolean;
-      isFromInvite?: boolean;
-      dateOfBirth?: string;
-      hearAboutUs?: string;
+    @Body()
+    body: {
+      email: string
+      password: string
+      firstName: string
+      lastName: string
+      phone?: string
+      rentEndDate?: string
+      address?: string
+      isFromWaitlist?: boolean
+      isFromInvite?: boolean
+      dateOfBirth?: string
+      hearAboutUs?: string
     },
     @Res({ passthrough: false }) reply: FastifyReply,
   ) {
@@ -202,13 +204,19 @@ export class UserController {
     @Body() body: { email: string; password: string; type?: 'email' | 'phone' },
     @Res({ passthrough: false }) reply: FastifyReply,
   ) {
-    const type = body.type || (body.email.startsWith('+') ? 'phone' : 'email');
+    const type = body.type || (body.email.startsWith('+') ? 'phone' : 'email')
     const ipAddress = req.headers['x-forwarded-for']
       ? req.headers['x-forwarded-for'].split(',')[0].trim()
       : req.ip
     const userAgent = req.headers['user-agent']
     const isCapacitor = req.headers?.['x-client-platform'] === 'capacitor'
-    const { refreshToken, ...rest } = await this.userAuthService.login(body.email, body.password, ipAddress, userAgent, type)
+    const { refreshToken, ...rest } = await this.userAuthService.login(
+      body.email,
+      body.password,
+      ipAddress,
+      userAgent,
+      type,
+    )
     setUserAuthCookies(reply, rest.accessToken, refreshToken)
     reply.status(HttpStatus.OK).send(isCapacitor ? { ...rest, refreshToken } : rest)
   }
@@ -218,7 +226,7 @@ export class UserController {
   async refresh(
     @Req() req: any,
     @Body() body: { refreshToken?: string },
-    @Res({ passthrough: false }) reply: FastifyReply
+    @Res({ passthrough: false }) reply: FastifyReply,
   ) {
     const isCapacitor = req.headers?.['x-client-platform'] === 'capacitor'
     const token =
@@ -237,7 +245,11 @@ export class UserController {
         ? req.headers['x-forwarded-for'].split(',')[0].trim()
         : req.ip
       const userAgent = req.headers['user-agent']
-      const { refreshToken, ...rest } = await this.userAuthService.refreshAccessToken(token, ipAddress, userAgent)
+      const { refreshToken, ...rest } = await this.userAuthService.refreshAccessToken(
+        token,
+        ipAddress,
+        userAgent,
+      )
       setUserAuthCookies(reply, rest.accessToken, refreshToken)
       reply.status(HttpStatus.OK).send(isCapacitor ? { ...rest, refreshToken } : rest)
     } catch (err) {
@@ -342,21 +354,31 @@ export class UserController {
   @Post('check-email')
   @HttpCode(HttpStatus.OK)
   async checkEmail(@Body() body: { email: string; type?: 'email' | 'phone' }) {
-    const type = body.type || (body.email.startsWith('+') ? 'phone' : 'email');
+    const type = body.type || (body.email.startsWith('+') ? 'phone' : 'email')
     return this.userAuthService.checkEmail(body.email, type)
   }
 
   @Post('request-otp')
   @HttpCode(HttpStatus.OK)
-  async requestOTP(@Body() body: { email: string; context: 'SIGNUP' | 'LOGIN' | 'INVITE' | 'PAYMENT'; type?: 'email' | 'phone'; channel?: 'SMS' | 'WHATSAPP' }) {
-    const type = body.type || (body.email.startsWith('+') ? 'phone' : 'email');
+  async requestOTP(
+    @Body()
+    body: {
+      email: string
+      context: 'SIGNUP' | 'LOGIN' | 'INVITE' | 'PAYMENT'
+      type?: 'email' | 'phone'
+      channel?: 'SMS' | 'WHATSAPP'
+    },
+  ) {
+    const type = body.type || (body.email.startsWith('+') ? 'phone' : 'email')
     return this.userAuthService.requestOTP(body.email, body.context, type, body.channel || 'SMS')
   }
 
   @Post('verify-otp')
   @HttpCode(HttpStatus.OK)
-  async verifyOTP(@Body() body: { email: string; otp: string; context: string; type?: 'email' | 'phone' }) {
-    const type = body.type || (body.email.startsWith('+') ? 'phone' : 'email');
+  async verifyOTP(
+    @Body() body: { email: string; otp: string; context: string; type?: 'email' | 'phone' },
+  ) {
+    const type = body.type || (body.email.startsWith('+') ? 'phone' : 'email')
     return this.userAuthService.verifyOTP(body.email, body.otp, body.context, true, type)
   }
 
@@ -367,20 +389,30 @@ export class UserController {
     @Body() body: { email: string; otp: string; type?: 'email' | 'phone' },
     @Res({ passthrough: false }) reply: FastifyReply,
   ) {
-    const type = body.type || (body.email.startsWith('+') ? 'phone' : 'email');
-    const verification = await this.userAuthService.verifyOTP(body.email, body.otp, 'LOGIN', true, type)
+    const type = body.type || (body.email.startsWith('+') ? 'phone' : 'email')
+    const verification = await this.userAuthService.verifyOTP(
+      body.email,
+      body.otp,
+      'LOGIN',
+      true,
+      type,
+    )
     if (!verification.success || !verification.user) {
       throw new UnauthorizedException(verification.message || 'Invalid verification code')
     }
 
-    const user = verification.user;
+    const user = verification.user
 
     const ipAddress = req.headers['x-forwarded-for']
       ? req.headers['x-forwarded-for'].split(',')[0].trim()
       : req.ip
     const userAgent = req.headers['user-agent']
     const isCapacitor = req.headers?.['x-client-platform'] === 'capacitor'
-    const { refreshToken, ...rest } = await this.userAuthService.generateFullAuthResponse(user, ipAddress, userAgent)
+    const { refreshToken, ...rest } = await this.userAuthService.generateFullAuthResponse(
+      user,
+      ipAddress,
+      userAgent,
+    )
     setUserAuthCookies(reply, rest.accessToken, refreshToken)
     reply.status(HttpStatus.OK).send(isCapacitor ? { ...rest, refreshToken } : rest)
   }
@@ -388,76 +420,79 @@ export class UserController {
   @Post('verify-bvn')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async verifyBvn(
-    @Req() req: FastifyRequest,
-    @Body() body: { bvn: string },
-  ) {
+  async verifyBvn(@Req() req: FastifyRequest, @Body() body: { bvn: string }) {
     if (!req.user?.id) {
       throw new UnauthorizedException('No user in request')
     }
     return this.verifyBvnUseCase.execute(req.user.id, body.bvn)
   }
 
-  @Post('past-records')
+  @Post('verify-kyc')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async verifyKyc(
+    @Req() req: FastifyRequest,
+    @Body() body: { type: 'BVN' | 'NIN'; idNumber: string },
+  ) {
+    if (!req.user?.id) {
+      throw new UnauthorizedException('No user in request')
+    }
+    return this.verifyKycUseCase.execute(req.user.id, body)
+  }
 
+  @Post('past-records')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
   async ingestRecords(
     @Req() req: FastifyRequest,
-    @Body() body: { propertyUuid: string; records: any[] }
+    @Body() body: { propertyUuid: string; records: any[] },
   ) {
-    if (!req.user?.id) throw new UnauthorizedException('No user in request');
-    return this.ingestPastRecords.execute(req.user.id, body);
+    if (!req.user?.id) throw new UnauthorizedException('No user in request')
+    return this.ingestPastRecords.execute(req.user.id, body)
   }
 
   @Post('request-records')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.CREATED)
-  async submitRequestRecords(
-    @Req() req: FastifyRequest,
-    @Body() body: any
-  ) {
-    if (!req.user?.id) throw new UnauthorizedException('No user in request');
-    return this.requestCredibilityRecords.execute(req.user.id, body);
+  async submitRequestRecords(@Req() req: FastifyRequest, @Body() body: any) {
+    if (!req.user?.id) throw new UnauthorizedException('No user in request')
+    return this.requestCredibilityRecords.execute(req.user.id, body)
   }
 
   @Get('credibility-requests')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   async fetchCredibilityRequests(@Req() req: FastifyRequest) {
-    if (!req.user?.id) throw new UnauthorizedException('No user in request');
-    return this.getCredibilityRequests.execute(req.user.id);
+    if (!req.user?.id) throw new UnauthorizedException('No user in request')
+    return this.getCredibilityRequests.execute(req.user.id)
   }
 
   @Get('credibility/pdf')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async downloadCredibilityPdf(
-    @Req() req: FastifyRequest,
-    @Res() reply: any
-  ) {
-    if (!req.user?.id) throw new UnauthorizedException('No user in request');
-    const buffer = await this.generateKYCPdf.execute(req.user.id);
-    
+  async downloadCredibilityPdf(@Req() req: FastifyRequest, @Res() reply: any) {
+    if (!req.user?.id) throw new UnauthorizedException('No user in request')
+    const buffer = await this.generateKYCPdf.execute(req.user.id)
+
     reply
       .header('Content-Type', 'application/pdf')
       .header('Content-Disposition', `attachment; filename=Credibility_Report_${req.user.id}.pdf`)
-      .send(buffer);
+      .send(buffer)
   }
 
   @Get('check-slug/:slug')
   @HttpCode(HttpStatus.OK)
   async checkSlug(@Req() req: any) {
-    const slug = req.params.slug;
-    return this.checkSlugAvailability.execute(slug);
+    const slug = req.params.slug
+    return this.checkSlugAvailability.execute(slug)
   }
 
   @Post('accept-terms')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
   async acceptTerms(@Req() req: FastifyRequest, @Body() body: { version?: string }) {
-    if (!req.user?.id) throw new UnauthorizedException('No user in request');
-    return this.acceptTermsUseCase.execute(req.user.id, body?.version);
+    if (!req.user?.id) throw new UnauthorizedException('No user in request')
+    return this.acceptTermsUseCase.execute(req.user.id, body?.version)
   }
 
   @Post('delete-account/request-otp')
@@ -465,9 +500,9 @@ export class UserController {
   @HttpCode(HttpStatus.OK)
   async requestDeleteAccountOtp(@Req() req: FastifyRequest) {
     if (!req.user?.id) {
-      throw new UnauthorizedException('No user in request');
+      throw new UnauthorizedException('No user in request')
     }
-    return this.requestDeleteAccountOtpUseCase.execute(req.user.id);
+    return this.requestDeleteAccountOtpUseCase.execute(req.user.id)
   }
 
   @Post('delete-account')
@@ -479,17 +514,16 @@ export class UserController {
     @Res({ passthrough: false }) reply: FastifyReply,
   ) {
     if (!req.user?.id) {
-      throw new UnauthorizedException('No user in request');
+      throw new UnauthorizedException('No user in request')
     }
 
     const result = await this.deleteUserAccountUseCase.execute({
       userUuid: req.user.id,
       reason: body?.reason,
       otp: body?.otp,
-    });
+    })
 
-    clearUserAuthCookies(reply);
-    reply.status(HttpStatus.OK).send(result);
+    clearUserAuthCookies(reply)
+    reply.status(HttpStatus.OK).send(result)
   }
 }
-

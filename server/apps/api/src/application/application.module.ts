@@ -190,6 +190,7 @@ import { RequestCredibilityRecordsUseCase } from './use-cases/user/request-credi
 import { GetCredibilityRequestsUseCase } from './use-cases/user/get-credibility-requests.use-case'
 import { CheckSlugAvailabilityUseCase } from './use-cases/user/check-slug-availability.use-case'
 import { VerifyBvnUseCase } from './use-cases/user/verify-bvn.use-case'
+import { VerifyKycUseCase } from './use-cases/user/verify-kyc.use-case'
 import { AcceptTermsUseCase } from './use-cases/user/accept-terms.use-case'
 import { GetCredibilityRequestDetailsUseCase } from './use-cases/external/get-credibility-request-details.use-case'
 import { FulfillCredibilityRequestUseCase } from './use-cases/external/fulfill-credibility-request.use-case'
@@ -468,7 +469,10 @@ import { SettlePropertyBalanceUseCase } from './use-cases/payments/settle-proper
 import { HandlePaymentOverpaymentUseCase } from './use-cases/payments/handle-overpayment.use-case'
 import { GetRentDepositSummaryUseCase } from './use-cases/payments/get-rent-deposit-summary.use-case'
 import { ApplyRentDepositToPaymentRequestUseCase } from './use-cases/payments/apply-rent-deposit-to-payment-request.use-case'
-import { CreditRentDepositUseCase, RecordRentDepositUseCase } from './use-cases/payments/credit-rent-deposit.use-case'
+import {
+  CreditRentDepositUseCase,
+  RecordRentDepositUseCase,
+} from './use-cases/payments/credit-rent-deposit.use-case'
 import { GenerateRentDepositReceiptPdfUseCase } from './use-cases/payments/generate-rent-deposit-receipt-pdf.use-case'
 import { ProcessHourlySettlementsUseCase } from './use-cases/payments/settlement-cron.use-case'
 import {
@@ -564,7 +568,6 @@ import { SubmitAllianceInquiryUseCase } from './alliance/use-cases/submit-allian
 import { GetUserAllianceJourneysUseCase } from './alliance/use-cases/get-user-alliance-journeys.use-case'
 
 const UseCases: any[] = [
-
   TogglePmAllianceEnablementUseCase,
   CreateAllianceQualificationUseCase,
   ListAllianceQualificationsUseCase,
@@ -729,6 +732,7 @@ const UseCases: any[] = [
   RequestCredibilityRecordsUseCase,
   GetCredibilityRequestsUseCase,
   VerifyBvnUseCase,
+  VerifyKycUseCase,
   SaveLandlordUseCase,
   GetSavedLandlordsUseCase,
   RecordTransactionUseCase,

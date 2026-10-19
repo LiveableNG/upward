@@ -7,18 +7,19 @@ const prisma = new PrismaClient()
 
 // Replicate deterministic hash and encryption helper functions
 function hash(text: string): string {
-  return crypto.createHash('sha256').update(text.toLowerCase().trim()).digest('hex');
+  return crypto.createHash('sha256').update(text.toLowerCase().trim()).digest('hex')
 }
 
 function encrypt(text: string): string {
-  const hexKey = process.env.ENCRYPTION_KEY || 'd7f3e2a1b0c9d8e7f6a5b4c3d2e1f0a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8';
-  const key = Buffer.from(hexKey, 'hex');
-  const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
-  let encrypted = cipher.update(text, 'utf8', 'hex');
-  encrypted += cipher.final('hex');
-  const authTag = cipher.getAuthTag().toString('hex');
-  return `${iv.toString('hex')}:${authTag}:${encrypted}`;
+  const hexKey =
+    process.env.ENCRYPTION_KEY || 'd7f3e2a1b0c9d8e7f6a5b4c3d2e1f0a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8'
+  const key = Buffer.from(hexKey, 'hex')
+  const iv = crypto.randomBytes(16)
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv)
+  let encrypted = cipher.update(text, 'utf8', 'hex')
+  encrypted += cipher.final('hex')
+  const authTag = cipher.getAuthTag().toString('hex')
+  return `${iv.toString('hex')}:${authTag}:${encrypted}`
 }
 
 async function main() {
@@ -32,14 +33,14 @@ async function main() {
   await prisma.upward_pm_unit.deleteMany({})
   await prisma.upward_pm_property.deleteMany({})
   await prisma.upward_pm_tenant.deleteMany({})
-  
+
   await prisma.upward_auth_session.deleteMany({})
   await prisma.upward_pm_auth_session.deleteMany({})
   await prisma.upward_user.deleteMany({})
   await prisma.upward_property_manager.deleteMany({})
 
   await prisma.upward_attendance.deleteMany({})
-  await prisma.upward_email_log.deleteMany({})
+  await (prisma as any).upward_email_sequence_log?.deleteMany({})
   await prisma.upward_waitlist.deleteMany({})
   await prisma.upward_session.deleteMany({})
 
@@ -65,7 +66,7 @@ async function main() {
       phoneHash: encrypt('+2348031234567'),
       isVerified: true,
       country: 'Nigeria',
-    }
+    },
   })
   console.log(`✅ Created Property Manager: ${pm.email} (Password: ${defaultPassword})`)
 
@@ -84,7 +85,7 @@ async function main() {
       phoneHash: encrypt('+2348037654321'),
       profileSlug: 'bolu-adebayo',
       isIdentityVerified: true,
-    }
+    },
   })
   console.log(`✅ Created Tenant User: ${tenantUser.email} (Password: ${defaultPassword})`)
 
@@ -99,7 +100,7 @@ async function main() {
       country: 'Nigeria',
       state: 'Lagos',
       area: 'Lekki',
-    }
+    },
   })
   console.log(`✅ Created Property: ${property.name}`)
 
@@ -116,7 +117,7 @@ async function main() {
       rentType: 'Monthly',
       rentReminderEnabled: true,
       rentReminderDaysBefore: 3,
-    }
+    },
   })
   console.log(`✅ Created Unit: ${unit.unitName}`)
 
@@ -133,13 +134,13 @@ async function main() {
       phoneEncrypted: encrypt('+2348037654321'),
       phoneHash: hash('+2348037654321'),
       inviteStatus: 'ACCEPTED',
-    }
+    },
   })
 
   // Connect the unit to this PM tenant
   await prisma.upward_pm_unit.update({
     where: { id: unit.id },
-    data: { tenantId: pmTenant.id }
+    data: { tenantId: pmTenant.id },
   })
 
   // 6. Connect the User (Tenant) to the Unit/Property via user_property link
@@ -153,7 +154,7 @@ async function main() {
       rentEndDate: faker.date.future(),
       isVerified: true,
       verificationStatus: 'VERIFIED',
-    }
+    },
   })
 
   // 7. Create a Payment Request (Invoice) for the rent
@@ -171,7 +172,7 @@ async function main() {
       rentStartDate: new Date(),
       rentEndDate: faker.date.future(),
       rentType: 'Monthly',
-    }
+    },
   })
 
   await prisma.upward_pm_payment_request.create({
@@ -191,7 +192,7 @@ async function main() {
       rentStartDate: globalPaymentRequest.rentStartDate,
       rentEndDate: globalPaymentRequest.rentEndDate,
       rentType: 'Monthly',
-    }
+    },
   })
   console.log(`✅ Created Invoice: ${globalPaymentRequest.description} for Bolu Adebayo`)
 
@@ -230,7 +231,7 @@ async function main() {
         country: 'Nigeria',
         city: faker.location.city(),
         selectedSession: faker.helpers.arrayElement(sessions).id,
-      }
+      },
     })
   }
   console.log(`✅ Created ${totalWaitlist} waitlist records`)
@@ -238,9 +239,21 @@ async function main() {
   // 10. Seed Initial Alliance Qualifications
   console.log('🌱 Seeding initial Alliance qualifications...')
   const initialQualifications = [
-    { slug: 'niesv-registered', name: 'NIESV Registered', description: 'Registered member of Nigerian Institution of Estate Surveyors and Valuers' },
-    { slug: 'certified-property-manager', name: 'Certified Property Manager', description: 'Certified professional property management practitioner' },
-    { slug: 'estate-surveyor-valuer', name: 'Estate Surveyor & Valuer', description: 'Licensed estate surveyor and valuer' },
+    {
+      slug: 'niesv-registered',
+      name: 'NIESV Registered',
+      description: 'Registered member of Nigerian Institution of Estate Surveyors and Valuers',
+    },
+    {
+      slug: 'certified-property-manager',
+      name: 'Certified Property Manager',
+      description: 'Certified professional property management practitioner',
+    },
+    {
+      slug: 'estate-surveyor-valuer',
+      name: 'Estate Surveyor & Valuer',
+      description: 'Licensed estate surveyor and valuer',
+    },
   ]
 
   for (const qual of initialQualifications) {
