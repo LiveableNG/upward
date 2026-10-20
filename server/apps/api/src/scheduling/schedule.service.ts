@@ -11,6 +11,7 @@ import { QueueDailySequencesUseCase } from '../application/use-cases/sequence/qu
 import { ApplyDailySavingsInterestUseCase } from '../application/use-cases/payments/wallet.use-cases'
 import { NotifyEligibleDeletionAccountsUseCase } from '../application/use-cases/admin/notify-eligible-deletion-accounts.use-case'
 import { SendUniversityApplicationDailyDigestUseCase } from '../application/use-cases/university-application/send-university-application-daily-digest.use-case'
+import { SendPmDailyBriefingUseCase } from '../application/pm/use-cases/send-pm-daily-briefing.use-case'
 import { getZonedParts, Schedule, ScheduledJob } from './schedule.builder'
 import { PrismaService } from '../shared/infrastructure/prisma/prisma.service'
 import { S3Service } from '../shared/infrastructure/common/s3/s3.service'
@@ -35,6 +36,7 @@ export class ScheduleService implements OnModuleInit {
     private readonly applyDailySavingsInterestUseCase: ApplyDailySavingsInterestUseCase,
     private readonly notifyEligibleDeletionAccountsUseCase: NotifyEligibleDeletionAccountsUseCase,
     private readonly sendUniversityApplicationDailyDigestUseCase: SendUniversityApplicationDailyDigestUseCase,
+    private readonly sendPmDailyBriefingUseCase: SendPmDailyBriefingUseCase,
     private readonly prisma: PrismaService,
     private readonly s3Service: S3Service,
     private readonly subscriptionBillingScheduler: SubscriptionBillingScheduler,
@@ -87,10 +89,17 @@ export class ScheduleService implements OnModuleInit {
       .withoutOverlapping()
       .description('Queue daily WhatsApp / email sequences')
 
-    s.call('pmDailyDigest', () => this.unifiedReminderService.processPmDailyCrons())
+    s.call('pmDailyBriefing', async () => {
+      await this.sendPmDailyBriefingUseCase.execute()
+    })
+      .dailyAt('08:30')
+      .withoutOverlapping()
+      .description('PM Daily Morning Briefing email summary of yesterday\'s activities and urgent alerts')
+
+    s.call('pmDailyDigest', () => this.unifiedReminderService.processPmDailyCrons(false))
       .dailyAt('09:00')
       .withoutOverlapping()
-      .description('PM daily rent digests')
+      .description('PM daily in-app rent alert notifications')
 
     s.call('homeRequestDigest', () => this.sendHomeRequestDigestUseCase.execute())
       .dailyAt('08:00')

@@ -22,6 +22,7 @@ export interface PropertyManagerProfile {
   isManuallyBlocked?: boolean;
   termsAcceptedAt?: string | null;
   termsVersion?: string | null;
+  dailyBriefingEnabled?: boolean;
   hasBankDetails?: boolean;
   canManageCompanySettings?: boolean;
   accountType?: 'PM' | 'PM_EMPLOYEE';

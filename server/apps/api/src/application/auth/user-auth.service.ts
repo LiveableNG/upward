@@ -1524,13 +1524,14 @@ export class UserAuthService extends BaseAuthService {
   public async syncTenantStatuses(email: string) {
     try {
       const emailHash = this.encryption.hash(email)
-      await this.prisma.upward_pm_tenant.updateMany({
+      await (this.prisma as any).upward_pm_tenant.updateMany({
         where: {
           emailHash,
           inviteStatus: { in: ['PENDING', 'SENT'] }
         },
         data: {
-          inviteStatus: 'ON_UPWARD'
+          inviteStatus: 'ON_UPWARD',
+          inviteAcceptedAt: new Date()
         }
       })
     } catch (error) {

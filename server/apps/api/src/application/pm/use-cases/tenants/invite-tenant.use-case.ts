@@ -105,6 +105,7 @@ export class InviteTenantUseCase {
       // User already exists, update status immediately
       await this.tenantRepo.update(tenantUuid, {
         inviteStatus: 'ON_UPWARD',
+        inviteAcceptedAt: new Date(),
       });
     }
 
