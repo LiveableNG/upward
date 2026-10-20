@@ -324,6 +324,7 @@ import { GetFeedbackStatsAdminUseCase } from './use-cases/feedback/get-feedback-
 import { SubmitHomeRequestUseCase } from './use-cases/home-request/submit-home-request.use-case'
 import { BudgetGuidanceUseCase } from './use-cases/home-request/budget-guidance.use-case'
 import { SendHomeRequestDigestUseCase } from './use-cases/home-request/send-home-request-digest.use-case'
+import { SendPmDailyBriefingUseCase } from './pm/use-cases/send-pm-daily-briefing.use-case'
 import {
   GetPmHomeRequestUseCase,
   ListPmHomeRequestsUseCase,
@@ -926,6 +927,7 @@ const UseCases: any[] = [
   SubmitHomeRequestUseCase,
   BudgetGuidanceUseCase,
   SendHomeRequestDigestUseCase,
+  SendPmDailyBriefingUseCase,
   ListPmHomeRequestsUseCase,
   GetPmHomeRequestUseCase,
   RevealPmHomeRequestContactUseCase,

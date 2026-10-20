@@ -182,8 +182,8 @@ export class UnifiedReminderService {
     });
   }
 
-  async processPmDailyCrons() {
-    this.logger.log('[ReminderService] Processing daily Property Manager rent digests...');
+  async processPmDailyCrons(sendEmail: boolean = false) {
+    this.logger.log(`[ReminderService] Processing daily Property Manager rent alerts (sendEmail=${sendEmail})...`);
     const baseUrl = (process.env.FRONTEND_URL || 'https://upward.goodtenants.io').split(',')[0]!.trim();
     const now = new Date();
     
@@ -291,8 +291,8 @@ export class UnifiedReminderService {
           }
         }
 
-        // 3. Send email if there are items in the digest
-        if (upcomingDigestItems.length > 0 || overdueDigestItems.length > 0) {
+        // 3. Send email only if sendEmail is true and there are items in the digest
+        if (sendEmail && (upcomingDigestItems.length > 0 || overdueDigestItems.length > 0)) {
           let emailHtml = `
             <div style="background-color: #fafae6; padding: 32px 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
               <div style="max-width: 600px; margin: 0 auto; background-color: #fffffb; border: 1px solid #e3e2cf; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(27, 67, 50, 0.05);">

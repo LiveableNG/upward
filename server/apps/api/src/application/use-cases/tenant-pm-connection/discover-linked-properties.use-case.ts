@@ -93,9 +93,12 @@ export class DiscoverLinkedPropertiesUseCase {
 
       // Update tenant status to ON_UPWARD if it was pending
       if (['PENDING', 'SENT'].includes(tenantRecord.inviteStatus)) {
-        await this.prisma.upward_pm_tenant.update({
+        await (this.prisma as any).upward_pm_tenant.update({
           where: { id: tenantRecord.id },
-          data: { inviteStatus: 'ON_UPWARD' }
+          data: {
+            inviteStatus: 'ON_UPWARD',
+            inviteAcceptedAt: new Date(),
+          }
         });
       }
     }

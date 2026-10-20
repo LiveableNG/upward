@@ -7,6 +7,7 @@ import { useUpdateProfile } from '@/features/pm/hooks/usePmSettings'
 import { PhoneInput } from '@/components/common/PhoneInput'
 import { isValidPhoneNumber } from 'libphonenumber-js'
 import { FormSelect } from '@/components/ui/Select/FormSelect'
+import { Switch } from '@/components/ui/Switch/Switch'
 
 const memberProfileSchema = z.object({
   firstName: z.string().min(2, 'First name is too short'),
@@ -22,6 +23,7 @@ const ownerProfileSchema = memberProfileSchema.extend({
   country: z.string().optional(),
   companyAddress: z.string().optional(),
   cacNumber: z.string().optional(),
+  dailyBriefingEnabled: z.boolean().optional(),
 })
 
 type MemberProfileFormData = z.infer<typeof memberProfileSchema>
@@ -58,6 +60,7 @@ export function ProfileForm() {
       country: user?.country || '',
       companyAddress: user?.companyAddress || '',
       cacNumber: user?.cacNumber || '',
+      dailyBriefingEnabled: user?.dailyBriefingEnabled !== false,
     }
   })
 
@@ -72,6 +75,7 @@ export function ProfileForm() {
         country: user.country || '',
         companyAddress: user.companyAddress || '',
         cacNumber: user.cacNumber || '',
+        dailyBriefingEnabled: user.dailyBriefingEnabled !== false,
       })
     }
   }, [user, reset])
@@ -231,6 +235,21 @@ export function ProfileForm() {
                   placeholder="Enter CAC number"
                 />
               </div>
+            </div>
+
+            <div className="settings__field" style={{ marginTop: 12 }}>
+              <Controller
+                name="dailyBriefingEnabled"
+                control={control}
+                render={({ field }) => (
+                  <Switch
+                    checked={field.value !== false}
+                    onCheckedChange={field.onChange}
+                    label="Daily Morning Briefing"
+                    description="Receive a consolidated operational briefing email every morning at 08:30 Lagos time covering yesterday's rent collections, new tenant onboarding, pending action items, and urgent rent alerts."
+                  />
+                )}
+              />
             </div>
           </>
         )}

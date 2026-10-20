@@ -32,6 +32,7 @@ export interface PropertyManager {
   resetPasswordOTP?: string | null
   resetPasswordExpires?: Date | null
   invitedByUserId?: number | null
+  dailyBriefingEnabled?: boolean
   createdAt: Date
   updatedAt: Date
 }
