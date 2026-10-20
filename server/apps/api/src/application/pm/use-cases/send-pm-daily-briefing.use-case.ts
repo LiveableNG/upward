@@ -315,6 +315,7 @@ export class SendPmDailyBriefingUseCase {
           recipientRole: 'PM',
           pmUuid: pm.uuid,
           type: 'PM_DAILY_BRIEFING',
+          title: `[Upward] Morning Briefing (${yesterdayFormatted}): ${subjectBadge}`,
           context: {
             htmlOverride: emailHtml,
             title: `[Upward] Morning Briefing (${yesterdayFormatted}): ${subjectBadge}`,
