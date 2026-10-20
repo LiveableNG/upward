@@ -122,6 +122,7 @@ export interface TenantEntity {
   otherPhoneHash?: string | null;
   inviteStatus: string;
   inviteSentAt: Date | null;
+  inviteAcceptedAt?: Date | null;
   channel?: string | null;
   formerAddress?: string | null;
   nextOfKinName?: string | null;
