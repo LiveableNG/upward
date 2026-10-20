@@ -63,7 +63,10 @@ export const AppActivityLogViewerModal: React.FC<AppActivityLogViewerModalProps>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>User:</span>
-            <span>{selectedLog.userEmail || (selectedLog.userId ? `User #${selectedLog.userId}` : 'Guest')}</span>
+            <span>
+              {selectedLog.userEmail ||
+                (selectedLog.userId ? `User #${selectedLog.userId}` : 'Guest')}
+            </span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ fontWeight: 600, color: 'var(--text-muted)' }}>IP Address:</span>
@@ -94,7 +97,14 @@ export const AppActivityLogViewerModal: React.FC<AppActivityLogViewerModalProps>
               marginBottom: '8px',
             }}
           >
-            <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+            <span
+              style={{
+                fontSize: '12px',
+                fontWeight: 700,
+                color: 'var(--text-muted)',
+                textTransform: 'uppercase',
+              }}
+            >
               Request Payload & Metadata
             </span>
             <button
@@ -112,11 +122,7 @@ export const AppActivityLogViewerModal: React.FC<AppActivityLogViewerModalProps>
                 cursor: 'pointer',
               }}
             >
-              {copied ? (
-                <Check size={14} style={{ color: '#059669' }} />
-              ) : (
-                <Copy size={14} />
-              )}
+              {copied ? <Check size={14} style={{ color: '#059669' }} /> : <Copy size={14} />}
               {copied ? 'Copied!' : 'Copy JSON'}
             </button>
           </div>

@@ -68,11 +68,13 @@ export class VersionEnforcementInterceptor implements NestInterceptor {
         {
           statusCode: HttpStatus.SERVICE_UNAVAILABLE,
           error: 'Service Unavailable',
-          message: 'Upward systems are currently undergoing scheduled maintenance. Please check back shortly.',
+          message:
+            'Upward systems are currently undergoing scheduled maintenance. Please check back shortly.',
           data: {
             type: 'MAINTENANCE',
             title: policy.title || 'System Maintenance',
-            message: policy.message || 'We are performing scheduled updates to improve our service.',
+            message:
+              policy.message || 'We are performing scheduled updates to improve our service.',
           },
         },
         HttpStatus.SERVICE_UNAVAILABLE,
@@ -82,12 +84,7 @@ export class VersionEnforcementInterceptor implements NestInterceptor {
     // 2. Hard Deprecation / Force Update Check
     const isHardBlocked =
       policy.forceUpdate ||
-      isVersionOlder(
-        versionHeader,
-        buildHeader,
-        policy.minSupportedVersion,
-        policy.minBuildNumber,
-      )
+      isVersionOlder(versionHeader, buildHeader, policy.minSupportedVersion, policy.minBuildNumber)
 
     if (isHardBlocked) {
       const storeUrl =
@@ -100,14 +97,17 @@ export class VersionEnforcementInterceptor implements NestInterceptor {
         {
           statusCode: HTTP_STATUS_UPGRADE_REQUIRED,
           error: 'Upgrade Required',
-          message: 'Your app version is no longer supported. Please update to continue using Upward Pay.',
+          message:
+            'Your app version is no longer supported. Please update to continue using Upward Pay.',
           data: {
             type: 'FORCE_UPDATE',
             currentVersion: versionHeader,
             minSupportedVersion: policy.minSupportedVersion,
             latestVersion: policy.latestVersion,
             title: policy.title || 'Update Required',
-            message: policy.message || 'A required update is available to keep your account safe and up to date.',
+            message:
+              policy.message ||
+              'A required update is available to keep your account safe and up to date.',
             releaseNotes: policy.releaseNotes,
             storeUrl,
           },

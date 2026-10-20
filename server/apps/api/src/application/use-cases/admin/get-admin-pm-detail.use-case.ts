@@ -120,10 +120,14 @@ export class GetAdminPmDetailUseCase {
       const firstManager = company.managers && company.managers[0]
       let resolvedFirstName = ''
       let resolvedLastName = ''
-      
+
       if (firstManager) {
-        resolvedFirstName = firstManager.firstName ? this.encryption.decrypt(firstManager.firstName).trim() : ''
-        resolvedLastName = firstManager.lastName ? this.encryption.decrypt(firstManager.lastName).trim() : ''
+        resolvedFirstName = firstManager.firstName
+          ? this.encryption.decrypt(firstManager.firstName).trim()
+          : ''
+        resolvedLastName = firstManager.lastName
+          ? this.encryption.decrypt(firstManager.lastName).trim()
+          : ''
       }
 
       // Map tenancy properties to standard property/units layout
@@ -171,41 +175,43 @@ export class GetAdminPmDetailUseCase {
               currency: p.currency,
               status: p.user ? 'OCCUPIED' : 'VACANT',
               tenant: tenantInfo,
-            }
-          ]
+            },
+          ],
         }
       })
 
       // Get tenants list
-      const companyTenants = company.properties.map((p) => {
-        if (!p.user) return null
-        let email = ''
-        let firstName = ''
-        let lastName = ''
-        let phone = ''
+      const companyTenants = company.properties
+        .map((p) => {
+          if (!p.user) return null
+          let email = ''
+          let firstName = ''
+          let lastName = ''
+          let phone = ''
 
-        try {
-          email = this.encryption.decrypt(p.user.email)
-          firstName = this.encryption.decrypt(p.user.firstName)
-          lastName = this.encryption.decrypt(p.user.lastName)
-          phone = p.user.phone ? this.encryption.decrypt(p.user.phone) : ''
-        } catch (err) {
-          email = p.user.email
-          firstName = p.user.firstName
-          lastName = p.user.lastName
-          phone = p.user.phone || ''
-        }
+          try {
+            email = this.encryption.decrypt(p.user.email)
+            firstName = this.encryption.decrypt(p.user.firstName)
+            lastName = this.encryption.decrypt(p.user.lastName)
+            phone = p.user.phone ? this.encryption.decrypt(p.user.phone) : ''
+          } catch (err) {
+            email = p.user.email
+            firstName = p.user.firstName
+            lastName = p.user.lastName
+            phone = p.user.phone || ''
+          }
 
-        return {
-          id: p.user.id,
-          uuid: p.user.uuid,
-          email,
-          firstName,
-          lastName,
-          phone,
-          inviteStatus: 'ACCEPTED',
-        }
-      }).filter(Boolean)
+          return {
+            id: p.user.id,
+            uuid: p.user.uuid,
+            email,
+            firstName,
+            lastName,
+            phone,
+            inviteStatus: 'ACCEPTED',
+          }
+        })
+        .filter(Boolean)
 
       return {
         type: 'PM',
@@ -276,22 +282,19 @@ export class GetAdminPmDetailUseCase {
 
         return {
           ...unit,
-          tenant: tenantInfo
+          tenant: tenantInfo,
         }
       })
       return {
         ...prop,
-        units: decryptedUnits
+        units: decryptedUnits,
       }
     })
 
     // Fetch activity logs
     const activityLogs = await this.prisma.upward_app_activity_log.findMany({
       where: {
-        OR: [
-          { pmId: pm.id },
-          { userEmail: pm.email },
-        ],
+        OR: [{ pmId: pm.id }, { userEmail: pm.email }],
       },
       orderBy: { createdAt: 'desc' },
       take: 100,
@@ -360,7 +363,11 @@ export class GetAdminPmDetailUseCase {
     const yearlySpend = billableUnits * yearlyRate
     const currentBalance = pm.wallet?.balance ?? 0
     const coverageMonths =
-      monthlySpend > 0 ? Number((currentBalance / monthlySpend).toFixed(1)) : sub?.tier === 'FREE' ? null : 999
+      monthlySpend > 0
+        ? Number((currentBalance / monthlySpend).toFixed(1))
+        : sub?.tier === 'FREE'
+          ? null
+          : 999
 
     let walletStatus = 'HEALTHY'
     if (sub && sub.tier !== 'FREE') {

@@ -22,14 +22,17 @@ export class ToggleAppForceUpdateUseCase {
   async execute(dto: ToggleAppForceUpdateDto): Promise<AppVersionPolicy> {
     const existing = await this.versionRepo.findByAppAndPlatform(dto.app, dto.platform)
     if (!existing) {
-      throw new NotFoundException(`Policy for app ${dto.app} and platform ${dto.platform} not found`)
+      throw new NotFoundException(
+        `Policy for app ${dto.app} and platform ${dto.platform} not found`,
+      )
     }
 
     const updated = await this.versionRepo.upsertPolicy({
       app: dto.app,
       platform: dto.platform,
       forceUpdate: dto.forceUpdate !== undefined ? dto.forceUpdate : existing.forceUpdate,
-      maintenanceMode: dto.maintenanceMode !== undefined ? dto.maintenanceMode : existing.maintenanceMode,
+      maintenanceMode:
+        dto.maintenanceMode !== undefined ? dto.maintenanceMode : existing.maintenanceMode,
     })
 
     return updated

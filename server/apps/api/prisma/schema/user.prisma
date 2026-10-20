@@ -68,6 +68,7 @@ model upward_user {
   allianceAuthoredRatings upward_alliance_rating[]       @relation("AllianceAuthorUser")
   allianceSubjectRatings  upward_alliance_rating[]       @relation("AllianceSubjectUser")
   tenantNotes           upward_admin_tenant_note[]
+  kycVerifications      upward_kyc_verification[]
 
   @@index([email])
   @@index([createdAt])
@@ -199,4 +200,27 @@ model upward_admin_tenant_note {
   @@index([userId])
   @@index([category])
   @@index([createdAt])
+}
+
+model upward_kyc_verification {
+  id              Int          @id @default(autoincrement())
+  uuid            String       @unique @default(uuid())
+  userId          Int
+  idType          String       // 'BVN' | 'NIN' | 'VNIN'
+  idNumberHash    String       // SHA-256 hash for anti-fraud & uniqueness detection
+  idNumberMasked  String       // e.g. "*******4821" for UI display
+  provider        String       // 'MOCK' | 'PREMBLY' | 'DOJAH'
+  status          String       // 'VERIFIED' | 'FAILED' | 'PENDING'
+  matchScore      Float?
+  failureReason   String?
+  metadata        Json?
+  verifiedAt      DateTime?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  user            upward_user  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([idNumberHash])
+  @@index([status])
 }

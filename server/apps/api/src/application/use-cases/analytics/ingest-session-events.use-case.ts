@@ -1,4 +1,4 @@
-import { Injectable, Logger, Inject } from '@nestjs/common';
+import { Injectable, Logger, Inject } from '@nestjs/common'
 import {
   IsString,
   IsNotEmpty,
@@ -6,162 +6,162 @@ import {
   IsNumber,
   IsArray,
   ValidateNested,
-} from 'class-validator';
-import { Type } from 'class-transformer';
+} from 'class-validator'
+import { Type } from 'class-transformer'
 import {
   SESSION_TRACKING_REPOSITORY,
   ISessionTrackingRepository,
   UpsertSessionData,
   CreateSessionEventData,
-} from '../../../domains/session-tracking/session-tracking.repository';
+} from '../../../domains/session-tracking/session-tracking.repository'
 
 export class SessionContextDto {
   @IsNotEmpty()
   @IsString()
-  sessionId!: string;
+  sessionId!: string
 
   @IsNotEmpty()
   @IsString()
-  anonymousId!: string;
+  anonymousId!: string
 
   @IsOptional()
   @IsNumber()
-  userId?: number;
+  userId?: number
 
   @IsOptional()
   @IsString()
-  userEmail?: string;
+  userEmail?: string
 
   @IsOptional()
   @IsString()
-  userRole?: string;
+  userRole?: string
 
   @IsOptional()
   @IsString()
-  app?: string;
+  app?: string
 
   @IsNotEmpty()
   @IsString()
-  platform!: string;
+  platform!: string
 
   @IsOptional()
   @IsString()
-  clientType?: string;
+  clientType?: string
 
   // Geographic & Network Location
   @IsOptional()
   @IsString()
-  ipAddress?: string;
+  ipAddress?: string
 
   @IsOptional()
   @IsString()
-  country?: string;
+  country?: string
 
   @IsOptional()
   @IsString()
-  countryCode?: string;
+  countryCode?: string
 
   @IsOptional()
   @IsString()
-  region?: string;
+  region?: string
 
   @IsOptional()
   @IsString()
-  city?: string;
+  city?: string
 
   @IsOptional()
   @IsString()
-  timezone?: string;
+  timezone?: string
 
   @IsOptional()
   @IsString()
-  locale?: string;
+  locale?: string
 
   @IsOptional()
   @IsString()
-  networkType?: string;
+  networkType?: string
 
   // Acquisition & Referral
   @IsOptional()
   @IsString()
-  landingPage?: string;
+  landingPage?: string
 
   @IsOptional()
   @IsString()
-  referrer?: string;
+  referrer?: string
 
   @IsOptional()
   @IsString()
-  utmSource?: string;
+  utmSource?: string
 
   @IsOptional()
   @IsString()
-  utmMedium?: string;
+  utmMedium?: string
 
   @IsOptional()
   @IsString()
-  utmCampaign?: string;
+  utmCampaign?: string
 
   // Device & Screen
   @IsOptional()
   @IsString()
-  deviceModel?: string;
+  deviceModel?: string
 
   @IsOptional()
   @IsString()
-  osVersion?: string;
+  osVersion?: string
 
   @IsOptional()
   @IsString()
-  browser?: string;
+  browser?: string
 
   @IsOptional()
   @IsNumber()
-  screenWidth?: number;
+  screenWidth?: number
 
   @IsOptional()
   @IsNumber()
-  screenHeight?: number;
+  screenHeight?: number
 
   @IsOptional()
   @IsString()
-  entryScreen?: string;
+  entryScreen?: string
 }
 
 export class SessionEventDto {
   @IsNotEmpty()
   @IsString()
-  eventName!: string;
+  eventName!: string
 
   @IsOptional()
   @IsString()
-  screenName?: string;
+  screenName?: string
 
   @IsNotEmpty()
   @IsNumber()
-  stepNumber!: number;
+  stepNumber!: number
 
   @IsOptional()
-  metadata?: any;
+  metadata?: any
 
   @IsNotEmpty()
-  clientTimestamp!: string | Date;
+  clientTimestamp!: string | Date
 }
 
 export class IngestSessionEventsDto {
   @ValidateNested()
   @Type(() => SessionContextDto)
-  session!: SessionContextDto;
+  session!: SessionContextDto
 
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => SessionEventDto)
-  events!: SessionEventDto[];
+  events!: SessionEventDto[]
 }
 
 @Injectable()
 export class IngestSessionEventsUseCase {
-  private readonly logger = new Logger(IngestSessionEventsUseCase.name);
+  private readonly logger = new Logger(IngestSessionEventsUseCase.name)
 
   constructor(
     @Inject(SESSION_TRACKING_REPOSITORY)
@@ -174,49 +174,54 @@ export class IngestSessionEventsUseCase {
     clientIp?: string,
   ): Promise<{ success: boolean; sessionId: string; eventsIngested: number }> {
     try {
-      const s = dto.session;
+      const s = dto.session
       if (!s || !s.sessionId) {
-        return { success: false, sessionId: '', eventsIngested: 0 };
+        return { success: false, sessionId: '', eventsIngested: 0 }
       }
 
       // 1. Resolve Geographic & Network Telemetry from Cloudflare / Vercel / Client
-      const country = s.country || headers['cf-ipcountry'] || headers['x-vercel-ip-country'] || 'Nigeria';
-      const countryCode = s.countryCode || headers['cf-ipcountry'] || headers['x-vercel-ip-country'] || 'NG';
-      const region = s.region || headers['cf-region'] || headers['x-vercel-ip-country-region'] || null;
-      const city = s.city || headers['cf-ipcity'] || headers['x-vercel-ip-city'] || null;
-      const timezone = s.timezone || headers['cf-timezone'] || headers['x-vercel-ip-timezone'] || 'Africa/Lagos';
-      const ipAddress = clientIp || s.ipAddress || headers['x-forwarded-for']?.split(',')[0]?.trim() || null;
+      const country =
+        s.country || headers['cf-ipcountry'] || headers['x-vercel-ip-country'] || 'Nigeria'
+      const countryCode =
+        s.countryCode || headers['cf-ipcountry'] || headers['x-vercel-ip-country'] || 'NG'
+      const region =
+        s.region || headers['cf-region'] || headers['x-vercel-ip-country-region'] || null
+      const city = s.city || headers['cf-ipcity'] || headers['x-vercel-ip-city'] || null
+      const timezone =
+        s.timezone || headers['cf-timezone'] || headers['x-vercel-ip-timezone'] || 'Africa/Lagos'
+      const ipAddress =
+        clientIp || s.ipAddress || headers['x-forwarded-for']?.split(',')[0]?.trim() || null
 
       // 2. Classify Drop-off Stage and Status from events
-      let detectedDropOffStage: string | undefined = undefined;
-      let hasError = false;
-      let lastError: string | undefined = undefined;
-      let lastAction = s.entryScreen || 'APP_OPEN';
-      let exitScreen = s.entryScreen || 'DASHBOARD';
+      let detectedDropOffStage: string | undefined = undefined
+      let hasError = false
+      let lastError: string | undefined = undefined
+      let lastAction = s.entryScreen || 'APP_OPEN'
+      let exitScreen = s.entryScreen || 'DASHBOARD'
 
       if (dto.events && dto.events.length > 0) {
-        const lastEvt = dto.events[dto.events.length - 1];
+        const lastEvt = dto.events[dto.events.length - 1]
         if (lastEvt) {
-          lastAction = lastEvt.eventName;
-          if (lastEvt.screenName) exitScreen = lastEvt.screenName;
+          lastAction = lastEvt.eventName
+          if (lastEvt.screenName) exitScreen = lastEvt.screenName
         }
 
         for (const evt of dto.events) {
           if (evt.eventName === 'PAYSTACK_CLOSED_UNPAID' || evt.eventName === 'PAYMENT_ABANDONED') {
-            detectedDropOffStage = 'PAYMENT_ABANDONED';
+            detectedDropOffStage = 'PAYMENT_ABANDONED'
           } else if (evt.eventName === 'PAYMENT_ERROR') {
-            detectedDropOffStage = 'PAYMENT_FAILED';
-            hasError = true;
-            lastError = evt.metadata?.error || 'Payment transaction failed';
+            detectedDropOffStage = 'PAYMENT_FAILED'
+            hasError = true
+            lastError = evt.metadata?.error || 'Payment transaction failed'
           } else if (evt.eventName === 'PAYMENT_SUCCESS') {
-            detectedDropOffStage = 'COMPLETED';
+            detectedDropOffStage = 'COMPLETED'
           } else if (evt.eventName === 'AUTH_FAILED' || evt.eventName === 'LOGIN_FAILED') {
-            detectedDropOffStage = 'AUTH_DROPOFF';
-            hasError = true;
-            lastError = evt.metadata?.error || 'Authentication error';
+            detectedDropOffStage = 'AUTH_DROPOFF'
+            hasError = true
+            lastError = evt.metadata?.error || 'Authentication error'
           } else if (evt.eventName === 'KYC_FAILED') {
-            detectedDropOffStage = 'KYC_DROPOFF';
-            hasError = true;
+            detectedDropOffStage = 'KYC_DROPOFF'
+            hasError = true
           }
         }
       }
@@ -256,9 +261,9 @@ export class IngestSessionEventsUseCase {
         hasError,
         lastError: lastError || null,
         eventsCount: dto.events ? dto.events.length : 0,
-      };
+      }
 
-      const session = await this.sessionRepo.upsertSession(sessionData);
+      const session = await this.sessionRepo.upsertSession(sessionData)
 
       // 4. Batch Insert Events via Domain Repository
       if (dto.events && dto.events.length > 0) {
@@ -270,19 +275,19 @@ export class IngestSessionEventsUseCase {
           stepNumber: evt.stepNumber || 1,
           metadata: evt.metadata ? JSON.parse(JSON.stringify(evt.metadata)) : null,
           clientTimestamp: new Date(evt.clientTimestamp || Date.now()),
-        }));
+        }))
 
-        await this.sessionRepo.saveEvents(eventsData);
+        await this.sessionRepo.saveEvents(eventsData)
       }
 
       return {
         success: true,
         sessionId: s.sessionId,
         eventsIngested: dto.events ? dto.events.length : 0,
-      };
+      }
     } catch (err: any) {
-      this.logger.error(`Failed to ingest session events: ${err?.message || err}`, err?.stack);
-      return { success: false, sessionId: dto.session?.sessionId || '', eventsIngested: 0 };
+      this.logger.error(`Failed to ingest session events: ${err?.message || err}`, err?.stack)
+      return { success: false, sessionId: dto.session?.sessionId || '', eventsIngested: 0 }
     }
   }
 }

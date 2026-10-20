@@ -1,16 +1,13 @@
-import {
-  Controller,
-  Post,
-  Body,
-  HttpCode,
-  HttpStatus,
-  Req,
-  Headers,
-  Ip,
-} from '@nestjs/common'
+import { Controller, Post, Body, HttpCode, HttpStatus, Req, Headers, Ip } from '@nestjs/common'
 import { ActivityTrackingService } from '../../../shared/infrastructure/activity-tracking/activity-tracking.service'
-import { IngestSessionEventsUseCase, IngestSessionEventsDto } from '../../../application/use-cases/analytics/ingest-session-events.use-case'
-import { EndSessionUseCase, EndSessionDto } from '../../../application/use-cases/analytics/end-session.use-case'
+import {
+  IngestSessionEventsUseCase,
+  IngestSessionEventsDto,
+} from '../../../application/use-cases/analytics/ingest-session-events.use-case'
+import {
+  EndSessionUseCase,
+  EndSessionDto,
+} from '../../../application/use-cases/analytics/end-session.use-case'
 
 @Controller('public/tracking')
 export class PublicTrackingController {
@@ -24,7 +21,7 @@ export class PublicTrackingController {
   @HttpCode(HttpStatus.OK)
   async trackInstall() {
     // Deprecated: Real installs are tracked via App Store Connect / Play Console
-    return { success: true };
+    return { success: true }
   }
 
   @Post('session/event')
@@ -34,12 +31,12 @@ export class PublicTrackingController {
     @Headers() headers: Record<string, any>,
     @Ip() clientIp: string,
   ) {
-    return this.ingestSessionEventsUseCase.execute(dto, headers, clientIp);
+    return this.ingestSessionEventsUseCase.execute(dto, headers, clientIp)
   }
 
   @Post('session/end')
   @HttpCode(HttpStatus.OK)
   async endSession(@Body() dto: EndSessionDto) {
-    return this.endSessionUseCase.execute(dto);
+    return this.endSessionUseCase.execute(dto)
   }
 }

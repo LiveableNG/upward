@@ -181,7 +181,14 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
     }>
   } | null>(null)
   const [allQualifications, setAllQualifications] = useState<
-    Array<{ id: number; uuid: string; slug: string; name: string; description?: string; isActive: boolean }>
+    Array<{
+      id: number
+      uuid: string
+      slug: string
+      name: string
+      description?: string
+      isActive: boolean
+    }>
   >([])
   const [selectedQualId, setSelectedQualId] = useState<string>('')
   const [updatingAlliance, setUpdatingAlliance] = useState(false)
@@ -256,13 +263,19 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
         { isEnabled: enable },
         token,
       )
-      setAllianceProfile((prev) => (prev ? {
-        ...prev,
-        isEnabled: res.data.isEnabled,
-        enabledAt: res.data.enabledAt,
-        disabledAt: res.data.disabledAt,
-      } : null))
-      showToast(enable ? 'Alliance successfully enabled for this PM' : 'Alliance disabled for this PM')
+      setAllianceProfile((prev) =>
+        prev
+          ? {
+              ...prev,
+              isEnabled: res.data.isEnabled,
+              enabledAt: res.data.enabledAt,
+              disabledAt: res.data.disabledAt,
+            }
+          : null,
+      )
+      showToast(
+        enable ? 'Alliance successfully enabled for this PM' : 'Alliance disabled for this PM',
+      )
       await fetchAllianceData()
     } catch (err: any) {
       console.error(err)
@@ -856,22 +869,66 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
 
           {/* Platform Access Control Card */}
           <div className="card" style={{ padding: '24px' }}>
-            <h4 style={{ margin: '0 0 16px 0', fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h4
+              style={{
+                margin: '0 0 16px 0',
+                fontSize: '15px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
               <ShieldAlert size={16} /> Platform Access Control
             </h4>
-            
+
             {/* Control 1: Subscription Suspension (isBlocked) */}
-            <div style={{ marginBottom: '20px', borderBottom: '1px solid var(--border-light)', paddingBottom: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <div
+              style={{
+                marginBottom: '20px',
+                borderBottom: '1px solid var(--border-light)',
+                paddingBottom: '16px',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '12px',
+                }}
+              >
                 <div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Subscription Status</div>
+                  <div
+                    style={{
+                      fontSize: '11px',
+                      color: 'var(--text-muted)',
+                      fontWeight: 600,
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    Subscription Status
+                  </div>
                   <div style={{ fontWeight: 700, fontSize: '14px', marginTop: '4px' }}>
                     {pm.isBlocked ? (
-                      <span style={{ color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span
+                        style={{
+                          color: 'var(--danger)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                        }}
+                      >
                         <XCircle size={14} /> Suspended (Unpaid)
                       </span>
                     ) : (
-                      <span style={{ color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span
+                        style={{
+                          color: 'var(--success)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                        }}
+                      >
                         <CheckCircle2 size={14} /> Active
                       </span>
                     )}
@@ -905,16 +962,46 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
 
             {/* Control 2: Administrative Ban (isManuallyBlocked) */}
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '12px',
+                }}
+              >
                 <div>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Administrative Ban</div>
+                  <div
+                    style={{
+                      fontSize: '11px',
+                      color: 'var(--text-muted)',
+                      fontWeight: 600,
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    Administrative Ban
+                  </div>
                   <div style={{ fontWeight: 700, fontSize: '14px', marginTop: '4px' }}>
                     {pm.isManuallyBlocked ? (
-                      <span style={{ color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span
+                        style={{
+                          color: 'var(--danger)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                        }}
+                      >
                         <XCircle size={14} /> Banned / Restricted
                       </span>
                     ) : (
-                      <span style={{ color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span
+                        style={{
+                          color: 'var(--success)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                        }}
+                      >
                         <CheckCircle2 size={14} /> Allowed / Good Standing
                       </span>
                     )}
@@ -949,8 +1036,23 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
 
           {/* Subscription & PM Wallet Management Card */}
           <div className="card" style={{ padding: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h4 style={{ margin: 0, fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '16px',
+              }}
+            >
+              <h4
+                style={{
+                  margin: 0,
+                  fontSize: '15px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
                 <Wallet size={16} color="var(--accent)" /> Wallet & Subscription
               </h4>
               <span
@@ -990,11 +1092,28 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                 marginBottom: '16px',
               }}
             >
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+              <div
+                style={{
+                  fontSize: '11px',
+                  color: 'var(--text-muted)',
+                  fontWeight: 600,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em',
+                }}
+              >
                 Current Wallet Balance
               </div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '4px' }}>
-                <span style={{ fontSize: '26px', fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em' }}>
+              <div
+                style={{ display: 'flex', alignItems: 'baseline', gap: '6px', marginTop: '4px' }}
+              >
+                <span
+                  style={{
+                    fontSize: '26px',
+                    fontWeight: 800,
+                    color: 'var(--text)',
+                    letterSpacing: '-0.02em',
+                  }}
+                >
                   ₦{(pm.wallet?.balance ?? 0).toLocaleString()}
                 </span>
                 <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
@@ -1003,20 +1122,49 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
               </div>
 
               {/* Monthly burn / runway indicator */}
-              <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px dashed var(--border)', fontSize: '12px', color: 'var(--text-secondary)', display: 'flex', justifyContent: 'space-between' }}>
+              <div
+                style={{
+                  marginTop: '10px',
+                  paddingTop: '10px',
+                  borderTop: '1px dashed var(--border)',
+                  fontSize: '12px',
+                  color: 'var(--text-secondary)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                }}
+              >
                 <span>Runway:</span>
-                <strong style={{ color: pm.billingSummary?.coverageMonths && pm.billingSummary.coverageMonths < 2 ? 'var(--danger)' : 'var(--text)' }}>
+                <strong
+                  style={{
+                    color:
+                      pm.billingSummary?.coverageMonths && pm.billingSummary.coverageMonths < 2
+                        ? 'var(--danger)'
+                        : 'var(--text)',
+                  }}
+                >
                   {pm.subscription?.tier === 'FREE'
                     ? 'Paused (Free Plan)'
-                    : pm.billingSummary?.coverageMonths !== null && pm.billingSummary?.coverageMonths !== undefined
+                    : pm.billingSummary?.coverageMonths !== null &&
+                        pm.billingSummary?.coverageMonths !== undefined
                       ? `~${pm.billingSummary.coverageMonths} months`
                       : 'N/A'}
                 </strong>
               </div>
               {pm.subscription?.tier !== 'FREE' && (
-                <div style={{ marginTop: '4px', fontSize: '11px', color: 'var(--text-muted)', display: 'flex', justifyContent: 'space-between' }}>
+                <div
+                  style={{
+                    marginTop: '4px',
+                    fontSize: '11px',
+                    color: 'var(--text-muted)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                  }}
+                >
                   <span>Est. Monthly Burn:</span>
-                  <span>₦{pm.billingSummary?.monthlySpend?.toLocaleString() || '0'}/mo ({pm.billingSummary?.billableUnits || 0} units)</span>
+                  <span>
+                    ₦{pm.billingSummary?.monthlySpend?.toLocaleString() || '0'}/mo (
+                    {pm.billingSummary?.billableUnits || 0} units)
+                  </span>
                 </div>
               )}
             </div>
@@ -1029,8 +1177,14 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                 gap: '12px',
                 padding: '12px 14px',
                 borderRadius: '10px',
-                backgroundColor: pm.subscription?.tier === 'FREE' ? 'var(--surface-hover)' : 'rgba(99, 102, 241, 0.06)',
-                border: pm.subscription?.tier === 'FREE' ? '1px solid var(--border)' : '1px solid rgba(99, 102, 241, 0.15)',
+                backgroundColor:
+                  pm.subscription?.tier === 'FREE'
+                    ? 'var(--surface-hover)'
+                    : 'rgba(99, 102, 241, 0.06)',
+                border:
+                  pm.subscription?.tier === 'FREE'
+                    ? '1px solid var(--border)'
+                    : '1px solid rgba(99, 102, 241, 0.15)',
                 marginBottom: '16px',
               }}
             >
@@ -1039,7 +1193,10 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                   width: '32px',
                   height: '32px',
                   borderRadius: '8px',
-                  backgroundColor: pm.subscription?.tier === 'FREE' ? 'var(--surface)' : 'rgba(99, 102, 241, 0.15)',
+                  backgroundColor:
+                    pm.subscription?.tier === 'FREE'
+                      ? 'var(--surface)'
+                      : 'rgba(99, 102, 241, 0.15)',
                   color: pm.subscription?.tier === 'FREE' ? 'var(--text-muted)' : '#6366f1',
                   display: 'flex',
                   alignItems: 'center',
@@ -1050,10 +1207,24 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                 <Clock size={16} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                <div
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    color: 'var(--text-muted)',
+                    textTransform: 'uppercase',
+                  }}
+                >
                   Next Billing Date
                 </div>
-                <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)', marginTop: '1px' }}>
+                <div
+                  style={{
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    color: 'var(--text)',
+                    marginTop: '1px',
+                  }}
+                >
                   {pm.subscription?.tier === 'FREE'
                     ? 'No scheduled renewals'
                     : pm.billingSummary?.nextBillingDate
@@ -1065,20 +1236,21 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                       : 'Pending Anniversary Setup'}
                 </div>
               </div>
-              {pm.subscription?.tier !== 'FREE' && pm.billingSummary?.daysUntilNextBilling !== null && (
-                <span
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    padding: '3px 8px',
-                    borderRadius: '12px',
-                    backgroundColor: 'rgba(99, 102, 241, 0.12)',
-                    color: '#6366f1',
-                  }}
-                >
-                  in {pm.billingSummary?.daysUntilNextBilling}d
-                </span>
-              )}
+              {pm.subscription?.tier !== 'FREE' &&
+                pm.billingSummary?.daysUntilNextBilling !== null && (
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      padding: '3px 8px',
+                      borderRadius: '12px',
+                      backgroundColor: 'rgba(99, 102, 241, 0.12)',
+                      color: '#6366f1',
+                    }}
+                  >
+                    in {pm.billingSummary?.daysUntilNextBilling}d
+                  </span>
+                )}
             </div>
 
             {/* Dedicated Top-Up Virtual Account */}
@@ -1092,8 +1264,22 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                   marginBottom: '16px',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                  <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '6px',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      color: 'var(--text-muted)',
+                      textTransform: 'uppercase',
+                    }}
+                  >
                     Dedicated Top-Up Account
                   </span>
                   <button
@@ -1114,7 +1300,14 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                     {copiedDva ? 'Copied' : 'Copy'}
                   </button>
                 </div>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)', letterSpacing: '0.05em' }}>
+                <div
+                  style={{
+                    fontSize: '14px',
+                    fontWeight: 700,
+                    color: 'var(--text)',
+                    letterSpacing: '0.05em',
+                  }}
+                >
                   {pm.dedicatedVirtualAccount.accountNumber}
                 </div>
                 <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
@@ -1124,32 +1317,102 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
             )}
 
             {/* Plan Tier & Status Summary */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', paddingTop: '4px' }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '16px',
+                paddingTop: '4px',
+              }}
+            >
               <div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Current Plan</div>
-                <div style={{ fontWeight: 700, fontSize: '15px', color: pm.subscription?.tier === 'TIER_3' ? '#c084fc' : pm.subscription?.tier === 'TIER_2' ? '#38bdf8' : 'var(--text)' }}>
+                <div
+                  style={{
+                    fontSize: '11px',
+                    color: 'var(--text-muted)',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Current Plan
+                </div>
+                <div
+                  style={{
+                    fontWeight: 700,
+                    fontSize: '15px',
+                    color:
+                      pm.subscription?.tier === 'TIER_3'
+                        ? '#c084fc'
+                        : pm.subscription?.tier === 'TIER_2'
+                          ? '#38bdf8'
+                          : 'var(--text)',
+                  }}
+                >
                   {pm.subscription?.tier || 'FREE'}
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Account State</div>
-                <span className="badge" style={{
-                  backgroundColor: pm.subscription?.status === 'ACTIVE' ? 'var(--success-faint)' : 'var(--danger-faint)',
-                  color: pm.subscription?.status === 'ACTIVE' ? 'var(--success)' : 'var(--danger)'
-                }}>
+                <div
+                  style={{
+                    fontSize: '11px',
+                    color: 'var(--text-muted)',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Account State
+                </div>
+                <span
+                  className="badge"
+                  style={{
+                    backgroundColor:
+                      pm.subscription?.status === 'ACTIVE'
+                        ? 'var(--success-faint)'
+                        : 'var(--danger-faint)',
+                    color:
+                      pm.subscription?.status === 'ACTIVE' ? 'var(--success)' : 'var(--danger)',
+                  }}
+                >
                   {pm.subscription?.status || 'ACTIVE'}
                 </span>
               </div>
             </div>
 
-            <form onSubmit={handleUpdateSubscription} style={{ display: 'flex', flexDirection: 'column', gap: '12px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
+            <form
+              onSubmit={handleUpdateSubscription}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px',
+                borderTop: '1px solid var(--border)',
+                paddingTop: '16px',
+              }}
+            >
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px' }}>Change Plan Tier</label>
-                <select 
-                  value={subTier} 
-                  onChange={(e) => setSubTier(e.target.value as any)} 
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: 'var(--text-muted)',
+                    marginBottom: '4px',
+                  }}
+                >
+                  Change Plan Tier
+                </label>
+                <select
+                  value={subTier}
+                  onChange={(e) => setSubTier(e.target.value as any)}
                   className="input"
-                  style={{ width: '100%', height: '38px', padding: '0 8px', borderRadius: '8px', border: '1px solid var(--border)', backgroundColor: 'var(--background)' }}
+                  style={{
+                    width: '100%',
+                    height: '38px',
+                    padding: '0 8px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border)',
+                    backgroundColor: 'var(--background)',
+                  }}
                 >
                   <option value="FREE">FREE</option>
                   <option value="TIER_2">TIER 2 (Service Charges & Docs)</option>
@@ -1158,12 +1421,29 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px' }}>Subscription Status</label>
-                <select 
-                  value={subStatus} 
-                  onChange={(e) => setSubStatus(e.target.value)} 
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: 'var(--text-muted)',
+                    marginBottom: '4px',
+                  }}
+                >
+                  Subscription Status
+                </label>
+                <select
+                  value={subStatus}
+                  onChange={(e) => setSubStatus(e.target.value)}
                   className="input"
-                  style={{ width: '100%', height: '38px', padding: '0 8px', borderRadius: '8px', border: '1px solid var(--border)', backgroundColor: 'var(--background)' }}
+                  style={{
+                    width: '100%',
+                    height: '38px',
+                    padding: '0 8px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border)',
+                    backgroundColor: 'var(--background)',
+                  }}
                 >
                   <option value="ACTIVE">ACTIVE</option>
                   <option value="LOCKED">LOCKED (Suspended/Revoked)</option>
@@ -1171,7 +1451,17 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px' }}>Reason for Change</label>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    color: 'var(--text-muted)',
+                    marginBottom: '4px',
+                  }}
+                >
+                  Reason for Change
+                </label>
                 <input
                   type="text"
                   value={subReason}
@@ -1203,14 +1493,31 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
 
           {/* Upward Alliance Management Card */}
           <div className="card" style={{ padding: '24px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h4 style={{ margin: 0, fontSize: '15px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '16px',
+              }}
+            >
+              <h4
+                style={{
+                  margin: 0,
+                  fontSize: '15px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
                 <Award size={16} color="var(--forest)" /> Upward Alliance
               </h4>
               <span
                 className="badge"
                 style={{
-                  backgroundColor: allianceProfile?.isEnabled ? 'var(--success-faint)' : 'var(--danger-faint)',
+                  backgroundColor: allianceProfile?.isEnabled
+                    ? 'var(--success-faint)'
+                    : 'var(--danger-faint)',
                   color: allianceProfile?.isEnabled ? 'var(--success)' : 'var(--danger)',
                   fontSize: '11px',
                   fontWeight: 700,
@@ -1222,8 +1529,21 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
             </div>
 
             {/* Enable/Disable Action */}
-            <div style={{ marginBottom: '20px', borderBottom: '1px solid var(--border)', paddingBottom: '16px' }}>
-              <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '10px', lineHeight: 1.5 }}>
+            <div
+              style={{
+                marginBottom: '20px',
+                borderBottom: '1px solid var(--border)',
+                paddingBottom: '16px',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: '12px',
+                  color: 'var(--text-secondary)',
+                  marginBottom: '10px',
+                  lineHeight: 1.5,
+                }}
+              >
                 {allianceProfile?.isEnabled
                   ? `Enabled since ${allianceProfile.enabledAt ? new Date(allianceProfile.enabledAt).toLocaleDateString() : 'Active'}. PM can publish and view Alliance listings.`
                   : 'Alliance is disabled by default. Enable to grant this PM network access and listing distribution.'}
@@ -1237,7 +1557,9 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                   width: '100%',
                   height: '38px',
                   justifyContent: 'center',
-                  background: allianceProfile?.isEnabled ? 'var(--danger-faint)' : 'var(--success-faint)',
+                  background: allianceProfile?.isEnabled
+                    ? 'var(--danger-faint)'
+                    : 'var(--success-faint)',
                   color: allianceProfile?.isEnabled ? 'var(--danger)' : 'var(--success)',
                   border: '1px solid transparent',
                   fontWeight: 600,
@@ -1257,19 +1579,38 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
             {/* PM Alliance Profile Meta */}
             {allianceProfile?.pmTitle && (
               <div style={{ marginBottom: '16px', fontSize: '12px' }}>
-                <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Professional Title: </span>
-                <span style={{ fontWeight: 600, color: 'var(--text)' }}>{allianceProfile.pmTitle}</span>
+                <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>
+                  Professional Title:{' '}
+                </span>
+                <span style={{ fontWeight: 600, color: 'var(--text)' }}>
+                  {allianceProfile.pmTitle}
+                </span>
               </div>
             )}
 
             {/* Qualifications Section */}
             <div>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px' }}>
+              <div
+                style={{
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  color: 'var(--text-secondary)',
+                  marginBottom: '8px',
+                }}
+              >
                 Assigned Qualifications & Badges
               </div>
 
               {/* Badges List */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '14px', minHeight: '32px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: '6px',
+                  marginBottom: '14px',
+                  minHeight: '32px',
+                }}
+              >
                 {allianceProfile?.qualifications && allianceProfile.qualifications.length > 0 ? (
                   allianceProfile.qualifications.map((q) => (
                     <span
@@ -1308,7 +1649,9 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                     </span>
                   ))
                 ) : (
-                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                  <span
+                    style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic' }}
+                  >
                     No qualifications assigned yet.
                   </span>
                 )}
@@ -1327,7 +1670,13 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                     gap: '8px',
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
                     <span style={{ fontSize: '12px', fontWeight: 700, color: '#4f46e5' }}>
                       Create &amp; Assign Custom Qualification
                     </span>
@@ -1350,7 +1699,14 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '3px' }}>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: '11px',
+                        color: 'var(--text-muted)',
+                        marginBottom: '3px',
+                      }}
+                    >
                       Qualification Name *
                     </label>
                     <input
@@ -1365,16 +1721,29 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                             .toLowerCase()
                             .trim()
                             .replace(/[^a-z0-9]+/g, '-')
-                            .replace(/^-+|-+$/g, '')
+                            .replace(/^-+|-+$/g, ''),
                         )
                       }}
                       className="input"
-                      style={{ width: '100%', height: '32px', fontSize: '12px', padding: '0 8px', borderRadius: '6px' }}
+                      style={{
+                        width: '100%',
+                        height: '32px',
+                        fontSize: '12px',
+                        padding: '0 8px',
+                        borderRadius: '6px',
+                      }}
                     />
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '3px' }}>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: '11px',
+                        color: 'var(--text-muted)',
+                        marginBottom: '3px',
+                      }}
+                    >
                       Identifier / Slug *
                     </label>
                     <input
@@ -1383,12 +1752,25 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                       value={customQualSlug}
                       onChange={(e) => setCustomQualSlug(e.target.value)}
                       className="input"
-                      style={{ width: '100%', height: '32px', fontSize: '12px', padding: '0 8px', borderRadius: '6px' }}
+                      style={{
+                        width: '100%',
+                        height: '32px',
+                        fontSize: '12px',
+                        padding: '0 8px',
+                        borderRadius: '6px',
+                      }}
                     />
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', marginBottom: '3px' }}>
+                    <label
+                      style={{
+                        display: 'block',
+                        fontSize: '11px',
+                        color: 'var(--text-muted)',
+                        marginBottom: '3px',
+                      }}
+                    >
                       Description (Optional)
                     </label>
                     <input
@@ -1397,7 +1779,13 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                       value={customQualDesc}
                       onChange={(e) => setCustomQualDesc(e.target.value)}
                       className="input"
-                      style={{ width: '100%', height: '32px', fontSize: '12px', padding: '0 8px', borderRadius: '6px' }}
+                      style={{
+                        width: '100%',
+                        height: '32px',
+                        fontSize: '12px',
+                        padding: '0 8px',
+                        borderRadius: '6px',
+                      }}
                     />
                   </div>
 
@@ -1432,7 +1820,13 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                       }
                     }}
                     className="input"
-                    style={{ flex: 1, height: '36px', fontSize: '12px', padding: '0 8px', borderRadius: '6px' }}
+                    style={{
+                      flex: 1,
+                      height: '36px',
+                      fontSize: '12px',
+                      padding: '0 8px',
+                      borderRadius: '6px',
+                    }}
                   >
                     <option value="">Select qualification to assign...</option>
                     <option value="NEW_CUSTOM" style={{ fontWeight: 700, color: '#6366f1' }}>
@@ -1441,7 +1835,9 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                     {allQualifications
                       .filter(
                         (q) =>
-                          !allianceProfile?.qualifications?.some((assigned) => assigned.id === q.id),
+                          !allianceProfile?.qualifications?.some(
+                            (assigned) => assigned.id === q.id,
+                          ),
                       )
                       .map((q) => (
                         <option key={q.id} value={q.id}>
@@ -1785,8 +2181,25 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                                 )}
                               </div>
                               {unit.rentStartDate && unit.rentDueDate && (
-                                <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                                  Period: {new Date(unit.rentStartDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })} — {new Date(unit.rentDueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+                                <div
+                                  style={{
+                                    fontSize: '10px',
+                                    color: 'var(--text-muted)',
+                                    marginTop: '2px',
+                                  }}
+                                >
+                                  Period:{' '}
+                                  {new Date(unit.rentStartDate).toLocaleDateString('en-US', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric',
+                                  })}{' '}
+                                  —{' '}
+                                  {new Date(unit.rentDueDate).toLocaleDateString('en-US', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric',
+                                  })}
                                 </div>
                               )}
                             </div>
@@ -1994,8 +2407,8 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
             </div>
 
             {/* TAB 1: Wallet Transactions */}
-            {billingTab === 'transactions' && (
-              pm.walletTransactions && pm.walletTransactions.length > 0 ? (
+            {billingTab === 'transactions' &&
+              (pm.walletTransactions && pm.walletTransactions.length > 0 ? (
                 <div
                   className="table-container"
                   style={{ maxHeight: '350px', overflowY: 'auto', paddingRight: '4px' }}
@@ -2024,7 +2437,10 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                     </thead>
                     <tbody>
                       {pm.walletTransactions.map((tx: any) => {
-                        const isCredit = tx.type?.toUpperCase() === 'CREDIT' || tx.type?.toUpperCase() === 'TOPUP' || tx.type?.toUpperCase() === 'DEPOSIT'
+                        const isCredit =
+                          tx.type?.toUpperCase() === 'CREDIT' ||
+                          tx.type?.toUpperCase() === 'TOPUP' ||
+                          tx.type?.toUpperCase() === 'DEPOSIT'
                         return (
                           <tr key={tx.id} style={{ borderBottom: '1px solid var(--border)' }}>
                             <td style={{ padding: '12px' }}>
@@ -2034,21 +2450,37 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                                   display: 'inline-flex',
                                   alignItems: 'center',
                                   gap: '4px',
-                                  backgroundColor: isCredit ? 'var(--success-faint)' : 'rgba(234, 88, 12, 0.08)',
+                                  backgroundColor: isCredit
+                                    ? 'var(--success-faint)'
+                                    : 'rgba(234, 88, 12, 0.08)',
                                   color: isCredit ? 'var(--success)' : '#ea580c',
                                   fontWeight: 600,
                                 }}
                               >
-                                {isCredit ? <ArrowDownLeft size={12} /> : <ArrowUpRight size={12} />}
+                                {isCredit ? (
+                                  <ArrowDownLeft size={12} />
+                                ) : (
+                                  <ArrowUpRight size={12} />
+                                )}
                                 {isCredit ? 'Credit (Deposit)' : 'Debit (Deduction)'}
                               </span>
                             </td>
-                            <td style={{ padding: '12px', fontWeight: 700, fontSize: '13px', color: isCredit ? 'var(--success)' : 'var(--text)' }}>
+                            <td
+                              style={{
+                                padding: '12px',
+                                fontWeight: 700,
+                                fontSize: '13px',
+                                color: isCredit ? 'var(--success)' : 'var(--text)',
+                              }}
+                            >
                               {isCredit ? '+' : '-'}₦{Number(tx.amount || 0).toLocaleString()}
                             </td>
                             <td style={{ padding: '12px' }}>
                               <div style={{ color: 'var(--text)', fontWeight: 500 }}>
-                                {tx.narration || (isCredit ? 'Wallet Top-up' : 'Monthly subscription fee deduction')}
+                                {tx.narration ||
+                                  (isCredit
+                                    ? 'Wallet Top-up'
+                                    : 'Monthly subscription fee deduction')}
                               </div>
                               {tx.reference && (
                                 <button
@@ -2064,14 +2496,23 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                                     padding: '2px 6px',
                                     fontSize: '10px',
                                     fontFamily: 'monospace',
-                                    color: copiedRef === tx.reference ? 'var(--success)' : 'var(--text-muted)',
+                                    color:
+                                      copiedRef === tx.reference
+                                        ? 'var(--success)'
+                                        : 'var(--text-muted)',
                                     marginTop: '4px',
                                     cursor: 'pointer',
                                   }}
                                   title="Click to copy reference"
                                 >
-                                  {copiedRef === tx.reference ? <Check size={10} /> : <Copy size={10} />}
-                                  {tx.reference.length > 20 ? `${tx.reference.slice(0, 16)}...` : tx.reference}
+                                  {copiedRef === tx.reference ? (
+                                    <Check size={10} />
+                                  ) : (
+                                    <Copy size={10} />
+                                  )}
+                                  {tx.reference.length > 20
+                                    ? `${tx.reference.slice(0, 16)}...`
+                                    : tx.reference}
                                 </button>
                               )}
                             </td>
@@ -2096,7 +2537,13 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                                 {tx.status || 'SUCCESS'}
                               </span>
                             </td>
-                            <td style={{ padding: '12px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                            <td
+                              style={{
+                                padding: '12px',
+                                color: 'var(--text-muted)',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
                               {new Date(tx.createdAt).toLocaleDateString('en-US', {
                                 month: 'short',
                                 day: 'numeric',
@@ -2110,16 +2557,25 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                   </table>
                 </div>
               ) : (
-                <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
-                  <Wallet size={28} style={{ opacity: 0.4, margin: '0 auto 8px', display: 'block' }} />
+                <div
+                  style={{
+                    padding: '32px 16px',
+                    textAlign: 'center',
+                    color: 'var(--text-muted)',
+                    fontSize: '13px',
+                  }}
+                >
+                  <Wallet
+                    size={28}
+                    style={{ opacity: 0.4, margin: '0 auto 8px', display: 'block' }}
+                  />
                   No wallet ledger transactions recorded for this property manager yet.
                 </div>
-              )
-            )}
+              ))}
 
             {/* TAB 2: Subscription Invoices */}
-            {billingTab === 'invoices' && (
-              pm.subscriptionInvoices && pm.subscriptionInvoices.length > 0 ? (
+            {billingTab === 'invoices' &&
+              (pm.subscriptionInvoices && pm.subscriptionInvoices.length > 0 ? (
                 <div
                   className="table-container"
                   style={{ maxHeight: '350px', overflowY: 'auto', paddingRight: '4px' }}
@@ -2221,16 +2677,25 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                   </table>
                 </div>
               ) : (
-                <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
-                  <Receipt size={28} style={{ opacity: 0.4, margin: '0 auto 8px', display: 'block' }} />
+                <div
+                  style={{
+                    padding: '32px 16px',
+                    textAlign: 'center',
+                    color: 'var(--text-muted)',
+                    fontSize: '13px',
+                  }}
+                >
+                  <Receipt
+                    size={28}
+                    style={{ opacity: 0.4, margin: '0 auto 8px', display: 'block' }}
+                  />
                   No subscription invoices generated yet for this manager.
                 </div>
-              )
-            )}
+              ))}
 
             {/* TAB 3: Plan Audit Log */}
-            {billingTab === 'logs' && (
-              pm.subscriptionLogs && pm.subscriptionLogs.length > 0 ? (
+            {billingTab === 'logs' &&
+              (pm.subscriptionLogs && pm.subscriptionLogs.length > 0 ? (
                 <div
                   className="table-container"
                   style={{ maxHeight: '350px', overflowY: 'auto', paddingRight: '4px' }}
@@ -2303,12 +2768,21 @@ const PmDetail: React.FC<PmDetailProps> = ({ token }) => {
                   </table>
                 </div>
               ) : (
-                <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
-                  <Calendar size={28} style={{ opacity: 0.4, margin: '0 auto 8px', display: 'block' }} />
+                <div
+                  style={{
+                    padding: '32px 16px',
+                    textAlign: 'center',
+                    color: 'var(--text-muted)',
+                    fontSize: '13px',
+                  }}
+                >
+                  <Calendar
+                    size={28}
+                    style={{ opacity: 0.4, margin: '0 auto 8px', display: 'block' }}
+                  />
                   No subscription plan modification records found.
                 </div>
-              )
-            )}
+              ))}
           </div>
 
           {/* Activity Log Feed */}

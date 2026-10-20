@@ -37,9 +37,7 @@ export default function NotFound() {
         </div>
 
         {/* Clear, Editorial Heading */}
-        <h1 className="not-found-screen__title">
-          We couldn&apos;t find that page
-        </h1>
+        <h1 className="not-found-screen__title">We couldn&apos;t find that page</h1>
 
         {/* Calm, Supporting Copy */}
         <p className="not-found-screen__description">
@@ -57,11 +55,7 @@ export default function NotFound() {
             <ArrowRight size={17} aria-hidden="true" />
           </Link>
 
-          <button
-            type="button"
-            className="not-found-screen__btn-secondary"
-            onClick={handleBack}
-          >
+          <button type="button" className="not-found-screen__btn-secondary" onClick={handleBack}>
             <ArrowLeft size={16} aria-hidden="true" />
             <span>Go back</span>
           </button>

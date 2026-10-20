@@ -105,5 +105,7 @@ export interface ISessionTrackingRepository {
   findSessionBySessionId(sessionId: string): Promise<AppSession | null>
   getFunnelMetrics(query: FunnelMetricsQuery): Promise<FunnelMetricsResult>
   findSessions(query: FindSessionsQuery): Promise<{ data: AppSession[]; total: number }>
-  findSessionWithEvents(sessionId: string): Promise<{ session: AppSession; events: SessionEvent[] } | null>
+  findSessionWithEvents(
+    sessionId: string,
+  ): Promise<{ session: AppSession; events: SessionEvent[] } | null>
 }

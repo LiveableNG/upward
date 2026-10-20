@@ -1,10 +1,10 @@
 // Guarantee that all toLocaleString formatting uses commas as thousands separators (en-US format)
-const originalToLocaleString = Number.prototype.toLocaleString;
+const originalToLocaleString = Number.prototype.toLocaleString
 Number.prototype.toLocaleString = function (locales, options) {
-  return originalToLocaleString.call(this, locales || 'en-US', options);
-};
+  return originalToLocaleString.call(this, locales || 'en-US', options)
+}
 
-import { NestFactory } from '@nestjs/core';
+import { NestFactory } from '@nestjs/core'
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import { FastifyAdapter } from '@nestjs/platform-fastify'
 import { ValidationPipe, RequestMethod } from '@nestjs/common'
@@ -17,9 +17,7 @@ let initializationPromise: Promise<NestFastifyApplication> | null = null
 
 async function bootstrap() {
   const isServerless = Boolean(
-    process.env['VERCEL'] ||
-      process.env['VERCEL_ENV'] ||
-      process.env['AWS_LAMBDA_FUNCTION_NAME'],
+    process.env['VERCEL'] || process.env['VERCEL_ENV'] || process.env['AWS_LAMBDA_FUNCTION_NAME'],
   )
   const isDev = process.env.NODE_ENV !== 'production' && !isServerless
 
@@ -46,10 +44,7 @@ async function bootstrap() {
   }
 
   const adapter = new FastifyAdapter(fastifyAdapterOptions)
-  const app = await NestFactory.create<NestFastifyApplication>(
-    AppModule,
-    adapter,
-  )
+  const app = await NestFactory.create<NestFastifyApplication>(AppModule, adapter)
 
   if (isDev) {
     const fastifyInstance = app.getHttpAdapter().getInstance()
@@ -61,7 +56,9 @@ async function bootstrap() {
       const responseTime = Math.round(reply.elapsedTime)
       const status = reply.statusCode
       const level = status >= 500 ? 'error' : status >= 400 ? 'warn' : 'info'
-      request.log[level](`<-- [COMPLETED] ${request.method} ${request.url} (${status}) +${responseTime}ms`)
+      request.log[level](
+        `<-- [COMPLETED] ${request.method} ${request.url} (${status}) +${responseTime}ms`,
+      )
       done()
     })
   }
@@ -94,8 +91,15 @@ async function bootstrap() {
   const frontendUrl = process.env['FRONTEND_URL']
   const baseOrigins = frontendUrl
     ? frontendUrl.split(',').map((url) => url.trim())
-    : ['http://localhost:3000', 'http://localhost:5173']
-    
+    : [
+        'http://localhost:4501',
+        'http://localhost:4502',
+        'http://localhost:4503',
+        'http://localhost:4504',
+        'http://localhost:3000',
+        'http://localhost:5173',
+      ]
+
   const origins = [
     ...baseOrigins,
     'http://localhost',
@@ -145,7 +149,7 @@ async function getApp() {
 
 if (!process.env['VERCEL']) {
   bootstrap().then(async (app) => {
-    const port = Number(process.env['PORT'] ?? 4000)
+    const port = Number(process.env['PORT'] ?? 4500)
     await app.listen(port, '0.0.0.0')
     console.log(`  Upward API listening on http://0.0.0.0:${port}/api/v1`)
   })

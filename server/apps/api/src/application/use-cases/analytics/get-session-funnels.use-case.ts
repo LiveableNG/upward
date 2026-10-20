@@ -1,22 +1,22 @@
-import { Injectable, Inject } from '@nestjs/common';
-import { IsOptional, IsString } from 'class-validator';
+import { Injectable, Inject } from '@nestjs/common'
+import { IsOptional, IsString } from 'class-validator'
 import {
   SESSION_TRACKING_REPOSITORY,
   ISessionTrackingRepository,
   FunnelMetricsResult,
-} from '../../../domains/session-tracking/session-tracking.repository';
+} from '../../../domains/session-tracking/session-tracking.repository'
 
 export class GetSessionFunnelsQueryDto {
   @IsOptional()
   @IsString()
-  platform?: string;
+  platform?: string
 
   @IsOptional()
-  days?: number;
+  days?: number
 
   @IsOptional()
   @IsString()
-  app?: string;
+  app?: string
 }
 
 @Injectable()
@@ -31,6 +31,6 @@ export class GetSessionFunnelsUseCase {
       platform: query.platform,
       days: query.days ? Number(query.days) : undefined,
       app: query.app,
-    });
+    })
   }
 }

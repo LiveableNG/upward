@@ -3,10 +3,7 @@ import {
   APP_VERSION_REPOSITORY,
   IAppVersionRepository,
 } from '../../../domains/app-version/app-version.repository'
-import {
-  VersionCheckResult,
-  VersionStatus,
-} from '../../../domains/app-version/app-version.entity'
+import { VersionCheckResult, VersionStatus } from '../../../domains/app-version/app-version.entity'
 import { isVersionOlder } from '../../../shared/utils/semver'
 
 export interface CheckAppVersionQuery {
@@ -66,10 +63,11 @@ export class CheckAppVersionUseCase {
       }
     }
 
-    const defaultUrls = DEFAULT_STORE_URLS[platform] ?? DEFAULT_STORE_URLS['android'] ?? {
-      native: 'market://details?id=com.goodtenants.upward',
-      web: 'https://play.google.com/store/apps/details?id=com.goodtenants.upward&hl=en',
-    }
+    const defaultUrls = DEFAULT_STORE_URLS[platform] ??
+      DEFAULT_STORE_URLS['android'] ?? {
+        native: 'market://details?id=com.goodtenants.upward',
+        web: 'https://play.google.com/store/apps/details?id=com.goodtenants.upward&hl=en',
+      }
     const nativeStoreUrl = policy.storeUrl || defaultUrls.native
     const fallbackStoreUrl = defaultUrls.web
 
@@ -89,12 +87,7 @@ export class CheckAppVersionUseCase {
     ) {
       status = 'HARD_UPDATE'
     } else if (
-      isVersionOlder(
-        currentVersion,
-        currentBuild,
-        policy.latestVersion,
-        policy.latestBuildNumber,
-      )
+      isVersionOlder(currentVersion, currentBuild, policy.latestVersion, policy.latestBuildNumber)
     ) {
       status = 'SOFT_UPDATE'
     } else if (policy.gatedFeatures && policy.gatedFeatures.length > 0) {

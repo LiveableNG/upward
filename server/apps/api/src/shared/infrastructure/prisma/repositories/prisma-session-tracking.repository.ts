@@ -9,7 +9,10 @@ import {
   FunnelMetricsResult,
   FindSessionsQuery,
 } from '../../../../domains/session-tracking/session-tracking.repository'
-import { AppSession, SessionEvent } from '../../../../domains/session-tracking/session-tracking.entity'
+import {
+  AppSession,
+  SessionEvent,
+} from '../../../../domains/session-tracking/session-tracking.entity'
 
 @Injectable()
 export class PrismaSessionTrackingRepository implements ISessionTrackingRepository {
@@ -121,7 +124,9 @@ export class PrismaSessionTrackingRepository implements ISessionTrackingReposito
         ...(data.exitScreen ? { exitScreen: data.exitScreen } : {}),
         ...(data.lastAction ? { lastAction: data.lastAction } : {}),
         ...(data.dropOffStage ? { dropOffStage: data.dropOffStage } : {}),
-        ...(data.hasError !== undefined ? { hasError: data.hasError, lastError: data.lastError } : {}),
+        ...(data.hasError !== undefined
+          ? { hasError: data.hasError, lastError: data.lastError }
+          : {}),
         ...(data.eventsCount ? { eventsCount: { increment: data.eventsCount } } : {}),
         updatedAt: new Date(),
       },
@@ -257,37 +262,53 @@ export class PrismaSessionTrackingRepository implements ISessionTrackingReposito
         count: baseDashboard,
         conversionRate: baseDashboard > 0 ? 100 : 0,
         dropOffCount: Math.max(0, baseDashboard - clickPay),
-        dropOffRate: baseDashboard > 0 ? Number(((Math.max(0, baseDashboard - clickPay) / baseDashboard) * 100).toFixed(1)) : 0,
+        dropOffRate:
+          baseDashboard > 0
+            ? Number(((Math.max(0, baseDashboard - clickPay) / baseDashboard) * 100).toFixed(1))
+            : 0,
       },
       {
         step: 2,
         name: 'Initiated Rent Flow',
         count: clickPay,
-        conversionRate: baseDashboard > 0 ? Number(((clickPay / baseDashboard) * 100).toFixed(1)) : 0,
+        conversionRate:
+          baseDashboard > 0 ? Number(((clickPay / baseDashboard) * 100).toFixed(1)) : 0,
         dropOffCount: Math.max(0, clickPay - openCheckout),
-        dropOffRate: clickPay > 0 ? Number(((Math.max(0, clickPay - openCheckout) / clickPay) * 100).toFixed(1)) : 0,
+        dropOffRate:
+          clickPay > 0
+            ? Number(((Math.max(0, clickPay - openCheckout) / clickPay) * 100).toFixed(1))
+            : 0,
       },
       {
         step: 3,
         name: 'Entered Checkout Modal',
         count: openCheckout,
-        conversionRate: baseDashboard > 0 ? Number(((openCheckout / baseDashboard) * 100).toFixed(1)) : 0,
+        conversionRate:
+          baseDashboard > 0 ? Number(((openCheckout / baseDashboard) * 100).toFixed(1)) : 0,
         dropOffCount: Math.max(0, openCheckout - initPaystack),
-        dropOffRate: openCheckout > 0 ? Number(((Math.max(0, openCheckout - initPaystack) / openCheckout) * 100).toFixed(1)) : 0,
+        dropOffRate:
+          openCheckout > 0
+            ? Number(((Math.max(0, openCheckout - initPaystack) / openCheckout) * 100).toFixed(1))
+            : 0,
       },
       {
         step: 4,
         name: 'Opened Paystack Gateway',
         count: initPaystack,
-        conversionRate: baseDashboard > 0 ? Number(((initPaystack / baseDashboard) * 100).toFixed(1)) : 0,
+        conversionRate:
+          baseDashboard > 0 ? Number(((initPaystack / baseDashboard) * 100).toFixed(1)) : 0,
         dropOffCount: Math.max(0, initPaystack - paySuccess),
-        dropOffRate: initPaystack > 0 ? Number(((Math.max(0, initPaystack - paySuccess) / initPaystack) * 100).toFixed(1)) : 0,
+        dropOffRate:
+          initPaystack > 0
+            ? Number(((Math.max(0, initPaystack - paySuccess) / initPaystack) * 100).toFixed(1))
+            : 0,
       },
       {
         step: 5,
         name: 'Payment Completed',
         count: paySuccess,
-        conversionRate: baseDashboard > 0 ? Number(((paySuccess / baseDashboard) * 100).toFixed(1)) : 0,
+        conversionRate:
+          baseDashboard > 0 ? Number(((paySuccess / baseDashboard) * 100).toFixed(1)) : 0,
         dropOffCount: 0,
         dropOffRate: 0,
       },
@@ -378,7 +399,9 @@ export class PrismaSessionTrackingRepository implements ISessionTrackingReposito
     }
   }
 
-  async findSessionWithEvents(sessionId: string): Promise<{ session: AppSession; events: SessionEvent[] } | null> {
+  async findSessionWithEvents(
+    sessionId: string,
+  ): Promise<{ session: AppSession; events: SessionEvent[] } | null> {
     const record = await (this.prisma as any).upward_user_session.findUnique({
       where: { sessionId },
       include: {

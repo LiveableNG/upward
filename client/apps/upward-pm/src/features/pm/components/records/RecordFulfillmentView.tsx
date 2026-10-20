@@ -129,7 +129,7 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
         }
 
         return updated
-      })
+      }),
     )
 
     // Clear inline validation error for this field
@@ -231,7 +231,8 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
       const payload = {
         records: previewRecords.map((r) => ({
           amount: Number(r.amount),
-          expectedAmount: r.isPartial && r.expectedAmount !== '' ? Number(r.expectedAmount) : Number(r.amount),
+          expectedAmount:
+            r.isPartial && r.expectedAmount !== '' ? Number(r.expectedAmount) : Number(r.amount),
           isPartial: Boolean(r.isPartial),
           paymentDate: r.paymentDate,
           paidDate: r.paymentDate,
@@ -289,8 +290,12 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
   const userDisplayName = user?.firstName
     ? `${user.firstName} ${user.lastName || ''}`.trim()
     : user?.businessName || user?.email || ''
-  const isEmailMismatch = Boolean(isLoggedIn && userEmail && requestEmail && userEmail !== requestEmail)
-  const isEmailMatch = Boolean(isLoggedIn && userEmail && (!requestEmail || userEmail === requestEmail))
+  const isEmailMismatch = Boolean(
+    isLoggedIn && userEmail && requestEmail && userEmail !== requestEmail,
+  )
+  const isEmailMatch = Boolean(
+    isLoggedIn && userEmail && (!requestEmail || userEmail === requestEmail),
+  )
 
   // Seamless redirect to authenticated dashboard when the logged in PM matches the recipient
   useEffect(() => {
@@ -336,18 +341,23 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
     }
   }
 
-
   if (loading) {
     return (
       <div className="public-fulfillment">
         <div className="public-fulfillment__container public-fulfillment-skeleton">
           <div className="public-fulfillment__header">
             <div className="skeleton-pulse" style={{ width: 140, height: 32 }} />
-            <div className="skeleton-pulse" style={{ width: 120, height: 24, borderRadius: 9999 }} />
+            <div
+              className="skeleton-pulse"
+              style={{ width: 120, height: 24, borderRadius: 9999 }}
+            />
           </div>
 
           <div style={{ marginBottom: 24 }}>
-            <div className="skeleton-pulse" style={{ width: '60%', height: 32, marginBottom: 12 }} />
+            <div
+              className="skeleton-pulse"
+              style={{ width: '60%', height: 32, marginBottom: 12 }}
+            />
             <div className="skeleton-pulse" style={{ width: '85%', height: 18 }} />
           </div>
 
@@ -355,7 +365,10 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
             <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
               <div className="skeleton-pulse" style={{ width: 48, height: 48, borderRadius: 12 }} />
               <div style={{ flex: 1 }}>
-                <div className="skeleton-pulse" style={{ width: 180, height: 20, marginBottom: 8 }} />
+                <div
+                  className="skeleton-pulse"
+                  style={{ width: 180, height: 20, marginBottom: 8 }}
+                />
                 <div className="skeleton-pulse" style={{ width: 120, height: 14 }} />
               </div>
             </div>
@@ -367,7 +380,9 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
 
           <div className="record-entry-card" style={{ marginBottom: 16 }}>
             <div className="skeleton-pulse" style={{ height: 32, marginBottom: 20 }} />
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+            <div
+              style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}
+            >
               <div className="skeleton-pulse" style={{ height: 56 }} />
               <div className="skeleton-pulse" style={{ height: 56 }} />
             </div>
@@ -403,7 +418,9 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
             </div>
             <h1 className="public-fulfillment__status-title">Request Not Found or Expired</h1>
             <p className="public-fulfillment__status-desc">
-              This verification link is invalid, has expired, or may have been removed. If you believe this is an error, please ask your tenant to generate a new request from Upward.
+              This verification link is invalid, has expired, or may have been removed. If you
+              believe this is an error, please ask your tenant to generate a new request from
+              Upward.
             </p>
             <div className="public-fulfillment__status-actions">
               <button
@@ -424,7 +441,9 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
   // State: Fresh Submission Success
   // =========================================================================
   if (showSuccess) {
-    const tenantFullName = `${requestDetails.user?.firstName || ''} ${requestDetails.user?.lastName || ''}`.trim() || 'Tenant'
+    const tenantFullName =
+      `${requestDetails.user?.firstName || ''} ${requestDetails.user?.lastName || ''}`.trim() ||
+      'Tenant'
     return (
       <div className="public-fulfillment">
         <div className="public-fulfillment__container">
@@ -442,7 +461,8 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
             </div>
             <h1 className="public-fulfillment__status-title">Records Submitted Successfully</h1>
             <p className="public-fulfillment__status-desc">
-              Thank you for providing the tenant's past rent records. Your response has been received and securely updated on Upward.
+              Thank you for providing the tenant's past rent records. Your response has been
+              received and securely updated on Upward.
             </p>
 
             <div className="public-fulfillment__recap-box">
@@ -452,7 +472,9 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
               </div>
               <div className="public-fulfillment__recap-row">
                 <span className="public-fulfillment__recap-label">Property</span>
-                <span className="public-fulfillment__recap-val">{requestDetails.propertyAddress}</span>
+                <span className="public-fulfillment__recap-val">
+                  {requestDetails.propertyAddress}
+                </span>
               </div>
               <div className="public-fulfillment__recap-row">
                 <span className="public-fulfillment__recap-label">Verified Records</span>
@@ -486,7 +508,8 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
                       You fulfilled this as {user?.email}
                     </h3>
                     <p className="public-fulfillment__account-banner-desc">
-                      This request was originally sent to <strong>{requestDetails.email}</strong>. Would you like to switch to that account on Upward?
+                      This request was originally sent to <strong>{requestDetails.email}</strong>.
+                      Would you like to switch to that account on Upward?
                     </p>
                   </div>
                 </div>
@@ -572,7 +595,8 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
             </div>
             <h1 className="public-fulfillment__status-title">Request Already Fulfilled</h1>
             <p className="public-fulfillment__status-desc">
-              The past rent records for this request have already been submitted and verified. No further action is required.
+              The past rent records for this request have already been submitted and verified. No
+              further action is required.
             </p>
 
             <div className="public-fulfillment__recap-box">
@@ -584,7 +608,9 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
               </div>
               <div className="public-fulfillment__recap-row">
                 <span className="public-fulfillment__recap-label">Property</span>
-                <span className="public-fulfillment__recap-val">{requestDetails.propertyAddress}</span>
+                <span className="public-fulfillment__recap-val">
+                  {requestDetails.propertyAddress}
+                </span>
               </div>
               <div className="public-fulfillment__recap-row">
                 <span className="public-fulfillment__recap-label">Current Status</span>
@@ -641,7 +667,8 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
             </div>
             <h1 className="public-fulfillment__status-title">Request Declined</h1>
             <p className="public-fulfillment__status-desc">
-              This verification request was declined. The tenant has been notified that rent records could not be verified.
+              This verification request was declined. The tenant has been notified that rent records
+              could not be verified.
             </p>
             <div className="public-fulfillment__status-actions">
               <button
@@ -662,9 +689,11 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
   // Active Form State
   // =========================================================================
   const tenantInitials =
-    `${requestDetails.user?.firstName?.[0] || ''}${requestDetails.user?.lastName?.[0] || ''}`.toUpperCase() || 'T'
+    `${requestDetails.user?.firstName?.[0] || ''}${requestDetails.user?.lastName?.[0] || ''}`.toUpperCase() ||
+    'T'
   const tenantFullName =
-    `${requestDetails.user?.firstName || ''} ${requestDetails.user?.lastName || ''}`.trim() || 'Tenant'
+    `${requestDetails.user?.firstName || ''} ${requestDetails.user?.lastName || ''}`.trim() ||
+    'Tenant'
 
   const formattedRequestedDate = requestDetails.requestedAt
     ? new Date(requestDetails.requestedAt).toLocaleDateString('en-US', {
@@ -703,7 +732,10 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
               </div>
               <div className="public-fulfillment__header-right">
                 {isEmailMismatch ? (
-                  <span className="public-fulfillment__header-user-tag" title={`Logged in as ${user?.email}`}>
+                  <span
+                    className="public-fulfillment__header-user-tag"
+                    title={`Logged in as ${user?.email}`}
+                  >
                     Signed in as <strong>{user?.email}</strong>
                   </span>
                 ) : !isLoggedIn ? (
@@ -742,7 +774,8 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
         <div className="public-fulfillment__intro">
           <h1 className="public-fulfillment__title">Provide past rent records</h1>
           <p className="public-fulfillment__description">
-            A tenant has requested verification of their previous rent payments. Please provide the available payment records for the property below.
+            A tenant has requested verification of their previous rent payments. Please provide the
+            available payment records for the property below.
           </p>
         </div>
 
@@ -763,7 +796,9 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
               <MapPin size={18} className="public-fulfillment__context-icon" />
               <div>
                 <div className="public-fulfillment__context-label">Property Address</div>
-                <div className="public-fulfillment__context-value">{requestDetails.propertyAddress}</div>
+                <div className="public-fulfillment__context-value">
+                  {requestDetails.propertyAddress}
+                </div>
               </div>
             </div>
 
@@ -793,7 +828,8 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
             <div>
               <h2 className="public-fulfillment__section-title">Rent payment history</h2>
               <p className="public-fulfillment__section-desc">
-                Add the rent payments you can verify for this tenant. You can add multiple records before submitting.
+                Add the rent payments you can verify for this tenant. You can add multiple records
+                before submitting.
               </p>
             </div>
             {previewRecords.length > 0 && (
@@ -836,7 +872,11 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
                         <Receipt size={14} /> Record #{index + 1}
                       </span>
                       <div className="record-entry-card__top-right">
-                        <div className="record-entry-card__type-toggle" role="radiogroup" aria-label="Payment Type">
+                        <div
+                          className="record-entry-card__type-toggle"
+                          role="radiogroup"
+                          aria-label="Payment Type"
+                        >
                           <button
                             type="button"
                             className={`record-entry-card__type-btn ${!record.isPartial ? 'record-entry-card__type-btn--active' : ''}`}
@@ -855,7 +895,11 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
                             onClick={() => {
                               updateRecordField(record.id, 'isPartial', true)
                               if (!record.expectedAmount && requestDetails?.rentAmount) {
-                                updateRecordField(record.id, 'expectedAmount', Number(requestDetails.rentAmount))
+                                updateRecordField(
+                                  record.id,
+                                  'expectedAmount',
+                                  Number(requestDetails.rentAmount),
+                                )
                               }
                             }}
                           >
@@ -881,7 +925,10 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
                         <>
                           <div className="record-entry-card__row record-entry-card__row--two">
                             <div className="record-field">
-                              <label className="record-field__label" htmlFor={`amount-${record.id}`}>
+                              <label
+                                className="record-field__label"
+                                htmlFor={`amount-${record.id}`}
+                              >
                                 <span>
                                   Amount Paid <span className="record-field__required">*</span>
                                 </span>
@@ -895,10 +942,16 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
                                   inputMode="numeric"
                                   className={`record-field__input record-field__input--currency ${amountError ? 'record-field__input--error' : ''}`}
                                   placeholder="e.g. 1,500,000"
-                                  value={record.amount !== '' ? formatCurrencyInput(record.amount) : ''}
+                                  value={
+                                    record.amount !== '' ? formatCurrencyInput(record.amount) : ''
+                                  }
                                   onChange={(e) => {
                                     const parsed = parseCurrencyInput(e.target.value)
-                                    updateRecordField(record.id, 'amount', parsed !== null ? parsed : '')
+                                    updateRecordField(
+                                      record.id,
+                                      'amount',
+                                      parsed !== null ? parsed : '',
+                                    )
                                   }}
                                 />
                               </div>
@@ -908,9 +961,13 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
                             </div>
 
                             <div className="record-field">
-                              <label className="record-field__label" htmlFor={`expected-${record.id}`}>
+                              <label
+                                className="record-field__label"
+                                htmlFor={`expected-${record.id}`}
+                              >
                                 <span>
-                                  Agreed Rent for Cycle <span className="record-field__required">*</span>
+                                  Agreed Rent for Cycle{' '}
+                                  <span className="record-field__required">*</span>
                                 </span>
                                 <span className="record-field__hint">Full agreed amount</span>
                               </label>
@@ -922,15 +979,26 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
                                   inputMode="numeric"
                                   className={`record-field__input record-field__input--currency ${expectedAmountError ? 'record-field__input--error' : ''}`}
                                   placeholder="e.g. 2,100,000"
-                                  value={record.expectedAmount !== '' && record.expectedAmount !== undefined ? formatCurrencyInput(record.expectedAmount) : ''}
+                                  value={
+                                    record.expectedAmount !== '' &&
+                                    record.expectedAmount !== undefined
+                                      ? formatCurrencyInput(record.expectedAmount)
+                                      : ''
+                                  }
                                   onChange={(e) => {
                                     const parsed = parseCurrencyInput(e.target.value)
-                                    updateRecordField(record.id, 'expectedAmount', parsed !== null ? parsed : '')
+                                    updateRecordField(
+                                      record.id,
+                                      'expectedAmount',
+                                      parsed !== null ? parsed : '',
+                                    )
                                   }}
                                 />
                               </div>
                               {expectedAmountError && (
-                                <span className="record-field__error-msg">{expectedAmountError}</span>
+                                <span className="record-field__error-msg">
+                                  {expectedAmountError}
+                                </span>
                               )}
                             </div>
                           </div>
@@ -940,18 +1008,35 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
                             <span className="record-entry-card__partial-tag">
                               ◐ Partial Payment
                             </span>
-                            {record.expectedAmount !== '' && record.expectedAmount !== undefined && record.amount !== '' && (
-                              <>
-                                <span className="record-entry-card__partial-percent">
-                                  Outstanding balance: {formatCurrency(Math.max(0, Number(record.expectedAmount) - Number(record.amount)), requestDetails?.currency || 'NGN')}
-                                </span>
-                                {Number(record.expectedAmount) > 0 && (
+                            {record.expectedAmount !== '' &&
+                              record.expectedAmount !== undefined &&
+                              record.amount !== '' && (
+                                <>
                                   <span className="record-entry-card__partial-percent">
-                                    ({Math.min(100, Math.round((Number(record.amount) / Number(record.expectedAmount)) * 100))}% paid)
+                                    Outstanding balance:{' '}
+                                    {formatCurrency(
+                                      Math.max(
+                                        0,
+                                        Number(record.expectedAmount) - Number(record.amount),
+                                      ),
+                                      requestDetails?.currency || 'NGN',
+                                    )}
                                   </span>
-                                )}
-                              </>
-                            )}
+                                  {Number(record.expectedAmount) > 0 && (
+                                    <span className="record-entry-card__partial-percent">
+                                      (
+                                      {Math.min(
+                                        100,
+                                        Math.round(
+                                          (Number(record.amount) / Number(record.expectedAmount)) *
+                                            100,
+                                        ),
+                                      )}
+                                      % paid)
+                                    </span>
+                                  )}
+                                </>
+                              )}
                           </div>
                         </>
                       ) : (
@@ -971,10 +1056,16 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
                                 inputMode="numeric"
                                 className={`record-field__input record-field__input--currency ${amountError ? 'record-field__input--error' : ''}`}
                                 placeholder="e.g. 2,100,000"
-                                value={record.amount !== '' ? formatCurrencyInput(record.amount) : ''}
+                                value={
+                                  record.amount !== '' ? formatCurrencyInput(record.amount) : ''
+                                }
                                 onChange={(e) => {
                                   const parsed = parseCurrencyInput(e.target.value)
-                                  updateRecordField(record.id, 'amount', parsed !== null ? parsed : '')
+                                  updateRecordField(
+                                    record.id,
+                                    'amount',
+                                    parsed !== null ? parsed : '',
+                                  )
                                 }}
                               />
                             </div>
@@ -1072,7 +1163,9 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
                           <label className="record-field__label" htmlFor={`due-${record.id}`}>
                             <span>Due Date</span>
                             <span className="record-field__hint">
-                              {record.dueDate && record.dueDate === record.periodStart ? 'Auto-filled' : 'Payment deadline'}
+                              {record.dueDate && record.dueDate === record.periodStart
+                                ? 'Auto-filled'
+                                : 'Payment deadline'}
                             </span>
                           </label>
                           <input
@@ -1111,11 +1204,7 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
 
           {/* Add Another Record Button */}
           {previewRecords.length > 0 && (
-            <button
-              type="button"
-              className="public-fulfillment__add-btn"
-              onClick={handleAddRecord}
-            >
+            <button type="button" className="public-fulfillment__add-btn" onClick={handleAddRecord}>
               <Plus size={16} /> Add another record
             </button>
           )}
@@ -1165,9 +1254,12 @@ export function RecordFulfillmentView({ uuid, isPublic = false }: RecordFulfillm
         {isPublic && (
           <aside className="public-fulfillment__discovery-card" aria-label="About Upward PM">
             <div>
-              <h3 className="public-fulfillment__discovery-title">Manage your properties with Upward</h3>
+              <h3 className="public-fulfillment__discovery-title">
+                Manage your properties with Upward
+              </h3>
               <p className="public-fulfillment__discovery-sub">
-                Automate rent tracking, issue automated payment receipts, and verify credible tenants in one platform.
+                Automate rent tracking, issue automated payment receipts, and verify credible
+                tenants in one platform.
               </p>
             </div>
             <button

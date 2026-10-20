@@ -1,8 +1,8 @@
 'use client'
-const originalToLocaleString = Number.prototype.toLocaleString;
+const originalToLocaleString = Number.prototype.toLocaleString
 Number.prototype.toLocaleString = function (locales, options) {
-  return originalToLocaleString.call(this, locales || 'en-US', options);
-};
+  return originalToLocaleString.call(this, locales || 'en-US', options)
+}
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
@@ -58,7 +58,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       console.log('[DeepLink] Processing URL:', urlString)
       try {
         const url = new URL(urlString)
-        
+
         let targetPath = ''
         if (url.protocol === 'upward:') {
           targetPath = `/${url.host}${url.pathname}${url.search}${url.hash}`
@@ -71,10 +71,10 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         }
 
         console.log('[DeepLink] Final targetPath:', targetPath)
-        
+
         // Give the router a moment to be ready
-        await new Promise(resolve => setTimeout(resolve, 1000))
-        
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+
         if (Capacitor.isNativePlatform()) {
           if (targetPath.startsWith('/invite/')) {
             const t = targetPath.split('/invite/')[1]?.split(/[?#]/)[0]

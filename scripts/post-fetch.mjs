@@ -1,29 +1,29 @@
-import { execSync } from 'child_process';
-import readline from 'readline';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { execSync } from 'child_process'
+import readline from 'readline'
+import fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-const rootDir = path.resolve(__dirname, '..');
-const apiDir = path.join(rootDir, 'server', 'apps', 'api');
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+const rootDir = path.resolve(__dirname, '..')
+const apiDir = path.join(rootDir, 'server', 'apps', 'api')
 
 function runCommand(command, cwd = rootDir) {
   try {
-    execSync(command, { stdio: 'inherit', cwd });
-    return true;
+    execSync(command, { stdio: 'inherit', cwd })
+    return true
   } catch (error) {
-    console.error(`\n[ERROR] Command failed: ${command}\n`);
-    return false;
+    console.error(`\n[ERROR] Command failed: ${command}\n`)
+    return false
   }
 }
 
 function getCommandOutput(command, cwd = rootDir) {
   try {
-    return execSync(command, { encoding: 'utf-8', cwd, stdio: ['pipe', 'pipe', 'ignore'] }).trim();
+    return execSync(command, { encoding: 'utf-8', cwd, stdio: ['pipe', 'pipe', 'ignore'] }).trim()
   } catch (error) {
-    return null;
+    return null
   }
 }
 
@@ -31,96 +31,128 @@ async function askQuestion(query) {
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
-  });
+  })
   return new Promise((resolve) =>
     rl.question(query, (ans) => {
-      rl.close();
-      resolve(ans);
-    })
-  );
+      rl.close()
+      resolve(ans)
+    }),
+  )
+}
+
+function maskDatabaseUrl(rawUrl) {
+  if (!rawUrl || rawUrl === 'NOT FOUND') return rawUrl
+  try {
+    const parsed = new URL(rawUrl)
+    if (parsed.password) {
+      parsed.password = '********'
+    }
+    for (const key of parsed.searchParams.keys()) {
+      if (/pass|secret|token|key/i.test(key)) {
+        parsed.searchParams.set(key, '********')
+      }
+    }
+    return parsed.toString()
+  } catch {
+    return rawUrl.replace(/(:\/\/)([^:]+):([^@]+)@/, '$1$2:********@')
+  }
 }
 
 function getDatabaseUrl() {
-  const envPath = path.join(apiDir, '.env');
+  if (process.env.DATABASE_URL) {
+    return process.env.DATABASE_URL
+  }
+  const envPath = path.join(apiDir, '.env')
   if (fs.existsSync(envPath)) {
-    const envContent = fs.readFileSync(envPath, 'utf-8');
-    const match = envContent.match(/^DATABASE_URL=(.*)$/m);
+    const envContent = fs.readFileSync(envPath, 'utf-8')
+    const match = envContent.match(/^DATABASE_URL=(.*)$/m)
     if (match) {
-      return match[1].trim();
+      return match[1].trim()
     }
   }
-  return 'NOT FOUND';
+  return 'NOT FOUND'
 }
 
 async function main() {
-  console.log('=============================================');
-  console.log('[INFO] Running Upward Post-Fetch Sync Script...');
-  console.log('=============================================\n');
+  console.log('=============================================')
+  console.log('[INFO] Running Upward Post-Fetch Sync Script...')
+  console.log('=============================================\n')
 
-  console.log('[INFO] Checking for package.json changes...');
-  const changedFiles = getCommandOutput('git diff-tree -r --name-only ORIG_HEAD HEAD') || '';
-  if (changedFiles.includes('package.json') || changedFiles.includes('pnpm-lock.yaml') || !fs.existsSync(path.join(rootDir, 'node_modules'))) {
-    console.log('[INFO] Dependencies changed or missing. Running pnpm install...');
-    runCommand('pnpm install');
+  console.log('[INFO] Checking for package.json changes...')
+  const changedFiles = getCommandOutput('git diff-tree -r --name-only ORIG_HEAD HEAD') || ''
+  if (
+    changedFiles.includes('package.json') ||
+    changedFiles.includes('pnpm-lock.yaml') ||
+    !fs.existsSync(path.join(rootDir, 'node_modules'))
+  ) {
+    console.log('[INFO] Dependencies changed or missing. Running pnpm install...')
+    runCommand('pnpm install')
   } else {
-    console.log('[INFO] No dependency changes detected. Skipping install.');
+    console.log('[INFO] No dependency changes detected. Skipping install.')
   }
 
-  console.log('\n[INFO] Rebuilding shared packages (@upward/shared-types)...');
-  const sharedTypesDir = path.join(rootDir, 'common', 'shared-types');
+  console.log('\n[INFO] Rebuilding shared packages (@upward/shared-types)...')
+  const sharedTypesDir = path.join(rootDir, 'common', 'shared-types')
   if (fs.existsSync(sharedTypesDir)) {
-    const buildSuccess = runCommand('pnpm run build', sharedTypesDir);
+    const buildSuccess = runCommand('pnpm run build', sharedTypesDir)
     if (buildSuccess) {
-      console.log('[SUCCESS] Shared types built successfully.');
+      console.log('[SUCCESS] Shared types built successfully.')
     } else {
-      console.log('[WARNING] Failed to build shared types. You may experience TypeScript errors.');
+      console.log('[WARNING] Failed to build shared types. You may experience TypeScript errors.')
     }
   }
 
-  console.log('\n[INFO] Running Prisma Generate...');
-  const generateSuccess = runCommand('pnpm run prisma:generate', apiDir);
+  console.log('\n[INFO] Running Prisma Generate...')
+  const generateSuccess = runCommand('pnpm run prisma:generate', apiDir)
   if (!generateSuccess) {
-    console.log('[WARNING] Prisma generate failed, but continuing script...');
+    console.log('[WARNING] Prisma generate failed, but continuing script...')
   }
 
-  const dbUrl = getDatabaseUrl();
-  console.log('\n=============================================');
-  console.log(`[INFO] Current DATABASE_URL: ${dbUrl}`);
-  console.log('=============================================');
-  console.log('[WARNING] Ensure this is NOT a production database if you are running migrations locally!');
-  
-  let proceed = 'n';
+  const dbUrl = getDatabaseUrl()
+  console.log('\n=============================================')
+  console.log(`[INFO] Current DATABASE_URL: ${maskDatabaseUrl(dbUrl)}`)
+  console.log('=============================================')
+  console.log(
+    '[WARNING] Ensure this is NOT a production database if you are running migrations locally!',
+  )
+
+  let proceed = 'n'
   if (process.stdin.isTTY) {
-    proceed = await askQuestion('\nDo you want to proceed with database migrations/push? (y/N): ');
+    proceed = await askQuestion('\nDo you want to proceed with database migrations/push? (y/N): ')
   } else {
-    console.log('\n[INFO] Non-interactive environment detected (e.g. Git hook).');
-    console.log('[INFO] Skipping interactive database migration prompt.');
-    console.log('[INFO] To run migrations manually: cd server/apps/api && npx prisma migrate deploy --schema=prisma/schema');
+    console.log('\n[INFO] Non-interactive environment detected (e.g. Git hook).')
+    console.log('[INFO] Skipping interactive database migration prompt.')
+    console.log(
+      '[INFO] To run migrations manually: cd server/apps/api && npx prisma migrate deploy --schema=prisma/schema',
+    )
   }
-  
+
   if (proceed.toLowerCase() === 'y' || proceed.toLowerCase() === 'yes') {
-    console.log('\n[INFO] Attempting prisma migrate deploy...');
-    const migrateSuccess = runCommand('npx prisma migrate deploy --schema=prisma/schema.prisma', apiDir);
-    
+    console.log('\n[INFO] Attempting prisma migrate deploy...')
+    const migrateSuccess = runCommand(
+      'npx prisma migrate deploy --schema=prisma/schema.prisma',
+      apiDir,
+    )
+
     if (!migrateSuccess) {
-      console.log('\n[WARNING] Migrate deploy failed. Falling back to prisma db push...');
-      const pushSuccess = runCommand('npx prisma db push --schema=prisma/schema.prisma', apiDir);
+      console.log('\n[WARNING] Migrate deploy failed. Falling back to prisma db push...')
+      const pushSuccess = runCommand('npx prisma db push --schema=prisma/schema.prisma', apiDir)
       if (pushSuccess) {
-        console.log('[SUCCESS] Prisma db push successful.');
+        console.log('[SUCCESS] Prisma db push successful.')
       } else {
-        console.log('[ERROR] Prisma db push also failed.');
+        console.log('[ERROR] Prisma db push also failed.')
       }
     } else {
-      console.log('[SUCCESS] Prisma migrate deploy successful.');
+      console.log('[SUCCESS] Prisma migrate deploy successful.')
     }
   } else {
-    console.log('\n[INFO] Skipping database migrations.');
+    console.log('\n[INFO] Skipping database migrations.')
   }
-  
-  console.log('\n[SUCCESS] Sync script completed successfully.');
+
+  console.log('\n[SUCCESS] Sync script completed successfully.')
 }
 
-main().catch(err => {
-  console.error('\n[ERROR] An unexpected error occurred:', err);
-  process.exit(1);
-});
+main().catch((err) => {
+  console.error('\n[ERROR] An unexpected error occurred:', err)
+  process.exit(1)
+})

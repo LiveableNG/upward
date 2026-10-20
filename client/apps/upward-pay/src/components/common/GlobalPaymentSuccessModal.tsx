@@ -20,7 +20,10 @@ export function GlobalPaymentSuccessModal() {
       if (typeof window !== 'undefined') {
         const pathname = window.location.pathname
         if (pathname.includes('/pay/') || pathname.includes('/pay-rent')) {
-          console.log('[GlobalPaymentSuccessModal] Suppressing modal: user is on checkout page', pathname)
+          console.log(
+            '[GlobalPaymentSuccessModal] Suppressing modal: user is on checkout page',
+            pathname,
+          )
           return
         }
       }

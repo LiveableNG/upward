@@ -73,7 +73,9 @@ export function ScoreBreakdownScreen() {
     const defaultWebUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'
     const baseUrl = Capacitor.isNativePlatform()
       ? defaultWebUrl
-      : (typeof window !== 'undefined' ? window.location.origin : defaultWebUrl)
+      : typeof window !== 'undefined'
+        ? window.location.origin
+        : defaultWebUrl
 
     const url = `${baseUrl}/profile/${identifier}`
 
@@ -104,11 +106,31 @@ export function ScoreBreakdownScreen() {
     )
   }
 
-  const { isScorable, score, rank, band, metrics, cycles = [], properties = [], profile, maxScore } = scoreProfile.data
-  const paidPaymentsCount = cycles.filter((c: any) => c.status && (c.status.includes('PAID') || c.status.includes('PARTIAL'))).length
-  const hasVerifiedPmProperty = properties.some((p: any) => p.isVerified && (p.isPmVerified || p.isPlatformLinked || p.pm?.isVerified || !!p.company?.platformId))
+  const {
+    isScorable,
+    score,
+    rank,
+    band,
+    metrics,
+    cycles = [],
+    properties = [],
+    profile,
+    maxScore,
+  } = scoreProfile.data
+  const paidPaymentsCount = cycles.filter(
+    (c: any) => c.status && (c.status.includes('PAID') || c.status.includes('PARTIAL')),
+  ).length
+  const hasVerifiedPmProperty = properties.some(
+    (p: any) =>
+      p.isVerified &&
+      (p.isPmVerified || p.isPlatformLinked || p.pm?.isVerified || !!p.company?.platformId),
+  )
   const verificationOn = profile?.verificationOn ?? true
-  const isVerified = (verificationOn === false || !!profile?.isIdentityVerified) && paidPaymentsCount > 0 && hasVerifiedPmProperty || properties.some((p: any) => p.isVerified)
+  const isVerified =
+    ((verificationOn === false || !!profile?.isIdentityVerified) &&
+      paidPaymentsCount > 0 &&
+      hasVerifiedPmProperty) ||
+    properties.some((p: any) => p.isVerified)
 
   const getRankColor = () => {
     if (!isScorable || !isVerified) return '#928e89'
@@ -121,7 +143,8 @@ export function ScoreBreakdownScreen() {
 
   const getStatusColor = (status: string) => {
     if (status === 'PAID_ON_TIME' || status === 'PAID_BEFORE_DUE') return 'var(--clay)'
-    if (status === 'PAID_LATE' || status === 'PARTIAL_LATE' || status === 'MISSED') return 'var(--error)'
+    if (status === 'PAID_LATE' || status === 'PARTIAL_LATE' || status === 'MISSED')
+      return 'var(--error)'
     if (status === 'PENDING') return 'var(--warning)'
     return 'var(--text-muted)'
   }
@@ -201,7 +224,11 @@ export function ScoreBreakdownScreen() {
         </span>
       )
     }
-    if (cycle.status === 'PAID_LATE' || cycle.status === 'PARTIAL_LATE' || cycle.status === 'MISSED') {
+    if (
+      cycle.status === 'PAID_LATE' ||
+      cycle.status === 'PARTIAL_LATE' ||
+      cycle.status === 'MISSED'
+    ) {
       return (
         <span className="score-page__impact score-page__impact--negative">
           <AlertCircle size={13} />
@@ -243,7 +270,10 @@ export function ScoreBreakdownScreen() {
       <div className="score-page">
         {/* Hero Glass Card with Apple-style Ring Gauge */}
         <section className="score-page__hero">
-          <div className="score-page__gauge-wrap" style={{ '--rank-color': getRankColor() } as React.CSSProperties}>
+          <div
+            className="score-page__gauge-wrap"
+            style={{ '--rank-color': getRankColor() } as React.CSSProperties}
+          >
             <div className="score-page__gauge">
               <svg className="score-page__gauge-svg" viewBox="0 0 148 148" width="148" height="148">
                 <defs>
@@ -317,13 +347,18 @@ export function ScoreBreakdownScreen() {
                 </div>
                 <div className="score-page__notice-text">
                   <strong>Verification Needed</strong>
-                  <span>Connect with an Upward partner landlord to verify records and activate your live score.</span>
+                  <span>
+                    Connect with an Upward partner landlord to verify records and activate your live
+                    score.
+                  </span>
                 </div>
               </div>
             )}
 
             <p className="score-page__hero-desc">
-              Your score reflects payment timeliness, streak consistency, financial discipline, tenure history, and rent preparation savings. Every recorded cycle directly improves this rating.
+              Your score reflects payment timeliness, streak consistency, financial discipline,
+              tenure history, and rent preparation savings. Every recorded cycle directly improves
+              this rating.
             </p>
           </div>
         </section>
@@ -380,7 +415,8 @@ export function ScoreBreakdownScreen() {
                 </div>
                 <p className="score-page__empty-title">No cycle history yet</p>
                 <p className="score-page__empty-desc">
-                  Recorded rent payments and landlord-verified cycles will show up here automatically.
+                  Recorded rent payments and landlord-verified cycles will show up here
+                  automatically.
                 </p>
               </div>
             ) : (
@@ -394,23 +430,35 @@ export function ScoreBreakdownScreen() {
                           year: 'numeric',
                         })}
                       </strong>
-                      <span>Due {new Date(cycle.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
+                      <span>
+                        Due{' '}
+                        {new Date(cycle.dueDate).toLocaleDateString('en-GB', {
+                          day: 'numeric',
+                          month: 'short',
+                        })}
+                      </span>
                     </div>
 
                     <div className="score-page__cycle-amount-block">
-                      <span className="score-page__cycle-amount">{formatCurrency(cycle.amount, 'NGN')}</span>
+                      <span className="score-page__cycle-amount">
+                        {formatCurrency(cycle.amount, 'NGN')}
+                      </span>
                     </div>
                   </div>
 
                   <div className="score-page__cycle-bottom-row">
-                    <span className={`score-page__source-tag score-page__source-tag--${cycle.source.toLowerCase()}`}>
+                    <span
+                      className={`score-page__source-tag score-page__source-tag--${cycle.source.toLowerCase()}`}
+                    >
                       {cycle.source.replace(/_/g, ' ')}
                     </span>
 
                     <div className="score-page__cycle-tags">
                       <span
                         className="score-page__status-badge"
-                        style={{ '--status-color': getStatusColor(cycle.status) } as React.CSSProperties}
+                        style={
+                          { '--status-color': getStatusColor(cycle.status) } as React.CSSProperties
+                        }
                       >
                         <span className="score-page__status-dot" />
                         {getStatusLabel(cycle.status)}
@@ -457,23 +505,29 @@ export function ScoreBreakdownScreen() {
                         </div>
                       </td>
                       <td>
-                        <span className={`score-page__source-tag score-page__source-tag--${cycle.source.toLowerCase()}`}>
+                        <span
+                          className={`score-page__source-tag score-page__source-tag--${cycle.source.toLowerCase()}`}
+                        >
                           {cycle.source.replace(/_/g, ' ')}
                         </span>
                       </td>
-                      <td className="score-page__td-amount">{formatCurrency(cycle.amount, 'NGN')}</td>
+                      <td className="score-page__td-amount">
+                        {formatCurrency(cycle.amount, 'NGN')}
+                      </td>
                       <td>
                         <span
                           className="score-page__status-badge"
-                          style={{ '--status-color': getStatusColor(cycle.status) } as React.CSSProperties}
+                          style={
+                            {
+                              '--status-color': getStatusColor(cycle.status),
+                            } as React.CSSProperties
+                          }
                         >
                           <span className="score-page__status-dot" />
                           {getStatusLabel(cycle.status)}
                         </span>
                       </td>
-                      <td>
-                        {renderImpact(cycle)}
-                      </td>
+                      <td>{renderImpact(cycle)}</td>
                     </tr>
                   ))
                 )}
@@ -490,7 +544,10 @@ export function ScoreBreakdownScreen() {
             </div>
             <div>
               <h3>Missing past records?</h3>
-              <p>Add rent payments from previous tenancies to improve your tenure and consistency score.</p>
+              <p>
+                Add rent payments from previous tenancies to improve your tenure and consistency
+                score.
+              </p>
             </div>
           </div>
           <button

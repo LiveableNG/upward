@@ -40,9 +40,12 @@ export function middleware(request: NextRequest) {
   const landlordAccessToken = request.cookies.get('landlord_access_token')?.value
   const landlordRefreshToken = request.cookies.get('landlord_refresh_token')?.value
   const isLandlordAccessExpired = landlordAccessToken ? isTokenExpired(landlordAccessToken) : true
-  const isLandlordRefreshExpired = landlordRefreshToken ? isTokenExpired(landlordRefreshToken) : true
+  const isLandlordRefreshExpired = landlordRefreshToken
+    ? isTokenExpired(landlordRefreshToken)
+    : true
   const isLandlordLoggedIn =
-    (!!landlordAccessToken && !isLandlordAccessExpired) || (!!landlordRefreshToken && !isLandlordRefreshExpired)
+    (!!landlordAccessToken && !isLandlordAccessExpired) ||
+    (!!landlordRefreshToken && !isLandlordRefreshExpired)
 
   const isPortalPath = pathname.startsWith('/portal')
 

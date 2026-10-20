@@ -20,7 +20,6 @@ const plusJakarta = Plus_Jakarta_Sans({
   weight: ['400', '500', '600', '700', '800'],
 })
 
-
 export const metadata: Metadata = {
   title: 'Upward Pay — Secure Rent Payments',
   description:
@@ -61,7 +60,6 @@ export default function RootLayout({
             </LaunchDarklyProvider>
           </AuthProvider>
         </Providers>
-
 
         {GA_ID && (
           <>

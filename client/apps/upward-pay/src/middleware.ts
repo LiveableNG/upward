@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://upward-api.vercel.app/api/v1'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4500/api/v1'
 
 function isTokenExpired(token: string): boolean {
   try {

@@ -749,7 +749,9 @@
   border: 1px solid var(--shell-border, #f0e9df);
   border-radius: 14px;
   cursor: pointer;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
 }
 
 .share-menu__option:hover {

@@ -15,7 +15,7 @@ const nextConfig: NextConfig = {
   // },
   async rewrites() {
     if (isStaticExport) return []
-    const apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1').trim()
+    const apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4500/api/v1').trim()
     const rules: { source: string; destination: string }[] = []
 
     if (apiUrl.startsWith('http')) {
@@ -24,7 +24,7 @@ const nextConfig: NextConfig = {
         destination: `${apiUrl}/:path*`,
       })
     }
-    
+
     // Gateway-style aliases
     rules.push({ source: '/pm-login', destination: '/login' })
     rules.push({ source: '/pm-signup', destination: '/signup' })

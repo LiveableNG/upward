@@ -1,38 +1,38 @@
-import { Injectable, Inject } from '@nestjs/common';
-import { IsOptional, IsString } from 'class-validator';
+import { Injectable, Inject } from '@nestjs/common'
+import { IsOptional, IsString } from 'class-validator'
 import {
   SESSION_TRACKING_REPOSITORY,
   ISessionTrackingRepository,
-} from '../../../domains/session-tracking/session-tracking.repository';
+} from '../../../domains/session-tracking/session-tracking.repository'
 
 export class SessionExplorerQueryDto {
   @IsOptional()
   @IsString()
-  page?: string;
+  page?: string
 
   @IsOptional()
   @IsString()
-  limit?: string;
+  limit?: string
 
   @IsOptional()
   @IsString()
-  search?: string;
+  search?: string
 
   @IsOptional()
   @IsString()
-  platform?: string;
+  platform?: string
 
   @IsOptional()
   @IsString()
-  dropOffStage?: string;
+  dropOffStage?: string
 
   @IsOptional()
   @IsString()
-  hasError?: string;
+  hasError?: string
 
   @IsOptional()
   @IsString()
-  sessionId?: string;
+  sessionId?: string
 }
 
 @Injectable()
@@ -45,12 +45,16 @@ export class GetSessionExplorerUseCase {
   async execute(query: SessionExplorerQueryDto) {
     // If querying a single session's detail with complete breadcrumbs
     if (query.sessionId) {
-      const result = await this.sessionRepo.findSessionWithEvents(query.sessionId);
-      return { session: result ? { ...result.session.toJSON(), events: result.events.map((e) => e.toJSON()) } : null };
+      const result = await this.sessionRepo.findSessionWithEvents(query.sessionId)
+      return {
+        session: result
+          ? { ...result.session.toJSON(), events: result.events.map((e) => e.toJSON()) }
+          : null,
+      }
     }
 
-    const pageNum = query.page ? parseInt(query.page, 10) : 1;
-    const limitNum = query.limit ? parseInt(query.limit, 10) : 30;
+    const pageNum = query.page ? parseInt(query.page, 10) : 1
+    const limitNum = query.limit ? parseInt(query.limit, 10) : 30
 
     const { data, total } = await this.sessionRepo.findSessions({
       page: pageNum,
@@ -59,7 +63,7 @@ export class GetSessionExplorerUseCase {
       platform: query.platform,
       dropOffStage: query.dropOffStage,
       hasError: query.hasError === 'true',
-    });
+    })
 
     return {
       data: data.map((s) => s.toJSON()),
@@ -69,6 +73,6 @@ export class GetSessionExplorerUseCase {
         limit: limitNum,
         totalPages: Math.ceil(total / limitNum),
       },
-    };
+    }
   }
 }

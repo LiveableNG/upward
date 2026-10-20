@@ -49,7 +49,12 @@ export function SetupPageShell({
       <header className="setup-page__header">
         <div className="setup-page__header-inner">
           <div className="setup-page__header-row">
-            <button type="button" className="setup-page__back" onClick={handleBack} aria-label="Go back">
+            <button
+              type="button"
+              className="setup-page__back"
+              onClick={handleBack}
+              aria-label="Go back"
+            >
               <ArrowLeft size={15} />
             </button>
             {title && <h1 className="setup-page__header-title">{title}</h1>}
@@ -65,7 +70,12 @@ export function SetupPageShell({
                     key={name}
                     className={`setup-page__substep ${isActive ? 'setup-page__substep--active' : ''} ${isComplete ? 'setup-page__substep--complete' : ''}`}
                   >
-                    {isComplete ? <Check size={12} style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: 2 }} /> : null}
+                    {isComplete ? (
+                      <Check
+                        size={12}
+                        style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: 2 }}
+                      />
+                    ) : null}
                     {name}
                   </div>
                 )
@@ -123,7 +133,13 @@ export function SetupPrimaryButton({
   }
 
   return (
-    <button type={type} form={form} className="setup-page__cta" onClick={handleClick} disabled={disabled}>
+    <button
+      type={type}
+      form={form}
+      className="setup-page__cta"
+      onClick={handleClick}
+      disabled={disabled}
+    >
       {children}
     </button>
   )

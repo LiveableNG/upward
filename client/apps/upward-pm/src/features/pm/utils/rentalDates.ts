@@ -4,10 +4,10 @@ export function calculateRentEndDate(
   startDate: string | null | undefined,
   rentType: string | null | undefined,
   leaseDuration: number | string = 1,
-  leaseUnit: LeaseDurationUnit = 'years'
+  leaseUnit: LeaseDurationUnit = 'years',
 ): string {
   if (!startDate) return ''
-  
+
   // Format as YYYY-MM-DD if ISO string
   const cleanDate = startDate.split('T')[0]
   const [yearStr, monthStr, dayStr] = cleanDate.split('-')

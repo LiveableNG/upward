@@ -52,7 +52,7 @@ export class PushNotificationService {
         }),
       })
 
-      const json = await resp.json() as { access_token: string }
+      const json = (await resp.json()) as { access_token: string }
       this.accessToken = json.access_token
       this.tokenExpiresAt = exp * 1000
       return this.accessToken
@@ -78,7 +78,9 @@ export class PushNotificationService {
       if (missing.length > 0) {
         this.logger.error(`FCM missing environment variables: ${missing.join(', ')}`)
       } else {
-        this.logger.warn('FCM not configured or token acquisition failed — push notification skipped')
+        this.logger.warn(
+          'FCM not configured or token acquisition failed — push notification skipped',
+        )
       }
       return
     }

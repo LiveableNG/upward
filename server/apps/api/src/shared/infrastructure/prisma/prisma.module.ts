@@ -96,9 +96,7 @@ import {
   DVA_ACCOUNT_REPOSITORY,
   BENEFITS_SUBSCRIPTION_REPOSITORY,
 } from '../../../domains/payments/payment.repository'
-import {
-  RENT_DEPOSIT_BALANCE_REPOSITORY,
-} from '../../../domains/payments/rent-deposit.repository'
+import { RENT_DEPOSIT_BALANCE_REPOSITORY } from '../../../domains/payments/rent-deposit.repository'
 import { PrismaRentDepositBalanceRepository } from './repositories/prisma-rent-deposit-balance.repository'
 import {
   COMPANY_REPOSITORY,
@@ -119,7 +117,13 @@ import { VERIFICATION_TOKEN_REPOSITORY } from '../../../domains/auth/verificatio
 import { PROPERTY_MANAGER_REPOSITORY } from '../../../domains/pm/property-manager.repository'
 import { PM_LETTERHEAD_REPOSITORY } from '../../../domains/pm/pm-letterhead.repository'
 import { PM_SIGNATURE_REPOSITORY } from '../../../domains/pm/pm-signature.repository'
-import { PM_PROPERTY_REPOSITORY, PM_UNIT_REPOSITORY, PM_TENANT_REPOSITORY, PM_PAYMENT_REQUEST_REPOSITORY, PM_DOCUMENT_REPOSITORY } from '../../../domains/pm/IPropertyRepository'
+import {
+  PM_PROPERTY_REPOSITORY,
+  PM_UNIT_REPOSITORY,
+  PM_TENANT_REPOSITORY,
+  PM_PAYMENT_REQUEST_REPOSITORY,
+  PM_DOCUMENT_REPOSITORY,
+} from '../../../domains/pm/IPropertyRepository'
 import { SPLIT_PROFILE_REPOSITORY } from '../../../domains/pm/ISplitProfileRepository'
 import { PM_APPROVAL_REQUEST_REPOSITORY } from '../../../domains/pm/IApprovalRequestRepository'
 import { PrismaPmApprovalRequestRepository } from './repositories/prisma-pm-approval-request.repository'
@@ -132,6 +136,12 @@ import { BULK_IMPORT_JOB_REPOSITORY } from '../../../domains/pm/IBulkImportJobRe
 import { PrismaBulkImportJobRepository } from '../../../infrastructure/repositories/PrismaBulkImportJobRepository'
 
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
+import { ConfigService } from '@nestjs/config'
+import { KYC_PROVIDER } from '../../../domains/kyc/kyc-provider.interface'
+import { KYC_REPOSITORY } from '../../../domains/kyc/kyc.repository'
+import { PrismaKycRepository } from './repositories/prisma-kyc.repository'
+import { MockKycProvider } from '../kyc/mock-kyc.provider'
+import { PremblyKycProvider } from '../kyc/prembly-kyc.provider'
 
 @Global()
 @Module({
@@ -145,6 +155,21 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
     {
       provide: USER_REPOSITORY,
       useClass: PrismaUserRepository,
+    },
+    {
+      provide: KYC_REPOSITORY,
+      useClass: PrismaKycRepository,
+    },
+    {
+      provide: KYC_PROVIDER,
+      useFactory: (configService: ConfigService) => {
+        const provider = configService.get<string>('KYC_PROVIDER') || 'mock'
+        if (provider === 'prembly') {
+          return new PremblyKycProvider(configService)
+        }
+        return new MockKycProvider()
+      },
+      inject: [ConfigService],
     },
     {
       provide: SAVED_LANDLORD_REPOSITORY,
@@ -432,6 +457,8 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
     ALLIANCE_REFERRAL_REPOSITORY,
     ALLIANCE_COMMISSION_REPOSITORY,
     ALLIANCE_RATING_REPOSITORY,
+    KYC_REPOSITORY,
+    KYC_PROVIDER,
   ],
 })
 export class PrismaModule {}

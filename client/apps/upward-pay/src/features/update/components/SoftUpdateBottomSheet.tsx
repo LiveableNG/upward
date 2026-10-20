@@ -83,13 +83,12 @@ export const SoftUpdateBottomSheet: React.FC<SoftUpdateBottomSheetProps> = ({
                 {title || 'A new version is available'}
               </h2>
               {latestVersion && (
-                <span className="app-update-sheet__version-badge">
-                  Version {latestVersion}
-                </span>
+                <span className="app-update-sheet__version-badge">Version {latestVersion}</span>
               )}
             </div>
             <p id="app-update-sheet-desc" className="app-update-sheet__subtitle">
-              {message || 'Update Upward Pay to get the latest improvements and a smoother experience.'}
+              {message ||
+                'Update Upward Pay to get the latest improvements and a smoother experience.'}
             </p>
           </div>
         </div>
@@ -111,19 +110,11 @@ export const SoftUpdateBottomSheet: React.FC<SoftUpdateBottomSheetProps> = ({
 
         {/* Dedicated action area with distinct visual hierarchy */}
         <div className="app-update-sheet__actions">
-          <button
-            type="button"
-            onClick={handleUpdate}
-            className="app-update-sheet__btn-primary"
-          >
+          <button type="button" onClick={handleUpdate} className="app-update-sheet__btn-primary">
             <span>Update now</span>
             <ArrowRight size={16} strokeWidth={2.2} />
           </button>
-          <button
-            type="button"
-            onClick={handleDismiss}
-            className="app-update-sheet__btn-secondary"
-          >
+          <button type="button" onClick={handleDismiss} className="app-update-sheet__btn-secondary">
             Later
           </button>
         </div>

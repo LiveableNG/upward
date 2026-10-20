@@ -30,7 +30,7 @@ export class AppActivityLogController {
     @Query('search') search?: string,
     @Query('platform') platform?: string,
   ) {
-    return this.getUniqueUserSessionsUseCase.execute({ page, limit, search, platform });
+    return this.getUniqueUserSessionsUseCase.execute({ page, limit, search, platform })
   }
 
   @Get('google-analytics/stats')

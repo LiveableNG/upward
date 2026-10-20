@@ -1,11 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import {
-  TrendingDown,
-  AlertTriangle,
-  MapPin,
-  RefreshCcw,
-  ArrowRight,
-} from 'lucide-react'
+import { TrendingDown, AlertTriangle, MapPin, RefreshCcw, ArrowRight } from 'lucide-react'
 import { apiService } from '../../../services/api.service'
 
 interface FunnelMetrics {
@@ -157,36 +151,65 @@ export const SessionFunnelView: React.FC<SessionFunnelViewProps> = ({
             Payment Funnel Progression
           </h3>
           <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '3px 0 0 0' }}>
-            Measures authentic user progression from viewing rent obligations to Paystack checkout completion.
+            Measures authentic user progression from viewing rent obligations to Paystack checkout
+            completion.
           </p>
         </div>
 
         {funnelSteps.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: '13px' }}>
-            {loading ? 'Calculating conversion funnel...' : 'No session activity recorded for this period.'}
+          <div
+            style={{
+              textAlign: 'center',
+              padding: '40px 0',
+              color: 'var(--text-muted)',
+              fontSize: '13px',
+            }}
+          >
+            {loading
+              ? 'Calculating conversion funnel...'
+              : 'No session activity recorded for this period.'}
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {funnelSteps.map((step, idx) => {
               // Never artificially inflate width when count is 0
-              const widthPct = step.count > 0 && maxStepCount > 0
-                ? Math.max(4, Math.round((step.count / maxStepCount) * 100))
-                : 0
+              const widthPct =
+                step.count > 0 && maxStepCount > 0
+                  ? Math.max(4, Math.round((step.count / maxStepCount) * 100))
+                  : 0
 
               const isLast = idx === funnelSteps.length - 1
               const hasActivity = step.count > 0
 
               return (
-                <div key={step.step} style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
+                <div
+                  key={step.step}
+                  style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}
+                >
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      fontSize: '13px',
+                    }}
+                  >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                       <span
                         style={{
                           width: '22px',
                           height: '22px',
                           borderRadius: '6px',
-                          background: hasActivity ? (isLast ? 'rgba(16, 185, 129, 0.12)' : 'var(--accent-faint)') : 'var(--surface-hover)',
-                          color: hasActivity ? (isLast ? '#059669' : 'var(--accent)') : 'var(--text-muted)',
+                          background: hasActivity
+                            ? isLast
+                              ? 'rgba(16, 185, 129, 0.12)'
+                              : 'var(--accent-faint)'
+                            : 'var(--surface-hover)',
+                          color: hasActivity
+                            ? isLast
+                              ? '#059669'
+                              : 'var(--accent)'
+                            : 'var(--text-muted)',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
@@ -196,13 +219,24 @@ export const SessionFunnelView: React.FC<SessionFunnelViewProps> = ({
                       >
                         {step.step}
                       </span>
-                      <span style={{ fontWeight: 700, color: hasActivity ? 'var(--text)' : 'var(--text-muted)' }}>
+                      <span
+                        style={{
+                          fontWeight: 700,
+                          color: hasActivity ? 'var(--text)' : 'var(--text-muted)',
+                        }}
+                      >
                         {step.name.replace(/_/g, ' ')}
                       </span>
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ fontWeight: 800, fontSize: '14px', color: hasActivity ? 'var(--text)' : 'var(--text-muted)' }}>
+                      <span
+                        style={{
+                          fontWeight: 800,
+                          fontSize: '14px',
+                          color: hasActivity ? 'var(--text)' : 'var(--text-muted)',
+                        }}
+                      >
                         {step.count.toLocaleString()}
                       </span>
                       <span
@@ -211,8 +245,16 @@ export const SessionFunnelView: React.FC<SessionFunnelViewProps> = ({
                           fontWeight: 700,
                           padding: '2px 7px',
                           borderRadius: '5px',
-                          background: hasActivity ? (isLast ? 'rgba(16, 185, 129, 0.12)' : 'var(--surface-hover)') : 'var(--surface-hover)',
-                          color: hasActivity ? (isLast ? '#059669' : 'var(--text-secondary)') : 'var(--text-muted)',
+                          background: hasActivity
+                            ? isLast
+                              ? 'rgba(16, 185, 129, 0.12)'
+                              : 'var(--surface-hover)'
+                            : 'var(--surface-hover)',
+                          color: hasActivity
+                            ? isLast
+                              ? '#059669'
+                              : 'var(--text-secondary)'
+                            : 'var(--text-muted)',
                         }}
                       >
                         {hasActivity ? `${step.conversionRate}% retained` : '—'}
@@ -302,14 +344,30 @@ export const SessionFunnelView: React.FC<SessionFunnelViewProps> = ({
               }}
             >
               <div>
-                <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)', display: 'block' }}>
+                <span
+                  style={{
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    color: 'var(--text)',
+                    display: 'block',
+                  }}
+                >
                   Abandoned Without Paying
                 </span>
                 <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                   User opened Paystack but closed or dismissed checkout
                 </span>
               </div>
-              <span style={{ fontSize: '16px', fontWeight: 800, color: (metrics?.paymentFunnel?.leakage?.dismissedWithoutPaying || 0) > 0 ? 'var(--warning)' : 'var(--text-muted)' }}>
+              <span
+                style={{
+                  fontSize: '16px',
+                  fontWeight: 800,
+                  color:
+                    (metrics?.paymentFunnel?.leakage?.dismissedWithoutPaying || 0) > 0
+                      ? 'var(--warning)'
+                      : 'var(--text-muted)',
+                }}
+              >
                 {metrics?.paymentFunnel?.leakage?.dismissedWithoutPaying || 0}
               </span>
             </div>
@@ -326,14 +384,30 @@ export const SessionFunnelView: React.FC<SessionFunnelViewProps> = ({
               }}
             >
               <div>
-                <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text)', display: 'block' }}>
+                <span
+                  style={{
+                    fontSize: '13px',
+                    fontWeight: 700,
+                    color: 'var(--text)',
+                    display: 'block',
+                  }}
+                >
                   Gateway Errors
                 </span>
                 <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                   Card declines, insufficient funds, or gateway timeouts
                 </span>
               </div>
-              <span style={{ fontSize: '16px', fontWeight: 800, color: (metrics?.paymentFunnel?.leakage?.failedWithErrors || 0) > 0 ? 'var(--danger)' : 'var(--text-muted)' }}>
+              <span
+                style={{
+                  fontSize: '16px',
+                  fontWeight: 800,
+                  color:
+                    (metrics?.paymentFunnel?.leakage?.failedWithErrors || 0) > 0
+                      ? 'var(--danger)'
+                      : 'var(--text-muted)',
+                }}
+              >
                 {metrics?.paymentFunnel?.leakage?.failedWithErrors || 0}
               </span>
             </div>
@@ -358,8 +432,15 @@ export const SessionFunnelView: React.FC<SessionFunnelViewProps> = ({
             </span>
           </div>
 
-          {(!metrics?.dropOffBreakdown || metrics.dropOffBreakdown.length === 0) ? (
-            <div style={{ color: 'var(--text-muted)', fontSize: '12px', textAlign: 'center', padding: '24px 0' }}>
+          {!metrics?.dropOffBreakdown || metrics.dropOffBreakdown.length === 0 ? (
+            <div
+              style={{
+                color: 'var(--text-muted)',
+                fontSize: '12px',
+                textAlign: 'center',
+                padding: '24px 0',
+              }}
+            >
               No drop-offs recorded for this filter.
             </div>
           ) : (
@@ -410,8 +491,15 @@ export const SessionFunnelView: React.FC<SessionFunnelViewProps> = ({
             </span>
           </div>
 
-          {(!metrics?.topLocations || metrics.topLocations.length === 0) ? (
-            <div style={{ color: 'var(--text-muted)', fontSize: '12px', textAlign: 'center', padding: '24px 0' }}>
+          {!metrics?.topLocations || metrics.topLocations.length === 0 ? (
+            <div
+              style={{
+                color: 'var(--text-muted)',
+                fontSize: '12px',
+                textAlign: 'center',
+                padding: '24px 0',
+              }}
+            >
               No location data recorded yet.
             </div>
           ) : (
@@ -431,7 +519,8 @@ export const SessionFunnelView: React.FC<SessionFunnelViewProps> = ({
                   }}
                 >
                   <span style={{ fontWeight: 600, color: 'var(--text)' }}>
-                    {loc.city ? `${loc.city}, ` : ''}{loc.countryCode || 'Unknown'}
+                    {loc.city ? `${loc.city}, ` : ''}
+                    {loc.countryCode || 'Unknown'}
                   </span>
                   <span style={{ fontWeight: 800, color: 'var(--accent)' }}>
                     {loc.count.toLocaleString()} sessions
