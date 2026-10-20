@@ -788,4 +788,114 @@ describe('SingleInviteUseCase', () => {
       expect(Array.isArray(context.properties)).toBe(true)
     })
   })
+
+  // ── Flexible Lease Duration & Dates ────────────────────────────────────────
+
+  describe('Flexible Lease Duration & leasePeriod', () => {
+    it('should successfully process a 3-week lease and infer Weekly rentType', async () => {
+      companyRepository.findByName.mockResolvedValue(makeCompany() as any)
+      managerRepository.findByEmail.mockResolvedValue(makeManager() as any)
+      userRepository.findByEmail.mockResolvedValue(makeUser() as any)
+      companyUserRepository.findByCompanyAndUser.mockResolvedValue(makeCompanyUser() as any)
+      locationRepository.findByAddress.mockResolvedValue(makeLocation() as any)
+      propertyRepository.findByUserId.mockResolvedValue([])
+      propertyRepository.save.mockImplementation(async (data: any) => ({ ...data, id: 99 }))
+
+      const payload = validInviteRequest()
+      payload.invite.properties[0].rent = {
+        rentAmount: 150000,
+        rentStartDate: '2026-03-01',
+        rentEndDate: '2026-03-22', // 21 days (3 weeks)
+      }
+
+      const result = await useCase.setupInviteContext(payload)
+
+      expect(propertyRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          rentType: 'Weekly',
+          leaseYears: 1,
+        })
+      )
+      expect(result.properties[0].id).toBe(99)
+    })
+
+    it('should successfully process a 4-month lease and infer Quarterly/Multi-month rentType', async () => {
+      companyRepository.findByName.mockResolvedValue(makeCompany() as any)
+      managerRepository.findByEmail.mockResolvedValue(makeManager() as any)
+      userRepository.findByEmail.mockResolvedValue(makeUser() as any)
+      companyUserRepository.findByCompanyAndUser.mockResolvedValue(makeCompanyUser() as any)
+      locationRepository.findByAddress.mockResolvedValue(makeLocation() as any)
+      propertyRepository.findByUserId.mockResolvedValue([])
+      propertyRepository.save.mockImplementation(async (data: any) => ({ ...data, id: 100 }))
+
+      const payload = validInviteRequest()
+      payload.invite.properties[0].rent = {
+        rentAmount: 800000,
+        rentStartDate: '2026-03-01',
+        rentEndDate: '2026-06-30', // ~4 months (121 days)
+      }
+
+      await useCase.setupInviteContext(payload)
+
+      expect(propertyRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          rentType: 'Quarterly',
+          leaseYears: 1,
+        })
+      )
+    })
+
+    it('should auto-derive rentEndDate when leasePeriod="3 weeks" is provided without rentEndDate', async () => {
+      companyRepository.findByName.mockResolvedValue(makeCompany() as any)
+      managerRepository.findByEmail.mockResolvedValue(makeManager() as any)
+      userRepository.findByEmail.mockResolvedValue(makeUser() as any)
+      companyUserRepository.findByCompanyAndUser.mockResolvedValue(makeCompanyUser() as any)
+      locationRepository.findByAddress.mockResolvedValue(makeLocation() as any)
+      propertyRepository.findByUserId.mockResolvedValue([])
+      propertyRepository.save.mockImplementation(async (data: any) => ({ ...data, id: 101 }))
+
+      const payload = validInviteRequest()
+      payload.invite.properties[0].rent = {
+        rentAmount: 150000,
+        rentStartDate: '2026-03-01',
+        leasePeriod: '3 weeks',
+        // rentEndDate omitted!
+      }
+
+      await useCase.setupInviteContext(payload)
+
+      expect(propertyRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          rentEndDate: new Date('2026-03-21T00:00:00.000Z'),
+          rentType: 'Weekly',
+        })
+      )
+    })
+
+    it('should auto-derive rentEndDate when leasePeriod="4 months" is provided without rentEndDate', async () => {
+      companyRepository.findByName.mockResolvedValue(makeCompany() as any)
+      managerRepository.findByEmail.mockResolvedValue(makeManager() as any)
+      userRepository.findByEmail.mockResolvedValue(makeUser() as any)
+      companyUserRepository.findByCompanyAndUser.mockResolvedValue(makeCompanyUser() as any)
+      locationRepository.findByAddress.mockResolvedValue(makeLocation() as any)
+      propertyRepository.findByUserId.mockResolvedValue([])
+      propertyRepository.save.mockImplementation(async (data: any) => ({ ...data, id: 102 }))
+
+      const payload = validInviteRequest()
+      payload.invite.properties[0].rent = {
+        rentAmount: 800000,
+        rentStartDate: '2026-03-01',
+        leasePeriod: '4 months',
+      }
+
+      await useCase.setupInviteContext(payload)
+
+      expect(propertyRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          rentEndDate: new Date('2026-06-30T00:00:00.000Z'),
+          rentType: 'Quarterly',
+        })
+      )
+    })
+  })
 })

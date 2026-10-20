@@ -84,7 +84,7 @@ export function normalizeRentType(val: any): string | undefined {
   if (['yearly', 'annual', 'annually', 'year', 'per annum', 'per_annum', 'p.a.', 'lease', 'long lease', 'fixed lease'].includes(trimmed)) {
     return 'Annually'
   }
-  if (['monthly', 'month', 'per month', 'per_month', 'p.m.', 'short let', 'shortlet'].includes(trimmed)) {
+  if (['monthly', 'month', 'per month', 'per_month', 'p.m.'].includes(trimmed)) {
     return 'Monthly'
   }
   if (['quarterly', 'quarter', 'per quarter'].includes(trimmed)) {
@@ -92,6 +92,12 @@ export function normalizeRentType(val: any): string | undefined {
   }
   if (['bi-annually', 'biannually', 'semi-annually', 'semi-annual', 'biannual'].includes(trimmed)) {
     return 'Bi-Annually'
+  }
+  if (['weekly', 'week', 'per week', 'p.w.'].includes(trimmed) || trimmed.includes('week')) {
+    return 'Weekly'
+  }
+  if (['short let', 'shortlet', 'daily', 'day'].includes(trimmed) || trimmed.includes('short')) {
+    return 'Shortlet'
   }
   return val
 }
@@ -105,8 +111,13 @@ export class RentInfoDto {
   @IsDateString()
   rentStartDate?: string
 
+  @IsOptional()
   @IsDateString()
-  rentEndDate!: string
+  rentEndDate?: string
+
+  @IsOptional()
+  @IsString()
+  leasePeriod?: string
 
   @IsOptional()
   @Transform(({ value }) => (typeof value === 'string' ? value === 'true' : value))
@@ -119,7 +130,11 @@ export class RentInfoDto {
   initialAmountPaid?: number
 
   @IsOptional()
-  @Transform(({ value }) => (value !== undefined && value !== null && value !== '' ? Number(value) : undefined))
+  @Transform(({ value }) => {
+    if (value === undefined || value === null || value === '') return undefined
+    const num = Number(value)
+    return isNaN(num) ? undefined : num
+  })
   @IsNumber()
   leaseYears?: number
 

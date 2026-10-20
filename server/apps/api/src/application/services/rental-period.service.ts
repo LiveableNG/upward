@@ -84,6 +84,14 @@ export class RentalPeriodService {
     let end: Date;
     if (normalizedRentType === 'MONTHLY') {
       end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, start.getUTCDate() - 1, 0, 0, 0, 0));
+    } else if (normalizedRentType === 'WEEKLY') {
+      end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate() + 7 - 1, 0, 0, 0, 0));
+    } else if (normalizedRentType === 'QUARTERLY') {
+      end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 3, start.getUTCDate() - 1, 0, 0, 0, 0));
+    } else if (normalizedRentType === 'BI-ANNUALLY' || normalizedRentType === 'SEMI-ANNUALLY') {
+      end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 6, start.getUTCDate() - 1, 0, 0, 0, 0));
+    } else if (normalizedRentType === 'SHORTLET') {
+      end = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate() + 7 - 1, 0, 0, 0, 0));
     } else {
       const years = Math.max(1, leaseYears || 1);
       end = new Date(Date.UTC(start.getUTCFullYear() + years, start.getUTCMonth(), start.getUTCDate() - 1, 0, 0, 0, 0));
@@ -94,6 +102,31 @@ export class RentalPeriodService {
     }
 
     return end;
+  }
+
+  /**
+   * Calculates a period end date from a text duration like "3 weeks", "4 months", "10 days".
+   */
+  calculateEndDateFromPeriod(startDate: Date | string, leasePeriod: string): Date | null {
+    const start = this.parseCalendarDate(startDate) || this.parseCalendarDate(new Date())!;
+    const cleaned = (leasePeriod || '').trim().toLowerCase();
+    const match = cleaned.match(/^(\d+)\s*(day|week|month|year)s?$/);
+    if (!match || !match[1] || !match[2]) return null;
+    const amount = parseInt(match[1], 10);
+    const unit = match[2];
+    if (unit === 'day') {
+      return new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate() + amount - 1, 0, 0, 0, 0));
+    }
+    if (unit === 'week') {
+      return new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), start.getUTCDate() + (amount * 7) - 1, 0, 0, 0, 0));
+    }
+    if (unit === 'month') {
+      return new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + amount, start.getUTCDate() - 1, 0, 0, 0, 0));
+    }
+    if (unit === 'year') {
+      return new Date(Date.UTC(start.getUTCFullYear() + amount, start.getUTCMonth(), start.getUTCDate() - 1, 0, 0, 0, 0));
+    }
+    return null;
   }
 
   /**
