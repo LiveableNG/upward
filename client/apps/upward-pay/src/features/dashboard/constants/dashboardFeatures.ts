@@ -117,10 +117,11 @@ export const DASHBOARD_FEATURE_SECTIONS: DashboardFeatureSection[] = [
       {
         id: 'save-for-rent',
         title: 'Save for Rent',
-        description: 'Automated rent savings — coming soon',
+        description: 'Lock in rent with 14.5% compound yield',
+        href: '/dashboard/savings',
         icon: PiggyBank,
         tone: 'violet',
-        comingSoon: true,
+        comingSoon: false,
       },
     ],
   },

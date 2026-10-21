@@ -1,13 +1,6 @@
 'use client'
 
-import {
-  Bell,
-  ChevronRight,
-  CreditCard,
-  PiggyBank,
-  Home,
-  TrendingUp,
-} from 'lucide-react'
+import { Bell, ChevronRight, CreditCard, PiggyBank, Home, TrendingUp } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { UserAvatar } from '@/components/common/UserAvatar'
 import { type UserProfile } from '@/features/auth/types'
@@ -112,20 +105,17 @@ export function ProfileSetupBlocker({
 
   const quickActions = [
     { label: 'Pay Rent', icon: CreditCard, href: '/dashboard/pay-rent' },
-    isSavingsWalletEnabled(user)
-      ? { label: 'Save Rent', icon: PiggyBank, href: '/dashboard/savings' }
-      : {
-          label: 'Save Rent',
-          icon: PiggyBank,
-          href: '/dashboard/save-for-rent',
-          disabled: true,
-          comingSoon: true,
-        },
+    { label: 'Save Rent', icon: PiggyBank, href: '/dashboard/savings' },
     { label: 'Save for Home', icon: Home, href: '/dashboard/save-for-home' },
   ] as Array<{ label: string; icon: any; href: string; disabled?: boolean; comingSoon?: boolean }>
 
   return (
-    <div className="profile-setup-blocker" role="dialog" aria-modal="true" aria-label="Complete your profile setup">
+    <div
+      className="profile-setup-blocker"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Complete your profile setup"
+    >
       <header className="profile-setup-blocker__header">
         <div className="dashboard__header-left dashboard__header-left--user">
           <button
@@ -157,10 +147,12 @@ export function ProfileSetupBlocker({
         <div className="profile-setup-blocker__body">
           <div
             className={`profile-setup-blocker__score-card ${score === undefined ? 'skeleton-loading' : ''}`}
-            style={{ 
-              '--ring-pct': `${ringPct}%`,
-              minHeight: '220px' // Added fixed min-height to prevent layout shift
-            } as React.CSSProperties}
+            style={
+              {
+                '--ring-pct': `${ringPct}%`,
+                minHeight: '220px', // Added fixed min-height to prevent layout shift
+              } as React.CSSProperties
+            }
           >
             <div className="profile-setup-blocker__score-top">
               <div className="profile-setup-blocker__score-labels">
@@ -227,7 +219,10 @@ export function ProfileSetupBlocker({
             </div>
           </div>
 
-          <section className="profile-setup-blocker__still" aria-label="Quick actions while you set up">
+          <section
+            className="profile-setup-blocker__still"
+            aria-label="Quick actions while you set up"
+          >
             <div className="profile-setup-blocker__still-divider" aria-hidden="true" />
             <div className="profile-setup-blocker__still-head">
               <h3 className="profile-setup-blocker__still-title">Quick actions</h3>
@@ -250,8 +245,12 @@ export function ProfileSetupBlocker({
                     <span className="profile-setup-blocker__quick-action-icon">
                       <Icon size={20} strokeWidth={2} />
                     </span>
-                    <span className="profile-setup-blocker__quick-action-label">{action.label}</span>
-                    {action.comingSoon && <span className="profile-setup-blocker__quick-action-soon">Coming soon</span>}
+                    <span className="profile-setup-blocker__quick-action-label">
+                      {action.label}
+                    </span>
+                    {action.comingSoon && (
+                      <span className="profile-setup-blocker__quick-action-soon">Coming soon</span>
+                    )}
                   </button>
                 )
               })}

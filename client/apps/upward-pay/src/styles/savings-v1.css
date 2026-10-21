@@ -1,0 +1,681 @@
+/* Upward Rent Savings & Lock (V1) - Premium Design System */
+
+.rent-savings {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5, 20px);
+  padding-bottom: var(--space-8, 32px);
+}
+
+/* ==========================================================================
+   Screen 1: Dynamic Onboarding & Work-Backwards Calculator
+   ========================================================================== */
+.rent-calculator {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5, 20px);
+}
+
+.rent-calculator__card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 16px);
+  padding: var(--space-6, 24px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+}
+
+.rent-calculator__title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: var(--space-2, 8px);
+}
+
+.rent-calculator__subtitle {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: var(--space-6, 24px);
+}
+
+.rent-calculator__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 16px);
+}
+
+.rent-calculator__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2, 8px);
+}
+
+.rent-calculator__label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.rent-calculator__input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.rent-calculator__input-prefix {
+  position: absolute;
+  left: 14px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.rent-calculator__input {
+  width: 100%;
+  height: 48px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 10px);
+  padding: 0 14px 0 32px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--text);
+  transition: all 0.2s ease;
+}
+
+.rent-calculator__input:focus {
+  outline: none;
+  border-color: var(--clay);
+  background: var(--bg);
+  box-shadow: 0 0 0 3px var(--clay-glow);
+}
+
+.rent-calculator__input--no-prefix {
+  padding-left: 14px;
+}
+
+.rent-calculator__cadence-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  background: var(--surface2);
+  padding: 4px;
+  border-radius: var(--radius-md, 10px);
+}
+
+.rent-calculator__cadence-btn {
+  height: 38px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.rent-calculator__cadence-btn--active {
+  background: var(--bg);
+  color: var(--clay);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+/* Dynamic Output Card */
+.rent-calculator__results {
+  background: linear-gradient(145deg, var(--dark) 0%, var(--dark-surface) 100%);
+  color: #ffffff;
+  border-radius: var(--radius-lg, 16px);
+  padding: var(--space-6, 24px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 16px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+}
+
+.rent-calculator__results-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.rent-calculator__days-badge {
+  background: rgba(217, 119, 87, 0.18);
+  color: var(--clay);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.rent-calculator__deposit-figure {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.5px;
+}
+
+.rent-calculator__deposit-cadence {
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.65);
+  font-weight: 500;
+}
+
+.rent-calculator__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3, 12px);
+  padding-top: var(--space-3, 12px);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.rent-calculator__grid-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rent-calculator__grid-label {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.rent-calculator__grid-val {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.rent-calculator__grid-val--highlight {
+  color: var(--success);
+}
+
+.rent-calculator__affordability {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: var(--radius-md, 10px);
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3, 12px);
+  color: var(--warning);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+/* ==========================================================================
+   Screen 2: Vault Setup & Funding Method Selection
+   ========================================================================== */
+.vault-setup__method-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 12px);
+  margin-top: var(--space-4, 16px);
+}
+
+.vault-setup__option {
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md, 12px);
+  padding: var(--space-4, 16px);
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3, 12px);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--bg);
+}
+
+.vault-setup__option--active {
+  border-color: var(--clay);
+  background: var(--clay-faint);
+  box-shadow: 0 0 0 1px var(--clay);
+}
+
+.vault-setup__option-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.vault-setup__option-title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.vault-setup__option-desc {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.vault-setup__lock-notice {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 10px);
+  padding: var(--space-4, 16px);
+  display: flex;
+  gap: var(--space-3, 12px);
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin-top: var(--space-4, 16px);
+}
+
+/* ==========================================================================
+   Screen 3: Vault Dashboard (Active Locked View)
+   ========================================================================== */
+.vault-dashboard__hero {
+  background: linear-gradient(145deg, var(--dark) 0%, var(--dark-card) 100%);
+  border-radius: var(--radius-lg, 18px);
+  padding: var(--space-6, 24px);
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5, 20px);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+.vault-dashboard__top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.vault-dashboard__lock-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.12);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.vault-dashboard__countdown-pill {
+  font-size: 0.8125rem;
+  color: var(--clay);
+  font-weight: 700;
+}
+
+.vault-dashboard__gauge-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vault-dashboard__gauge-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8125rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.vault-dashboard__progress-bar {
+  width: 100%;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.vault-dashboard__progress-fill {
+  height: 100%;
+  background: var(--btn-primary-bg);
+  border-radius: 5px;
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.vault-dashboard__amounts {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.vault-dashboard__current-balance {
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: #ffffff;
+}
+
+.vault-dashboard__target-label {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.vault-dashboard__interest-card {
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+  border-radius: var(--radius-md, 12px);
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.vault-dashboard__interest-text {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--success);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vault-dashboard__interest-rate {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+/* Upward Score 100-Point Discipline Card */
+.vault-score-card {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 16px);
+  padding: var(--space-5, 20px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 16px);
+}
+
+.vault-score-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.vault-score-card__title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vault-score-card__points-pill {
+  font-size: 0.875rem;
+  font-weight: 800;
+  color: var(--clay);
+  background: var(--clay-faint);
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+
+.vault-score-card__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3, 12px);
+  text-align: center;
+}
+
+.vault-score-card__metric-val {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.vault-score-card__metric-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* Action Buttons Grid */
+.vault-actions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3, 12px);
+}
+
+.vault-action-btn {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 12px);
+  padding: var(--space-4, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.vault-action-btn:hover {
+  border-color: var(--clay);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.vault-action-btn__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--clay-faint);
+  color: var(--clay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vault-action-btn__title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.vault-action-btn__subtitle {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* ==========================================================================
+   Screen 4 & 7: Modals (Emergency Advance & Fair Breakout)
+   ========================================================================== */
+.vault-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--space-4, 16px);
+}
+
+.vault-modal-card {
+  width: 100%;
+  max-width: 480px;
+  background: var(--bg);
+  border-radius: var(--radius-lg, 18px);
+  padding: var(--space-6, 24px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5, 20px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.vault-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.vault-modal-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.vault-modal-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+}
+
+/* Slider & Term Box */
+.vault-slider-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 12px);
+}
+
+.vault-slider {
+  width: 100%;
+  accent-color: var(--clay);
+  cursor: pointer;
+}
+
+.vault-fee-breakdown {
+  background: var(--surface);
+  border-radius: var(--radius-md, 10px);
+  padding: var(--space-3, 12px) var(--space-4, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.8125rem;
+}
+
+.vault-fee-breakdown__row {
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-secondary);
+}
+
+.vault-fee-breakdown__row--total {
+  font-weight: 700;
+  color: var(--text);
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+}
+
+/* ==========================================================================
+   Screen 5 & 6: Settlement Hub & Landlord Payout Success
+   ========================================================================== */
+.settlement-hub-banner {
+  background: linear-gradient(135deg, #1e3a8a 0%, #1e1b4b 100%);
+  color: #ffffff;
+  border-radius: var(--radius-lg, 16px);
+  padding: var(--space-5, 20px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 12px);
+}
+
+.settlement-hub-banner__multiplier {
+  background: #f59e0b;
+  color: #000000;
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 12px;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.settlement-landlord-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 12px);
+  padding: var(--space-4, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 12px);
+}
+
+.settlement-landlord-card__row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8125rem;
+}
+
+.settlement-landlord-card__label {
+  color: var(--text-muted);
+}
+
+.settlement-landlord-card__value {
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* Buttons */
+.vault-btn-primary {
+  width: 100%;
+  height: 48px;
+  background: var(--btn-primary-bg);
+  color: var(--btn-primary-text);
+  border: none;
+  border-radius: var(--radius-md, 10px);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--btn-primary-shadow);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.vault-btn-primary:hover:not(:disabled) {
+  background: var(--btn-primary-hover);
+  box-shadow: var(--btn-primary-shadow-hover);
+}
+
+.vault-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.vault-btn-secondary {
+  width: 100%;
+  height: 48px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 10px);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.15s ease;
+}
+
+.vault-btn-secondary:hover {
+  background: var(--surface);
+}
+
+.vault-btn-destructive {
+  width: 100%;
+  height: 46px;
+  background: transparent;
+  color: var(--error);
+  border: 1.5px solid var(--error);
+  border-radius: var(--radius-md, 10px);
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.vault-btn-destructive:hover {
+  background: rgba(239, 68, 68, 0.08);
+}

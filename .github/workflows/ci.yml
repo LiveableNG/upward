@@ -56,6 +56,11 @@ jobs:
         env:
           DATABASE_URL: ${{ env.DATABASE_URL_TEST }}
 
+      - name: Verify Prisma Schema and Migrations are in Sync (Fail on Drift)
+        run: pnpm --filter @upward/api exec prisma migrate diff --from-schema-datasource prisma/schema --to-schema-datamodel prisma/schema --exit-code
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL_TEST }}
+
       - name: Run Backend Unit Tests
         run: pnpm turbo run test --filter=@upward/api
 

@@ -143,6 +143,19 @@ import { PrismaKycRepository } from './repositories/prisma-kyc.repository'
 import { MockKycProvider } from '../kyc/mock-kyc.provider'
 import { PremblyKycProvider } from '../kyc/prembly-kyc.provider'
 
+import {
+  RENT_VAULT_REPOSITORY,
+  RENT_ADVANCE_REPOSITORY,
+  RENT_SETTLEMENT_REPOSITORY,
+  ASSET_MANAGEMENT_PROVIDER,
+} from '../../../domains/rent-savings'
+import { PrismaRentVaultRepository } from '../../../infrastructure/repositories/prisma-rent-vault.repository'
+import { PrismaRentAdvanceRepository } from '../../../infrastructure/repositories/prisma-rent-advance.repository'
+import { PrismaRentSettlementRepository } from '../../../infrastructure/repositories/prisma-rent-settlement.repository'
+import { ArmConnectInvestmentProvider } from '../../../infrastructure/providers/asset-management/arm-connect-investment.provider'
+import { MockInvestmentProvider } from '../../../infrastructure/providers/asset-management/mock-investment.provider'
+import { AssetManagementProviderRegistry } from '../../../infrastructure/providers/asset-management/asset-management-provider.registry'
+
 @Global()
 @Module({
   providers: [
@@ -395,6 +408,29 @@ import { PremblyKycProvider } from '../kyc/prembly-kyc.provider'
       provide: APP_VERSION_REPOSITORY,
       useClass: PrismaAppVersionPolicyRepository,
     },
+    PrismaRentVaultRepository,
+    PrismaRentAdvanceRepository,
+    PrismaRentSettlementRepository,
+    ArmConnectInvestmentProvider,
+    MockInvestmentProvider,
+    AssetManagementProviderRegistry,
+    {
+      provide: RENT_VAULT_REPOSITORY,
+      useClass: PrismaRentVaultRepository,
+    },
+    {
+      provide: RENT_ADVANCE_REPOSITORY,
+      useClass: PrismaRentAdvanceRepository,
+    },
+    {
+      provide: RENT_SETTLEMENT_REPOSITORY,
+      useClass: PrismaRentSettlementRepository,
+    },
+    {
+      provide: ASSET_MANAGEMENT_PROVIDER,
+      useFactory: (registry: AssetManagementProviderRegistry) => registry.getProvider(),
+      inject: [AssetManagementProviderRegistry],
+    },
   ],
   exports: [
     PrismaService,
@@ -459,6 +495,11 @@ import { PremblyKycProvider } from '../kyc/prembly-kyc.provider'
     ALLIANCE_RATING_REPOSITORY,
     KYC_REPOSITORY,
     KYC_PROVIDER,
+    RENT_VAULT_REPOSITORY,
+    RENT_ADVANCE_REPOSITORY,
+    RENT_SETTLEMENT_REPOSITORY,
+    ASSET_MANAGEMENT_PROVIDER,
+    AssetManagementProviderRegistry,
   ],
 })
 export class PrismaModule {}
