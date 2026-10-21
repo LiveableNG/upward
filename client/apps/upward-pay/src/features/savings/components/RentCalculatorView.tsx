@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { Calendar, DollarSign, AlertCircle, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from '@/lib/utils'
 import { useSimulateRentSavings } from '../hooks/useRentSavings'
 
 interface RentCalculatorViewProps {
@@ -15,18 +15,26 @@ interface RentCalculatorViewProps {
 }
 
 export function RentCalculatorView({ onProceedToSetup }: RentCalculatorViewProps) {
-  const [targetAmountNaira, setTargetAmountNaira] = useState<number>(2400000)
-  const [contractualDueDate, setContractualDueDate] = useState<string>(() => {
-    // Default 180 days out
-    const d = new Date()
-    d.setDate(d.getDate() + 180)
-    return d.toISOString().split('T')[0]
-  })
+  const [targetAmountRaw, setTargetAmountRaw] = useState<string>('')
+  const [contractualDueDate, setContractualDueDate] = useState<string>('')
   const [initialDepositNaira, setInitialDepositNaira] = useState<number>(0)
   const [cadence, setCadence] = useState<'DAILY' | 'WEEKLY' | 'MONTHLY'>('MONTHLY')
-  const [monthlyIncomeNaira, setMonthlyIncomeNaira] = useState<number>(800000)
+  const [monthlyIncomeRaw, setMonthlyIncomeRaw] = useState<string>('')
+
+  const targetAmountNaira = parseCurrencyInput(targetAmountRaw) || 0
+  const monthlyIncomeNaira = parseCurrencyInput(monthlyIncomeRaw) || 0
 
   const simulateMutation = useSimulateRentSavings()
+
+  const handleTargetAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const num = parseCurrencyInput(e.target.value)
+    setTargetAmountRaw(num ? formatCurrencyInput(num) : '')
+  }
+
+  const handleMonthlyIncomeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const num = parseCurrencyInput(e.target.value)
+    setMonthlyIncomeRaw(num ? formatCurrencyInput(num) : '')
+  }
 
   useEffect(() => {
     if (!targetAmountNaira || !contractualDueDate) return
@@ -36,7 +44,7 @@ export function RentCalculatorView({ onProceedToSetup }: RentCalculatorViewProps
       contractual_due_date: contractualDueDate,
       initial_deposit_kobo: Math.round(initialDepositNaira * 100),
       cadence,
-      monthly_income_kobo: Math.round(monthlyIncomeNaira * 100),
+      monthly_income_kobo: monthlyIncomeNaira ? Math.round(monthlyIncomeNaira * 100) : undefined,
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetAmountNaira, contractualDueDate, initialDepositNaira, cadence, monthlyIncomeNaira])
@@ -64,12 +72,12 @@ export function RentCalculatorView({ onProceedToSetup }: RentCalculatorViewProps
               <span className="rent-calculator__input-prefix">₦</span>
               <input
                 id="calc-target"
-                type="number"
+                type="text"
+                inputMode="numeric"
                 className="rent-calculator__input"
-                value={targetAmountNaira || ''}
-                onChange={(e) => setTargetAmountNaira(Number(e.target.value))}
-                placeholder="2,400,000"
-                min={50000}
+                value={targetAmountRaw}
+                onChange={handleTargetAmountChange}
+                placeholder="e.g. 2,400,000"
                 required
               />
             </div>
@@ -86,7 +94,7 @@ export function RentCalculatorView({ onProceedToSetup }: RentCalculatorViewProps
                 className="rent-calculator__input rent-calculator__input--no-prefix"
                 value={contractualDueDate}
                 onChange={(e) => setContractualDueDate(e.target.value)}
-                min={new Date().toISOString().split('T')[0]}
+                min={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
                 required
               />
             </div>
@@ -118,11 +126,12 @@ export function RentCalculatorView({ onProceedToSetup }: RentCalculatorViewProps
               <span className="rent-calculator__input-prefix">₦</span>
               <input
                 id="calc-income"
-                type="number"
+                type="text"
+                inputMode="numeric"
                 className="rent-calculator__input"
-                value={monthlyIncomeNaira || ''}
-                onChange={(e) => setMonthlyIncomeNaira(Number(e.target.value))}
-                placeholder="800,000"
+                value={monthlyIncomeRaw}
+                onChange={handleMonthlyIncomeChange}
+                placeholder="e.g. 800,000 (Optional)"
               />
             </div>
           </div>
@@ -176,6 +185,7 @@ export function RentCalculatorView({ onProceedToSetup }: RentCalculatorViewProps
         <button
           type="button"
           className="vault-btn-primary"
+          disabled={!targetAmountNaira || !contractualDueDate || targetAmountNaira < 10000}
           onClick={() =>
             onProceedToSetup({
               targetAmountKobo: Math.round(targetAmountNaira * 100),

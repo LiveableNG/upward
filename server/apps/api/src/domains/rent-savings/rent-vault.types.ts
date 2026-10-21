@@ -37,6 +37,9 @@ export interface RentVault {
   providerMembershipId?: string | null
   providerAccountNumber?: string | null
   providerCrmStatus?: string | null
+  armPurchaseId?: string | null
+  armWithdrawalId?: string | null
+  lastYieldSyncAt?: Date | null
   createdAt: Date
   updatedAt: Date
   savingsScore?: RentSavingsScore | null

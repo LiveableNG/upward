@@ -44,6 +44,21 @@ export interface InvestorOnboardingRequest {
     accountNumber: string
     bankCode: string
   }
+  nextOfKin?: {
+    name: string
+    gender?: 'Male' | 'Female'
+    dateOfBirth?: string
+    relationshipType: string
+    phone: string
+    email?: string
+    address?: string
+  }
+  documents?: {
+    passport?: string
+    bvn_passport?: string
+    id_card?: string
+    utility_bill?: string
+  }
 }
 
 export interface InvestorOnboardingResponse {

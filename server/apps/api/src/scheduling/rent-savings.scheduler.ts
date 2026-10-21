@@ -43,6 +43,19 @@ export class RentSavingsScheduler {
 
       this.logger.log(`Found ${activeVaults.length} active vaults for daily yield calculation.`)
 
+      const armProvider = this.providerRegistry.getProvider('ARM')
+      let dailyYieldRate = 0.145 / 365
+      let annualRatePct = '14.5%'
+      try {
+        const metrics = await armProvider.getYieldMetrics('ARMMMF')
+        if (metrics?.dailyYieldRate > 0) {
+          dailyYieldRate = metrics.dailyYieldRate
+          annualRatePct = `${(metrics.annualNetYieldRate * 100).toFixed(1)}%`
+        }
+      } catch (rateErr: any) {
+        this.logger.warn(`Could not fetch live ARM yield rate, using baseline: ${rateErr?.message}`)
+      }
+
       for (const vault of activeVaults) {
         const totalBalance = vault.currentPrincipalKobo + vault.accruedYieldKobo
         if (totalBalance <= 0n) continue
@@ -79,7 +92,28 @@ export class RentSavingsScheduler {
           continue
         }
 
-        const dailyYieldKobo = RentSavingsCalculatorEngine.calculateDailyYield(totalBalance)
+        // Check ARM portfolio for official accrued interest reconciliation if member has ARM account
+        let dailyYieldKobo = 0n
+        if (vault.providerAccountNumber || vault.providerMembershipId) {
+          try {
+            const portfolio = await armProvider.getPortfolio(
+              vault.providerAccountNumber || vault.providerMembershipId!,
+            )
+            if (portfolio && portfolio.accruedInterestKobo > vault.accruedYieldKobo) {
+              dailyYieldKobo = portfolio.accruedInterestKobo - vault.accruedYieldKobo
+            }
+          } catch (portErr: any) {
+            this.logger.debug(
+              `Live ARM portfolio poll skipped for vault ${vault.uuid}: ${portErr?.message}`,
+            )
+          }
+        }
+
+        // Fallback to calculated daily compound rate if no live portfolio delta returned
+        if (dailyYieldKobo <= 0n) {
+          dailyYieldKobo = BigInt(Math.max(1, Math.round(Number(totalBalance) * dailyYieldRate)))
+        }
+
         if (dailyYieldKobo <= 0n) continue
 
         const newBalance = totalBalance + dailyYieldKobo
@@ -96,11 +130,14 @@ export class RentSavingsScheduler {
           balanceAfterKobo: newBalance,
           reference: ref,
           channel: 'SYSTEM_YIELD',
-          narration: `Daily compound yield (14.5% p.a.) credited to vault`,
+          narration: `Daily compound yield (${annualRatePct} p.a.) credited to vault`,
         })
 
-        // Increment accrued yield
+        // Increment accrued yield and update lastYieldSyncAt
         await this.rentVaultRepo.incrementBalances(vault.id, 0n, dailyYieldKobo)
+        await this.rentVaultRepo.update(vault.id, {
+          lastYieldSyncAt: now,
+        })
       }
 
       this.logger.log('Daily NAV Accrual routine completed successfully.')

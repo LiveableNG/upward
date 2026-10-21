@@ -16,6 +16,7 @@ import {
 } from '../../../domains/rent-savings/rent-vault.repository'
 import { CadenceType, FundingMethodType } from '../../../domains/rent-savings/rent-vault.types'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 
 export class CreateRentVaultDto {
   @IsNotEmpty()
@@ -54,6 +55,7 @@ export class CreateRentVaultUseCase {
     private readonly rentVaultRepo: IRentVaultRepository,
     @Inject(USER_REPOSITORY)
     private readonly userRepo: UserRepository,
+    private readonly prisma: PrismaService,
   ) {}
 
   async execute(userId: number, dto: CreateRentVaultDto) {
@@ -75,6 +77,18 @@ export class CreateRentVaultUseCase {
     if (!user) {
       throw new BadRequestException('User not found.')
     }
+
+    if (!user.isIdentityVerified) {
+      throw new BadRequestException(
+        'Identity verification (BVN) and investor KYC are required before creating or locking a rent vault.',
+      )
+    }
+
+    // Retrieve active investor KYC registration to link ARM membership
+    const latestKyc = await this.prisma.upward_kyc_verification.findFirst({
+      where: { userId, status: 'VERIFIED' },
+      orderBy: { createdAt: 'desc' },
+    })
 
     const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Tenant'
     const dvaAccountName = `Upward / ${userName}`
@@ -108,6 +122,9 @@ export class CreateRentVaultUseCase {
       dvaAssignmentStatus,
       autoBypassPmApproval: true,
       investmentProvider: 'ARM',
+      providerMembershipId: latestKyc?.armCustomerMembershipId || null,
+      providerAccountNumber: latestKyc?.armCrmAccountNumber || null,
+      providerCrmStatus: latestKyc?.armSyncStatus || 'PENDING',
     })
 
     // Initialize baseline savings score (20 points for setup)

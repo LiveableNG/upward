@@ -86,3 +86,31 @@ export async function breakoutRentVault(vaultId: string) {
   })
   return res.data
 }
+
+export interface OnboardInvestorPayload {
+  bvn: string
+  mothers_maiden_name: string
+  occupation: string
+  source_of_funds: 'Salary' | 'Business' | 'Savings' | 'Investment'
+  income_range?: string
+  next_of_kin_name: string
+  next_of_kin_relationship: string
+  next_of_kin_phone: string
+  next_of_kin_email?: string
+  next_of_kin_address?: string
+  settlement_bank_code: string
+  settlement_account_number: string
+  settlement_account_name: string
+  settlement_bank_name?: string
+}
+
+export async function onboardSavingsInvestor(payload: OnboardInvestorPayload) {
+  const res = await request<{ status: string; message: string; data: any }>(
+    '/rent-vaults/onboard-investor',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+  )
+  return res.data
+}

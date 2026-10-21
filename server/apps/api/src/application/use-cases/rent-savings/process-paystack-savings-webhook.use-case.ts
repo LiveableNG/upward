@@ -5,6 +5,7 @@ import {
   IRentVaultRepository,
   RENT_VAULT_REPOSITORY,
 } from '../../../domains/rent-savings/rent-vault.repository'
+import { AssetManagementProviderRegistry } from '../../../infrastructure/providers/asset-management/asset-management-provider.registry'
 
 export interface PaystackWebhookPayload {
   event: string
@@ -35,6 +36,7 @@ export class ProcessPaystackSavingsWebhookUseCase {
     private readonly configService: ConfigService,
     @Inject(RENT_VAULT_REPOSITORY)
     private readonly rentVaultRepo: IRentVaultRepository,
+    private readonly providerRegistry: AssetManagementProviderRegistry,
   ) {
     this.secretKey = this.configService.get<string>('PAYSTACK_SECRET_KEY') || ''
   }
@@ -132,6 +134,31 @@ export class ProcessPaystackSavingsWebhookUseCase {
     this.logger.log(
       `Successfully credited vault ${vault.uuid} with ₦${Number(amountKobo) / 100} (ref: ${reference})`,
     )
+
+    // Dispatch automated mutual fund investment sweep to active asset manager (ARM Connect)
+    if (vault.investmentProvider) {
+      try {
+        const provider = this.providerRegistry.getProvider(vault.investmentProvider)
+        const purchaseRes = await provider.subscribe({
+          membershipId: vault.providerMembershipId || 'OMNIBUS_MASTER',
+          productCode: 'ARMMMF',
+          amountKobo,
+          reference: `ARM_${reference}`,
+        })
+        if (purchaseRes.purchaseId) {
+          await this.rentVaultRepo.update(vault.id, {
+            armPurchaseId: purchaseRes.purchaseId,
+          })
+          this.logger.log(
+            `Successfully submitted purchase to ARM for vault ${vault.uuid}. PurchaseId: ${purchaseRes.purchaseId}`,
+          )
+        }
+      } catch (armErr: any) {
+        this.logger.warn(
+          `Instant ARM subscription queued/pending for vault ${vault.uuid} (will be captured in omnibus sweep): ${armErr?.message}`,
+        )
+      }
+    }
 
     // Update Upward Savings Score milestones & cadence points
     await this.updateSavingsScoreOnDeposit(

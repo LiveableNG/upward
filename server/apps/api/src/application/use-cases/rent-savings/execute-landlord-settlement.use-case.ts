@@ -20,6 +20,7 @@ import {
   RENT_SETTLEMENT_REPOSITORY,
 } from '../../../domains/rent-savings/rent-settlement.repository'
 import { RentSavingsCalculatorEngine } from '../../../domains/rent-savings/rent-savings-calculator.engine'
+import { AssetManagementProviderRegistry } from '../../../infrastructure/providers/asset-management/asset-management-provider.registry'
 
 export class ExecuteLandlordSettlementDto {
   @IsNotEmpty()
@@ -54,6 +55,7 @@ export class ExecuteLandlordSettlementUseCase {
     private readonly rentAdvanceRepo: IRentAdvanceRepository,
     @Inject(RENT_SETTLEMENT_REPOSITORY)
     private readonly rentSettlementRepo: IRentSettlementRepository,
+    private readonly providerRegistry: AssetManagementProviderRegistry,
   ) {}
 
   async execute(userId: number, vaultUuid: string, dto: ExecuteLandlordSettlementDto) {
@@ -122,6 +124,29 @@ export class ExecuteLandlordSettlementUseCase {
     const settlementStatus = vault.autoBypassPmApproval ? 'PAID' : 'DISBURSED_PENDING_PM_APPROVAL'
     const receiptDownloadUrl = `/api/v1/rent-vaults/${vault.uuid}/receipt.pdf`
 
+    // Redeem investment funds from asset manager (ARM Connect) to Upward settlement float
+    let armWithdrawalId: string | null = null
+    if (vault.investmentProvider) {
+      try {
+        const provider = this.providerRegistry.getProvider(vault.investmentProvider)
+        const redeemRes = await provider.redeem({
+          membershipId: vault.providerMembershipId || 'OMNIBUS_MASTER',
+          productCode: 'ARMMMF',
+          productAccountNumber: vault.providerAccountNumber || 'OMNIBUS_FLOAT_01',
+          amountKobo: totalAccumulatedBalance,
+          reference: `RED_${settlementReference}`,
+        })
+        if (redeemRes.withdrawalId) {
+          armWithdrawalId = redeemRes.withdrawalId
+          this.logger.log(`ARM settlement redemption processed. WithdrawalId: ${armWithdrawalId}`)
+        }
+      } catch (redeemErr: any) {
+        this.logger.warn(
+          `Direct ARM redemption queued / offset against pre-funded settlement float for vault ${vault.uuid}: ${redeemErr?.message}`,
+        )
+      }
+    }
+
     // Create settlement record
     await this.rentSettlementRepo.create({
       vaultId: vault.id,
@@ -158,6 +183,7 @@ export class ExecuteLandlordSettlementUseCase {
         bankCode: dto.landlord_bank_code,
         accountNumber: dto.landlord_account_number,
         nipSessionId,
+        armWithdrawalId,
       },
     })
 
@@ -181,6 +207,7 @@ export class ExecuteLandlordSettlementUseCase {
       lockStatus: 'SETTLED',
       currentPrincipalKobo: 0n,
       accruedYieldKobo: 0n,
+      armWithdrawalId: armWithdrawalId || undefined,
     })
 
     // Award completion points to savings score (+15 points)

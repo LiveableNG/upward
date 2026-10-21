@@ -5,6 +5,8 @@ import { Landmark, CreditCard, Lock, ShieldCheck, ArrowLeft, CheckCircle2 } from
 import { formatCurrency } from '@/lib/utils'
 import { useCreateRentVault } from '../hooks/useRentSavings'
 import { useToast } from '@/components/common/Toast'
+import { useAuth } from '@/features/auth/AuthContext'
+import { SavingsInvestorKycModal } from './SavingsInvestorKycModal'
 
 interface VaultSetupFlowProps {
   initialConfig: {
@@ -21,9 +23,23 @@ export function VaultSetupFlow({ initialConfig, onBack, onSuccess }: VaultSetupF
   const [fundingMethod, setFundingMethod] = useState<'DVA' | 'CARD_TOKEN'>('DVA')
   const [paydayOfMonth, setPaydayOfMonth] = useState<number>(25)
   const [agreeToLock, setAgreeToLock] = useState<boolean>(false)
+  const [isKycModalOpen, setIsKycModalOpen] = useState<boolean>(false)
 
+  const { user, refreshUser } = useAuth()
   const createVaultMutation = useCreateRentVault()
   const { error: toastError, success: toastSuccess } = useToast()
+
+  const executeVaultCreation = async () => {
+    await createVaultMutation.mutateAsync({
+      target_amount_kobo: initialConfig.targetAmountKobo,
+      contractual_due_date: initialConfig.contractualDueDate,
+      cadence: initialConfig.cadence,
+      preferred_funding_method: fundingMethod,
+      payday_day_of_month: fundingMethod === 'CARD_TOKEN' ? paydayOfMonth : undefined,
+    })
+    toastSuccess('Your Rent Vault has been successfully created and locked!')
+    onSuccess()
+  }
 
   const handleCreate = async () => {
     if (!agreeToLock) {
@@ -31,18 +47,25 @@ export function VaultSetupFlow({ initialConfig, onBack, onSuccess }: VaultSetupF
       return
     }
 
+    // Intercept with ARM & SEC Investor KYC Modal if user identity is not yet verified
+    if (!user?.isIdentityVerified) {
+      setIsKycModalOpen(true)
+      return
+    }
+
     try {
-      await createVaultMutation.mutateAsync({
-        target_amount_kobo: initialConfig.targetAmountKobo,
-        contractual_due_date: initialConfig.contractualDueDate,
-        cadence: initialConfig.cadence,
-        preferred_funding_method: fundingMethod,
-        payday_day_of_month: fundingMethod === 'CARD_TOKEN' ? paydayOfMonth : undefined,
-      })
-      toastSuccess('Your Rent Vault has been successfully created and locked!')
-      onSuccess()
+      await executeVaultCreation()
     } catch (err: any) {
       toastError(err?.message || 'Failed to create rent vault. Please try again.')
+    }
+  }
+
+  const handleKycSuccess = async () => {
+    try {
+      await refreshUser()
+      await executeVaultCreation()
+    } catch (err: any) {
+      toastError(err?.message || 'Failed to activate vault after KYC. Please try again.')
     }
   }
 
@@ -174,6 +197,12 @@ export function VaultSetupFlow({ initialConfig, onBack, onSuccess }: VaultSetupF
             : 'Confirm & Activate Rent Vault'}
           <CheckCircle2 size={18} />
         </button>
+
+        <SavingsInvestorKycModal
+          isOpen={isKycModalOpen}
+          onClose={() => setIsKycModalOpen(false)}
+          onSuccess={handleKycSuccess}
+        />
       </div>
     </div>
   )

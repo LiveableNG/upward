@@ -583,6 +583,7 @@ import { ProcessPaystackSavingsWebhookUseCase } from './use-cases/rent-savings/p
 import { DisburseEmergencyAdvanceUseCase } from './use-cases/rent-savings/disburse-emergency-advance.use-case'
 import { ExecuteLandlordSettlementUseCase } from './use-cases/rent-savings/execute-landlord-settlement.use-case'
 import { BreakoutRentVaultUseCase } from './use-cases/rent-savings/breakout-rent-vault.use-case'
+import { OnboardSavingsInvestorUseCase } from './use-cases/rent-savings/onboard-savings-investor.use-case'
 
 const UseCases: any[] = [
   SimulateRentSavingsUseCase,
@@ -592,6 +593,7 @@ const UseCases: any[] = [
   DisburseEmergencyAdvanceUseCase,
   ExecuteLandlordSettlementUseCase,
   BreakoutRentVaultUseCase,
+  OnboardSavingsInvestorUseCase,
   TogglePmAllianceEnablementUseCase,
   CreateAllianceQualificationUseCase,
   ListAllianceQualificationsUseCase,

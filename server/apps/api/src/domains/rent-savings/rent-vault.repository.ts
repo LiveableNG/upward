@@ -22,6 +22,9 @@ export interface CreateVaultDto {
   providerMembershipId?: string | null
   providerAccountNumber?: string | null
   providerCrmStatus?: string | null
+  armPurchaseId?: string | null
+  armWithdrawalId?: string | null
+  lastYieldSyncAt?: Date | null
 }
 
 export interface IRentVaultRepository {
@@ -29,6 +32,7 @@ export interface IRentVaultRepository {
   findById(id: number, tx?: unknown): Promise<RentVault | null>
   findByUuid(uuid: string, tx?: unknown): Promise<RentVault | null>
   findActiveByUserId(userId: number, tx?: unknown): Promise<RentVault | null>
+  findActiveVaults(tx?: unknown): Promise<RentVault[]>
   findByDvaAccountNumber(accountNumber: string, tx?: unknown): Promise<RentVault | null>
   findMaturedLockedVaults(asOfDate: Date, tx?: unknown): Promise<RentVault[]>
   update(id: number, data: Partial<RentVault>, tx?: unknown): Promise<RentVault>

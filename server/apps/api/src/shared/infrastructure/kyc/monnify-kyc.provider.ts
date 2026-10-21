@@ -227,6 +227,8 @@ export class MonnifyKycProvider implements IKycProvider {
         lastName,
         dateOfBirth,
         phone,
+        gender: body.gender,
+        photo: body.image,
         provider: 'MONNIFY',
         providerReference: body.bvn || `monnify-${Date.now()}`,
         rawResponse: body,

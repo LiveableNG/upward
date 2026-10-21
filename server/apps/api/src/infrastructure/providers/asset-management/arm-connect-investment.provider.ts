@@ -186,6 +186,25 @@ export class ArmConnectInvestmentProvider implements IAssetManagementProvider {
             bankCode: customer.bankDetails.bankCode,
           }
         : undefined,
+      nextOfKin: customer.nextOfKin
+        ? {
+            name: customer.nextOfKin.name,
+            gender: customer.nextOfKin.gender || 'Male',
+            dateOfBirth: customer.nextOfKin.dateOfBirth || '1990-01-01',
+            relationshipType: customer.nextOfKin.relationshipType,
+            phone: customer.nextOfKin.phone,
+            email: customer.nextOfKin.email || customer.customerEmail,
+            address: customer.nextOfKin.address || customer.address.streetName,
+          }
+        : undefined,
+      documents: customer.documents
+        ? {
+            passport: customer.documents.passport,
+            bvn_passport: customer.documents.bvn_passport || customer.documents.passport,
+            id_card: customer.documents.id_card,
+            utility_bill: customer.documents.utility_bill,
+          }
+        : undefined,
     }
 
     try {

@@ -12,11 +12,13 @@ import {
   ShieldCheck,
   ArrowRight,
   Sparkles,
+  ArrowDownToLine,
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { useToast } from '@/components/common/Toast'
 import { EmergencyAdvanceModal } from './EmergencyAdvanceModal'
 import { FairBreakoutModal } from './FairBreakoutModal'
+import { FundVaultModal } from './FundVaultModal'
 
 interface VaultDashboardViewProps {
   vault: {
@@ -54,6 +56,7 @@ interface VaultDashboardViewProps {
 }
 
 export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboardViewProps) {
+  const [showFundModal, setShowFundModal] = useState(false)
   const [showAdvanceModal, setShowAdvanceModal] = useState(false)
   const [showBreakoutModal, setShowBreakoutModal] = useState(false)
   const [copiedDva, setCopiedDva] = useState(false)
@@ -130,6 +133,22 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
           </span>
         </div>
 
+        {/* Quick Fund Action */}
+        <button
+          type="button"
+          className="vault-btn-primary"
+          onClick={() => setShowFundModal(true)}
+          style={{
+            background: 'var(--clay)',
+            color: '#ffffff',
+            boxShadow: '0 4px 14px rgba(200, 107, 73, 0.35)',
+            marginTop: 4,
+          }}
+        >
+          <PlusCircle size={18} />
+          <span>Fund Vault</span>
+        </button>
+
         {/* If T-30 has arrived, present Settlement Hub banner */}
         {isSettlementReady && (
           <button
@@ -180,19 +199,17 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
 
       {/* Quick Action Cards Grid */}
       <div className="vault-actions-grid">
-        {vault.dedicated_account && (
-          <div className="vault-action-btn" onClick={handleCopyDva}>
-            <div className="vault-action-btn__icon">
-              {copiedDva ? <Check size={18} color="var(--success)" /> : <Copy size={18} />}
-            </div>
-            <span className="vault-action-btn__title">
-              {copiedDva ? 'Copied Account!' : 'Copy Bank Account (DVA)'}
-            </span>
-            <span className="vault-action-btn__subtitle">
-              {vault.dedicated_account.bank_name} • {vault.dedicated_account.account_number}
-            </span>
+        <div className="vault-action-btn" onClick={() => setShowFundModal(true)}>
+          <div className="vault-action-btn__icon">
+            <ArrowDownToLine size={18} />
           </div>
-        )}
+          <span className="vault-action-btn__title">Fund Vault</span>
+          <span className="vault-action-btn__subtitle">
+            {vault.dedicated_account
+              ? `${vault.dedicated_account.bank_name} • ${vault.dedicated_account.account_number}`
+              : 'Direct bank transfer'}
+          </span>
+        </div>
 
         <div className="vault-action-btn" onClick={() => setShowAdvanceModal(true)}>
           <div className="vault-action-btn__icon">
@@ -226,6 +243,12 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
       </div>
 
       {/* Modals */}
+      <FundVaultModal
+        isOpen={showFundModal}
+        onClose={() => setShowFundModal(false)}
+        dedicatedAccount={vault.dedicated_account}
+      />
+
       {showAdvanceModal && (
         <EmergencyAdvanceModal
           vaultId={vault.vault_id}

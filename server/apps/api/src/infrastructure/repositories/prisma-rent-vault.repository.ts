@@ -43,6 +43,9 @@ export class PrismaRentVaultRepository implements IRentVaultRepository {
         providerMembershipId: data.providerMembershipId ?? null,
         providerAccountNumber: data.providerAccountNumber ?? null,
         providerCrmStatus: data.providerCrmStatus ?? null,
+        armPurchaseId: data.armPurchaseId ?? null,
+        armWithdrawalId: data.armWithdrawalId ?? null,
+        lastYieldSyncAt: data.lastYieldSyncAt ?? null,
       },
       include: {
         savingsScore: true,
@@ -86,6 +89,19 @@ export class PrismaRentVaultRepository implements IRentVaultRepository {
       },
     })
     return record ? this.mapVault(record) : null
+  }
+
+  async findActiveVaults(tx?: unknown): Promise<RentVault[]> {
+    const client = this.getClient(tx)
+    const records = await client.upward_rent_vault.findMany({
+      where: {
+        lockStatus: { in: ['LOCKED', 'SETTLEMENT_READY'] },
+      },
+      include: {
+        savingsScore: true,
+      },
+    })
+    return records.map((r) => this.mapVault(r))
   }
 
   async findByDvaAccountNumber(accountNumber: string, tx?: unknown): Promise<RentVault | null> {
@@ -139,6 +155,9 @@ export class PrismaRentVaultRepository implements IRentVaultRepository {
       updatePayload.providerAccountNumber = data.providerAccountNumber
     if (data.providerCrmStatus !== undefined)
       updatePayload.providerCrmStatus = data.providerCrmStatus
+    if (data.armPurchaseId !== undefined) updatePayload.armPurchaseId = data.armPurchaseId
+    if (data.armWithdrawalId !== undefined) updatePayload.armWithdrawalId = data.armWithdrawalId
+    if (data.lastYieldSyncAt !== undefined) updatePayload.lastYieldSyncAt = data.lastYieldSyncAt
 
     const record = await client.upward_rent_vault.update({
       where: { id },
@@ -355,6 +374,9 @@ export class PrismaRentVaultRepository implements IRentVaultRepository {
       providerMembershipId: record.providerMembershipId,
       providerAccountNumber: record.providerAccountNumber,
       providerCrmStatus: record.providerCrmStatus,
+      armPurchaseId: record.armPurchaseId,
+      armWithdrawalId: record.armWithdrawalId,
+      lastYieldSyncAt: record.lastYieldSyncAt,
       createdAt: record.createdAt,
       updatedAt: record.updatedAt,
       savingsScore: record.savingsScore

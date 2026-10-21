@@ -28,6 +28,10 @@ import {
   ExecuteLandlordSettlementUseCase,
 } from '../../../application/use-cases/rent-savings/execute-landlord-settlement.use-case'
 import { BreakoutRentVaultUseCase } from '../../../application/use-cases/rent-savings/breakout-rent-vault.use-case'
+import {
+  OnboardSavingsInvestorUseCase,
+  OnboardSavingsInvestorDto,
+} from '../../../application/use-cases/rent-savings/onboard-savings-investor.use-case'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 
 @Controller('rent-vaults')
@@ -38,6 +42,7 @@ export class RentVaultController {
     private readonly disburseAdvanceUseCase: DisburseEmergencyAdvanceUseCase,
     private readonly executeSettlementUseCase: ExecuteLandlordSettlementUseCase,
     private readonly breakoutVaultUseCase: BreakoutRentVaultUseCase,
+    private readonly onboardInvestorUseCase: OnboardSavingsInvestorUseCase,
     @Inject(USER_REPOSITORY) private readonly userRepo: UserRepository,
   ) {}
 
@@ -68,6 +73,14 @@ export class RentVaultController {
   async createVault(@Req() req: any, @Body() dto: CreateRentVaultDto) {
     const userId = await this.getNumericUserId(req)
     return this.createVaultUseCase.execute(userId, dto)
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('onboard-investor')
+  @HttpCode(HttpStatus.OK)
+  async onboardInvestor(@Req() req: any, @Body() dto: OnboardSavingsInvestorDto) {
+    const userId = await this.getNumericUserId(req)
+    return this.onboardInvestorUseCase.execute(userId, dto)
   }
 
   @UseGuards(JwtAuthGuard)

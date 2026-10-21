@@ -28,6 +28,9 @@ model upward_rent_vault {
   providerMembershipId    String?                          // e.g. ARM B2B2C customer membershipId
   providerAccountNumber   String?                          // e.g. ARM productAccountNumber for withdrawals
   providerCrmStatus       String?                          // Submitted, Approved, Rejected
+  armPurchaseId           String?                          // Latest ARM mutual fund purchase ID
+  armWithdrawalId         String?                          // Settlement redemption ID from ARM
+  lastYieldSyncAt         DateTime?                        // Timestamp of last ARM portfolio reconciliation
 
   createdAt               DateTime                         @default(now())
   updatedAt               DateTime                         @updatedAt
