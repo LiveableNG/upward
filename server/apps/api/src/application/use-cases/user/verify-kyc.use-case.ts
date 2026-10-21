@@ -242,11 +242,24 @@ export class VerifyKycUseCase {
       }
     }
 
+    // Extract gender from provider response if available
+    const rawGender =
+      verificationResult.rawResponse?.gender || verificationResult.rawResponse?.data?.gender || null
+    const normalizedGender = rawGender
+      ? rawGender.toUpperCase().startsWith('M')
+        ? 'Male'
+        : rawGender.toUpperCase().startsWith('F')
+          ? 'Female'
+          : null
+      : null
+
     // Success: Mark user as verified
     await this.userRepository.update(user.id, {
       isIdentityVerified: true,
       // If user had no DOB set, populate with verified DOB
       ...(user.dateOfBirth ? {} : returnedDob ? { dateOfBirth: returnedDob } : {}),
+      // If user had no gender set, populate with verified gender
+      ...(user.gender ? {} : normalizedGender ? { gender: normalizedGender } : {}),
     })
 
     // Store verified audit record
@@ -263,6 +276,7 @@ export class VerifyKycUseCase {
       metadata: {
         providerReference: verificationResult.providerReference,
         provider: verificationResult.provider,
+        rawResponse: verificationResult.rawResponse || {},
       },
     })
 

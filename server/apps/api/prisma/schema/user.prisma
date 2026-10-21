@@ -214,7 +214,7 @@ model upward_kyc_verification {
   idType          String       // 'BVN' | 'NIN' | 'VNIN'
   idNumberHash    String       // SHA-256 hash for anti-fraud & uniqueness detection
   idNumberMasked  String       // e.g. "*******4821" for UI display
-  provider        String       // 'MOCK' | 'PREMBLY' | 'DOJAH'
+  provider        String       // 'MOCK' | 'PREMBLY' | 'DOJAH' | 'MONNIFY'
   status          String       // 'VERIFIED' | 'FAILED' | 'PENDING'
   matchScore      Float?
   failureReason   String?

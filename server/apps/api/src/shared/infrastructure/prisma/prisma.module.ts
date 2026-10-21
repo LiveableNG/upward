@@ -142,6 +142,7 @@ import { KYC_REPOSITORY } from '../../../domains/kyc/kyc.repository'
 import { PrismaKycRepository } from './repositories/prisma-kyc.repository'
 import { MockKycProvider } from '../kyc/mock-kyc.provider'
 import { PremblyKycProvider } from '../kyc/prembly-kyc.provider'
+import { MonnifyKycProvider } from '../kyc/monnify-kyc.provider'
 
 import {
   RENT_VAULT_REPOSITORY,
@@ -176,11 +177,14 @@ import { AssetManagementProviderRegistry } from '../../../infrastructure/provide
     {
       provide: KYC_PROVIDER,
       useFactory: (configService: ConfigService) => {
-        const provider = configService.get<string>('KYC_PROVIDER') || 'mock'
+        const provider = (configService.get<string>('KYC_PROVIDER') || 'monnify').toLowerCase()
         if (provider === 'prembly') {
           return new PremblyKycProvider(configService)
         }
-        return new MockKycProvider()
+        if (provider === 'mock') {
+          return new MockKycProvider()
+        }
+        return new MonnifyKycProvider(configService)
       },
       inject: [ConfigService],
     },
