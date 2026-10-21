@@ -45,5 +45,12 @@
     "node": ">=20.0.0",
     "pnpm": ">=10.0.0"
   },
-  "packageManager": "pnpm@10.29.1"
+  "packageManager": "pnpm@10.29.1",
+  "pnpm": {
+    "overrides": {
+      "proxy-addr": "^2.0.8",
+      "dompurify": "^3.4.16",
+      "seroval": "^1.6.2"
+    }
+  }
 }

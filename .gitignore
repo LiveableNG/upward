@@ -45,3 +45,9 @@ prisma/migrations/*.sql.bak
 # Capacitor generated
 apps/frontend/ios/
 apps/frontend/android/
+
+# Nested lockfiles in workspace packages
+client/**/package-lock.json
+server/**/package-lock.json
+client/**/pnpm-lock.yaml
+server/**/pnpm-lock.yaml
