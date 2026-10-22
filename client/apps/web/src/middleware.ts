@@ -550,6 +550,19 @@ export async function middleware(request: NextRequest) {
     return NextResponse.rewrite(new URL('/pages/university/sessions/index.html', request.url))
   }
   if (
+    pathname === '/academy/enroll' ||
+    pathname === '/enroll' ||
+    pathname === '/academy/webinar' ||
+    pathname === '/webinar' ||
+    pathname === '/webinars' ||
+    pathname.startsWith('/academy/enroll/') ||
+    pathname.startsWith('/enroll/') ||
+    pathname.startsWith('/academy/webinar/') ||
+    pathname.startsWith('/webinar/')
+  ) {
+    return NextResponse.rewrite(new URL('/pages/university/webinar/index.html', request.url))
+  }
+  if (
     pathname === '/academy/lecturers' ||
     pathname === '/academy/lecturer' ||
     pathname.startsWith('/academy/lecturers/') ||
@@ -606,6 +619,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.rewrite(new URL('/pages/university/sessions/index.html', request.url))
   }
   if (
+    pathname === '/university/webinar' ||
+    pathname === '/university/webinars' ||
+    pathname.startsWith('/university/webinar/')
+  ) {
+    return NextResponse.rewrite(new URL('/pages/university/webinar/index.html', request.url))
+  }
+  if (
     pathname === '/university/hire' ||
     pathname === '/university/hire/' ||
     pathname === '/university/interns' ||
@@ -641,6 +661,10 @@ export const config = {
     '/academy/:path*',
     '/university',
     '/university/:path*',
+    '/webinar',
+    '/webinar/:path*',
+    '/enroll',
+    '/enroll/:path*',
     '/landing-analytics.js',
     '/pm',
     '/_upward_pay/:path*',
