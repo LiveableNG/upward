@@ -1,36 +1,31 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ArrowDownRight,
   ArrowUpRight,
-  Building2,
   ChevronRight,
   Flame,
-  History,
   Receipt,
   ShieldCheck,
-  Smartphone,
   TrendingUp,
-  X,
   Zap,
+  Sparkles,
+  ShieldAlert,
+  ArrowRight,
+  Landmark,
+  PiggyBank,
+  Home,
 } from 'lucide-react'
-import {
-  useHasMyHome,
-  useMyHomeProperties,
-  useAllPendingBills,
-} from '@/features/my-home/hooks/useMyHome'
 import { formatCurrency, formatDate, formatTime } from '@/lib/utils'
-import { AppleIcon, PlayStoreIcon } from '@/components/StoreIcons'
 import { type CompletedPayment, type PendingPayment } from '../types'
 import { type UserProfile } from '@/features/auth/types'
 import { ActionCarousel } from './ActionCarousel'
-import { ShareCredibility } from './ShareCredibility'
-import { UpcomingFeaturesWidget } from './UpcomingFeaturesWidget'
-import { ExclusiveHomesBrowseLink } from './exclusive-homes/ExclusiveHomesPromo'
-import { isSavingsWalletEnabled } from '../utils/savingsWallet'
 import { RentDepositCard } from './RentDepositCard'
+import { RentRunwayHero } from './RentRunwayHero'
+import { MyHomeQuickHub } from './MyHomeQuickHub'
+import { useRentVault } from '@/features/savings/hooks/useRentSavings'
 
 interface DashboardHomeProps {
   user: UserProfile
@@ -160,19 +155,16 @@ export function DashboardHome({
   isNewUser,
   notifCount,
   anyOverdue,
-  showAppBanner = false,
-  onDismissAppBanner,
   benefitsActive = false,
   benefitsEndsAt = null,
   isLoading = false,
 }: DashboardHomeProps) {
   const router = useRouter()
-  const savingsEnabled = isSavingsWalletEnabled(user)
-  const hasMyHome = useHasMyHome()
-  const myHomeProperties = useMyHomeProperties()
-  const myHomePreview = myHomeProperties[0]?.unitName || myHomeProperties[0]?.label
-  const { bills: gtBills } = useAllPendingBills()
   const [isNavigatingToBreakdown, setIsNavigatingToBreakdown] = useState(false)
+  const { data: rentVault } = useRentVault()
+
+  const rentDue = getRentDue(pendingPayments, user)
+  const recent = completedPayments.slice(0, 3)
 
   const handleScoreClick = () => {
     setIsNavigatingToBreakdown(true)
@@ -184,106 +176,32 @@ export function DashboardHome({
   if (isLoading) {
     return (
       <div className="dash-home animate-pulse">
-        <div className="dash-home__main">
-          <div
-            style={{
-              height: '240px',
-              backgroundColor: 'var(--border)',
-              borderRadius: '16px',
-              marginBottom: '24px',
-            }}
-          ></div>
-          <div
-            style={{ height: '80px', backgroundColor: 'var(--border)', borderRadius: '16px' }}
-          ></div>
-        </div>
-        <div className="dash-home__aside">
-          <div
-            style={{ height: '100px', backgroundColor: 'var(--border)', borderRadius: '16px' }}
-          ></div>
-        </div>
-        <div className="dash-home__wide">
-          <div
-            style={{
-              height: '200px',
-              backgroundColor: 'var(--border)',
-              borderRadius: '16px',
-              marginTop: '24px',
-            }}
-          ></div>
-        </div>
+        <div style={{ height: 220, background: 'var(--border)', borderRadius: 18 }} />
+        <div style={{ height: 90, background: 'var(--border)', borderRadius: 14 }} />
+        <div style={{ height: 180, background: 'var(--border)', borderRadius: 18 }} />
       </div>
     )
   }
 
   const ringPct = Math.min(100, Math.max((credScore / maxScore) * 100, 4))
-  const rentDue = getRentDue(pendingPayments, user)
-  const recent = completedPayments.slice(0, 3)
-
+  const displayBand =
+    !isScorable || band?.toLowerCase().includes('not score')
+      ? 'STARTER'
+      : (band || 'STARTER').toUpperCase()
   const showActivityCenter =
     pendingPayments.length > 0 ||
-    gtBills.length > 0 ||
     isNewUser ||
     propertyReminders.length > 0 ||
     (verificationOn && !isIdentityVerified)
 
-  const activityCritical =
-    anyOverdue || gtBills.some((bill) => bill.proof_status?.toLowerCase() === 'rejected')
-
-  const nudgeTitle =
-    streak >= 3
-      ? `${streak}-payment streak — keep it going`
-      : onTimePct >= 90
-        ? 'Strong on-time record'
-        : '3 more on-time payments'
-  const nudgeDesc =
-    streak >= 3 ? 'Share your credibility with landlords.' : '= a stronger profile for lenders.'
+  const activityCritical = anyOverdue
 
   return (
     <div className="dash-home">
+      {/* 0. Optional Deposit Overpayment Refund Card */}
       <RentDepositCard />
-      <button
-        type="button"
-        className={`dash-home__benefits-card ${benefitsActive ? 'is-active' : ''}`}
-        onClick={() => router.push('/dashboard/benefits')}
-      >
-        <span className="dash-home__benefits-card-icon">
-          <ShieldCheck size={18} />
-        </span>
-        <span className="dash-home__benefits-card-body">
-          <span className="dash-home__benefits-card-title">
-            {benefitsActive ? "You're covered" : 'Add account protection'}
-          </span>
-          <span className="dash-home__benefits-card-desc">
-            {benefitsActive
-              ? benefitsEndsAt
-                ? `Renews ${formatDate(benefitsEndsAt)} · View benefits`
-                : 'Upward Benefits is active · View benefits'
-              : 'Annual cover for your Upward account · Activate'}
-          </span>
-        </span>
-        <ChevronRight size={18} className="dash-home__benefits-card-chevron" />
-      </button>
-      {hasMyHome && (
-        <button
-          type="button"
-          className="dash-home__benefits-card dash-home__benefits-card--tenancy"
-          onClick={() => router.push('/dashboard/my-home')}
-        >
-          <span className="dash-home__benefits-card-icon">
-            <Building2 size={18} />
-          </span>
-          <span className="dash-home__benefits-card-body">
-            <span className="dash-home__benefits-card-title">My Home</span>
-            <span className="dash-home__benefits-card-desc">
-              {myHomePreview
-                ? `${myHomePreview} · Complaints, visitors, bills & documents`
-                : 'Complaints, visitors, bills, and documents for your tenancy'}
-            </span>
-          </span>
-          <ChevronRight size={18} className="dash-home__benefits-card-chevron" />
-        </button>
-      )}
+
+      {/* Optional Activity / Critical Action Center */}
       {showActivityCenter && (
         <div
           className={`dash-home__activity-center activity-center ${activityCritical ? 'activity-center--critical' : ''}`}
@@ -303,7 +221,7 @@ export function DashboardHome({
           </div>
           <ActionCarousel
             pendingPayments={pendingPayments}
-            gtBills={gtBills}
+            gtBills={[]}
             showKYC={isNewUser}
             rentReminders={propertyReminders}
             isIdentityVerified={!verificationOn || isIdentityVerified}
@@ -313,7 +231,12 @@ export function DashboardHome({
         </div>
       )}
 
+      {/* 1. MAIN COLUMN (LEFT): Runway Hero, Score, and Actions */}
       <div className="dash-home__main">
+        {/* PRIMARY HERO: Context-Aware Rent Runway & Savings Engine */}
+        <RentRunwayHero rentDue={rentDue} />
+
+        {/* PILLAR 3: Upward Rent Score & Financial Credibility */}
         <button
           type="button"
           className={`dash-home__score ${isNavigatingToBreakdown ? 'dash-home__score--clicked' : ''}`}
@@ -322,14 +245,18 @@ export function DashboardHome({
         >
           <div className="dash-home__score-top">
             <div>
-              <div className="dash-home__score-eyebrow">Upward Score</div>
+              <div className="dash-home__score-eyebrow">Upward Rent Score</div>
               <div className="dash-home__score-value-row">
                 <span className="dash-home__score-value">{credScore}</span>
                 <span className="dash-home__score-max">/ {maxScore}</span>
               </div>
-              <div className="dash-home__score-sub">Rent Payment Score</div>
+              <div className="dash-home__score-sub">
+                {isScorable
+                  ? 'Verified Rental Reputation'
+                  : 'Starter Profile • Building Track Record'}
+              </div>
               <span className="dash-home__score-pill">
-                <span>View breakdown</span>
+                <span>View full breakdown</span>
                 <ChevronRight size={13} className="dash-home__score-pill-arrow" />
               </span>
             </div>
@@ -340,13 +267,14 @@ export function DashboardHome({
               }}
             >
               <div className="dash-home__score-ring-inner">
-                <span className="dash-home__score-band">{(band || '—').toUpperCase()}</span>
+                <span className="dash-home__score-band">{displayBand}</span>
                 {rank && rank !== 'N/A' && <span className="dash-home__score-rank">{rank}</span>}
               </div>
             </div>
           </div>
         </button>
 
+        {/* Behavioral Metrics Strip */}
         <div className="dash-home__metrics">
           <div className="dash-home__metric">
             <Flame
@@ -356,7 +284,7 @@ export function DashboardHome({
               }
             />
             <span className="dash-home__metric-val">{streak}</span>
-            <span className="dash-home__metric-lbl">Streak</span>
+            <span className="dash-home__metric-lbl">Payment Streak</span>
           </div>
           <div className="dash-home__metric">
             <ShieldCheck
@@ -366,7 +294,7 @@ export function DashboardHome({
               }
             />
             <span className="dash-home__metric-val">{onTimePct}%</span>
-            <span className="dash-home__metric-lbl">On-time</span>
+            <span className="dash-home__metric-lbl">On-Time Rate</span>
           </div>
           <div className="dash-home__metric">
             <Zap
@@ -378,196 +306,104 @@ export function DashboardHome({
               }
             />
             <span className="dash-home__metric-val">{profileCompletion}%</span>
-            <span className="dash-home__metric-lbl">Profile</span>
+            <span className="dash-home__metric-lbl">Profile Health</span>
           </div>
         </div>
 
-        {/* <div className="dash-home__insights">
-          <div className="dash-home__insight">
-            <div className="dash-home__insight-head">
-              <span>Reliability rating</span>
-              <span>{onTimePct}%</span>
-            </div>
-            <div className="dash-home__goal-bar">
-              <div className="dash-home__goal-fill" style={{ width: `${onTimePct}%` }} />
-            </div>
-          </div>
-          <div className="dash-home__insight">
-            <div className="dash-home__insight-head">
-              <span>Score band</span>
-              <span>{(band || '—').toUpperCase()}</span>
-            </div>
-            <div className="dash-home__goal-bar">
-              <div
-                className="dash-home__goal-fill"
-                style={{ width: `${Math.min(100, (credScore / maxScore) * 100)}%` }}
-              />
-            </div>
-          </div>
+        {/* Quick Navigation Direct Action Chips */}
+        <div className="dash-home__actions">
           <button
             type="button"
-            className="dash-home__records-link"
-            onClick={() => router.push('/dashboard/request-records')}
+            className="dash-home__action dash-home__action--secondary"
+            onClick={() => router.push('/dashboard/savings')}
           >
-            <History size={16} />
-            <span>Request rent records</span>
-            <ChevronRight size={16} />
+            <Landmark size={15} style={{ marginRight: 4, verticalAlign: -2 }} />
+            <span>Rent Vault</span>
           </button>
-        </div> */}
-
-        <div className="dash-home__actions">
           <button
             type="button"
             className="dash-home__action dash-home__action--primary"
             onClick={() => router.push('/dashboard/pay-rent')}
           >
-            Pay Rent
+            <Receipt size={15} style={{ marginRight: 4, verticalAlign: -2 }} />
+            <span>Pay Rent</span>
           </button>
-          {savingsEnabled ? (
-            <button
-              type="button"
-              className="dash-home__action dash-home__action--secondary"
-              onClick={() => router.push('/dashboard/savings')}
-            >
-              <span>Save Rent</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="dash-home__action dash-home__action--secondary dash-home__action--disabled"
-              disabled
-              aria-disabled="true"
-            >
-              <span>Save Rent</span>
-              <span className="dash-home__action-soon">Coming soon</span>
-            </button>
-          )}
           <button
             type="button"
             className="dash-home__action dash-home__action--secondary"
             onClick={() => router.push('/dashboard/save-for-home')}
           >
-            Save for Home
+            <Home size={15} style={{ marginRight: 4, verticalAlign: -2 }} />
+            <span>Save for Home</span>
           </button>
         </div>
-
-        {rentDue && (rentDue.amount > 0 || rentDue.days >= 0) && (
-          <button
-            type="button"
-            className={`dash-home__rent-due ${rentDue.isOverdue ? 'dash-home__rent-due--overdue' : ''}`}
-            onClick={() => router.push(rentDue.href)}
-          >
-            <div>
-              <div className="dash-home__rent-due-label">{rentDue.label}</div>
-              <div className="dash-home__rent-due-amount">
-                {rentDue.amount > 0 ? formatCurrency(rentDue.amount, rentDue.currency) : '—'}
-              </div>
-              <div className="dash-home__rent-due-meta">
-                {rentDue.isRejected ? (
-                  <span style={{ color: 'var(--error)' }}>Upload new proof or pay online</span>
-                ) : rentDue.isReviewing ? (
-                  <span style={{ color: 'var(--warning-text)' }}>
-                    Your document is being reviewed
-                  </span>
-                ) : rentDue.isOverdue ? (
-                  `Overdue · ${rentDue.address}`
-                ) : (
-                  `Due in ${rentDue.days} days · ${rentDue.address}`
-                )}
-              </div>
-            </div>
-            <div
-              className={`dash-home__rent-due-badge ${rentDue.isOverdue || rentDue.isRejected ? 'dash-home__rent-due-badge--overdue' : rentDue.isReviewing ? 'dash-home__rent-due-badge--review' : ''}`}
-            >
-              <div
-                className={`dash-home__rent-due-days ${rentDue.isOverdue ? 'dash-home__rent-due-days--overdue' : ''}`}
-              >
-                {rentDue.days}
-              </div>
-              <div
-                className={`dash-home__rent-due-days-label ${rentDue.isOverdue ? 'dash-home__rent-due-days-label--overdue' : ''}`}
-              >
-                {rentDue.daysLabel}
-              </div>
-            </div>
-          </button>
-        )}
       </div>
 
+      {/* ASIDE COLUMN: Pillars 4 (My Home), 1 (Liquidity) & 5 (Protection) */}
       <div className="dash-home__aside">
-        <button
-          type="button"
-          className="dash-home__nudge"
-          onClick={() => router.push('/dashboard/kyc')}
-        >
-          <span className="dash-home__nudge-icon">
-            <TrendingUp size={18} />
-          </span>
-          <span>
-            <div className="dash-home__nudge-title">{nudgeTitle}</div>
-            <div className="dash-home__nudge-desc">{nudgeDesc}</div>
-          </span>
-          <ChevronRight size={20} className="dash-home__nudge-chevron" />
-        </button>
+        {/* PILLAR 4: My Home High-Frequency Living Operations */}
+        <MyHomeQuickHub />
 
-        {/* <div className="dash-home__legacy-card">
-          <ShareCredibility profileSlug={user.profileSlug} />
-        </div> */}
-
-        {/* <div className="dash-home__legacy-card dash-home__legacy-card--widget">
-          <UpcomingFeaturesWidget />
-        </div> */}
-
-        {showAppBanner && (
-          <div className="dash-home__app-banner">
-            <button
-              type="button"
-              className="dash-home__app-banner-dismiss"
-              onClick={onDismissAppBanner}
-              aria-label="Dismiss"
-            >
-              <X size={16} />
-            </button>
-            <div className="dash-home__app-banner-icon">
-              <Smartphone size={22} />
+        {/* Pillar 1: Emergency Cash Advance */}
+        <div className="pillar-card" onClick={() => router.push('/dashboard/savings')}>
+          <div className="pillar-card__head">
+            <div className="pillar-card__icon">
+              <Sparkles size={18} />
             </div>
-            <h4 className="dash-home__app-banner-title">Get the Upward App</h4>
-            <p className="dash-home__app-banner-desc">
-              Manage your lease and build credit on the go.
-            </p>
-            <div className="dash-home__app-banner-btns">
-              <a
-                href="https://apps.apple.com/us/app/upwardpay/id6807898152"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="dash-home__app-store-btn"
-              >
-                <AppleIcon size={16} />
-                <span>App Store</span>
-              </a>
-              <a
-                href="https://play.google.com/store/apps/details?id=com.goodtenants.upward"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="dash-home__app-store-btn"
-              >
-                <PlayStoreIcon size={16} colored />
-                <span>Play Store</span>
-              </a>
+            <div>
+              <span className="pillar-card__title">Emergency Cash Advance</span>
             </div>
+            <span className="pillar-card__badge">Up to 40%</span>
           </div>
-        )}
+          <p className="pillar-card__desc">
+            Borrow instantly against your rent vault balance during unforeseen shocks. Your
+            remaining principal keeps compounding at 14.5% p.a.
+          </p>
+          <span className="pillar-card__footer">
+            <span>Access Emergency Advance</span>
+            <ArrowRight size={13} />
+          </span>
+        </div>
+
+        {/* Pillar 5: Tenant Protection Cover */}
+        <div className="pillar-card" onClick={() => router.push('/dashboard/benefits')}>
+          <div className="pillar-card__head">
+            <div
+              className="pillar-card__icon"
+              style={{
+                color: benefitsActive ? '#10b981' : 'var(--clay)',
+                background: benefitsActive ? 'rgba(16, 185, 129, 0.1)' : 'var(--clay-faint)',
+              }}
+            >
+              <ShieldAlert size={18} />
+            </div>
+            <div>
+              <span className="pillar-card__title">Tenant Protection Package</span>
+            </div>
+            <span
+              className="pillar-card__badge"
+              style={{
+                background: benefitsActive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(217, 119, 87, 0.1)',
+                color: benefitsActive ? '#10b981' : 'var(--clay)',
+              }}
+            >
+              {benefitsActive ? 'Active Cover' : 'Annual Cover'}
+            </span>
+          </div>
+          <p className="pillar-card__desc">
+            {benefitsActive
+              ? `Your tenancy protection is active${benefitsEndsAt ? ` until ${formatDate(benefitsEndsAt)}` : ''}. Covers job loss, medical rent support, and eviction defense.`
+              : 'Safeguard your home. Comprehensive coverage against involuntary job loss, acute medical emergencies, and legal eviction defense.'}
+          </p>
+          <span className="pillar-card__footer">
+            <span>{benefitsActive ? 'View Active Policy' : 'Activate Account Protection'}</span>
+            <ArrowRight size={13} />
+          </span>
+        </div>
       </div>
 
+      {/* 4. RECENT ACTIVITY & AUDIT TRAIL */}
       <div className="dash-home__wide">
-        {/* Hidden for now — exclusive homes prototype hidden for production deployment
-        <div className="dash-home__discover">
-          <h2 className="dash-home__discover-title">Discover</h2>
-          <ExclusiveHomesPromo />
-          <ExclusiveHomesBrowseLink />
-        </div>
-        */}
-
         <div className="dash-home__section-head">
           <h2 className="dash-home__section-title">Recent Activity</h2>
           {recent.length > 0 && (
@@ -586,16 +422,16 @@ export function DashboardHome({
             <div className="dash-home__activity-empty-icon">
               <Receipt size={24} />
             </div>
-            <div className="dash-home__activity-empty-title">No payments yet</div>
+            <div className="dash-home__activity-empty-title">No transactions yet</div>
             <div className="dash-home__activity-empty-desc">
-              Make your first payment to start building your score.
+              Start your rent runway or make a payment to build your verified tenancy record.
             </div>
             <button
               type="button"
               className="dash-home__activity-empty-btn"
-              onClick={() => router.push('/dashboard/pay-rent')}
+              onClick={() => router.push('/dashboard/savings')}
             >
-              Pay Rent Now
+              Start Rent Savings
             </button>
           </div>
         ) : (

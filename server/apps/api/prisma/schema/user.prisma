@@ -53,6 +53,11 @@ model upward_user {
   rentDepositBalances   upward_rent_deposit_balance[]
   rentDepositTransactions upward_rent_deposit_transaction[]
   savingsGoals          upward_savings_goal[]
+  rentVaults            upward_rent_vault[]
+  rentVaultTransactions upward_rent_vault_transaction[]
+  rentAdvances          upward_rent_advance[]
+  rentSettlements       upward_rent_settlement[]
+  rentSavingsScores     upward_rent_savings_score[]
   supportTickets        upward_support_ticket[]
   transactions          upward_transaction[]
   announcementStates    upward_user_announcement_state[]
@@ -192,7 +197,7 @@ model upward_admin_tenant_note {
   category   String        @default("PAID_OUTSIDE")
   note       String        @db.Text
   createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
+  updatedAt  DateTime      @default(now()) @updatedAt
 
   user       upward_user   @relation(fields: [userId], references: [id], onDelete: Cascade)
   admin      upward_admin? @relation(fields: [adminId], references: [id], onDelete: SetNull)
@@ -209,12 +214,34 @@ model upward_kyc_verification {
   idType          String       // 'BVN' | 'NIN' | 'VNIN'
   idNumberHash    String       // SHA-256 hash for anti-fraud & uniqueness detection
   idNumberMasked  String       // e.g. "*******4821" for UI display
-  provider        String       // 'MOCK' | 'PREMBLY' | 'DOJAH'
+  idNumberEncrypted String?    // Reversible AES-256-GCM encrypted BVN/NIN for ARM dispatch
+  provider        String       // 'MOCK' | 'PREMBLY' | 'DOJAH' | 'MONNIFY'
   status          String       // 'VERIFIED' | 'FAILED' | 'PENDING'
   matchScore      Float?
   failureReason   String?
   metadata        Json?
   verifiedAt      DateTime?
+
+  // SEC Investor Suitability Fields (Bits 0 & 3)
+  mothersMaidenNameEnc  String?      // Reversible AES-256-GCM encrypted
+  occupation            String?      // e.g. "Software Engineer"
+  sourceOfFunds         String?      // "Salary" | "Business" | "Savings" | "Investment"
+  incomeRange           String?      // "Below 500K" | "500K-1M" | "1M-5M" | "5M-10M" | "Above 10M"
+  riskAppetite          String?      @default("Conservative") // "Conservative" | "Moderate" | "Aggressive"
+
+  // Next of Kin (Bit 3)
+  nextOfKinName         String?
+  nextOfKinRelationship String?      // "Spouse" | "Parent" | "Sibling" | "Child" | "Other"
+  nextOfKinPhone        String?
+  nextOfKinEmail        String?
+  nextOfKinAddress      String?
+
+  // ARM Connect B2B2C Sync Status
+  armCustomerMembershipId String?    // Populated once ARM webhook approves member
+  armCrmAccountNumber    String?     // ARM CRM Account Number
+  armSyncStatus          String?     @default("PENDING") // PENDING | SUBMITTED | APPROVED | FAILED
+  armCompletedSections   Int         @default(0) // Bitmask tracking (Target: 63)
+
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
@@ -223,4 +250,5 @@ model upward_kyc_verification {
   @@index([userId])
   @@index([idNumberHash])
   @@index([status])
+  @@index([armSyncStatus])
 }

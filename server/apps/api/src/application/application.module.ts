@@ -577,7 +577,24 @@ import { ResolvePublicAllianceReferralUseCase } from './alliance/use-cases/resol
 import { SubmitAllianceInquiryUseCase } from './alliance/use-cases/submit-alliance-inquiry.use-case'
 import { GetUserAllianceJourneysUseCase } from './alliance/use-cases/get-user-alliance-journeys.use-case'
 
+import { SimulateRentSavingsUseCase } from './use-cases/rent-savings/simulate-rent-savings.use-case'
+import { CreateRentVaultUseCase } from './use-cases/rent-savings/create-rent-vault.use-case'
+import { GetMyRentVaultUseCase } from './use-cases/rent-savings/get-my-rent-vault.use-case'
+import { ProcessPaystackSavingsWebhookUseCase } from './use-cases/rent-savings/process-paystack-savings-webhook.use-case'
+import { DisburseEmergencyAdvanceUseCase } from './use-cases/rent-savings/disburse-emergency-advance.use-case'
+import { ExecuteLandlordSettlementUseCase } from './use-cases/rent-savings/execute-landlord-settlement.use-case'
+import { BreakoutRentVaultUseCase } from './use-cases/rent-savings/breakout-rent-vault.use-case'
+import { OnboardSavingsInvestorUseCase } from './use-cases/rent-savings/onboard-savings-investor.use-case'
+
 const UseCases: any[] = [
+  SimulateRentSavingsUseCase,
+  CreateRentVaultUseCase,
+  GetMyRentVaultUseCase,
+  ProcessPaystackSavingsWebhookUseCase,
+  DisburseEmergencyAdvanceUseCase,
+  ExecuteLandlordSettlementUseCase,
+  BreakoutRentVaultUseCase,
+  OnboardSavingsInvestorUseCase,
   TogglePmAllianceEnablementUseCase,
   CreateAllianceQualificationUseCase,
   ListAllianceQualificationsUseCase,

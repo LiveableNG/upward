@@ -16,29 +16,31 @@ import { useScoreProfile } from '@/features/dashboard/services/scoreService'
 import { formatDate } from '@/lib/utils'
 import { Capacitor } from '@capacitor/core'
 import { hasRentalInfo } from '@/features/dashboard/utils/profileCompletion'
+import { useRentVault, RENT_VAULT_QUERY_KEY } from '@/features/savings/hooks/useRentSavings'
 
 export default function DashboardPage() {
   const router = useRouter()
-  
+
   // Use global auth state instead of fetching profile again
   const { user, loading: authLoading, isPinLocked } = useAuth()
-  
+
   // Granular data fetching
   const { data: rawPending, isLoading: pendingLoading, error: pendingError } = usePendingPayments()
   const { data: completedPayments, isLoading: txLoading, error: txError } = useTransactions()
-  
+
   const { data: notifData } = useQuery({
     queryKey: ['notifications'],
     queryFn: () => api.getNotifications(),
   })
-  
+
   const { data: benefitsStatus, isError: benefitsError } = useQuery({
     queryKey: ['benefits-status'],
     queryFn: () => api.getBenefitsStatus(),
     retry: 1, // Don't retry endlessly if it 500s
   })
-  
+
   const { data: scoreProfile } = useScoreProfile()
+  const { data: rentVault } = useRentVault()
 
   const [localDismissedBanner, setLocalDismissedBanner] = useState(false)
 
@@ -74,6 +76,7 @@ export default function DashboardPage() {
       queryClient.invalidateQueries({ queryKey: ['score-profile'] }),
       queryClient.invalidateQueries({ queryKey: ['my-home'] }),
       queryClient.invalidateQueries({ queryKey: ['all-bills'] }),
+      queryClient.invalidateQueries({ queryKey: RENT_VAULT_QUERY_KEY }),
     ])
   }
 
@@ -86,28 +89,34 @@ export default function DashboardPage() {
     return (
       <div className="dashboard dashboard--error">
         <div className="pay-page__error">
-          <div className="pay-page__error-icon"><AlertTriangle size={32} /></div>
+          <div className="pay-page__error-icon">
+            <AlertTriangle size={32} />
+          </div>
           <h2>Error loading dashboard</h2>
           <p>We couldn't load some of your financial data. Please try again.</p>
-          <button className="btn btn--secondary" onClick={() => window.location.reload()}>Retry</button>
+          <button className="btn btn--secondary" onClick={() => window.location.reload()}>
+            Retry
+          </button>
         </div>
       </div>
     )
   }
 
-  const pendingPayments = [...(rawPending || [])].filter((p: any) => {
-    if (!p.userPropertyUuid) return true
-    const prop = user.properties?.find((prop: any) => prop.uuid === p.userPropertyUuid)
-    return !prop?.isPastTenancy
-  }).sort((a, b) => {
-    const now = new Date()
-    const aDate = a.due_date || a.dueDate
-    const bDate = b.due_date || b.dueDate
-    const aOverdue = aDate && new Date(aDate) < now ? 1 : 0
-    const bOverdue = bDate && new Date(bDate) < now ? 1 : 0
-    if (aOverdue !== bOverdue) return bOverdue - aOverdue
-    return new Date(aDate || 0).getTime() - new Date(bDate || 0).getTime()
-  })
+  const pendingPayments = [...(rawPending || [])]
+    .filter((p: any) => {
+      if (!p.userPropertyUuid) return true
+      const prop = user.properties?.find((prop: any) => prop.uuid === p.userPropertyUuid)
+      return !prop?.isPastTenancy
+    })
+    .sort((a, b) => {
+      const now = new Date()
+      const aDate = a.due_date || a.dueDate
+      const bDate = b.due_date || b.dueDate
+      const aOverdue = aDate && new Date(aDate) < now ? 1 : 0
+      const bOverdue = bDate && new Date(bDate) < now ? 1 : 0
+      if (aOverdue !== bOverdue) return bOverdue - aOverdue
+      return new Date(aDate || 0).getTime() - new Date(bDate || 0).getTime()
+    })
 
   const firstName = user.firstName || 'User'
   const isNewUser = !hasRentalInfo(user)
@@ -153,7 +162,9 @@ export default function DashboardPage() {
         id: prop.uuid,
         title: 'Rent Overdue',
         property_address: prop.location
-          ? [prop.location.address, prop.location.area, prop.location.state, prop.location.country].filter(Boolean).join(', ')
+          ? [prop.location.address, prop.location.area, prop.location.state, prop.location.country]
+              .filter(Boolean)
+              .join(', ')
           : prop.address || 'Property',
         rentEndDate: prop.rentEndDate,
         desc: `Rent for ${prop.location?.address || prop.location?.area || 'your property'} was due on ${formatDate(prop.rentEndDate!)}.`,
@@ -171,6 +182,20 @@ export default function DashboardPage() {
       return dateStr && new Date(dateStr) < new Date()
     }) || propertyReminders.some((r: any) => r?.isCritical)
 
+  const vaultBalance = rentVault ? rentVault.current_balance_kobo / 100 : 0
+  const activeProperty = (user.properties || []).find((p: any) => !p.isPastTenancy)
+  const targetRentAmount =
+    (rentVault ? rentVault.target_amount_kobo / 100 : 0) || activeProperty?.rentAmount || 0
+  const propertyDays = activeProperty?.rentEndDate
+    ? Math.max(
+        0,
+        Math.ceil(
+          (new Date(activeProperty.rentEndDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+        ),
+      )
+    : undefined
+  const rentDueDays = rentVault ? rentVault.days_remaining : propertyDays
+
   return (
     <PullToRefresh onRefresh={handleRefresh}>
       <div className="dashboard dashboard--nav-offset dashboard--proto-home">
@@ -187,6 +212,9 @@ export default function DashboardPage() {
           totalPaid={totalPaid}
           currency={currency}
           pendingCount={pendingPayments.length}
+          targetAmount={targetRentAmount}
+          rentDueDays={rentDueDays}
+          vaultBalance={vaultBalance}
           isLoading={txLoading || pendingLoading}
         />
 
@@ -218,4 +246,3 @@ export default function DashboardPage() {
     </PullToRefresh>
   )
 }
-

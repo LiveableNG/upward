@@ -14,6 +14,8 @@ export interface KycVerificationResult {
   firstName?: string
   lastName?: string
   dateOfBirth?: string
+  gender?: string
+  photo?: string
   phone?: string
   provider: string
   providerReference?: string
