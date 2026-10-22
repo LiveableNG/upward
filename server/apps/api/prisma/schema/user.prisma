@@ -197,7 +197,7 @@ model upward_admin_tenant_note {
   category   String        @default("PAID_OUTSIDE")
   note       String        @db.Text
   createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
+  updatedAt  DateTime      @default(now()) @updatedAt
 
   user       upward_user   @relation(fields: [userId], references: [id], onDelete: Cascade)
   admin      upward_admin? @relation(fields: [adminId], references: [id], onDelete: SetNull)

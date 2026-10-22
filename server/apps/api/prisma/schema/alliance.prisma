@@ -131,7 +131,7 @@ model upward_alliance_listing {
 
   // Timestamps
   createdAt        DateTime                         @default(now())
-  updatedAt        DateTime                         @updatedAt
+  updatedAt        DateTime                         @default(now()) @updatedAt
   publishedAt      DateTime?
   unpublishedAt    DateTime?
   archivedAt       DateTime?
@@ -166,7 +166,7 @@ model upward_alliance_listing_media {
   fileSize   Int
   sortOrder  Int                     @default(0)
   createdAt  DateTime                @default(now())
-  updatedAt  DateTime                @updatedAt
+  updatedAt  DateTime                @default(now()) @updatedAt
 
   listing    upward_alliance_listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
 
@@ -180,7 +180,7 @@ model upward_alliance_listing_tracker {
   listingId   Int
   trackerPmId Int
   createdAt   DateTime                @default(now())
-  updatedAt   DateTime                @updatedAt
+  updatedAt   DateTime                @default(now()) @updatedAt
 
   listing     upward_alliance_listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
   trackerPm   upward_property_manager @relation(fields: [trackerPmId], references: [id], onDelete: Cascade)
@@ -245,6 +245,7 @@ enum UpwardAllianceCommissionStatus {
   PAYABLE
   PAID
   REVERSED
+  VOID
 }
 
 enum UpwardAllianceCommissionType {
@@ -328,7 +329,7 @@ model upward_alliance_rating {
   subjectUser      upward_user?                    @relation("AllianceSubjectUser", fields: [subjectUserId], references: [id], onDelete: SetNull)
   subjectListing   upward_alliance_listing?        @relation(fields: [subjectListingId], references: [id], onDelete: SetNull)
 
-  @@unique([referralId, authorType, authorPmId, authorUserId])
+  @@unique([referralId, authorType, authorPmId, authorUserId], map: "upward_alliance_rating_referralId_authorType_authorPmId_authorU")
   @@index([referralId])
   @@index([authorPmId])
   @@index([authorUserId])

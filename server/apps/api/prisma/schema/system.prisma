@@ -707,7 +707,7 @@ model upward_user_session {
   eventsCount     Int       @default(0)
 
   createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  updatedAt       DateTime  @default(now()) @updatedAt
 
   events          upward_user_session_event[]
 
@@ -757,7 +757,7 @@ model upward_app_version_policy {
   storeUrl            String?
   isActive            Boolean  @default(true)
   createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  updatedAt           DateTime @default(now()) @updatedAt
 
   @@unique([app, platform])
   @@index([app, platform, isActive])

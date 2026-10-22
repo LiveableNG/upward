@@ -33,7 +33,7 @@ model upward_rent_vault {
   lastYieldSyncAt         DateTime?                        // Timestamp of last ARM portfolio reconciliation
 
   createdAt               DateTime                         @default(now())
-  updatedAt               DateTime                         @updatedAt
+  updatedAt               DateTime                         @default(now()) @updatedAt
 
   user                    upward_user                      @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions            upward_rent_vault_transaction[]
@@ -91,7 +91,7 @@ model upward_rent_advance {
   payoutTransferReference   String?
   repaidAt                  DateTime?
   createdAt                 DateTime          @default(now())
-  updatedAt                 DateTime          @updatedAt
+  updatedAt                 DateTime          @default(now()) @updatedAt
 
   vault                     upward_rent_vault @relation(fields: [vaultId], references: [id], onDelete: Cascade)
   user                      upward_user       @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -121,7 +121,7 @@ model upward_rent_settlement {
   smsAlertDispatched          Boolean           @default(false)
   disburseSurplusToWallet     Boolean           @default(true)
   createdAt                   DateTime          @default(now())
-  updatedAt                   DateTime          @updatedAt
+  updatedAt                   DateTime          @default(now()) @updatedAt
 
   vault                       upward_rent_vault @relation(fields: [vaultId], references: [id], onDelete: Cascade)
   user                        upward_user       @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -142,7 +142,7 @@ model upward_rent_savings_score {
   totalScore            Int               @default(20) // Total out of 100
   historyLog            Json?             // Array of score delta events
   createdAt             DateTime          @default(now())
-  updatedAt             DateTime          @updatedAt
+  updatedAt             DateTime          @default(now()) @updatedAt
 
   vault                 upward_rent_vault @relation(fields: [vaultId], references: [id], onDelete: Cascade)
   user                  upward_user       @relation(fields: [userId], references: [id], onDelete: Cascade)
