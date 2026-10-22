@@ -9,6 +9,15 @@ import {
   Sparkles,
   Info,
   Search,
+  Sliders,
+  Settings,
+  Plus,
+  Trash2,
+  ShieldCheck,
+  Play,
+  Pause,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 
@@ -79,6 +88,18 @@ interface RentalExperimentStatsResponse {
   participants: ExperimentParticipant[]
 }
 
+interface ExperimentSettings {
+  key: string
+  name: string
+  description?: string
+  status: 'ACTIVE' | 'PAUSED'
+  variants: string[]
+  weights: Record<string, number>
+  defaultVariant: string
+  overrides: Record<string, string>
+  updatedAt?: string
+}
+
 interface RentalOnboardingExperimentProps {
   token: string
   adminRole?: string
@@ -97,6 +118,17 @@ export default function RentalOnboardingExperiment({ token }: RentalOnboardingEx
   const [dateRangeDays, setDateRangeDays] = useState<number>(30)
   const [participantFilter, setParticipantFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState<string>('')
+
+  // In-House Experiment Settings & Controls State
+  const [settings, setSettings] = useState<ExperimentSettings | null>(null)
+  const [showControls, setShowControls] = useState<boolean>(false)
+  const [savingSettings, setSavingSettings] = useState<boolean>(false)
+  const [settingsSuccessMessage, setSettingsSuccessMessage] = useState<string | null>(null)
+  const [statusState, setStatusState] = useState<'ACTIVE' | 'PAUSED'>('ACTIVE')
+  const [requiredWeightState, setRequiredWeightState] = useState<number>(50)
+  const [overrideInput, setOverrideInput] = useState<string>('')
+  const [overrideVariant, setOverrideVariant] = useState<string>('required-rental')
+  const [overridesMap, setOverridesMap] = useState<Record<string, string>>({})
 
   const fetchData = async () => {
     setLoading(true)
@@ -117,8 +149,72 @@ export default function RentalOnboardingExperiment({ token }: RentalOnboardingEx
     }
   }
 
+  const fetchSettings = async () => {
+    try {
+      const res = await apiService.get('/admin/experiments/settings?key=onboarding-rental-experience', token)
+      if (res?.success && res?.data) {
+        const conf: ExperimentSettings = res.data
+        setSettings(conf)
+        setStatusState(conf.status)
+        setRequiredWeightState(conf.weights['required-rental'] ?? 50)
+        setOverridesMap(conf.overrides || {})
+      }
+    } catch (err) {
+      console.warn('Could not load experiment settings:', err)
+    }
+  }
+
+  const handleSaveSettings = async () => {
+    setSavingSettings(true)
+    try {
+      const weights = {
+        'required-rental': Number(requiredWeightState),
+        'deferrable-rental': 100 - Number(requiredWeightState),
+      }
+      const res = await apiService.patch(
+        '/admin/experiments/settings',
+        {
+          key: 'onboarding-rental-experience',
+          status: statusState,
+          weights,
+          overrides: overridesMap,
+        },
+        token,
+      )
+      if (res?.success && res?.data) {
+        setSettings(res.data)
+        setSettingsSuccessMessage('Experiment configuration updated and deployed!')
+        setTimeout(() => setSettingsSuccessMessage(null), 4000)
+        fetchData()
+      }
+    } catch (err: any) {
+      alert(err?.message || 'Failed to update experiment settings')
+    } finally {
+      setSavingSettings(false)
+    }
+  }
+
+  const handleAddOverride = () => {
+    const trimmed = overrideInput.trim().toLowerCase()
+    if (!trimmed) return
+    setOverridesMap((prev) => ({
+      ...prev,
+      [trimmed]: overrideVariant,
+    }))
+    setOverrideInput('')
+  }
+
+  const handleRemoveOverride = (targetKey: string) => {
+    setOverridesMap((prev) => {
+      const updated = { ...prev }
+      delete updated[targetKey]
+      return updated
+    })
+  }
+
   useEffect(() => {
     fetchData()
+    fetchSettings()
   }, [token, dateRangeDays])
 
   const req = data?.variants.required
@@ -183,8 +279,8 @@ export default function RentalOnboardingExperiment({ token }: RentalOnboardingEx
                   gap: '6px',
                   padding: '4px 10px',
                   borderRadius: '20px',
-                  background: 'var(--success-faint)',
-                  color: 'var(--success)',
+                  background: (settings?.status ?? 'ACTIVE') === 'ACTIVE' ? 'var(--success-faint)' : 'var(--warning-faint)',
+                  color: (settings?.status ?? 'ACTIVE') === 'ACTIVE' ? 'var(--success)' : 'var(--warning)',
                   fontSize: '12px',
                   fontWeight: 700,
                 }}
@@ -194,11 +290,11 @@ export default function RentalOnboardingExperiment({ token }: RentalOnboardingEx
                     width: '7px',
                     height: '7px',
                     borderRadius: '50%',
-                    background: 'var(--success)',
+                    background: (settings?.status ?? 'ACTIVE') === 'ACTIVE' ? 'var(--success)' : 'var(--warning)',
                     display: 'inline-block',
                   }}
                 />
-                Active Experiment
+                {(settings?.status ?? 'ACTIVE') === 'ACTIVE' ? 'In-House Engine: Active' : 'In-House Engine: Paused'}
               </span>
             </div>
             <p style={{ color: 'var(--text-secondary)', fontSize: '13.5px', maxWidth: '780px', lineHeight: 1.5 }}>
@@ -245,6 +341,27 @@ export default function RentalOnboardingExperiment({ token }: RentalOnboardingEx
 
             <button
               type="button"
+              onClick={() => setShowControls(!showControls)}
+              className="btn btn-secondary"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 14px',
+                borderRadius: 'var(--radius-md)',
+                fontSize: '12.5px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                background: showControls ? 'var(--accent)' : undefined,
+                color: showControls ? '#ffffff' : undefined,
+              }}
+            >
+              <Sliders size={14} />
+              Controls {showControls ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+            </button>
+
+            <button
+              type="button"
               onClick={fetchData}
               disabled={loading}
               className="btn btn-secondary"
@@ -265,6 +382,385 @@ export default function RentalOnboardingExperiment({ token }: RentalOnboardingEx
           </div>
         </div>
       </div>
+
+      {/* Settings Success Feedback */}
+      {settingsSuccessMessage && (
+        <div
+          className="card"
+          style={{
+            background: 'var(--success-faint)',
+            border: '1px solid var(--success)',
+            color: 'var(--success)',
+            padding: '12px 16px',
+            borderRadius: 'var(--radius-md)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            marginBottom: '16px',
+            fontSize: '13px',
+            fontWeight: 600,
+          }}
+        >
+          <CheckCircle2 size={18} />
+          {settingsSuccessMessage}
+        </div>
+      )}
+
+      {/* In-House Experiment Controls Panel */}
+      {showControls && (
+        <div
+          className="card"
+          style={{
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '24px',
+            marginBottom: '24px',
+            boxShadow: 'var(--shadow-md)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  background: 'var(--accent-faint)',
+                  color: 'var(--accent)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Settings size={18} />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0 }}>
+                  In-House Experiment Controls & Targeting
+                </h3>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '12px', margin: 0 }}>
+                  Configured via Upward In-House A/B Engine • Deterministic 32-bit FNV-1a allocation
+                </p>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setStatusState(statusState === 'ACTIVE' ? 'PAUSED' : 'ACTIVE')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '6px 12px',
+                  borderRadius: '20px',
+                  border: 'none',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  background: statusState === 'ACTIVE' ? 'var(--success-faint)' : 'var(--warning-faint)',
+                  color: statusState === 'ACTIVE' ? 'var(--success)' : 'var(--warning)',
+                }}
+              >
+                {statusState === 'ACTIVE' ? <Play size={12} /> : <Pause size={12} />}
+                {statusState === 'ACTIVE' ? 'Experiment Running (Active)' : 'Experiment Paused (100% Deferrable)'}
+              </button>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px', marginBottom: '20px' }}>
+            {/* Traffic Allocation Card */}
+            <div
+              style={{
+                background: 'var(--background)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-md)',
+                padding: '16px',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <span style={{ fontSize: '13px', fontWeight: 700 }}>Traffic Split</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  Total: 100%
+                </span>
+              </div>
+
+              {/* Visual Split Bar */}
+              <div
+                style={{
+                  width: '100%',
+                  height: '10px',
+                  borderRadius: '5px',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  marginBottom: '12px',
+                  background: 'var(--border)',
+                }}
+              >
+                <div
+                  style={{
+                    width: `${requiredWeightState}%`,
+                    background: '#6366f1',
+                    transition: 'width 0.2s ease',
+                  }}
+                  title={`Variant A (Required): ${requiredWeightState}%`}
+                />
+                <div
+                  style={{
+                    width: `${100 - requiredWeightState}%`,
+                    background: '#f59e0b',
+                    transition: 'width 0.2s ease',
+                  }}
+                  title={`Variant B (Deferrable): ${100 - requiredWeightState}%`}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#6366f1' }} />
+                  <span>Variant A (Required): <strong>{requiredWeightState}%</strong></span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f59e0b' }} />
+                  <span>Variant B (Deferrable): <strong>{100 - requiredWeightState}%</strong></span>
+                </div>
+              </div>
+
+              {/* Split Slider */}
+              <input
+                type="range"
+                min="0"
+                max="100"
+                step="5"
+                value={requiredWeightState}
+                onChange={(e) => setRequiredWeightState(Number(e.target.value))}
+                style={{ width: '100%', cursor: 'pointer', marginBottom: '14px' }}
+              />
+
+              {/* Quick Presets */}
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                {[
+                  { label: '50 / 50 Balanced', req: 50 },
+                  { label: '100% Required', req: 100 },
+                  { label: '100% Deferrable', req: 0 },
+                ].map((preset) => (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() => setRequiredWeightState(preset.req)}
+                    style={{
+                      border: '1px solid var(--border)',
+                      background: requiredWeightState === preset.req ? 'var(--accent-faint)' : 'var(--surface)',
+                      color: requiredWeightState === preset.req ? 'var(--accent)' : 'var(--text-secondary)',
+                      borderRadius: '6px',
+                      padding: '4px 8px',
+                      fontSize: '11px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* User Overrides Card */}
+            <div
+              style={{
+                background: 'var(--background)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-md)',
+                padding: '16px',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <span style={{ fontSize: '13px', fontWeight: 700 }}>Test Audience Overrides</span>
+                <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                  {Object.keys(overridesMap).length} active
+                </span>
+              </div>
+
+              {/* Add Override Input Row */}
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                <input
+                  type="text"
+                  placeholder="user@example.com or user UUID"
+                  value={overrideInput}
+                  onChange={(e) => setOverrideInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      handleAddOverride()
+                    }
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '6px 10px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border)',
+                    background: 'var(--surface)',
+                    color: 'var(--text-primary)',
+                    fontSize: '12px',
+                  }}
+                />
+                <select
+                  value={overrideVariant}
+                  onChange={(e) => setOverrideVariant(e.target.value)}
+                  style={{
+                    padding: '6px 8px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border)',
+                    background: 'var(--surface)',
+                    color: 'var(--text-primary)',
+                    fontSize: '12px',
+                  }}
+                >
+                  <option value="required-rental">Required (A)</option>
+                  <option value="deferrable-rental">Deferrable (B)</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={handleAddOverride}
+                  disabled={!overrideInput.trim()}
+                  style={{
+                    padding: '6px 10px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    background: 'var(--accent)',
+                    color: '#ffffff',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: overrideInput.trim() ? 'pointer' : 'not-allowed',
+                    opacity: overrideInput.trim() ? 1 : 0.6,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                  }}
+                >
+                  <Plus size={14} /> Add
+                </button>
+              </div>
+
+              {/* Active Overrides List */}
+              <div
+                style={{
+                  maxHeight: '120px',
+                  overflowY: 'auto',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px',
+                }}
+              >
+                {Object.keys(overridesMap).length === 0 ? (
+                  <div style={{ fontSize: '11.5px', color: 'var(--text-muted)', fontStyle: 'italic', padding: '6px 0' }}>
+                    No overrides active. All eligible users are assigned via 50/50 hashing.
+                  </div>
+                ) : (
+                  Object.entries(overridesMap).map(([key, variant]) => (
+                    <div
+                      key={key}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '4px 8px',
+                        background: 'var(--surface)',
+                        border: '1px solid var(--border)',
+                        borderRadius: '6px',
+                        fontSize: '11.5px',
+                      }}
+                    >
+                      <span style={{ fontFamily: 'monospace', maxWidth: '170px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {key}
+                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span
+                          style={{
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            fontSize: '10px',
+                            fontWeight: 700,
+                            background: variant === 'required-rental' ? 'rgba(99, 102, 241, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                            color: variant === 'required-rental' ? '#6366f1' : '#f59e0b',
+                          }}
+                        >
+                          {variant === 'required-rental' ? 'Required (A)' : 'Deferrable (B)'}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveOverride(key)}
+                          style={{
+                            border: 'none',
+                            background: 'transparent',
+                            color: 'var(--text-muted)',
+                            cursor: 'pointer',
+                            padding: '2px',
+                          }}
+                          title="Remove override"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Action Row */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', alignItems: 'center' }}>
+            <button
+              type="button"
+              onClick={() => {
+                if (settings) {
+                  setStatusState(settings.status)
+                  setRequiredWeightState(settings.weights['required-rental'] ?? 50)
+                  setOverridesMap(settings.overrides || {})
+                }
+                setShowControls(false)
+              }}
+              style={{
+                padding: '8px 14px',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--border)',
+                background: 'transparent',
+                color: 'var(--text-secondary)',
+                fontSize: '12.5px',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Cancel
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSaveSettings}
+              disabled={savingSettings}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 18px',
+                borderRadius: 'var(--radius-md)',
+                border: 'none',
+                background: 'var(--accent)',
+                color: '#ffffff',
+                fontSize: '12.5px',
+                fontWeight: 700,
+                cursor: savingSettings ? 'not-allowed' : 'pointer',
+                opacity: savingSettings ? 0.7 : 1,
+              }}
+            >
+              {savingSettings ? <RefreshCw size={14} className="animate-spin" /> : <ShieldCheck size={14} />}
+              {savingSettings ? 'Saving...' : 'Save & Deploy Configuration'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {error && (
         <div

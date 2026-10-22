@@ -107,6 +107,7 @@ import { PublicAllianceMarketplaceController } from './public/public-alliance.co
 import { UserAllianceController } from './user/user-alliance.controller'
 import { PublicAppVersionController } from './public/public-app-version.controller'
 import { AdminAppVersionController } from './admin/admin-app-version.controller'
+import { PublicExperimentController } from './public/public-experiment.controller'
 
 import { SubscriptionModule } from '../../domains/subscription/subscription.module'
 import { NotificationsGateway } from '../websockets/notifications.gateway'
@@ -223,6 +224,7 @@ import { NotificationsGateway } from '../websockets/notifications.gateway'
     PublicAppVersionController,
     AdminAppVersionController,
     AdminExperimentController,
+    PublicExperimentController,
   ],
 })
 export class HttpModule {}
