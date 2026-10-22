@@ -21,6 +21,7 @@ import {
   Sparkles,
   Inbox,
   Download,
+  FlaskConical,
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -56,6 +57,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
     { name: 'Dashboard', path: '/', icon: LayoutDashboard },
     { name: 'App Releases', path: '/app-releases', icon: Download },
     { name: 'App Telemetry', path: '/app-activity', icon: Smartphone },
+    { name: 'Rental Onboarding A/B', path: '/experiments/rental-onboarding', icon: FlaskConical },
   ]
   if (showSandboxTools) {
     overviewItems.push({ name: 'Campaigns', path: '/campaigns', icon: CalendarClock })

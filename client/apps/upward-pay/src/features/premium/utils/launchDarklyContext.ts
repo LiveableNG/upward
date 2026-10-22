@@ -19,6 +19,8 @@ export function buildLdContext(user: UserProfile | null): LDContext {
       isIdentityVerified: user.isIdentityVerified ?? false,
       isFromWaitlist: user.isFromWaitlist,
       isFromInvite: user.isFromInvite,
+      accountCreatedAt: user.createdAt,
+      propertiesCount: user.properties?.length ?? 0,
     },
   }
 }

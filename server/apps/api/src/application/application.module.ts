@@ -53,6 +53,8 @@ import {
 } from './use-cases/admin/area-price-guide.use-cases'
 import { GetAppActivityLogsUseCase } from './use-cases/admin/get-app-activity-logs.use-case'
 import { GetAppActivityStatsUseCase } from './use-cases/admin/get-app-activity-stats.use-case'
+import { GetRentalExperimentStatsUseCase } from './use-cases/admin/get-rental-experiment-stats.use-case'
+import { AbExperimentService } from '../shared/infrastructure/experiment/ab-experiment.service'
 import { GetInternalAccountsUseCase } from './use-cases/admin/get-internal-accounts.use-case'
 import { ToggleInternalAccountUseCase } from './use-cases/admin/toggle-internal-account.use-case'
 import { SyncTenantUseCase } from './use-cases/admin/sync-tenant.use-case'
@@ -634,6 +636,7 @@ const UseCases: any[] = [
   GetAdminPmDetailUseCase,
   GetAppActivityLogsUseCase,
   GetAppActivityStatsUseCase,
+  GetRentalExperimentStatsUseCase,
   GetInternalAccountsUseCase,
   ToggleInternalAccountUseCase,
   SyncTenantUseCase,
@@ -1136,6 +1139,7 @@ import { PrismaModule } from '../shared/infrastructure/prisma/prisma.module'
     UnstructuredPipelineService,
     GeminiDocumentAiProvider,
     LocalModelAiProvider,
+    AbExperimentService,
     {
       provide: DOCUMENT_AI_PROVIDER,
       useFactory: (
@@ -1152,6 +1156,7 @@ import { PrismaModule } from '../shared/infrastructure/prisma/prisma.module'
     ...UseCases,
   ],
   exports: [
+    AbExperimentService,
     WebhookService,
     GoodTenantTenantAppClient,
     BulkInviteService,

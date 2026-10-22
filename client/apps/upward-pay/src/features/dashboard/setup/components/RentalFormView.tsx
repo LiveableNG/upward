@@ -37,6 +37,9 @@ import {
 import { toDateInputValue, validateRentDates, calculateRentEndDate, type LeaseDurationUnit } from '../rentalDates'
 import { formatCurrency } from '@/lib/utils'
 import { PmSearchSelect } from './PmSearchSelect'
+import { useAuth } from '@/features/auth/AuthContext'
+import { useRentalExperiment } from '../hooks/useRentalExperiment'
+import { sessionTracker } from '@/lib/sessionTracker'
 
 type RentalFormStep = 'location' | 'tenancy' | 'manager'
 
@@ -48,8 +51,45 @@ export function RentalFormView() {
   const toast = useToast()
   const { draft, updateDraft } = useSetupDraft()
   const { isEdit, withMode, returnTo } = useSetupMode()
+  const { user } = useAuth()
+  const { variant, isRequired, isDeferrable, trackExposure, trackDeferral } = useRentalExperiment()
 
   const [formStep, setFormStep] = useState<RentalFormStep>('location')
+  const hasStartedRef = useRef(false)
+  const hasViewedRef = useRef(false)
+
+  // Track RENTAL_DETAILS_VIEWED and exposure on mount
+  useEffect(() => {
+    if (!hasViewedRef.current) {
+      hasViewedRef.current = true
+      trackExposure('RentalFormView')
+      sessionTracker.trackEvent('RENTAL_DETAILS_VIEWED', {
+        variant,
+        isEdit,
+        step: formStep,
+      })
+    }
+  }, [trackExposure, variant, isEdit, formStep])
+
+  const recordStarted = (field?: string) => {
+    if (!hasStartedRef.current) {
+      hasStartedRef.current = true
+      sessionTracker.trackEvent('RENTAL_DETAILS_STARTED', {
+        variant,
+        isEdit,
+        firstField: field || 'location',
+      })
+    }
+  }
+
+  const handleDeferSetup = () => {
+    if (typeof window !== 'undefined' && user?.uuid) {
+      localStorage.setItem(`upward_profile_setup_skipped_${user.uuid}`, 'true')
+    }
+    trackDeferral('rental_form_footer', { formStep })
+    toast.info("Your draft is saved. You can resume rental setup anytime from your dashboard.")
+    router.push(SETUP_PATHS.dashboard)
+  }
 
   // Auto-calculate end date whenever tenancy parameters change
   useEffect(() => {
@@ -265,7 +305,9 @@ export function RentalFormView() {
 
   const pageSubtitle =
     formStep === 'location'
-      ? 'Enter your rental address so we can set up your profile.'
+      ? isRequired
+        ? 'Rental details are required to configure your Upward Rent Passport and activate rent payments.'
+        : 'Enter your rental address so we can set up your profile.'
       : formStep === 'tenancy'
         ? 'Tell us about your rent cycle and payment status.'
         : canSkipLandlord
@@ -343,6 +385,7 @@ export function RentalFormView() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%' }}>
       <SetupPrimaryButton
         onClick={() => {
+          recordStarted()
           if (formStep === 'location') handleLocationContinue()
           else if (formStep === 'tenancy') handleTenancyContinue()
           else handleManagerContinue()
@@ -372,6 +415,29 @@ export function RentalFormView() {
           onMouseLeave={(e) => (e.currentTarget.style.color = '#7a7268')}
         >
           Skip for now · I&apos;ll add landlord details later
+        </button>
+      )}
+      {!isEdit && isDeferrable && (
+        <button
+          type="button"
+          onClick={handleDeferSetup}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#7a7268',
+            fontSize: 13.5,
+            fontWeight: 600,
+            cursor: 'pointer',
+            padding: '6px 8px',
+            textAlign: 'center',
+            textDecoration: 'underline',
+            textUnderlineOffset: 3,
+            transition: 'color 0.2s',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = '#1a1714')}
+          onMouseLeave={(e) => (e.currentTarget.style.color = '#7a7268')}
+        >
+          Do this later — skip for now
         </button>
       )}
     </div>

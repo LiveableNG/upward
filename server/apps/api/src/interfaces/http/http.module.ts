@@ -96,6 +96,7 @@ import { DemoRequestController } from './public/demo-request.controller'
 import { DemoRequestAdminController } from './admin/demo-request-admin.controller'
 import { HomeRequestAdminController } from './admin/home-request-admin.controller'
 import { AdminAllianceController } from './admin/admin-alliance.controller'
+import { AdminExperimentController } from './admin/admin-experiment.controller'
 import { PmAllianceProfileController } from './pm/pm-alliance-profile.controller'
 import { PmAllianceListingController } from './pm/pm-alliance-listing.controller'
 import { PmAllianceDiscoverController } from './pm/pm-alliance-discover.controller'
@@ -106,6 +107,7 @@ import { PublicAllianceMarketplaceController } from './public/public-alliance.co
 import { UserAllianceController } from './user/user-alliance.controller'
 import { PublicAppVersionController } from './public/public-app-version.controller'
 import { AdminAppVersionController } from './admin/admin-app-version.controller'
+import { PublicExperimentController } from './public/public-experiment.controller'
 
 import { SubscriptionModule } from '../../domains/subscription/subscription.module'
 import { NotificationsGateway } from '../websockets/notifications.gateway'
@@ -221,6 +223,8 @@ import { NotificationsGateway } from '../websockets/notifications.gateway'
     UserAllianceController,
     PublicAppVersionController,
     AdminAppVersionController,
+    AdminExperimentController,
+    PublicExperimentController,
   ],
 })
 export class HttpModule {}

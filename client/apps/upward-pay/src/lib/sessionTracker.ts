@@ -244,6 +244,12 @@ class SessionTracker {
       'LOGIN_CANCELLED',
       'LOGIN_SUCCESS',
       'SIGNUP_SUCCESS',
+      'EXPERIMENT_ASSIGNED',
+      'EXPERIMENT_EXPOSURE',
+      'RENTAL_DETAILS_COMPLETED',
+      'RENTAL_DETAILS_DEFERRED',
+      'RENTAL_DETAILS_VIEWED',
+      'RENTAL_DETAILS_STARTED',
     ]
 
     if (immediateEvents.includes(eventName) || this.eventQueue.length >= MAX_QUEUE_SIZE) {

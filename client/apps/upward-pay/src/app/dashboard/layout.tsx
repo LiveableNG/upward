@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/features/auth/AuthContext'
 import FallbackSuspense from '@/components/FallbackSuspense'
@@ -8,8 +8,32 @@ import FallbackSuspense from '@/components/FallbackSuspense'
 import dynamic from 'next/dynamic'
 import { BottomNav } from '@/features/dashboard/components/BottomNav'
 import { DashboardHeader } from '@/features/dashboard/components/DashboardHeader'
-import { isProfileSetupComplete } from '@/features/dashboard/utils/profileCompletion'
+import { getStandaloneRentalPath, hasRentalInfo, isProfileSetupComplete } from '@/features/dashboard/utils/profileCompletion'
 import { useScoreProfile } from '@/features/dashboard/services/scoreService'
+import { useRentalExperiment } from '@/features/dashboard/setup/hooks/useRentalExperiment'
+import { useRentalGate } from '@/features/dashboard/setup/hooks/useRentalGate'
+import { sessionTracker } from '@/lib/sessionTracker'
+
+const FRESH_SIGNUP_WINDOW_MS = 30 * 60 * 1000
+
+function readStorageFlag(storage: 'local' | 'session', key: string): boolean {
+  if (typeof window === 'undefined') return false
+  try {
+    const store = storage === 'local' ? window.localStorage : window.sessionStorage
+    return store.getItem(key) === 'true'
+  } catch {
+    return false
+  }
+}
+
+function writeStorageFlag(storage: 'local' | 'session', key: string): void {
+  if (typeof window === 'undefined') return
+  try {
+    const store = storage === 'local' ? window.localStorage : window.sessionStorage
+    store.setItem(key, 'true')
+  } catch {
+  }
+}
 
 const AnnouncementManager = dynamic(() => import('@/features/dashboard/components/AnnouncementManager').then(mod => mod.AnnouncementManager), { ssr: false })
 const RentReminderManager = dynamic(() => import('@/features/dashboard/components/RentReminderManager').then(mod => mod.RentReminderManager), { ssr: false })
@@ -25,14 +49,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { isLoggedIn, loading, user, isPinLocked } = useAuth()
   const { data: scoreProfile } = useScoreProfile()
   const [blockerDismissed, setBlockerDismissed] = useState(false)
+  const dashboardEnteredTrackedRef = useRef(false)
 
-  // Check persistent dismissal state for current user session
+  const { variant, isRequired, isLoading: isExperimentLoading } = useRentalExperiment()
+  const { isGated: isRentalGated, notifyGated } = useRentalGate()
+  const hasRental = hasRentalInfo(user)
+
+  // Stale local storage skip state must NOT override the required variant
   const isSkippedInStorage =
     typeof window !== 'undefined' && user?.uuid
       ? localStorage.getItem(`upward_profile_setup_skipped_${user.uuid}`) === 'true'
       : false
 
-  const isDismissed = blockerDismissed || isSkippedInStorage
+  const isDismissed = isRequired ? false : (blockerDismissed || isSkippedInStorage)
 
   const handleSkipBlocker = () => {
     if (typeof window !== 'undefined' && user?.uuid) {
@@ -63,21 +92,88 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [loading, isLoggedIn, isPinLocked, router, pathname])
 
+  const isDashboardHome = pathname === '/dashboard'
+  const isHomeRequestRoute = pathname?.startsWith('/dashboard/exclusive-homes/request')
+  const showTermsGate = !!(user && !user.termsAcceptedAt)
+
+  // Gated users may only reach rental/personal setup and the profile screen (personal details + sign out)
+  const isSetupRoute = !!pathname?.startsWith('/dashboard/setup')
+  const isProfileRoute = !!pathname?.startsWith('/dashboard/me')
+  const isExemptRoute = isSetupRoute || isProfileRoute
+
+  const signupDeviceKey = user?.uuid ? `upward_rental_signup_device_${user.uuid}` : ''
+  const autoOpenSessionKey = user?.uuid ? `upward_rental_autoopen_${user.uuid}` : ''
+  const createdAtMs = user?.createdAt ? new Date(user.createdAt).getTime() : NaN
+  const isFreshSignup = !isNaN(createdAtMs) && Date.now() - createdAtMs < FRESH_SIGNUP_WINDOW_MS
+  const isSignupDevice = !!signupDeviceKey && (isFreshSignup || readStorageFlag('local', signupDeviceKey))
+  const hasAutoOpenedThisSession = !!autoOpenSessionKey && readStorageFlag('session', autoOpenSessionKey)
+
+  // On the signup device, open the rental form directly once per session instead of showing the blocker
+  const shouldAutoOpenRental =
+    isRentalGated && !showTermsGate && !isExemptRoute && isSignupDevice && !hasAutoOpenedThisSession
+
+  useEffect(() => {
+    if (loading || !user?.uuid || !isRentalGated || showTermsGate || isExemptRoute) return
+
+    if (shouldAutoOpenRental) {
+      writeStorageFlag('local', signupDeviceKey)
+      writeStorageFlag('session', autoOpenSessionKey)
+      router.replace(getStandaloneRentalPath())
+      return
+    }
+
+    if (!isDashboardHome) {
+      notifyGated()
+      router.replace('/dashboard')
+    }
+  }, [
+    loading,
+    user?.uuid,
+    isRentalGated,
+    showTermsGate,
+    isExemptRoute,
+    shouldAutoOpenRental,
+    signupDeviceKey,
+    autoOpenSessionKey,
+    isDashboardHome,
+    notifyGated,
+    router,
+  ])
+
+  const showProfileBlocker =
+    !showTermsGate &&
+    !!user &&
+    !isExperimentLoading &&
+    !shouldAutoOpenRental &&
+    (isRequired
+      ? isRentalGated && !isExemptRoute
+      : isDashboardHome && !isProfileSetupComplete(user) && !isDismissed)
+
+  useEffect(() => {
+    if (!loading && isLoggedIn && user && !showProfileBlocker && !showTermsGate) {
+      if (!dashboardEnteredTrackedRef.current) {
+        dashboardEnteredTrackedRef.current = true
+        sessionTracker.trackEvent('DASHBOARD_ENTERED', {
+          variant,
+          isRequired,
+          hasRentalDetails: hasRental,
+          route: pathname,
+        })
+      }
+    }
+  }, [loading, isLoggedIn, user, showProfileBlocker, showTermsGate, variant, isRequired, hasRental, pathname])
+
   if (!loading && !isLoggedIn && !isPinLocked) {
     return <FallbackSuspense message="Redirecting to login..." />
   }
 
-  const isDashboardHome = pathname === '/dashboard'
-  const isHomeRequestRoute = pathname?.startsWith('/dashboard/exclusive-homes/request')
-  const showTermsGate = user && !user.termsAcceptedAt
-  const showProfileBlocker =
-    !showTermsGate &&
-    isDashboardHome &&
-    user &&
-    !isProfileSetupComplete(user) &&
-    !isDismissed
+  if (shouldAutoOpenRental) {
+    return <FallbackSuspense message="Setting up your rental details..." />
+  }
+
   const hideBottomNav =
     !!showProfileBlocker ||
+    isRentalGated ||
     !!pathname?.startsWith('/dashboard/setup') ||
     !!isHomeRequestRoute ||
     !!pathname?.startsWith('/dashboard/savings/deposit') ||

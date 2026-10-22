@@ -429,7 +429,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
               <div className="auth-field-hint auth-field-hint--accent">
                 <AlertCircle size={12} /> Your manager already invited you —{' '}
                 <button type="button" className="auth-field-hint__link" onClick={handleInviteProceed}>
-                  Verify to set your password
+                  Complete setup to claim your property
                 </button>
               </div>
             )}
