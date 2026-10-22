@@ -172,7 +172,8 @@ header nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 68px;
+  padding: 12px 24px;
+  min-height: 64px;
 }
 
 .logo {
@@ -1259,9 +1260,53 @@ footer {
     padding: 44px 0;
   }
 
+  header nav {
+    padding: 10px 16px;
+    min-height: 56px;
+  }
+
+  .logo {
+    gap: 8px;
+    font-size: 14px;
+  }
+
+  .logo .mark {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+  }
+
+  .logo small {
+    font-size: 8px;
+    letter-spacing: 0.02em;
+    line-height: 1.1;
+  }
+
+  .nav-right {
+    gap: 8px;
+  }
+
+  .nav-right .btn-header {
+    padding: 7px 13px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .nav-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+  }
+
+  .nav-toggle svg {
+    width: 22px;
+    height: 22px;
+  }
+
   .nav-links {
     position: fixed;
-    top: 68px;
+    top: 56px;
     left: 0;
     right: 0;
     background: var(--paper);
@@ -1276,10 +1321,6 @@ footer {
 
   .nav-links.open {
     transform: translateY(0);
-  }
-
-  .nav-toggle {
-    display: block;
   }
 
   .learn-grid-compact,
@@ -1297,5 +1338,20 @@ footer {
 
   .reg-card {
     padding: 24px 18px;
+  }
+}
+
+@media (max-width: 390px) {
+  header nav {
+    padding: 8px 12px;
+  }
+
+  .logo small {
+    display: none;
+  }
+
+  .nav-right .btn-header {
+    padding: 6px 10px;
+    font-size: 11.5px;
   }
 }
