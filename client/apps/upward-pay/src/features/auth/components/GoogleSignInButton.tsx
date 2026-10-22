@@ -91,6 +91,12 @@ export function GoogleSignInButton({ onSuccess, disabled }: GoogleSignInButtonPr
       await setAuthUser(result.user, { isNewUser: result.isNewUser, provider: 'google' })
       queryClient.setQueryData(['user'], result.user)
 
+      if (result.user?.isFromInvite) {
+        toast.success('Your invited details have been connected.', 'Welcome to Upward')
+      } else if (result.user?.isFromWaitlist && result.isNewUser) {
+        toast.success('Your priority access has been activated.', 'Welcome to Upward')
+      }
+
       if (onSuccess) {
         onSuccess()
       } else {
