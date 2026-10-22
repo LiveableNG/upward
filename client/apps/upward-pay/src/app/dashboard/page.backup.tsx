@@ -1,0 +1,228 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { AlertTriangle } from 'lucide-react'
+import { usePendingPayments, useTransactions } from '@/features/dashboard/hooks/useDashboard'
+import { useAuth } from '@/features/auth/AuthContext'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { api } from '@/lib/api'
+import { DashboardHeader } from '@/features/dashboard/components/DashboardHeader'
+import { StatStrip } from '@/features/dashboard/components/StatStrip'
+import { DashboardHome } from '@/features/dashboard/components/DashboardHome'
+import { DashboardSkeleton } from '@/features/dashboard/components/DashboardSkeleton'
+import { PullToRefresh } from '@/components/common/PullToRefresh'
+import { useScoreProfile } from '@/features/dashboard/services/scoreService'
+import { formatDate } from '@/lib/utils'
+import { Capacitor } from '@capacitor/core'
+import { hasRentalInfo } from '@/features/dashboard/utils/profileCompletion'
+
+export default function DashboardPage() {
+  const router = useRouter()
+
+  // Use global auth state instead of fetching profile again
+  const { user, loading: authLoading, isPinLocked } = useAuth()
+
+  // Granular data fetching
+  const { data: rawPending, isLoading: pendingLoading, error: pendingError } = usePendingPayments()
+  const { data: completedPayments, isLoading: txLoading, error: txError } = useTransactions()
+
+  const { data: notifData } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: () => api.getNotifications(),
+  })
+
+  const { data: benefitsStatus, isError: benefitsError } = useQuery({
+    queryKey: ['benefits-status'],
+    queryFn: () => api.getBenefitsStatus(),
+    retry: 1, // Don't retry endlessly if it 500s
+  })
+
+  const { data: scoreProfile } = useScoreProfile()
+
+  const [localDismissedBanner, setLocalDismissedBanner] = useState(false)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const dismissed = localStorage.getItem('app_banner_dismissed') === 'true'
+      setLocalDismissedBanner(dismissed)
+    }
+  }, [])
+
+  const handleDismissBanner = () => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('app_banner_dismissed', 'true')
+      setLocalDismissedBanner(true)
+    }
+  }
+
+  // Only redirect if auth context definitively says no user and app is not locked
+  useEffect(() => {
+    if (!authLoading && !user && !isPinLocked) {
+      router.push('/login')
+    }
+  }, [user, authLoading, isPinLocked, router])
+
+  const queryClient = useQueryClient()
+
+  const handleRefresh = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['pending-payments'] }),
+      queryClient.invalidateQueries({ queryKey: ['transactions'] }),
+      queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+      queryClient.invalidateQueries({ queryKey: ['benefits-status'] }),
+      queryClient.invalidateQueries({ queryKey: ['score-profile'] }),
+      queryClient.invalidateQueries({ queryKey: ['my-home'] }),
+      queryClient.invalidateQueries({ queryKey: ['all-bills'] }),
+    ])
+  }
+
+  if (authLoading || !user) {
+    return <DashboardSkeleton />
+  }
+
+  // Gracefully handle critical errors
+  if (pendingError || txError) {
+    return (
+      <div className="dashboard dashboard--error">
+        <div className="pay-page__error">
+          <div className="pay-page__error-icon">
+            <AlertTriangle size={32} />
+          </div>
+          <h2>Error loading dashboard</h2>
+          <p>We couldn't load some of your financial data. Please try again.</p>
+          <button className="btn btn--secondary" onClick={() => window.location.reload()}>
+            Retry
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  const pendingPayments = [...(rawPending || [])]
+    .filter((p: any) => {
+      if (!p.userPropertyUuid) return true
+      const prop = user.properties?.find((prop: any) => prop.uuid === p.userPropertyUuid)
+      return !prop?.isPastTenancy
+    })
+    .sort((a, b) => {
+      const now = new Date()
+      const aDate = a.due_date || a.dueDate
+      const bDate = b.due_date || b.dueDate
+      const aOverdue = aDate && new Date(aDate) < now ? 1 : 0
+      const bOverdue = bDate && new Date(bDate) < now ? 1 : 0
+      if (aOverdue !== bOverdue) return bOverdue - aOverdue
+      return new Date(aDate || 0).getTime() - new Date(bDate || 0).getTime()
+    })
+
+  const firstName = user.firstName || 'User'
+  const isNewUser = !hasRentalInfo(user)
+  const isIdentityVerified = user.isIdentityVerified || false
+  const totalPaid = (completedPayments || []).reduce((sum: number, p: any) => sum + p.amount, 0)
+  const currency = completedPayments?.[0]?.currency || 'NGN'
+
+  const isCapacitor =
+    Capacitor.isNativePlatform() ||
+    (typeof window !== 'undefined' &&
+      (Capacitor.getPlatform() === 'android' || Capacitor.getPlatform() === 'ios'))
+
+  const shouldShowAppBanner = !isCapacitor && !localDismissedBanner
+
+  const backendNotifCount = notifData?.unreadCount || 0
+  const pendingCount = pendingPayments.length || 0
+  const notifCount = backendNotifCount + pendingCount
+
+  const scoreData = scoreProfile?.data
+  const credScore = scoreData?.score || 0
+  const rank = scoreData?.rank || 'N/A'
+  const band = scoreData?.band || 'unranked'
+  const isScorable = scoreData?.isScorable || false
+  const onTime = Math.round(scoreData?.metrics?.ptPercentage || 0)
+  const streak = scoreData?.metrics?.longestStreak || 0
+  const profileCompletion = scoreData?.profile?.profileCompletion || 0
+  const maxScore = scoreData?.maxScore || 0
+
+  const propertyReminders = (user.properties || [])
+    .filter((prop) => !!prop.rentEndDate)
+    .filter((prop) => {
+      const hasPending = pendingPayments.some((p: any) => p.userPropertyUuid === prop.uuid)
+      return !hasPending
+    })
+    .map((prop) => {
+      const d = new Date(prop.rentEndDate!)
+      const now = new Date()
+      const isOverdue = d <= now
+      if (!isOverdue) return null
+
+      return {
+        type: 'rent_reminder',
+        id: prop.uuid,
+        title: 'Rent Overdue',
+        property_address: prop.location
+          ? [prop.location.address, prop.location.area, prop.location.state, prop.location.country]
+              .filter(Boolean)
+              .join(', ')
+          : prop.address || 'Property',
+        rentEndDate: prop.rentEndDate,
+        desc: `Rent for ${prop.location?.address || prop.location?.area || 'your property'} was due on ${formatDate(prop.rentEndDate!)}.`,
+        actionLabel: 'Pay Overdue Rent',
+        action: () => router.push(`/dashboard/pay-rent?propertyUuid=${prop.uuid}`),
+        isCritical: isOverdue,
+        bg: 'var(--error)',
+      }
+    })
+    .filter(Boolean)
+
+  const anyOverdue =
+    pendingPayments.some((p) => {
+      const dateStr = p.due_date || p.dueDate
+      return dateStr && new Date(dateStr) < new Date()
+    }) || propertyReminders.some((r: any) => r?.isCritical)
+
+  return (
+    <PullToRefresh onRefresh={handleRefresh}>
+      <div className="dashboard dashboard--nav-offset dashboard--proto-home">
+        <div className="mobile-only mobile-header-sticky">
+          <DashboardHeader
+            firstName={firstName}
+            notifCount={notifCount}
+            profilePic={user.profilePic}
+          />
+        </div>
+
+        <StatStrip
+          completedPaymentsCount={completedPayments?.length || 0}
+          totalPaid={totalPaid}
+          currency={currency}
+          pendingCount={pendingPayments.length}
+          isLoading={txLoading || pendingLoading}
+        />
+
+        <DashboardHome
+          user={user}
+          pendingPayments={pendingPayments}
+          completedPayments={completedPayments || []}
+          credScore={credScore}
+          maxScore={maxScore}
+          band={band}
+          rank={rank}
+          isScorable={isScorable}
+          streak={streak}
+          onTimePct={onTime}
+          profileCompletion={profileCompletion}
+          propertyReminders={propertyReminders}
+          isIdentityVerified={isIdentityVerified}
+          verificationOn={user?.verificationOn ?? true}
+          isNewUser={isNewUser}
+          notifCount={notifCount}
+          anyOverdue={anyOverdue}
+          showAppBanner={shouldShowAppBanner}
+          onDismissAppBanner={handleDismissBanner}
+          benefitsActive={!benefitsError && !!benefitsStatus?.isActive}
+          benefitsEndsAt={benefitsError ? null : benefitsStatus?.endsAt || null}
+          isLoading={pendingLoading || txLoading}
+        />
+      </div>
+    </PullToRefresh>
+  )
+}

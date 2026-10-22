@@ -1175,3 +1175,636 @@
     margin-top: 8px;
   }
 }
+
+/* ==========================================================================
+   Rebuilt Dashboard Enhancements: Runway Hero & MyHome Hub
+   ========================================================================== */
+
+/* Runway Hero — Matches Upward White Card Theme */
+.runway-hero {
+  background: #ffffff;
+  border: 1px solid var(--border-solid, #ebe4da);
+  border-radius: 16px;
+  padding: 22px;
+  color: var(--text, #1a1714);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: 0 1px 3px rgba(60, 40, 20, 0.04);
+  font-family: inherit;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.runway-hero--urgent {
+  background: #fff;
+  border-color: rgba(239, 68, 68, 0.35);
+  box-shadow: 0 4px 14px rgba(239, 68, 68, 0.06);
+}
+
+.runway-hero__top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.runway-hero__eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--skin-primary, #c2501f);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.runway-hero__countdown-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--skin-primary, #c2501f);
+  background: var(--shell-tint, #fbede5);
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.runway-hero__amounts {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.runway-hero__target-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--shell-muted, #a9a096);
+}
+
+.runway-hero__current-balance {
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  color: var(--text, #1a1714);
+  line-height: 1.1;
+}
+
+.runway-hero__gauge {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.runway-hero__gauge-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--shell-ink-muted, #7a7268);
+}
+
+.runway-hero__progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #efe8df;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.runway-hero__progress-fill {
+  height: 100%;
+  background: var(--skin-primary, #c2501f);
+  border-radius: 99px;
+  transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.runway-hero__interest-card {
+  background: rgba(34, 140, 90, 0.06);
+  border: 1px solid rgba(34, 140, 90, 0.2);
+  border-radius: 12px;
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.runway-hero__interest-text {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1b7a4d;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.runway-hero__interest-rate {
+  font-size: 12px;
+  color: #1b7a4d;
+  opacity: 0.85;
+  font-weight: 600;
+}
+
+.runway-hero__pitch {
+  background: var(--shell-tint, #fbede5);
+  border: 1px solid rgba(194, 80, 31, 0.15);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text, #1a1714);
+}
+
+.runway-hero__actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 2px;
+}
+
+.runway-hero__btn-primary {
+  flex: 1.5;
+  height: 42px;
+  background: var(--skin-primary, #c2501f);
+  color: #ffffff;
+  border: none;
+  border-radius: 11px;
+  font-size: 13.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(194, 80, 31, 0.35);
+  font-family: inherit;
+}
+
+.runway-hero__btn-primary:hover {
+  background: var(--skin-primary-hover, #a8410f);
+  transform: translateY(-1px);
+}
+
+.runway-hero__btn-secondary {
+  flex: 1;
+  height: 42px;
+  background: #fff;
+  color: var(--text, #1a1714);
+  border: 1.5px solid var(--shell-border, #f0e9df);
+  border-radius: 11px;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.runway-hero__btn-secondary:hover {
+  border-color: #d8cdbf;
+  background: #fdfcfb;
+}
+
+/* My Home Quick Hub — Strictly Contained 2x2 Grid */
+.myhome-hub {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+}
+
+.myhome-hub__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  width: 100%;
+}
+
+.myhome-tile {
+  background: #ffffff;
+  border: 1px solid var(--border-solid, #ebe4da);
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: all 0.2s ease;
+  min-width: 0;
+  overflow: hidden;
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.03);
+}
+
+.myhome-tile:hover {
+  border-color: var(--skin-primary, #c2501f);
+  box-shadow: 0 4px 12px rgba(60, 40, 20, 0.06);
+  transform: translateY(-1px);
+}
+
+.myhome-tile:active {
+  transform: scale(0.99);
+}
+
+.myhome-tile__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.myhome-tile__body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.myhome-tile__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text, #1a1714);
+  line-height: 1.3;
+}
+
+.myhome-tile__desc {
+  font-size: 11px;
+  color: var(--shell-muted, #a9a096);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+}
+
+/* Secondary Pillar Cards */
+.pillar-card {
+  background: #ffffff;
+  border: 1px solid var(--border-solid, #ebe4da);
+  border-radius: 16px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.03);
+}
+
+.pillar-card:hover {
+  border-color: var(--skin-primary, #c2501f);
+  box-shadow: 0 4px 14px rgba(60, 40, 20, 0.06);
+  transform: translateY(-1px);
+}
+
+.pillar-card__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pillar-card__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--shell-tint, #fbede5);
+  color: var(--skin-primary, #c2501f);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pillar-card__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text, #1a1714);
+}
+
+.pillar-card__badge {
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 10px;
+  background: rgba(34, 140, 90, 0.1);
+  color: #1b7a4d;
+}
+
+.pillar-card__desc {
+  font-size: 12.5px;
+  color: var(--shell-ink-muted, #7a7268);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.pillar-card__footer {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--skin-primary, #c2501f);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ==========================================================================
+   Mobile & Small Device Responsive Enhancements (≤ 375px)
+   ========================================================================== */
+
+@media (max-width: 480px) {
+  /* Prevent button text wrapping in runway hero */
+  .runway-hero__btn-primary,
+  .runway-hero__btn-secondary {
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 375px) {
+  /* Dashboard container relief */
+  .dash-home {
+    padding: 0 12px 20px;
+    gap: 12px;
+  }
+
+  /* Sticky header alignment */
+  .dashboard--proto-home .mobile-header-sticky {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  /* 1. Primary Runway Hero Card */
+  .runway-hero {
+    padding: 16px 14px;
+    gap: 12px;
+    border-radius: 14px;
+  }
+
+  .runway-hero__top-row {
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .runway-hero__eyebrow {
+    font-size: 10px;
+    letter-spacing: 0.08em;
+  }
+
+  .runway-hero__countdown-badge {
+    font-size: 10.5px;
+    padding: 3px 8px;
+    white-space: nowrap;
+  }
+
+  .runway-hero__target-label {
+    font-size: 11.5px;
+    line-height: 1.35;
+  }
+
+  .runway-hero__current-balance {
+    font-size: 28px;
+    letter-spacing: -0.3px;
+  }
+
+  .runway-hero__gauge {
+    gap: 5px;
+  }
+
+  .runway-hero__interest-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 8px 12px;
+    border-radius: 10px;
+  }
+
+  .runway-hero__interest-text {
+    font-size: 12px;
+  }
+
+  .runway-hero__interest-rate {
+    font-size: 11px;
+    opacity: 0.9;
+  }
+
+  .runway-hero__pitch {
+    padding: 10px 12px;
+    font-size: 11.5px;
+    border-radius: 10px;
+  }
+
+  .runway-hero__actions {
+    flex-direction: column;
+    width: 100%;
+    gap: 8px;
+    margin-top: 0;
+  }
+
+  .runway-hero__btn-primary {
+    width: 100%;
+    flex: none;
+    height: 42px;
+    font-size: 13.5px;
+  }
+
+  .runway-hero__btn-secondary {
+    width: 100%;
+    flex: none;
+    height: 40px;
+    font-size: 13px;
+  }
+
+  /* 2. Upward Rent Score Card */
+  .dash-home__score {
+    padding: 16px 14px;
+    border-radius: 18px;
+  }
+
+  .dash-home__score-top {
+    gap: 10px;
+    align-items: center;
+  }
+
+  .dash-home__score-top > div:first-child {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .dash-home__score-eyebrow {
+    font-size: 10px;
+    letter-spacing: 0.1em;
+  }
+
+  .dash-home__score-value-row {
+    margin-top: 4px;
+    gap: 4px;
+  }
+
+  .dash-home__score-value {
+    font-size: 32px;
+  }
+
+  .dash-home__score-max {
+    font-size: 12.5px;
+    margin-bottom: 2px;
+  }
+
+  .dash-home__score-sub {
+    font-size: 11px;
+    line-height: 1.35;
+    margin-top: 4px;
+  }
+
+  .dash-home__score-pill {
+    padding: 4px 10px;
+    font-size: 10.5px;
+    margin-top: 8px;
+  }
+
+  .dash-home__score-ring {
+    width: 78px;
+    height: 78px;
+    flex-shrink: 0;
+  }
+
+  .dash-home__score-ring-inner {
+    width: 60px;
+    height: 60px;
+    padding: 2px;
+  }
+
+  .dash-home__score-band {
+    font-size: 8.5px;
+    line-height: 1.15;
+    text-align: center;
+    max-width: 52px;
+    word-break: normal;
+  }
+
+  .dash-home__score-rank {
+    font-size: 8.5px;
+    margin-top: 1px;
+  }
+
+  /* 3. Behavioral Metrics Strip */
+  .dash-home__metrics {
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .dash-home__metric {
+    padding: 10px 4px;
+    border-radius: 11px;
+  }
+
+  .dash-home__metric-val {
+    font-size: 15px;
+  }
+
+  .dash-home__metric-lbl {
+    font-size: 8.5px;
+    letter-spacing: 0.02em;
+    text-align: center;
+    line-height: 1.15;
+  }
+
+  /* 4. Quick Action Chips */
+  .dash-home__actions {
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .dash-home__action {
+    height: 40px;
+    font-size: 11.5px;
+    padding: 0 4px;
+    border-radius: 11px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  /* 5. My Home Operations Grid */
+  .myhome-hub__grid {
+    gap: 8px;
+  }
+
+  .myhome-tile {
+    padding: 10px 8px;
+    gap: 8px;
+    border-radius: 12px;
+  }
+
+  .myhome-tile__icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+  }
+
+  .myhome-tile__title {
+    font-size: 12px;
+  }
+
+  .myhome-tile__desc {
+    font-size: 10px;
+  }
+
+  /* 6. Secondary Pillar Cards */
+  .pillar-card {
+    padding: 14px 14px;
+    border-radius: 14px;
+    gap: 10px;
+  }
+
+  .pillar-card__icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+  }
+
+  .pillar-card__title {
+    font-size: 13px;
+  }
+
+  .pillar-card__badge {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+
+  .pillar-card__desc {
+    font-size: 11.5px;
+    line-height: 1.4;
+  }
+
+  .pillar-card__footer {
+    font-size: 11.5px;
+  }
+
+  /* 7. Activity Cards */
+  .dash-home__activity-item {
+    padding: 12px 12px;
+    gap: 10px;
+  }
+
+  .dash-home__activity-item-title {
+    font-size: 13px;
+  }
+
+  .dash-home__activity-item-meta {
+    font-size: 11px;
+  }
+
+  .dash-home__activity-item-amount {
+    font-size: 12px;
+  }
+}
