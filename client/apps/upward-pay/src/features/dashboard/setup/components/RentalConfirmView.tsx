@@ -11,6 +11,8 @@ import { submitRentalRequest } from '../submitRental'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
+import { useRentalExperiment } from '../hooks/useRentalExperiment'
+import { sessionTracker } from '@/lib/sessionTracker'
 
 const STEP_NAMES = ['Location', 'Tenancy', 'Landlord', 'Review']
 
@@ -21,6 +23,7 @@ export function RentalConfirmView() {
   const toast = useToast()
   const queryClient = useQueryClient()
   const { isEdit, withMode, returnTo } = useSetupMode()
+  const { trackCompletion, variant } = useRentalExperiment()
 
   const addressLine = [draft.formData.address, draft.formData.area, draft.formData.state]
     .filter(Boolean)
@@ -52,6 +55,11 @@ export function RentalConfirmView() {
   const saveMutation = useMutation({
     mutationFn: () => submitRentalRequest(draft),
     onSuccess: async () => {
+      trackCompletion({
+        rentType: draft.formData.rentType,
+        tenancyStatus: draft.formData.tenancyStatus,
+        isEdit,
+      })
       await refreshUser()
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       queryClient.invalidateQueries({ queryKey: ['score-profile'] })
@@ -68,6 +76,10 @@ export function RentalConfirmView() {
       }
     },
     onError: (err: any) => {
+      sessionTracker.trackEvent('RENTAL_DETAILS_FAILED', {
+        variant,
+        error: err?.message || 'Unknown submission error',
+      })
       toast.error(err?.message || 'Failed to save rental details. Please try again.', 'Error')
     },
   })

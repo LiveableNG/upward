@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import {
   Bell,
   ChevronRight,
@@ -7,6 +8,7 @@ import {
   PiggyBank,
   Home,
   TrendingUp,
+  ArrowRight,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { UserAvatar } from '@/components/common/UserAvatar'
@@ -22,6 +24,7 @@ import {
   needsIdentityVerification,
 } from '../utils/profileCompletion'
 import { isSavingsWalletEnabled } from '../utils/savingsWallet'
+import { useRentalExperiment } from '../setup/hooks/useRentalExperiment'
 
 interface ProfileSetupBlockerProps {
   user: UserProfile
@@ -57,6 +60,12 @@ export function ProfileSetupBlocker({
   onSkip,
 }: ProfileSetupBlockerProps) {
   const router = useRouter()
+  const { isRequired, trackExposure, trackDeferral } = useRentalExperiment()
+
+  useEffect(() => {
+    trackExposure('ProfileSetupBlocker')
+  }, [trackExposure])
+
   const firstName = user.firstName || 'there'
 
   const rentalDone = hasRentalInfo(user)
@@ -273,9 +282,32 @@ export function ProfileSetupBlocker({
       </div>
 
       <footer className="profile-setup-blocker__footer">
-        <button type="button" className="profile-setup-blocker__skip" onClick={onSkip}>
-          Skip for now — go to dashboard
-        </button>
+        {isRequired ? (
+          <>
+            <button
+              type="button"
+              className="profile-setup-blocker__primary-action"
+              onClick={() => router.push(stepPaths.rental)}
+            >
+              <span>Complete Rental Setup</span>
+              <ArrowRight size={18} aria-hidden />
+            </button>
+            <p className="profile-setup-blocker__required-notice">
+              Rental details are required to configure your Rent Passport and enable rent payments.
+            </p>
+          </>
+        ) : (
+          <button
+            type="button"
+            className="profile-setup-blocker__skip"
+            onClick={() => {
+              trackDeferral('profile_blocker_footer')
+              onSkip()
+            }}
+          >
+            I&apos;ll do this later — go to dashboard
+          </button>
+        )}
       </footer>
     </div>
   )

@@ -53,6 +53,7 @@ import {
 } from './use-cases/admin/area-price-guide.use-cases'
 import { GetAppActivityLogsUseCase } from './use-cases/admin/get-app-activity-logs.use-case'
 import { GetAppActivityStatsUseCase } from './use-cases/admin/get-app-activity-stats.use-case'
+import { GetRentalExperimentStatsUseCase } from './use-cases/admin/get-rental-experiment-stats.use-case'
 import { GetInternalAccountsUseCase } from './use-cases/admin/get-internal-accounts.use-case'
 import { ToggleInternalAccountUseCase } from './use-cases/admin/toggle-internal-account.use-case'
 import { SyncTenantUseCase } from './use-cases/admin/sync-tenant.use-case'
@@ -634,6 +635,7 @@ const UseCases: any[] = [
   GetAdminPmDetailUseCase,
   GetAppActivityLogsUseCase,
   GetAppActivityStatsUseCase,
+  GetRentalExperimentStatsUseCase,
   GetInternalAccountsUseCase,
   ToggleInternalAccountUseCase,
   SyncTenantUseCase,

@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/features/auth/AuthContext'
 import FallbackSuspense from '@/components/FallbackSuspense'
@@ -8,8 +8,10 @@ import FallbackSuspense from '@/components/FallbackSuspense'
 import dynamic from 'next/dynamic'
 import { BottomNav } from '@/features/dashboard/components/BottomNav'
 import { DashboardHeader } from '@/features/dashboard/components/DashboardHeader'
-import { isProfileSetupComplete } from '@/features/dashboard/utils/profileCompletion'
+import { hasRentalInfo, isProfileSetupComplete } from '@/features/dashboard/utils/profileCompletion'
 import { useScoreProfile } from '@/features/dashboard/services/scoreService'
+import { useRentalExperiment } from '@/features/dashboard/setup/hooks/useRentalExperiment'
+import { sessionTracker } from '@/lib/sessionTracker'
 
 const AnnouncementManager = dynamic(() => import('@/features/dashboard/components/AnnouncementManager').then(mod => mod.AnnouncementManager), { ssr: false })
 const RentReminderManager = dynamic(() => import('@/features/dashboard/components/RentReminderManager').then(mod => mod.RentReminderManager), { ssr: false })
@@ -25,14 +27,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { isLoggedIn, loading, user, isPinLocked } = useAuth()
   const { data: scoreProfile } = useScoreProfile()
   const [blockerDismissed, setBlockerDismissed] = useState(false)
+  const dashboardEnteredTrackedRef = useRef(false)
 
-  // Check persistent dismissal state for current user session
+  const { variant, isRequired, isLoading: isExperimentLoading } = useRentalExperiment()
+  const hasRental = hasRentalInfo(user)
+
+  // Stale local storage skip state must NOT override the required variant
   const isSkippedInStorage =
     typeof window !== 'undefined' && user?.uuid
       ? localStorage.getItem(`upward_profile_setup_skipped_${user.uuid}`) === 'true'
       : false
 
-  const isDismissed = blockerDismissed || isSkippedInStorage
+  const isDismissed = isRequired ? false : (blockerDismissed || isSkippedInStorage)
 
   const handleSkipBlocker = () => {
     if (typeof window !== 'undefined' && user?.uuid) {
@@ -70,12 +76,34 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isDashboardHome = pathname === '/dashboard'
   const isHomeRequestRoute = pathname?.startsWith('/dashboard/exclusive-homes/request')
   const showTermsGate = user && !user.termsAcceptedAt
+
+  // Routes exempt from the required rental gate to allow completing setup, account management, and legal acceptance
+  const isSetupRoute = pathname?.startsWith('/dashboard/setup')
+  const isProfileRoute = pathname?.startsWith('/dashboard/me')
+  const isNotifRoute = pathname?.startsWith('/dashboard/notifications')
+  const isKycRoute = pathname?.startsWith('/dashboard/verify-identity') || pathname?.startsWith('/dashboard/kyc')
+  const isExemptRoute = isSetupRoute || isProfileRoute || isNotifRoute || isKycRoute
   const showProfileBlocker =
     !showTermsGate &&
-    isDashboardHome &&
     user &&
-    !isProfileSetupComplete(user) &&
-    !isDismissed
+    !isExperimentLoading &&
+    (isRequired
+      ? !hasRental && !isExemptRoute
+      : isDashboardHome && !isProfileSetupComplete(user) && !isDismissed)
+
+  useEffect(() => {
+    if (!loading && isLoggedIn && user && !showProfileBlocker && !showTermsGate) {
+      if (!dashboardEnteredTrackedRef.current) {
+        dashboardEnteredTrackedRef.current = true
+        sessionTracker.trackEvent('DASHBOARD_ENTERED', {
+          variant,
+          isRequired,
+          hasRentalDetails: hasRental,
+          route: pathname,
+        })
+      }
+    }
+  }, [loading, isLoggedIn, user, showProfileBlocker, showTermsGate, variant, isRequired, hasRental, pathname])
   const hideBottomNav =
     !!showProfileBlocker ||
     !!pathname?.startsWith('/dashboard/setup') ||
