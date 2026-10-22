@@ -7,24 +7,28 @@ import {
   CreditCard,
   PiggyBank,
   Home,
-  TrendingUp,
   ArrowRight,
+  Lock,
+  Check,
+  User,
+  ShieldCheck,
+  LogOut,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { UserAvatar } from '@/components/common/UserAvatar'
+import { useAuth } from '@/features/auth/AuthContext'
 import { type UserProfile } from '@/features/auth/types'
 import {
   getIdentityVerificationPath,
   getStandalonePhonePath,
   getStandaloneRentalPath,
   hasContactDetails,
-  hasDateOfBirth,
-  hasPhone,
   hasRentalInfo,
   needsIdentityVerification,
 } from '../utils/profileCompletion'
 import { isSavingsWalletEnabled } from '../utils/savingsWallet'
 import { useRentalExperiment } from '../setup/hooks/useRentalExperiment'
+import { useRentalGate } from '../setup/hooks/useRentalGate'
 
 interface ProfileSetupBlockerProps {
   user: UserProfile
@@ -36,276 +40,232 @@ interface ProfileSetupBlockerProps {
 
 type SetupStepId = 'rental' | 'phone' | 'identity'
 
-function getPersonalDetailsStepLabel(user: UserProfile): string {
-  const needsPhone = !hasPhone(user)
-  const needsDob = !hasDateOfBirth(user)
-  if (needsPhone && needsDob) return 'Add your personal details'
-  if (needsPhone) return 'Add your phone number'
-  if (needsDob) return 'Add your date of birth'
-  return 'Add your personal details'
+interface SetupStep {
+  id: SetupStepId
+  label: string
+  hint: string
+  icon: typeof Home
+  done: boolean
+  href: string
 }
 
-function getActiveStepId(user: UserProfile): SetupStepId {
-  if (!hasRentalInfo(user)) return 'rental'
-  if (!hasContactDetails(user)) return 'phone'
-  if (needsIdentityVerification(user)) return 'identity'
-  return 'rental'
+interface QuickAction {
+  label: string
+  icon: typeof Home
+  href: string
+  comingSoon?: boolean
 }
 
-export function ProfileSetupBlocker({
-  user,
-  score,
-  maxScore,
-  profileCompletion = 0,
-  onSkip,
-}: ProfileSetupBlockerProps) {
+export function ProfileSetupBlocker({ user, score, maxScore, onSkip }: ProfileSetupBlockerProps) {
   const router = useRouter()
-  const { isRequired, trackExposure, trackDeferral } = useRentalExperiment()
+  const { logout } = useAuth()
+  const { trackExposure, trackDeferral } = useRentalExperiment()
+  const { isGated, guard, notifyGated } = useRentalGate()
 
   useEffect(() => {
     trackExposure('ProfileSetupBlocker')
   }, [trackExposure])
 
   const firstName = user.firstName || 'there'
-
   const rentalDone = hasRentalInfo(user)
-  const contactDone = hasContactDetails(user)
-  const identityDone = !!user.isIdentityVerified
-  const showIdentityStep = user.verificationOn ?? true
-  const activeStepId = getActiveStepId(user)
+  const showIdentityStep = (user.verificationOn ?? true) && !isGated
 
-  const displayScore = score ?? 0
-  const displayMaxScore = maxScore ?? 0
-  const fallbackPct = displayMaxScore > 0 ? (displayScore / displayMaxScore) * 100 : 0
-  const ringPct = Math.min(100, Math.max(profileCompletion || fallbackPct, 12))
-
-  const stepPaths: Record<SetupStepId, string> = {
-    rental: getStandaloneRentalPath(),
-    phone: getStandalonePhonePath(),
-    identity: getIdentityVerificationPath(),
-  }
-
-  const steps: Array<{
-    id: SetupStepId
-    label: string
-    done: boolean
-    isAction: boolean
-    onPress?: () => void
-  }> = [
+  const steps: SetupStep[] = [
     {
       id: 'rental',
-      label: 'Add your rental details',
+      label: 'Rental details',
+      hint: isGated ? 'Required' : 'About 1 min',
+      icon: Home,
       done: rentalDone,
-      isAction: !rentalDone,
-      onPress: () => router.push(stepPaths.rental),
+      href: getStandaloneRentalPath(),
     },
     {
       id: 'phone',
-      label: getPersonalDetailsStepLabel(user),
-      done: contactDone,
-      isAction: !contactDone,
-      onPress: () => router.push(stepPaths.phone),
+      label: 'Personal details',
+      hint: 'Phone & date of birth',
+      icon: User,
+      done: hasContactDetails(user),
+      href: getStandalonePhonePath(),
     },
     ...(showIdentityStep
       ? [
           {
             id: 'identity' as const,
-            label: 'Verify your identity',
-            done: identityDone,
-            isAction: needsIdentityVerification(user),
-            onPress: () => router.push(stepPaths.identity),
+            label: 'Verify identity',
+            hint: 'Boosts your score',
+            icon: ShieldCheck,
+            done: !needsIdentityVerification(user),
+            href: getIdentityVerificationPath(),
           },
         ]
       : []),
   ]
 
-  const quickActions = [
+  const nextStep = steps.find((s) => !s.done) ?? steps[0]!
+  const completedCount = steps.filter((s) => s.done).length
+
+  const quickActions: QuickAction[] = [
     { label: 'Pay Rent', icon: CreditCard, href: '/dashboard/pay-rent' },
+    { label: 'Save for Home', icon: Home, href: '/dashboard/save-for-home' },
     isSavingsWalletEnabled(user)
       ? { label: 'Save Rent', icon: PiggyBank, href: '/dashboard/savings' }
-      : {
-          label: 'Save Rent',
-          icon: PiggyBank,
-          href: '/dashboard/save-for-rent',
-          disabled: true,
-          comingSoon: true,
-        },
-    { label: 'Save for Home', icon: Home, href: '/dashboard/save-for-home' },
-  ] as Array<{ label: string; icon: any; href: string; disabled?: boolean; comingSoon?: boolean }>
+      : { label: 'Save Rent', icon: PiggyBank, href: '/dashboard/save-for-rent', comingSoon: true },
+  ]
+
+  const title = isGated ? 'Add your rental details' : `Welcome, ${firstName}`
+  const subtitle = isGated
+    ? 'Takes about a minute. Unlocks rent payments, savings and your Rent Passport.'
+    : 'Finish setup to unlock your full Upward Score.'
 
   return (
-    <div className="profile-setup-blocker" role="dialog" aria-modal="true" aria-label="Complete your profile setup">
-      <header className="profile-setup-blocker__header">
-        <div className="dashboard__header-left dashboard__header-left--user">
-          <button
-            type="button"
-            className="profile-setup-blocker__avatar-btn dashboard__avatar"
-            onClick={() => router.push('/dashboard/me')}
-            aria-label="Open profile"
-          >
-            <UserAvatar src={user.profilePic} alt={firstName} size={44} />
-          </button>
-          <div className="dashboard__greeting-block">
-            <span className="dashboard__greeting-eyebrow">Hey,</span>
-            <div className="dashboard__greeting">
-              <span className="dashboard__greeting-name">{firstName}</span>
-            </div>
-          </div>
-        </div>
+    <div className="setup-gate" role="dialog" aria-modal="true" aria-labelledby="setup-gate-title">
+      <header className="setup-gate__header">
         <button
           type="button"
-          className="dashboard__icon-btn dashboard__icon-btn--notif"
-          onClick={() => router.push('/dashboard/notifications')}
+          className="setup-gate__avatar"
+          onClick={() => router.push('/dashboard/me')}
+          aria-label="Open profile"
+        >
+          <UserAvatar src={user.profilePic} alt={firstName} size={38} />
+        </button>
+        <button
+          type="button"
+          className="setup-gate__icon-btn"
+          onClick={() => guard('notifications', () => router.push('/dashboard/notifications'))}
           aria-label="Notifications"
         >
           <Bell size={18} />
         </button>
       </header>
 
-      <div className="profile-setup-blocker__scroll">
-        <div className="profile-setup-blocker__body">
-          <div
-            className={`profile-setup-blocker__score-card ${score === undefined ? 'skeleton-loading' : ''}`}
-            style={{ 
-              '--ring-pct': `${ringPct}%`,
-              minHeight: '220px' // Added fixed min-height to prevent layout shift
-            } as React.CSSProperties}
-          >
-            <div className="profile-setup-blocker__score-top">
-              <div className="profile-setup-blocker__score-labels">
-                <span className="profile-setup-blocker__score-eyebrow">Your Upward Score</span>
-                <span className="profile-setup-blocker__score-sub">Rent Passport · Starter</span>
-              </div>
-              <span className="profile-setup-blocker__badge">NEW</span>
+      <div className="setup-gate__scroll">
+        <div className="setup-gate__body">
+          <section className="setup-gate__hero">
+            <div className="setup-gate__hero-top">
+              <span className="setup-gate__hero-icon" aria-hidden="true">
+                <Home size={22} strokeWidth={2.2} />
+              </span>
+              {score !== undefined && (
+                <span className="setup-gate__score-chip">
+                  <strong>{score}</strong>
+                  {maxScore ? <span>/ {maxScore}</span> : null}
+                </span>
+              )}
             </div>
-
-            <div className="profile-setup-blocker__score-main">
-              <div className="profile-setup-blocker__ring" aria-hidden="true">
-                <div className="profile-setup-blocker__ring-disc">
-                  {score === undefined ? (
-                    <span className="profile-setup-blocker__ring-skeleton">...</span>
-                  ) : (
-                    <>
-                      <span className="profile-setup-blocker__ring-score">{displayScore}</span>
-                      <span className="profile-setup-blocker__ring-max">/ {displayMaxScore}</span>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              <div className="profile-setup-blocker__setup-copy">
-                <h2>Complete your setup</h2>
-                <p>Unlock your true score potential in 60 seconds.</p>
-              </div>
+            <h1 id="setup-gate-title" className="setup-gate__title">
+              {title}
+            </h1>
+            <p className="setup-gate__subtitle">{subtitle}</p>
+            <div
+              className="setup-gate__progress"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={steps.length}
+              aria-valuenow={completedCount}
+              aria-label="Setup progress"
+            >
+              {steps.map((s) => (
+                <span
+                  key={s.id}
+                  className={`setup-gate__progress-seg${s.done ? ' setup-gate__progress-seg--done' : ''}`}
+                />
+              ))}
             </div>
+          </section>
 
-            <div className="profile-setup-blocker__divider" aria-hidden="true" />
-
-            <p className="profile-setup-blocker__steps-prompt">
-              You can complete this in less than 60 seconds.
-            </p>
-
-            <div className="profile-setup-blocker__steps">
-              {steps.map((step, idx) => {
-                const isActive = step.id === activeStepId && !step.done
-                const StepTag = step.isAction ? 'button' : 'div'
-
-                return (
-                  <StepTag
-                    key={step.id}
-                    type={step.isAction ? 'button' : undefined}
+          <ul className="setup-gate__list">
+            {steps.map((step) => {
+              const Icon = step.icon
+              const isNext = step.id === nextStep.id && !step.done
+              return (
+                <li key={step.id}>
+                  <button
+                    type="button"
                     className={[
-                      'profile-setup-blocker__step',
-                      isActive && 'profile-setup-blocker__step--active',
-                      step.done && 'profile-setup-blocker__step--done',
-                      step.isAction && 'profile-setup-blocker__step--action',
+                      'setup-gate__row',
+                      isNext && 'setup-gate__row--next',
+                      step.done && 'setup-gate__row--done',
                     ]
                       .filter(Boolean)
                       .join(' ')}
-                    onClick={step.isAction ? step.onPress : undefined}
-                    disabled={step.isAction ? step.done : undefined}
+                    onClick={() => router.push(step.href)}
+                    disabled={step.done}
                   >
-                    <span className="profile-setup-blocker__step-num">{idx + 1}</span>
-                    <span className="profile-setup-blocker__step-label">{step.label}</span>
-                    {step.isAction && !step.done && (
-                      <ChevronRight size={16} className="profile-setup-blocker__step-chevron" />
-                    )}
-                  </StepTag>
-                )
-              })}
-            </div>
-          </div>
+                    <span className="setup-gate__row-icon" aria-hidden="true">
+                      {step.done ? <Check size={16} strokeWidth={3} /> : <Icon size={16} />}
+                    </span>
+                    <span className="setup-gate__row-text">
+                      <span className="setup-gate__row-label">{step.label}</span>
+                      <span className="setup-gate__row-hint">{step.done ? 'Done' : step.hint}</span>
+                    </span>
+                    {!step.done && <ChevronRight size={16} className="setup-gate__row-chevron" />}
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
 
-          <section className="profile-setup-blocker__still" aria-label="Quick actions while you set up">
-            <div className="profile-setup-blocker__still-divider" aria-hidden="true" />
-            <div className="profile-setup-blocker__still-head">
-              <h3 className="profile-setup-blocker__still-title">Quick actions</h3>
-              <p className="profile-setup-blocker__still-desc">
-                Pay rent, save, and explore — finish setup to unlock your full score.
-              </p>
-            </div>
-            <div className="profile-setup-blocker__quick-actions">
+          <section className="setup-gate__actions" aria-label={isGated ? 'Locked features' : 'Quick actions'}>
+            <h2 className="setup-gate__section-label">
+              {isGated ? 'Unlocks after setup' : 'Quick actions'}
+            </h2>
+            <div className="setup-gate__tiles">
               {quickActions.map((action) => {
                 const Icon = action.icon
+                const locked = isGated || !!action.comingSoon
                 return (
                   <button
                     key={action.label}
                     type="button"
-                    className={`profile-setup-blocker__quick-action${action.disabled ? ' profile-setup-blocker__quick-action--disabled' : ''}`}
-                    onClick={() => !action.disabled && router.push(action.href)}
-                    disabled={action.disabled}
-                    aria-disabled={action.disabled ? 'true' : undefined}
+                    className={`setup-gate__tile${locked ? ' setup-gate__tile--locked' : ''}`}
+                    aria-disabled={locked ? 'true' : undefined}
+                    onClick={() => {
+                      if (action.comingSoon) return
+                      if (isGated) {
+                        notifyGated(action.label)
+                        return
+                      }
+                      router.push(action.href)
+                    }}
                   >
-                    <span className="profile-setup-blocker__quick-action-icon">
-                      <Icon size={20} strokeWidth={2} />
+                    <span className="setup-gate__tile-icon">
+                      <Icon size={18} strokeWidth={2} />
+                      {isGated && !action.comingSoon && (
+                        <span className="setup-gate__tile-lock" aria-hidden="true">
+                          <Lock size={9} strokeWidth={3} />
+                        </span>
+                      )}
                     </span>
-                    <span className="profile-setup-blocker__quick-action-label">{action.label}</span>
-                    {action.comingSoon && <span className="profile-setup-blocker__quick-action-soon">Coming soon</span>}
+                    <span className="setup-gate__tile-label">{action.label}</span>
+                    {action.comingSoon && <span className="setup-gate__tile-soon">Soon</span>}
                   </button>
                 )
               })}
             </div>
           </section>
-
-          <div className="profile-setup-blocker__nudge">
-            <span className="profile-setup-blocker__nudge-icon" aria-hidden="true">
-              <TrendingUp size={18} />
-            </span>
-            <div>
-              <div className="profile-setup-blocker__nudge-title">Path to Home Ownership</div>
-              <div className="profile-setup-blocker__nudge-desc">
-                3 on-time payments = a stronger profile for lenders.
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
-      <footer className="profile-setup-blocker__footer">
-        {isRequired ? (
-          <>
-            <button
-              type="button"
-              className="profile-setup-blocker__primary-action"
-              onClick={() => router.push(stepPaths.rental)}
-            >
-              <span>Complete Rental Setup</span>
-              <ArrowRight size={18} aria-hidden />
-            </button>
-            <p className="profile-setup-blocker__required-notice">
-              Rental details are required to configure your Rent Passport and enable rent payments.
-            </p>
-          </>
+      <footer className="setup-gate__footer">
+        <button type="button" className="setup-gate__cta" onClick={() => router.push(nextStep.href)}>
+          <span>{isGated ? 'Add rental details' : 'Continue setup'}</span>
+          <ArrowRight size={18} aria-hidden="true" />
+        </button>
+        {isGated ? (
+          <button type="button" className="setup-gate__text-btn" onClick={logout}>
+            <LogOut size={14} aria-hidden="true" />
+            Sign out
+          </button>
         ) : (
           <button
             type="button"
-            className="profile-setup-blocker__skip"
+            className="setup-gate__text-btn"
             onClick={() => {
               trackDeferral('profile_blocker_footer')
               onSkip()
             }}
           >
-            I&apos;ll do this later — go to dashboard
+            I&apos;ll do this later
           </button>
         )}
       </footer>
