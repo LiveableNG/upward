@@ -339,33 +339,67 @@ export function buildCredibilityRequestHtml(params: {
   isRegisteredPm?: boolean;
   isPastTenancy?: boolean;
 }): string {
-  const loginPrompt = params.loginLink
-    ? `
-      <div style="margin-top: 28px; padding: 14px 18px; background: #faf9f5; border: 1px solid #e7e5e4; border-radius: 8px; font-size: 13px; color: #44403c; line-height: 1.5;">
-        <strong>Already manage properties on Upward?</strong><br/>
-        You can <a href="${params.loginLink}" style="color: #166534; font-weight: 600; text-decoration: underline;">log in to your PM Portal</a> to review this request and manage your properties directly from your dashboard.
-      </div>
-    `
-    : '';
-
   const tenantRelationship = params.isPastTenancy ? 'Your former tenant' : 'Your tenant';
+  const tenancyBadge = params.isPastTenancy ? 'Past Tenancy' : 'Current Tenancy';
   const recordsDescription = params.isPastTenancy
     ? 'their past tenancy and rental payment records'
     : 'their tenancy and rental payment records';
 
+  const loginPrompt = params.loginLink
+    ? `
+      <div style="margin-top: 24px; padding: 14px 18px; background: #faf9f5; border: 1px solid #e7e5e4; border-radius: 8px; font-size: 13px; color: #57534e; line-height: 1.5; text-align: left;">
+        <strong style="color: #292524;">Already manage properties on Upward?</strong><br/>
+        You can also <a href="${params.loginLink}" style="color: #166534; font-weight: 600; text-decoration: underline;">log in to your PM Portal</a> to fulfill this request directly from your dashboard portfolio.
+      </div>
+    `
+    : '';
+
   const content = `
-    <p>Hi ${params.pmName},</p>
-    <p>${tenantRelationship}, <strong>${params.tenantName}</strong>, has requested verification of ${recordsDescription} for <strong>${params.propertyAddress}</strong>.</p>
-    <p>Verifying their request helps them build their verified Upward Rent Passport score and rental reputation.</p>
-    <p>You can quickly review and fulfill this request using the secure verification link below—no registration is required.</p>
+    <p style="margin: 0 0 14px 0; font-size: 15px; color: #1c1917;">Hi <strong>${params.pmName}</strong>,</p>
+    <p style="margin: 0 0 20px 0; font-size: 14px; line-height: 1.6; color: #44403c;">
+      ${tenantRelationship}, <strong>${params.tenantName}</strong>, has requested that you verify ${recordsDescription} for the property below to strengthen their verified <strong>Upward Rent Passport</strong> score.
+    </p>
+
+    <!-- Request Summary Card -->
+    <div style="background-color: #faf9f5; border: 1px solid #e7e5e4; border-radius: 10px; padding: 16px 20px; margin-bottom: 24px;">
+      <table border="0" cellpadding="0" cellspacing="0" width="100%" style="font-size: 13px; border-collapse: collapse;">
+        <tr style="border-bottom: 1px solid #ebe8e1;">
+          <td style="padding: 8px 0; color: #78716c; font-weight: 500;">Tenant</td>
+          <td align="right" style="padding: 8px 0; font-weight: 700; color: #1c1917;">${params.tenantName}</td>
+        </tr>
+        <tr style="border-bottom: 1px solid #ebe8e1;">
+          <td style="padding: 8px 0; color: #78716c; font-weight: 500;">Property</td>
+          <td align="right" style="padding: 8px 0; font-weight: 600; color: #1c1917;">${params.propertyAddress}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: #78716c; font-weight: 500;">Tenancy Status</td>
+          <td align="right" style="padding: 8px 0;">
+            <span style="display: inline-block; background-color: #e7e5e4; color: #44403c; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 9999px;">
+              ${tenancyBadge}
+            </span>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Primary Action Button (Direct Public Fulfillment) -->
+    <div style="text-align: center; margin: 28px 0 10px 0;">
+      <a href="${params.requestLink}" style="background-color: #166534; color: #ffffff !important; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 15px; display: inline-block; box-shadow: 0 4px 12px rgba(22, 101, 52, 0.2);">
+        Verify Tenancy Records
+      </a>
+    </div>
+    <p style="text-align: center; margin: 0 0 20px 0; font-size: 12px; color: #78716c;">
+      ✓ Direct verification link &bull; No registration or password required
+    </p>
+
+    <!-- Subordinate PM Login Box -->
     ${loginPrompt}
   `;
+
   return buildGlobalLayoutHtml({
     role: 'PM',
     title: 'Tenancy Verification Request',
     contentHtml: content,
-    buttonText: 'Verify Tenancy Records',
-    buttonUrl: params.requestLink,
   });
 }
 

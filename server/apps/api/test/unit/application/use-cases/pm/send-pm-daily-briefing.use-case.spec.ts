@@ -360,5 +360,47 @@ describe('SendPmDailyBriefingUseCase', () => {
       expect(html).toContain('In 3 days');
       expect(result.sentCount).toBe(1);
     });
+
+    it('should include pending credibility requests with direct public fulfillment links', async () => {
+      mockPrisma.upward_property_manager.findMany.mockResolvedValue([
+        {
+          id: 60,
+          uuid: 'pm-credibility',
+          email: 'enc_pm@liveable.ng',
+          firstName: 'enc_Liveable',
+          lastName: 'enc_Admin',
+          dailyBriefingEnabled: true,
+        },
+      ]);
+
+      mockPrisma.upward_pm_rent_payment.findMany.mockResolvedValue([]);
+      mockPrisma.upward_pm_tenant.findMany.mockResolvedValue([]);
+      mockPrisma.upward_pm_bulk_invite.count.mockResolvedValue(0);
+      mockPrisma.upward_tenant_join_request.findMany.mockResolvedValue([]);
+      mockPrisma.upward_credibility_request.findMany.mockResolvedValue([
+        {
+          id: 7,
+          uuid: 'bea6ae8a-0501-4c1c-8ed5-2b0e44a6cdd4',
+          email: 'enc_pm@liveable.ng',
+          user: {
+            firstName: 'enc_Ireti',
+            lastName: 'enc_Adebayo',
+          },
+        },
+      ]);
+      mockPrisma.upward_pm_approval_request.findMany.mockResolvedValue([]);
+      mockPrisma.upward_pm_employee.count.mockResolvedValue(0);
+      mockPrisma.upward_pm_unit.findMany.mockResolvedValue([]);
+
+      const result = await useCase.execute(new Date('2026-10-20T07:30:00.000Z'));
+
+      expect(mockUnifiedCommService.processCommunication).toHaveBeenCalledTimes(1);
+      const html = mockUnifiedCommService.processCommunication.mock.calls[0][0].context.htmlOverride;
+      expect(html).toContain('Ireti Adebayo');
+      expect(html).toContain('Requested Rent History Verification');
+      expect(html).toContain('/public/requests/bea6ae8a-0501-4c1c-8ed5-2b0e44a6cdd4');
+      expect(result.sentCount).toBe(1);
+    });
   });
 });
+
