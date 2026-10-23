@@ -452,7 +452,7 @@ export class SendPmDailyBriefingUseCase {
             <span style="font-size: 11px; color: #607366;">Requested Rent History Verification</span>
           </td>
           <td style="padding: 10px 12px; text-align: right;">
-            <a href="${data.baseUrl}/requests" style="display: inline-block; background-color: #8A4A2A; color: #ffffff; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; text-decoration: none;">Fulfill</a>
+            <a href="${data.baseUrl}/public/requests/${req.uuid}" style="display: inline-block; background-color: #8A4A2A; color: #ffffff; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; text-decoration: none;">Fulfill</a>
           </td>
         </tr>
       `);
