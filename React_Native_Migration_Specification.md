@@ -17,13 +17,13 @@
 6. [Detailed Screen & Flow Specifications](#6-detailed-screen--flow-specifications)
    - [6.1 Auth & Onboarding Flow](#61-auth--onboarding-flow)
    - [6.2 Profile Setup Wizard (Onboarding Blocker)](#62-profile-setup-wizard-onboarding-blocker)
-   - [6.3 Dashboard & Rent Passport™](#63-dashboard--rent-passport)
+   - [6.3 Rebuilt Dashboard Home & Score Breakdown™](#63-rebuilt-dashboard-home--score-breakdown)
    - [6.4 PayRent™ & Unified Checkout Flow](#64-payrent--unified-checkout-flow)
    - [6.5 Rent Deposit Balance](#65-rent-deposit-balance)
    - [6.6 Transactions & Verified Receipts](#66-transactions--verified-receipts)
    - [6.7 My Home (Estate & Tenancy Management)](#67-my-home-estate--tenancy-management)
    - [6.8 Tenancy Contracts & Documents](#68-tenancy-contracts--documents)
-   - [6.9 Savings Goals & Rent Wallet](#69-savings-goals--rent-wallet)
+   - [6.9 Rent Savings Vault, 14.5% Yield & Emergency Liquidity Engine](#69-rent-savings-vault-145-yield--emergency-liquidity-engine)
    - [6.10 Upward Benefits & Rent Support Insurance](#610-upward-benefits--rent-support-insurance)
    - [6.11 Alliance Exclusive Rental Marketplace](#611-alliance-exclusive-rental-marketplace)
    - [6.12 Past Rent Record Requests](#612-past-rent-record-requests)
@@ -32,6 +32,7 @@
    - [6.15 Close / Delete Account Flow](#615-close--delete-account-flow)
    - [6.16 Help, FAQs & Support Tickets](#616-help-faqs--support-tickets)
    - [6.17 Public & Deep-Link Screens](#617-public--deep-link-screens)
+   - [6.18 Multi-Provider Identity & SEC Investor Suitability KYC](#618-multi-provider-identity--sec-investor-suitability-kyc)
 7. [Master API Endpoint Reference](#7-master-api-endpoint-reference)
 8. [Critical Mobile Migration Pitfalls & Implementation Guidelines](#8-critical-mobile-migration-pitfalls--implementation-guidelines)
 
@@ -59,6 +60,7 @@ The goal of this project is to replace the hybrid Capacitor/WebView client of **
 | **Client State** | **Zustand** | Minimal boilerplate for auth session, PIN lock state, and offline draft storage. |
 | **Forms & Validation** | **React Hook Form + Zod** | 100% reusable schema definitions from existing codebase. |
 | **Styling & Design System** | **StyleSheet / Restyle / NativeWind v4** | Enforce Upward color palette tokens (`--clay: #C2501F`, `--dark: #1A1A1A`, `--shell-tint: #FBEDE5`). |
+| **SVG & Score Gauges** | **react-native-svg + react-native-reanimated** | Native GPU-accelerated circular activity rings and progress gauges with smooth 60fps transitions. |
 | **High Performance Lists** | **@shopify/flash-list** | Recycles native cells for high-speed transaction lists and visitor logs. |
 | **Secure Token Storage** | **expo-secure-store** | Hardware-backed iOS Keychain & Android Keystore encryption for JWTs. |
 | **Biometric Auth** | **expo-local-authentication** | Native Face ID, Touch ID, and Android Biometric Prompt. |
@@ -159,15 +161,36 @@ Root App
 │
 ├── Main Bottom Tab Navigator
 │   ├── Tab 1: Home (Dashboard) (/dashboard)
-│   ├── Tab 2: My Home (/dashboard/my-home) [Shown if property has GoodTenants link]
+│   │   ├── Context-Aware Rent Runway Hero (Active Vault / 14.5% Pitch / Urgent Due)
+│   │   ├── Upward Rent Score Card (Conic Apple-style gauge, single-line band mapping)
+│   │   ├── Behavioral Metrics Strip (Streak 🔥, On-Time 🛡️, Profile Health ⚡)
+│   │   ├── Quick Action Direct Chips (Rent Vault 14.5%, Pay Rent, Save for Home)
+│   │   ├── My Home Operations Hub (2x2 Contained Living Grid)
+│   │   ├── Emergency Cash Advance Pillar Card (Borrow up to 40%)
+│   │   ├── Upward Tenant Protection Package Pillar Card
+│   │   └── Recent Transactions Feed with Receipt Links
+│   ├── Tab 2: My Home (/dashboard/my-home) [Active tenancies & GoodTenants bridge]
 │   ├── Tab 3: Pay Rent (/dashboard/pay-rent)
 │   ├── Tab 4: Transactions (/dashboard/transactions)
 │   └── Tab 5: Me (Profile & Rent Passport) (/dashboard/me)
 │
 ├── Feature Modals & Push Stacks
 │   ├── Rent Passport Full View & Badges (/dashboard/kyc)
-│   ├── Rent Passport Score Breakdown (/dashboard/score-breakdown)
-│   ├── Verify Identity via BVN (/dashboard/verify-identity)
+│   ├── Rent Passport Score Breakdown Screen (/dashboard/score-breakdown)
+│   │   ├── Animated 148px SVG Circular Activity Ring & Frosted Rank Capsule
+│   │   ├── 5-Factor Factor Analytics Grid (Timeliness, Streak, Discipline, Tenure, Savings Bonus)
+│   │   ├── Verified Payment Cycles Timeline (Status Badges & Score Impact Tags)
+│   │   └── Shareable Passport Profile Card & Deep Link
+│   ├── Multi-Provider Identity Verification (/dashboard/verify-identity) [BVN / NIN / VNIN]
+│   ├── Rent Savings Vault & 14.5% Yield Engine (/dashboard/savings)
+│   │   ├── Active Vault Maturity Dashboard (Target, Balance, Accrued 14.5% Profit Ticker)
+│   │   ├── Fund Vault via Dedicated Virtual Account (DVA) Modal
+│   │   ├── 3-Step SEC Investor Suitability & ARM Connect KYC Modal
+│   │   ├── Create Rent Vault Configuration Wizard
+│   │   ├── Emergency Cash Advance Drawer (Instant 40% Liquidity @ 3.5% fee)
+│   │   ├── Rent Day Settlement Modal (Landlord NIP Direct Routing + Surplus Return)
+│   │   ├── Early Liquidation / Break-out Confirmation Sheet
+│   │   └── Rent Savings & Yield Simulator (/rent-calculator)
 │   ├── PayRent Unified Checkout (/dashboard/pay, /pay/:token)
 │   │   ├── Dedicated Virtual Account (DVA) View
 │   │   ├── Paystack Card/Bank Webview Checkout
@@ -185,9 +208,6 @@ Root App
 │   │   ├── Estate Bills & Dues (/dashboard/my-home/payments)
 │   │   └── Estate Documents & Rules (/dashboard/my-home/documents)
 │   ├── Tenancy Contracts & Leases (/dashboard/documents)
-│   ├── Savings Goals & Rent Wallet (/dashboard/savings)
-│   │   ├── Wallet Deposit
-│   │   └── Create / Edit Savings Goal
 │   ├── Upward Benefits Protection (/dashboard/benefits)
 │   ├── Rent Support Insurance (/dashboard/rent-support-insurance)
 │   ├── Alliance Exclusive Homes Marketplace (/dashboard/exclusive-homes)
@@ -311,56 +331,156 @@ If `user.properties.length === 0` or essential fields are missing, user is guide
 
 ---
 
-### 6.3 Dashboard & Rent Passport™
+### 6.3 Rebuilt Dashboard Home & Score Breakdown™
+
+The Upward Pay mobile dashboard is engineered around **5 Core Strategic Pillars** to maximize daily engagement, rent financial discipline, and tenant retention:
+1. **Pillar 1: Flagship Rent Savings & Investment Engine (14.5% Yield & Emergency Cash Advance)**
+2. **Pillar 2: Seamless Rent Payment & Verified Settlement Rail**
+3. **Pillar 3: Rent Score & Financial Credibility (Rent Passport™)**
+4. **Pillar 4: High-Frequency Living Operations (My Home Hub)**
+5. **Pillar 5: Tenant Protection & Emergency Liquidity Safety Net**
+
+---
 
 #### Screen: Dashboard Home (`/dashboard`)
-- **Key Sections**:
-  1. **Rent Passport™ Hero Card**:
-     - Displays Score (e.g. 780 / 1000), Rank (`Rank A`, `Rank B`), Score Band (`Prime`, `Excellent`).
-     - Badges: `Identity Verified`, `Connected Property`, `Verified PM`.
-     - Button: **Share Rent Passport** (opens native share modal).
-     - Button: **View Score Breakdown** -> routes to `/dashboard/score-breakdown`.
-  2. **Active Pending Bills / Rent Invoices Carousel**:
-     - Due date countdown ("Due in 4 days").
-     - Total Amount & Property Label.
-     - Single tap action: **Pay Now** -> opens Unified Checkout.
-  3. **Tenancy Unit Card**:
-     - Current managed home, unit number, manager contact.
-     - Quick links: Maintenance, Visitors, Documents.
-  4. **Quick Action Grid**:
-     - *Pay Rent*, *Rent Deposit*, *Request Records*, *Savings*, *Exclusive Homes*.
-  5. **Recent Transactions Feed**:
-     - Last 3 transactions with amount, date, status, and receipt link.
-- **API Calls**:
-  - `GET /user/auth/me` (User profile & properties)
-  - `GET /user/auth/score-profile` (Score, rank, metrics, cycles)
-  - `GET /payments/transactions/pending` (Pending rent requests & line items)
-  - `GET /payments/transactions` (Recent payments)
-  - `GET /payments/landlords` (Saved landlord bank accounts)
-  - `GET /user/notifications` (Unread badge counts)
+
+- **Architecture & Layout Hierarchy**:
+  1. **Deposit Overpayment / Refund Card (`RentDepositCard`)**:
+     - Conditionally rendered at top of feed if tenant has an active caution deposit refund or payment surplus.
+     - Action: One-tap application toward pending rent invoice.
+  2. **Activity & Critical Action Center Carousel**:
+     - Rendered if overdue invoices exist, rent is due within 14 days, or identity verification is incomplete.
+     - Urgent styling: Red critical badge and warning alert when `anyOverdue === true`.
+  3. **Primary Hero: Context-Aware `RentRunwayHero`**:
+     - Dynamically evaluates user state and renders one of 3 distinct high-conversion screens:
+       - **State A (Active Rent Vault Enrolled)**:
+         - Eyebrow: `RENT VAULT · MATURITY LOCKED` (or `SETTLEMENT READY` when maturity is reached).
+         - Right badge: Calendar countdown pill showing `X Days to Rent Day`.
+         - Target label: `Target: ₦X,XXX,XXX due on [Date]`.
+         - Large primary currency display: `₦X,XXX,XXX` (Current balance in Naira).
+         - Target Progress Gauge: Visual horizontal progress bar showing `target_completion_percentage%`.
+         - Accrued Yield Widget: Glowing green compound returns banner `+₦XX,XXX profit earned (+₦XXX added today @ 14.5% p.a.)`.
+         - Action Row: Primary button **Fund Vault** (opens Dedicated Virtual Account modal) + Secondary button **Manage Vault** (routes to `/dashboard/savings`).
+       - **State B (No Active Vault, Rent Obligation > 45 Days Away)**:
+         - Eyebrow: `RENT RUNWAY · 14.5% COMPOUND YIELD` with sparkles icon.
+         - Countdown badge: `X Days to Next Rent`.
+         - Target display: Target rent obligation for current property.
+         - Dynamic Pitch Widget: Calculates prospective compound returns: `Earn up to +₦XX,XXX in compound returns. Save approx. ₦XX,XXX/month`.
+         - Action Row: Primary button **Lock Rent Runway & Earn 14.5%** (routes to `/dashboard/savings`) + Secondary button **Pay Rent Early**.
+       - **State C (Rent Due Soon ≤ 45 Days or Overdue)**:
+         - Eyebrow: `UPCOMING RENT OBLIGATION` or red `OVERDUE RENT PAYMENT`.
+         - Countdown badge: `Due in X Days` or red `X Days Overdue`.
+         - Property label: `Target Rent Obligation · [Property Short Address]`.
+         - Large bill amount to pay.
+         - Action Row: Primary button **Pay Rent Now** (opens Unified Checkout) + Secondary button **Start Rent Vault for Next Year**.
+  4. **Pillar 3: Upward Rent Score Card**:
+     - Interactive card with press animation (`scale(0.985)`) routing to `/dashboard/score-breakdown`.
+     - Left column:
+       - Eyebrow: `Upward Rent Score`.
+       - Score Value Row: Big bold score (e.g., `780`) + muted `/ 1000`.
+       - Subtitle: `Verified Rental Reputation` (or `Starter Profile • Building Track Record` if unscored).
+       - Action pill: `View full breakdown` with right chevron.
+     - Right column:
+       - Compact Apple-style activity ring gauge (rendered natively via `react-native-svg` conic arc or circular progress).
+       - Inner ring text: Clean, single-line band label (`STARTER`, `BUILDER`, `PRIME`, `ELITE`) without multi-line wrapping + Rank badge (`Rank A`, `Rank B`).
+  5. **Behavioral Metrics Strip**:
+     - 3-column horizontal grid tracking tenant financial discipline:
+       - **Payment Streak**: Flame icon 🔥, active orange accent when `streak > 0`, label `Payment Streak`.
+       - **On-Time Rate**: Shield icon 🛡️, displays `onTimePct%`, label `On-Time Rate`.
+       - **Profile Health**: Zap icon ⚡, displays `profileCompletion%`, label `Profile Health`.
+  6. **Quick Direct Action Chips**:
+     - Fast navigation pill buttons with Lucide icons:
+       - `Rent Vault (14.5%)`: Landmark icon, secondary styling -> `/dashboard/savings`.
+       - `Pay Rent`: Receipt icon, primary clay highlight -> `/dashboard/pay-rent`.
+       - `Save for Home`: Home icon, secondary styling -> `/dashboard/save-for-home`.
+  7. **Pillar 4: My Home Operations Hub (`MyHomeQuickHub`)**:
+     - Strictly contained 2x2 grid designed to prevent horizontal overflow on compact viewports:
+       - Tile 1: **Visitor Pass** (UserCheck icon, shell tint background, subtitle: `Gate access code`, routes to `/dashboard/my-home?tab=visitors`).
+       - Tile 2: **Estate Bills** (Receipt icon, blue tint background, subtitle: `Service charge & power`, routes to `/dashboard/my-home?tab=bills`).
+       - Tile 3: **Maintenance** (Wrench icon, amber tint background, subtitle: `Report repair ticket`, routes to `/dashboard/my-home?tab=complaints`).
+       - Tile 4: **Tenancy Records** (FileText icon, green tint background, subtitle: `Lease & digital receipts`, routes to `/dashboard/receipts`).
+  8. **Secondary Strategic Pillar Cards**:
+     - **Emergency Cash Advance Card**:
+       - Head: Sparkles icon, title `Emergency Cash Advance`, badge `Up to 40%`.
+       - Body: `Borrow instantly against your rent vault balance during unforeseen shocks. Your remaining principal keeps compounding at 14.5% p.a.`
+       - Footer: `Access Emergency Advance →` (routes to `/dashboard/savings`).
+     - **Tenant Protection Package Card**:
+       - Head: ShieldAlert icon, title `Tenant Protection Cover`, status pill (`Active` / `Inactive`).
+       - Body: `Emergency Rent Relief, legal defense, and deposit protection underwritten for verified tenants.`
+       - Footer: `View Coverage Details →` (routes to `/dashboard/benefits`).
+  9. **Recent Transactions Feed**:
+     - List of last 3 completed transactions with amount, date, status, and PDF receipt download action.
+
+- **Small-Device Responsiveness (320px–375px)**:
+  - All button pairs in `RentRunwayHero` and action rows must stack vertically with `flexDirection: 'column'` when screen width ≤ 375px.
+  - Padding in cards must scale down from `18px` to `12px` to prevent text truncation.
+  - Touch targets must strictly remain ≥ 44pt height per Apple Human Interface Guidelines and Google Material 3.
+
+- **API Endpoints Ingested**:
+  - `GET /user/auth/me` (Profile, properties, verification status)
+  - `GET /user/auth/score-profile` (Score, rank, band, metrics, payment cycles)
+  - `GET /rent-vaults/me` (Active vault, target, balance, accrued yield, DVA details)
+  - `GET /payments/transactions/pending` (Pending rent invoices)
+  - `GET /payments/transactions` (Completed payment ledger)
+  - `GET /payments/rent-deposit` (Caution deposit balance)
+  - `GET /payments/benefits/status` (Active protection policy)
+
+---
 
 #### Screen: Score Breakdown (`/dashboard/score-breakdown`)
-- **Visuals**: Animated circular score progress gauge (0 to 1000).
-- **Core Metrics Displayed**:
-  - `Payment Timeliness (PT%)`: Percentage of payments made on or before due date.
-  - `Longest Streak`: Consecutive on-time payment cycles.
-  - `Total Cycles`: Number of billing periods verified on Upward.
-  - `History Length`: Total rental history duration.
-  - `Financial Discipline`: Score modifier reflecting repayment consistency.
-  - `Savings Bonus`: Boost points earned from savings balances.
-- **Payment Cycles Timeline**:
-  - List of past cycles: Amount, Due Date, Paid Date, Status (`PAID_ON_TIME`, `PAID_LATE`, `MISSED`, `PENDING`), Score Impact points (+15, -30).
-- **Improvement Tips**: Tailored insights on how to reach higher rank bands.
 
-#### Screen: Identity Verification via BVN (`/dashboard/verify-identity`)
-- **Purpose**: Complies with Central Bank of Nigeria / KYC regulations and unlocks shareable Rent Passport status.
-- **Inputs**: 11-digit BVN (Bank Verification Number).
-- **Security Notice**: Encrypted transmission, BVN is never stored or shared with landlords.
-- **API Call**:
-  - `POST /user/auth/verify-bvn`
-  - Body: `{ "bvn": "12345678901" }`
-  - Success Response: `{ success: true, message: "Identity verified successfully!" }`
-  - Action: Immediately refresh `GET /user/auth/me` to update `isIdentityVerified = true`.
+- **Screen Header**:
+  - Native back navigation button (`< ArrowLeft`).
+  - Title: `Upward Rent Score™`.
+  - Subtitle: `Your creditworthiness and verified rental track record across Nigeria.`
+  - Top Action: **Share Profile Link** button. On press, copies vanity URL (`https://upward.goodtenants.io/profile/:slug`) to clipboard with native toast feedback, or triggers native OS share sheet (`expo-sharing`).
+
+- **Hero Gauge Section**:
+  - Large circular score gauge:
+    - Diameter: `148px × 148px`.
+    - Rendered via `react-native-svg` (`Circle` elements with `strokeDasharray` and `strokeDashoffset` animated with `react-native-reanimated`).
+    - Color: Dynamic theme stroke (`var(--clay)` for verified, muted gray for unverified).
+    - Center content: Numeric score (e.g., `780`) over max score (`/ 1000`).
+    - Frosted Rank Floating Capsule: Positioned below circle displaying rank band (`Rank A`, `Rank B`, `Rank C`, `Rank D`, or `STARTER`) with glassmorphism background.
+  - Descriptive Status Copy:
+    - Scored & Verified: `Verified Rental Reputation • Score is calculated using on-time payment records, consistency streaks, and savings discipline.`
+    - Unverified / Starter: `Starter Profile • Complete your profile and pay your rent through Upward to build an accredited score.`
+
+- **5-Factor Analytics Grid**:
+  - 5 comprehensive factor cards detailing scoring inputs:
+    1. **Payment Timeliness (PT%)**:
+       - Icon: Clock, Value: `XX%`.
+       - Description: `How often you pay on or before the due date.`
+    2. **Payment Consistency**:
+       - Icon: Flame, Value: `X cycles`.
+       - Description: `Your longest continuous streak of on-time rent cycles.`
+    3. **Financial Discipline**:
+       - Icon: Target, Value: `XX%`.
+       - Description: `The ratio of full payments vs partial payments.`
+    4. **Tenure**:
+       - Icon: History, Value: `X yrs`.
+       - Description: `Length of your verified rent payment history.`
+    5. **Savings Bonus**:
+       - Icon: TrendingUp, Value: `+XX pts` (Highlighted in green).
+       - Description: `Bonus points awarded for your rent preparation savings in your Rent Runway Vault.`
+
+- **Verified Payment Cycles Timeline**:
+  - Inset card with table of verified rent payment cycles:
+    - Columns: Billing Period / Due Date, Property Label, Amount (NGN), Status Badge, Score Impact Tag.
+    - Status Badges:
+      - `PAID_ON_TIME` / `PAID_BEFORE_DUE`: Clay/green highlight.
+      - `PAID_LATE` / `PARTIAL_LATE` / `MISSED`: Error red highlight.
+      - `PENDING`: Warning amber highlight.
+    - Score Impact Tags:
+      - `Positive` (TrendingUp icon, green badge).
+      - `Neutral` (History icon, gray badge).
+      - `Negative` (AlertCircle icon, red badge).
+      - `No Impact` (Info icon, muted badge).
+
+- **API Endpoint Ingested**:
+  - `GET /user/auth/score-profile` (Returns `{ score, rank, band, maxScore, isScorable, metrics, cycles, profile }`).
+
+---
 
 ---
 
@@ -501,19 +621,153 @@ Active when tenant lives in an estate/property managed via GoodTenants.
 
 ---
 
-### 6.9 Savings Goals & Rent Wallet
+### 6.9 Rent Savings Vault, 14.5% Yield & Emergency Liquidity Engine
 
-#### Screen: Savings Dashboard (`/dashboard/savings`)
-- **Wallet Hero**:
-  - Available wallet balance in NGN.
-  - Button: **Add Funds** -> initiates Paystack top-up via `POST /wallet/fund`.
-- **Goal Cards**:
-  - "Save for Next Year Rent" (Target: ₦1,800,000, Saved: ₦950,000, Progress bar: 52%).
-  - "Save for Down Payment" (Custom goal).
-- **Create / Edit Goal (`/dashboard/savings/set-goal`)**:
-  - Goal Name, Target Amount, Target Date.
-  - Automated weekly/monthly debit toggle.
-  - Submits `POST /savings/goals` or `PATCH /savings/goals/:id`.
+The **Rent Runway Vault** is Upward’s flagship financial product. It enables tenants to systematically save for their upcoming annual or multi-month rent while earning **14.5% p.a. daily compounding mutual fund returns** underwritten by SEC-regulated asset management partners (ARM Connect). Crucially, it provides a built-in emergency liquidity buffer allowing tenants to borrow up to 40% of their saved funds without breaking their compounding cycle.
+
+---
+
+#### 1. Core Financial & Regulatory Mechanics
+
+- **Underlying Asset & Custody**:
+  - Regulated under Nigerian Securities & Exchange Commission (SEC) mutual fund frameworks.
+  - Funds are placed in low-risk, high-liquidity Money Market Instruments via ARM Connect B2B2C integration.
+- **Yield Calculation Engine**:
+  - Annual Percentage Yield: **14.5% p.a.**
+  - Compounding frequency: **Daily** (`dailyRate = annualRate / 365`).
+  - Interest accrues every 24 hours directly onto the vault ledger:
+    $$\text{Daily Accrual} = \text{Current Balance} \times \frac{0.145}{365}$$
+- **Vault Lifecycle State Machine**:
+  - `ACTIVE`: Vault funded, maturity-locked towards contractual rent date, earning daily compound yield.
+  - `SETTLEMENT_READY`: Rent due date reached (`days_to_unlock <= 0`); unlocked for landlord settlement.
+  - `SETTLED`: Rent disbursed directly to Landlord NUBAN via Paystack NIP rail with statutory receipt generated.
+  - `BROKEN_OUT`: Vault liquidated early by tenant; principal returned, unvested yield forfeited.
+
+---
+
+#### 2. Screen: Rent Vault Dashboard (`/dashboard/savings`)
+
+- **UI Elements & State Display**:
+  - **Maturity Header**:
+    - Eyebrow badge: `RENT VAULT · MATURITY LOCKED` (or `SETTLEMENT READY`).
+    - Countdown pill: `X Days to Rent Day`.
+    - Due Date label: `Target: ₦X,XXX,XXX due on [DD MMM YYYY]`.
+  - **Balances & Progress**:
+    - Large Primary Balance: Current saved amount in NGN (`₦X,XXX,XXX`).
+    - Progress Bar: Completed percentage toward target (`target_completion_percentage%`).
+  - **Accrued Yield Widget**:
+    - Glowing emerald return box: `+₦XX,XXX profit earned (+₦XXX added today @ 14.5% p.a.)`.
+  - **Quick Action Bar**:
+    - Primary CTA: **Fund Vault** (opens Dedicated Virtual Account modal).
+    - Secondary CTA: **Emergency Advance** (opens borrow up to 40% drawer).
+    - Settlement CTA: **Execute Rent Settlement** (visible when `days_to_unlock <= 0`).
+  - **Break-out Link**:
+    - Understated footer link: `Need emergency funds? Break out of vault →`.
+- **API Endpoints Ingested**:
+  - `GET /rent-vaults/me`: Retrieves user's active vault, balances, accrued yield, and dedicated virtual account.
+
+---
+
+#### 3. Modal: Fund Vault via Dedicated Virtual Account (DVA) (`FundVaultModal`)
+
+- **Purpose**: Zero-fee instant funding via standard Nigerian banking apps (GTBank, Access, Kuda, OPay, etc.).
+- **UI Elements**:
+  - Dedicated NUBAN Account Number (10 digits).
+  - Bank Name (e.g., *Wema Bank* or *Providus Bank* via Monnify/Paystack DVA).
+  - Account Name: `Upward / [Tenant Legal Name]`.
+  - One-tap **Copy Account Number** button with native clipboard feedback.
+  - Transfer instructions: *"Transfer any amount from your bank app. Funds reflect instantly and begin compounding immediately."*
+  - Zero transaction fees notice.
+- **Webhook Integration**:
+  - Transfers are processed asynchronously via `POST /payments/webhooks/rent-savings/paystack`.
+  - Mobile client listens to SSE stream or invalidates `rentVault` query on app resume from background.
+
+---
+
+#### 4. Setup Flow: Create Rent Vault (`/dashboard/savings/create`)
+
+- **Step 1: Obligation Details**:
+  - Target Rent Amount (`target_amount_kobo`).
+  - Contractual Rent Due Date (`contractual_due_date`).
+  - Linked Tenancy Property picker.
+- **Step 2: Contribution Cadence**:
+  - Frequency: `DAILY` | `WEEKLY` | `MONTHLY`.
+  - Preferred Funding Method: `DVA` (Dedicated Account) or `CARD_TOKEN` (Automated card charge).
+  - Payday preference: Day of month (1 to 31).
+- **Step 3: Landlord Settlement Destination**:
+  - Bank Code & Bank Name (from `GET /payments/banks`).
+  - 10-digit NUBAN Account Number.
+  - Real-time Account Name Verification (`GET /payments/verify-account`).
+- **Submission**:
+  - Calls `POST /rent-vaults`.
+  - If tenant has not completed SEC Investor Suitability, immediately triggers `SavingsInvestorKycModal`.
+
+---
+
+#### 5. Drawer: Emergency Cash Advance (`/dashboard/savings/advance`)
+
+- **Value Proposition**: Borrow up to 40% of saved vault balance during unexpected life shocks. **Crucially, the remaining 60% of the tenant's principal continues compounding at 14.5% p.a. without penalty.**
+- **Rules & Constraints**:
+  - Maximum Advance: `0.40 * current_balance_kobo`.
+  - Fixed Processing Fee: **3.5% flat**.
+  - Repayment Tenure: 30 days (repayable via card or deducted at rent maturity settlement).
+- **Form UI**:
+  - Amount slider / numeric input (constrained between ₦5,000 and max 40% eligibility).
+  - Fee & Net Disbursement breakdown:
+    - *Requested Advance*: ₦100,000
+    - *Processing Fee (3.5%)*: ₦3,500
+    - *Net Disbursed to Bank*: ₦96,500
+  - Destination Account: Pre-filled verified tenant bank account.
+- **API Call**:
+  - `POST /rent-vaults/:id/advance/disburse`
+  - Payload: `{ amount_kobo, destination_bank_code, destination_account_number, destination_account_name }`.
+  - Disbursed instantly via Paystack NIP transfer.
+
+---
+
+#### 6. Modal: Rent Day Settlement (`/dashboard/savings/settle`)
+
+- **Trigger**: When `days_to_unlock <= 0` or vault reaches contractual maturity date.
+- **Settlement Execution**:
+  - Automatically routes target rent directly to landlord's verified NUBAN bank account via NIP transfer rail.
+  - **Surplus Allocation**: If `current_balance + accrued_yield > target_amount`, the surplus profit is automatically credited to the tenant's Upward wallet or refunded to their bank account (`disburse_surplus_to_wallet: true`).
+  - **Statutory Receipt**: Generates official rent receipt compliant with Lagos State Tenancy Law 2011 (`GET /rent-vaults/:id/receipt.pdf`).
+- **API Call**:
+  - `POST /rent-vaults/:id/settlement/execute`
+  - Payload: `{ landlord_bank_code, landlord_account_number, landlord_name, disburse_surplus_to_wallet: true }`.
+
+---
+
+#### 7. Sheet: Early Liquidation / Break-out (`/dashboard/savings/breakout`)
+
+- **Purpose**: Emergency exit option if tenant needs their entire capital before rent day.
+- **Forfeiture Terms**:
+  - Principal saved is returned 100% to tenant bank account.
+  - Unvested accrued compound yield is forfeited to liquidity reserve.
+  - Outstanding emergency advances must be settled from principal.
+- **Confirmation Dialog**:
+  - Explicit warning alert detailing exact amounts to be received vs forfeited.
+  - Two-step confirmation with PIN verification.
+- **API Call**:
+  - `POST /rent-vaults/:id/breakout`.
+
+---
+
+#### 8. Interactive Tool: Rent Savings Simulator (`/rent-calculator`)
+
+- **Visual Slider Tool**:
+  - Target Rent Obligation slider: ₦500,000 to ₦20,000,000.
+  - Runway duration: 1 to 12 months.
+- **Calculated Projections**:
+  - Required Monthly / Weekly Deposit.
+  - Projected 14.5% compound returns (e.g. `+₦185,400 earned`).
+  - Comparison graph: Upward 14.5% Yield vs Traditional Commercial Bank (0%).
+  - Unlocked Emergency Cash Advance Limit (40%).
+- **API Call**:
+  - `POST /rent-calculator/simulate`
+  - Body: `{ targetAmountKobo, monthsRemaining, cadence }`.
+
+---
 
 ---
 
@@ -655,6 +909,81 @@ The React Native app must handle these URLs via Universal Links / URL Schemes (`
 
 ---
 
+### 6.18 Multi-Provider Identity & SEC Investor Suitability KYC
+
+Upward deploys a multi-tiered identity and regulatory compliance engine designed to verify tenant identities without friction while satisfying stringent Nigerian Securities & Exchange Commission (SEC) requirements for high-yield mutual fund participation.
+
+---
+
+#### 1. Multi-Provider Identity Verification Engine (`/dashboard/verify-identity`)
+
+- **Resilient Verification Cascade**:
+  - The backend dynamically balances requests across 3 leading licensed identity providers:
+    1. **Monnify KYC API** (Primary rail for fast BVN lookup)
+    2. **Prembly / IdentityPass** (Secondary failover for BVN and NIN)
+    3. **Dojah** (Tertiary failover with Virtual NIN support)
+- **Supported Identity Documents**:
+  - `BVN`: 11-digit Bank Verification Number.
+  - `NIN`: 11-digit National Identification Number.
+  - `VNIN`: 16-character Virtual NIN generated via the NIMC MWS mobile app (`*346*3*NIN*AgentID#`).
+- **Fuzzy Name & Date-of-Birth Matching**:
+  - Automatically matches provider identity records against the tenant’s registered first/last name.
+  - Tolerates swapped name order (First/Last vs Last/First) and compound middle names (e.g. `John Michael` vs `John`).
+  - Supports ISO `YYYY-MM-DD` and alphanumeric `DD-MMM-YYYY` (e.g., `18-DEC-1991`) dates of birth.
+- **Data Protection & Masking**:
+  - Cleartext BVN/NIN is never stored in the database.
+  - A SHA-256 hash (`idNumberHash`) is generated to prevent duplicate multi-account abuse.
+  - Display output is masked: `*******1234`.
+- **API Endpoint**:
+  - `POST /user/auth/verify-kyc`
+  - Body: `{ "type": "BVN" | "NIN" | "VNIN", "idNumber": "12345678901" }`
+  - Response: `{ success: true, message: "Identity verified successfully!" }`
+
+---
+
+#### 2. SEC Investor Suitability Onboarding Modal (`SavingsInvestorKycModal`)
+
+- **Regulatory Purpose**:
+  - Mandated by Nigerian SEC rules for collective investment schemes (CIS).
+  - Unlocks tenant enrollment in the 14.5% p.a. ARM Money Market Fund B2B2C integration.
+- **3-Step In-App Modal Flow**:
+  - **Step 1: Regulatory Identity & Security**:
+    - BVN (11 numeric digits, validated with regex `/^\d{11}$/`).
+    - Mother's Maiden Name (text input, required by SEC for non-reversible investor verification).
+  - **Step 2: Investor Suitability & Next of Kin**:
+    - Occupation (text input).
+    - Source of Funds selector (`Salary` | `Business` | `Savings` | `Investment`).
+    - Income Range selector (`Below 500K` | `500K-1M` | `1M-5M` | `5M-10M` | `Above 10M`).
+    - Next of Kin Full Name.
+    - Next of Kin Relationship (`Spouse` | `Parent` | `Sibling` | `Child` | `Other`).
+    - Next of Kin Phone Number (validated local/international format).
+  - **Step 3: Settlement Bank Account**:
+    - Bank Selector with top 16 commercial and fintech banks (GTBank, Access, Zenith, UBA, Moniepoint, Kuda, OPay, PalmPay, etc.).
+    - 10-digit NUBAN Account Number.
+    - Verified Account Name (auto-resolved via real-time NIP check).
+- **API Endpoint**:
+  - `POST /rent-vaults/onboard-investor`
+  - Payload:
+    ```json
+    {
+      "bvn": "12345678901",
+      "mothers_maiden_name": "Adeyemi",
+      "occupation": "Software Engineer",
+      "source_of_funds": "Salary",
+      "income_range": "1M-5M",
+      "next_of_kin_name": "Jane Doe",
+      "next_of_kin_relationship": "Spouse",
+      "next_of_kin_phone": "+2348098765432",
+      "settlement_bank_code": "058",
+      "settlement_account_number": "0123456789",
+      "settlement_account_name": "JOHN DOE",
+      "settlement_bank_name": "Guaranty Trust Bank (GTBank)"
+    }
+    ```
+  - Success Action: Triggers user profile refresh and marks `isInvestorKycCompleted = true`.
+
+---
+
 ## 7. Master API Endpoint Reference
 
 ### Auth & User Profile
@@ -675,7 +1004,8 @@ The React Native app must handle these URLs via Universal Links / URL Schemes (`
 | `POST` | `/user/auth/check-email` | Check if email/phone exists or has password |
 | `POST` | `/user/auth/request-otp` | Send 6-digit OTP (SMS, WhatsApp, or Email) |
 | `POST` | `/user/auth/verify-otp` | Verify 6-digit OTP |
-| `POST` | `/user/auth/verify-bvn` | Verify Bank Verification Number (KYC) |
+| `POST` | `/user/auth/verify-bvn` | Verify Bank Verification Number (Legacy KYC) |
+| `POST` | `/user/auth/verify-kyc` | Multi-provider KYC verification (BVN, NIN, VNIN) |
 | `POST` | `/user/auth/avatar-upload-url` | Generate presigned AWS S3 upload URL for avatar |
 | `POST` | `/user/auth/delete-account/request-otp` | Request OTP for account closure |
 | `POST` | `/user/auth/delete-account` | Permanently close and delete tenant account |
@@ -683,13 +1013,27 @@ The React Native app must handle these URLs via Universal Links / URL Schemes (`
 ### Rent Passport & Scores
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `GET` | `/user/auth/score-profile` | Fetch authenticated user Rent Passport score & cycles |
+| `GET` | `/user/auth/score-profile` | Fetch authenticated user Rent Passport score, metrics & cycles |
 | `GET` | `/public/profile/:slug` | Fetch public read-only Rent Passport profile |
 | `GET` | `/user/auth/credibility-requests` | List past rent verification requests |
 | `POST` | `/user/auth/request-records` | Request rent verification from past landlord |
 | `GET` | `/public/credibility/request/:uuid` | Fetch public verification request details |
 | `POST` | `/public/credibility/request/:uuid/fulfill` | Landlord fulfills past rent payment record |
-| `GET` | `/user/credibility/pdf` | Download official Rent Passport PDF summary |
+| `GET` | `/user/auth/credibility/pdf` | Download official Rent Passport PDF summary |
+
+### Rent Runway Vault & 14.5% Yield Engine
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/rent-vaults` | Create and initialize a new Rent Runway Vault |
+| `POST` | `/rent-vaults/onboard-investor` | Submit SEC Investor Suitability and Next of Kin profile |
+| `GET` | `/rent-vaults/me` | Fetch active vault, balances, 14.5% accrued yield & DVA |
+| `POST` | `/rent-vaults/:id/advance/disburse` | Disburse emergency cash advance (up to 40% of vault balance) |
+| `POST` | `/rent-vaults/:id/settlement/execute` | Execute rent-day landlord settlement and disburse surplus to wallet |
+| `POST` | `/rent-vaults/:id/breakout` | Execute early break-out liquidation of vault |
+| `GET` | `/rent-vaults/:id/receipt.pdf` | Download statutory Lagos State Tenancy Law 2011 rent receipt |
+| `POST` | `/rent-calculator/simulate` | Simulate rent savings target, daily 14.5% returns & borrowing limits |
+| `POST` | `/payments/webhooks/rent-savings/paystack` | Webhook handler for Dedicated Virtual Account (DVA) deposits |
+| `POST` | `/payments/webhooks/rent-savings/arm` | Webhook handler for ARM Connect B2B2C status callbacks |
 
 ### Payments & Invoices
 | Method | Endpoint | Description |
@@ -751,14 +1095,11 @@ The React Native app must handle these URLs via Universal Links / URL Schemes (`
 | `POST` | `/user/contracts/upload` | Multipart upload of tenancy agreement |
 | `DELETE` | `/user/contracts/:uuid` | Delete uploaded tenancy document |
 
-### Wallet & Savings
+### Wallet
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
-| `GET` | `/wallet` | Fetch wallet balance & transactions |
-| `POST` | `/wallet/fund` | Initialize wallet deposit |
-| `GET` | `/savings/goals` | List active savings goals |
-| `POST` | `/savings/goals` | Create new savings goal |
-| `PATCH` | `/savings/goals/:id` | Update target or amount of savings goal |
+| `GET` | `/wallet` | Fetch tenant wallet balance & transactions |
+| `POST` | `/wallet/fund` | Initialize wallet top-up via Paystack |
 
 ### Alliance Marketplace
 | Method | Endpoint | Description |
@@ -792,6 +1133,29 @@ The React Native app must handle these URLs via Universal Links / URL Schemes (`
    Mobile OSs (especially iOS) suspend background sockets within ~30 seconds of app backgrounding. Use `AppState.addEventListener('change', ...)`:
    - When app returns to `'active'`, reconnect the SSE stream and trigger `queryClient.invalidateQueries()`.
 5. **Fast Numeric PIN and BVN Inputs**:
-   For BVN and OTP inputs, use `keyboardType="number-pad"` and implement automatic focus shifting to the next digit input on change.
+   For BVN, NIN, and OTP inputs, use `keyboardType="number-pad"` and implement automatic focus shifting to the next digit input on change.
 6. **Hardware Back Button Handling (Android)**:
    Ensure the Android physical back button dismisses active bottom sheets, modals, and checkout drawers before exiting the current screen.
+7. **Native SVG Circular Gauges (`react-native-svg` + `react-native-reanimated`)**:
+   Do NOT use WebViews or HTML5 canvas to render the Rent Score and Rent Runway activity rings. Use `Svg`, `Circle`, and `G` from `react-native-svg` with `useAnimatedProps` from `react-native-reanimated`. This ensures 60–120fps GPU-accelerated stroke animation without frame drops even on budget Android devices.
+8. **Small-Device Responsive Viewports (320px–375px)**:
+   Many Nigerian tenants use compact smartphones (iPhone SE, Tecno Spark, Infinix Smart, itel). The UI must strictly follow these rules:
+   - Never hardcode fixed pixel widths on buttons, action chips, or modal dialogs.
+   - Button pairs in `RentRunwayHero` and action rows must automatically switch to `flexDirection: 'column'` with `width: '100%'` when viewport width ≤ 375px.
+   - Card paddings should scale gracefully from `18px` to `12px` to prevent text truncation.
+   - All interactive touch targets must strictly satisfy `minHeight: 44` / `minWidth: 44` per Apple HIG and Google Material standards.
+9. **Bank Transfer Clipboard Flow & Background State Rehydration**:
+   When a tenant taps "Copy Account Number" on the Dedicated Virtual Account (DVA) modal, they typically leave Upward to open their banking app (GTBank, Access, Kuda, OPay, etc.) to complete the NIP transfer.
+   - When the user switches back to Upward, the app resumes from background (`AppState === 'active'`).
+   - The app must immediately trigger:
+     ```typescript
+     queryClient.invalidateQueries({ queryKey: ['rentVault'] })
+     queryClient.invalidateQueries({ queryKey: ['scoreProfile'] })
+     queryClient.invalidateQueries({ queryKey: ['transactions'] })
+     ```
+   - When the Paystack/Monnify DVA webhook completes, the background SSE socket (`/payments/sse/:userUuid`) fires a `payment.succeeded` event. The app must catch this, play celebratory haptic feedback (`expo-haptics`), and update the 14.5% daily accrued profit ticker immediately.
+10. **Client-Side SEC Regulatory PII Encryption**:
+    Mother's Maiden Name, BVN, and Next of Kin identifiers are highly sensitive under NDPR (Nigeria Data Protection Regulation) and SEC standards.
+    - Encrypt sensitive payloads using AES-256-GCM before persistent caching.
+    - Never log investor suitability fields to client console logs or crash analytics.
+    - Enforce SSL/TLS certificate pinning on mobile network requests using `@react-native-community/netinfo` and native network interceptors.
