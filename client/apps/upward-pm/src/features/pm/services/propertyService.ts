@@ -92,6 +92,7 @@ export interface RentPayment {
   receiptFileName?: string | null
   receiptFileType?: string | null
   receiptFileSize?: number | null
+  isUpwardReceipt?: boolean
 }
 
 export const getProperties = () => {

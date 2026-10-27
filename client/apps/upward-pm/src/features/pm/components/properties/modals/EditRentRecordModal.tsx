@@ -354,17 +354,25 @@ export const EditRentRecordModal: React.FC<EditRentRecordModalProps> = ({
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                 {formData.receiptUrl && (
-                  <a
-                    href={formData.receiptUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    download={formData.receiptFileName || 'receipt'}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!formData.receiptUrl || isDownloadingReceipt) return
+                      setIsDownloadingReceipt(true)
+                      window.open(formData.receiptUrl, '_blank', 'noopener,noreferrer')
+                      setTimeout(() => setIsDownloadingReceipt(false), 2000)
+                    }}
+                    disabled={isDownloadingReceipt}
                     className="btn btn--secondary btn--sm"
-                    style={{ padding: '4px 10px', fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}
+                    style={{ padding: '4px 10px', fontSize: 12, display: 'inline-flex', alignItems: 'center', gap: 4 }}
                   >
-                    <Download size={12} />
-                    <span>Download</span>
-                  </a>
+                    {isDownloadingReceipt ? (
+                      <Loader2 size={12} className="animate-spin" />
+                    ) : (
+                      <Download size={12} />
+                    )}
+                    <span>{isDownloadingReceipt ? 'Downloading...' : 'Download'}</span>
+                  </button>
                 )}
                 <button
                   type="button"

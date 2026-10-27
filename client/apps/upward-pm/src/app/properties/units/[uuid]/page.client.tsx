@@ -76,10 +76,15 @@ function UnitDetailContent() {
   const [selectedRequestForEdit, setSelectedRequestForEdit] = useState<any>(null)
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
   const [isUnassignConfirmOpen, setIsUnassignConfirmOpen] = useState(false)
+  const [downloadingReceiptUuid, setDownloadingReceiptUuid] = useState<string | null>(null)
 
   const handleDownloadReceipt = (payment: any) => {
-    if (!payment.receiptUrl) return
-    window.open(payment.receiptUrl, '_blank')
+    if (!payment.receiptUrl || downloadingReceiptUuid) return
+    setDownloadingReceiptUuid(payment.uuid)
+    window.open(payment.receiptUrl, '_blank', 'noopener,noreferrer')
+    setTimeout(() => {
+      setDownloadingReceiptUuid(null)
+    }, 2000)
   }
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -475,33 +480,42 @@ function UnitDetailContent() {
             <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>—</span>
           )
         }
+        const isUpward = !!row.isUpwardReceipt;
+        const isDownloading = downloadingReceiptUuid === row.uuid;
+
         return (
-          <a
-            href={row.receiptUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            download={row.receiptFileName || 'receipt'}
-            onClick={(e) => e.stopPropagation()}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleDownloadReceipt(row);
+            }}
+            disabled={isDownloading}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 6,
-              padding: '4px 11px',
+              gap: 5,
+              padding: '4px 10px',
               borderRadius: 20,
-              fontSize: 12,
+              fontSize: 11.5,
               fontWeight: 600,
-              color: 'var(--forest)',
-              background: 'var(--forest-faint)',
-              border: '1px solid rgba(22, 101, 52, 0.2)',
-              textDecoration: 'none',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease'
+              letterSpacing: '-0.01em',
+              color: isUpward ? 'var(--clay)' : 'var(--forest)',
+              background: isUpward ? 'var(--clay-faint)' : 'var(--forest-faint)',
+              border: isUpward ? '1px solid rgba(217, 119, 87, 0.25)' : '1px solid rgba(22, 101, 52, 0.2)',
+              cursor: isDownloading ? 'wait' : 'pointer',
+              transition: 'all 0.15s ease',
+              opacity: isDownloading ? 0.8 : 1,
             }}
-            title={row.receiptFileName ? `Download ${row.receiptFileName}` : 'Download Receipt'}
+            title={isUpward ? 'Download Official Upward Receipt' : (row.receiptFileName ? `Download ${row.receiptFileName}` : 'Download Receipt')}
           >
-            <Download size={13} />
-            <span>Receipt</span>
-          </a>
+            {isDownloading ? (
+              <Loader2 size={13} className="animate-spin" style={{ flexShrink: 0 }} />
+            ) : (
+              <Download size={13} style={{ flexShrink: 0 }} />
+            )}
+            <span>{isDownloading ? 'Downloading...' : (isUpward ? 'Upward Receipt' : 'Receipt')}</span>
+          </button>
         )
       }
     },
@@ -542,11 +556,8 @@ function UnitDetailContent() {
                   padding: 4
                 }}>
                   {row.receiptUrl && (
-                    <a
-                      href={row.receiptUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      download={row.receiptFileName || 'receipt'}
+                    <button
+                      type="button"
                       style={{
                         width: '100%',
                         padding: '10px 14px',
@@ -556,21 +567,29 @@ function UnitDetailContent() {
                         gap: 10,
                         fontSize: 13,
                         fontWeight: 600,
-                        color: 'var(--forest)',
+                        color: row.isUpwardReceipt ? 'var(--clay)' : 'var(--forest)',
                         background: 'none',
                         border: 'none',
                         cursor: 'pointer',
                         borderRadius: 6,
-                        textDecoration: 'none',
                         boxSizing: 'border-box'
                       }}
                       onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--ivory-dim)' }}
                       onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
-                      onClick={() => setActiveMenuId(null)}
+                      onClick={() => {
+                        handleDownloadReceipt(row)
+                        setActiveMenuId(null)
+                      }}
                     >
-                      <Download size={14} />
-                      Download Receipt
-                    </a>
+                      {downloadingReceiptUuid === row.uuid ? (
+                        <Loader2 size={14} className="animate-spin" style={{ color: row.isUpwardReceipt ? 'var(--clay)' : 'var(--forest)' }} />
+                      ) : (
+                        <Download size={14} style={{ color: row.isUpwardReceipt ? 'var(--clay)' : 'var(--forest)' }} />
+                      )}
+                      {downloadingReceiptUuid === row.uuid
+                        ? 'Downloading...'
+                        : (row.isUpwardReceipt ? 'Download Upward Receipt' : 'Download Receipt')}
+                    </button>
                   )}
 
                   {!isPaystack && (

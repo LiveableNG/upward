@@ -169,6 +169,7 @@ export interface RentPaymentEntity {
   receiptFileName?: string | null;
   receiptFileType?: string | null;
   receiptFileSize?: number | null;
+  isUpwardReceipt?: boolean;
 }
 
 export interface IUnitRepository {
