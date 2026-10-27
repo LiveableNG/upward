@@ -69,7 +69,11 @@ export class GetPaymentReceiptFileUseCase {
       tx = await this.prisma.upward_transaction.findFirst({
         where: { reference: payment.reference },
         include: {
-          paymentRequest: true,
+          paymentRequest: {
+            include: {
+              lineItemRecords: true,
+            },
+          },
           user: true,
         },
       });
@@ -103,6 +107,27 @@ export class GetPaymentReceiptFileUseCase {
         ? `${new Date(rentStartDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} - ${new Date(rentEndDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
         : undefined;
 
+    let lineItems: Array<{ label: string; amount: number }> | undefined = undefined;
+    if (tx.lineItems && Array.isArray(tx.lineItems) && tx.lineItems.length > 0) {
+      lineItems = (tx.lineItems as any[])
+        .filter((item: any) => {
+          const name = item.label || item.name || '';
+          const isFee = item.category === 'Fee' || ['Upward Benefits'].includes(name);
+          return !isFee && name;
+        })
+        .map((item: any) => ({
+          label: item.label || item.name || 'Rent',
+          amount: Number(item.amount ?? item.amountPaid ?? item.totalAmount ?? 0),
+        }));
+    } else if (tx.paymentRequest?.lineItemRecords && tx.paymentRequest.lineItemRecords.length > 0) {
+      lineItems = tx.paymentRequest.lineItemRecords
+        .filter((item: any) => item.name && item.name !== 'Upward Benefits')
+        .map((item: any) => ({
+          label: item.name,
+          amount: Number(item.totalAmount || item.amount || 0),
+        }));
+    }
+
     const receiptPayload = {
       title: 'Rent Payment Receipt',
       receiptNumber: `RCP-${tx.reference.slice(-5).toUpperCase()}`,
@@ -127,6 +152,7 @@ export class GetPaymentReceiptFileUseCase {
       tenancyPeriod,
       userPropertyId: userProperty?.id,
       companyName: payment.unit.property.name,
+      lineItems: lineItems && lineItems.length > 0 ? lineItems : undefined,
     };
 
     const pdfBuffer = await this.generateReceiptPdfUseCase.executeBuffer(receiptPayload);
