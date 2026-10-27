@@ -165,6 +165,10 @@ export interface RentPaymentEntity {
   notes: string | null;
   tenantId?: number | null;
   tenant?: { firstName: string; lastName: string; commercialName?: string | null };
+  receiptUrl?: string | null;
+  receiptFileName?: string | null;
+  receiptFileType?: string | null;
+  receiptFileSize?: number | null;
 }
 
 export interface IUnitRepository {

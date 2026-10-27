@@ -1,11 +1,13 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { IUnitRepository, PM_UNIT_REPOSITORY } from '../../../domains/pm/IPropertyRepository';
+import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service';
 
 @Injectable()
 export class GetUnitPaymentsUseCase {
   constructor(
     @Inject(PM_UNIT_REPOSITORY)
     private readonly unitRepository: IUnitRepository,
+    private readonly s3Service: S3Service,
   ) {}
 
   async execute(pmId: number, unitUuid: string, actor?: any) {
@@ -19,7 +21,25 @@ export class GetUnitPaymentsUseCase {
       throw new NotFoundException('Unit not found');
     }
 
-    return this.unitRepository.getRentPayments(unitUuid);
+    const payments = await this.unitRepository.getRentPayments(unitUuid);
+
+    // Resolve receiptUrl to S3 presigned download URL (instant direct S3 download, identical to Tenant Document Vault)
+    return Promise.all(
+      payments.map(async (payment: any) => {
+        if (!payment.receiptUrl) return payment;
+        try {
+          const downloadUrl = await this.s3Service.getDownloadUrl(payment.receiptUrl);
+          return {
+            ...payment,
+            receiptUrl: downloadUrl,
+            rawReceiptKey: payment.receiptUrl,
+          };
+        } catch {
+          return payment;
+        }
+      }),
+    );
   }
 }
+
 

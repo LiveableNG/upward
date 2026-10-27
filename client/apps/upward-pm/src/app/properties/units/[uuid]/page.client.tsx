@@ -20,7 +20,9 @@ import {
   Download,
   Edit,
   FileText,
-  Plus
+  Plus,
+  Eye,
+  Loader2
 } from 'lucide-react'
 import { useUnit, useUpdateUnit, useDeleteUnit, useUnitPayments, useUpdateUnitPayment, useAddUnitPayment, useDeleteUnitPayment } from '@/features/pm/hooks/useProperties'
 import { useDocuments, useUnitDocuments } from '@/features/pm/hooks/useDocuments'
@@ -40,6 +42,8 @@ import { useToast } from '@/components/common/Toast'
 import { ConfirmationModal } from '@/components/common/ConfirmationModal'
 import { cn, formatCurrency, formatTenantName } from '@/lib/utils'
 import { DetailSkeleton } from '@/components/skeletons'
+import { api } from '@/lib/api'
+import { downloadBlob } from '@/lib/download-helper'
 import { DataTable, Column } from '@/components/common/DataTable'
 import { ControlBar } from '@/components/ui/ControlBar/ControlBar'
 import { FilterDropdown } from '@/components/ui/ControlBar/FilterDropdown'
@@ -72,6 +76,11 @@ function UnitDetailContent() {
   const [selectedRequestForEdit, setSelectedRequestForEdit] = useState<any>(null)
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
   const [isUnassignConfirmOpen, setIsUnassignConfirmOpen] = useState(false)
+
+  const handleDownloadReceipt = (payment: any) => {
+    if (!payment.receiptUrl) return
+    window.open(payment.receiptUrl, '_blank')
+  }
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false)
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
@@ -459,6 +468,44 @@ function UnitDetailContent() {
       }
     },
     {
+      header: 'RECEIPT',
+      render: (row) => {
+        if (!row.receiptUrl) {
+          return (
+            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>—</span>
+          )
+        }
+        return (
+          <a
+            href={row.receiptUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            download={row.receiptFileName || 'receipt'}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '4px 11px',
+              borderRadius: 20,
+              fontSize: 12,
+              fontWeight: 600,
+              color: 'var(--forest)',
+              background: 'var(--forest-faint)',
+              border: '1px solid rgba(22, 101, 52, 0.2)',
+              textDecoration: 'none',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease'
+            }}
+            title={row.receiptFileName ? `Download ${row.receiptFileName}` : 'Download Receipt'}
+          >
+            <Download size={13} />
+            <span>Receipt</span>
+          </a>
+        )
+      }
+    },
+    {
       header: 'ACTIONS',
       align: 'right',
       render: (row) => {
@@ -491,9 +538,71 @@ function UnitDetailContent() {
                   boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
                   border: '1px solid var(--border)',
                   zIndex: 50,
-                  minWidth: 140,
+                  minWidth: 150,
                   padding: 4
                 }}>
+                  {row.receiptUrl && (
+                    <a
+                      href={row.receiptUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      download={row.receiptFileName || 'receipt'}
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        textAlign: 'left',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: 'var(--forest)',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        borderRadius: 6,
+                        textDecoration: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--ivory-dim)' }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+                      onClick={() => setActiveMenuId(null)}
+                    >
+                      <Download size={14} />
+                      Download Receipt
+                    </a>
+                  )}
+
+                  {!isPaystack && (
+                    <button
+                      style={{
+                        width: '100%',
+                        padding: '10px 14px',
+                        textAlign: 'left',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 10,
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: 'var(--dark)',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        borderRadius: 6
+                      }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--ivory-dim)' }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = 'none' }}
+                      onClick={() => {
+                        setSelectedRecordForEdit(row)
+                        setIsEditRentModalOpen(true)
+                        setActiveMenuId(null)
+                      }}
+                    >
+                      <Edit size={14} />
+                      Edit Record
+                    </button>
+                  )}
+
                   <button
                     style={{
                       width: '100%',
@@ -1088,6 +1197,7 @@ function UnitDetailContent() {
         onSave={handleUpdatePayment}
         isPending={updatePaymentMutation.isPending}
         unitName={unit?.unitName || ''}
+        unitUuid={uuid as string}
         rentType={unit?.rentType}
         record={selectedRecordForEdit}
       />
@@ -1149,6 +1259,7 @@ function UnitDetailContent() {
         onSave={handleSaveNewPayment}
         isPending={addPaymentMutation.isPending}
         unitName={unit?.unitName || ''}
+        unitUuid={uuid as string}
         rentType={unit?.rentType}
         initialAmount={unit?.rentAmount}
         currentUnitStartDate={unit?.rentStartDate ? new Date(unit.rentStartDate).toISOString().split('T')[0] : undefined}

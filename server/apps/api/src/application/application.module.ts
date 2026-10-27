@@ -242,6 +242,8 @@ import { UpdateUnitUseCase } from './pm/use-cases/update-unit.use-case'
 import { DeleteUnitUseCase } from './pm/use-cases/delete-unit.use-case'
 import { GetUnitPaymentsUseCase } from './pm/use-cases/get-unit-payments.use-case'
 import { AddUnitPaymentUseCase } from './pm/use-cases/add-unit-payment.use-case'
+import { UploadPaymentReceiptUseCase } from './pm/use-cases/upload-payment-receipt.use-case'
+import { GetPaymentReceiptFileUseCase } from './pm/use-cases/get-payment-receipt-file.use-case'
 import { GetPropertyImageUploadUrlUseCase } from './pm/use-cases/get-property-image-upload-url.use-case'
 import { UploadPropertyImageUseCase } from './pm/use-cases/upload-property-image.use-case'
 import { GetPmTenantsUseCase } from './pm/use-cases/tenants/get-pm-tenants.use-case'
@@ -856,6 +858,8 @@ const UseCases: any[] = [
   DeleteUnitUseCase,
   GetUnitPaymentsUseCase,
   AddUnitPaymentUseCase,
+  UploadPaymentReceiptUseCase,
+  GetPaymentReceiptFileUseCase,
   GetPropertyImageUploadUrlUseCase,
   UploadPropertyImageUseCase,
   GetPmTenantsUseCase,
