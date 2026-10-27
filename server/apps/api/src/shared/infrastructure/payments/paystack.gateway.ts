@@ -480,7 +480,7 @@ export class PaystackGateway implements IPaymentGateway {
         headers: this.headers,
         body: JSON.stringify({
           source: 'balance',
-          amount: data.amount * 100, // to kobo
+          amount: Math.round(data.amount * 100), // ensure integer in kobo
           reference: data.reference,
           recipient: recipientCode,
           reason: data.narration || 'Rent Settlement',

@@ -254,6 +254,10 @@ model upward_pm_rent_payment {
   updatedAt           DateTime          @updatedAt
   tenantId            Int?
   rentAmountAtPayment Float
+  receiptUrl          String?
+  receiptFileName     String?
+  receiptFileType     String?
+  receiptFileSize     Int?
   tenant              upward_pm_tenant?            @relation(fields: [tenantId], references: [id])
   unit                upward_pm_unit               @relation(fields: [unitId], references: [id], onDelete: Cascade)
   allianceCommissions upward_alliance_commission[]

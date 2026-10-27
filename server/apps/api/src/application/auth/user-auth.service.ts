@@ -1461,9 +1461,7 @@ export class UserAuthService extends BaseAuthService {
     }
 
     if (user) {
-      isNewUser = false
-      const isShadow =
-        user.passwordHash === PASS_PLACEHOLDERS.INVITED ||
+      const isShadow = user.passwordHash === PASS_PLACEHOLDERS.INVITED ||
         user.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
         !!(
           user.passwordHash &&
@@ -1471,22 +1469,28 @@ export class UserAuthService extends BaseAuthService {
           user.passwordHash !== PASS_PLACEHOLDERS.SOCIAL
         )
 
-      if (isShadow) {
-        throw new ForbiddenException({
-          message:
-            'Your account was invited by a property manager. Complete your profile to login.',
-          code: 'INVITE_PENDING',
-          userId: user.uuid,
-        })
-      }
-
+      isNewUser = isShadow
       const updates: Partial<User> = {}
       if (!user.providerId || provider === 'apple') updates.providerId = providerId
 
+      if (isShadow) {
+        updates.passwordHash = PASS_PLACEHOLDERS.SOCIAL
+        updates.authProvider = provider
+        if (!user.joinedAt) {
+          updates.joinedAt = new Date()
+        }
+        if (!user.termsAcceptedAt) {
+          updates.termsAcceptedAt = new Date()
+          updates.termsVersion = '2026-08-24'
+        }
+      } else if (user.passwordHash === PASS_PLACEHOLDERS.SOCIAL) {
+        updates.authProvider = provider
+      }
+
       // Only update first name if current is empty or looks like an email,
       // and the social name is valid (non-empty & not an email)
-      const currentFirstEmptyOrEmail = !user.firstName?.trim() || user.firstName.includes('@')
-      const newFirstValid = firstName.trim() !== '' && !firstName.includes('@')
+      const currentFirstEmptyOrEmail = !user.firstName?.trim() || (user.firstName.includes('@')) || user.firstName === 'User'
+      const newFirstValid = firstName.trim() !== '' && !firstName.includes('@') && firstName !== 'User'
       if (currentFirstEmptyOrEmail && newFirstValid) {
         updates.firstName = firstName
       }
@@ -1499,13 +1503,30 @@ export class UserAuthService extends BaseAuthService {
         updates.lastName = lastName
       }
 
-      if (user.passwordHash === PASS_PLACEHOLDERS.SOCIAL) {
-        updates.authProvider = provider
+      // If user also had a waitlist entry, pull phone if missing and clean up waitlist entry
+      const waitlistEntry = await this.prisma.upward_waitlist.findFirst({
+        where: {
+          email,
+          role: { not: 'OWNER' },
+        },
+      })
+      if (waitlistEntry) {
+        if (!user.phone && waitlistEntry.phone) {
+          updates.phone = waitlistEntry.phone
+        }
+        await this.deleteWaitlistEntry(waitlistEntry.uuid)
       }
 
       if (Object.keys(updates).length > 0) {
         await this.userRepository.update(user.id!, updates)
         user = await this.userRepository.findByUuid(user.uuid)
+      }
+
+      if (isShadow && user) {
+        await this.syncTenantStatuses(email)
+        this.emailService
+          .sendCustomerSupportNotification('USER', String(user.id))
+          .catch(e => console.error('Failed to send CS notification on invite social activate', e))
       }
     } else {
       isNewUser = true
@@ -1516,17 +1537,28 @@ export class UserAuthService extends BaseAuthService {
         },
       })
 
+      const waitlistPhone = waitlistEntry?.phone || undefined
+      const resolvedFirstName =
+        firstName && firstName !== 'User'
+          ? firstName
+          : (waitlistEntry?.firstName || 'User')
+      const resolvedLastName = lastName || waitlistEntry?.lastName || ''
+
       const userData: Partial<User> = {
         uuid: crypto.randomUUID(),
         email,
         passwordHash: PASS_PLACEHOLDERS.SOCIAL,
         authProvider: provider,
         providerId,
-        firstName,
-        lastName,
+        firstName: resolvedFirstName,
+        lastName: resolvedLastName,
+        phone: waitlistPhone,
         isFromWaitlist: !!waitlistEntry,
         isFromInvite: false,
         profilePic: '',
+        joinedAt: new Date(),
+        termsAcceptedAt: new Date(),
+        termsVersion: '2026-08-24',
       }
 
       await this.userRepository.save(userData as User)
@@ -1534,9 +1566,11 @@ export class UserAuthService extends BaseAuthService {
       if (!user) throw new Error(`Failed to create user after ${provider} sign-in`)
       await this.syncTenantStatuses(email)
 
-      this.emailService
-        .sendCustomerSupportNotification('USER', String(user.id))
-        .catch((e) => console.error('Failed to send CS notification', e))
+      if (waitlistEntry) {
+        await this.deleteWaitlistEntry(waitlistEntry.uuid)
+      }
+
+      this.emailService.sendCustomerSupportNotification('USER', String(user.id)).catch(e => console.error('Failed to send CS notification', e));
 
       let pmName: string | undefined = undefined
       if (user.companyUsers && user.companyUsers.length > 0) {
@@ -1558,15 +1592,13 @@ export class UserAuthService extends BaseAuthService {
       const sendEmail = !isPhoneOnlyEmail && !hasPhone
 
       if (sendWhatsapp && user.phone) {
-        this.initializeUserSequenceUseCase
-          .execute({
-            userId: user.id!,
-            firstName: firstName,
-            phoneEncrypted: user.phone,
-            phoneHash: user.phoneHash,
-            pmName: pmName,
-          })
-          .catch((e) => console.error('Failed to init WA sequence', e))
+        this.initializeUserSequenceUseCase.execute({
+          userId: user.id!,
+          firstName: resolvedFirstName,
+          phoneEncrypted: user.phone,
+          phoneHash: user.phoneHash,
+          pmName: pmName,
+        }).catch(e => console.error('Failed to init WA sequence', e));
       }
 
       if (sendEmail) {
@@ -1578,9 +1610,7 @@ export class UserAuthService extends BaseAuthService {
           .catch((e) => console.error('Failed to init email sequence', e))
       }
 
-      this.sendWelcomeMessages(user, firstName, pmName).catch((e) =>
-        console.error('Failed to send welcome messages', e),
-      )
+      this.sendWelcomeMessages(user, resolvedFirstName, pmName).catch(e => console.error('Failed to send welcome messages', e));
     }
 
     if (!user) {

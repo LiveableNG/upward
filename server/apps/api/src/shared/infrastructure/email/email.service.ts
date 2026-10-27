@@ -259,8 +259,21 @@ export class EmailService {
     const trackingPixelUrl = `${apiUrl}/api/v1/email-tracking/open?t=${emailTrackingToken}`
     const trackingPixelRegex = /\/api\/v1\/email-tracking\/open\?t=[^"'>\s]+/
 
+    const isMarketing =
+      upperType.includes('CAMPAIGN') ||
+      upperType.includes('SEQUENCE') ||
+      upperType.includes('MARKETING') ||
+      upperType.includes('NEWSLETTER') ||
+      upperType === 'BULK'
+
+    const isAuthOrSecurity =
+      upperType.includes('OTP') ||
+      upperType.includes('PASSWORD') ||
+      upperType.includes('AUTH') ||
+      upperType.includes('SECURITY')
+
     const trackedLinks: Array<{ id: string; originalUrl: string }> = []
-    if (brandedHtml) {
+    if (brandedHtml && !isAuthOrSecurity) {
       brandedHtml = brandedHtml.replace(
         /<a\s+(?:[^>]*?\s+)?href=["']([^"']+)["']([^>]*)>/gi,
         (match, href, rest) => {
@@ -281,10 +294,6 @@ export class EmailService {
       )
     }
 
-    if (brandedHtml && !trackingPixelRegex.test(brandedHtml)) {
-      brandedHtml += `\n<img src="${trackingPixelUrl}" width="1" height="1" alt="" style="display:none!important;visibility:hidden!important;max-height:1px;max-width:1px;border:0;outline:none;text-decoration:none;" />`
-    }
-
     const plainText = text || brandedHtml
       .replace(/<style[\s\S]*?<\/style>/gi, '')
       .replace(/<script[\s\S]*?<\/script>/gi, '')
@@ -293,6 +302,15 @@ export class EmailService {
       .replace(/[ \t]{2,}/g, ' ')
       .replace(/\n{3,}/g, '\n\n')
       .trim()
+
+    const trackingPixelTag = `<img src="${trackingPixelUrl}" width="1" height="1" alt="" border="0" style="display:block;width:1px!important;height:1px!important;min-width:1px;min-height:1px;border:0;outline:none;margin:0;padding:0;" />`
+    if (brandedHtml && !trackingPixelRegex.test(brandedHtml)) {
+      if (brandedHtml.includes('</body>')) {
+        brandedHtml = brandedHtml.replace('</body>', `${trackingPixelTag}\n</body>`)
+      } else {
+        brandedHtml += `\n${trackingPixelTag}`
+      }
+    }
 
     const unsubscribeToken = Buffer.from(email).toString('base64url')
 
@@ -305,13 +323,18 @@ export class EmailService {
           text: plainText,
           html: brandedHtml,
           'h:Reply-To': replyTo,
-          'h:List-Unsubscribe': `<${this.frontendUrl}/unsubscribe?token=${unsubscribeToken}>`,
-          'h:List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
           'h:X-Entity-Ref-ID': emailTrackingToken,
           'o:tag': [type],
           'o:tracking': 'no',
           'o:tracking-clicks': 'no',
           'o:tracking-opens': 'no',
+        }
+        if (isMarketing) {
+          mailData['h:List-Unsubscribe'] = `<mailto:unsubscribe@${domain}?subject=unsubscribe>, <${this.frontendUrl}/unsubscribe?token=${unsubscribeToken}>`
+          mailData['h:List-Unsubscribe-Post'] = 'List-Unsubscribe=One-Click'
+        } else {
+          mailData['h:Auto-Submitted'] = 'auto-generated'
+          mailData['h:X-Auto-Response-Suppress'] = 'OOF, AutoReply'
         }
 
         if (cc) {

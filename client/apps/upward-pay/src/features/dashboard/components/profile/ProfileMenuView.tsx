@@ -15,6 +15,7 @@ import {
   FileText,
   Home,
   ShieldCheck,
+  Lock,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { UserAvatar } from '@/components/common/UserAvatar'
@@ -24,6 +25,10 @@ import { Capacitor } from '@capacitor/core'
 import { Camera as CapacitorCamera, CameraResultType, CameraSource } from '@capacitor/camera'
 import { type UserProfile, type ContractData } from '../../types'
 import { isOnboardingComplete } from '../../utils/profileCompletion'
+import { useRentalGate } from '../../setup/hooks/useRentalGate'
+
+// Items a rental-gated user can still open
+const RENTAL_GATE_ALLOWED_ITEMS = new Set(['personal', 'rental'])
 
 interface ProfileMenuViewProps {
   profile: UserProfile
@@ -52,7 +57,18 @@ export function ProfileMenuView({
 }: ProfileMenuViewProps) {
   const router = useRouter()
   const { success, error: toastError } = useToast()
+  const { isGated, notifyGated } = useRentalGate()
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const isItemLocked = (id: string) => isGated && !RENTAL_GATE_ALLOWED_ITEMS.has(id)
+
+  const handleItemPress = (item: { id: string; title: string; onClick: () => void }) => {
+    if (isItemLocked(item.id)) {
+      notifyGated(item.title)
+      return
+    }
+    item.onClick()
+  }
 
   const onboardingComplete = useMemo(() => isOnboardingComplete(profile), [profile])
   const locationLabel = useMemo(() => formatProfileLocation(profile), [profile])
@@ -246,7 +262,7 @@ export function ProfileMenuView({
             <button
               type="button"
               className="profile-page__hero-badge profile-page__hero-badge--incomplete"
-              onClick={() => router.push('/dashboard/setup')}
+              onClick={() => router.push(isGated ? '/dashboard/setup/rental' : '/dashboard/setup')}
             >
               Complete Setup
             </button>
@@ -259,17 +275,20 @@ export function ProfileMenuView({
         <div className="profile-page__menu-card">
           {accountGroup.map((item) => {
             const Icon = item.icon
+            const locked = isItemLocked(item.id)
             const showWarning =
-              (item.id === 'personal' && !isPersonalProfileRich) ||
-              (item.id === 'rental' && !onboardingComplete) ||
-              (item.id === 'identity' && !profile.isIdentityVerified)
+              !locked &&
+              ((item.id === 'personal' && !isPersonalProfileRich) ||
+                (item.id === 'rental' && !onboardingComplete) ||
+                (item.id === 'identity' && !profile.isIdentityVerified))
 
             return (
               <button
                 key={item.id}
                 type="button"
-                className="profile-page__menu-item"
-                onClick={item.onClick}
+                className={`profile-page__menu-item${locked ? ' profile-page__menu-item--locked' : ''}`}
+                onClick={() => handleItemPress(item)}
+                aria-disabled={locked ? 'true' : undefined}
               >
                 <span className="profile-page__menu-icon">
                   <Icon size={16} />
@@ -286,7 +305,7 @@ export function ProfileMenuView({
                   ) : showWarning ? (
                     <span className="profile-page__menu-warning" title="Incomplete" />
                   ) : null}
-                  <ChevronRight size={16} />
+                  {locked ? <Lock size={14} /> : <ChevronRight size={16} />}
                 </span>
               </button>
             )
@@ -329,12 +348,14 @@ export function ProfileMenuView({
         <div className="profile-page__menu-card">
           {supportGroup.map((item) => {
             const Icon = item.icon
+            const locked = isItemLocked(item.id)
             return (
               <button
                 key={item.id}
                 type="button"
-                className="profile-page__menu-item"
-                onClick={item.onClick}
+                className={`profile-page__menu-item${locked ? ' profile-page__menu-item--locked' : ''}`}
+                onClick={() => handleItemPress(item)}
+                aria-disabled={locked ? 'true' : undefined}
               >
                 <span className="profile-page__menu-icon profile-page__menu-icon--muted">
                   <Icon size={16} />
@@ -344,7 +365,7 @@ export function ProfileMenuView({
                   <span className="profile-page__menu-desc">{item.desc}</span>
                 </span>
                 <span className="profile-page__menu-trail">
-                  <ChevronRight size={16} />
+                  {locked ? <Lock size={14} /> : <ChevronRight size={16} />}
                 </span>
               </button>
             )

@@ -88,6 +88,11 @@ export interface RentPayment {
     firstName: string
     lastName: string
   }
+  receiptUrl?: string | null
+  receiptFileName?: string | null
+  receiptFileType?: string | null
+  receiptFileSize?: number | null
+  isUpwardReceipt?: boolean
 }
 
 export const getProperties = () => {
@@ -161,6 +166,30 @@ export const updateUnitPayment = (unitUuid: string, paymentUuid: string, data: a
 export const deleteUnitPayment = (unitUuid: string, paymentUuid: string) => {
   return request<any>(`/pm/units/${unitUuid}/payments/${paymentUuid}`, {
     method: 'DELETE',
+  })
+}
+
+export const uploadPaymentReceipt = (unitUuid: string, file: File) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request<{
+    receiptUrl: string
+    receiptFileName: string
+    receiptFileType: string
+    receiptFileSize: number
+  }>(`/pm/units/${unitUuid}/payments/receipt-upload`, {
+    method: 'POST',
+    body: formData,
+  })
+}
+
+export const getPaymentReceiptUrl = (unitUuid: string, paymentUuid: string) => {
+  return `/pm/units/${unitUuid}/payments/${paymentUuid}/receipt`
+}
+
+export const downloadPaymentReceipt = (unitUuid: string, paymentUuid: string) => {
+  return request<Blob>(`/pm/units/${unitUuid}/payments/${paymentUuid}/receipt`, {
+    method: 'GET',
   })
 }
 

@@ -214,6 +214,22 @@
       transform: translateY(-1px);
     }
 
+    .nav-session-link {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--ink-soft);
+      text-decoration: none;
+      padding: 8px 14px;
+      border-radius: 999px;
+      transition: color 0.18s ease, background 0.18s ease;
+      white-space: nowrap;
+    }
+
+    .nav-session-link:hover {
+      color: var(--rust);
+      background: var(--rust-wash);
+    }
+
     section {
       padding: 72px 0;
     }
@@ -459,6 +475,10 @@
         gap: 6px;
       }
 
+      .nav-session-link {
+        display: none;
+      }
+
       .nav-right .btn-header {
         padding: 6px 11px;
         font-size: 11px;
@@ -492,10 +512,46 @@
       margin-top: 32px;
     }
 
+    .hero .cta-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
     .hero .cta-note {
-      margin-top: 12px;
+      margin-top: 14px;
       font-size: 13px;
       color: var(--ink-soft);
+    }
+
+    @media(max-width: 600px) {
+      .hero .cta-actions .btn {
+        width: 100%;
+        max-width: 320px;
+      }
+    }
+
+    .tracks-footer-cta {
+      margin-top: 24px;
+      font-size: 14px;
+      color: var(--ink-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .tracks-footer-cta a {
+      color: var(--rust);
+      font-weight: 700;
+      text-decoration: underline;
+    }
+
+    .tracks-footer-cta a:hover {
+      color: #723B20;
     }
 
     .hero-badges {
@@ -1713,7 +1769,8 @@
       </div>
 
       <div class="nav-right">
-        <a class="btn-header" href="/academy/sessions">Join an Info Session</a>
+        <a class="nav-session-link" href="/academy/sessions">Info Session</a>
+        <a class="btn-header" href="/academy/apply">Apply Now</a>
         <button class="nav-toggle" id="navToggle" aria-label="Menu" aria-expanded="false">
           <svg viewBox="0 0 24 24" fill="none">
             <path d="M4 7h16M4 12h16M4 17h16" stroke="#15162B" stroke-width="1.8" stroke-linecap="round"></path>
@@ -1730,7 +1787,14 @@
       <p class="sub">We train ambitious young people to build real, tech-driven property management and brokerage
         businesses. No property, no capital, no experience required.</p>
       <div class="cta-block">
-        <a href="/academy/sessions" class="btn btn-primary">Reserve Your Spot · Free Information Session</a>
+        <div class="cta-actions">
+          <a href="/academy/apply" class="btn btn-primary">Apply for 2026 Cohort →</a>
+          <a href="/academy/sessions" class="btn btn-outline">
+            <i class="fa-solid fa-calendar-days" style="color:var(--rust); margin-right:4px;"></i>
+            Join Free Info Session
+          </a>
+        </div>
+        <p class="cta-note">Classes start Nov 14 · Hybrid across Lagos, Abuja, PH &amp; Oyo · 200 places</p>
       </div>
       <div class="hero-badges">
         <div class="hero-badge">
@@ -1863,6 +1927,13 @@
           </ul>
         </a>
       </div>
+
+      <div class="tracks-footer-cta">
+        <span>Know which track fits you already?</span>
+        <a href="/academy/apply">Start your application directly →</a>
+        <span style="color:var(--sand); margin:0 4px;">•</span>
+        <span>Or click a track above to join an upcoming info session.</span>
+      </div>
     </div>
   </section>
 
@@ -1989,14 +2060,15 @@
   <!-- 10. FINAL CTA -->
   <section class="final" id="apply">
     <div class="wrap">
-      <h2>Building a Tech-Driven RE Career/Business</h2>
-      <p class="lead">Join our free Information Session online on Tuesday, October 13 (6:00 PM), or in-person in Abuja
-        on Friday, October 16 (6:00 PM) and Port Harcourt on Thursday, October 22 (6:00 PM), with Oyo/Ibadan dates coming
-        soon. Attend in-person or virtually via Zoom/Meet to meet mentors, understand the curriculum, and explore
-        scholarship opportunities.</p>
-      <a href="/academy/sessions" class="btn btn-primary" style="padding:15px 32px; font-size:15.5px;">Reserve Your Spot
-        →</a>
-      <p class="cta-note">Ready to apply after the session? That comes next, not before. <a href="/academy/scholarships"
+      <h2>Build your future in real estate.</h2>
+      <p class="lead">Ready to build your way in? Submit your application for the 10-week 2026 Cohort, or reserve your
+        spot in an upcoming free Information &amp; Q&amp;A Session to meet mentors and learn more.</p>
+      <div style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin-bottom:14px;">
+        <a href="/academy/apply" class="btn btn-primary" style="padding:15px 32px; font-size:15.5px;">Apply for 2026 Cohort
+          →</a>
+        <a href="/academy/sessions" class="btn btn-outline" style="padding:15px 32px; font-size:15.5px;">Join an Information Session</a>
+      </div>
+      <p class="cta-note">Classes commence November 14 · Applications close November 7 · <a href="/academy/scholarships"
           style="color:var(--rust); font-weight:700; border-bottom:1px solid var(--rust); margin-left:4px;">See fees
           &amp; scholarships →</a></p>
     </div>

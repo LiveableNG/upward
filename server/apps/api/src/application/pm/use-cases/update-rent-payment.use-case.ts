@@ -43,6 +43,16 @@ export class UpdateRentPaymentUseCase {
       throw new BadRequestException('Payments recorded automatically via the Upward Pay app cannot be edited.');
     }
 
+    // Preserve persistent S3 key if updating receipt
+    if (data.rawReceiptKey) {
+      data.receiptUrl = data.rawReceiptKey;
+      delete data.rawReceiptKey;
+    } else if (data.receiptKey) {
+      data.receiptUrl = data.receiptKey;
+      delete data.receiptKey;
+    } else if (data.receiptUrl && (data.receiptUrl.includes('?X-Amz-') || data.receiptUrl.includes('&X-Amz-'))) {
+      delete data.receiptUrl;
+    }
 
     // 2. Update the PM record
     const updatedPayment = await this.unitRepository.updateRentPayment(paymentUuid, data);

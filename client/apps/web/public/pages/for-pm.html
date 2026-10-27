@@ -909,7 +909,21 @@
             demoModal.classList.toggle('is-open', open);
             demoModalOverlay.classList.toggle('is-open', open);
             document.body.style.overflow = open ? 'hidden' : '';
-            if (open) demoModalClose?.focus();
+            if (open) {
+                demoModalClose?.focus();
+            } else {
+                if (window.location.hash === '#demo' || window.location.hash === '#book-demo') {
+                    history.replaceState(null, '', window.location.pathname + window.location.search);
+                }
+            }
+        }
+
+        function checkDemoUrl() {
+            const hash = window.location.hash.toLowerCase();
+            const params = new URLSearchParams(window.location.search);
+            if (hash === '#demo' || hash === '#book-demo' || params.has('demo')) {
+                setDemoModalOpen(true);
+            }
         }
 
         document.getElementById('open-demo-modal')?.addEventListener('click', () => setDemoModalOpen(true));
@@ -919,6 +933,9 @@
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && demoModal?.classList.contains('is-open')) setDemoModalOpen(false);
         });
+
+        checkDemoUrl();
+        window.addEventListener('hashchange', checkDemoUrl);
 
         demoForm?.addEventListener('submit', async (e) => {
             e.preventDefault();
