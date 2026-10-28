@@ -97,8 +97,6 @@ export class SubmitStudentEarlyAccessUseCase {
           contentHtml,
           logoText: 'UPWARD',
           logoSub: 'ACADEMY',
-          buttonText: 'Explore Upward Academy',
-          buttonUrl: 'https://upward.goodtenants.io/academy',
         })
 
         await this.emailService.sendEmailWithRetry({

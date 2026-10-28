@@ -81,21 +81,36 @@ export function parseSessionAndTrack(data: {
         sessionDay = 'Tuesday'
       } else if (sLower.includes('saturday') || sLower.includes('sat')) {
         sessionDay = 'Saturday'
+      } else if (sLower.includes('thursday') || sLower.includes('thu')) {
+        sessionDay = 'Thursday'
+      } else if (sLower.includes('friday') || sLower.includes('fri')) {
+        sessionDay = 'Friday'
+      } else if (sLower.includes('wednesday') || sLower.includes('wed')) {
+        sessionDay = 'Wednesday'
       } else {
-        sessionDay = 'Weekly Webinar'
+        sessionDay = 'Live Webinar'
       }
 
-      // Extract time portion (e.g. "6:00 pm, Tuesday, October 20" or "9:00 am, Saturday, October 10")
-      const timeMatch = sessionString.match(/(\d{1,2}:\d{2}\s*(?:am|pm)[^)]*)/i)
-      if (timeMatch) {
-        sessionDateTime = timeMatch[1].replace(/^[-\s]+/, '').replace(/\s*\([^)]*\)$/, '').trim()
-      } else {
-        const parts = sessionString.split('-')
-        const lastPart = parts[parts.length - 1].replace(/[()]/g, '').trim()
-        sessionDateTime = lastPart || sessionString
+      // Clean session string to retain full date and time without redundant mode text or broken brackets
+      let cleanDateTime = sessionString
+        .replace(/\s*\((?:Online|Zoom|Google Meet|Live Stream|Live Webinar)\)/gi, '')
+        .replace(/^Online\s*(?:\([^\)]*\))?\s*[-·:]*\s*/gi, '')
+        .replace(/\s*[-·:]*\s*Online$/gi, '')
+        .trim()
+
+      if (!cleanDateTime || cleanDateTime.toLowerCase() === 'online') {
+        const timeMatch = sessionString.match(/(\d{1,2}:\d{2}\s*(?:am|pm)[^)]*)/i)
+        if (timeMatch) {
+          cleanDateTime = timeMatch[1].replace(/^[-\s]+/, '').replace(/\s*\([^)]*\)$/, '').trim()
+        } else {
+          const parts = sessionString.split('-')
+          const lastPart = parts[parts.length - 1].replace(/[()]/g, '').trim()
+          cleanDateTime = lastPart || sessionString
+        }
       }
 
-      sessionBadgeText = `Online · ${sessionDateTime !== 'N/A' ? sessionDateTime : 'Zoom/Meet'}`
+      sessionDateTime = cleanDateTime || 'Online Live Session'
+      sessionBadgeText = `Online · ${sessionDateTime}`
     } else if (
       sLower.includes('physical') ||
       sLower.includes('in-person') ||
@@ -132,17 +147,26 @@ export function parseSessionAndTrack(data: {
       if (sLower.includes('date coming soon')) {
         sessionDateTime = 'Date Coming Soon'
       } else {
-        const timeMatch = sessionString.match(/(\d{1,2}:\d{2}\s*(?:am|pm)[^)]*)/i)
-        if (timeMatch) {
-          sessionDateTime = timeMatch[1].replace(/^[-\s]+/, '').replace(/\s*\([^)]*\)$/, '').trim()
-        } else {
-          const parts = sessionString.split('-')
-          const lastPart = parts[parts.length - 1].replace(/[()]/g, '').trim()
-          sessionDateTime = lastPart || sessionString
+        let cleanDateTime = sessionString
+          .replace(/\s*\((?:Physical[^\)]*|In-Person[^\)]*)\)/gi, '')
+          .replace(/^[A-Za-z\s/]+\s*(?:\([^\)]*\))?\s*[-·:]*\s*/gi, '')
+          .trim()
+
+        if (!cleanDateTime) {
+          const timeMatch = sessionString.match(/(\d{1,2}:\d{2}\s*(?:am|pm)[^)]*)/i)
+          if (timeMatch) {
+            cleanDateTime = timeMatch[1].replace(/^[-\s]+/, '').replace(/\s*\([^)]*\)$/, '').trim()
+          } else {
+            const parts = sessionString.split('-')
+            const lastPart = parts[parts.length - 1].replace(/[()]/g, '').trim()
+            cleanDateTime = lastPart || sessionString
+          }
         }
+
+        sessionDateTime = cleanDateTime || sessionVenue
       }
 
-      sessionBadgeText = `${cityLabel} · ${sessionDateTime !== 'N/A' ? sessionDateTime : sessionVenue}`
+      sessionBadgeText = `${cityLabel} · ${sessionDateTime}`
     }
   }
 

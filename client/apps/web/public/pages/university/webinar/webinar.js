@@ -33,24 +33,7 @@
     { code: 'SN', name: 'Senegal', dial: '+221', flag: '🇸🇳' }
   ];
 
-  // 2. Mobile Nav Toggle
-  function setupNavToggle() {
-    const navToggle = document.getElementById('navToggle');
-    const navLinks = document.getElementById('navLinks');
-    if (navToggle && navLinks) {
-      navToggle.addEventListener('click', function () {
-        const isOpen = navLinks.classList.toggle('open');
-        navToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-      });
 
-      navLinks.querySelectorAll('a').forEach(function (link) {
-        link.addEventListener('click', function () {
-          navLinks.classList.remove('open');
-          navToggle.setAttribute('aria-expanded', 'false');
-        });
-      });
-    }
-  }
 
   // 3. Country Code Picker Logic
   function setupCountryPicker() {
@@ -417,13 +400,10 @@
           });
         }
 
-        // Setup WhatsApp Share Link
-        const whatsappShareBtn = document.getElementById('btnWebinarWhatsappShare');
-        if (whatsappShareBtn) {
-          const shareText = encodeURIComponent(
-            'Hey! I just registered for this FREE live webinar by Upward Academy: "Build a 6-Figure Income in Property Management Without Owning Property". Check it out and reserve your free seat here: ' + window.location.href
-          );
-          whatsappShareBtn.href = 'https://api.whatsapp.com/send?text=' + shareText;
+        // Setup WhatsApp Waitlist Community Link
+        const whatsappCommunityBtn = document.getElementById('btnWebinarWhatsappCommunity');
+        if (whatsappCommunityBtn) {
+          whatsappCommunityBtn.href = 'https://chat.whatsapp.com/LcFwiekT2UQLUSzrm2zGER?s=cl&p=a&mlu=4&ilr=4&iam=2';
         }
 
         // Scroll smoothly to success box
@@ -451,7 +431,6 @@
   }
 
   function initAll() {
-    setupNavToggle();
     setupCountryPicker();
     setupFaqAccordion();
     setupContactDrawer();
