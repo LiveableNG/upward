@@ -30,9 +30,10 @@ export class SyncPmPaymentStatusUseCase {
     rentPortion: number
     periodStart?: Date
     periodEnd?: Date
+    reference?: string
     txClient: any
   }) {
-    const { paymentRequestId, rentPortion, periodStart, periodEnd, txClient } = params
+    const { paymentRequestId, rentPortion, periodStart, periodEnd, reference, txClient } = params
 
     try {
       const pmPr = await this.pmPaymentRepo.findByPaymentRequestId(paymentRequestId, txClient)
@@ -123,7 +124,15 @@ export class SyncPmPaymentStatusUseCase {
           })
         }
 
-        // Record in PM Rent History with exact period
+        const latestTx = await txClient.upward_transaction.findFirst({
+          where: { paymentRequestId },
+          orderBy: { createdAt: 'desc' },
+          select: { reference: true }
+        });
+
+        const effectiveReference = reference || latestTx?.reference || null;
+
+        // Record in PM Rent History with exact period and transaction reference
         await txClient.upward_pm_rent_payment.create({
           data: {
             unitId: unitId,
@@ -132,6 +141,7 @@ export class SyncPmPaymentStatusUseCase {
             rentAmountAtPayment: unit?.rentAmount || 0,
             paymentDate: new Date(),
             method: 'PAYSTACK',
+            reference: effectiveReference,
             status: 'SUCCESS',
             notes: pr.description || `Rent Portion for request ${pr.uuid.slice(-8)}`,
             periodStart: effectivePeriodStart,
@@ -203,9 +213,10 @@ export class SyncPmPaymentStatusUseCase {
     narration?: string
     periodStart?: Date
     periodEnd?: Date
+    reference?: string
     txClient: any
   }) {
-    const { userPropertyUuid, rentPortion, narration, periodStart, periodEnd, txClient } = params
+    const { userPropertyUuid, rentPortion, narration, periodStart, periodEnd, reference, txClient } = params
     try {
       const userProp = await txClient.upward_user_property.findUnique({
         where: { uuid: userPropertyUuid }
@@ -250,6 +261,7 @@ export class SyncPmPaymentStatusUseCase {
           rentAmountAtPayment: unit.rentAmount,
           paymentDate: new Date(),
           method: 'PAYSTACK',
+          reference: reference || null,
           status: 'SUCCESS',
           notes: narration || 'Tenant Manual Payment',
           periodStart: effectivePeriodStart,
