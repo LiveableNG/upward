@@ -1,3 +1,5 @@
+import * as fs from 'fs'
+import * as path from 'path'
 import {
   AbExperimentService,
   hashStringToBucket,
@@ -5,9 +7,33 @@ import {
 
 describe('AbExperimentService', () => {
   let service: AbExperimentService
+  const configPath = path.resolve(process.cwd(), 'ab-experiments-config.json')
+
+  const cleanupConfig = () => {
+    if (fs.existsSync(configPath)) {
+      try {
+        fs.unlinkSync(configPath)
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  beforeAll(() => {
+    cleanupConfig()
+  })
+
+  afterAll(() => {
+    cleanupConfig()
+  })
 
   beforeEach(() => {
+    cleanupConfig()
     service = new AbExperimentService()
+  })
+
+  afterEach(() => {
+    cleanupConfig()
   })
 
   describe('hashStringToBucket', () => {

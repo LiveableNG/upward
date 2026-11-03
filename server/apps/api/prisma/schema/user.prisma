@@ -68,6 +68,7 @@ model upward_user {
   allianceAuthoredRatings upward_alliance_rating[]       @relation("AllianceAuthorUser")
   allianceSubjectRatings  upward_alliance_rating[]       @relation("AllianceSubjectUser")
   tenantNotes           upward_admin_tenant_note[]
+  userGoals             upward_user_goal[]
 
   @@index([email])
   @@index([createdAt])

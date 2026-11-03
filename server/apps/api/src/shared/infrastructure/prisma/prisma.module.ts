@@ -52,6 +52,12 @@ import { PrismaAllianceListingTrackerRepository } from './repositories/prisma-al
 import { PrismaAllianceReferralRepository } from './repositories/prisma-alliance-referral.repository'
 import { PrismaAllianceCommissionRepository } from './repositories/prisma-alliance-commission.repository'
 import { PrismaAllianceRatingRepository } from './repositories/prisma-alliance-rating.repository'
+import { PrismaGoalRepository } from './repositories/prisma-goal.repository'
+import { PrismaOfferingRepository } from './repositories/prisma-offering.repository'
+import { PrismaCommerceVendorRepository } from './repositories/prisma-commerce-vendor.repository'
+import { GOAL_REPOSITORY } from '../../../domains/goals/goal.repository'
+import { OFFERING_REPOSITORY } from '../../../domains/goals/offering.repository'
+import { VENDOR_REPOSITORY } from '../../../domains/goals/vendor.repository'
 import {
   ALLIANCE_PROFILE_REPOSITORY,
   ALLIANCE_QUALIFICATION_REPOSITORY,
@@ -370,10 +376,25 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
       provide: APP_VERSION_REPOSITORY,
       useClass: PrismaAppVersionPolicyRepository,
     },
+    {
+      provide: GOAL_REPOSITORY,
+      useClass: PrismaGoalRepository,
+    },
+    {
+      provide: OFFERING_REPOSITORY,
+      useClass: PrismaOfferingRepository,
+    },
+    {
+      provide: VENDOR_REPOSITORY,
+      useClass: PrismaCommerceVendorRepository,
+    },
   ],
   exports: [
     PrismaService,
     EncryptionService,
+    GOAL_REPOSITORY,
+    OFFERING_REPOSITORY,
+    VENDOR_REPOSITORY,
     APP_VERSION_REPOSITORY,
     SESSION_TRACKING_REPOSITORY,
     WAITLIST_REPOSITORY,

@@ -15,6 +15,22 @@ import { UnifiedReminderService } from '../shared/infrastructure/common/reminder
 import { PaymentConfigurationService } from '../shared/infrastructure/common/payment-config.service'
 import { RentalPeriodService } from './services/rental-period.service'
 
+// Goal Domain Use Cases
+import { GetGoalCategoriesUseCase } from './goals/use-cases/get-goal-categories.use-case'
+import { GetGoalsUseCase } from './goals/use-cases/get-goals.use-case'
+import { GetGoalDetailUseCase } from './goals/use-cases/get-goal-detail.use-case'
+import { GetUserGoalsUseCase } from './goals/use-cases/get-user-goals.use-case'
+import { SetUserGoalsUseCase } from './goals/use-cases/set-user-goals.use-case'
+import { UpdateUserGoalUseCase } from './goals/use-cases/update-user-goal.use-case'
+import { GetOfferingsUseCase } from './goals/use-cases/get-offerings.use-case'
+import { GetOfferingDetailUseCase } from './goals/use-cases/get-offering-detail.use-case'
+import { AdminManageCategoriesUseCase } from './goals/use-cases/admin/admin-manage-categories.use-case'
+import { AdminManageGoalsUseCase } from './goals/use-cases/admin/admin-manage-goals.use-case'
+import { AdminManageCollectionsUseCase } from './goals/use-cases/admin/admin-manage-collections.use-case'
+import { AdminManageOfferingsUseCase } from './goals/use-cases/admin/admin-manage-offerings.use-case'
+import { AdminManageVendorsUseCase } from './goals/use-cases/admin/admin-manage-vendors.use-case'
+import { AdminGetGoalsOverviewUseCase } from './goals/use-cases/admin/admin-get-goals-overview.use-case'
+
 // Use Cases
 import { DeleteAdminUseCase } from './use-cases/admin/delete-admin.use-case'
 import { GetAdminsUseCase } from './use-cases/admin/get-admins.use-case'
@@ -1077,6 +1093,22 @@ const UseCases: any[] = [
   GetInviteDataUseCase,
   RequestInviteOTPUseCase,
   AcceptInviteUseCase,
+
+  // Goal & Commerce Domain
+  GetGoalCategoriesUseCase,
+  GetGoalsUseCase,
+  GetGoalDetailUseCase,
+  GetUserGoalsUseCase,
+  SetUserGoalsUseCase,
+  UpdateUserGoalUseCase,
+  GetOfferingsUseCase,
+  GetOfferingDetailUseCase,
+  AdminManageCategoriesUseCase,
+  AdminManageGoalsUseCase,
+  AdminManageCollectionsUseCase,
+  AdminManageOfferingsUseCase,
+  AdminManageVendorsUseCase,
+  AdminGetGoalsOverviewUseCase,
 ]
 
 // AI Document ingestion imports
