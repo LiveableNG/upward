@@ -436,7 +436,7 @@ export function DashboardHomeScreen() {
           variant="secondary"
           size="sm"
           fullWidth={stackActions}
-          onPress={() => go(DASHBOARD_HREF.exclusiveHomes)}
+          onPress={() => go(DASHBOARD_HREF.saveForHome)}
           style={{ flex: stackActions ? undefined : 1 }}
         >
           Save for Home

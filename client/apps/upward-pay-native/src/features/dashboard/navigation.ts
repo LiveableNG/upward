@@ -75,4 +75,5 @@ export const DASHBOARD_HREF = {
   exclusiveHomes: '/dashboard/exclusive-homes',
   exclusiveHomeDetail: (uuid: string) => `/dashboard/exclusive-homes/${encodeURIComponent(uuid)}`,
   rentSupportInsurance: '/dashboard/rent-support-insurance',
+  saveForHome: '/dashboard/save-for-home',
 } as const

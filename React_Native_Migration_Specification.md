@@ -14,6 +14,7 @@
 3. [Global Network & Authentication Architecture](#3-global-network--authentication-architecture)
 4. [Native Device Capabilities & Services](#4-native-device-capabilities--services)
 5. [Complete Application Navigation Map](#5-complete-application-navigation-map)
+   - [5.1 Capacitor / Web Parity Checklist](#51-capacitor--web-parity-checklist)
 6. [Detailed Screen & Flow Specifications](#6-detailed-screen--flow-specifications)
    - [6.1 Auth & Onboarding Flow](#61-auth--onboarding-flow)
    - [6.2 Profile Setup Wizard (Onboarding Blocker)](#62-profile-setup-wizard-onboarding-blocker)
@@ -219,8 +220,44 @@ Root App
 │   │   ├── Change Password
 │   │   ├── Feedback Submission
 │   │   └── Close / Delete Account Wizard
+│   ├── Save for Home interest capture (/dashboard/save-for-home)
 │   └── Help & Support (/dashboard/help)
 ```
+
+### 5.1 Capacitor / Web Parity Checklist
+
+Track parity between **`client/apps/upward-pay`** (Next.js + Capacitor) and **`client/apps/upward-pay-native`** (Expo). Update this table when shipping native screens.
+
+| Area | Web route(s) | Native route / module | Status |
+| :--- | :--- | :--- | :--- |
+| Auth & onboarding | `/login`, `/signup`, `/forgot-password`, `/welcome/:uuid`, `/waitlist/:uuid`, `/invite/:token` | Same paths under `src/app/` | **Done** |
+| Profile setup | `/dashboard/setup/*` | `/dashboard/setup/*` | **Done** |
+| Dashboard home | `/dashboard` | `/dashboard` tab | **Done** |
+| Score breakdown | `/dashboard/score-breakdown` | `/dashboard/score-breakdown` | **Done** |
+| Verify identity (BVN/NIN) | `/dashboard/verify-identity` | `/dashboard/verify-identity` | **Done** |
+| KYC report / investor view | `/dashboard/kyc` | — | **Missing** (use verify-identity + vault KYC modal only) |
+| Pay rent & checkout | `/dashboard/pay-rent`, `/dashboard/payment`, `/pay/:token` | `/dashboard/pay-rent`, `/pay/[uuid]` | **Done** (Paystack via in-app browser) |
+| Rent vault / savings | `/dashboard/savings`, `/dashboard/rent-savings`, `/dashboard/save-for-rent` | `/dashboard/savings/*`, `/dashboard/rent-calculator` | **Done** (web aliases redirect to savings) |
+| Save for Home (interest form) | `/dashboard/save-for-home` | `/dashboard/save-for-home` | **Done** |
+| Transactions & receipts | `/dashboard/transactions`, `/dashboard/receipts` | `/dashboard/transactions`, `/dashboard/receipt` | **Done** |
+| My Home | `/dashboard/my-home/*` | `/dashboard/my-home/*` tabs | **Done** |
+| Tenancy documents | `/dashboard/documents` | `/dashboard/profile/documents` | **Done** (different path) |
+| Deposit balance | `/dashboard/deposit-balance` | `/dashboard/deposit-balance` | **Done** |
+| Benefits & RSI | `/dashboard/benefits`, `/dashboard/rent-support-insurance` | Same | **Done** |
+| Request past records | `/dashboard/request-records` | `/dashboard/request-records` | **Done** |
+| Notifications | `/dashboard/notifications` | `/dashboard/notifications` | **Done** |
+| Help / support | `/dashboard/help`, `/dashboard/support` → help | `/dashboard/help` | **Done** |
+| Settings & close account | `/dashboard/settings/*` | `/dashboard/settings/*` | **Done** |
+| Exclusive homes browse | `/dashboard/exclusive-homes`, `/dashboard/exclusive-homes/[id]` | `/dashboard/exclusive-homes/*` | **Done** (inquiry form) |
+| Alliance application journey | `/dashboard/exclusive-homes/request`, `/applications/*`, schedule/KYC/profile steps | — | **Missing** |
+| Public alliance marketing | `/alliance`, `/alliance/[uuid]`, `/alliance/ref/[token]` | — | **Missing** (web-only; deep links may open web) |
+| Public Rent Passport | `/profile/[slug]` | Share URL only (`buildProfileShareUrl` → web) | **Partial** |
+| Landlord fill record | `/fill-record/[uuid]` | — | **Missing** |
+| Legal hub | `/dashboard/legal/*` | External web links on signup/welcome | **Partial** |
+| App update gating | Hard / soft update modals (`AppUpdateProvider`) | — | **Missing** |
+| Coming soon / roadmap | `/dashboard/coming-soon` | — | **Not planned** (placeholder on web) |
+
+**Priority backlog (product):** Alliance application funnel → KYC report screen → fill-record deep link → optional in-app legal WebView → app update checks.
 
 ---
 

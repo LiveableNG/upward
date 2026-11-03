@@ -22,6 +22,7 @@ credentials-json.json
 .env.local
 .env.*.local
 .env.production
+up*.env*
 
 # Editor
 .vscode/

@@ -50,6 +50,7 @@ export default function DashboardLayout() {
       <Stack.Screen name="request-records" />
       <Stack.Screen name="rent-calculator" />
       <Stack.Screen name="exclusive-homes" />
+      <Stack.Screen name="save-for-home" />
       <Stack.Screen name="rent-support-insurance" />
     </Stack>
   )
