@@ -325,7 +325,7 @@
         ageBracket: ageBracket,
         experienceLevel: experienceLevel,
         track: 'Property Management & Brokerage Webinar',
-        sessionTime: '21st November 2026',
+        sessionTime: 'Saturday 21st November 2026 (Online)',
         interest: 'Build a 6 Figure Income Career/Business in Tech-Driven Property Management/Brokerage.',
         sourceIdentifier: sourceIdentifier,
         abVariant: abVariant

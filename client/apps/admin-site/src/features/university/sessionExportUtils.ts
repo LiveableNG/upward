@@ -73,7 +73,12 @@ export function parseSessionAndTrack(data: {
   ) {
     const sLower = sessionString.toLowerCase()
 
-    if (sLower.includes('online') || sLower.includes('zoom') || sLower.includes('meet')) {
+    if (
+      sLower.includes('online') ||
+      sLower.includes('zoom') ||
+      sLower.includes('meet') ||
+      sLower.includes('webinar')
+    ) {
       attendanceMode = 'Online'
       sessionVenue = 'Zoom / Google Meet (Live Webinar)'
 
