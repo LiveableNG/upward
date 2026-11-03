@@ -592,6 +592,14 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
     `,
   },
 
+  PM_HOME_REQUEST_DIGEST: {
+    recipientRole: 'PM',
+    subjectTemplate: 'Daily Digest: {{count}} New Rent Request{{plural}} on Upward',
+    plainTextTemplate:
+      'Hello {{pmName}}, prospective tenants submitted rent requests on Upward. Log in to your property manager portal to view them: {{portalUrl}}',
+    buildHtml: (ctx) => ctx.htmlOverride || '<p>New rent requests are available in your portal.</p>',
+  },
+
   SUPPORT_TICKET: {
     recipientRole: 'TENANT',
     subjectTemplate: 'Update on your Support Ticket',

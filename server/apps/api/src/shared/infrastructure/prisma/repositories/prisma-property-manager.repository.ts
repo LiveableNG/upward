@@ -46,6 +46,7 @@ export class PrismaPropertyManagerRepository implements PropertyManagerRepositor
       resetPasswordOTP: model.resetPasswordOTP,
       resetPasswordExpires: model.resetPasswordExpires,
       invitedByUserId: model.invitedByUserId,
+      dailyBriefingEnabled: model.dailyBriefingEnabled ?? true,
       createdAt: model.createdAt,
       updatedAt: model.updatedAt,
     }
@@ -185,6 +186,9 @@ export class PrismaPropertyManagerRepository implements PropertyManagerRepositor
     }
     if (data.isBlocked !== undefined) {
       updateData.isBlocked = data.isBlocked
+    }
+    if (data.dailyBriefingEnabled !== undefined) {
+      updateData.dailyBriefingEnabled = data.dailyBriefingEnabled
     }
     if (data.isManuallyBlocked !== undefined) {
       updateData.isManuallyBlocked = data.isManuallyBlocked

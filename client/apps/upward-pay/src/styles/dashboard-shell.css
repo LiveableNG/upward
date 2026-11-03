@@ -2,7 +2,8 @@
 
 /* Match auth-shell / upward-pay prototype palette */
 .dashboard-layout,
-.profile-setup-blocker {
+.profile-setup-blocker,
+.setup-gate {
   --skin-primary: #c2501f;
   --skin-primary-hover: #a8410f;
   --skin-primary-rgb: 194, 80, 31;

@@ -33,7 +33,8 @@ export class ConfirmPmConnectionUseCase {
       // 2. PM already has this tenant. Let's auto-sync.
       // Update invite status to ACCEPTED
       await this.tenantRepository.update(existingTenant.uuid, {
-        inviteStatus: 'ACCEPTED'
+        inviteStatus: 'ACCEPTED',
+        inviteAcceptedAt: new Date(),
       });
 
       // Find any units for this tenant and sync them

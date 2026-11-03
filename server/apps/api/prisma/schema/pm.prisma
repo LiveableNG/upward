@@ -33,6 +33,7 @@ model upward_property_manager {
   isBlocked               Boolean                              @default(false)
   isManuallyBlocked       Boolean                              @default(false)
   disabledAt              DateTime?
+  dailyBriefingEnabled    Boolean                              @default(true)
   invitedByUserId         Int?
   invitedByUser           upward_user?                         @relation("UserInvitedPms", fields: [invitedByUserId], references: [id], onDelete: SetNull)
   activityLogsOwned       upward_pm_activity_log[]             @relation("ActivityOwner")
@@ -204,6 +205,7 @@ model upward_pm_tenant {
   phoneHash                  String?
   inviteStatus               String                      @default("PENDING")
   inviteSentAt               DateTime?
+  inviteAcceptedAt           DateTime?
   createdAt                  DateTime                    @default(now())
   updatedAt                  DateTime                    @updatedAt
   emergencyContactEmail      String?
@@ -233,6 +235,7 @@ model upward_pm_tenant {
 
   @@index([pmId])
   @@index([emailHash])
+  @@index([inviteAcceptedAt])
 }
 
 model upward_pm_rent_payment {
@@ -251,6 +254,10 @@ model upward_pm_rent_payment {
   updatedAt           DateTime          @updatedAt
   tenantId            Int?
   rentAmountAtPayment Float
+  receiptUrl          String?
+  receiptFileName     String?
+  receiptFileType     String?
+  receiptFileSize     Int?
   tenant              upward_pm_tenant?            @relation(fields: [tenantId], references: [id])
   unit                upward_pm_unit               @relation(fields: [unitId], references: [id], onDelete: Cascade)
   allianceCommissions upward_alliance_commission[]

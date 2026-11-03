@@ -152,16 +152,17 @@ export class UnifiedCommunicationService {
           : `<p>${plainText}</p>`;
       } else {
         const templateDef = COMMUNICATION_TEMPLATES[payload.type];
+        const effectiveTitle = payload.title || rawContext.title;
 
-        subject = payload.title
-          ? this.interpolate(payload.title, context)
+        subject = effectiveTitle
+          ? this.interpolate(effectiveTitle, context)
           : templateDef
           ? this.interpolate(templateDef.subjectTemplate, context)
-          : payload.type;
+          : payload.type.replace(/_/g, ' ');
 
         plainText = templateDef
           ? this.interpolate(templateDef.plainTextTemplate, context)
-          : payload.title || payload.type;
+          : effectiveTitle || payload.type.replace(/_/g, ' ');
 
         if (rawContext.htmlOverride) {
           htmlContent = rawContext.htmlOverride;

@@ -122,6 +122,7 @@ export interface TenantEntity {
   otherPhoneHash?: string | null;
   inviteStatus: string;
   inviteSentAt: Date | null;
+  inviteAcceptedAt?: Date | null;
   channel?: string | null;
   formerAddress?: string | null;
   nextOfKinName?: string | null;
@@ -164,6 +165,11 @@ export interface RentPaymentEntity {
   notes: string | null;
   tenantId?: number | null;
   tenant?: { firstName: string; lastName: string; commercialName?: string | null };
+  receiptUrl?: string | null;
+  receiptFileName?: string | null;
+  receiptFileType?: string | null;
+  receiptFileSize?: number | null;
+  isUpwardReceipt?: boolean;
 }
 
 export interface IUnitRepository {

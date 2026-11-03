@@ -16,10 +16,10 @@ export class ResolveEmailClickUseCase {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly configService: ConfigService,
+    private readonly configService?: ConfigService,
   ) {
-    this.frontendUrl = (this.configService.get<string>('FRONTEND_URL') || 'https://upward.ng').replace(/\/$/, '');
-    this.secret = this.configService.get<string>('JWT_SECRET') || 'upward-email-tracking-secret';
+    this.frontendUrl = (this.configService?.get<string>('FRONTEND_URL') || process.env.FRONTEND_URL || 'https://upward.ng').replace(/\/$/, '');
+    this.secret = this.configService?.get<string>('JWT_SECRET') || process.env.JWT_SECRET || 'upward-email-tracking-secret';
   }
 
   async execute(input: ResolveEmailClickInput): Promise<{ redirectUrl: string }> {

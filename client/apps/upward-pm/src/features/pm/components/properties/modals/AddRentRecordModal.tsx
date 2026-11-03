@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Modal } from '@/components/ui/Modal/Modal'
-import { Calendar, History, User } from 'lucide-react'
+import { Calendar, History, User, UploadCloud, FileText, X, CheckCircle2, Loader2 } from 'lucide-react'
 import { useToast } from '@/components/common/Toast'
+import { api } from '@/lib/api'
 
 interface AddRentRecordModalProps {
   isOpen: boolean;
@@ -9,6 +10,7 @@ interface AddRentRecordModalProps {
   onSave: (data: any) => void;
   isPending: boolean;
   unitName: string;
+  unitUuid?: string;
   rentType?: string;
   initialAmount?: number;
   currentUnitStartDate?: string;
@@ -17,7 +19,7 @@ interface AddRentRecordModalProps {
 }
 
 export const AddRentRecordModal: React.FC<AddRentRecordModalProps> = ({
-  isOpen, onClose, onSave, isPending, unitName, rentType, initialAmount, currentUnitStartDate, currentTenantName, maxCurrentAmount
+  isOpen, onClose, onSave, isPending, unitName, unitUuid, rentType, initialAmount, currentUnitStartDate, currentTenantName, maxCurrentAmount
 }) => {
   const [paymentType, setPaymentType] = useState<'CURRENT' | 'PAST'>('CURRENT')
   const [isForCurrentTenant, setIsForCurrentTenant] = useState(true)
@@ -29,6 +31,10 @@ export const AddRentRecordModal: React.FC<AddRentRecordModalProps> = ({
     tenantName: ''
   })
   const [dateError, setDateError] = useState('')
+  const [receiptFile, setReceiptFile] = useState<File | null>(null)
+  const [isDragging, setIsDragging] = useState(false)
+  const [isUploadingReceipt, setIsUploadingReceipt] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const { error } = useToast()
 
   useEffect(() => {
@@ -49,6 +55,9 @@ export const AddRentRecordModal: React.FC<AddRentRecordModalProps> = ({
         tenantName: ''
       })
       setDateError('')
+      setReceiptFile(null)
+      setIsDragging(false)
+      setIsUploadingReceipt(false)
     }
   }, [isOpen, initialAmount, maxCurrentAmount])
 
@@ -91,7 +100,47 @@ export const AddRentRecordModal: React.FC<AddRentRecordModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleSubmit = () => {
+  const handleFileSelect = (file: File) => {
+    const allowed = ['application/pdf', 'image/jpeg', 'image/png']
+    if (!allowed.includes(file.type)) {
+      error('Only PDF, JPG, or PNG files are accepted as receipts.')
+      return
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      error('File is too large. Maximum size is 10MB.')
+      return
+    }
+    setReceiptFile(file)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFileSelect(e.dataTransfer.files[0])
+    }
+  }
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  }
+
+  const handleSubmit = async () => {
     if (!formData.amount || isNaN(parseFloat(formData.amount)) || parseFloat(formData.amount) <= 0) {
       error('Please enter a valid payment amount.')
       return
@@ -128,6 +177,32 @@ export const AddRentRecordModal: React.FC<AddRentRecordModalProps> = ({
        }
     }
 
+    let receiptData: {
+      receiptUrl?: string
+      receiptFileName?: string
+      receiptFileType?: string
+      receiptFileSize?: number
+    } = {}
+
+    if (receiptFile && unitUuid) {
+      try {
+        setIsUploadingReceipt(true)
+        const uploadResult = await api.uploadPaymentReceipt(unitUuid, receiptFile)
+        receiptData = {
+          receiptUrl: uploadResult.receiptUrl,
+          receiptFileName: uploadResult.receiptFileName,
+          receiptFileType: uploadResult.receiptFileType,
+          receiptFileSize: uploadResult.receiptFileSize,
+        }
+      } catch (err: any) {
+        setIsUploadingReceipt(false)
+        error(err.message || 'Failed to upload receipt document')
+        return
+      } finally {
+        setIsUploadingReceipt(false)
+      }
+    }
+
     onSave({
       paymentType,
       amount: parseFloat(formData.amount),
@@ -137,9 +212,12 @@ export const AddRentRecordModal: React.FC<AddRentRecordModalProps> = ({
       isForCurrentTenant: paymentType === 'CURRENT' ? true : isForCurrentTenant,
       tenantName: (paymentType === 'PAST' && !isForCurrentTenant) ? formData.tenantName : undefined,
       method: 'Bank Transfer',
-      status: 'SUCCESS'
+      status: 'SUCCESS',
+      ...receiptData
     });
   }
+
+  const isActionPending = isPending || isUploadingReceipt
 
   return (
     <Modal
@@ -150,16 +228,25 @@ export const AddRentRecordModal: React.FC<AddRentRecordModalProps> = ({
       maxWidth={550}
       footer={
         <div style={{ display: 'flex', gap: 12, width: '100%' }}>
-          <button className="btn btn--secondary" style={{ flex: 1 }} onClick={onClose}>
+          <button className="btn btn--secondary" style={{ flex: 1 }} onClick={onClose} disabled={isActionPending}>
             Cancel
           </button>
           <button
             className="btn btn--primary"
-            style={{ flex: 1 }}
+            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
             onClick={handleSubmit}
-            disabled={isPending}
+            disabled={isActionPending}
           >
-            {isPending ? 'Saving...' : 'Save Record'}
+            {isUploadingReceipt ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                <span>Uploading Receipt...</span>
+              </>
+            ) : isPending ? (
+              'Saving...'
+            ) : (
+              'Save Record'
+            )}
           </button>
         </div>
       }
@@ -229,7 +316,7 @@ export const AddRentRecordModal: React.FC<AddRentRecordModalProps> = ({
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: paymentType === 'PAST' ? 16 : 24 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
         <div className="form-group">
           <label className="form-label">Amount Paid (₦)</label>
           <input
@@ -265,7 +352,7 @@ export const AddRentRecordModal: React.FC<AddRentRecordModalProps> = ({
       </div>
 
       {paymentType === 'PAST' && (
-        <div className="animate-fade-in" style={{ padding: 20, background: 'var(--ivory-dim)', borderRadius: 12, border: '1px solid var(--border)' }}>
+        <div className="animate-fade-in" style={{ padding: 20, background: 'var(--ivory-dim)', borderRadius: 12, border: '1px solid var(--border)', marginBottom: 20 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
             <div className="form-group">
               <label className="form-label">Period Start</label>
@@ -326,6 +413,143 @@ export const AddRentRecordModal: React.FC<AddRentRecordModalProps> = ({
           )}
         </div>
       )}
+
+      {/* Document Copy / Receipt Upload Zone */}
+      <div className="form-group" style={{ marginBottom: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+          <label className="form-label" style={{ margin: 0, fontWeight: 600 }}>
+            Receipt Document Copy <span style={{ color: 'var(--text-muted)', fontWeight: 400, fontSize: 12 }}>(Optional)</span>
+          </label>
+          {receiptFile && (
+            <span style={{ fontSize: 12, color: 'var(--forest)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <CheckCircle2 size={13} /> Ready to attach
+            </span>
+          )}
+        </div>
+
+        {receiptFile ? (
+          <div 
+            style={{
+              padding: '14px 16px',
+              borderRadius: 12,
+              background: 'var(--forest-faint)',
+              border: '1px solid rgba(22, 101, 52, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+              animation: 'fadeIn 0.2s ease-in-out'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, overflow: 'hidden' }}>
+              <div 
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 8,
+                  background: 'white',
+                  border: '1px solid var(--border)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--forest)',
+                  flexShrink: 0
+                }}
+              >
+                <FileText size={20} />
+              </div>
+              <div style={{ overflow: 'hidden' }}>
+                <div 
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: 'var(--dark)',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}
+                  title={receiptFile.name}
+                >
+                  {receiptFile.name}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                  {formatFileSize(receiptFile.size)} • {receiptFile.type.replace('application/', '').replace('image/', '').toUpperCase()}
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setReceiptFile(null)}
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: '50%',
+                background: 'white',
+                border: '1px solid var(--border)',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                transition: 'all 0.15s ease'
+              }}
+              title="Remove file"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        ) : (
+          <div
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+            style={{
+              padding: '24px 16px',
+              borderRadius: 12,
+              border: `2px dashed ${isDragging ? 'var(--forest)' : 'var(--border)'}`,
+              background: isDragging ? 'var(--forest-faint)' : 'var(--ivory-dim)',
+              textAlign: 'center',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6
+            }}
+          >
+            <UploadCloud 
+              size={28} 
+              style={{ 
+                color: isDragging ? 'var(--forest)' : 'var(--text-muted)',
+                transition: 'transform 0.2s ease',
+                transform: isDragging ? 'scale(1.1)' : 'scale(1)'
+              }} 
+            />
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--dark)' }}>
+              Click to browse or drag & drop receipt here
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+              Supports PDF, PNG, or JPG (max 10MB)
+            </div>
+          </div>
+        )}
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf,.png,.jpg,.jpeg"
+          style={{ display: 'none' }}
+          onChange={(e) => {
+            const f = e.target.files?.[0]
+            if (f) handleFileSelect(f)
+            e.target.value = ''
+          }}
+        />
+      </div>
 
     </Modal>
   )

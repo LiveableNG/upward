@@ -999,6 +999,7 @@ function UnitDetailContent() {
         onSave={handleSaveNewPayment}
         isPending={addPaymentMutation.isPending}
         unitName={unit?.unitName || ''}
+        unitUuid={uuid as string}
         rentType={unit?.rentType}
         initialAmount={unit?.rentAmount}
         currentUnitStartDate={unit?.rentStartDate ? new Date(unit.rentStartDate).toISOString().split('T')[0] : undefined}

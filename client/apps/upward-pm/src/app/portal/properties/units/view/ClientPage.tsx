@@ -611,7 +611,7 @@ function UnitDetailContent() {
 
       <ConfirmationModal isOpen={isDeleteConfirmOpen} onClose={() => setIsDeleteConfirmOpen(false)} onConfirm={handleDelete} title="Delete Unit" message="Are you sure you want to delete this unit? This action cannot be undone." confirmText="Delete Unit" type="danger" isPending={deleteUnitMutation.isPending} />
 
-      <AddRentRecordModal isOpen={isAddRecordModalOpen} onClose={() => setIsAddRecordModalOpen(false)} onSave={handleSaveNewPayment} isPending={addPaymentMutation.isPending} unitName={unit?.unitName || ''} rentType={unit?.rentType} initialAmount={unit?.rentAmount} currentUnitStartDate={unit?.rentStartDate ? new Date(unit.rentStartDate).toISOString().split('T')[0] : undefined} currentTenantName={unit?.tenant ? formatTenantName(unit.tenant) : ''} maxCurrentAmount={maxCurrentAmount} />
+      <AddRentRecordModal isOpen={isAddRecordModalOpen} onClose={() => setIsAddRecordModalOpen(false)} onSave={handleSaveNewPayment} isPending={addPaymentMutation.isPending} unitName={unit?.unitName || ''} unitUuid={uuid as string} rentType={unit?.rentType} initialAmount={unit?.rentAmount} currentUnitStartDate={unit?.rentStartDate ? new Date(unit.rentStartDate).toISOString().split('T')[0] : undefined} currentTenantName={unit?.tenant ? formatTenantName(unit.tenant) : ''} maxCurrentAmount={maxCurrentAmount} />
 
       <RentHistoryEntryModeModal isOpen={isEntryModeModalOpen} onClose={() => setIsEntryModeModalOpen(false)} onManualEntry={handleManualEntry} onBulkEntry={handleBulkEntry} />
 

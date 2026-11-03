@@ -79,6 +79,12 @@ export function AppleSignInButton({ onSuccess, disabled }: AppleSignInButtonProp
       await setAuthUser(res.user, { isNewUser: res.isNewUser, provider: 'apple' })
       queryClient.setQueryData(['user'], res.user)
 
+      if (res.user?.isFromInvite) {
+        toast.success('Your invited details have been connected.', 'Welcome to Upward')
+      } else if (res.user?.isFromWaitlist && res.isNewUser) {
+        toast.success('Your priority access has been activated.', 'Welcome to Upward')
+      }
+
       if (onSuccess) {
         onSuccess()
       } else {

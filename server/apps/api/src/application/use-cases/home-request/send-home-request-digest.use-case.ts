@@ -80,6 +80,10 @@ export class SendHomeRequestDigestUseCase {
       const decryptedBusinessName = pm.businessName ? this.encryption.decrypt(pm.businessName) : ''
       const pmName = decryptedBusinessName || `${pmFirstName} ${pmLastName}`.trim() || 'Property Manager'
 
+      const count = requests.length
+      const plural = count === 1 ? '' : 's'
+      const emailSubject = `Daily Digest: ${count} New Rent Request${plural} on Upward`
+
       await this.unifiedCommService
         .processCommunication({
           recipientEmail: pmEmail,
@@ -87,9 +91,12 @@ export class SendHomeRequestDigestUseCase {
           recipientRole: 'PM',
           pmUuid: pm.uuid,
           type: 'PM_HOME_REQUEST_DIGEST',
+          title: emailSubject,
           context: {
             htmlOverride: this.buildEmailHtml(requests, pmName, baseUrl),
-            title: `[Upward] ${requests.length} New Rent Request${requests.length === 1 ? '' : 's'} Yesterday`,
+            title: emailSubject,
+            count,
+            plural,
           },
         })
         .then(() => sent++)

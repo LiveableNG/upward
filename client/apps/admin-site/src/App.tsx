@@ -8,6 +8,7 @@ import EmailComposer from './pages/EmailComposer'
 import DropOffAnalysis from './pages/DropOffAnalysis'
 import Settings from './pages/Settings'
 import ABTestStats from './pages/ABTestStats'
+import RentalOnboardingExperiment from './pages/RentalOnboardingExperiment'
 import Logs from './pages/Logs'
 import AppActivity from './pages/AppActivity'
 import AppReleases from './pages/AppReleases'
@@ -94,6 +95,10 @@ function AppRoutes() {
           <Route path="/sessions" element={<Navigate to="/" replace />} />
           <Route path="/drop-off" element={<DropOffAnalysis token={auth.token} />} />
           <Route path="/ab-stats" element={<ABTestStats token={auth.token} />} />
+          <Route
+            path="/experiments/rental-onboarding"
+            element={<RentalOnboardingExperiment token={auth.token} adminRole={auth.user.role} />}
+          />
           <Route
             path="/stories"
             element={<FairnessStories token={auth.token} adminRole={auth.user.role} />}

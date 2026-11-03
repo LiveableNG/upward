@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useSearchParams } from 'react-router-dom'
 import {
@@ -24,6 +24,10 @@ import {
   Key,
   Coins,
   Percent,
+  FileCheck,
+  FileText,
+  Copy,
+  ExternalLink,
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
@@ -89,6 +93,43 @@ export interface DemoRequest {
   updatedAt: string
 }
 
+export interface CredibilityRequestRecord {
+  id: number
+  uuid: string
+  amountOwed: number
+  amountPaid: number
+  dueDate: string
+  paidAt: string | null
+  status: string
+  source: string
+}
+
+export interface CredibilityRequest {
+  id: number
+  uuid: string
+  tenant: {
+    id: number
+    uuid: string
+    name: string
+    email: string
+    phone: string
+  }
+  propertyUuid: string
+  propertyAddress: string
+  pmDetails: {
+    companyName: string | null
+    managerName: string | null
+    email: string | null
+    phone: string | null
+  }
+  status: string
+  sentToPmAt: string
+  fulfilledAt: string | null
+  yearsOfHistory: number
+  submittedRecordsCount: number
+  submittedRecords: CredibilityRequestRecord[]
+}
+
 export function formatCurrencyNGN(amount?: number | null): string {
   if (amount === undefined || amount === null || isNaN(amount)) return '₦0'
   return new Intl.NumberFormat('en-NG', {
@@ -100,7 +141,9 @@ export function formatCurrencyNGN(amount?: number | null): string {
 
 export default function Requests({ token }: { token: string }) {
   const [searchParams, setSearchParams] = useSearchParams()
-  const activeTab = searchParams.get('tab') === 'sales' ? 'sales' : 'home'
+  const tabParam = searchParams.get('tab')
+  const activeTab: 'home' | 'sales' | 'credibility' =
+    tabParam === 'sales' ? 'sales' : tabParam === 'credibility' ? 'credibility' : 'home'
 
   // Home Requests State
   const [homeRequests, setHomeRequests] = useState<HomeRequest[]>([])
@@ -121,15 +164,40 @@ export default function Requests({ token }: { token: string }) {
   const [demoSearch, setDemoSearch] = useState('')
   const [demoStatusFilter, setDemoStatusFilter] = useState('ALL')
 
+  // Credibility Requests State
+  const [credibilityRequests, setCredibilityRequests] = useState<CredibilityRequest[]>([])
+  const [credibilityLoading, setCredibilityLoading] = useState(false)
+  const [credibilityPage, setCredibilityPage] = useState(1)
+  const [credibilitySearch, setCredibilitySearch] = useState('')
+  const [credibilityStatusFilter, setCredibilityStatusFilter] = useState('ALL')
+  const [selectedCredibilityRequest, setSelectedCredibilityRequest] = useState<CredibilityRequest | null>(null)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+
   // Slide-Over Preview Drawer State
   const [selectedHomeRequest, setSelectedHomeRequest] = useState<HomeRequest | null>(null)
   const [selectedDemoRequest, setSelectedDemoRequest] = useState<DemoRequest | null>(null)
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false)
 
-  const handleTabChange = (tab: 'home' | 'sales') => {
+  const handleCopy = (text: string, id: string) => {
+    navigator.clipboard.writeText(text)
+    setCopiedId(id)
+    showToast('Copied to clipboard')
+    setTimeout(() => setCopiedId(null), 2000)
+  }
+
+  const getPublicRequestUrl = (uuid: string) => {
+    const origin = window.location.origin
+    if (origin.includes('localhost')) {
+      return `http://localhost:3000/public/requests/${uuid}`
+    }
+    return `https://upward.goodtenants.io/public/requests/${uuid}`
+  }
+
+  const handleTabChange = (tab: 'home' | 'sales' | 'credibility') => {
     setSearchParams({ tab })
     setSelectedHomeRequest(null)
     setSelectedDemoRequest(null)
+    setSelectedCredibilityRequest(null)
   }
 
   // Fetch Home Requests
@@ -193,13 +261,45 @@ export default function Requests({ token }: { token: string }) {
     [demoPage, demoStatusFilter, demoSearch, token, selectedDemoRequest],
   )
 
+  // Fetch Credibility Requests
+  const fetchCredibilityRequests = useCallback(async () => {
+    setCredibilityLoading(true)
+    try {
+      const response = await apiService.get('/admin/rent-history-requests', token)
+      if (response && response.data) {
+        setCredibilityRequests(response.data)
+        if (selectedCredibilityRequest) {
+          const fresh = response.data.find((r: CredibilityRequest) => r.id === selectedCredibilityRequest.id)
+          if (fresh) setSelectedCredibilityRequest(fresh)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch credibility requests:', error)
+      showToast('Failed to load credibility requests', true)
+    } finally {
+      setCredibilityLoading(false)
+    }
+  }, [token, selectedCredibilityRequest])
+
   useEffect(() => {
     if (activeTab === 'home') {
       fetchHomeRequests(homePage)
-    } else {
+    } else if (activeTab === 'sales') {
       fetchDemoRequests(demoPage)
+    } else if (activeTab === 'credibility') {
+      fetchCredibilityRequests()
     }
-  }, [activeTab, homePage, homeStatusFilter, homeTypeFilter, demoPage, demoStatusFilter])
+  }, [
+    activeTab,
+    homePage,
+    homeStatusFilter,
+    homeTypeFilter,
+    demoPage,
+    demoStatusFilter,
+    fetchHomeRequests,
+    fetchDemoRequests,
+    fetchCredibilityRequests,
+  ])
 
   // ESC key to close drawer
   useEffect(() => {
@@ -207,6 +307,7 @@ export default function Requests({ token }: { token: string }) {
       if (e.key === 'Escape') {
         setSelectedHomeRequest(null)
         setSelectedDemoRequest(null)
+        setSelectedCredibilityRequest(null)
       }
     }
     window.addEventListener('keydown', handleKeyDown)
@@ -214,7 +315,7 @@ export default function Requests({ token }: { token: string }) {
   }, [])
 
   // Prevent background scrolling when preview drawer is open
-  const isAnyDrawerOpen = !!selectedHomeRequest || !!selectedDemoRequest
+  const isAnyDrawerOpen = !!selectedHomeRequest || !!selectedDemoRequest || !!selectedCredibilityRequest
   useEffect(() => {
     document.body.style.overflow = isAnyDrawerOpen ? 'hidden' : ''
     return () => {
@@ -674,6 +775,329 @@ export default function Requests({ token }: { token: string }) {
     },
   ]
 
+  const getCredibilityStatusColor = (status?: string) => {
+    switch (status?.toUpperCase()) {
+      case 'PENDING':
+        return '#f59e0b'
+      case 'COMPLETED':
+      case 'VERIFIED':
+      case 'FULFILLED':
+        return '#10b981'
+      case 'CANCELLED':
+      case 'REJECTED':
+        return '#ef4444'
+      default:
+        return 'var(--text-muted)'
+    }
+  }
+
+  // Filtered & Paginated Credibility Requests
+  const filteredCredibilityRequests = useMemo(() => {
+    return credibilityRequests.filter((req) => {
+      if (credibilityStatusFilter !== 'ALL') {
+        if (req.status?.toUpperCase() !== credibilityStatusFilter.toUpperCase()) {
+          return false
+        }
+      }
+      if (credibilitySearch.trim()) {
+        const q = credibilitySearch.toLowerCase().trim()
+        const matchUuid = req.uuid?.toLowerCase().includes(q)
+        const matchTenantName = req.tenant?.name?.toLowerCase().includes(q)
+        const matchTenantEmail = req.tenant?.email?.toLowerCase().includes(q)
+        const matchTenantPhone = req.tenant?.phone?.toLowerCase().includes(q)
+        const matchPmCompany = req.pmDetails?.companyName?.toLowerCase().includes(q)
+        const matchPmManager = req.pmDetails?.managerName?.toLowerCase().includes(q)
+        const matchPmEmail = req.pmDetails?.email?.toLowerCase().includes(q)
+        const matchPmPhone = req.pmDetails?.phone?.toLowerCase().includes(q)
+        const matchAddress = req.propertyAddress?.toLowerCase().includes(q)
+
+        return (
+          matchUuid ||
+          matchTenantName ||
+          matchTenantEmail ||
+          matchTenantPhone ||
+          matchPmCompany ||
+          matchPmManager ||
+          matchPmEmail ||
+          matchPmPhone ||
+          matchAddress
+        )
+      }
+      return true
+    })
+  }, [credibilityRequests, credibilityStatusFilter, credibilitySearch])
+
+  const credibilityTotalPages = Math.max(1, Math.ceil(filteredCredibilityRequests.length / 25))
+  const paginatedCredibilityRequests = useMemo(() => {
+    const start = (credibilityPage - 1) * 25
+    return filteredCredibilityRequests.slice(start, start + 25)
+  }, [filteredCredibilityRequests, credibilityPage])
+
+  // Columns for Credibility Requests
+  const credibilityColumns: ColumnDef<CredibilityRequest>[] = [
+    {
+      key: 'uuid',
+      label: 'Request UUID',
+      render: (req) => {
+        const isCopied = copiedId === `uuid-${req.id}`
+        return (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <span
+                style={{
+                  fontFamily: 'monospace',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  color: 'var(--text)',
+                  background: 'var(--surface-hover)',
+                  padding: '3px 8px',
+                  borderRadius: '6px',
+                  border: '1px solid var(--border)',
+                  letterSpacing: '0.2px',
+                }}
+                title={req.uuid}
+              >
+                {req.uuid.slice(0, 8)}...{req.uuid.slice(-4)}
+              </span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleCopy(req.uuid, `uuid-${req.id}`)
+                }}
+                title="Copy Request UUID"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: isCopied ? '#10b981' : 'var(--text-muted)',
+                  padding: '3px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  borderRadius: '4px',
+                }}
+              >
+                {isCopied ? <Check size={14} /> : <Copy size={14} />}
+              </button>
+              <a
+                href={getPublicRequestUrl(req.uuid)}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Open Public Verification Link"
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  color: 'var(--accent)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '3px',
+                  borderRadius: '4px',
+                }}
+              >
+                <ExternalLink size={14} />
+              </a>
+            </div>
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '3px' }}>
+              ID: #{req.id}
+            </div>
+          </div>
+        )
+      },
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      render: (req) => {
+        const color = getCredibilityStatusColor(req.status)
+        return (
+          <span
+            style={{
+              fontSize: '11px',
+              fontWeight: 700,
+              padding: '4px 10px',
+              borderRadius: '20px',
+              background: `${color}15`,
+              color,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              textTransform: 'uppercase',
+            }}
+          >
+            <span
+              style={{
+                width: '6px',
+                height: '6px',
+                borderRadius: '50%',
+                backgroundColor: color,
+              }}
+            />
+            {req.status}
+          </span>
+        )
+      },
+    },
+    {
+      key: 'tenant',
+      label: 'Tenant',
+      render: (req) => (
+        <div>
+          <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)' }}>
+            {req.tenant?.name || 'Anonymous Tenant'}
+          </div>
+          <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{req.tenant?.email}</div>
+          {req.tenant?.phone && (
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{req.tenant?.phone}</div>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'pmDetails',
+      label: 'Addressed To (PM)',
+      render: (req) => {
+        const pm = req.pmDetails
+        const hasPm = pm && (pm.companyName || pm.managerName || pm.email)
+        if (!hasPm) {
+          return <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>No PM info specified</span>
+        }
+        return (
+          <div>
+            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>
+              {pm.managerName || pm.companyName || 'Property Manager'}
+            </div>
+            {pm.companyName && pm.managerName && (
+              <div style={{ fontSize: '11px', color: 'var(--accent)', fontWeight: 500 }}>
+                {pm.companyName}
+              </div>
+            )}
+            {pm.email && (
+              <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{pm.email}</div>
+            )}
+            {pm.phone && (
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{pm.phone}</div>
+            )}
+          </div>
+        )
+      },
+    },
+    {
+      key: 'property',
+      label: 'Property & History',
+      render: (req) => (
+        <div style={{ maxWidth: '240px' }}>
+          <div
+            style={{
+              fontSize: '13px',
+              fontWeight: 500,
+              color: 'var(--text)',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+            title={req.propertyAddress}
+          >
+            {req.propertyAddress}
+          </div>
+          <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 600,
+                padding: '2px 7px',
+                borderRadius: '6px',
+                background: 'var(--accent-faint)',
+                color: 'var(--accent)',
+                border: '1px solid var(--accent-muted)',
+              }}
+            >
+              {req.yearsOfHistory} yrs history
+            </span>
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 600,
+                padding: '2px 7px',
+                borderRadius: '6px',
+                background: 'var(--surface-hover)',
+                color: 'var(--text-muted)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              {req.submittedRecordsCount} cycles
+            </span>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'sentToPmAt',
+      label: 'Requested At',
+      render: (req) => (
+        <div>
+          <div style={{ fontSize: '13px', fontWeight: 600 }}>
+            {new Date(req.sentToPmAt).toLocaleDateString(undefined, {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            })}
+          </div>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+            {new Date(req.sentToPmAt).toLocaleTimeString(undefined, {
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'actions',
+      label: 'Actions',
+      render: (req) => {
+        const isCopied = copiedId === `link-${req.id}`
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              onClick={() => setSelectedCredibilityRequest(req)}
+              className="btn btn-secondary"
+              style={{
+                padding: '6px 10px',
+                fontSize: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                borderRadius: '8px',
+              }}
+            >
+              <Eye size={13} />
+              Preview
+            </button>
+            <button
+              onClick={() => handleCopy(getPublicRequestUrl(req.uuid), `link-${req.id}`)}
+              className="btn btn-secondary"
+              title="Copy PM Verification Link"
+              style={{
+                padding: '6px 10px',
+                fontSize: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                borderRadius: '8px',
+              }}
+            >
+              {isCopied ? (
+                <Check size={13} style={{ color: '#10b981' }} />
+              ) : (
+                <Copy size={13} />
+              )}
+              Link
+            </button>
+          </div>
+        )
+      },
+    },
+  ]
+
   return (
     <div className="page-container fade-in" style={{ padding: '24px', position: 'relative' }}>
       {/* Page Header */}
@@ -715,11 +1139,23 @@ export default function Requests({ token }: { token: string }) {
         </div>
 
         <button
-          onClick={() =>
-            activeTab === 'home' ? fetchHomeRequests(homePage) : fetchDemoRequests(demoPage)
-          }
+          onClick={() => {
+            if (activeTab === 'home') {
+              fetchHomeRequests(homePage)
+            } else if (activeTab === 'sales') {
+              fetchDemoRequests(demoPage)
+            } else {
+              fetchCredibilityRequests()
+            }
+          }}
           className="btn btn-secondary"
-          disabled={activeTab === 'home' ? homeLoading : demoLoading}
+          disabled={
+            activeTab === 'home'
+              ? homeLoading
+              : activeTab === 'sales'
+              ? demoLoading
+              : credibilityLoading
+          }
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -729,7 +1165,19 @@ export default function Requests({ token }: { token: string }) {
         >
           <RefreshCcw
             size={16}
-            className={activeTab === 'home' ? (homeLoading ? 'spin' : '') : demoLoading ? 'spin' : ''}
+            className={
+              activeTab === 'home'
+                ? homeLoading
+                  ? 'spin'
+                  : ''
+                : activeTab === 'sales'
+                ? demoLoading
+                  ? 'spin'
+                  : ''
+                : credibilityLoading
+                ? 'spin'
+                : ''
+            }
           />
           Refresh
         </button>
@@ -814,6 +1262,41 @@ export default function Requests({ token }: { token: string }) {
             </span>
           )}
         </button>
+
+        <button
+          onClick={() => handleTabChange('credibility')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '10px 18px',
+            fontSize: '14px',
+            fontWeight: 600,
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'credibility' ? '2px solid var(--accent)' : '2px solid transparent',
+            color: activeTab === 'credibility' ? 'var(--accent)' : 'var(--text-secondary)',
+            cursor: 'pointer',
+            transition: 'var(--transition)',
+          }}
+        >
+          <FileCheck size={16} />
+          Credibility Requests
+          {credibilityRequests.length > 0 && (
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                padding: '2px 7px',
+                borderRadius: '10px',
+                background: activeTab === 'credibility' ? 'var(--accent-faint)' : 'var(--surface-hover)',
+                color: activeTab === 'credibility' ? 'var(--accent)' : 'var(--text-muted)',
+              }}
+            >
+              {credibilityRequests.length}
+            </span>
+          )}
+        </button>
       </div>
 
       {/* Filter / Search Bar */}
@@ -824,9 +1307,11 @@ export default function Requests({ token }: { token: string }) {
             if (activeTab === 'home') {
               setHomePage(1)
               fetchHomeRequests(1)
-            } else {
+            } else if (activeTab === 'sales') {
               setDemoPage(1)
               fetchDemoRequests(1)
+            } else {
+              setCredibilityPage(1)
             }
           }}
           style={{
@@ -853,12 +1338,27 @@ export default function Requests({ token }: { token: string }) {
               placeholder={
                 activeTab === 'home'
                   ? 'Search by prospect name, email, phone, or notes (Press Enter)...'
-                  : 'Search by PM name, email, or phone (Press Enter)...'
+                  : activeTab === 'sales'
+                  ? 'Search by PM name, email, or phone (Press Enter)...'
+                  : 'Search by tenant, PM name/email, property, or UUID (Press Enter)...'
               }
-              value={activeTab === 'home' ? homeSearch : demoSearch}
-              onChange={(e) =>
-                activeTab === 'home' ? setHomeSearch(e.target.value) : setDemoSearch(e.target.value)
+              value={
+                activeTab === 'home'
+                  ? homeSearch
+                  : activeTab === 'sales'
+                  ? demoSearch
+                  : credibilitySearch
               }
+              onChange={(e) => {
+                if (activeTab === 'home') {
+                  setHomeSearch(e.target.value)
+                } else if (activeTab === 'sales') {
+                  setDemoSearch(e.target.value)
+                } else {
+                  setCredibilitySearch(e.target.value)
+                  setCredibilityPage(1)
+                }
+              }}
               style={{
                 width: '100%',
                 padding: '12px 12px 12px 42px',
@@ -948,7 +1448,7 @@ export default function Requests({ token }: { token: string }) {
                   <option value="assigned">Assigned</option>
                   <option value="closed">Closed</option>
                 </select>
-              ) : (
+              ) : activeTab === 'sales' ? (
                 <select
                   value={demoStatusFilter}
                   onChange={(e) => {
@@ -971,6 +1471,30 @@ export default function Requests({ token }: { token: string }) {
                   <option value="PENDING">Pending</option>
                   <option value="CONTACTED">Contacted</option>
                   <option value="COMPLETED">Completed</option>
+                </select>
+              ) : (
+                <select
+                  value={credibilityStatusFilter}
+                  onChange={(e) => {
+                    setCredibilityStatusFilter(e.target.value)
+                    setCredibilityPage(1)
+                  }}
+                  style={{
+                    width: '100%',
+                    padding: '11px 32px 11px 36px',
+                    borderRadius: '12px',
+                    border: '1px solid var(--border)',
+                    background: 'var(--surface)',
+                    fontSize: '14px',
+                    appearance: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--text)',
+                  }}
+                >
+                  <option value="ALL">All Statuses</option>
+                  <option value="PENDING">Pending PM Verification</option>
+                  <option value="COMPLETED">Completed / Fulfilled</option>
+                  <option value="CANCELLED">Cancelled</option>
                 </select>
               )}
               <ChevronDown
@@ -1001,7 +1525,7 @@ export default function Requests({ token }: { token: string }) {
           totalPages={homeTotalPages}
           onPageChange={setHomePage}
         />
-      ) : (
+      ) : activeTab === 'sales' ? (
         <DataTable
           data={demoRequests}
           columns={demoColumns}
@@ -1011,6 +1535,17 @@ export default function Requests({ token }: { token: string }) {
           currentPage={demoPage}
           totalPages={demoTotalPages}
           onPageChange={setDemoPage}
+        />
+      ) : (
+        <DataTable
+          data={paginatedCredibilityRequests}
+          columns={credibilityColumns}
+          isLoading={credibilityLoading}
+          emptyTitle="No credibility requests found."
+          keyExtractor={(req) => req.id.toString()}
+          currentPage={credibilityPage}
+          totalPages={credibilityTotalPages}
+          onPageChange={setCredibilityPage}
         />
       )}
 
@@ -1853,6 +2388,614 @@ export default function Requests({ token }: { token: string }) {
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
+          </>,
+          document.body,
+        )}
+
+      {/* SLIDE-OVER DETAIL DRAWER FOR CREDIBILITY REQUEST */}
+      {selectedCredibilityRequest &&
+        createPortal(
+          <>
+            {/* Backdrop */}
+            <div
+              onClick={() => setSelectedCredibilityRequest(null)}
+              style={{
+                position: 'fixed',
+                inset: 0,
+                width: '100vw',
+                height: '100vh',
+                background: 'rgba(15, 23, 42, 0.45)',
+                backdropFilter: 'blur(8px)',
+                WebkitBackdropFilter: 'blur(8px)',
+                zIndex: 99998,
+                animation: 'fadeIn 0.2s ease-out',
+              }}
+            />
+
+            {/* Drawer Panel */}
+            <div
+              style={{
+                position: 'fixed',
+                top: 0,
+                right: 0,
+                width: '100%',
+                maxWidth: '640px',
+                height: '100vh',
+                background: 'var(--surface)',
+                boxShadow: '-12px 0 40px rgba(0, 0, 0, 0.25)',
+                zIndex: 99999,
+                display: 'flex',
+                flexDirection: 'column',
+                animation: 'slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+                overflowY: 'auto',
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Drawer Header */}
+              <div
+                style={{
+                  padding: '24px',
+                  borderBottom: '1px solid var(--border)',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  justifyContent: 'space-between',
+                  background: 'var(--surface)',
+                  position: 'sticky',
+                  top: 0,
+                  zIndex: 10,
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 800,
+                        padding: '3px 8px',
+                        borderRadius: '6px',
+                        background: 'rgba(59, 130, 246, 0.12)',
+                        color: '#3b82f6',
+                        border: '1px solid rgba(59, 130, 246, 0.25)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                    >
+                      <FileCheck size={12} />
+                      CREDIBILITY REQUEST
+                    </span>
+
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 700,
+                        padding: '3px 8px',
+                        borderRadius: '12px',
+                        background: `${getCredibilityStatusColor(selectedCredibilityRequest.status)}18`,
+                        color: getCredibilityStatusColor(selectedCredibilityRequest.status),
+                        textTransform: 'uppercase',
+                      }}
+                    >
+                      {selectedCredibilityRequest.status}
+                    </span>
+                  </div>
+
+                  <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text)', margin: 0 }}>
+                    {selectedCredibilityRequest.tenant?.name || 'Anonymous Tenant'}
+                  </h2>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                    Requested on {new Date(selectedCredibilityRequest.sentToPmAt).toLocaleString()}
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setSelectedCredibilityRequest(null)}
+                  style={{
+                    padding: '8px',
+                    borderRadius: '10px',
+                    background: 'var(--surface-hover)',
+                    color: 'var(--text-muted)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Drawer Body */}
+              <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {/* Public Verification & UUID Box */}
+                <div
+                  style={{
+                    padding: '16px',
+                    borderRadius: '12px',
+                    border: '1px solid var(--border)',
+                    background: 'var(--surface-hover)',
+                  }}
+                >
+                  <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '8px' }}>
+                    REQUEST UUID & VERIFICATION LINK
+                  </div>
+                  
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      background: 'var(--surface)',
+                      padding: '10px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border)',
+                      marginBottom: '10px',
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>UUID</div>
+                      <code style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>
+                        {selectedCredibilityRequest.uuid}
+                      </code>
+                    </div>
+                    <button
+                      onClick={() => handleCopy(selectedCredibilityRequest.uuid, 'drawer-uuid')}
+                      className="btn btn-secondary"
+                      style={{
+                        padding: '6px 10px',
+                        fontSize: '12px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        borderRadius: '6px',
+                      }}
+                    >
+                      {copiedId === 'drawer-uuid' ? (
+                        <Check size={13} style={{ color: '#10b981' }} />
+                      ) : (
+                        <Copy size={13} />
+                      )}
+                      Copy UUID
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <a
+                      href={getPublicRequestUrl(selectedCredibilityRequest.uuid)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-primary"
+                      style={{
+                        flex: 1,
+                        padding: '10px 14px',
+                        fontSize: '13px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        borderRadius: '8px',
+                        textDecoration: 'none',
+                      }}
+                    >
+                      <ExternalLink size={15} />
+                      Open Public Verification Link
+                    </a>
+                    <button
+                      onClick={() =>
+                        handleCopy(
+                          getPublicRequestUrl(selectedCredibilityRequest.uuid),
+                          'drawer-link',
+                        )
+                      }
+                      className="btn btn-secondary"
+                      style={{
+                        padding: '10px 14px',
+                        fontSize: '13px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        borderRadius: '8px',
+                      }}
+                    >
+                      {copiedId === 'drawer-link' ? (
+                        <Check size={14} style={{ color: '#10b981' }} />
+                      ) : (
+                        <Copy size={14} />
+                      )}
+                      Copy Link
+                    </button>
+                  </div>
+                </div>
+
+                {/* Addressed Property Manager Card */}
+                <div
+                  style={{
+                    padding: '20px',
+                    borderRadius: '14px',
+                    border: '1px solid var(--border)',
+                    background: 'var(--surface)',
+                  }}
+                >
+                  <h3
+                    style={{
+                      fontSize: '14px',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      color: 'var(--text-muted)',
+                      margin: '0 0 16px 0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <Building size={16} />
+                    Addressed Property Manager
+                  </h3>
+
+                  {/* PM Contact Action Bar */}
+                  {(selectedCredibilityRequest.pmDetails?.email ||
+                    selectedCredibilityRequest.pmDetails?.phone) && (
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(3, 1fr)',
+                        gap: '8px',
+                        marginBottom: '16px',
+                      }}
+                    >
+                      {selectedCredibilityRequest.pmDetails.email ? (
+                        <a
+                          href={`mailto:${selectedCredibilityRequest.pmDetails.email}`}
+                          className="btn btn-secondary"
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                            padding: '9px 12px',
+                            fontSize: '12px',
+                            borderRadius: '8px',
+                            color: 'var(--text)',
+                          }}
+                        >
+                          <Mail size={14} />
+                          Email PM
+                        </a>
+                      ) : (
+                        <div />
+                      )}
+                      {selectedCredibilityRequest.pmDetails.phone ? (
+                        <a
+                          href={`tel:${selectedCredibilityRequest.pmDetails.phone}`}
+                          className="btn btn-secondary"
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                            padding: '9px 12px',
+                            fontSize: '12px',
+                            borderRadius: '8px',
+                            color: 'var(--text)',
+                          }}
+                        >
+                          <Phone size={14} />
+                          Call PM
+                        </a>
+                      ) : (
+                        <div />
+                      )}
+                      {selectedCredibilityRequest.pmDetails.phone ? (
+                        <a
+                          href={`https://wa.me/${cleanPhoneForWhatsApp(
+                            selectedCredibilityRequest.pmDetails.phone,
+                          )}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="btn btn-secondary"
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '6px',
+                            padding: '9px 12px',
+                            fontSize: '12px',
+                            borderRadius: '8px',
+                            color: '#25D366',
+                          }}
+                        >
+                          <MessageSquare size={14} />
+                          WhatsApp
+                        </a>
+                      ) : (
+                        <div />
+                      )}
+                    </div>
+                  )}
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                        MANAGER NAME
+                      </div>
+                      <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', marginTop: '2px' }}>
+                        {selectedCredibilityRequest.pmDetails?.managerName || 'Not specified'}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                        COMPANY / AGENCY NAME
+                      </div>
+                      <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text)', marginTop: '2px' }}>
+                        {selectedCredibilityRequest.pmDetails?.companyName || 'Not specified'}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                        PM EMAIL ADDRESS
+                      </div>
+                      <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                        {selectedCredibilityRequest.pmDetails?.email || 'No email specified'}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                        PM PHONE NUMBER
+                      </div>
+                      <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                        {selectedCredibilityRequest.pmDetails?.phone || 'No phone specified'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Tenant Information Card */}
+                <div
+                  style={{
+                    padding: '20px',
+                    borderRadius: '14px',
+                    border: '1px solid var(--border)',
+                    background: 'var(--surface)',
+                  }}
+                >
+                  <h3
+                    style={{
+                      fontSize: '14px',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      color: 'var(--text-muted)',
+                      margin: '0 0 16px 0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <UserCheck size={16} />
+                    Tenant Profile
+                  </h3>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                        TENANT FULL NAME
+                      </div>
+                      <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text)', marginTop: '2px' }}>
+                        {selectedCredibilityRequest.tenant?.name || 'Anonymous Tenant'}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                        TENANT USER UUID
+                      </div>
+                      <div style={{ fontSize: '12px', fontFamily: 'monospace', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                        {selectedCredibilityRequest.tenant?.uuid || `ID #${selectedCredibilityRequest.tenant?.id}`}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                        EMAIL ADDRESS
+                      </div>
+                      <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                        {selectedCredibilityRequest.tenant?.email}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                        PHONE NUMBER
+                      </div>
+                      <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                        {selectedCredibilityRequest.tenant?.phone || 'No phone'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Property & Request Lifecycle Card */}
+                <div
+                  style={{
+                    padding: '20px',
+                    borderRadius: '14px',
+                    border: '1px solid var(--border)',
+                    background: 'var(--surface)',
+                  }}
+                >
+                  <h3
+                    style={{
+                      fontSize: '14px',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.5px',
+                      color: 'var(--text-muted)',
+                      margin: '0 0 16px 0',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                    }}
+                  >
+                    <MapPin size={16} />
+                    Property & Credibility Scope
+                  </h3>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                        PROPERTY ADDRESS
+                      </div>
+                      <div style={{ fontSize: '15px', fontWeight: 600, color: 'var(--text)', marginTop: '2px' }}>
+                        {selectedCredibilityRequest.propertyAddress}
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>
+                        Property UUID: {selectedCredibilityRequest.propertyUuid}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                      <div
+                        style={{
+                          padding: '12px',
+                          borderRadius: '10px',
+                          background: 'var(--surface-hover)',
+                          border: '1px solid var(--border)',
+                        }}
+                      >
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                          YEARS OF HISTORY
+                        </div>
+                        <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--accent)', marginTop: '2px' }}>
+                          {selectedCredibilityRequest.yearsOfHistory} Years
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          padding: '12px',
+                          borderRadius: '10px',
+                          background: 'var(--surface-hover)',
+                          border: '1px solid var(--border)',
+                        }}
+                      >
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                          RENT CYCLES
+                        </div>
+                        <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text)', marginTop: '2px' }}>
+                          {selectedCredibilityRequest.submittedRecordsCount} Cycle(s)
+                        </div>
+                      </div>
+
+                      <div
+                        style={{
+                          padding: '12px',
+                          borderRadius: '10px',
+                          background: 'var(--surface-hover)',
+                          border: '1px solid var(--border)',
+                        }}
+                      >
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                          FULFILLED DATE
+                        </div>
+                        <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)', marginTop: '4px' }}>
+                          {selectedCredibilityRequest.fulfilledAt
+                            ? new Date(selectedCredibilityRequest.fulfilledAt).toLocaleDateString()
+                            : 'Pending'}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Submitted Rent Records / Past Cycles */}
+                {selectedCredibilityRequest.submittedRecords &&
+                  selectedCredibilityRequest.submittedRecords.length > 0 && (
+                    <div
+                      style={{
+                        padding: '20px',
+                        borderRadius: '14px',
+                        border: '1px solid var(--border)',
+                        background: 'var(--surface)',
+                      }}
+                    >
+                      <h3
+                        style={{
+                          fontSize: '14px',
+                          fontWeight: 700,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.5px',
+                          color: 'var(--text-muted)',
+                          margin: '0 0 12px 0',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                        }}
+                      >
+                        <FileText size={16} />
+                        Submitted Rent Records ({selectedCredibilityRequest.submittedRecords.length})
+                      </h3>
+
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                          <thead>
+                            <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-muted)' }}>
+                              <th style={{ textAlign: 'left', padding: '8px 6px' }}>Due Date</th>
+                              <th style={{ textAlign: 'left', padding: '8px 6px' }}>Amount Owed</th>
+                              <th style={{ textAlign: 'left', padding: '8px 6px' }}>Amount Paid</th>
+                              <th style={{ textAlign: 'left', padding: '8px 6px' }}>Paid Date</th>
+                              <th style={{ textAlign: 'left', padding: '8px 6px' }}>Status</th>
+                              <th style={{ textAlign: 'left', padding: '8px 6px' }}>Source</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {selectedCredibilityRequest.submittedRecords.map((cycle) => (
+                              <tr key={cycle.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                                <td style={{ padding: '8px 6px', fontWeight: 500 }}>
+                                  {new Date(cycle.dueDate).toLocaleDateString()}
+                                </td>
+                                <td style={{ padding: '8px 6px', color: 'var(--text-muted)' }}>
+                                  {formatCurrencyNGN(cycle.amountOwed)}
+                                </td>
+                                <td style={{ padding: '8px 6px', fontWeight: 600, color: 'var(--text)' }}>
+                                  {formatCurrencyNGN(cycle.amountPaid)}
+                                </td>
+                                <td style={{ padding: '8px 6px', color: 'var(--text-secondary)' }}>
+                                  {cycle.paidAt ? new Date(cycle.paidAt).toLocaleDateString() : '—'}
+                                </td>
+                                <td style={{ padding: '8px 6px' }}>
+                                  <span
+                                    style={{
+                                      fontSize: '10px',
+                                      fontWeight: 700,
+                                      padding: '2px 6px',
+                                      borderRadius: '4px',
+                                      background:
+                                        cycle.status === 'PAID'
+                                          ? 'rgba(16, 185, 129, 0.15)'
+                                          : 'rgba(245, 158, 11, 0.15)',
+                                      color: cycle.status === 'PAID' ? '#10b981' : '#f59e0b',
+                                    }}
+                                  >
+                                    {cycle.status}
+                                  </span>
+                                </td>
+                                <td style={{ padding: '8px 6px', color: 'var(--text-muted)' }}>
+                                  {cycle.source}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
               </div>
             </div>
           </>,

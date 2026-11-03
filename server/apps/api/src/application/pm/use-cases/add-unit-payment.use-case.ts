@@ -35,6 +35,10 @@ export class AddUnitPaymentUseCase {
       method: data.method || 'Bank Transfer',
       status: data.status || 'SUCCESS',
       notes: data.notes || '',
+      receiptUrl: data.receiptUrl || null,
+      receiptFileName: data.receiptFileName || null,
+      receiptFileType: data.receiptFileType || null,
+      receiptFileSize: data.receiptFileSize ? Number(data.receiptFileSize) : null,
     };
 
     let effectivePeriodStart = this.rentalPeriodService.parseCalendarDate(unit.rentStartDate);
