@@ -39,6 +39,7 @@ import { BulkImportDetail } from './pages/BulkImportDetail'
 import Requests from './pages/Requests'
 import UpwardUniversity from './pages/UpwardUniversity'
 import Settlements from './pages/Settlements'
+import GoalManagement from './pages/GoalManagement'
 
 import ChangePassword from './components/ChangePassword'
 import './App.css'
@@ -124,6 +125,12 @@ function AppRoutes() {
             path="/university-early-access"
             element={<UpwardUniversity token={auth.token} adminRole={auth.user.role} />}
           />
+
+          {/* Goal Management Subsystem */}
+          <Route path="/goals" element={<GoalManagement token={auth.token} adminRole={auth.user.role} />} />
+          <Route path="/goals/offerings" element={<Navigate to="/goals?tab=offerings" replace />} />
+          <Route path="/goals/vendors" element={<Navigate to="/goals?tab=vendors" replace />} />
+          <Route path="/goals/analytics" element={<Navigate to="/goals?tab=overview" replace />} />
           {showSandboxTools && (
             <Route path="/demo-bank" element={<DemoBank token={auth.token} />} />
           )}

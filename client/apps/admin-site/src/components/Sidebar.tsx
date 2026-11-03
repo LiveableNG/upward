@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { NavLink } from 'react-router-dom'
+import { NavLink, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard,
   Mail,
@@ -22,6 +22,10 @@ import {
   Inbox,
   Download,
   FlaskConical,
+  Target,
+  Package,
+  Store,
+  TrendingUp,
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -33,7 +37,7 @@ interface SidebarProps {
 interface NavItem {
   name: string
   path: string
-  icon: React.ComponentType<any>
+  icon: React.ComponentType<{ size?: number; style?: React.CSSProperties; className?: string }>
 }
 
 interface NavSection {
@@ -46,6 +50,7 @@ const isProd =
 const showSandboxTools = import.meta.env.VITE_SHOW_SANDBOX_TOOLS === 'true' || !isProd
 
 const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }) => {
+  const location = useLocation()
   const [isHovered, setIsHovered] = useState(false)
   const isExpanded = isHovered || isMobileOpen
 
@@ -86,7 +91,18 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
     items: opsItems,
   })
 
-  // 3. Communications
+  // 3. Goal & Commerce Management
+  sections.push({
+    title: 'Goal Management',
+    items: [
+      { name: 'Goals & Catalog', path: '/goals', icon: Target },
+      { name: 'Offerings & Bundles', path: '/goals?tab=offerings', icon: Package },
+      { name: 'Commerce Vendors', path: '/goals?tab=vendors', icon: Store },
+      { name: 'Goal Analytics', path: '/goals?tab=overview', icon: TrendingUp },
+    ],
+  })
+
+  // 4. Communications
   sections.push({
     title: 'Communications',
     items: [
@@ -164,11 +180,16 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
                 onClick={() => {
                   if (window.innerWidth <= 768) onClose()
                 }}
-                className={({ isActive }) =>
-                  isActive
+                className={({ isActive }) => {
+                  const effectiveActive = item.path.includes('?')
+                    ? `${location.pathname}${location.search}` === item.path
+                    : item.path === '/'
+                      ? location.pathname === '/' || location.pathname === '/dashboard'
+                      : isActive && (!location.search || !location.search.includes('tab='))
+                  return effectiveActive
                     ? `sidebar__link sidebar__link--active ${!isExpanded ? 'sidebar__link--collapsed' : ''}`
                     : `sidebar__link ${!isExpanded ? 'sidebar__link--collapsed' : ''}`
-                }
+                }}
               >
                 <item.icon size={20} style={{ flexShrink: 0 }} />
                 {isExpanded && <span className="sidebar__link-text">{item.name}</span>}
