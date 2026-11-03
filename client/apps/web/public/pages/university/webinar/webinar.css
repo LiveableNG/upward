@@ -719,7 +719,7 @@ section {
    MEET YOUR FACILITATOR + COMPANIES WE'VE WORKED WITH
    ========================================================== */
 .facilitator-section {
-  background: var(--paper-dim);
+  background: var(--paper);
   border-bottom: 1px solid var(--sand);
 }
 
@@ -938,7 +938,7 @@ section {
    WHO IS THIS FOR
    ========================================================== */
 .who-section {
-  background: var(--paper-dim);
+  background: var(--paper);
   border-bottom: 1px solid var(--sand);
 }
 
@@ -1108,12 +1108,35 @@ footer {
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 10px;
 }
 
 .footer-col a {
   font-size: 13.5px;
   color: var(--ink-soft);
+}
+
+.footer-contact-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  color: var(--ink-soft);
+  transition: color 0.15s ease;
+}
+
+.footer-contact-link:hover {
+  color: var(--rust);
+}
+
+.footer-contact-address {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink-soft);
+  line-height: 1.45;
+  max-width: 260px;
 }
 
 .footer-bottom {
