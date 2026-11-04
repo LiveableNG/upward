@@ -75,6 +75,20 @@ export function useGoalOfferings(
   })
 }
 
+export function usePublicOfferings(
+  query: OfferingListQuery = {},
+): UseQueryResult<GoalOffering[], Error> {
+  const offeringsQuery = useQuery({
+    queryKey: ['public-offerings', query],
+    queryFn: async () => {
+      const res = await fetchGoalOfferings(query)
+      return res.data
+    },
+    staleTime: 2 * 60 * 1000,
+  })
+  return offeringsQuery
+}
+
 export function useGoalOfferingDetail(
   identifier: string | number | undefined,
 ): UseQueryResult<GoalOffering, Error> {

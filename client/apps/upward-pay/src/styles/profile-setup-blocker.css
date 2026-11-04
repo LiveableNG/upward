@@ -279,8 +279,14 @@
 
 .setup-gate__tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 10px;
+}
+
+@media (max-width: 360px) {
+  .setup-gate__tiles {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .setup-gate__tile {
@@ -441,7 +447,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
-    padding-top: 16px;
+    padding-top: 24px;
     padding-bottom: 32px;
   }
 }

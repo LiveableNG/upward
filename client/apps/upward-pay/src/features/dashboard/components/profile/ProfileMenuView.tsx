@@ -16,6 +16,7 @@ import {
   Home,
   Lock,
   Target,
+  Sparkles,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { UserAvatar } from '@/components/common/UserAvatar'
@@ -28,7 +29,7 @@ import { isOnboardingComplete } from '../../utils/profileCompletion'
 import { useRentalGate } from '../../setup/hooks/useRentalGate'
 
 // Items a rental-gated user can still open
-const RENTAL_GATE_ALLOWED_ITEMS = new Set(['personal', 'rental', 'goals'])
+const RENTAL_GATE_ALLOWED_ITEMS = new Set(['personal', 'rental', 'goals', 'lifestyle-discovery'])
 
 interface ProfileMenuViewProps {
   profile: UserProfile
@@ -172,7 +173,14 @@ export function ProfileMenuView({
     },
   ]
 
-  const discoverGroup: any[] = [
+  const discoverGroup = [
+    {
+      id: 'lifestyle-discovery',
+      title: 'Lifestyle & Commerce',
+      desc: 'Curated packages, services & merchant perks',
+      icon: Sparkles,
+      onClick: () => router.push('/dashboard/lifestyle'),
+    },
     // Hidden for now — leave Find a home / request flow intact
     // {
     //   id: 'request-home',

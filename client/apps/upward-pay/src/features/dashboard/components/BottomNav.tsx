@@ -7,7 +7,7 @@ import { useHasMyHome } from '@/features/my-home/hooks/useMyHome'
 import { haptics } from '@/lib/haptics'
 
 const SIDE_NAV_ITEMS = [
-  { label: 'Home', icon: Home, href: '/dashboard', requiresMyHome: false, hideOnDashboard: true },
+  { label: 'Home', icon: Home, href: '/dashboard', requiresMyHome: false },
   { label: 'My Home', icon: Building2, href: '/dashboard/my-home', requiresMyHome: true, hideOnMyHome: true, hideOnPayRent: true, hideOnTransactions: true, hideOnProfile: true },
   { label: 'Pay Rent', icon: CreditCard, href: '/dashboard/pay-rent', requiresMyHome: false },
   { label: 'Transactions', icon: History, href: '/dashboard/transactions', requiresMyHome: false },
@@ -39,7 +39,7 @@ export function BottomNav() {
     pathname === '/dashboard/me' || !!pathname?.startsWith('/dashboard/me/')
 
   const items = SIDE_NAV_ITEMS.filter((item) => {
-    if ('hideOnDashboard' in item && item.hideOnDashboard && isDashboardHome) return false
+    if ('hideOnDashboard' in item && item.hideOnDashboard) return false
     if ('hideOnMyHome' in item && item.hideOnMyHome && isMyHomeRoute) return false
     if ('hideOnPayRent' in item && item.hideOnPayRent && isPayRentRoute) return false
     if ('hideOnTransactions' in item && item.hideOnTransactions && isTransactionsRoute) return false

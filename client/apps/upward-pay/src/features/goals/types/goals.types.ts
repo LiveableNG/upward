@@ -28,32 +28,69 @@ export interface GoalCategory {
   updatedAt?: string
 }
 
+export type OfferingPricingModel = 'FIXED' | 'RANGE' | 'STARTING_AT' | 'QUOTE_REQUIRED'
+
+export interface OfferingMedia {
+  id?: number
+  uuid: string
+  offeringId?: number
+  mediaUrl: string
+  mimeType?: string
+  sortOrder: number
+  isPrimary: boolean
+  createdAt?: string
+}
+
 export interface GoalOfferingPackageItem {
-  id: number
-  packageOfferingId: number
-  itemOfferingId: number
+  id?: number
+  uuid?: string
+  packageId?: number
+  componentId?: number
   quantity: number
+  isOptional?: boolean
+  sortOrder?: number
+  overridePrice?: number | null
+  component?: GoalOffering
   itemOffering?: GoalOffering
 }
 
 export interface GoalOffering {
   id: number
-  name: string
+  uuid?: string
+  title?: string
+  name?: string
   slug: string
+  subtitle?: string | null
   description?: string | null
   type: OfferingType
-  price: number
+  pricingModel?: OfferingPricingModel
+  price?: number | null
+  minPrice?: number | null
+  maxPrice?: number | null
   currency: string
   imageUrl?: string | null
+  inStock?: boolean
+  stockCount?: number | null
+  deliveryAvailable?: boolean
+  leadTimeDays?: number | null
+  isFeatured?: boolean
   status: GoalStatus
   vendorId?: number | null
   vendor?: CommerceVendor
+  media?: OfferingMedia[]
   packageItems?: GoalOfferingPackageItem[]
   goals?: Array<{
     id: number
     goalId: number
     offeringId: number
     sortOrder: number
+    goal?: Goal
+  }>
+  goalLinks?: Array<{
+    id?: number
+    goalId: number
+    offeringId?: number
+    sortOrder?: number
     goal?: Goal
   }>
   createdAt?: string
@@ -116,6 +153,9 @@ export interface OfferingListQuery {
   type?: OfferingType
   status?: GoalStatus
   vendorId?: number
+  isFeatured?: boolean
+  minPrice?: number
+  maxPrice?: number
   skip?: number
   take?: number
   search?: string

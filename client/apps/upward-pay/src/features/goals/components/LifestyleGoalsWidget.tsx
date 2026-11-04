@@ -88,14 +88,15 @@ export const LifestyleGoalsWidget: React.FC = () => {
       <button
         type="button"
         className="lifestyle-goals-widget__cta-btn"
-        onClick={() => router.push('/dashboard/goals')}
+        onClick={() => router.push('/dashboard/lifestyle')}
         style={{
           background: 'var(--surface2)',
           color: 'var(--text)',
           border: '1px solid var(--border)',
         }}
       >
-        <span>Explore Bundles & Update Goals</span>
+        <Sparkles size={14} color="var(--clay)" />
+        <span>Explore Tailored Perks & Bundles</span>
         <ArrowRight size={14} />
       </button>
     </div>
