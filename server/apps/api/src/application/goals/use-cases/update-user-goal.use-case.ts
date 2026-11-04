@@ -13,7 +13,7 @@ export class UpdateUserGoalUseCase {
     private readonly goalRepo: GoalRepository,
   ) {}
 
-  async execute(userId: number, goalId: number, dto: UpdateUserGoalDto): Promise<UserGoal> {
+  async execute(userId: number | string, goalId: number, dto: UpdateUserGoalDto): Promise<UserGoal> {
     const existing = await this.goalRepo.findUserGoal(userId, goalId)
     if (!existing || !existing.id) {
       throw new NotFoundException('User goal record not found')

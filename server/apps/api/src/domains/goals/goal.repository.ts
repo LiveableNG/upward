@@ -117,11 +117,11 @@ export interface GoalRepository {
   deleteGoal(id: number): Promise<void>
 
   // User Goals
-  findUserGoals(userId: number, status?: UserGoalStatus): Promise<UserGoal[]>
-  findUserGoal(userId: number, goalId: number): Promise<UserGoal | null>
-  setUserGoals(userId: number, goalIds: number[]): Promise<UserGoal[]>
+  findUserGoals(userId: number | string, status?: UserGoalStatus): Promise<UserGoal[]>
+  findUserGoal(userId: number | string, goalId: number): Promise<UserGoal | null>
+  setUserGoals(userId: number | string, goalIds: number[]): Promise<UserGoal[]>
   updateUserGoal(id: number, data: Partial<UserGoal>): Promise<UserGoal>
-  removeUserGoal(userId: number, goalId: number): Promise<void>
+  removeUserGoal(userId: number | string, goalId: number): Promise<void>
 
   // Collections
   findCollections(goalId: number, status?: GoalPublishStatus): Promise<GoalCollection[]>

@@ -13,7 +13,7 @@ export class GetUserGoalsUseCase {
     private readonly goalRepo: GoalRepository,
   ) {}
 
-  async execute(userId: number, status?: UserGoalStatus): Promise<UserGoal[]> {
+  async execute(userId: number | string, status?: UserGoalStatus): Promise<UserGoal[]> {
     return this.goalRepo.findUserGoals(userId, status)
   }
 }

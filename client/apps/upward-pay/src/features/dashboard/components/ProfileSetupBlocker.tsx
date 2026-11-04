@@ -13,6 +13,7 @@ import {
   User,
   ShieldCheck,
   LogOut,
+  Target,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { UserAvatar } from '@/components/common/UserAvatar'
@@ -106,6 +107,7 @@ export function ProfileSetupBlocker({ user, score, maxScore, onSkip }: ProfileSe
 
   const quickActions: QuickAction[] = [
     { label: 'Pay Rent', icon: CreditCard, href: '/dashboard/pay-rent' },
+    { label: 'Lifestyle Goals', icon: Target, href: '/dashboard/goals' },
     { label: 'Save for Home', icon: Home, href: '/dashboard/save-for-home' },
     isSavingsWalletEnabled(user)
       ? { label: 'Save Rent', icon: PiggyBank, href: '/dashboard/savings' }

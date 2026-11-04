@@ -15,6 +15,7 @@ import {
   FileText,
   Home,
   Lock,
+  Target,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { UserAvatar } from '@/components/common/UserAvatar'
@@ -27,7 +28,7 @@ import { isOnboardingComplete } from '../../utils/profileCompletion'
 import { useRentalGate } from '../../setup/hooks/useRentalGate'
 
 // Items a rental-gated user can still open
-const RENTAL_GATE_ALLOWED_ITEMS = new Set(['personal', 'rental'])
+const RENTAL_GATE_ALLOWED_ITEMS = new Set(['personal', 'rental', 'goals'])
 
 interface ProfileMenuViewProps {
   profile: UserProfile
@@ -147,6 +148,13 @@ export function ProfileMenuView({
       desc: 'Manage your rental and tenancy',
       icon: Home,
       onClick: () => router.push('/dashboard/setup/rental?mode=edit'),
+    },
+    {
+      id: 'goals',
+      title: 'Lifestyle Goals',
+      desc: 'Personal aspirations & tailored perks',
+      icon: Target,
+      onClick: () => router.push('/dashboard/goals'),
     },
     {
       id: 'banking',

@@ -72,7 +72,7 @@ export function RentalConfirmView() {
         router.push(setupRentalListPath())
       } else {
         toast.success('Your property has been saved.', 'Saved')
-        router.push(SETUP_PATHS.dashboard)
+        router.push(SETUP_PATHS.goals)
       }
     },
     onError: (err: any) => {

@@ -11,7 +11,7 @@ export class RemoveUserGoalUseCase {
     private readonly goalRepo: GoalRepository,
   ) {}
 
-  async execute(userId: number, goalId: number): Promise<void> {
+  async execute(userId: number | string, goalId: number): Promise<void> {
     const existing = await this.goalRepo.findUserGoal(userId, goalId)
     if (!existing) {
       throw new NotFoundException('User goal record not found')
