@@ -22,6 +22,7 @@ import { GetGoalDetailUseCase } from './goals/use-cases/get-goal-detail.use-case
 import { GetUserGoalsUseCase } from './goals/use-cases/get-user-goals.use-case'
 import { SetUserGoalsUseCase } from './goals/use-cases/set-user-goals.use-case'
 import { UpdateUserGoalUseCase } from './goals/use-cases/update-user-goal.use-case'
+import { RemoveUserGoalUseCase } from './goals/use-cases/remove-user-goal.use-case'
 import { GetOfferingsUseCase } from './goals/use-cases/get-offerings.use-case'
 import { GetOfferingDetailUseCase } from './goals/use-cases/get-offering-detail.use-case'
 import { AdminManageCategoriesUseCase } from './goals/use-cases/admin/admin-manage-categories.use-case'
@@ -1101,6 +1102,7 @@ const UseCases: any[] = [
   GetUserGoalsUseCase,
   SetUserGoalsUseCase,
   UpdateUserGoalUseCase,
+  RemoveUserGoalUseCase,
   GetOfferingsUseCase,
   GetOfferingDetailUseCase,
   AdminManageCategoriesUseCase,

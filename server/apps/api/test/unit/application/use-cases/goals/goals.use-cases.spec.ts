@@ -5,6 +5,7 @@ import { GetGoalDetailUseCase } from '@application/goals/use-cases/get-goal-deta
 import { GetUserGoalsUseCase } from '@application/goals/use-cases/get-user-goals.use-case'
 import { SetUserGoalsUseCase } from '@application/goals/use-cases/set-user-goals.use-case'
 import { UpdateUserGoalUseCase } from '@application/goals/use-cases/update-user-goal.use-case'
+import { RemoveUserGoalUseCase } from '@application/goals/use-cases/remove-user-goal.use-case'
 import { GetOfferingsUseCase } from '@application/goals/use-cases/get-offerings.use-case'
 import { GetOfferingDetailUseCase } from '@application/goals/use-cases/get-offering-detail.use-case'
 import { AdminManageCategoriesUseCase } from '@application/goals/use-cases/admin/admin-manage-categories.use-case'
@@ -197,6 +198,33 @@ describe('Goals Domain Use Cases', () => {
 
       const useCase = new UpdateUserGoalUseCase(mockGoalRepo as GoalRepository)
       await expect(useCase.execute(10, 999, { progressPct: 50 })).rejects.toThrow(NotFoundException)
+    })
+  })
+
+  describe('RemoveUserGoalUseCase', () => {
+    it('removes existing user goal', async () => {
+      const existingUserGoal = {
+        id: 5,
+        uuid: 'ug-5',
+        userId: 10,
+        goalId: 1,
+        status: 'ACTIVE' as const,
+        progressPct: 20,
+      }
+      mockGoalRepo.findUserGoal!.mockResolvedValue(existingUserGoal)
+      mockGoalRepo.removeUserGoal!.mockResolvedValue(undefined)
+
+      const useCase = new RemoveUserGoalUseCase(mockGoalRepo as GoalRepository)
+      await useCase.execute(10, 1)
+
+      expect(mockGoalRepo.removeUserGoal).toHaveBeenCalledWith(10, 1)
+    })
+
+    it('throws NotFoundException if user goal does not exist to remove', async () => {
+      mockGoalRepo.findUserGoal!.mockResolvedValue(null)
+
+      const useCase = new RemoveUserGoalUseCase(mockGoalRepo as GoalRepository)
+      await expect(useCase.execute(10, 999)).rejects.toThrow(NotFoundException)
     })
   })
 

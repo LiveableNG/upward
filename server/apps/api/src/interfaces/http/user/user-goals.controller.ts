@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Inject,
   Param,
   Patch,
   Post,
@@ -16,6 +17,9 @@ import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard'
 import { GetUserGoalsUseCase } from '../../../application/goals/use-cases/get-user-goals.use-case'
 import { SetUserGoalsUseCase } from '../../../application/goals/use-cases/set-user-goals.use-case'
 import { UpdateUserGoalUseCase } from '../../../application/goals/use-cases/update-user-goal.use-case'
+import { RemoveUserGoalUseCase } from '../../../application/goals/use-cases/remove-user-goal.use-case'
+import { EVENT_BUS, EventBus } from '../../../application/events/domain-event'
+import { UserGoalsUpdatedEvent } from '../../../application/events/definition/user-goals-updated.event'
 import {
   SetUserGoalsDto,
   UpdateUserGoalDto,
@@ -28,6 +32,8 @@ export class UserGoalsController {
     private readonly getUserGoalsUseCase: GetUserGoalsUseCase,
     private readonly setUserGoalsUseCase: SetUserGoalsUseCase,
     private readonly updateUserGoalUseCase: UpdateUserGoalUseCase,
+    private readonly removeUserGoalUseCase: RemoveUserGoalUseCase,
+    @Inject(EVENT_BUS) private readonly eventBus: EventBus,
   ) {}
 
   @Get()
@@ -45,6 +51,7 @@ export class UserGoalsController {
     const userId = req.user?.id
     if (!userId) throw new UnauthorizedException('Authentication required')
     const data = await this.setUserGoalsUseCase.execute(userId, dto.goalIds)
+    this.eventBus.publish(new UserGoalsUpdatedEvent(userId, req.user?.uuid))
     return { data, message: 'Goals updated successfully' }
   }
 
@@ -58,7 +65,21 @@ export class UserGoalsController {
     const userId = req.user?.id
     if (!userId) throw new UnauthorizedException('Authentication required')
     const data = await this.updateUserGoalUseCase.execute(userId, Number(goalId), dto)
+    this.eventBus.publish(new UserGoalsUpdatedEvent(userId, req.user?.uuid))
     return { data, message: 'Goal progress updated' }
+  }
+
+  @Delete(':goalId')
+  @HttpCode(HttpStatus.OK)
+  async removeUserGoal(
+    @Req() req: any,
+    @Param('goalId') goalId: string,
+  ) {
+    const userId = req.user?.id
+    if (!userId) throw new UnauthorizedException('Authentication required')
+    await this.removeUserGoalUseCase.execute(userId, Number(goalId))
+    this.eventBus.publish(new UserGoalsUpdatedEvent(userId, req.user?.uuid))
+    return { success: true, message: 'Goal removed successfully' }
   }
 }
 

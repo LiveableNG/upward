@@ -105,6 +105,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           })
           
           window.dispatchEvent(new CustomEvent('upward:payment.request.changed', { detail: data }))
+        } else if (data.type === 'user.goals.updated') {
+          queryClient.invalidateQueries({ queryKey: ['user-goals'] })
+          window.dispatchEvent(new CustomEvent('upward:user.goals.updated', { detail: data }))
+        } else if (data.type === 'goals.catalog.updated') {
+          queryClient.invalidateQueries({ queryKey: ['goal-categories'] })
+          queryClient.invalidateQueries({ queryKey: ['goals'] })
+          queryClient.invalidateQueries({ queryKey: ['goal-offerings'] })
+          window.dispatchEvent(new CustomEvent('upward:goals.catalog.updated', { detail: data }))
         }
       } catch (err) {
         console.error('[SSE] Error processing event:', err)
@@ -276,7 +284,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (
             k.startsWith('profile_popup_dismissed_') ||
             k.startsWith('rent_support_policy_') ||
-            k.startsWith('upward_profile_setup_skipped_')
+            k.startsWith('upward_profile_setup_skipped_') ||
+            k.startsWith('upward_cached_user_goals_')
           ) {
             localStorage.removeItem(k)
           }

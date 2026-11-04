@@ -478,10 +478,37 @@ export class PaymentsController {
         }
       });
 
+      const subGoalsUpdated = this.eventBus.subscribe('user.goals.updated', (event: any) => {
+        const belongsToUser =
+          event?.userId === userId ||
+          event?.userUuid === userUuid ||
+          String(event?.userId) === userUuid;
+        if (belongsToUser) {
+          subscriber.next({
+            data: {
+              type: 'user.goals.updated',
+              userId: event?.userId,
+              timestamp: Date.now(),
+            },
+          } as MessageEvent);
+        }
+      });
+
+      const subCatalogUpdated = this.eventBus.subscribe('goals.catalog.updated', (event: any) => {
+        subscriber.next({
+          data: {
+            type: 'goals.catalog.updated',
+            timestamp: Date.now(),
+          },
+        } as MessageEvent);
+      });
+
       return () => {
         subSucceeded.unsubscribe();
         subRequestCreated.unsubscribe();
         subRequestUpdated.unsubscribe();
+        subGoalsUpdated.unsubscribe();
+        subCatalogUpdated.unsubscribe();
       };
     });
 
