@@ -125,6 +125,8 @@ model upward_commerce_vendor {
   updatedAt   DateTime             @updatedAt
 
   offerings   upward_offering[]
+  subOrders   upward_commerce_vendor_suborder[]
+  payables    upward_commerce_vendor_payable[]
 
   @@index([slug])
   @@index([isActive])
@@ -161,6 +163,7 @@ model upward_offering {
   
   packageItems       upward_package_item[]   @relation("PackageParent")
   partOfPackages     upward_package_item[]   @relation("PackageComponent")
+  orderItems         upward_commerce_order_item[]
 
   @@index([type, status])
   @@index([vendorId])

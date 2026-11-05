@@ -55,9 +55,15 @@ import { PrismaAllianceRatingRepository } from './repositories/prisma-alliance-r
 import { PrismaGoalRepository } from './repositories/prisma-goal.repository'
 import { PrismaOfferingRepository } from './repositories/prisma-offering.repository'
 import { PrismaCommerceVendorRepository } from './repositories/prisma-commerce-vendor.repository'
+import { PrismaCommerceOrderRepository } from './repositories/prisma-commerce-order.repository'
+import { PrismaVendorPayableRepository } from './repositories/prisma-vendor-payable.repository'
+import { PrismaCommerceRefundRepository } from './repositories/prisma-commerce-refund.repository'
 import { GOAL_REPOSITORY } from '../../../domains/goals/goal.repository'
 import { OFFERING_REPOSITORY } from '../../../domains/goals/offering.repository'
 import { VENDOR_REPOSITORY } from '../../../domains/goals/vendor.repository'
+import { COMMERCE_ORDER_REPOSITORY } from '../../../domains/commerce/commerce-order.repository'
+import { VENDOR_PAYABLE_REPOSITORY } from '../../../domains/commerce/vendor-payable.repository'
+import { COMMERCE_REFUND_REPOSITORY } from '../../../domains/commerce/commerce-refund.repository'
 import {
   ALLIANCE_PROFILE_REPOSITORY,
   ALLIANCE_QUALIFICATION_REPOSITORY,
@@ -388,6 +394,18 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
       provide: VENDOR_REPOSITORY,
       useClass: PrismaCommerceVendorRepository,
     },
+    {
+      provide: COMMERCE_ORDER_REPOSITORY,
+      useClass: PrismaCommerceOrderRepository,
+    },
+    {
+      provide: VENDOR_PAYABLE_REPOSITORY,
+      useClass: PrismaVendorPayableRepository,
+    },
+    {
+      provide: COMMERCE_REFUND_REPOSITORY,
+      useClass: PrismaCommerceRefundRepository,
+    },
   ],
   exports: [
     PrismaService,
@@ -395,6 +413,9 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
     GOAL_REPOSITORY,
     OFFERING_REPOSITORY,
     VENDOR_REPOSITORY,
+    COMMERCE_ORDER_REPOSITORY,
+    VENDOR_PAYABLE_REPOSITORY,
+    COMMERCE_REFUND_REPOSITORY,
     APP_VERSION_REPOSITORY,
     SESSION_TRACKING_REPOSITORY,
     WAITLIST_REPOSITORY,
