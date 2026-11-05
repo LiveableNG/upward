@@ -27,7 +27,6 @@ export interface CreateCommerceOrderResponse {
   message: string
   order: TenantOrderDetailDto
   paymentRequired: boolean
-  paymentReference: string
 }
 
 @Injectable()
@@ -40,21 +39,20 @@ export class CreateCommerceOrderUseCase {
   ) {}
 
   async execute(userId: number, dto: CreateCommerceOrderDto): Promise<CreateCommerceOrderResponse> {
-    // 1. Idempotency Check
-    const paymentReference = dto.idempotencyKey
-      ? `UPW_ORD_${dto.idempotencyKey.trim()}`
-      : `UPW_ORD_${randomUUID()}`
+    // 1. Idempotency Check - distinct from payment reference
+    const idempotencyKey = dto.idempotencyKey ? dto.idempotencyKey.trim() : null
 
-    const existingOrder = await this.orderRepo.findOrderByPaymentReference(paymentReference)
-    if (existingOrder) {
-      if (existingOrder.userId !== userId) {
-        throw new ConflictException('Idempotency key is already in use by another account')
-      }
-      return {
-        message: 'Order already created (idempotent response). Awaiting payment.',
-        order: this.mapToTenantOrderDetail(existingOrder),
-        paymentRequired: existingOrder.paymentStatus === 'UNPAID',
-        paymentReference: existingOrder.paymentReference || paymentReference,
+    if (idempotencyKey) {
+      const existingOrder = await this.orderRepo.findOrderByIdempotencyKey(idempotencyKey)
+      if (existingOrder) {
+        if (existingOrder.userId !== userId) {
+          throw new ConflictException('Idempotency key is already in use by another account')
+        }
+        return {
+          message: 'Order already created (idempotent response). Awaiting payment.',
+          order: this.mapToTenantOrderDetail(existingOrder),
+          paymentRequired: existingOrder.paymentStatus === 'UNPAID',
+        }
       }
     }
 
@@ -123,7 +121,8 @@ export class CreateCommerceOrderUseCase {
       taxKobo: pricing.taxKobo,
       discountKobo: pricing.discountKobo,
       totalAmountKobo: pricing.totalAmountKobo,
-      paymentReference,
+      idempotencyKey: idempotencyKey || undefined,
+      paymentReference: undefined,
       recipientName: dto.recipientName.trim(),
       recipientPhone: dto.recipientPhone.trim(),
       deliveryAddress: dto.deliveryAddress.trim(),
@@ -154,13 +153,14 @@ export class CreateCommerceOrderUseCase {
     } catch (err: any) {
       // In case of race conditions with the exact same idempotency key
       if (err.code === 'P2002' || err.message?.includes('Unique constraint')) {
-        const doubleCheck = await this.orderRepo.findOrderByPaymentReference(paymentReference)
-        if (doubleCheck) {
-          return {
-            message: 'Order already created (idempotent response). Awaiting payment.',
-            order: this.mapToTenantOrderDetail(doubleCheck),
-            paymentRequired: doubleCheck.paymentStatus === 'UNPAID',
-            paymentReference: doubleCheck.paymentReference || paymentReference,
+        if (idempotencyKey) {
+          const doubleCheck = await this.orderRepo.findOrderByIdempotencyKey(idempotencyKey)
+          if (doubleCheck) {
+            return {
+              message: 'Order already created (idempotent response). Awaiting payment.',
+              order: this.mapToTenantOrderDetail(doubleCheck),
+              paymentRequired: doubleCheck.paymentStatus === 'UNPAID',
+            }
           }
         }
       }
@@ -171,7 +171,6 @@ export class CreateCommerceOrderUseCase {
       message: 'Order successfully created. Inventory reserved. Proceed to payment verification.',
       order: this.mapToTenantOrderDetail(order),
       paymentRequired: true,
-      paymentReference,
     }
   }
 

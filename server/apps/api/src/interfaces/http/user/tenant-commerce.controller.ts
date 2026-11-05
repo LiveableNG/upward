@@ -16,6 +16,7 @@ import { PreviewCommerceOrderUseCase } from '../../../application/commerce/use-c
 import { CreateCommerceOrderUseCase } from '../../../application/commerce/use-cases/create-commerce-order.use-case'
 import { GetTenantOrdersUseCase } from '../../../application/commerce/use-cases/get-tenant-orders.use-case'
 import { GetTenantOrderDetailUseCase } from '../../../application/commerce/use-cases/get-tenant-order-detail.use-case'
+import { InitializeCommercePaymentUseCase } from '../../../application/commerce/use-cases/initialize-commerce-payment.use-case'
 import { PreviewCommerceOrderDto } from '../../../application/commerce/dto/preview-commerce-order.dto'
 import { CreateCommerceOrderDto } from '../../../application/commerce/dto/create-commerce-order.dto'
 import { GetTenantOrdersFilterDto } from '../../../application/commerce/dto/tenant-commerce-order.dto'
@@ -28,6 +29,7 @@ export class TenantCommerceController {
     private readonly createCommerceOrderUseCase: CreateCommerceOrderUseCase,
     private readonly getTenantOrdersUseCase: GetTenantOrdersUseCase,
     private readonly getTenantOrderDetailUseCase: GetTenantOrderDetailUseCase,
+    private readonly initializeCommercePaymentUseCase: InitializeCommercePaymentUseCase,
   ) {}
 
   @Post('preview')
@@ -73,6 +75,23 @@ export class TenantCommerceController {
     }
 
     const data = await this.getTenantOrderDetailUseCase.execute(Number(userId), uuid)
+    return { data }
+  }
+
+  @Post(':uuid/pay')
+  @HttpCode(HttpStatus.OK)
+  async initializePayment(@Req() req: any, @Param('uuid') uuid: string) {
+    const userId = req.user?.id || req.user?.sub
+    if (!userId) {
+      throw new UnauthorizedException('Authentication required')
+    }
+
+    const ipAddress = req.ip || req.headers?.['x-forwarded-for']
+    const data = await this.initializeCommercePaymentUseCase.execute({
+      userId: Number(userId),
+      orderUuid: uuid,
+      ipAddress: typeof ipAddress === 'string' ? ipAddress : undefined,
+    })
     return { data }
   }
 }

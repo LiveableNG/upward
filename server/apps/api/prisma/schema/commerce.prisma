@@ -96,6 +96,7 @@ model upward_commerce_order {
   discountKobo          BigInt                  @default(0)
   totalAmountKobo       BigInt
   
+  idempotencyKey        String?                 @unique @db.VarChar(100)
   paymentReference      String?                 @unique @db.VarChar(100)
   paidAt                DateTime?
   
@@ -116,6 +117,7 @@ model upward_commerce_order {
   @@index([userId, status])
   @@index([orderNumber])
   @@index([paymentReference])
+  @@index([idempotencyKey])
 }
 
 model upward_commerce_vendor_suborder {
@@ -263,16 +265,19 @@ model upward_commerce_payment_attempt {
   orderId               Int
   reference             String                   @unique @db.VarChar(100)
   amountKobo            BigInt
+  currency              String                   @default("NGN") @db.VarChar(10)
   channel               String?                  @db.VarChar(50)
   status                String                   @default("INITIATED")
   gatewayResponse       String?                  @db.Text
   ipAddress             String?                  @db.VarChar(50)
   createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
 
   order                 upward_commerce_order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
   @@index([reference])
+  @@index([status])
 }
 
 model upward_commerce_dispute {

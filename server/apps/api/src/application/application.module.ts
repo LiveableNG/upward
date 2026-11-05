@@ -38,6 +38,8 @@ import { CreateCommerceOrderUseCase } from './commerce/use-cases/create-commerce
 import { GetTenantOrdersUseCase } from './commerce/use-cases/get-tenant-orders.use-case'
 import { GetTenantOrderDetailUseCase } from './commerce/use-cases/get-tenant-order-detail.use-case'
 import { CancelExpiredCommerceOrdersUseCase } from './commerce/use-cases/cancel-expired-commerce-orders.use-case'
+import { InitializeCommercePaymentUseCase } from './commerce/use-cases/initialize-commerce-payment.use-case'
+import { ConfirmCommercePaymentUseCase } from './commerce/use-cases/confirm-commerce-payment.use-case'
 
 // Use Cases
 import { DeleteAdminUseCase } from './use-cases/admin/delete-admin.use-case'
@@ -1125,6 +1127,8 @@ const UseCases: any[] = [
   GetTenantOrdersUseCase,
   GetTenantOrderDetailUseCase,
   CancelExpiredCommerceOrdersUseCase,
+  InitializeCommercePaymentUseCase,
+  ConfirmCommercePaymentUseCase,
 ]
 
 // AI Document ingestion imports

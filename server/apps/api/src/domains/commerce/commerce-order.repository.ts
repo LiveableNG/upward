@@ -109,11 +109,14 @@ export interface CommercePaymentAttempt {
   orderId: number
   reference: string
   amountKobo: bigint
+  currency?: string
   channel?: string | null
   status: string
   gatewayResponse?: string | null
   ipAddress?: string | null
   createdAt?: Date
+  updatedAt?: Date
+  order?: CommerceOrder
 }
 
 export interface CommerceOrderAudit {
@@ -142,6 +145,7 @@ export interface CommerceOrder {
   taxKobo: bigint
   discountKobo: bigint
   totalAmountKobo: bigint
+  idempotencyKey?: string | null
   paymentReference?: string | null
   paidAt?: Date | null
   recipientName: string
@@ -165,6 +169,7 @@ export interface CreateOrderData {
   taxKobo: bigint
   discountKobo: bigint
   totalAmountKobo: bigint
+  idempotencyKey?: string
   paymentReference?: string
   recipientName: string
   recipientPhone: string
@@ -195,6 +200,7 @@ export interface CommerceOrderRepository {
   findOrderByUuid(uuid: string): Promise<CommerceOrder | null>
   findOrderByNumber(orderNumber: string): Promise<CommerceOrder | null>
   findOrderByPaymentReference(paymentReference: string): Promise<CommerceOrder | null>
+  findOrderByIdempotencyKey(idempotencyKey: string): Promise<CommerceOrder | null>
   findOrdersByUserId(
     userId: number,
     options?: { skip?: number; take?: number; status?: CommerceOrderStatus },
@@ -242,8 +248,17 @@ export interface CommerceOrderRepository {
   ): Promise<CommerceFulfilmentEvent>
   recordPaymentAttempt(
     orderId: number,
-    attempt: { reference: string; amountKobo: bigint; channel?: string; status?: string; ipAddress?: string; gatewayResponse?: string },
+    attempt: { reference: string; amountKobo: bigint; currency?: string; channel?: string; status?: string; ipAddress?: string; gatewayResponse?: string },
   ): Promise<CommercePaymentAttempt>
+  findPaymentAttemptByReference(reference: string): Promise<CommercePaymentAttempt | null>
+  updatePaymentAttemptStatus(reference: string, status: string, gatewayResponse?: string): Promise<CommercePaymentAttempt>
+  findActivePaymentAttempt(orderId: number): Promise<CommercePaymentAttempt | null>
+  confirmOrderPayment(params: {
+    orderId: number
+    paymentReference: string
+    channel?: string
+    paidAt: Date
+  }): Promise<CommerceOrder>
   recordAuditLog(
     orderId: number,
     audit: { event: string; fromState?: string; toState: string; actorType: string; actorId?: string; details?: Record<string, any> },

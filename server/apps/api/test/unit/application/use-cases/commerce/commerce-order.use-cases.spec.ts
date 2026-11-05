@@ -10,6 +10,8 @@ import { CreateCommerceOrderUseCase } from '@application/commerce/use-cases/crea
 import { GetTenantOrdersUseCase } from '@application/commerce/use-cases/get-tenant-orders.use-case'
 import { GetTenantOrderDetailUseCase } from '@application/commerce/use-cases/get-tenant-order-detail.use-case'
 import { CancelExpiredCommerceOrdersUseCase } from '@application/commerce/use-cases/cancel-expired-commerce-orders.use-case'
+import { InitializeCommercePaymentUseCase } from '@application/commerce/use-cases/initialize-commerce-payment.use-case'
+import { ConfirmCommercePaymentUseCase } from '@application/commerce/use-cases/confirm-commerce-payment.use-case'
 import {
   COMMERCE_ORDER_REPOSITORY,
   CommerceOrder,
@@ -20,7 +22,15 @@ import {
   Offering,
   OfferingRepository,
 } from '@domains/goals/offering.repository'
-import { ConflictException, NotFoundException } from '@nestjs/common'
+import {
+  PAYMENT_GATEWAY,
+  IPaymentGateway,
+} from '@domains/payments/payment.repository'
+import {
+  USER_REPOSITORY,
+  UserRepository,
+} from '@domains/users/user.repository'
+import { ConflictException, NotFoundException, BadRequestException } from '@nestjs/common'
 
 describe('Phase 6B.2: Commerce Order & Pricing Engine', () => {
   describe('CommercePricingEngine', () => {
@@ -277,9 +287,13 @@ describe('Phase 6B.2: Commerce Order & Pricing Engine', () => {
     let getTenantOrdersUseCase: GetTenantOrdersUseCase
     let getTenantOrderDetailUseCase: GetTenantOrderDetailUseCase
     let cancelExpiredUseCase: CancelExpiredCommerceOrdersUseCase
+    let initializePaymentUseCase: InitializeCommercePaymentUseCase
+    let confirmPaymentUseCase: ConfirmCommercePaymentUseCase
 
     let mockOfferingRepo: Partial<jest.Mocked<OfferingRepository>>
     let mockOrderRepo: Partial<jest.Mocked<CommerceOrderRepository>>
+    let mockGateway: Partial<jest.Mocked<IPaymentGateway>>
+    let mockUserRepo: Partial<jest.Mocked<UserRepository>>
 
     const sampleOffering: Offering = {
       id: 10,
@@ -319,13 +333,36 @@ describe('Phase 6B.2: Commerce Order & Pricing Engine', () => {
 
       mockOrderRepo = {
         findOrderByPaymentReference: jest.fn().mockResolvedValue(null),
+        findOrderByIdempotencyKey: jest.fn().mockResolvedValue(null),
         findOrderByUuid: jest.fn(),
         findOrdersByUserId: jest.fn(),
         findOrderById: jest.fn(),
         createOrder: jest.fn(),
-        updateOrderStatus: jest.fn(),
+        updateOrderStatus: jest.fn().mockResolvedValue({} as any),
         releaseInventory: jest.fn().mockResolvedValue(undefined),
+        recordPaymentAttempt: jest.fn().mockResolvedValue({} as any),
+        updatePaymentAttemptStatus: jest.fn().mockResolvedValue({} as any),
+        findPaymentAttemptByReference: jest.fn().mockResolvedValue(null),
+        findActivePaymentAttempt: jest.fn().mockResolvedValue(null),
+        confirmOrderPayment: jest.fn().mockResolvedValue({} as any),
         recordAuditLog: jest.fn().mockResolvedValue({} as any),
+      }
+
+      mockGateway = {
+        initializeTransaction: jest.fn().mockResolvedValue({
+          authorizationUrl: 'https://checkout.paystack.com/test_token',
+          accessCode: 'test_access_code',
+          reference: 'UPW_ORD_PAY_test',
+        }),
+        verifyTransaction: jest.fn(),
+      }
+
+      mockUserRepo = {
+        findById: jest.fn().mockResolvedValue({
+          id: 99,
+          email: 'chidi@example.com',
+          name: 'Chidi Mokeme',
+        } as any),
       }
 
       const module: TestingModule = await Test.createTestingModule({
@@ -335,8 +372,12 @@ describe('Phase 6B.2: Commerce Order & Pricing Engine', () => {
           GetTenantOrdersUseCase,
           GetTenantOrderDetailUseCase,
           CancelExpiredCommerceOrdersUseCase,
+          InitializeCommercePaymentUseCase,
+          ConfirmCommercePaymentUseCase,
           { provide: OFFERING_REPOSITORY, useValue: mockOfferingRepo },
           { provide: COMMERCE_ORDER_REPOSITORY, useValue: mockOrderRepo },
+          { provide: PAYMENT_GATEWAY, useValue: mockGateway },
+          { provide: USER_REPOSITORY, useValue: mockUserRepo },
         ],
       }).compile()
 
@@ -345,6 +386,8 @@ describe('Phase 6B.2: Commerce Order & Pricing Engine', () => {
       getTenantOrdersUseCase = module.get<GetTenantOrdersUseCase>(GetTenantOrdersUseCase)
       getTenantOrderDetailUseCase = module.get<GetTenantOrderDetailUseCase>(GetTenantOrderDetailUseCase)
       cancelExpiredUseCase = module.get<CancelExpiredCommerceOrdersUseCase>(CancelExpiredCommerceOrdersUseCase)
+      initializePaymentUseCase = module.get<InitializeCommercePaymentUseCase>(InitializeCommercePaymentUseCase)
+      confirmPaymentUseCase = module.get<ConfirmCommercePaymentUseCase>(ConfirmCommercePaymentUseCase)
     })
 
     it('previewCommerceOrderUseCase returns price breakdown without persisting an order or mutating stock', async () => {
@@ -463,7 +506,7 @@ describe('Phase 6B.2: Commerce Order & Pricing Engine', () => {
         subOrders: [],
       }
 
-      ;(mockOrderRepo.findOrderByPaymentReference as jest.Mock).mockResolvedValue(existingOrder)
+      ;(mockOrderRepo.findOrderByIdempotencyKey as jest.Mock).mockResolvedValue(existingOrder)
 
       const result = await createUseCase.execute(99, {
         recipientName: 'Chidi Mokeme',
@@ -498,7 +541,7 @@ describe('Phase 6B.2: Commerce Order & Pricing Engine', () => {
         deliveryAddress: 'Somewhere else',
       }
 
-      ;(mockOrderRepo.findOrderByPaymentReference as jest.Mock).mockResolvedValue(existingOrder)
+      ;(mockOrderRepo.findOrderByIdempotencyKey as jest.Mock).mockResolvedValue(existingOrder)
 
       await expect(
         createUseCase.execute(99, { // User 99 tries to use user 88's key
@@ -657,6 +700,242 @@ describe('Phase 6B.2: Commerce Order & Pricing Engine', () => {
           toState: 'CANCELLED',
         }),
       )
+    })
+
+    describe('Phase 6B.3: Paystack Payment & Webhook Idempotency', () => {
+      const eligibleOrder: CommerceOrder = {
+        id: 77,
+        uuid: 'ord-eligible-uuid',
+        orderNumber: 'UPW-ORD-202611-ABC123',
+        userId: 99,
+        status: 'PENDING',
+        paymentStatus: 'UNPAID',
+        currency: 'NGN',
+        itemsSubtotalKobo: 24000000n,
+        deliveryFeeKobo: 0n,
+        taxKobo: 0n,
+        discountKobo: 0n,
+        totalAmountKobo: 24000000n,
+        recipientName: 'Chidi Mokeme',
+        recipientPhone: '+2348099999999',
+        deliveryAddress: '15 Admiralty Way, Lekki Phase 1, Lagos',
+        subOrders: [
+          {
+            id: 1,
+            uuid: 'sub-1',
+            orderId: 77,
+            vendorId: 5,
+            subOrderNumber: 'UPW-ORD-202611-ABC123-V1',
+            customerStatus: 'ORDER_CONFIRMED',
+            operationalStatus: 'AWAITING_VENDOR_CONFIRMATION',
+            subtotalKobo: 24000000n,
+            deliveryFeeKobo: 0n,
+            allocatedDiscountKobo: 0n,
+            platformFeeKobo: 2400000n,
+            vendorPayoutKobo: 21600000n,
+            vendor: sampleOffering.vendor,
+          },
+        ],
+      }
+
+      it('initializePaymentUseCase initializes Paystack checkout with 100% funds to Upward and persists payment attempt', async () => {
+        ;(mockOrderRepo.findOrderByUuid as jest.Mock).mockResolvedValue(eligibleOrder)
+
+        const result = await initializePaymentUseCase.execute({
+          userId: 99,
+          orderUuid: 'ord-eligible-uuid',
+          ipAddress: '127.0.0.1',
+        })
+
+        expect(result.authorizationUrl).toBe('https://checkout.paystack.com/test_token')
+        expect(result.accessCode).toBe('test_access_code')
+        expect(result.reference).toMatch(/^UPW_ORD_PAY_/)
+        expect(result.amountKobo).toBe('24000000')
+
+        // Verify attempt persisted in DB first
+        expect(mockOrderRepo.recordPaymentAttempt).toHaveBeenCalledWith(
+          77,
+          expect.objectContaining({
+            status: 'INITIATED',
+            amountKobo: 24000000n,
+            currency: 'NGN',
+          }),
+        )
+
+        // Verify Paystack initialized with exact amount in Naira (240,000 NGN) and 100% Upward corporate account
+        expect(mockGateway.initializeTransaction).toHaveBeenCalledWith(
+          expect.objectContaining({
+            email: 'chidi@example.com',
+            amount: 240000,
+            metadata: expect.objectContaining({
+              paymentKind: 'COMMERCE_ORDER',
+              orderUuid: 'ord-eligible-uuid',
+            }),
+          }),
+        )
+        expect((mockGateway.initializeTransaction as jest.Mock).mock.calls[0][0].subaccount).toBeUndefined()
+      })
+
+      it('initializePaymentUseCase rejects payment initialization for cancelled or already paid orders', async () => {
+        const cancelledOrder: CommerceOrder = {
+          ...eligibleOrder,
+          status: 'CANCELLED',
+        }
+        ;(mockOrderRepo.findOrderByUuid as jest.Mock).mockResolvedValue(cancelledOrder)
+
+        await expect(
+          initializePaymentUseCase.execute({
+            userId: 99,
+            orderUuid: 'ord-eligible-uuid',
+          }),
+        ).rejects.toThrow(BadRequestException)
+
+        const paidOrder: CommerceOrder = {
+          ...eligibleOrder,
+          status: 'CONFIRMED',
+          paymentStatus: 'PAID',
+        }
+        ;(mockOrderRepo.findOrderByUuid as jest.Mock).mockResolvedValue(paidOrder)
+
+        await expect(
+          initializePaymentUseCase.execute({
+            userId: 99,
+            orderUuid: 'ord-eligible-uuid',
+          }),
+        ).rejects.toThrow(BadRequestException)
+      })
+
+      it('confirmPaymentUseCase rejects amount mismatch between gateway and persisted payment attempt', async () => {
+        const mockAttempt = {
+          id: 1,
+          uuid: 'att-1',
+          orderId: 77,
+          reference: 'UPW_ORD_PAY_valid_ref',
+          amountKobo: 24000000n, // Expected 24,000,000 kobo
+          currency: 'NGN',
+          status: 'INITIATED',
+          order: eligibleOrder,
+        }
+        ;(mockOrderRepo.findPaymentAttemptByReference as jest.Mock).mockResolvedValue(mockAttempt)
+
+        await expect(
+          confirmPaymentUseCase.execute({
+            reference: 'UPW_ORD_PAY_valid_ref',
+            amount: 10000000, // Underpayment: only 10,000,000 kobo!
+            currency: 'NGN',
+            status: 'success',
+          }),
+        ).rejects.toThrow(BadRequestException)
+
+        expect(mockOrderRepo.updatePaymentAttemptStatus).toHaveBeenCalledWith(
+          'UPW_ORD_PAY_valid_ref',
+          'AMOUNT_MISMATCH',
+          expect.any(String),
+        )
+      })
+
+      it('confirmPaymentUseCase is idempotent under repeated webhook delivery for already confirmed orders', async () => {
+        const alreadyPaidOrder: CommerceOrder = {
+          ...eligibleOrder,
+          status: 'CONFIRMED',
+          paymentStatus: 'PAID',
+        }
+        const mockAttempt = {
+          id: 1,
+          uuid: 'att-1',
+          orderId: 77,
+          reference: 'UPW_ORD_PAY_valid_ref',
+          amountKobo: 24000000n,
+          currency: 'NGN',
+          status: 'SUCCESSFUL',
+          order: alreadyPaidOrder,
+        }
+        ;(mockOrderRepo.findPaymentAttemptByReference as jest.Mock).mockResolvedValue(mockAttempt)
+
+        const result = await confirmPaymentUseCase.execute({
+          reference: 'UPW_ORD_PAY_valid_ref',
+          amount: 24000000,
+          currency: 'NGN',
+          status: 'success',
+        })
+
+        expect(result.success).toBe(true)
+        expect(result.message).toContain('already confirmed')
+        expect(mockOrderRepo.confirmOrderPayment).not.toHaveBeenCalled()
+      })
+
+      it('confirmPaymentUseCase prevents normal confirmation on cancelled/expired orders and records audit for manual refund', async () => {
+        const cancelledOrder: CommerceOrder = {
+          ...eligibleOrder,
+          status: 'CANCELLED',
+        }
+        const mockAttempt = {
+          id: 1,
+          uuid: 'att-1',
+          orderId: 77,
+          reference: 'UPW_ORD_PAY_late_ref',
+          amountKobo: 24000000n,
+          currency: 'NGN',
+          status: 'INITIATED',
+          order: cancelledOrder,
+        }
+        ;(mockOrderRepo.findPaymentAttemptByReference as jest.Mock).mockResolvedValue(mockAttempt)
+
+        const result = await confirmPaymentUseCase.execute({
+          reference: 'UPW_ORD_PAY_late_ref',
+          amount: 24000000,
+          currency: 'NGN',
+          status: 'success',
+        })
+
+        expect(result.success).toBe(false)
+        expect(result.reason).toContain('cancelled prior to payment receipt')
+        expect(mockOrderRepo.confirmOrderPayment).not.toHaveBeenCalled()
+        expect(mockOrderRepo.updatePaymentAttemptStatus).toHaveBeenCalledWith(
+          'UPW_ORD_PAY_late_ref',
+          'PAID_AFTER_CANCELLATION',
+          expect.any(String),
+        )
+        expect(mockOrderRepo.recordAuditLog).toHaveBeenCalledWith(
+          77,
+          expect.objectContaining({
+            event: 'PAYMENT_RECEIVED_AFTER_EXPIRATION',
+          }),
+        )
+      })
+
+      it('confirmPaymentUseCase atomically confirms order and creates vendor payable records in PENDING_FULFILMENT', async () => {
+        const mockAttempt = {
+          id: 1,
+          uuid: 'att-1',
+          orderId: 77,
+          reference: 'UPW_ORD_PAY_success_ref',
+          amountKobo: 24000000n,
+          currency: 'NGN',
+          status: 'INITIATED',
+          order: eligibleOrder,
+        }
+        ;(mockOrderRepo.findPaymentAttemptByReference as jest.Mock).mockResolvedValue(mockAttempt)
+
+        const result = await confirmPaymentUseCase.execute({
+          reference: 'UPW_ORD_PAY_success_ref',
+          amount: 24000000,
+          currency: 'NGN',
+          status: 'success',
+          channel: 'card',
+          paid_at: new Date().toISOString(),
+        })
+
+        expect(result.success).toBe(true)
+        expect(result.message).toContain('Payment confirmed successfully')
+        expect(mockOrderRepo.confirmOrderPayment).toHaveBeenCalledWith(
+          expect.objectContaining({
+            orderId: 77,
+            paymentReference: 'UPW_ORD_PAY_success_ref',
+            channel: 'card',
+          }),
+        )
+      })
     })
   })
 })

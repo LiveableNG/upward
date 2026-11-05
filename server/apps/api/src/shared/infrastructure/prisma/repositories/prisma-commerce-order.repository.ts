@@ -31,6 +31,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
           taxKobo: data.taxKobo,
           discountKobo: data.discountKobo,
           totalAmountKobo: data.totalAmountKobo,
+          idempotencyKey: data.idempotencyKey,
           paymentReference: data.paymentReference,
           recipientName: data.recipientName,
           recipientPhone: data.recipientPhone,
@@ -244,6 +245,24 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
             vendor: true,
           },
         },
+      },
+    })
+    return res as unknown as CommerceOrder | null
+  }
+
+  async findOrderByIdempotencyKey(idempotencyKey: string): Promise<CommerceOrder | null> {
+    const res = await this.prisma.upward_commerce_order.findUnique({
+      where: { idempotencyKey },
+      include: {
+        subOrders: {
+          include: {
+            items: true,
+            fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
+            vendor: true,
+          },
+        },
+        paymentAttempts: { orderBy: { createdAt: 'desc' } },
+        auditLogs: { orderBy: { createdAt: 'desc' } },
       },
     })
     return res as unknown as CommerceOrder | null
@@ -474,6 +493,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
     attempt: {
       reference: string
       amountKobo: bigint
+      currency?: string
       channel?: string
       status?: string
       ipAddress?: string
@@ -485,6 +505,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
         orderId,
         reference: attempt.reference,
         amountKobo: attempt.amountKobo,
+        currency: attempt.currency || 'NGN',
         channel: attempt.channel,
         status: attempt.status || 'INITIATED',
         ipAddress: attempt.ipAddress,
@@ -492,6 +513,173 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
       },
     })
     return res as unknown as CommercePaymentAttempt
+  }
+
+  async findPaymentAttemptByReference(reference: string): Promise<CommercePaymentAttempt | null> {
+    const res = await this.prisma.upward_commerce_payment_attempt.findUnique({
+      where: { reference },
+      include: {
+        order: {
+          include: {
+            subOrders: {
+              include: {
+                vendor: true,
+                items: true,
+              },
+            },
+          },
+        },
+      },
+    })
+    return res as unknown as CommercePaymentAttempt | null
+  }
+
+  async updatePaymentAttemptStatus(
+    reference: string,
+    status: string,
+    gatewayResponse?: string,
+  ): Promise<CommercePaymentAttempt> {
+    const res = await this.prisma.upward_commerce_payment_attempt.update({
+      where: { reference },
+      data: {
+        status,
+        ...(gatewayResponse ? { gatewayResponse } : {}),
+      },
+      include: { order: true },
+    })
+    return res as unknown as CommercePaymentAttempt
+  }
+
+  async findActivePaymentAttempt(orderId: number): Promise<CommercePaymentAttempt | null> {
+    const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000)
+    const res = await this.prisma.upward_commerce_payment_attempt.findFirst({
+      where: {
+        orderId,
+        status: 'INITIATED',
+        createdAt: { gte: fifteenMinutesAgo },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+    return res as unknown as CommercePaymentAttempt | null
+  }
+
+  async confirmOrderPayment(params: {
+    orderId: number
+    paymentReference: string
+    channel?: string
+    paidAt: Date
+  }): Promise<CommerceOrder> {
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Fetch current order with sub-orders and vendor info
+      const order = await tx.upward_commerce_order.findUnique({
+        where: { id: params.orderId },
+        include: {
+          subOrders: {
+            include: {
+              vendor: true,
+              payableRecord: true,
+            },
+          },
+        },
+      })
+
+      if (!order) {
+        throw new Error(`ORDER_NOT_FOUND: Order with ID ${params.orderId} does not exist`)
+      }
+
+      // Idempotency: If order is already paid, return it without duplicate mutations
+      if (order.status === 'CONFIRMED' && order.paymentStatus === 'PAID') {
+        return this.findOrderById(order.id) as unknown as CommerceOrder
+      }
+
+      // If order is cancelled/expired, prevent normal confirmation
+      if (order.status === 'CANCELLED') {
+        throw new Error(
+          `ORDER_ALREADY_CANCELLED: Order ${order.orderNumber} was cancelled/expired prior to payment confirmation`,
+        )
+      }
+
+      // 2. Mark master order as CONFIRMED and PAID
+      await tx.upward_commerce_order.update({
+        where: { id: order.id },
+        data: {
+          status: 'CONFIRMED',
+          paymentStatus: 'PAID',
+          paymentReference: params.paymentReference,
+          paidAt: params.paidAt,
+        },
+      })
+
+      // 3. Update payment attempt status to SUCCESSFUL
+      await tx.upward_commerce_payment_attempt.updateMany({
+        where: { reference: params.paymentReference },
+        data: {
+          status: 'SUCCESSFUL',
+          channel: params.channel,
+        },
+      })
+
+      // 4. Update each vendor sub-order and create Vendor Payable record
+      for (const sub of order.subOrders) {
+        await tx.upward_commerce_vendor_suborder.update({
+          where: { id: sub.id },
+          data: {
+            customerStatus: 'PROCESSING',
+            operationalStatus: 'AWAITING_VENDOR_CONFIRMATION',
+          },
+        })
+
+        // Customer-visible fulfilment event
+        await tx.upward_commerce_fulfilment_event.create({
+          data: {
+            subOrderId: sub.id,
+            status: 'PROCESSING',
+            title: 'Payment Confirmed',
+            description: 'Payment verified successfully. Order is being processed.',
+            isCustomerVisible: true,
+            actorType: 'SYSTEM',
+            actorId: 'PAYSTACK_WEBHOOK',
+          },
+        })
+
+        // Exactly one vendor payable record per sub-order (status: PENDING_FULFILMENT)
+        if (!sub.payableRecord) {
+          const vendor = sub.vendor
+          await tx.upward_commerce_vendor_payable.create({
+            data: {
+              subOrderId: sub.id,
+              vendorId: sub.vendorId,
+              status: 'PENDING_FULFILMENT',
+              grossAmountKobo: sub.subtotalKobo + sub.deliveryFeeKobo,
+              commissionKobo: sub.platformFeeKobo,
+              netPayableKobo: sub.vendorPayoutKobo,
+              bankCode: (vendor as any)?.bankCode || '000',
+              accountNumber: (vendor as any)?.accountNumber || '0000000000',
+              accountName: vendor?.name || 'Vendor',
+            },
+          })
+        }
+      }
+
+      // 5. Record order audit log
+      await tx.upward_commerce_order_audit.create({
+        data: {
+          orderId: order.id,
+          event: 'ORDER_PAYMENT_CONFIRMED',
+          fromState: order.status,
+          toState: 'CONFIRMED',
+          actorType: 'SYSTEM',
+          actorId: 'PAYSTACK_WEBHOOK',
+          details: {
+            paymentReference: params.paymentReference,
+            channel: params.channel,
+            paidAt: params.paidAt.toISOString(),
+          },
+        },
+      })
+
+      return this.findOrderById(order.id) as unknown as CommerceOrder
+    })
   }
 
   async recordAuditLog(
