@@ -53,7 +53,7 @@ export const DeliveryLocationBar: React.FC<DeliveryLocationBarProps> = ({
   }, [isOpen])
 
   const rentalProperty = user?.properties?.[0]
-  const rentalAddress = rentalProperty?.property_address || rentalProperty?.address
+  const rentalAddress = rentalProperty?.address
 
   const handleSelectPreset = (zoneTag: UserDeliveryLocation['zoneTag'], label: string) => {
     const newLoc: UserDeliveryLocation = {

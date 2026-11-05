@@ -79,7 +79,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
   const [copied, setCopied] = useState(false)
   const [isLightboxOpen, setIsLightboxOpen] = useState(false)
   const [deliveryLocation, setDeliveryLocation] = useState<UserDeliveryLocation>(() =>
-    getStoredDeliveryLocation(user?.properties?.[0]?.property_address),
+    getStoredDeliveryLocation(user?.properties?.[0]?.address),
   )
   const [isInquiryOpen, setIsInquiryOpen] = useState(false)
   const [inquiryCategory, setInquiryCategory] = useState('GENERAL')
@@ -87,8 +87,8 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
   const [inquirySent, setInquirySent] = useState(false)
 
   useEffect(() => {
-    if (user?.properties?.[0]?.property_address) {
-      setDeliveryLocation(getStoredDeliveryLocation(user.properties[0].property_address))
+    if (user?.properties?.[0]?.address) {
+      setDeliveryLocation(getStoredDeliveryLocation(user.properties[0].address))
     }
   }, [user])
 

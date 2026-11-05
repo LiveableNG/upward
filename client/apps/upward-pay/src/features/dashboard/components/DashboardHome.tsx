@@ -27,7 +27,7 @@ import { UpcomingFeaturesWidget } from './UpcomingFeaturesWidget'
 import { ExclusiveHomesBrowseLink } from './exclusive-homes/ExclusiveHomesPromo'
 import { isSavingsWalletEnabled } from '../utils/savingsWallet'
 import { RentDepositCard } from './RentDepositCard'
-import { LifestyleGoalsWidget } from '@/features/goals'
+import { LifestyleGoalsWidget, LiveOrderTrackingCard } from '@/features/goals'
 
 interface DashboardHomeProps {
   user: UserProfile
@@ -489,6 +489,8 @@ export function DashboardHome({
       </div>
 
       <div className="dash-home__wide">
+        <LiveOrderTrackingCard />
+
         <LifestyleGoalsWidget />
 
         <div className="dash-home__section-head">

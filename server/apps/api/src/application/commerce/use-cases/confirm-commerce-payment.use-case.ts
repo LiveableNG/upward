@@ -3,6 +3,7 @@ import {
   Inject,
   Injectable,
   Logger,
+  Optional,
 } from '@nestjs/common'
 import {
   COMMERCE_ORDER_REPOSITORY,
@@ -35,7 +36,8 @@ export class ConfirmCommercePaymentUseCase {
   constructor(
     @Inject(COMMERCE_ORDER_REPOSITORY)
     private readonly orderRepo: CommerceOrderRepository,
-    private readonly sendReceiptEmailUseCase: SendCommerceReceiptEmailUseCase,
+    @Optional()
+    private readonly sendReceiptEmailUseCase?: SendCommerceReceiptEmailUseCase,
   ) {}
 
   async execute(data: PaystackPaymentWebhookData): Promise<ConfirmCommercePaymentResult> {
@@ -150,11 +152,13 @@ export class ConfirmCommercePaymentUseCase {
     this.logger.log(`Order ${order.orderNumber} successfully confirmed and transitioned to PAID`)
 
     // Asynchronously dispatch branded receipt email and in-app/push notification
-    this.sendReceiptEmailUseCase
-      .execute(order.id!)
-      .catch((err) =>
-        this.logger.error(`Failed to dispatch receipt email for order #${order.id}`, err),
-      )
+    if (this.sendReceiptEmailUseCase) {
+      this.sendReceiptEmailUseCase
+        .execute(order.id!)
+        .catch((err) =>
+          this.logger.error(`Failed to dispatch receipt email for order #${order.id}`, err),
+        )
+    }
 
     return {
       success: true,

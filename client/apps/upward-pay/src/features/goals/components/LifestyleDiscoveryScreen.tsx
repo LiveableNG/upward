@@ -53,6 +53,7 @@ import {
   getStoredDeliveryLocation,
 } from '../utils/deliveryLocation'
 import { DeliveryLocationBar } from './DeliveryLocationBar'
+import { LiveOrderTrackingCard } from './LiveOrderTrackingCard'
 import { useToast } from '@/components/common/Toast'
 import '../styles/goals.css'
 
@@ -124,12 +125,12 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
 
   const { user } = useAuth()
   const [deliveryLocation, setDeliveryLocation] = useState<UserDeliveryLocation>(() =>
-    getStoredDeliveryLocation(user?.properties?.[0]?.property_address),
+    getStoredDeliveryLocation(user?.properties?.[0]?.address),
   )
 
   useEffect(() => {
-    if (user?.properties?.[0]?.property_address) {
-      setDeliveryLocation(getStoredDeliveryLocation(user.properties[0].property_address))
+    if (user?.properties?.[0]?.address) {
+      setDeliveryLocation(getStoredDeliveryLocation(user.properties[0].address))
     }
   }, [user])
 
@@ -310,6 +311,9 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
           location={deliveryLocation}
           onLocationChange={(loc) => setDeliveryLocation(loc)}
         />
+
+        {/* Live Active Order Tracking Banner (if order in flight) */}
+        <LiveOrderTrackingCard />
 
         {/* Search & Type Filter Row */}
         <div className="lifestyle-discovery__controls">
