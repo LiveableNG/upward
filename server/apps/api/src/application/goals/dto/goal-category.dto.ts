@@ -1,4 +1,4 @@
-import { IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, MaxLength, Min } from 'class-validator'
+import { IsBoolean, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, MaxLength, Min } from 'class-validator'
 import { GoalPublishStatus } from '../../../domains/goals/goal.repository'
 
 export class CreateGoalCategoryDto {
@@ -8,9 +8,14 @@ export class CreateGoalCategoryDto {
   slug!: string
 
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   @MaxLength(150)
-  title!: string
+  title?: string
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(150)
+  name?: string
 
   @IsString()
   @IsOptional()
@@ -20,6 +25,11 @@ export class CreateGoalCategoryDto {
   @IsOptional()
   @MaxLength(50)
   iconName?: string
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  icon?: string
 
   @IsString()
   @IsOptional()
@@ -33,6 +43,10 @@ export class CreateGoalCategoryDto {
   @IsEnum(['DRAFT', 'PUBLISHED', 'ARCHIVED'])
   @IsOptional()
   status?: GoalPublishStatus
+
+  @IsBoolean()
+  @IsOptional()
+  isPublished?: boolean
 }
 
 export class UpdateGoalCategoryDto {
@@ -48,12 +62,22 @@ export class UpdateGoalCategoryDto {
 
   @IsString()
   @IsOptional()
+  @MaxLength(150)
+  name?: string
+
+  @IsString()
+  @IsOptional()
   description?: string
 
   @IsString()
   @IsOptional()
   @MaxLength(50)
   iconName?: string
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  icon?: string
 
   @IsString()
   @IsOptional()
@@ -67,4 +91,8 @@ export class UpdateGoalCategoryDto {
   @IsEnum(['DRAFT', 'PUBLISHED', 'ARCHIVED'])
   @IsOptional()
   status?: GoalPublishStatus
+
+  @IsBoolean()
+  @IsOptional()
+  isPublished?: boolean
 }

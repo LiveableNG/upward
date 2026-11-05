@@ -43,6 +43,34 @@ export class CreateVendorDto {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean
+
+  @IsString()
+  @IsOptional()
+  legalName?: string
+
+  @IsString()
+  @IsOptional()
+  description?: string
+
+  @IsString()
+  @IsOptional()
+  address?: string
+
+  @IsString()
+  @IsOptional()
+  bankName?: string
+
+  @IsString()
+  @IsOptional()
+  accountNumber?: string
+
+  @IsString()
+  @IsOptional()
+  accountName?: string
+
+  @IsBoolean()
+  @IsOptional()
+  isVerified?: boolean
 }
 
 export class UpdateVendorDto {
@@ -80,5 +108,33 @@ export class UpdateVendorDto {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean
+
+  @IsString()
+  @IsOptional()
+  legalName?: string
+
+  @IsString()
+  @IsOptional()
+  description?: string
+
+  @IsString()
+  @IsOptional()
+  address?: string
+
+  @IsString()
+  @IsOptional()
+  bankName?: string
+
+  @IsString()
+  @IsOptional()
+  accountNumber?: string
+
+  @IsString()
+  @IsOptional()
+  accountName?: string
+
+  @IsBoolean()
+  @IsOptional()
+  isVerified?: boolean
 }
 

@@ -28,10 +28,10 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({
 
   useEffect(() => {
     if (category) {
-      setName(category.name)
+      setName(category.name || (category as any).title || '')
       setSlug(category.slug)
       setDescription(category.description || '')
-      setIcon(category.icon || '')
+      setIcon(category.icon || (category as any).iconName || '')
       setSortOrder(category.sortOrder || 0)
       setIsPublished(category.isPublished ?? true)
     } else {

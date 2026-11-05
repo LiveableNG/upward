@@ -56,6 +56,27 @@ export class CreateGoalDto {
   @IsBoolean()
   @IsOptional()
   isFeatured?: boolean
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(255)
+  subtitle?: string
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  icon?: string
+
+  @IsString()
+  @IsOptional()
+  coverImageUrl?: string
+
+  @IsOptional()
+  tags?: string[]
+
+  @IsBoolean()
+  @IsOptional()
+  isPublished?: boolean
 }
 
 export class UpdateGoalDto {
@@ -103,6 +124,27 @@ export class UpdateGoalDto {
   @IsBoolean()
   @IsOptional()
   isFeatured?: boolean
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(255)
+  subtitle?: string
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  icon?: string
+
+  @IsString()
+  @IsOptional()
+  coverImageUrl?: string
+
+  @IsOptional()
+  tags?: string[]
+
+  @IsBoolean()
+  @IsOptional()
+  isPublished?: boolean
 }
 
 export class GoalQueryDto {

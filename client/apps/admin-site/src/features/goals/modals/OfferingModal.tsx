@@ -135,8 +135,9 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
               required
             >
               <option value="PRODUCT">Physical Product</option>
-              <option value="SERVICE_INDIVIDUAL">Individual Service</option>
-              <option value="SERVICE_PACKAGE">Service & Product Package</option>
+              <option value="SERVICE">Individual Service</option>
+              <option value="PACKAGE">Service & Product Package</option>
+              <option value="BUNDLE">Curated Bundle</option>
             </select>
           </div>
 
@@ -184,6 +185,19 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
             value={slug}
             onChange={(e) => setSlug(slugify(e.target.value))}
             required
+          />
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
+            Subtitle / Catchphrase
+          </label>
+          <input
+            type="text"
+            className="input"
+            placeholder="e.g. 4-hour top-to-bottom scrub and sanitization for 1-2 bedroom apartments"
+            value={subtitle}
+            onChange={(e) => setSubtitle(e.target.value)}
           />
         </div>
 
@@ -242,28 +256,30 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
           />
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-          <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
-              Stock Count
-            </label>
-            <input
-              type="number"
-              className="input"
-              placeholder="Leave empty for unlimited"
-              value={stockCount}
-              onChange={(e) => setStockCount(e.target.value === '' ? '' : Number(e.target.value))}
-            />
-          </div>
+        <div style={{ display: 'grid', gridTemplateColumns: type === 'SERVICE' ? '1fr' : '1fr 1fr', gap: '12px' }}>
+          {type !== 'SERVICE' && (
+            <div>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
+                Stock Count
+              </label>
+              <input
+                type="number"
+                className="input"
+                placeholder="Leave empty for unlimited"
+                value={stockCount}
+                onChange={(e) => setStockCount(e.target.value === '' ? '' : Number(e.target.value))}
+              />
+            </div>
+          )}
 
           <div>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
-              Lead Time (Days)
+              {type === 'SERVICE' ? 'Advance Notice / Lead Time (Days)' : 'Lead Time (Days)'}
             </label>
             <input
               type="number"
               className="input"
-              placeholder="e.g. 2 for 48hrs delivery"
+              placeholder={type === 'SERVICE' ? 'e.g. 1 for next-day service' : 'e.g. 2 for 48hrs delivery'}
               value={leadTimeDays}
               onChange={(e) => setLeadTimeDays(e.target.value === '' ? '' : Number(e.target.value))}
             />
@@ -280,7 +296,7 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
               style={{ width: '16px', height: '16px', accentColor: 'var(--accent)' }}
             />
             <label htmlFor="offering-deliverable" style={{ fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
-              Physical Delivery Available
+              {type === 'SERVICE' ? 'Home Visit / On-site Service' : 'Physical Delivery Available'}
             </label>
           </div>
 

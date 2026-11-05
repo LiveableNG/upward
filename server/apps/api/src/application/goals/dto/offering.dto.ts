@@ -20,8 +20,16 @@ import {
 
 export class OfferingMediaInputDto {
   @IsString()
-  @IsNotEmpty()
-  mediaUrl!: string
+  @IsOptional()
+  mediaUrl?: string
+
+  @IsString()
+  @IsOptional()
+  url?: string
+
+  @IsString()
+  @IsOptional()
+  altText?: string
 
   @IsString()
   @IsOptional()
@@ -34,6 +42,10 @@ export class OfferingMediaInputDto {
   @IsBoolean()
   @IsOptional()
   isPrimary?: boolean
+
+  @IsBoolean()
+  @IsOptional()
+  isCover?: boolean
 }
 
 export class PackageItemInputDto {
@@ -60,7 +72,7 @@ export class CreateOfferingDto {
   @IsOptional()
   vendorId?: number
 
-  @IsEnum(['PRODUCT', 'SERVICE', 'PACKAGE', 'BUNDLE'])
+  @IsEnum(['PRODUCT', 'SERVICE', 'PACKAGE', 'BUNDLE', 'SERVICE_INDIVIDUAL', 'SERVICE_PACKAGE'])
   @IsNotEmpty()
   type!: OfferingType
 
@@ -134,6 +146,22 @@ export class CreateOfferingDto {
   @ValidateNested({ each: true })
   @Type(() => PackageItemInputDto)
   packageItems?: PackageItemInputDto[]
+
+  @IsString()
+  @IsOptional()
+  slug?: string
+
+  @IsNumber()
+  @IsOptional()
+  compareAtPrice?: number
+
+  @IsBoolean()
+  @IsOptional()
+  isDeliverable?: boolean
+
+  @IsBoolean()
+  @IsOptional()
+  isPublished?: boolean
 }
 
 export class UpdateOfferingDto {
@@ -141,7 +169,7 @@ export class UpdateOfferingDto {
   @IsOptional()
   vendorId?: number
 
-  @IsEnum(['PRODUCT', 'SERVICE', 'PACKAGE', 'BUNDLE'])
+  @IsEnum(['PRODUCT', 'SERVICE', 'PACKAGE', 'BUNDLE', 'SERVICE_INDIVIDUAL', 'SERVICE_PACKAGE'])
   @IsOptional()
   type?: OfferingType
 
@@ -203,6 +231,22 @@ export class UpdateOfferingDto {
   @IsBoolean()
   @IsOptional()
   isFeatured?: boolean
+
+  @IsString()
+  @IsOptional()
+  slug?: string
+
+  @IsNumber()
+  @IsOptional()
+  compareAtPrice?: number
+
+  @IsBoolean()
+  @IsOptional()
+  isDeliverable?: boolean
+
+  @IsBoolean()
+  @IsOptional()
+  isPublished?: boolean
 }
 
 export class OfferingQueryDto {
@@ -211,7 +255,7 @@ export class OfferingQueryDto {
   @Type(() => Number)
   goalId?: number
 
-  @IsEnum(['PRODUCT', 'SERVICE', 'PACKAGE', 'BUNDLE'])
+  @IsEnum(['PRODUCT', 'SERVICE', 'PACKAGE', 'BUNDLE', 'SERVICE_INDIVIDUAL', 'SERVICE_PACKAGE'])
   @IsOptional()
   type?: OfferingType
 

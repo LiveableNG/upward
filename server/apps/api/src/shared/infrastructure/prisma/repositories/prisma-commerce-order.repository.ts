@@ -204,11 +204,22 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
     const res = await this.prisma.upward_commerce_order.findUnique({
       where: { uuid },
       include: {
+        user: {
+          select: {
+            id: true,
+            uuid: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            phone: true,
+          },
+        },
         subOrders: {
           include: {
             items: true,
             fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
             vendor: true,
+            payableRecord: true,
           },
         },
         paymentAttempts: { orderBy: { createdAt: 'desc' } },
@@ -302,15 +313,24 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
     filter: {
       status?: CommerceOrderStatus
       paymentStatus?: CommercePaymentStatus
+      vendorId?: number
       search?: string
+      startDate?: Date
+      endDate?: Date
       skip?: number
       take?: number
     } = {},
   ): Promise<{ items: CommerceOrder[]; total: number }> {
-    const { skip = 0, take = 50, status, paymentStatus, search } = filter
+    const { skip = 0, take = 50, status, paymentStatus, vendorId, search, startDate, endDate } = filter
     const where: any = {}
     if (status) where.status = status
     if (paymentStatus) where.paymentStatus = paymentStatus
+    if (vendorId) where.subOrders = { some: { vendorId } }
+    if (startDate || endDate) {
+      where.createdAt = {}
+      if (startDate) where.createdAt.gte = startDate
+      if (endDate) where.createdAt.lte = endDate
+    }
     if (search && search.trim()) {
       const q = search.trim()
       where.OR = [
@@ -328,7 +348,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
         take,
         orderBy: { createdAt: 'desc' },
         include: {
-          user: { select: { id: true, uuid: true, email: true, firstName: true, lastName: true } },
+          user: { select: { id: true, uuid: true, email: true, firstName: true, lastName: true, phone: true } },
           subOrders: {
             include: {
               vendor: true,
@@ -486,6 +506,139 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
       },
     })
     return res as unknown as CommerceFulfilmentEvent
+  }
+
+  async executeSubOrderFulfilmentTransition(params: {
+    subOrderId: number
+    orderId: number
+    customerStatus?: CustomerFulfilmentStatus
+    operationalStatus?: AdminOperationalStatus
+    dispatchData?: {
+      carrierName?: string
+      trackingNumber?: string
+      trackingUrl?: string
+      serviceScheduledAt?: Date
+      serviceWindowNotes?: string
+      technicianName?: string
+      technicianPhone?: string
+      adminOperationalNotes?: string
+      deliveredAt?: Date
+      tenantConfirmedAt?: Date
+      coolingPeriodEndsAt?: Date
+    }
+    event: {
+      status: CustomerFulfilmentStatus
+      title: string
+      description: string
+      isCustomerVisible: boolean
+      carrierName?: string | null
+      trackingNumber?: string | null
+      serviceDateTime?: Date | null
+      actorType: string
+      actorId?: string | null
+    }
+    payableStatusUpdate?: {
+      status: string
+      eligibleAt?: Date
+    }
+    checkAllSubOrdersCompleted?: boolean
+    auditLog?: {
+      event: string
+      fromState?: string
+      toState: string
+      actorType: string
+      actorId?: string
+      details?: Record<string, any>
+    }
+  }): Promise<CommerceVendorSuborder> {
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Update sub-order state
+      const subOrderUpdateData: any = {}
+      if (params.customerStatus) subOrderUpdateData.customerStatus = params.customerStatus
+      if (params.operationalStatus) subOrderUpdateData.operationalStatus = params.operationalStatus
+      if (params.dispatchData) {
+        Object.assign(subOrderUpdateData, params.dispatchData)
+      }
+
+      await tx.upward_commerce_vendor_suborder.update({
+        where: { id: params.subOrderId },
+        data: subOrderUpdateData,
+      })
+
+      // 2. Record immutable fulfilment event
+      await tx.upward_commerce_fulfilment_event.create({
+        data: {
+          subOrderId: params.subOrderId,
+          status: params.event.status as any,
+          title: params.event.title,
+          description: params.event.description,
+          isCustomerVisible: params.event.isCustomerVisible,
+          carrierName: params.event.carrierName,
+          trackingNumber: params.event.trackingNumber,
+          serviceDateTime: params.event.serviceDateTime,
+          actorType: params.event.actorType,
+          actorId: params.event.actorId,
+        },
+      })
+
+      // 3. Update payable status if requested (e.g. IN_COOLING_PERIOD or ELIGIBLE_FOR_PAYOUT)
+      if (params.payableStatusUpdate) {
+        const payableData: any = { status: params.payableStatusUpdate.status as any }
+        if (params.payableStatusUpdate.eligibleAt) {
+          payableData.eligibleAt = params.payableStatusUpdate.eligibleAt
+        }
+        await tx.upward_commerce_vendor_payable.updateMany({
+          where: { subOrderId: params.subOrderId },
+          data: payableData,
+        })
+      }
+
+      // 4. Master order status aggregation: check if all sub-orders of this order are now completed
+      if (params.checkAllSubOrdersCompleted) {
+        const activeSubOrders = await tx.upward_commerce_vendor_suborder.findMany({
+          where: {
+            orderId: params.orderId,
+            customerStatus: { not: 'RECEIVED_CONFIRMED' },
+          },
+        })
+
+        if (activeSubOrders.length === 0) {
+          await tx.upward_commerce_order.update({
+            where: { id: params.orderId },
+            data: { status: 'COMPLETED' },
+          })
+        }
+      }
+
+      // 5. Record order audit log if provided
+      if (params.auditLog) {
+        await tx.upward_commerce_order_audit.create({
+          data: {
+            orderId: params.orderId,
+            event: params.auditLog.event,
+            fromState: params.auditLog.fromState,
+            toState: params.auditLog.toState,
+            actorType: params.auditLog.actorType,
+            actorId: params.auditLog.actorId,
+            details: params.auditLog.details,
+          },
+        })
+      }
+
+      // 6. Return fully refreshed sub-order
+      const updated = await tx.upward_commerce_vendor_suborder.findUnique({
+        where: { id: params.subOrderId },
+        include: {
+          order: true,
+          vendor: true,
+          items: true,
+          fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
+          payableRecord: true,
+        },
+      })
+
+      return updated as unknown as CommerceVendorSuborder
+    })
   }
 
   async recordPaymentAttempt(

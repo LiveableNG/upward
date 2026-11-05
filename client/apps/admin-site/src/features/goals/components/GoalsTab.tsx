@@ -274,7 +274,7 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
             <option value="">All Categories</option>
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.name}
+                {c.name || (c as any).title || c.slug}
               </option>
             ))}
           </select>

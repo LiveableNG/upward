@@ -208,7 +208,10 @@ export interface CommerceOrderRepository {
   findAdminOrders(filter?: {
     status?: CommerceOrderStatus
     paymentStatus?: CommercePaymentStatus
+    vendorId?: number
     search?: string
+    startDate?: Date
+    endDate?: Date
     skip?: number
     take?: number
   }): Promise<{ items: CommerceOrder[]; total: number }>
@@ -246,6 +249,49 @@ export interface CommerceOrderRepository {
     subOrderId: number,
     event: Omit<CommerceFulfilmentEvent, 'id' | 'uuid' | 'createdAt' | 'subOrderId'>,
   ): Promise<CommerceFulfilmentEvent>
+  executeSubOrderFulfilmentTransition(params: {
+    subOrderId: number
+    orderId: number
+    customerStatus?: CustomerFulfilmentStatus
+    operationalStatus?: AdminOperationalStatus
+    dispatchData?: {
+      carrierName?: string
+      trackingNumber?: string
+      trackingUrl?: string
+      serviceScheduledAt?: Date
+      serviceWindowNotes?: string
+      technicianName?: string
+      technicianPhone?: string
+      adminOperationalNotes?: string
+      deliveredAt?: Date
+      tenantConfirmedAt?: Date
+      coolingPeriodEndsAt?: Date
+    }
+    event: {
+      status: CustomerFulfilmentStatus
+      title: string
+      description: string
+      isCustomerVisible: boolean
+      carrierName?: string | null
+      trackingNumber?: string | null
+      serviceDateTime?: Date | null
+      actorType: string
+      actorId?: string | null
+    }
+    payableStatusUpdate?: {
+      status: string
+      eligibleAt?: Date
+    }
+    checkAllSubOrdersCompleted?: boolean
+    auditLog?: {
+      event: string
+      fromState?: string
+      toState: string
+      actorType: string
+      actorId?: string
+      details?: Record<string, any>
+    }
+  }): Promise<CommerceVendorSuborder>
   recordPaymentAttempt(
     orderId: number,
     attempt: { reference: string; amountKobo: bigint; currency?: string; channel?: string; status?: string; ipAddress?: string; gatewayResponse?: string },

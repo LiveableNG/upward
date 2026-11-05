@@ -122,7 +122,7 @@ export const GoalModal: React.FC<GoalModalProps> = ({
           >
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.name}
+                {c.name || (c as any).title || c.slug}
               </option>
             ))}
           </select>

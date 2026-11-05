@@ -25,8 +25,9 @@ export const CategoriesTab: React.FC<CategoriesTabProps> = ({
   const filteredCategories = categories.filter((c) => {
     if (!search.trim()) return true
     const term = search.toLowerCase()
+    const catName = (c.name || (c as any).title || '').toLowerCase()
     return (
-      c.name.toLowerCase().includes(term) ||
+      catName.includes(term) ||
       c.slug.toLowerCase().includes(term) ||
       (c.description && c.description.toLowerCase().includes(term))
     )
@@ -57,8 +58,11 @@ export const CategoriesTab: React.FC<CategoriesTabProps> = ({
             {cat.icon || <FolderTree size={16} />}
           </div>
           <div>
-            <div style={{ fontWeight: 600, color: 'var(--text)' }}>{cat.name}</div>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{cat.slug}</div>
+    const nameText = cat.name || (cat as any).title || ''
+    return (
+      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{nameText}</div>
+      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{cat.slug}</div>
+    )
           </div>
         </div>
       ),
