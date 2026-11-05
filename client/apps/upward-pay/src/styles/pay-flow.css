@@ -2472,3 +2472,431 @@
 .pay-flow__cta-wrap .pay-flow__transfer-back-link {
   margin: 24px auto 0;
 }
+
+/* ── Rent Invoice & Checkout Public/Guest Banners ── */
+
+.pay-flow__notice-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  margin-bottom: 12px;
+  font-family: inherit;
+}
+
+.pay-flow__notice-banner--guest {
+  background: #faf6f0;
+  border: 1px solid #f0e2d3;
+}
+
+.pay-flow__notice-banner--account {
+  background: #fdf8f4;
+  border: 1px solid #eedfd5;
+}
+
+.pay-flow__notice-banner-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(194, 80, 31, 0.1);
+  color: var(--clay, #c2501f);
+}
+
+.pay-flow__notice-banner-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.pay-flow__notice-banner-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #1a1714;
+  line-height: 1.25;
+}
+
+.pay-flow__notice-banner-sub {
+  font-size: 11.5px;
+  color: #5c544b;
+  line-height: 1.35;
+  margin-top: 2px;
+}
+
+.pay-flow__notice-banner-tag {
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--clay, #c2501f);
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.pay-flow__manual-upload-btn {
+  color: var(--text-secondary, #5c544b);
+  font-weight: 600;
+  font-size: 14px;
+  height: 48px;
+  background-color: var(--surface, #ffffff);
+  border: 1px solid var(--border-solid, #f0e9df);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+  width: 100%;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.pay-flow__manual-upload-btn:hover:not(:disabled) {
+  background-color: var(--clay-faint, #faf9f5);
+  border-color: var(--clay, #c2501f);
+  color: var(--clay, #c2501f);
+}
+
+/* ── Rent Invoice Document Card ── */
+.rent-invoice {
+  background: #ffffff;
+  border: 1px solid #f0e9df;
+  border-radius: 16px;
+  padding: 16px 18px 20px;
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
+  font-family: inherit;
+  color: #1a1714;
+  margin-bottom: 12px;
+}
+
+@media (max-width: 480px) {
+  .rent-invoice {
+    padding: 14px 14px 16px;
+  }
+}
+
+.rent-invoice__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #f0e9df;
+}
+
+.rent-invoice__header-left {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.rent-invoice__doc-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #a9a096;
+}
+
+.rent-invoice__number {
+  font-size: 13.5px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #1a1714;
+  word-break: break-all;
+}
+
+.rent-invoice__status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.rent-invoice__status-badge--due {
+  background: rgba(194, 80, 31, 0.08);
+  color: var(--clay, #c2501f);
+  border: 1px solid rgba(194, 80, 31, 0.2);
+}
+
+.rent-invoice__status-badge--overdue {
+  background: rgba(239, 68, 68, 0.08);
+  color: #dc2626;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.rent-invoice__status-badge--partial {
+  background: rgba(245, 158, 11, 0.1);
+  color: #d97706;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.rent-invoice__status-badge--paid {
+  background: rgba(34, 197, 94, 0.1);
+  color: #16a34a;
+  border: 1px solid rgba(34, 197, 94, 0.25);
+}
+
+.rent-invoice__due-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #786f66;
+  padding: 8px 0 10px;
+}
+
+.rent-invoice__due-icon {
+  color: #a9a096;
+  flex-shrink: 0;
+}
+
+.rent-invoice__due-row strong {
+  color: #1a1714;
+  font-weight: 700;
+}
+
+.rent-invoice__period-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #faf8f5;
+  border: 1px solid #ece4d9;
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  font-size: 12.5px;
+}
+
+.rent-invoice__period-strip-icon {
+  color: var(--clay, #c2501f);
+  flex-shrink: 0;
+}
+
+.rent-invoice__period-strip-text {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.rent-invoice__period-strip-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #786f66;
+}
+
+.rent-invoice__period-strip-value {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #1a1714;
+}
+
+.rent-invoice__parties {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+@media (max-width: 520px) {
+  .rent-invoice__parties {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}
+
+.rent-invoice__party-card {
+  background: #faf8f5;
+  border: 1px solid #ece4d9;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.rent-invoice__party-label {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #a9a096;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rent-invoice__party-name {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #1a1714;
+  margin-bottom: 3px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  line-height: 1.3;
+}
+
+.rent-invoice__party-meta {
+  font-size: 11px;
+  color: #786f66;
+  line-height: 1.4;
+  word-break: break-word;
+}
+
+.rent-invoice__address-line {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.rent-invoice__pin-icon {
+  margin-top: 2px;
+  flex-shrink: 0;
+  color: var(--clay, #c2501f);
+}
+
+.rent-invoice__contact-line {
+  margin-top: 2px;
+  color: #8c8278;
+}
+
+.rent-invoice__verified-icon {
+  color: #3b82f6;
+  flex-shrink: 0;
+}
+
+.rent-invoice__breakdown {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid #f0e9df;
+}
+
+.rent-invoice__breakdown-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+
+.rent-invoice__breakdown-title {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #a9a096;
+}
+
+.rent-invoice__breakdown-hint {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--clay, #c2501f);
+}
+
+.rent-invoice__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rent-invoice__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.rent-invoice__row-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.rent-invoice__row-label {
+  color: #5c544b;
+  font-weight: 600;
+}
+
+.rent-invoice__row-sub {
+  font-size: 10.5px;
+  color: #a9a096;
+  margin-top: 1px;
+}
+
+.rent-invoice__row-value {
+  font-weight: 800;
+  color: #1a1714;
+  white-space: nowrap;
+}
+
+.rent-invoice__row-edit {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.rent-invoice__row-currency {
+  font-size: 11px;
+  font-weight: 700;
+  color: #a9a096;
+}
+
+.rent-invoice__row-input {
+  width: 105px;
+  padding: 5px 8px;
+  border: 1px solid #ece4d9;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: right;
+  font-family: inherit;
+  color: #1a1714;
+  background: #faf8f5;
+  transition: all 0.18s ease;
+}
+
+.rent-invoice__row-input:focus {
+  outline: none;
+  border-color: var(--clay, #c2501f);
+  background: #ffffff;
+  box-shadow: 0 0 0 2px rgba(194, 80, 31, 0.12);
+}
+
+.rent-invoice__total-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f0e9df;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #1a1714;
+}
+
+.rent-invoice__total-row strong {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--clay, #c2501f);
+}
+
+.rent-invoice__min-hint {
+  margin: 6px 0 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: #ef4444;
+  text-align: right;
+}
+

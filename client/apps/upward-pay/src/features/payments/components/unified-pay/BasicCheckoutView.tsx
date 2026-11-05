@@ -2,16 +2,14 @@
 
 import React, { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Lock, ShieldAlert, Info } from 'lucide-react'
+import { Lock, ShieldAlert, Info, UserCheck } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import {
   PayFlowPrimaryButton,
   PayPageShell,
 } from '@/features/dashboard/components/payment/PayPageShell'
-import { CapacitorGuard } from '@/components/common/CapacitorGuard'
-import { CheckoutRecipientCard } from './CheckoutRecipientCard'
-import { CheckoutAmountHero, parseRentInput } from './CheckoutAmountHero'
-import { CheckoutReceipt, type CheckoutReceiptRow } from './CheckoutReceipt'
+import { RentInvoiceCard } from './RentInvoiceCard'
+import { type CheckoutReceiptRow } from './CheckoutReceipt'
 
 const FEE_NAMES = new Set(['Processing Fee', 'Transaction Fee', 'Upward Benefits'])
 const FEE_IDS = new Set([-2, -3])
@@ -90,23 +88,11 @@ export function BasicCheckoutView({
   const router = useRouter()
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
 
-  const loginRequired = paymentData.hasPassword && !authUser
-  const isGuest = !paymentData.hasPassword
-  const isLoggedIn = !!authUser
+  const loginRequired = Boolean(paymentData?.hasPassword && !authUser)
+  const isGuest = Boolean(!paymentData?.hasPassword)
+  const isLoggedIn = Boolean(authUser)
   const canPayPartial =
-    !!paymentData.payment.allowPartial && !isPendingRefund && !isGuest
-
-  const accountName =
-    paymentData.payment?.verifiedRecipientName ||
-    paymentData.company?.name ||
-    'Payment recipient'
-
-  const bankName = paymentData.payment?.bankName as string | undefined
-  const accountNumber = paymentData.payment?.accountNumber as string | undefined
-  const accountMeta =
-    bankName && accountNumber
-      ? `${bankName} · ${accountNumber}`
-      : paymentData.property?.locationAddress || paymentData.payment?.description || null
+    Boolean(paymentData?.payment?.allowPartial) && !isPendingRefund && isLoggedIn
 
   const rentLineItems = useMemo(
     () => visibleLineItems.filter((item) => !isFeeLine(item.name, item.id)),
@@ -130,9 +116,6 @@ export function BasicCheckoutView({
     return feeAlloc?.allocated ?? (rentSubtotal > 0 ? rates.transactionFee : 0)
   }, [visibleAllocs, rentSubtotal, rates.transactionFee])
 
-  const heroEditable =
-    canPayPartial && rentLineItems.length === 1 && !isPendingRefund
-
   const netPayable = parsedAmount
 
   const handleProceedToPay = async () => {
@@ -144,7 +127,6 @@ export function BasicCheckoutView({
       .filter((alloc) => alloc.allocated > 0 || canPayPartial)
       .map((alloc) => {
         const isPaid = visibleLineItems.find((i) => i.id === alloc.id)?.status === 'PAID'
-        const multiRent = rentLineItems.length > 1
         return {
           id: alloc.id,
           name: alloc.name,
@@ -152,7 +134,6 @@ export function BasicCheckoutView({
           editable:
             canPayPartial &&
             !isPaid &&
-            multiRent &&
             !isFeeLine(alloc.name, alloc.id),
           maxAmount: alloc.remaining,
         }
@@ -172,17 +153,8 @@ export function BasicCheckoutView({
     rentAllocations,
     visibleLineItems,
     canPayPartial,
-    rentLineItems.length,
     transactionFeeAmount,
   ])
-
-  const handleRentHeroChange = (value: string) => {
-    const rent = parseRentInput(value)
-    const primaryRent = rentLineItems[0]
-    if (primaryRent) {
-      handleAllocationChange(primaryRent.id, rent)
-    }
-  }
 
   const ctaLabel = () => {
     if (isPendingRefund) return 'Refund pending'
@@ -205,14 +177,30 @@ export function BasicCheckoutView({
     router.push('/')
   }
 
+  const tenantEmail = paymentData?.user?.email || null
+
   return (
     <PayPageShell
-      title="Pay Rent"
+      title="Rent Invoice"
       showBack
       onBack={handleBack}
       pinFooter
       footer={
-        !loginRequired && (isLoggedIn || isGuest) ? (
+        loginRequired ? (
+          <div className="pay-flow__checkout-footer">
+            <PayFlowPrimaryButton
+              onClick={() => router.push(`/login?redirect=/pay/${uuid}`)}
+              disabled={loginLoading}
+            >
+              <Lock size={15} style={{ marginRight: 6, display: 'inline-block', verticalAlign: '-1px' }} />
+              {loginLoading ? 'Logging in…' : 'Log in to pay'}
+            </PayFlowPrimaryButton>
+
+            <p className="pay-flow__secure">
+              <Lock size={12} /> Secured by Upward
+            </p>
+          </div>
+        ) : (isLoggedIn || isGuest) ? (
           <div className="pay-flow__checkout-footer">
             <PayFlowPrimaryButton
               onClick={handleProceedToPay}
@@ -224,7 +212,7 @@ export function BasicCheckoutView({
             {onManualPayClick && (
               <button
                 type="button"
-                className="btn btn--full btn--pill manual-upload-btn"
+                className="pay-flow__manual-upload-btn"
                 onClick={onManualPayClick}
                 disabled={ctaDisabled || cancelLoading}
               >
@@ -250,34 +238,81 @@ export function BasicCheckoutView({
         ) : undefined
       }
     >
-      <CheckoutRecipientCard
-        accountName={accountName}
-        accountMeta={accountMeta}
-        dueDate={paymentData.payment.dueDate}
-        isVerified={!!paymentData.payment?.verifiedRecipientName}
-      />
-      <style jsx>{`
-        .manual-upload-btn {
-          color: var(--text-secondary);
-          font-weight: 600;
-          font-size: 14px;
-          height: 48px;
-          background-color: var(--surface);
-          border: 1px solid var(--border-solid);
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-          transition: all 0.2s ease;
-        }
-        .manual-upload-btn:hover:not(:disabled) {
-          background-color: var(--clay-faint, #faf9f5);
-          border-color: var(--clay);
-          color: var(--clay);
-          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
-        }
-      `}</style>
+      {/* ── 1. Context Notice Banner: Account Linked vs Guest Checkout ── */}
+      {loginRequired && (
+        <div className="pay-flow__notice-banner pay-flow__notice-banner--account">
+          <div className="pay-flow__notice-banner-icon">
+            <Lock size={16} />
+          </div>
+          <div className="pay-flow__notice-banner-body">
+            <div className="pay-flow__notice-banner-title">Account linked to invoice</div>
+            <div className="pay-flow__notice-banner-sub">
+              This payment request is linked to {tenantEmail ? <strong>{tenantEmail}</strong> : 'your Upward account'}. Sign in to complete payment.
+            </div>
+          </div>
+        </div>
+      )}
 
-      {loginRequired ? (
-        <div className="pay-flow__login-prompt">
-          <p>This request is linked to an account. Log in to pay.</p>
+      {isGuest && (
+        <div className="pay-flow__notice-banner pay-flow__notice-banner--guest">
+          <div className="pay-flow__notice-banner-icon">
+            <UserCheck size={16} />
+          </div>
+          <div className="pay-flow__notice-banner-body">
+            <div className="pay-flow__notice-banner-title">Guest Rent Payment</div>
+            <div className="pay-flow__notice-banner-sub">
+              Pay directly without an account. You’ll receive an official verified receipt and your Rent Passport™ will be created automatically.
+            </div>
+          </div>
+          <span className="pay-flow__notice-banner-tag">Guest</span>
+        </div>
+      )}
+
+      {/* ── 2. Validation / Refund Alerts ── */}
+      {hasNoLineItems ? (
+        <div className="pay-flow__alert pay-flow__alert--error" style={{ marginBottom: 16 }}>
+          <ShieldAlert size={18} />
+          <div>
+            <strong>Invalid Invoice</strong>
+            <p>
+              This payment request has no line items. Please contact your property manager to regenerate the invoice.
+            </p>
+          </div>
+        </div>
+      ) : null}
+
+      {isPendingRefund ? (
+        <div className="pay-flow__alert pay-flow__alert--error">
+          <ShieldAlert size={18} />
+          <div>
+            <strong>Refund action required</strong>
+            <p>
+              An underpayment was detected. A refund is pending for this
+              payment request.
+            </p>
+          </div>
+        </div>
+      ) : null}
+
+      {/* ── 3. Rent Invoice Document (Visible in ALL states) ── */}
+      <RentInvoiceCard
+        paymentData={paymentData}
+        currency={currency}
+        totalOwed={totalOwed}
+        parsedAmount={netPayable}
+        receiptRows={receiptRows}
+        canPayPartial={canPayPartial}
+        isBelowMin={isBelowMin}
+        minRequired={minRequired}
+        onAllocationChange={canPayPartial ? handleAllocationChange : undefined}
+      />
+
+      {/* ── 4. In-flow login card for unauthenticated account holders ── */}
+      {loginRequired && (
+        <div className="pay-flow__login-prompt" style={{ marginTop: 14 }}>
+          <p>
+            Sign in to your Upward account to pay this invoice and build your verified Rent Passport™ credit history.
+          </p>
           <button
             type="button"
             className="pay-flow__cta"
@@ -288,55 +323,9 @@ export function BasicCheckoutView({
             {loginLoading ? 'Logging in…' : 'Log in to pay'}
           </button>
         </div>
-      ) : (
-        <>
-          {hasNoLineItems ? (
-            <div className="pay-flow__alert pay-flow__alert--error" style={{ marginBottom: 16 }}>
-              <ShieldAlert size={18} />
-              <div>
-                <strong>Invalid Invoice</strong>
-                <p>
-                  This payment request has no line items. Please contact your property manager to regenerate the invoice.
-                </p>
-              </div>
-            </div>
-          ) : null}
-
-          {isPendingRefund ? (
-            <div className="pay-flow__alert pay-flow__alert--error">
-              <ShieldAlert size={18} />
-              <div>
-                <strong>Refund action required</strong>
-                <p>
-                  An underpayment was detected. A refund is pending for this
-                  payment request.
-                </p>
-              </div>
-            </div>
-          ) : null}
-
-          {canPayPartial ? (
-            <CheckoutAmountHero
-              currency={currency}
-              rentAmount={rentSubtotal}
-              editable={heroEditable}
-              canPayPartial={canPayPartial}
-              isBelowMin={isBelowMin}
-              isFullPaymentRequired={isFullPaymentRequired}
-              minRequired={minRequired}
-              onRentChange={handleRentHeroChange}
-            />
-          ) : null}
-
-          <CheckoutReceipt
-            rows={receiptRows}
-            total={netPayable}
-            currency={currency}
-            onRowChange={canPayPartial ? handleAllocationChange : undefined}
-          />
-        </>
       )}
 
+      {/* ── 5. Cancellation Confirmation Modal ── */}
       {showCancelConfirm ? (
         <div className="pay-flow__modal-overlay">
           <div className="pay-flow__modal">
@@ -372,4 +361,3 @@ export function BasicCheckoutView({
     </PayPageShell>
   )
 }
-
