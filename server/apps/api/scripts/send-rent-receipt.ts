@@ -57,12 +57,15 @@ async function main() {
   
   let searchEmail = 'joke4321@hotmail.com'
   let recipientEmail: string | undefined = undefined
+  let targetTxId: number | undefined = undefined
 
   for (const arg of args) {
     if (arg.startsWith('--search=')) {
       searchEmail = arg.split('=')[1]!.trim()
     } else if (arg.startsWith('--to=')) {
       recipientEmail = arg.split('=')[1]!.trim()
+    } else if (arg.startsWith('--tx=')) {
+      targetTxId = Number(arg.split('=')[1]!.trim())
     } else if (!arg.startsWith('--')) {
       if (!recipientEmail && arg.includes('@')) {
         if (arg.toLowerCase().includes('joke')) {
@@ -79,6 +82,7 @@ async function main() {
   console.log('====================================================')
   console.log(`===    RENT RECEIPT EMAIL DISPATCH SCRIPT       ===`)
   console.log('====================================================')
+  if (targetTxId) console.log(`Target Tx ID    : ${targetTxId}`)
   console.log(`Search Account  : "${searchEmail}"`)
   console.log(`Send Receipt To : "${finalRecipient}"\n`)
 
@@ -150,17 +154,22 @@ async function main() {
   const tenantName = `${decryptedFirstName} ${decryptedLastName}`.trim() || 'Tenant'
   console.log(`Found User ID ${user.id} (${tenantName} <${decryptedEmail}>)`)
 
-  // 2. Find latest successful transaction for user
-  const tx = await prisma.upward_transaction.findFirst({
-    where: {
-      userId: user.id,
-      status: 'SUCCESS',
-    },
-    include: {
-      paymentRequest: true,
-    },
-    orderBy: { createdAt: 'desc' }
-  })
+  // 2. Find transaction (by targetTxId or latest successful for user)
+  const tx = targetTxId
+    ? await prisma.upward_transaction.findUnique({
+        where: { id: targetTxId },
+        include: { paymentRequest: true }
+      })
+    : await prisma.upward_transaction.findFirst({
+        where: {
+          userId: user.id,
+          status: 'SUCCESS',
+        },
+        include: {
+          paymentRequest: true,
+        },
+        orderBy: { createdAt: 'desc' }
+      })
 
   if (!tx) {
     console.error(`❌ No successful transactions found for user ${user.id}.`)
@@ -241,8 +250,8 @@ async function main() {
   const receiptNumber = `RCP-${tx.reference.slice(-5).toUpperCase()}`
   const formattedAmount = `${tx.currency || 'NGN'} ${tx.amount.toLocaleString()}`
   const channel = tx.isManual ? 'Bank Transfer' : 'Paystack'
-  const rentStartDate = tx.paymentRequest?.rentStartDate
-  const rentEndDate = tx.paymentRequest?.rentEndDate
+  const rentStartDate = (tx as any).rentStartDate || tx.paymentRequest?.rentStartDate
+  const rentEndDate = (tx as any).rentEndDate || tx.paymentRequest?.rentEndDate
   const tenancyPeriod = (rentStartDate && rentEndDate)
     ? `${new Date(rentStartDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} - ${new Date(rentEndDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
     : undefined
@@ -267,7 +276,13 @@ async function main() {
     reference: tx.reference,
     channel,
     type: 'RENT',
-    status: tx.paymentRequest?.status === 'PARTIAL' ? 'PARTIAL' : 'PAID',
+    status: (tx as any).isPartial ? 'PARTIAL' : (tx.paymentRequest?.status === 'PARTIAL' ? 'PARTIAL' : 'PAID'),
+    isPartial: (tx as any).isPartial ?? undefined,
+    totalInvoiceAmount: (tx as any).totalInvoiceAmount ?? undefined,
+    totalPaidToDate: (tx as any).historicalPaidToDate ?? undefined,
+    remainingBalance: (tx as any).remainingBalance ?? undefined,
+    rentStartDate: rentStartDate ? new Date(rentStartDate) : undefined,
+    rentEndDate: rentEndDate ? new Date(rentEndDate) : undefined,
     lineItems,
     brandName: companyName,
     logoUrl,
@@ -283,7 +298,9 @@ async function main() {
   console.log(`✅ Generated PDF (${pdfBuffer.length} bytes): ${pdfFilename}`)
 
   // 5. Build HTML Email
-  const baseUrl = (process.env.FRONTEND_URL || 'https://upward.goodtenants.io').split(',')[0]!.trim()
+  const urls = (process.env.FRONTEND_URL || 'https://upward.goodtenants.io').split(',').map(u => u.trim())
+  const prodUrl = urls.find(u => !u.includes('localhost'))
+  const baseUrl = prodUrl || 'https://upward.goodtenants.io'
   const receiptUrl = `${baseUrl}/dashboard/receipts?id=${tx.uuid}`
 
   const emailContext = {

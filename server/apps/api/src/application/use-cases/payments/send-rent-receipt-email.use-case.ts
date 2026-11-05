@@ -201,7 +201,9 @@ export class SendRentReceiptEmailUseCase {
 
     const pdfBuffer = await this.generateReceiptPdf.executeBuffer(receiptData)
 
-    const baseUrl = (process.env.FRONTEND_URL || 'https://upward.goodtenants.io').split(',')[0]!.trim()
+    const urls = (process.env.FRONTEND_URL || 'https://upward.goodtenants.io').split(',').map(u => u.trim())
+    const prodUrl = urls.find(u => !u.includes('localhost'))
+    const baseUrl = prodUrl || 'https://upward.goodtenants.io'
     const receiptUrl = `${baseUrl}/dashboard/receipts?id=${tx.uuid}`
 
     const success = await this.unifiedCommService.processCommunication({
