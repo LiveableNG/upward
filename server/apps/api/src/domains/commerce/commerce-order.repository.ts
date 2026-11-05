@@ -248,6 +248,7 @@ export interface CommerceOrderRepository {
     orderId: number,
     audit: { event: string; fromState?: string; toState: string; actorType: string; actorId?: string; details?: Record<string, any> },
   ): Promise<CommerceOrderAudit>
+  releaseInventory(orderId: number, reason?: string): Promise<void>
 }
 
 export const COMMERCE_ORDER_REPOSITORY = Symbol('COMMERCE_ORDER_REPOSITORY')

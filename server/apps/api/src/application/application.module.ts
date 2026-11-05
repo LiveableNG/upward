@@ -32,6 +32,13 @@ import { AdminManageOfferingsUseCase } from './goals/use-cases/admin/admin-manag
 import { AdminManageVendorsUseCase } from './goals/use-cases/admin/admin-manage-vendors.use-case'
 import { AdminGetGoalsOverviewUseCase } from './goals/use-cases/admin/admin-get-goals-overview.use-case'
 
+// Commerce Domain Use Cases
+import { PreviewCommerceOrderUseCase } from './commerce/use-cases/preview-commerce-order.use-case'
+import { CreateCommerceOrderUseCase } from './commerce/use-cases/create-commerce-order.use-case'
+import { GetTenantOrdersUseCase } from './commerce/use-cases/get-tenant-orders.use-case'
+import { GetTenantOrderDetailUseCase } from './commerce/use-cases/get-tenant-order-detail.use-case'
+import { CancelExpiredCommerceOrdersUseCase } from './commerce/use-cases/cancel-expired-commerce-orders.use-case'
+
 // Use Cases
 import { DeleteAdminUseCase } from './use-cases/admin/delete-admin.use-case'
 import { GetAdminsUseCase } from './use-cases/admin/get-admins.use-case'
@@ -1111,6 +1118,13 @@ const UseCases: any[] = [
   AdminManageOfferingsUseCase,
   AdminManageVendorsUseCase,
   AdminGetGoalsOverviewUseCase,
+
+  // Commerce Use Cases
+  PreviewCommerceOrderUseCase,
+  CreateCommerceOrderUseCase,
+  GetTenantOrdersUseCase,
+  GetTenantOrderDetailUseCase,
+  CancelExpiredCommerceOrdersUseCase,
 ]
 
 // AI Document ingestion imports

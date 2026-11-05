@@ -71,8 +71,86 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
           },
         })
 
-        // Items snapshot
+        // Items snapshot and atomic stock decrement
         for (const item of sub.items) {
+          if (item.offeringId) {
+            const offering = await tx.upward_offering.findUnique({
+              where: { id: item.offeringId },
+              select: { id: true, stockCount: true, inStock: true, status: true },
+            })
+            if (!offering || offering.status !== 'PUBLISHED' || !offering.inStock) {
+              throw new Error(`OFFERING_UNAVAILABLE: Offering ID ${item.offeringId} is not available for purchase`)
+            }
+            if (offering.stockCount !== null) {
+              if (offering.stockCount < item.quantity) {
+                throw new Error(`INSUFFICIENT_STOCK: Offering ID ${item.offeringId} has only ${offering.stockCount} in stock, requested ${item.quantity}`)
+              }
+              const updateRes = await tx.upward_offering.updateMany({
+                where: {
+                  id: item.offeringId,
+                  inStock: true,
+                  stockCount: { gte: item.quantity },
+                },
+                data: {
+                  stockCount: { decrement: item.quantity },
+                },
+              })
+              if (updateRes.count === 0) {
+                throw new Error(`INSUFFICIENT_STOCK: Offering ID ${item.offeringId} was claimed by another customer`)
+              }
+              await tx.upward_offering.updateMany({
+                where: {
+                  id: item.offeringId,
+                  stockCount: { lte: 0 },
+                },
+                data: {
+                  inStock: false,
+                },
+              })
+            }
+
+            // Also check package components if applicable
+            const snap = item.snapshotData as any
+            if (snap?.packageItemsSnapshot && Array.isArray(snap.packageItemsSnapshot)) {
+              for (const comp of snap.packageItemsSnapshot) {
+                if (comp.componentId) {
+                  const compOffering = await tx.upward_offering.findUnique({
+                    where: { id: comp.componentId },
+                    select: { id: true, stockCount: true, inStock: true, status: true },
+                  })
+                  if (compOffering && compOffering.stockCount !== null) {
+                    const requiredQty = (comp.quantity || 1) * item.quantity
+                    if (compOffering.stockCount < requiredQty) {
+                      throw new Error(`INSUFFICIENT_STOCK: Package component ID ${comp.componentId} has only ${compOffering.stockCount} in stock, required ${requiredQty}`)
+                    }
+                    const compRes = await tx.upward_offering.updateMany({
+                      where: {
+                        id: comp.componentId,
+                        inStock: true,
+                        stockCount: { gte: requiredQty },
+                      },
+                      data: {
+                        stockCount: { decrement: requiredQty },
+                      },
+                    })
+                    if (compRes.count === 0) {
+                      throw new Error(`INSUFFICIENT_STOCK: Package component ID ${comp.componentId} was claimed by another customer`)
+                    }
+                    await tx.upward_offering.updateMany({
+                      where: {
+                        id: comp.componentId,
+                        stockCount: { lte: 0 },
+                      },
+                      data: {
+                        inStock: false,
+                      },
+                    })
+                  }
+                }
+              }
+            }
+          }
+
           await tx.upward_commerce_order_item.create({
             data: {
               subOrderId: subOrder.id,
@@ -439,5 +517,71 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
       },
     })
     return res as unknown as CommerceOrderAudit
+  }
+
+  async releaseInventory(orderId: number, reason?: string): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      const order = await tx.upward_commerce_order.findUnique({
+        where: { id: orderId },
+        include: {
+          subOrders: {
+            include: { items: true },
+          },
+        },
+      })
+      if (!order) return
+
+      for (const sub of order.subOrders) {
+        for (const item of sub.items) {
+          if (item.offeringId) {
+            const off = await tx.upward_offering.findUnique({
+              where: { id: item.offeringId },
+              select: { id: true, stockCount: true },
+            })
+            if (off && off.stockCount !== null) {
+              await tx.upward_offering.update({
+                where: { id: item.offeringId },
+                data: {
+                  stockCount: { increment: item.quantity },
+                  inStock: true,
+                },
+              })
+            }
+          }
+
+          const snap = item.snapshotData as any
+          if (snap?.packageItemsSnapshot && Array.isArray(snap.packageItemsSnapshot)) {
+            for (const comp of snap.packageItemsSnapshot) {
+              if (comp.componentId) {
+                const compOff = await tx.upward_offering.findUnique({
+                  where: { id: comp.componentId },
+                  select: { id: true, stockCount: true },
+                })
+                if (compOff && compOff.stockCount !== null) {
+                  const qtyToRestore = (comp.quantity || 1) * item.quantity
+                  await tx.upward_offering.update({
+                    where: { id: comp.componentId },
+                    data: {
+                      stockCount: { increment: qtyToRestore },
+                      inStock: true,
+                    },
+                  })
+                }
+              }
+            }
+          }
+        }
+      }
+
+      await tx.upward_commerce_order_audit.create({
+        data: {
+          orderId,
+          event: 'INVENTORY_RELEASED',
+          toState: order.status,
+          actorType: 'SYSTEM',
+          details: { reason: reason || 'Order cancelled or expired' },
+        },
+      })
+    })
   }
 }

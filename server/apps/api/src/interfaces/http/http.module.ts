@@ -51,6 +51,7 @@ import { PmAuthController } from './pm/pm-auth.controller'
 import { PublicGoalsController } from './public/public-goals.controller'
 import { UserGoalsController } from './user/user-goals.controller'
 import { AdminGoalsController } from './admin/admin-goals.controller'
+import { TenantCommerceController } from './user/tenant-commerce.controller'
 import { PmEmployeeAuthController } from './pm/pm-employee-auth.controller'
 import { PmProfileController } from './pm/pm-profile.controller'
 import { PmEmailSettingController } from './pm/pm-email-setting.controller'
@@ -231,6 +232,7 @@ import { NotificationsGateway } from '../websockets/notifications.gateway'
     PublicGoalsController,
     UserGoalsController,
     AdminGoalsController,
+    TenantCommerceController,
   ],
 })
 export class HttpModule {}
