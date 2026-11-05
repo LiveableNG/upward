@@ -293,8 +293,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 14px 6px 12px;
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 12px 4px 10px;
+  min-height: 84px;
   border-radius: 16px;
   border: 1px solid var(--shell-border);
   background: var(--bg);
@@ -347,10 +349,16 @@
 }
 
 .setup-gate__tile-label {
-  font-size: 12px;
+  font-size: 11.5px;
   font-weight: 700;
   text-align: center;
-  line-height: 1.2;
+  line-height: 1.25;
+  width: 100%;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: normal;
 }
 
 .setup-gate__tile-soon {

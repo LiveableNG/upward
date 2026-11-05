@@ -1,37 +1,101 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import React, { useState, useMemo, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   ArrowLeft,
   Search,
-  Sparkles,
-  Compass,
   Building,
   Target,
   ArrowRight,
-  Filter,
-  CheckCircle2,
   AlertCircle,
   RefreshCw,
   Layers,
   Package,
   Wrench,
   ShoppingBag,
+  SlidersHorizontal,
+  Check,
+  X,
+  Home,
+  HeartPulse,
+  Briefcase,
+  BookOpen,
+  Dumbbell,
+  Car,
+  Music,
+  Utensils,
+  Bed,
+  Loader2,
 } from 'lucide-react'
-import { useGoalCategories, usePublicOfferings, useUserGoals } from '../hooks/useGoals'
+import {
+  useGoalCategories,
+  usePublicOfferings,
+  useUserGoals,
+  useSetUserGoals,
+} from '../hooks/useGoals'
 import {
   getRecommendedOfferings,
   hasMovingGoal,
   type RecommendedOfferingItem,
 } from '../utils/recommendationEngine'
 import { OfferingCard } from './OfferingCard'
-import { OfferingDetailModal } from './OfferingDetailModal'
-import { VendorCredibilityModal } from './VendorCredibilityModal'
-import type { GoalOffering, CommerceVendor, OfferingType } from '../types/goals.types'
+import {
+  getGoalTitle,
+  getCategoryTitle,
+  type GoalOffering,
+  type OfferingType,
+} from '../types/goals.types'
+import { useToast } from '@/components/common/Toast'
+import '../styles/goals.css'
+
+export function getGoalIconComponent(iconName?: string | null, slug?: string) {
+  const name = `${iconName || ''} ${slug || ''}`.toLowerCase()
+  if (
+    name.includes('home') ||
+    name.includes('decor') ||
+    name.includes('kitchen') ||
+    name.includes('apartment') ||
+    name.includes('clean')
+  ) {
+    return Home
+  }
+  if (name.includes('fitness') || name.includes('gym') || name.includes('weight')) {
+    return Dumbbell
+  }
+  if (name.includes('health') || name.includes('eat') || name.includes('wellness')) {
+    return HeartPulse
+  }
+  if (
+    name.includes('career') ||
+    name.includes('work') ||
+    name.includes('business') ||
+    name.includes('office')
+  ) {
+    return Briefcase
+  }
+  if (name.includes('book') || name.includes('read') || name.includes('study')) {
+    return BookOpen
+  }
+  if (name.includes('drive') || name.includes('car') || name.includes('move')) {
+    return Car
+  }
+  if (name.includes('music') || name.includes('instrument')) {
+    return Music
+  }
+  if (name.includes('food') || name.includes('meal')) {
+    return Utensils
+  }
+  if (name.includes('sleep') || name.includes('bed')) {
+    return Bed
+  }
+  return Target
+}
 
 export const LifestyleDiscoveryScreen: React.FC = () => {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const { success, error: toastError } = useToast()
 
   // Queries
   const {
@@ -48,152 +112,171 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
     refetch: refetchOfferings,
   } = usePublicOfferings()
 
-  const {
-    data: userGoals = [],
-    isLoading: isUserGoalsLoading,
-  } = useUserGoals()
+  const { data: userGoals = [], isLoading: isUserGoalsLoading } = useUserGoals()
+  const setGoalsMutation = useSetUserGoals()
 
-  // UI State
-  const [activeTab, setActiveTab] = useState<'FOR_YOU' | 'EXPLORE'>('FOR_YOU')
+  // Filter & Search State
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedCategoryId, setSelectedCategoryId] = useState<number | 'ALL'>('ALL')
   const [selectedType, setSelectedType] = useState<OfferingType | 'ALL'>('ALL')
   const [selectedActiveGoalId, setSelectedActiveGoalId] = useState<number | 'ALL'>('ALL')
 
-  // Modal State
-  const [selectedOffering, setSelectedOffering] = useState<GoalOffering | null>(null)
-  const [selectedVendor, setSelectedVendor] = useState<CommerceVendor | null>(null)
+  // Inline Goal Sheet State
+  const [isGoalSheetOpen, setIsGoalSheetOpen] = useState(false)
+  const [draftGoalIds, setDraftGoalIds] = useState<Set<number>>(new Set())
 
-  // Derived state
+  // Active user goals
   const activeUserGoals = useMemo(
     () => userGoals.filter((ug) => ug.status === 'ACTIVE' && ug.goal),
     [userGoals],
   )
   const hasSelectedGoals = activeUserGoals.length > 0
-  const isMovingGoalActive = useMemo(() => hasMovingGoal(userGoals), [userGoals])
+  // Note: Alliance marketplace integration paused; keep UI code intact below for future enablement
+  const showAllianceBanner = false
 
-  // Personalized recommendations
-  const recommendedItems = useMemo<RecommendedOfferingItem[]>(() => {
+  // Open goal sheet automatically if ?goals=open is present, or select goal if ?goalId is provided
+  useEffect(() => {
+    if (searchParams?.get('goals') === 'open') {
+      setIsGoalSheetOpen(true)
+    }
+    const queryGoalId = searchParams?.get('goalId')
+    if (queryGoalId) {
+      const parsed = Number(queryGoalId)
+      if (!isNaN(parsed)) {
+        setSelectedActiveGoalId(parsed)
+      }
+    }
+  }, [searchParams])
+
+  // Lock body scroll when goal sheet is open
+  useEffect(() => {
+    if (isGoalSheetOpen) {
+      const originalOverflow = document.body.style.overflow
+      const originalTouchAction = document.body.style.touchAction
+      document.body.style.overflow = 'hidden'
+      document.body.style.touchAction = 'none'
+
+      return () => {
+        document.body.style.overflow = originalOverflow
+        document.body.style.touchAction = originalTouchAction
+      }
+    }
+  }, [isGoalSheetOpen])
+
+  // Sync draftGoalIds when opening the goal sheet or when userGoals load
+  useEffect(() => {
+    const activeIds = userGoals
+      .filter((ug) => ug.status === 'ACTIVE')
+      .map((ug) => ug.goalId)
+    setDraftGoalIds(new Set(activeIds))
+  }, [userGoals])
+
+  const openGoalSheet = () => {
+    const activeIds = userGoals
+      .filter((ug) => ug.status === 'ACTIVE')
+      .map((ug) => ug.goalId)
+    setDraftGoalIds(new Set(activeIds))
+    setIsGoalSheetOpen(true)
+  }
+
+  const closeGoalSheet = () => {
+    setIsGoalSheetOpen(false)
+    if (searchParams?.get('goals') === 'open') {
+      router.replace('/dashboard/lifestyle', { scroll: false })
+    }
+  }
+
+  const toggleDraftGoal = (goalId: number) => {
+    setDraftGoalIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(goalId)) {
+        next.delete(goalId)
+      } else {
+        next.add(goalId)
+      }
+      return next
+    })
+  }
+
+  const handleSaveGoals = async () => {
+    try {
+      const goalIds = Array.from(draftGoalIds)
+      await setGoalsMutation.mutateAsync({ goalIds })
+      if (
+        selectedActiveGoalId !== 'ALL' &&
+        !draftGoalIds.has(selectedActiveGoalId)
+      ) {
+        setSelectedActiveGoalId('ALL')
+      }
+      success('Lifestyle preferences updated')
+      closeGoalSheet()
+    } catch (err: any) {
+      toastError(err?.message || 'Unable to update goals right now.')
+    }
+  }
+
+  // Personalized & filtered offerings
+  const displayItems = useMemo<RecommendedOfferingItem[]>(() => {
     return getRecommendedOfferings(offerings, userGoals, categories, {
-      activeGoalId: selectedActiveGoalId === 'ALL' ? undefined : selectedActiveGoalId,
+      activeGoalId:
+        selectedActiveGoalId === 'ALL' ? undefined : selectedActiveGoalId,
       typeFilter: selectedType,
       searchQuery,
     })
   }, [offerings, userGoals, categories, selectedActiveGoalId, selectedType, searchQuery])
 
-  // Catalog filtered offerings (Explore tab)
-  const catalogOfferings = useMemo<GoalOffering[]>(() => {
-    return (offerings as GoalOffering[]).filter((offering: GoalOffering) => {
-      if (offering.status && offering.status !== 'PUBLISHED') return false
-
-      // Category filter
-      if (selectedCategoryId !== 'ALL') {
-        const belongsToCat = offering.goals?.some(
-          (g) => g.goal?.categoryId === selectedCategoryId,
-        )
-        if (!belongsToCat) return false
-      }
-
-      // Type filter
-      if (selectedType !== 'ALL' && offering.type !== selectedType) {
-        return false
-      }
-
-      // Search query
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim()
-        const titleMatch = (offering.title || offering.name || '').toLowerCase().includes(q)
-        const descMatch = (offering.description || '').toLowerCase().includes(q)
-        const vendorMatch = (offering.vendor?.name || '').toLowerCase().includes(q)
-        if (!titleMatch && !descMatch && !vendorMatch) return false
-      }
-
-      return true
-    })
-  }, [offerings, selectedCategoryId, selectedType, searchQuery])
+  const handleOfferingClick = (offering: GoalOffering) => {
+    const identifier = offering.uuid || offering.slug || String(offering.id)
+    router.push(`/dashboard/lifestyle/${identifier}`)
+  }
 
   const isLoading = isCategoriesLoading || isOfferingsLoading
 
   return (
     <div className="lifestyle-discovery">
-      {/* Top Header */}
+      {/* Compact Sticky Top Bar */}
       <header className="lifestyle-discovery__header">
-        <div className="lifestyle-discovery__header-nav">
-          <button
-            type="button"
-            className="lifestyle-discovery__back-btn"
-            onClick={() => router.push('/dashboard')}
-            aria-label="Back to dashboard"
-          >
-            <ArrowLeft size={18} />
-          </button>
-
-          <div className="lifestyle-discovery__header-actions">
+        <div className="lifestyle-discovery__top-bar">
+          <div className="lifestyle-discovery__top-left">
             <button
               type="button"
-              className="lifestyle-discovery__goals-btn"
-              onClick={() => router.push('/dashboard/goals')}
+              className="lifestyle-discovery__back-btn"
+              onClick={() => router.push('/dashboard')}
+              aria-label="Back to dashboard"
             >
-              <Target size={15} />
-              <span>Manage Goals</span>
-              {activeUserGoals.length > 0 && (
-                <span className="lifestyle-discovery__goals-count">
-                  {activeUserGoals.length}
-                </span>
-              )}
+              <ArrowLeft size={18} />
             </button>
+            <div>
+              <h1 className="lifestyle-discovery__title">Lifestyle & Perks</h1>
+              <p className="lifestyle-discovery__subtitle">
+                Verified services, packages, and home essentials for tenants
+              </p>
+            </div>
           </div>
-        </div>
 
-        <div className="lifestyle-discovery__intro">
-          <span className="lifestyle-discovery__badge">
-            <Sparkles size={12} strokeWidth={2.5} />
-            Lifestyle & Commerce
-          </span>
-          <h1 className="lifestyle-discovery__title">Curated For Your Life</h1>
-          <p className="lifestyle-discovery__subtitle">
-            Tailored packages, verified services, and tenant privileges matched to your goals.
-          </p>
-        </div>
-
-        {/* Tab Navigation */}
-        <div className="lifestyle-discovery__tabs">
           <button
             type="button"
-            className={`lifestyle-discovery__tab ${
-              activeTab === 'FOR_YOU' ? 'lifestyle-discovery__tab--active' : ''
+            className={`lifestyle-discovery__goals-trigger ${
+              hasSelectedGoals ? 'lifestyle-discovery__goals-trigger--active' : ''
             }`}
-            onClick={() => setActiveTab('FOR_YOU')}
+            onClick={openGoalSheet}
           >
-            <Sparkles size={16} />
-            <span>For You</span>
+            <SlidersHorizontal size={14} />
+            <span>{hasSelectedGoals ? 'My Goals' : 'Set Goals'}</span>
             {hasSelectedGoals && (
-              <span className="lifestyle-discovery__tab-dot" />
+              <span className="lifestyle-discovery__goals-badge">
+                {activeUserGoals.length}
+              </span>
             )}
           </button>
-
-          <button
-            type="button"
-            className={`lifestyle-discovery__tab ${
-              activeTab === 'EXPLORE' ? 'lifestyle-discovery__tab--active' : ''
-            }`}
-            onClick={() => setActiveTab('EXPLORE')}
-          >
-            <Compass size={16} />
-            <span>Explore Catalog</span>
-          </button>
         </div>
-      </header>
 
-      {/* Main Container */}
-      <main className="lifestyle-discovery__container">
-        {/* Search & Filter Bar */}
+        {/* Search & Type Filter Row */}
         <div className="lifestyle-discovery__controls">
           <div className="lifestyle-discovery__search-wrap">
-            <Search size={18} className="lifestyle-discovery__search-icon" />
+            <Search size={16} className="lifestyle-discovery__search-icon" />
             <input
               type="text"
-              placeholder="Search products, services, or merchants..."
+              placeholder="Search services, bundles, or merchants..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="lifestyle-discovery__search-input"
@@ -205,114 +288,96 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
                 onClick={() => setSearchQuery('')}
                 aria-label="Clear search"
               >
-                ×
+                <X size={14} />
               </button>
             )}
           </div>
 
-          {/* Offering Type Chips */}
           <div className="lifestyle-discovery__type-chips">
             <button
               type="button"
               className={`lifestyle-discovery__type-chip ${
-                selectedType === 'ALL' ? 'lifestyle-discovery__type-chip--active' : ''
+                selectedType === 'ALL'
+                  ? 'lifestyle-discovery__type-chip--active'
+                  : ''
               }`}
               onClick={() => setSelectedType('ALL')}
             >
-              All Types
+              All
             </button>
             <button
               type="button"
               className={`lifestyle-discovery__type-chip ${
-                selectedType === 'PACKAGE' ? 'lifestyle-discovery__type-chip--active' : ''
+                selectedType === 'PACKAGE'
+                  ? 'lifestyle-discovery__type-chip--active'
+                  : ''
               }`}
               onClick={() => setSelectedType('PACKAGE')}
             >
               <Package size={13} />
-              Packages
+              <span>Packages</span>
             </button>
             <button
               type="button"
               className={`lifestyle-discovery__type-chip ${
-                selectedType === 'BUNDLE' ? 'lifestyle-discovery__type-chip--active' : ''
+                selectedType === 'BUNDLE'
+                  ? 'lifestyle-discovery__type-chip--active'
+                  : ''
               }`}
               onClick={() => setSelectedType('BUNDLE')}
             >
               <Layers size={13} />
-              Bundles
+              <span>Bundles</span>
             </button>
             <button
               type="button"
               className={`lifestyle-discovery__type-chip ${
-                selectedType === 'SERVICE' ? 'lifestyle-discovery__type-chip--active' : ''
+                selectedType === 'SERVICE'
+                  ? 'lifestyle-discovery__type-chip--active'
+                  : ''
               }`}
               onClick={() => setSelectedType('SERVICE')}
             >
               <Wrench size={13} />
-              Services
+              <span>Services</span>
             </button>
             <button
               type="button"
               className={`lifestyle-discovery__type-chip ${
-                selectedType === 'PRODUCT' ? 'lifestyle-discovery__type-chip--active' : ''
+                selectedType === 'PRODUCT'
+                  ? 'lifestyle-discovery__type-chip--active'
+                  : ''
               }`}
               onClick={() => setSelectedType('PRODUCT')}
             >
               <ShoppingBag size={13} />
-              Products
+              <span>Products</span>
             </button>
           </div>
         </div>
+      </header>
 
-        {/* Tab 1: For You */}
-        {activeTab === 'FOR_YOU' && (
-          <div className="lifestyle-discovery__tab-content">
-            {/* Zero-Goals Personalization Banner */}
-            {!hasSelectedGoals && !isUserGoalsLoading && (
-              <section className="lifestyle-discovery__banner lifestyle-discovery__banner--personalize">
-                <div className="lifestyle-discovery__banner-content">
-                  <div className="lifestyle-discovery__banner-icon">
-                    <Target size={24} />
-                  </div>
-                  <div>
-                    <h3 className="lifestyle-discovery__banner-title">
-                      Personalize Your Lifestyle Perks
-                    </h3>
-                    <p className="lifestyle-discovery__banner-desc">
-                      Select your current life and rental goals to unlock curated packages, moving assistance, and verified merchant deals.
-                    </p>
-                  </div>
-                </div>
+      {/* Main Content */}
+      <main className="lifestyle-discovery__container">
+        {/* Compact Goal Filter / Personalization Strip */}
+        {!isUserGoalsLoading && (
+          <div className="lifestyle-discovery__context-strip">
+            {hasSelectedGoals ? (
+              <div className="lifestyle-discovery__goal-pills-row">
                 <button
                   type="button"
-                  className="lifestyle-discovery__banner-btn"
-                  onClick={() => router.push('/dashboard/goals')}
+                  className={`lifestyle-discovery__goal-pill ${
+                    selectedActiveGoalId === 'ALL'
+                      ? 'lifestyle-discovery__goal-pill--active'
+                      : ''
+                  }`}
+                  onClick={() => setSelectedActiveGoalId('ALL')}
                 >
-                  <span>Select Goals</span>
-                  <ArrowRight size={15} />
+                  All For You
                 </button>
-              </section>
-            )}
-
-            {/* Active Goals Quick Filter Filter Pills */}
-            {hasSelectedGoals && (
-              <div className="lifestyle-discovery__goal-filter-bar">
-                <span className="lifestyle-discovery__goal-filter-label">
-                  Matched to:
-                </span>
-                <div className="lifestyle-discovery__goal-filter-scroll">
-                  <button
-                    type="button"
-                    className={`lifestyle-discovery__goal-pill ${
-                      selectedActiveGoalId === 'ALL'
-                        ? 'lifestyle-discovery__goal-pill--active'
-                        : ''
-                    }`}
-                    onClick={() => setSelectedActiveGoalId('ALL')}
-                  >
-                    All Active Goals ({activeUserGoals.length})
-                  </button>
-                  {activeUserGoals.map((ug) => (
+                {activeUserGoals.map((ug) => {
+                  const gTitle = getGoalTitle(ug.goal) || `Goal #${ug.goalId}`
+                  return (
                     <button
                       key={ug.goalId}
                       type="button"
@@ -323,100 +388,133 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
                       }`}
                       onClick={() => setSelectedActiveGoalId(ug.goalId)}
                     >
-                      {ug.goal?.name}
+                      {gTitle}
                     </button>
-                  ))}
-                </div>
+                  )
+                })}
+                <button
+                  type="button"
+                  className="lifestyle-discovery__goal-edit-link"
+                  onClick={openGoalSheet}
+                >
+                  Edit goals
+                </button>
               </div>
-            )}
-
-            {/* Moving Goal Contextual Alliance Banner */}
-            {isMovingGoalActive && (
-              <section className="lifestyle-discovery__banner lifestyle-discovery__banner--alliance">
-                <div className="lifestyle-discovery__banner-content">
-                  <div className="lifestyle-discovery__banner-icon lifestyle-discovery__banner-icon--alliance">
-                    <Building size={24} />
-                  </div>
-                  <div>
-                    <span className="lifestyle-discovery__alliance-tag">
-                      Moving Goal Perk
-                    </span>
-                    <h3 className="lifestyle-discovery__banner-title">
-                      Verified Rental Listings on Alliance
-                    </h3>
-                    <p className="lifestyle-discovery__banner-desc">
-                      Looking for your next home? Browse pre-verified properties with zero deposit requirements for Upward tenants.
-                    </p>
-                  </div>
+            ) : (
+              <div className="lifestyle-discovery__nudge-bar">
+                <div className="lifestyle-discovery__nudge-text">
+                  <Target size={15} className="lifestyle-discovery__nudge-icon" />
+                  <span>
+                    Select your home & lifestyle goals to tailor recommendations.
+                  </span>
                 </div>
                 <button
                   type="button"
-                  className="lifestyle-discovery__banner-btn lifestyle-discovery__banner-btn--alliance"
-                  onClick={() => router.push('/dashboard/alliance')}
+                  className="lifestyle-discovery__nudge-action"
+                  onClick={openGoalSheet}
                 >
-                  <span>View Alliance Homes</span>
-                  <ArrowRight size={15} />
+                  <span>Choose goals</span>
+                  <ArrowRight size={13} />
                 </button>
-              </section>
+              </div>
             )}
+          </div>
+        )}
 
-            {/* Recommendations Section */}
-            <div className="lifestyle-discovery__section-header">
-              <h2 className="lifestyle-discovery__section-title">
-                {selectedActiveGoalId !== 'ALL'
-                  ? `Offerings for ${activeUserGoals.find((g) => g.goalId === selectedActiveGoalId)?.goal?.name}`
-                  : hasSelectedGoals
-                  ? 'Recommended For Your Journey'
-                  : 'Trending Lifestyle Offerings'}
-              </h2>
-              <span className="lifestyle-discovery__count-badge">
-                {recommendedItems.length} available
-              </span>
+        {/* Contextual Moving Alliance Banner (Kept for future enablement) */}
+        {showAllianceBanner && (
+          <section className="lifestyle-discovery__alliance-bar">
+            <div className="lifestyle-discovery__alliance-info">
+              <Building size={18} className="lifestyle-discovery__alliance-icon" />
+              <div>
+                <div className="lifestyle-discovery__alliance-title">
+                  Planning a move? Browse verified Upward Alliance homes
+                </div>
+                <div className="lifestyle-discovery__alliance-desc">
+                  Pre-vetted rental listings with transparent terms.
+                </div>
+              </div>
             </div>
+            <button
+              type="button"
+              className="lifestyle-discovery__alliance-btn"
+              onClick={() => router.push('/dashboard/alliance')}
+            >
+              <span>View Homes</span>
+              <ArrowRight size={14} />
+            </button>
+          </section>
+        )}
 
-            {/* Loading Skeleton */}
-            {isLoading && (
-              <div className="lifestyle-discovery__grid">
-                {[1, 2, 3, 4].map((i) => (
-                  <div key={i} className="offering-card offering-card--skeleton">
-                    <div className="offering-card__media-skeleton" />
-                    <div className="offering-card__body-skeleton" />
-                  </div>
-                ))}
+        {/* Section Header */}
+        <div className="lifestyle-discovery__section-header">
+          <h2 className="lifestyle-discovery__section-title">
+            {selectedActiveGoalId !== 'ALL'
+              ? getGoalTitle(
+                  activeUserGoals.find((g) => g.goalId === selectedActiveGoalId)
+                    ?.goal,
+                ) || 'Matched Offerings'
+              : hasSelectedGoals
+                ? 'Tailored Offerings'
+                : 'Available Offerings'}
+          </h2>
+          {!isLoading && (
+            <span className="lifestyle-discovery__count-badge">
+              {displayItems.length}{' '}
+              {displayItems.length === 1 ? 'item' : 'items'}
+            </span>
+          )}
+        </div>
+
+        {/* Loading Skeleton */}
+        {isLoading && (
+          <div className="lifestyle-discovery__grid">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="offering-card offering-card--skeleton">
+                <div className="offering-card__media-skeleton" />
+                <div className="offering-card__body-skeleton" />
               </div>
-            )}
+            ))}
+          </div>
+        )}
 
-            {/* Error State */}
-            {(offeringsError || categoriesError) && (
-              <div className="lifestyle-discovery__error-card">
-                <AlertCircle size={24} className="lifestyle-discovery__error-icon" />
-                <p className="lifestyle-discovery__error-msg">
-                  Unable to load offerings right now.
-                </p>
-                <button
-                  type="button"
-                  className="lifestyle-discovery__retry-btn"
-                  onClick={() => {
-                    refetchOfferings()
-                    refetchCategories()
-                  }}
-                >
-                  <RefreshCw size={14} />
-                  Retry
-                </button>
-              </div>
-            )}
+        {/* Error State */}
+        {(offeringsError || categoriesError) && !isLoading && (
+          <div className="lifestyle-discovery__error-card">
+            <AlertCircle size={24} className="lifestyle-discovery__error-icon" />
+            <p className="lifestyle-discovery__error-msg">
+              Unable to load offerings right now.
+            </p>
+            <button
+              type="button"
+              className="lifestyle-discovery__retry-btn"
+              onClick={() => {
+                refetchOfferings()
+                refetchCategories()
+              }}
+            >
+              <RefreshCw size={14} />
+              <span>Retry</span>
+            </button>
+          </div>
+        )}
 
-            {/* Empty State */}
-            {!isLoading && recommendedItems.length === 0 && (
-              <div className="lifestyle-discovery__empty-state">
-                <Target size={36} className="lifestyle-discovery__empty-icon" />
-                <h3 className="lifestyle-discovery__empty-title">
-                  No offerings match your filters
-                </h3>
-                <p className="lifestyle-discovery__empty-desc">
-                  Try clearing your search query or switching offering types.
-                </p>
+        {/* Empty State */}
+        {!isLoading &&
+          !offeringsError &&
+          !categoriesError &&
+          displayItems.length === 0 && (
+            <div className="lifestyle-discovery__empty-state">
+              <ShoppingBag size={30} className="lifestyle-discovery__empty-icon" />
+              <h3 className="lifestyle-discovery__empty-title">
+                No matching offerings found
+              </h3>
+              <p className="lifestyle-discovery__empty-desc">
+                Try clearing your search or switching the offering category.
+              </p>
+              {(searchQuery ||
+                selectedType !== 'ALL' ||
+                selectedActiveGoalId !== 'ALL') && (
                 <button
                   type="button"
                   className="lifestyle-discovery__empty-btn"
@@ -428,129 +526,137 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
                 >
                   Reset Filters
                 </button>
-              </div>
-            )}
-
-            {/* Items Grid */}
-            {!isLoading && recommendedItems.length > 0 && (
-              <div className="lifestyle-discovery__grid">
-                {recommendedItems.map((item) => (
-                  <OfferingCard
-                    key={item.offering.id}
-                    item={item}
-                    onClick={(offering) => setSelectedOffering(offering)}
-                    onVendorClick={(vendor) => setSelectedVendor(vendor)}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Tab 2: Explore Catalog */}
-        {activeTab === 'EXPLORE' && (
-          <div className="lifestyle-discovery__tab-content">
-            {/* Category Filter Pills */}
-            <div className="lifestyle-discovery__category-scroll">
-              <button
-                type="button"
-                className={`lifestyle-discovery__cat-pill ${
-                  selectedCategoryId === 'ALL'
-                    ? 'lifestyle-discovery__cat-pill--active'
-                    : ''
-                }`}
-                onClick={() => setSelectedCategoryId('ALL')}
-              >
-                All Categories
-              </button>
-              {categories.map((cat) => (
-                <button
-                  key={cat.id}
-                  type="button"
-                  className={`lifestyle-discovery__cat-pill ${
-                    selectedCategoryId === cat.id
-                      ? 'lifestyle-discovery__cat-pill--active'
-                      : ''
-                  }`}
-                  onClick={() => setSelectedCategoryId(cat.id)}
-                >
-                  {cat.name}
-                </button>
-              ))}
+              )}
             </div>
+          )}
 
-            <div className="lifestyle-discovery__section-header">
-              <h2 className="lifestyle-discovery__section-title">
-                {selectedCategoryId !== 'ALL'
-                  ? categories.find((c) => c.id === selectedCategoryId)?.name
-                  : 'All Offerings'}
-              </h2>
-              <span className="lifestyle-discovery__count-badge">
-                {catalogOfferings.length} offerings
-              </span>
-            </div>
-
-            {/* Offerings Grid */}
-            {!isLoading && catalogOfferings.length > 0 && (
-              <div className="lifestyle-discovery__grid">
-                {catalogOfferings.map((offering: GoalOffering) => (
-                  <OfferingCard
-                    key={offering.id}
-                    item={{
-                      offering,
-                      isGoalMatch: false,
-                    }}
-                    onClick={(off) => setSelectedOffering(off)}
-                    onVendorClick={(vendor) => setSelectedVendor(vendor)}
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* Empty State */}
-            {!isLoading && catalogOfferings.length === 0 && (
-              <div className="lifestyle-discovery__empty-state">
-                <Compass size={36} className="lifestyle-discovery__empty-icon" />
-                <h3 className="lifestyle-discovery__empty-title">
-                  No offerings found
-                </h3>
-                <p className="lifestyle-discovery__empty-desc">
-                  We could not find anything matching the selected category or filters.
-                </p>
-                <button
-                  type="button"
-                  className="lifestyle-discovery__empty-btn"
-                  onClick={() => {
-                    setSelectedCategoryId('ALL')
-                    setSelectedType('ALL')
-                    setSearchQuery('')
-                  }}
-                >
-                  Reset Catalog Filters
-                </button>
-              </div>
-            )}
+        {/* Offerings Grid */}
+        {!isLoading && displayItems.length > 0 && (
+          <div className="lifestyle-discovery__grid">
+            {displayItems.map((item) => (
+              <OfferingCard
+                key={item.offering.id}
+                item={item}
+                onClick={handleOfferingClick}
+              />
+            ))}
           </div>
         )}
       </main>
 
-      {/* Offering Detail Modal */}
-      <OfferingDetailModal
-        offering={selectedOffering}
-        isOpen={Boolean(selectedOffering)}
-        onClose={() => setSelectedOffering(null)}
-        onVendorClick={(vendor) => {
-          setSelectedOffering(null)
-          setSelectedVendor(vendor)
-        }}
-      />
+      {/* Inline Goal Preferences Drawer / Sheet */}
+      {isGoalSheetOpen && (
+        <div
+          className="goal-sheet__backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="goal-sheet-title"
+          onClick={closeGoalSheet}
+          onTouchMove={(e) => {
+            // Prevent background page touch dragging when touching the backdrop
+            if (e.target === e.currentTarget) {
+              e.preventDefault()
+            }
+          }}
+        >
+          <div
+            className="goal-sheet__panel"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="goal-sheet__handle" aria-hidden="true" />
 
-      {/* Vendor Credibility Modal */}
-      <VendorCredibilityModal
-        vendor={selectedVendor}
-        isOpen={Boolean(selectedVendor)}
-        onClose={() => setSelectedVendor(null)}
-      />
+            <div className="goal-sheet__header">
+              <div>
+                <h2 id="goal-sheet-title" className="goal-sheet__title">
+                  Lifestyle Goals
+                </h2>
+                <p className="goal-sheet__subtitle">
+                  Choose priorities to tailor your services & bundles ({draftGoalIds.size}{' '}
+                  selected)
+                </p>
+              </div>
+
+              <div className="goal-sheet__header-actions">
+                <button
+                  type="button"
+                  className="goal-sheet__save-btn"
+                  onClick={handleSaveGoals}
+                  disabled={setGoalsMutation.isPending}
+                >
+                  {setGoalsMutation.isPending ? (
+                    <>
+                      <Loader2 size={14} className="loader" />
+                      <span>Saving</span>
+                    </>
+                  ) : (
+                    <span>Save</span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className="goal-sheet__close-btn"
+                  onClick={closeGoalSheet}
+                  aria-label="Close"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+
+            <div className="goal-sheet__body">
+              {categories.map((cat) => {
+                const goals = cat.goals || []
+                if (goals.length === 0) return null
+                const catTitle = getCategoryTitle(cat) || 'Lifestyle'
+
+                return (
+                  <div key={cat.id} className="goal-sheet__group">
+                    <h3 className="goal-sheet__group-title">{catTitle}</h3>
+                    <div className="goal-sheet__list">
+                      {goals.map((goal) => {
+                        const isSelected = draftGoalIds.has(goal.id)
+                        const gTitle =
+                          getGoalTitle(goal) ||
+                          goal.tagline ||
+                          'Lifestyle Goal'
+                        const gDesc = goal.tagline || goal.description
+                        const IconComp = getGoalIconComponent(
+                          goal.iconName,
+                          goal.slug || cat.slug,
+                        )
+
+                        return (
+                          <button
+                            key={goal.id}
+                            type="button"
+                            className={`goal-card ${
+                              isSelected ? 'goal-card--selected' : ''
+                            }`}
+                            onClick={() => toggleDraftGoal(goal.id)}
+                          >
+                            <div className="goal-card__icon-box">
+                              <IconComp size={18} />
+                            </div>
+                            <div className="goal-card__body">
+                              <div className="goal-card__name">{gTitle}</div>
+                              {gDesc && gDesc !== gTitle && (
+                                <div className="goal-card__desc">{gDesc}</div>
+                              )}
+                            </div>
+                            <div className="goal-card__checkbox">
+                              {isSelected && <Check size={13} strokeWidth={3} />}
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

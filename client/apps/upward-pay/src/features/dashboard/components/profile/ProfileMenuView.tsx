@@ -15,8 +15,7 @@ import {
   FileText,
   Home,
   Lock,
-  Target,
-  Sparkles,
+  ShoppingBag,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { UserAvatar } from '@/components/common/UserAvatar'
@@ -151,13 +150,6 @@ export function ProfileMenuView({
       onClick: () => router.push('/dashboard/setup/rental?mode=edit'),
     },
     {
-      id: 'goals',
-      title: 'Lifestyle Goals',
-      desc: 'Personal aspirations & tailored perks',
-      icon: Target,
-      onClick: () => router.push('/dashboard/goals'),
-    },
-    {
       id: 'banking',
       title: 'Banking & Payouts',
       desc: 'Manage your bank accounts',
@@ -176,9 +168,9 @@ export function ProfileMenuView({
   const discoverGroup = [
     {
       id: 'lifestyle-discovery',
-      title: 'Lifestyle & Commerce',
-      desc: 'Curated packages, services & merchant perks',
-      icon: Sparkles,
+      title: 'Lifestyle & Perks',
+      desc: 'Verified services, packages & tenant goals',
+      icon: ShoppingBag,
       onClick: () => router.push('/dashboard/lifestyle'),
     },
     // Hidden for now — leave Find a home / request flow intact

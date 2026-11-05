@@ -1,15 +1,21 @@
 export type GoalStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
-export type UserGoalStatus = 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'ABANDONED'
+export type UserGoalStatus = 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'ABANDONED' | 'ARCHIVED'
 export type OfferingType = 'PRODUCT' | 'SERVICE' | 'BUNDLE' | 'PACKAGE'
 
 export interface CommerceVendor {
   id: number
+  uuid?: string
   name: string
   slug: string
-  contactEmail: string
+  logoUrl?: string | null
+  email?: string | null
+  phone?: string | null
+  website?: string | null
+  contactEmail?: string | null
   contactPhone?: string | null
   address?: string | null
-  isVerified: boolean
+  isActive?: boolean
+  isVerified?: boolean
   rating?: number | null
   createdAt?: string
   updatedAt?: string
@@ -17,10 +23,13 @@ export interface CommerceVendor {
 
 export interface GoalCategory {
   id: number
-  name: string
+  uuid?: string
+  title?: string
+  name?: string
   slug: string
   description?: string | null
   iconName?: string | null
+  coverImage?: string | null
   sortOrder: number
   status: GoalStatus
   goals?: Goal[]
@@ -91,6 +100,8 @@ export interface GoalOffering {
     goalId: number
     offeringId?: number
     sortOrder?: number
+    curatorNote?: string | null
+    isRecommended?: boolean
     goal?: Goal
   }>
   createdAt?: string
@@ -107,11 +118,16 @@ export interface GoalOfferingLink {
 
 export interface Goal {
   id: number
+  uuid?: string
   categoryId: number
-  name: string
+  title?: string
+  name?: string
+  tagline?: string | null
   slug: string
   description?: string | null
   iconName?: string | null
+  heroImage?: string | null
+  isFeatured?: boolean
   sortOrder: number
   status: GoalStatus
   category?: GoalCategory
@@ -122,6 +138,7 @@ export interface Goal {
 
 export interface UserGoal {
   id: number
+  uuid?: string
   userId: number
   goalId: number
   status: UserGoalStatus
@@ -171,4 +188,20 @@ export interface UpdateUserGoalData {
   targetDate?: string
   notes?: string
   completedAt?: string
+}
+
+export function getGoalTitle(goal?: Goal | null): string {
+  if (!goal) return ''
+  return (goal.title || goal.name || '').trim()
+}
+
+export function getCategoryTitle(cat?: GoalCategory | null): string {
+  if (!cat) return ''
+  return (cat.title || cat.name || '').trim()
+}
+
+export function isVendorVerified(vendor?: CommerceVendor | null): boolean {
+  if (!vendor) return false
+  if (typeof vendor.isVerified === 'boolean') return vendor.isVerified
+  return vendor.isActive !== false
 }

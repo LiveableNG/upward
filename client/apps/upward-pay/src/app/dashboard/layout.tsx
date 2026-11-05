@@ -178,12 +178,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     !!isHomeRequestRoute ||
     !!pathname?.startsWith('/dashboard/savings/deposit') ||
     !!pathname?.startsWith('/dashboard/notifications') ||
+    !!pathname?.startsWith('/dashboard/goals') ||
+    !!pathname?.startsWith('/dashboard/lifestyle') ||
+    !!pathname?.startsWith('/dashboard/alliance') ||
     !!pathname?.startsWith('/dashboard/kyc') ||
     !!pathname?.startsWith('/dashboard/my-home/complaints') ||
     !!pathname?.startsWith('/dashboard/my-home/visitors')
 
   return (
-    <div className={`dashboard-layout${showProfileBlocker || showTermsGate ? ' dashboard-layout--blocker' : ''}`}>
+    <div className={`dashboard-layout${showProfileBlocker || showTermsGate ? ' dashboard-layout--blocker' : ''}${hideBottomNav ? ' dashboard-layout--no-bottom-nav' : ''}`}>
       {showTermsGate && (
         <TermsAcceptanceModal onAccepted={() => window.location.reload()} />
       )}

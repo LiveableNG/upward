@@ -1,40 +1,53 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import {
-  Sparkles,
   ShieldCheck,
   Package,
   Layers,
   Wrench,
   ShoppingBag,
   Truck,
-  CheckCircle2,
+  ArrowUpRight,
 } from 'lucide-react'
-import type { GoalOffering, CommerceVendor } from '../types/goals.types'
+import {
+  isVendorVerified,
+  type GoalOffering,
+  type CommerceVendor,
+} from '../types/goals.types'
 import type { RecommendedOfferingItem } from '../utils/recommendationEngine'
 
 interface OfferingCardProps {
-  item: RecommendedOfferingItem | { offering: GoalOffering; reason?: string; isGoalMatch?: boolean }
+  item:
+    | RecommendedOfferingItem
+    | { offering: GoalOffering; reason?: string; isGoalMatch?: boolean }
   onClick?: (offering: GoalOffering) => void
   onVendorClick?: (vendor: CommerceVendor, e: React.MouseEvent) => void
 }
 
-function formatPrice(offering: GoalOffering): string {
-  const currency = offering.currency || 'USD'
+export function formatOfferingPrice(offering: GoalOffering): string {
+  const currency = offering.currency || 'NGN'
   const fmt = (val: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency,
-      maximumFractionDigits: 0,
-    }).format(val)
+    try {
+      return new Intl.NumberFormat('en-NG', {
+        style: 'currency',
+        currency,
+        maximumFractionDigits: 0,
+      }).format(val)
+    } catch {
+      return `${currency} ${val.toLocaleString()}`
+    }
   }
 
   if (offering.pricingModel === 'QUOTE_REQUIRED') {
     return 'Custom Quote'
   }
 
-  if (offering.pricingModel === 'RANGE' && offering.minPrice != null && offering.maxPrice != null) {
+  if (
+    offering.pricingModel === 'RANGE' &&
+    offering.minPrice != null &&
+    offering.maxPrice != null
+  ) {
     return `${fmt(offering.minPrice)} – ${fmt(offering.maxPrice)}`
   }
 
@@ -50,10 +63,10 @@ function formatPrice(offering: GoalOffering): string {
     return `From ${fmt(offering.minPrice)}`
   }
 
-  return 'Inquire for pricing'
+  return 'Inquire for price'
 }
 
-function getTypeIcon(type: string) {
+export function getOfferingTypeIcon(type: string) {
   switch (type) {
     case 'BUNDLE':
       return Layers
@@ -70,20 +83,22 @@ function getTypeIcon(type: string) {
 export const OfferingCard: React.FC<OfferingCardProps> = ({
   item,
   onClick,
-  onVendorClick,
 }) => {
+  const [imgError, setImgError] = useState(false)
   const offering = item.offering
   const reason = item.reason
   const isGoalMatch = item.isGoalMatch
-  const TypeIcon = getTypeIcon(offering.type)
+  const TypeIcon = getOfferingTypeIcon(offering.type)
 
   const primaryImage =
     offering.media?.find((m) => m.isPrimary)?.mediaUrl ||
     offering.media?.[0]?.mediaUrl ||
     offering.imageUrl
 
+  const showImage = Boolean(primaryImage) && !imgError
   const title = offering.title || offering.name || 'Untitled Offering'
   const vendor = offering.vendor
+  const verified = isVendorVerified(vendor)
 
   return (
     <article
@@ -100,64 +115,54 @@ export const OfferingCard: React.FC<OfferingCardProps> = ({
     >
       {/* Thumbnail area */}
       <div className="offering-card__media">
-        {primaryImage ? (
+        {showImage ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={primaryImage}
+            src={primaryImage!}
             alt={title}
             className="offering-card__image"
             loading="lazy"
+            onError={() => setImgError(true)}
           />
         ) : (
           <div className="offering-card__placeholder">
-            <TypeIcon size={36} strokeWidth={1.5} />
+            <TypeIcon size={32} strokeWidth={1.6} />
           </div>
         )}
 
         {/* Type Badge */}
-        <span className={`offering-card__type-badge offering-card__type-badge--${offering.type.toLowerCase()}`}>
-          <TypeIcon size={12} strokeWidth={2.4} />
+        <span
+          className={`offering-card__type-badge offering-card__type-badge--${offering.type.toLowerCase()}`}
+        >
+          <TypeIcon size={11} strokeWidth={2.3} />
           <span>{offering.type}</span>
         </span>
-
-        {/* Recommendation Reason Pill */}
-        {reason && (
-          <span className="offering-card__reason-pill">
-            <Sparkles size={11} strokeWidth={2.5} />
-            <span className="offering-card__reason-text">{reason}</span>
-          </span>
-        )}
       </div>
 
       {/* Content Area */}
       <div className="offering-card__content">
-        {vendor && (
-          <div className="offering-card__vendor-row">
-            <button
-              type="button"
-              className="offering-card__vendor-btn"
-              onClick={(e) => {
-                e.stopPropagation()
-                onVendorClick?.(vendor, e)
-              }}
-              title="View verified vendor profile"
-            >
+        <div className="offering-card__meta-top">
+          {vendor ? (
+            <span className="offering-card__vendor-label">
               <span className="offering-card__vendor-name">{vendor.name}</span>
-              {vendor.isVerified && (
+              {verified && (
                 <ShieldCheck
-                  size={14}
+                  size={13}
                   className="offering-card__verified-icon"
-                  aria-label="Verified vendor"
+                  aria-label="Verified merchant"
                 />
               )}
-            </button>
-            {offering.deliveryAvailable && (
-              <span className="offering-card__delivery-chip" title="Delivery available">
-                <Truck size={12} />
-              </span>
-            )}
-          </div>
-        )}
+            </span>
+          ) : (
+            <span className="offering-card__vendor-label">Upward Partner</span>
+          )}
+
+          {offering.deliveryAvailable && (
+            <span className="offering-card__delivery-chip" title="Delivery included">
+              <Truck size={12} />
+            </span>
+          )}
+        </div>
 
         <h3 className="offering-card__title">{title}</h3>
 
@@ -165,10 +170,18 @@ export const OfferingCard: React.FC<OfferingCardProps> = ({
           <p className="offering-card__subtitle">{offering.subtitle}</p>
         )}
 
+        {reason && (
+          <div className="offering-card__match-tag">
+            <span>{reason}</span>
+          </div>
+        )}
+
         <div className="offering-card__footer">
           <div className="offering-card__price-group">
-            <span className="offering-card__price">{formatPrice(offering)}</span>
-            {offering.pricingModel && (
+            <span className="offering-card__price">
+              {formatOfferingPrice(offering)}
+            </span>
+            {offering.pricingModel && offering.pricingModel !== 'FIXED' && (
               <span className="offering-card__pricing-model">
                 {offering.pricingModel.toLowerCase().replace('_', ' ')}
               </span>
@@ -176,7 +189,8 @@ export const OfferingCard: React.FC<OfferingCardProps> = ({
           </div>
 
           <span className="offering-card__action-btn" aria-hidden="true">
-            View Details
+            <span>Details</span>
+            <ArrowUpRight size={14} />
           </span>
         </div>
       </div>

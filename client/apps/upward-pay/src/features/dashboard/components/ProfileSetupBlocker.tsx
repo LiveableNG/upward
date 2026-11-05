@@ -107,8 +107,8 @@ export function ProfileSetupBlocker({ user, score, maxScore, onSkip }: ProfileSe
 
   const quickActions: QuickAction[] = [
     { label: 'Pay Rent', icon: CreditCard, href: '/dashboard/pay-rent' },
-    { label: 'Lifestyle Goals', icon: Target, href: '/dashboard/goals' },
-    { label: 'Save for Home', icon: Home, href: '/dashboard/save-for-home' },
+    { label: 'Lifestyle', icon: Target, href: '/dashboard/lifestyle' },
+    { label: 'Save Home', icon: Home, href: '/dashboard/save-for-home' },
     isSavingsWalletEnabled(user)
       ? { label: 'Save Rent', icon: PiggyBank, href: '/dashboard/savings' }
       : { label: 'Save Rent', icon: PiggyBank, href: '/dashboard/save-for-rent', comingSoon: true },
@@ -117,7 +117,7 @@ export function ProfileSetupBlocker({ user, score, maxScore, onSkip }: ProfileSe
   const title = isGated ? 'Add your rental details' : `Welcome, ${firstName}`
   const subtitle = isGated
     ? 'Takes about a minute. Unlocks rent payments, savings and your Rent Passport.'
-    : 'Finish setup to unlock your full Upward Score.'
+    : 'Complete your profile.'
 
   return (
     <div className="setup-gate" role="dialog" aria-modal="true" aria-labelledby="setup-gate-title">

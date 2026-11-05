@@ -1,8 +1,11 @@
-import type {
-  GoalOffering,
-  UserGoal,
-  GoalCategory,
-  OfferingType,
+import {
+  getGoalTitle,
+  getCategoryTitle,
+  isVendorVerified,
+  type GoalOffering,
+  type UserGoal,
+  type GoalCategory,
+  type OfferingType,
 } from '../types/goals.types'
 
 export interface RecommendedOfferingItem {
@@ -41,31 +44,31 @@ export function isOfferingLinkedToGoal(offering: GoalOffering, goalId: number): 
 export function hasMovingGoal(userGoals: UserGoal[] = []): boolean {
   return userGoals.some((ug) => {
     if (ug.status !== 'ACTIVE') return false
-    const name = (ug.goal?.name || ug.goal?.slug || '').toLowerCase()
-    return name.includes('move') || name.includes('relocat') || name.includes('apartment')
+    const label = `${getGoalTitle(ug.goal)} ${ug.goal?.slug || ''}`.toLowerCase()
+    return label.includes('move') || label.includes('relocat') || label.includes('apartment')
   })
 }
 
 /**
- * Generates an explainable recommendation label based on verified relationships.
+ * Generates a concise, human-readable recommendation label based on verified relationships.
  */
 export function getRecommendationExplanation(
   offering: GoalOffering,
   matchedGoalName?: string,
 ): string {
   if (matchedGoalName) {
-    return `For your goal: ${matchedGoalName}`
+    return `Matched to ${matchedGoalName}`
   }
   if (offering.type === 'PACKAGE' || offering.type === 'BUNDLE') {
-    return 'Curated lifestyle bundle'
+    return 'Curated bundle'
   }
   if (offering.isFeatured) {
-    return 'Featured partner offering'
+    return 'Featured offering'
   }
-  if (offering.vendor?.isVerified) {
-    return 'From verified merchant'
+  if (isVendorVerified(offering.vendor)) {
+    return 'Verified merchant'
   }
-  return 'Popular with Upward tenants'
+  return ''
 }
 
 export function getRecommendedOfferings(
@@ -81,8 +84,8 @@ export function getRecommendedOfferings(
   userGoals.forEach((ug) => {
     if (ug.status === 'ACTIVE' && ug.goal) {
       activeUserGoalMap.set(ug.goalId, {
-        name: ug.goal.name,
-        categoryName: ug.goal.category?.name,
+        name: getGoalTitle(ug.goal),
+        categoryName: getCategoryTitle(ug.goal.category),
       })
     }
   })
@@ -90,24 +93,30 @@ export function getRecommendedOfferings(
   // Goal name lookup helper from categories
   const allGoalsMap = new Map<number, { name: string; categoryName?: string }>()
   categories.forEach((cat) => {
-    (cat.goals || []).forEach((g) => {
-      allGoalsMap.set(g.id, { name: g.name, categoryName: cat.name })
+    const catTitle = getCategoryTitle(cat)
+    ;(cat.goals || []).forEach((g) => {
+      allGoalsMap.set(g.id, { name: getGoalTitle(g), categoryName: catTitle })
     })
   })
 
   // Filter offerings by publication status, search query, and type
-  let filtered = offerings.filter((o) => {
+  const filtered = offerings.filter((o) => {
     // Only published offerings
     if (o.status && o.status !== 'PUBLISHED') return false
 
     // Type filter
     if (typeFilter !== 'ALL' && o.type !== typeFilter) return false
 
+    // If a specific goal pill is selected, filter strictly to offerings linked to that goal
+    if (activeGoalId !== undefined && !isOfferingLinkedToGoal(o, activeGoalId)) {
+      return false
+    }
+
     // Search query
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim()
       const titleMatch = (o.title || o.name || '').toLowerCase().includes(q)
-      const descMatch = (o.description || '').toLowerCase().includes(q)
+      const descMatch = (o.description || o.subtitle || '').toLowerCase().includes(q)
       const vendorMatch = (o.vendor?.name || '').toLowerCase().includes(q)
       if (!titleMatch && !descMatch && !vendorMatch) return false
     }
@@ -155,7 +164,7 @@ export function getRecommendedOfferings(
     }
 
     // 5. Verified vendor bonus
-    if (offering.vendor?.isVerified) {
+    if (isVendorVerified(offering.vendor)) {
       priority += 10
     }
 

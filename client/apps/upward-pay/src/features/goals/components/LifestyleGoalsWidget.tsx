@@ -2,8 +2,9 @@
 
 import React from 'react'
 import { useRouter } from 'next/navigation'
-import { Target, ArrowRight, Sparkles, CheckCircle2 } from 'lucide-react'
+import { Target, ArrowRight, CheckCircle2, ShoppingBag } from 'lucide-react'
 import { useUserGoals } from '../hooks/useGoals'
+import { getGoalTitle } from '../types/goals.types'
 import '../styles/goals.css'
 
 export const LifestyleGoalsWidget: React.FC = () => {
@@ -14,10 +15,14 @@ export const LifestyleGoalsWidget: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="lifestyle-goals-widget">
-        <div style={{ height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Loading goals...</span>
-        </div>
+      <div className="lifestyle-goals-widget animate-pulse">
+        <div
+          style={{
+            height: '64px',
+            background: 'var(--surface2)',
+            borderRadius: 'var(--radius-md)',
+          }}
+        />
       </div>
     )
   }
@@ -27,29 +32,31 @@ export const LifestyleGoalsWidget: React.FC = () => {
       <div className="lifestyle-goals-widget">
         <div className="lifestyle-goals-widget__header">
           <span className="lifestyle-goals-widget__badge">
-            <Sparkles size={12} />
-            <span>Lifestyle & Personal</span>
+            <ShoppingBag size={12} />
+            <span>Lifestyle & Perks</span>
           </span>
           <button
             type="button"
             className="lifestyle-goals-widget__link"
-            onClick={() => router.push('/dashboard/goals')}
+            onClick={() => router.push('/dashboard/lifestyle')}
           >
-            <span>Set Goals</span>
+            <span>Browse Catalog</span>
             <ArrowRight size={13} />
           </button>
         </div>
 
-        <h3 className="lifestyle-goals-widget__title">What are your goals this year?</h3>
+        <h3 className="lifestyle-goals-widget__title">
+          Tailor your home & lifestyle services
+        </h3>
         <p className="lifestyle-goals-widget__desc">
-          Select personal aspirations like redecorating, fitness, or career upgrades to receive
-          tailored product bundles and exclusive tenant perks.
+          Select your current priorities—like home setup, cleaning, or moving—to
+          unlock matched bundles from verified merchants.
         </p>
 
         <button
           type="button"
           className="lifestyle-goals-widget__cta-btn"
-          onClick={() => router.push('/dashboard/goals')}
+          onClick={() => router.push('/dashboard/lifestyle?goals=open')}
         >
           <Target size={15} />
           <span>Choose Your Goals</span>
@@ -68,35 +75,35 @@ export const LifestyleGoalsWidget: React.FC = () => {
         <button
           type="button"
           className="lifestyle-goals-widget__link"
-          onClick={() => router.push('/dashboard/goals')}
+          onClick={() => router.push('/dashboard/lifestyle?goals=open')}
         >
-          <span>Manage</span>
+          <span>Edit Goals</span>
           <ArrowRight size={13} />
         </button>
       </div>
 
-      <h3 className="lifestyle-goals-widget__title">Your Lifestyle Aspirations</h3>
       <div className="lifestyle-goals-widget__list">
         {activeGoals.map((ug) => (
-          <span key={ug.id} className="lifestyle-goals-widget__chip">
+          <button
+            key={ug.id}
+            type="button"
+            className="lifestyle-goals-widget__chip lifestyle-goals-widget__chip--interactive"
+            onClick={() => router.push(`/dashboard/lifestyle?goalId=${ug.goalId}`)}
+            title="View tailored offerings for this goal"
+          >
             <CheckCircle2 size={13} color="var(--clay)" />
-            <span>{ug.goal?.name || `Goal #${ug.goalId}`}</span>
-          </span>
+            <span>{getGoalTitle(ug.goal) || `Goal #${ug.goalId}`}</span>
+          </button>
         ))}
       </div>
 
       <button
         type="button"
-        className="lifestyle-goals-widget__cta-btn"
+        className="lifestyle-goals-widget__cta-btn lifestyle-goals-widget__cta-btn--secondary"
         onClick={() => router.push('/dashboard/lifestyle')}
-        style={{
-          background: 'var(--surface2)',
-          color: 'var(--text)',
-          border: '1px solid var(--border)',
-        }}
       >
-        <Sparkles size={14} color="var(--clay)" />
-        <span>Explore Tailored Perks & Bundles</span>
+        <ShoppingBag size={14} color="var(--clay)" />
+        <span>View Tailored Perks & Services</span>
         <ArrowRight size={14} />
       </button>
     </div>
