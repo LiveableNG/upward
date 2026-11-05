@@ -65,11 +65,9 @@ export class UpdateExternalPaymentRequestUseCase {
       }
     }
 
-    const allowPartial = data.allowPartial ?? pr.allowPartial
-    let minAmount = data.minAmount !== undefined ? data.minAmount : pr.minAmount
-    if (allowPartial === false) {
-      minAmount = 0
-    }
+    // TEMPORARY: Force allowPartial to true for external PRs until refund logic is integrated (easily reversible)
+    const allowPartial = true
+    const minAmount = data.minAmount !== undefined ? data.minAmount : pr.minAmount
 
     const isScheduled = pr.status === 'SCHEDULED'
 

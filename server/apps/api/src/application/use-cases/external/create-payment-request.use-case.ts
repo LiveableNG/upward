@@ -62,13 +62,13 @@ export class CreateExternalPaymentRequestUseCase {
     let amount = payload.amount || property.rentAmount;
     const currency = payload.currency || property.currency || 'NGN';
 
-    // Fallback for minAmount if partial payments are allowed
-    if (payload.allowPartial && !payload.minAmount) {
-      payload.minAmount = 5000; // Sensible default for partial payments
-    }
+    // TEMPORARY: Force allowPartial to true for incoming external PRs
+    // until the external platform integrates refund logic (easily reversible)
+    payload.allowPartial = true;
 
-    if (payload.minAmount && payload.allowPartial === false) {
-      payload.minAmount = 0
+    // Fallback for minAmount if partial payments are allowed
+    if (!payload.minAmount) {
+      payload.minAmount = 5000; // Sensible default for partial payments
     }
 
     if (payload.lineItems && payload.lineItems.length > 0) {
@@ -232,7 +232,7 @@ export class CreateExternalPaymentRequestUseCase {
         reference: `EXT_${randomUUID()}_${Date.now()}`,
         subaccountId: subaccountId,
         manualAccountId: manualAccountId,
-        allowPartial: payload.allowPartial ?? false,
+        allowPartial: payload.allowPartial ?? true,
         minAmount: payload.minAmount || undefined,
         rentType: payload.rentType,
         scheduledAt: isScheduled ? new Date(payload.scheduledAt!) : undefined,
