@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ArrowLeft,
@@ -16,6 +16,10 @@ import {
   AlertCircle,
   Share2,
   Check,
+  Maximize2,
+  X,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 import { useGoalOfferingDetail, usePublicOfferings } from '../hooks/useGoals'
 import {
@@ -23,7 +27,11 @@ import {
   isVendorVerified,
   type GoalOffering,
 } from '../types/goals.types'
-import { formatOfferingPrice, getOfferingTypeIcon } from './OfferingCard'
+import {
+  formatOfferingPrice,
+  formatCurrencyValue,
+  getOfferingTypeIcon,
+} from './OfferingCard'
 import '../styles/goals.css'
 
 interface OfferingDetailScreenProps {
@@ -55,6 +63,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [failedImages, setFailedImages] = useState<Record<number, boolean>>({})
   const [copied, setCopied] = useState(false)
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false)
 
   const {
     data: detailOffering,
@@ -77,6 +86,17 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
   const offering: GoalOffering | undefined = detailOffering || fallbackOffering
   const isLoading = isDetailLoading && !offering
 
+  const images = React.useMemo(() => {
+    if (!offering) return []
+    if (offering.media && offering.media.length > 0) {
+      return offering.media.map((m) => m.mediaUrl)
+    }
+    if (offering.imageUrl) {
+      return [offering.imageUrl]
+    }
+    return []
+  }, [offering])
+
   const handleBack = () => {
     router.push('/dashboard/lifestyle')
   }
@@ -88,6 +108,31 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
       setTimeout(() => setCopied(false), 2000)
     }
   }
+
+  useEffect(() => {
+    if (isLightboxOpen) {
+      const original = document.body.style.overflow
+      document.body.style.overflow = 'hidden'
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') setIsLightboxOpen(false)
+        if (e.key === 'ArrowRight' && images.length > 1) {
+          setSelectedImageIndex((prev) =>
+            prev < images.length - 1 ? prev + 1 : 0,
+          )
+        }
+        if (e.key === 'ArrowLeft' && images.length > 1) {
+          setSelectedImageIndex((prev) =>
+            prev > 0 ? prev - 1 : images.length - 1,
+          )
+        }
+      }
+      window.addEventListener('keydown', handleKeyDown)
+      return () => {
+        document.body.style.overflow = original
+        window.removeEventListener('keydown', handleKeyDown)
+      }
+    }
+  }, [isLightboxOpen, images.length])
 
   if (isLoading) {
     return (
@@ -158,13 +203,6 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
   const TypeIcon = getOfferingTypeIcon(offering.type)
   const title = offering.title || offering.name || 'Untitled Offering'
 
-  const images =
-    offering.media && offering.media.length > 0
-      ? offering.media.map((m) => m.mediaUrl)
-      : offering.imageUrl
-        ? [offering.imageUrl]
-        : []
-
   const activeImage = images[selectedImageIndex] || null
   const showActiveImage =
     Boolean(activeImage) && !failedImages[selectedImageIndex]
@@ -180,6 +218,20 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
   const vendorEmail = vendor?.email || vendor?.contactEmail || null
   const vendorPhone = vendor?.phone || vendor?.contactPhone || null
   const vendorWebsite = getSafeExternalUrl(vendor?.website)
+
+  const compareAtPrice =
+    offering.compareAtPrice ??
+    (offering.pricingModel === 'FIXED' ? offering.maxPrice : null)
+  const hasDiscount =
+    compareAtPrice != null &&
+    offering.price != null &&
+    compareAtPrice > offering.price
+  const discountPercent = hasDiscount
+    ? Math.round(((compareAtPrice! - offering.price!) / compareAtPrice!) * 100)
+    : 0
+  const savingsAmount = hasDiscount
+    ? compareAtPrice! - offering.price!
+    : 0
 
   return (
     <div className="offering-detail">
@@ -212,7 +264,21 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
           <div className="offering-detail__main">
             {/* Media Gallery */}
             <div className="offering-detail__gallery">
-              <div className="offering-detail__hero-media">
+              <div
+                className={`offering-detail__hero-media ${showActiveImage ? 'offering-detail__hero-media--clickable' : ''}`}
+                onClick={() => {
+                  if (showActiveImage) setIsLightboxOpen(true)
+                }}
+                tabIndex={showActiveImage ? 0 : undefined}
+                role={showActiveImage ? 'button' : undefined}
+                aria-label={showActiveImage ? 'Click to enlarge and pan image' : undefined}
+                onKeyDown={(e) => {
+                  if (showActiveImage && (e.key === 'Enter' || e.key === ' ')) {
+                    e.preventDefault()
+                    setIsLightboxOpen(true)
+                  }
+                }}
+              >
                 {showActiveImage ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -238,6 +304,21 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                   <TypeIcon size={12} strokeWidth={2.3} />
                   <span>{offering.type}</span>
                 </span>
+
+                {showActiveImage && (
+                  <button
+                    type="button"
+                    className="offering-detail__expand-btn"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setIsLightboxOpen(true)
+                    }}
+                    aria-label="View full photo"
+                  >
+                    <Maximize2 size={13} />
+                    <span>View full</span>
+                  </button>
+                )}
               </div>
 
               {images.length > 1 && (
@@ -275,17 +356,34 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
             <section className="offering-detail__card">
               <div className="offering-detail__title-row">
                 <h1 className="offering-detail__title">{title}</h1>
-                {offering. subtitle && (
+                {offering.subtitle && (
                   <p className="offering-detail__subtitle">{offering.subtitle}</p>
                 )}
               </div>
 
               <div className="offering-detail__price-banner">
-                <div>
+                <div className="offering-detail__price-col">
                   <span className="offering-detail__price-label">Price</span>
-                  <div className="offering-detail__price-value">
-                    {formatOfferingPrice(offering)}
+                  <div className="offering-detail__price-row">
+                    <span className="offering-detail__price-value">
+                      {formatOfferingPrice(offering)}
+                    </span>
+                    {hasDiscount && (
+                      <span className="offering-detail__compare-price">
+                        {formatCurrencyValue(compareAtPrice, offering.currency)}
+                      </span>
+                    )}
+                    {hasDiscount && (
+                      <span className="offering-detail__discount-badge">
+                        {discountPercent}% OFF
+                      </span>
+                    )}
                   </div>
+                  {hasDiscount && (
+                    <span className="offering-detail__savings-text">
+                      You save {formatCurrencyValue(savingsAmount, offering.currency)}
+                    </span>
+                  )}
                 </div>
                 {offering.pricingModel && (
                   <span className="offering-detail__pricing-pill">
@@ -513,6 +611,98 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
           </aside>
         </div>
       </main>
+
+      {/* Fullscreen Fluid Image Lightbox */}
+      {isLightboxOpen && showActiveImage && (
+        <div
+          className="offering-lightbox"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Full-size image view"
+          onClick={() => setIsLightboxOpen(false)}
+        >
+          <div className="offering-lightbox__backdrop" />
+
+          <header
+            className="offering-lightbox__header"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="offering-lightbox__info">
+              <span className="offering-lightbox__title">{title}</span>
+              {images.length > 1 && (
+                <span className="offering-lightbox__counter">
+                  {selectedImageIndex + 1} of {images.length}
+                </span>
+              )}
+            </div>
+
+            <button
+              type="button"
+              className="offering-lightbox__close-btn"
+              onClick={() => setIsLightboxOpen(false)}
+              aria-label="Close photo view"
+            >
+              <X size={20} />
+            </button>
+          </header>
+
+          <div
+            className="offering-lightbox__body"
+            onClick={() => setIsLightboxOpen(false)}
+          >
+            {images.length > 1 && (
+              <button
+                type="button"
+                className="offering-lightbox__arrow offering-lightbox__arrow--prev"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setSelectedImageIndex((prev) =>
+                    prev > 0 ? prev - 1 : images.length - 1,
+                  )
+                }}
+                aria-label="Previous image"
+              >
+                <ChevronLeft size={24} />
+              </button>
+            )}
+
+            <div
+              className="offering-lightbox__content"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="offering-lightbox__scrollable">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={activeImage!}
+                  alt={title}
+                  className="offering-lightbox__full-img"
+                />
+              </div>
+              <div className="offering-lightbox__hint">
+                <span>Pan or scroll to view whole photo</span>
+                <span className="offering-lightbox__hint-dot">•</span>
+                <span>Tap outside to close</span>
+              </div>
+            </div>
+
+            {images.length > 1 && (
+              <button
+                type="button"
+                className="offering-lightbox__arrow offering-lightbox__arrow--next"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setSelectedImageIndex((prev) =>
+                    prev < images.length - 1 ? prev + 1 : 0,
+                  )
+                }}
+                aria-label="Next image"
+              >
+                <ChevronRight size={24} />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

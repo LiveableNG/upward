@@ -390,11 +390,28 @@ export default function GoalManagement({ token }: GoalManagementProps) {
         onClose={() => setOfferingModalOpen(false)}
         offering={editingOffering}
         vendors={vendors}
-        onSubmit={async (data) => {
+        goals={goals}
+        onSubmit={async (data, linkedGoalIds) => {
+          let savedOffering: Offering | undefined
           if (editingOffering) {
-            await updateOffering(editingOffering.id, data)
+            savedOffering = await updateOffering(editingOffering.id, data)
           } else {
-            await createOffering(data)
+            savedOffering = await createOffering(data)
+          }
+
+          if (savedOffering && linkedGoalIds !== undefined) {
+            const currentLinked = (savedOffering.goalLinks || editingOffering?.goalLinks || []).map((gl) => gl.goalId)
+            const toAdd = linkedGoalIds.filter((id) => !currentLinked.includes(id))
+            const toRemove = currentLinked.filter((id) => !linkedGoalIds.includes(id))
+
+            for (const goalId of toAdd) {
+              await linkOfferingToGoal(goalId, { offeringId: savedOffering.id })
+            }
+            for (const goalId of toRemove) {
+              await unlinkOfferingFromGoal(goalId, savedOffering.id)
+            }
+            fetchOfferings(offeringsPage)
+            fetchGoals(goalsPage)
           }
         }}
       />

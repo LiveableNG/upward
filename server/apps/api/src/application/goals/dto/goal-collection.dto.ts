@@ -78,6 +78,10 @@ export class LinkOfferingDto {
   @IsOptional()
   isRecommended?: boolean
 
+  @IsBoolean()
+  @IsOptional()
+  isFeatured?: boolean
+
   @IsInt()
   @IsOptional()
   relevanceScore?: number

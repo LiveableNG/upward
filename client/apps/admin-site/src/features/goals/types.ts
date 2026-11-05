@@ -106,6 +106,12 @@ export interface Offering {
   vendor?: CommerceVendor | null
   media?: OfferingMedia[]
   packageItems?: PackageItemComponent[]
+  goalLinks?: Array<{
+    id?: number
+    goalId: number
+    goal?: Goal
+    collectionId?: number | null
+  }>
   _count?: {
     goalOfferings?: number
   }

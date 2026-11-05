@@ -189,6 +189,41 @@ export const OfferingsTab: React.FC<OfferingsTabProps> = ({
       ),
     },
     {
+      key: 'goals',
+      label: 'Linked Goal(s)',
+      width: '170px',
+      render: (offering) => {
+        const links = offering.goalLinks || []
+        if (links.length === 0) {
+          return (
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+              Not linked to a goal
+            </span>
+          )
+        }
+        return (
+          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+            {links.map((link, idx) => (
+              <span
+                key={link.id || idx}
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  padding: '2px 6px',
+                  borderRadius: '6px',
+                  background: 'rgba(217, 119, 87, 0.1)',
+                  color: 'var(--accent)',
+                  border: '1px solid rgba(217, 119, 87, 0.25)',
+                }}
+              >
+                {link.goal?.title || `Goal #${link.goalId}`}
+              </span>
+            ))}
+          </div>
+        )
+      },
+    },
+    {
       key: 'status',
       label: 'Status',
       width: '120px',

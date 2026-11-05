@@ -76,6 +76,7 @@ export interface GoalOffering {
   price?: number | null
   minPrice?: number | null
   maxPrice?: number | null
+  compareAtPrice?: number | null
   currency: string
   imageUrl?: string | null
   inStock?: boolean

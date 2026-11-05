@@ -27,43 +27,20 @@ interface OfferingCardProps {
 
 export function formatOfferingPrice(offering: GoalOffering): string {
   const currency = offering.currency || 'NGN'
-  const fmt = (val: number) => {
-    try {
-      return new Intl.NumberFormat('en-NG', {
-        style: 'currency',
-        currency,
-        maximumFractionDigits: 0,
-      }).format(val)
-    } catch {
-      return `${currency} ${val.toLocaleString()}`
-    }
-  }
+  return formatCurrencyValue(offering.price, currency) || (offering.minPrice != null ? `From ${formatCurrencyValue(offering.minPrice, currency)}` : 'Inquire for price')
+}
 
-  if (offering.pricingModel === 'QUOTE_REQUIRED') {
-    return 'Custom Quote'
+export function formatCurrencyValue(val?: number | null, currency = 'NGN'): string {
+  if (val == null) return ''
+  try {
+    return new Intl.NumberFormat('en-NG', {
+      style: 'currency',
+      currency,
+      maximumFractionDigits: 0,
+    }).format(val)
+  } catch {
+    return `${currency} ${val.toLocaleString()}`
   }
-
-  if (
-    offering.pricingModel === 'RANGE' &&
-    offering.minPrice != null &&
-    offering.maxPrice != null
-  ) {
-    return `${fmt(offering.minPrice)} – ${fmt(offering.maxPrice)}`
-  }
-
-  if (offering.pricingModel === 'STARTING_AT' && offering.minPrice != null) {
-    return `From ${fmt(offering.minPrice)}`
-  }
-
-  if (offering.price != null) {
-    return fmt(offering.price)
-  }
-
-  if (offering.minPrice != null) {
-    return `From ${fmt(offering.minPrice)}`
-  }
-
-  return 'Inquire for price'
 }
 
 export function getOfferingTypeIcon(type: string) {
@@ -86,7 +63,11 @@ export const OfferingCard: React.FC<OfferingCardProps> = ({
 }) => {
   const [imgError, setImgError] = useState(false)
   const offering = item.offering
-  const reason = item.reason
+  const rawReason = item.reason
+  const reason =
+    rawReason && !rawReason.toLowerCase().includes('matched to')
+      ? rawReason
+      : null
   const isGoalMatch = item.isGoalMatch
   const TypeIcon = getOfferingTypeIcon(offering.type)
 
@@ -99,6 +80,9 @@ export const OfferingCard: React.FC<OfferingCardProps> = ({
   const title = offering.title || offering.name || 'Untitled Offering'
   const vendor = offering.vendor
   const verified = isVendorVerified(vendor)
+  const compareAtPrice = offering.compareAtPrice ?? (offering.pricingModel === 'FIXED' ? offering.maxPrice : null)
+  const hasDiscount = compareAtPrice != null && offering.price != null && compareAtPrice > offering.price
+  const discountPercent = hasDiscount ? Math.round(((compareAtPrice! - offering.price!) / compareAtPrice!) * 100) : 0
 
   return (
     <article
@@ -181,6 +165,16 @@ export const OfferingCard: React.FC<OfferingCardProps> = ({
             <span className="offering-card__price">
               {formatOfferingPrice(offering)}
             </span>
+            {hasDiscount && (
+              <>
+                <span className="offering-card__compare-price">
+                  {formatCurrencyValue(compareAtPrice, offering.currency)}
+                </span>
+                <span className="offering-card__discount-badge">
+                  -{discountPercent}%
+                </span>
+              </>
+            )}
             {offering.pricingModel && offering.pricingModel !== 'FIXED' && (
               <span className="offering-card__pricing-model">
                 {offering.pricingModel.toLowerCase().replace('_', ' ')}

@@ -54,16 +54,13 @@ export function hasMovingGoal(userGoals: UserGoal[] = []): boolean {
  */
 export function getRecommendationExplanation(
   offering: GoalOffering,
-  matchedGoalName?: string,
+  _matchedGoalName?: string,
 ): string {
-  if (matchedGoalName) {
-    return `Matched to ${matchedGoalName}`
+  if (offering.isFeatured) {
+    return 'Featured offering'
   }
   if (offering.type === 'PACKAGE' || offering.type === 'BUNDLE') {
     return 'Curated bundle'
-  }
-  if (offering.isFeatured) {
-    return 'Featured offering'
   }
   if (isVendorVerified(offering.vendor)) {
     return 'Verified merchant'

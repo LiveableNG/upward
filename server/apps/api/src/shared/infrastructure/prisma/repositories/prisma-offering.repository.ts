@@ -81,6 +81,13 @@ export class PrismaOfferingRepository implements OfferingRepository {
             },
             orderBy: { sortOrder: 'asc' },
           },
+          goalLinks: {
+            include: {
+              goal: {
+                include: { category: true },
+              },
+            },
+          },
         },
       }),
       this.prisma.upward_offering.count({ where }),
@@ -200,6 +207,7 @@ export class PrismaOfferingRepository implements OfferingRepository {
         packageItems: {
           include: { component: true },
         },
+        goalLinks: true,
       },
     })
 
@@ -252,6 +260,7 @@ export class PrismaOfferingRepository implements OfferingRepository {
         packageItems: {
           include: { component: true },
         },
+        goalLinks: true,
       },
     })
 

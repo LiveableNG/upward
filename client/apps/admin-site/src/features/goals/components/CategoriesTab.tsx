@@ -37,35 +37,35 @@ export const CategoriesTab: React.FC<CategoriesTabProps> = ({
     {
       key: 'name',
       label: 'Category Name',
-      render: (cat) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div
-            style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '8px',
-              background: 'var(--accent-faint)',
-              border: '1px solid var(--accent-muted)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'var(--accent)',
-              fontSize: '14px',
-              fontWeight: 700,
-              flexShrink: 0,
-            }}
-          >
-            {cat.icon || <FolderTree size={16} />}
+      render: (cat) => {
+        const nameText = cat.name || (cat as any).title || ''
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div
+              style={{
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                background: 'var(--accent-faint)',
+                border: '1px solid var(--accent-muted)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--accent)',
+                fontSize: '14px',
+                fontWeight: 700,
+                flexShrink: 0,
+              }}
+            >
+              {cat.icon || <FolderTree size={16} />}
+            </div>
+            <div>
+              <div style={{ fontWeight: 600, color: 'var(--text)' }}>{nameText}</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{cat.slug}</div>
+            </div>
           </div>
-          <div>
-    const nameText = cat.name || (cat as any).title || ''
-    return (
-      <div style={{ fontWeight: 600, color: 'var(--text)' }}>{nameText}</div>
-      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{cat.slug}</div>
-    )
-          </div>
-        </div>
-      ),
+        )
+      },
     },
     {
       key: 'description',

@@ -39,7 +39,7 @@ export class AdminManageCollectionsUseCase {
       goalId,
       offeringId: dto.offeringId,
       collectionId: dto.collectionId,
-      isRecommended: dto.isRecommended,
+      isRecommended: dto.isRecommended ?? dto.isFeatured ?? false,
       relevanceScore: dto.relevanceScore,
       curatorNote: dto.curatorNote,
       sortOrder: dto.sortOrder,

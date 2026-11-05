@@ -140,6 +140,15 @@ export class PrismaGoalRepository implements GoalRepository {
         take: filter?.take,
         include: {
           category: true,
+          offerings: {
+            include: {
+              offering: {
+                include: { media: true, vendor: true },
+              },
+              collection: true,
+            },
+            orderBy: { sortOrder: 'asc' },
+          },
           _count: {
             select: { userGoals: true, offerings: true },
           },
@@ -484,31 +493,39 @@ export class PrismaGoalRepository implements GoalRepository {
     curatorNote?: string | null
     sortOrder?: number
   }): Promise<GoalOfferingLink> {
-    const link = await this.prisma.upward_goal_offering.upsert({
+    const existing = await this.prisma.upward_goal_offering.findFirst({
       where: {
-        goalId_offeringId_collectionId: {
-          goalId: data.goalId,
-          offeringId: data.offeringId,
-          collectionId: data.collectionId ?? (null as any),
-        },
-      },
-      create: {
         goalId: data.goalId,
         offeringId: data.offeringId,
-        collectionId: data.collectionId,
-        isRecommended: data.isRecommended ?? false,
-        relevanceScore: data.relevanceScore ?? 100,
-        curatorNote: data.curatorNote,
-        sortOrder: data.sortOrder ?? 0,
+        collectionId: data.collectionId ?? null,
       },
-      update: {
+    })
+
+    if (existing) {
+      const updated = await this.prisma.upward_goal_offering.update({
+        where: { id: existing.id },
+        data: {
+          isRecommended: data.isRecommended ?? false,
+          relevanceScore: data.relevanceScore ?? 100,
+          curatorNote: data.curatorNote,
+          sortOrder: data.sortOrder ?? 0,
+        },
+      })
+      return updated as GoalOfferingLink
+    }
+
+    const created = await this.prisma.upward_goal_offering.create({
+      data: {
+        goalId: data.goalId,
+        offeringId: data.offeringId,
+        collectionId: data.collectionId ?? null,
         isRecommended: data.isRecommended ?? false,
         relevanceScore: data.relevanceScore ?? 100,
         curatorNote: data.curatorNote,
         sortOrder: data.sortOrder ?? 0,
       },
     })
-    return link as GoalOfferingLink
+    return created as GoalOfferingLink
   }
 
   async unlinkOfferingFromGoal(goalId: number, offeringId: number, collectionId?: number | null): Promise<void> {
@@ -516,7 +533,7 @@ export class PrismaGoalRepository implements GoalRepository {
       where: {
         goalId,
         offeringId,
-        collectionId: collectionId ?? null,
+        ...(collectionId !== undefined ? { collectionId } : {}),
       },
     })
   }

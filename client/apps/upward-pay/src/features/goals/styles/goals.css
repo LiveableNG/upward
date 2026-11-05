@@ -1200,6 +1200,7 @@
 .offering-card__price-group {
   display: flex;
   align-items: baseline;
+  flex-wrap: wrap;
   gap: 6px;
 }
 
@@ -1207,6 +1208,23 @@
   font-size: 15px;
   font-weight: 800;
   color: var(--text);
+}
+
+.offering-card__compare-price {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.offering-card__discount-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: #15803d;
+  background: rgba(22, 163, 74, 0.12);
+  padding: 1.5px 5px;
+  border-radius: var(--radius-sm);
+  letter-spacing: -0.01em;
 }
 
 .offering-card__pricing-model {
@@ -1329,12 +1347,52 @@
   overflow: hidden;
   background: var(--surface2);
   border: 1px solid var(--border);
+  transition: border-color 0.2s ease;
+}
+
+.offering-detail__hero-media--clickable {
+  cursor: pointer;
+}
+
+.offering-detail__hero-media--clickable:hover {
+  border-color: rgba(224, 90, 58, 0.4);
+}
+
+.offering-detail__hero-media--clickable:hover .offering-detail__hero-img {
+  transform: scale(1.025);
 }
 
 .offering-detail__hero-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.offering-detail__expand-btn {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  transition: background 0.15s, transform 0.15s ease-out;
+  z-index: 2;
+}
+
+.offering-detail__expand-btn:active {
+  transform: scale(0.96);
 }
 
 .offering-detail__hero-placeholder {
@@ -1412,6 +1470,19 @@
   border: 1px solid var(--border);
 }
 
+.offering-detail__price-col {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.offering-detail__price-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .offering-detail__price-label {
   display: block;
   font-size: 11px;
@@ -1425,6 +1496,29 @@
   font-size: 19px;
   font-weight: 800;
   color: var(--text);
+}
+
+.offering-detail__compare-price {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.offering-detail__discount-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #15803d;
+  background: rgba(22, 163, 74, 0.12);
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  letter-spacing: -0.01em;
+}
+
+.offering-detail__savings-text {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #15803d;
 }
 
 .offering-detail__pricing-pill {
@@ -1687,4 +1781,175 @@
   background: var(--surface);
   margin-bottom: 16px;
   animation: goalPulse 1.5s infinite;
+}
+
+/* ==========================================================================
+   Offering Lightbox (Fluid Apple-style Image Viewer & Vertical Pan)
+   ========================================================================== */
+.offering-lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  background: rgba(10, 15, 26, 0.88);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  animation: offeringLightboxFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes offeringLightboxFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.offering-lightbox__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  z-index: 10;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+
+.offering-lightbox__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 80%;
+}
+
+.offering-lightbox__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #f1f5f9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.offering-lightbox__counter {
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.offering-lightbox__close-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s ease-out, background 0.15s;
+}
+
+.offering-lightbox__close-btn:active {
+  transform: scale(0.92);
+}
+
+.offering-lightbox__body {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  padding: 8px 16px 24px;
+}
+
+.offering-lightbox__arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 5;
+  transition: background 0.15s, transform 0.15s;
+}
+
+.offering-lightbox__arrow:active {
+  transform: translateY(-50%) scale(0.92);
+}
+
+.offering-lightbox__arrow--prev {
+  left: 16px;
+}
+
+.offering-lightbox__arrow--next {
+  right: 16px;
+}
+
+.offering-lightbox__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 100%;
+  max-height: 100%;
+  animation: offeringLightboxScaleIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes offeringLightboxScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.offering-lightbox__scrollable {
+  max-width: 92vw;
+  max-height: calc(100vh - 130px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  border-radius: var(--radius-xl);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.1);
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+
+.offering-lightbox__full-img {
+  display: block;
+  max-width: 90vw;
+  max-height: 82vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  margin: 0 auto;
+}
+
+.offering-lightbox__hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #94a3b8;
+  letter-spacing: 0.01em;
+}
+
+.offering-lightbox__hint-dot {
+  opacity: 0.5;
 }

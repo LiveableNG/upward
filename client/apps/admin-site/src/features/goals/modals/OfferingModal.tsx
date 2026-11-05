@@ -2,14 +2,15 @@ import React, { useState, useEffect } from 'react'
 import { Package } from 'lucide-react'
 import { Modal } from '../../../components/common/modal/Modal'
 import { slugify } from '../utils'
-import type { Offering, CommerceVendor, OfferingType } from '../types'
+import type { Offering, CommerceVendor, OfferingType, Goal } from '../types'
 
 interface OfferingModalProps {
   isOpen: boolean
   onClose: () => void
   offering: Offering | null
   vendors: CommerceVendor[]
-  onSubmit: (data: Record<string, unknown>) => Promise<void>
+  goals?: Goal[]
+  onSubmit: (data: Record<string, unknown>, linkedGoalIds?: number[]) => Promise<void>
 }
 
 export const OfferingModal: React.FC<OfferingModalProps> = ({
@@ -17,6 +18,7 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
   onClose,
   offering,
   vendors,
+  goals = [],
   onSubmit,
 }) => {
   const isEditing = Boolean(offering)
@@ -35,6 +37,7 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
   const [mediaUrl, setMediaUrl] = useState('')
   const [isPublished, setIsPublished] = useState(true)
   const [isFeatured, setIsFeatured] = useState(false)
+  const [selectedGoalIds, setSelectedGoalIds] = useState<number[]>([])
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
@@ -56,6 +59,9 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
       
       setIsPublished(offering.isPublished ?? (offering as any).status === 'PUBLISHED')
       setIsFeatured(offering.isFeatured ?? false)
+
+      const initialGoalIds = offering.goalLinks?.map((gl) => gl.goalId) || []
+      setSelectedGoalIds(initialGoalIds)
     } else {
       setType('PRODUCT')
       setVendorId('')
@@ -71,6 +77,7 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
       setMediaUrl('')
       setIsPublished(true)
       setIsFeatured(false)
+      setSelectedGoalIds([])
     }
   }, [offering, isOpen])
 
@@ -91,23 +98,26 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
         ? [{ url: mediaUrl.trim(), altText: title.trim(), sortOrder: 0, isCover: true }]
         : undefined
 
-      await onSubmit({
-        type,
-        vendorId: vendorId === '' ? undefined : Number(vendorId),
-        title: title.trim(),
-        slug: slug.trim(),
-        subtitle: subtitle.trim() || undefined,
-        description: description.trim() || undefined,
-        price: Number(price),
-        currency,
-        compareAtPrice: compareAtPrice === '' ? undefined : Number(compareAtPrice),
-        stockCount: stockCount === '' ? undefined : Number(stockCount),
-        leadTimeDays: leadTimeDays === '' ? undefined : Number(leadTimeDays),
-        isDeliverable,
-        media,
-        isPublished,
-        isFeatured,
-      })
+      await onSubmit(
+        {
+          type,
+          vendorId: vendorId === '' ? undefined : Number(vendorId),
+          title: title.trim(),
+          slug: slug.trim(),
+          subtitle: subtitle.trim() || undefined,
+          description: description.trim() || undefined,
+          price: Number(price),
+          currency,
+          compareAtPrice: compareAtPrice === '' ? undefined : Number(compareAtPrice),
+          stockCount: stockCount === '' ? undefined : Number(stockCount),
+          leadTimeDays: leadTimeDays === '' ? undefined : Number(leadTimeDays),
+          isDeliverable,
+          media,
+          isPublished,
+          isFeatured,
+        },
+        selectedGoalIds,
+      )
       onClose()
     } catch {
       // handled in hook
@@ -287,6 +297,66 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
               onChange={(e) => setLeadTimeDays(e.target.value === '' ? '' : Number(e.target.value))}
             />
           </div>
+        </div>
+
+        <div>
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
+            Connected Lifestyle Goal(s)
+          </label>
+          <div
+            style={{
+              display: 'flex',
+              gap: '6px',
+              flexWrap: 'wrap',
+              maxHeight: '120px',
+              overflowY: 'auto',
+              padding: '8px',
+              border: '1px solid var(--border)',
+              borderRadius: '8px',
+              background: 'var(--surface-hover)',
+            }}
+          >
+            {goals && goals.length > 0 ? (
+              goals.map((g) => {
+                const isSelected = selectedGoalIds.includes(g.id)
+                return (
+                  <button
+                    key={g.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedGoalIds((prev) =>
+                        isSelected ? prev.filter((id) => id !== g.id) : [...prev, g.id],
+                      )
+                    }}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: '16px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      border: isSelected ? '1px solid var(--accent)' : '1px solid var(--border)',
+                      background: isSelected ? 'var(--accent)' : 'var(--surface)',
+                      color: isSelected ? '#fff' : 'var(--text)',
+                      transition: 'all 0.15s ease',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    <span>{isSelected ? '✓' : '+'}</span>
+                    <span>{g.title}</span>
+                  </button>
+                )
+              })
+            ) : (
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                No goals available yet. Create a goal in the Goals tab first.
+              </span>
+            )}
+          </div>
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+            Connect this offering to goals so tenants see it when browsing or filtering recommendations in Upward Pay.
+          </span>
         </div>
 
         <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', marginTop: '6px' }}>
