@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import {
   ArrowLeft,
@@ -60,10 +61,15 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
   identifier,
 }) => {
   const router = useRouter()
+  const [mounted, setMounted] = useState(false)
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [failedImages, setFailedImages] = useState<Record<number, boolean>>({})
   const [copied, setCopied] = useState(false)
   const [isLightboxOpen, setIsLightboxOpen] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const {
     data: detailOffering,
@@ -613,96 +619,100 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
       </main>
 
       {/* Fullscreen Fluid Image Lightbox */}
-      {isLightboxOpen && showActiveImage && (
-        <div
-          className="offering-lightbox"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Full-size image view"
-          onClick={() => setIsLightboxOpen(false)}
-        >
-          <div className="offering-lightbox__backdrop" />
-
-          <header
-            className="offering-lightbox__header"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="offering-lightbox__info">
-              <span className="offering-lightbox__title">{title}</span>
-              {images.length > 1 && (
-                <span className="offering-lightbox__counter">
-                  {selectedImageIndex + 1} of {images.length}
-                </span>
-              )}
-            </div>
-
-            <button
-              type="button"
-              className="offering-lightbox__close-btn"
-              onClick={() => setIsLightboxOpen(false)}
-              aria-label="Close photo view"
-            >
-              <X size={20} />
-            </button>
-          </header>
-
+      {mounted &&
+        isLightboxOpen &&
+        showActiveImage &&
+        createPortal(
           <div
-            className="offering-lightbox__body"
+            className="offering-lightbox"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Full-size image view"
             onClick={() => setIsLightboxOpen(false)}
           >
-            {images.length > 1 && (
-              <button
-                type="button"
-                className="offering-lightbox__arrow offering-lightbox__arrow--prev"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setSelectedImageIndex((prev) =>
-                    prev > 0 ? prev - 1 : images.length - 1,
-                  )
-                }}
-                aria-label="Previous image"
-              >
-                <ChevronLeft size={24} />
-              </button>
-            )}
+            <div className="offering-lightbox__backdrop" />
 
-            <div
-              className="offering-lightbox__content"
+            <header
+              className="offering-lightbox__header"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="offering-lightbox__scrollable">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={activeImage!}
-                  alt={title}
-                  className="offering-lightbox__full-img"
-                />
+              <div className="offering-lightbox__info">
+                <span className="offering-lightbox__title">{title}</span>
+                {images.length > 1 && (
+                  <span className="offering-lightbox__counter">
+                    {selectedImageIndex + 1} of {images.length}
+                  </span>
+                )}
               </div>
-              <div className="offering-lightbox__hint">
-                <span>Pan or scroll to view whole photo</span>
-                <span className="offering-lightbox__hint-dot">•</span>
-                <span>Tap outside to close</span>
-              </div>
-            </div>
 
-            {images.length > 1 && (
               <button
                 type="button"
-                className="offering-lightbox__arrow offering-lightbox__arrow--next"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  setSelectedImageIndex((prev) =>
-                    prev < images.length - 1 ? prev + 1 : 0,
-                  )
-                }}
-                aria-label="Next image"
+                className="offering-lightbox__close-btn"
+                onClick={() => setIsLightboxOpen(false)}
+                aria-label="Close photo view"
               >
-                <ChevronRight size={24} />
+                <X size={20} />
               </button>
-            )}
-          </div>
-        </div>
-      )}
+            </header>
+
+            <div
+              className="offering-lightbox__body"
+              onClick={() => setIsLightboxOpen(false)}
+            >
+              {images.length > 1 && (
+                <button
+                  type="button"
+                  className="offering-lightbox__arrow offering-lightbox__arrow--prev"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setSelectedImageIndex((prev) =>
+                      prev > 0 ? prev - 1 : images.length - 1,
+                    )
+                  }}
+                  aria-label="Previous image"
+                >
+                  <ChevronLeft size={24} />
+                </button>
+              )}
+
+              <div
+                className="offering-lightbox__content"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="offering-lightbox__scrollable">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={activeImage!}
+                    alt={title}
+                    className="offering-lightbox__full-img"
+                  />
+                </div>
+                <div className="offering-lightbox__hint">
+                  <span>Pan or scroll to view whole photo</span>
+                  <span className="offering-lightbox__hint-dot">•</span>
+                  <span>Tap outside to close</span>
+                </div>
+              </div>
+
+              {images.length > 1 && (
+                <button
+                  type="button"
+                  className="offering-lightbox__arrow offering-lightbox__arrow--next"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setSelectedImageIndex((prev) =>
+                      prev < images.length - 1 ? prev + 1 : 0,
+                    )
+                  }}
+                  aria-label="Next image"
+                >
+                  <ChevronRight size={24} />
+                </button>
+              )}
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   )
 }

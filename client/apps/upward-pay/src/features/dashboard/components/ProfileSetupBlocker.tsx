@@ -30,6 +30,7 @@ import {
 import { isSavingsWalletEnabled } from '../utils/savingsWallet'
 import { useRentalExperiment } from '../setup/hooks/useRentalExperiment'
 import { useRentalGate } from '../setup/hooks/useRentalGate'
+import { useUserGoals } from '@/features/goals/hooks/useGoals'
 
 interface ProfileSetupBlockerProps {
   user: UserProfile
@@ -39,7 +40,7 @@ interface ProfileSetupBlockerProps {
   onSkip: () => void
 }
 
-type SetupStepId = 'rental' | 'phone' | 'identity'
+type SetupStepId = 'rental' | 'phone' | 'identity' | 'goals'
 
 interface SetupStep {
   id: SetupStepId
@@ -70,6 +71,8 @@ export function ProfileSetupBlocker({ user, score, maxScore, onSkip }: ProfileSe
   const firstName = user.firstName || 'there'
   const rentalDone = hasRentalInfo(user)
   const showIdentityStep = (user.verificationOn ?? true) && !isGated
+  const { data: userGoals = [] } = useUserGoals()
+  const goalsDone = userGoals.filter((g) => g.status === 'ACTIVE').length > 0
 
   const steps: SetupStep[] = [
     {
@@ -87,6 +90,14 @@ export function ProfileSetupBlocker({ user, score, maxScore, onSkip }: ProfileSe
       icon: User,
       done: hasContactDetails(user),
       href: getStandalonePhonePath(),
+    },
+    {
+      id: 'goals',
+      label: 'Lifestyle goals',
+      hint: 'Tailor perks & deals',
+      icon: Target,
+      done: goalsDone,
+      href: '/dashboard/lifestyle?goals=open',
     },
     ...(showIdentityStep
       ? [

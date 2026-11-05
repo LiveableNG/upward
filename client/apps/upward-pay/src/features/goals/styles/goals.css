@@ -867,10 +867,13 @@
 .goal-sheet__backdrop {
   position: fixed;
   inset: 0;
-  z-index: 1200;
-  background: rgba(0, 0, 0, 0.48);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  z-index: 99999;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -887,16 +890,17 @@
 .goal-sheet__panel {
   width: 100%;
   max-width: 540px;
-  height: 72vh;
-  max-height: 80vh;
+  height: 76vh;
+  height: 76dvh;
+  max-height: 85vh;
   background: var(--bg);
   border-top: 1px solid var(--border);
-  border-radius: 22px 22px 0 0;
+  border-radius: 24px 24px 0 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.22);
-  animation: goalSheetUp 240ms cubic-bezier(0.22, 1, 0.36, 1);
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.35);
+  animation: goalSheetUp 280ms cubic-bezier(0.16, 1, 0.3, 1);
   overscroll-behavior: contain;
 }
 
@@ -904,9 +908,9 @@
   .goal-sheet__panel {
     border: 1px solid var(--border);
     border-radius: 22px;
-    height: auto;
-    max-height: 80vh;
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.22);
+    height: 600px;
+    max-height: 82vh;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
   }
 }
 
