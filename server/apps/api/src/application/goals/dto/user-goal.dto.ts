@@ -14,7 +14,6 @@ import { UserGoalStatus } from '../../../domains/goals/goal.repository'
 export class SetUserGoalsDto {
   @IsArray()
   @IsInt({ each: true })
-  @IsNotEmpty()
   goalIds!: number[]
 }
 

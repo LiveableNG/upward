@@ -293,66 +293,68 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
             )}
           </div>
 
-          <div className="lifestyle-discovery__type-chips">
-            <button
-              type="button"
-              className={`lifestyle-discovery__type-chip ${
-                selectedType === 'ALL'
-                  ? 'lifestyle-discovery__type-chip--active'
-                  : ''
-              }`}
-              onClick={() => setSelectedType('ALL')}
-            >
-              All
-            </button>
-            <button
-              type="button"
-              className={`lifestyle-discovery__type-chip ${
-                selectedType === 'PACKAGE'
-                  ? 'lifestyle-discovery__type-chip--active'
-                  : ''
-              }`}
-              onClick={() => setSelectedType('PACKAGE')}
-            >
-              <Package size={13} />
-              <span>Packages</span>
-            </button>
-            <button
-              type="button"
-              className={`lifestyle-discovery__type-chip ${
-                selectedType === 'BUNDLE'
-                  ? 'lifestyle-discovery__type-chip--active'
-                  : ''
-              }`}
-              onClick={() => setSelectedType('BUNDLE')}
-            >
-              <Layers size={13} />
-              <span>Bundles</span>
-            </button>
-            <button
-              type="button"
-              className={`lifestyle-discovery__type-chip ${
-                selectedType === 'SERVICE'
-                  ? 'lifestyle-discovery__type-chip--active'
-                  : ''
-              }`}
-              onClick={() => setSelectedType('SERVICE')}
-            >
-              <Wrench size={13} />
-              <span>Services</span>
-            </button>
-            <button
-              type="button"
-              className={`lifestyle-discovery__type-chip ${
-                selectedType === 'PRODUCT'
-                  ? 'lifestyle-discovery__type-chip--active'
-                  : ''
-              }`}
-              onClick={() => setSelectedType('PRODUCT')}
-            >
-              <ShoppingBag size={13} />
-              <span>Products</span>
-            </button>
+          <div className="lifestyle-discovery__type-scroll-wrap">
+            <div className="lifestyle-discovery__type-chips">
+              <button
+                type="button"
+                className={`lifestyle-discovery__type-chip ${
+                  selectedType === 'ALL'
+                    ? 'lifestyle-discovery__type-chip--active'
+                    : ''
+                }`}
+                onClick={() => setSelectedType('ALL')}
+              >
+                All
+              </button>
+              <button
+                type="button"
+                className={`lifestyle-discovery__type-chip ${
+                  selectedType === 'PACKAGE'
+                    ? 'lifestyle-discovery__type-chip--active'
+                    : ''
+                }`}
+                onClick={() => setSelectedType('PACKAGE')}
+              >
+                <Package size={13} />
+                <span>Packages</span>
+              </button>
+              <button
+                type="button"
+                className={`lifestyle-discovery__type-chip ${
+                  selectedType === 'BUNDLE'
+                    ? 'lifestyle-discovery__type-chip--active'
+                    : ''
+                }`}
+                onClick={() => setSelectedType('BUNDLE')}
+              >
+                <Layers size={13} />
+                <span>Bundles</span>
+              </button>
+              <button
+                type="button"
+                className={`lifestyle-discovery__type-chip ${
+                  selectedType === 'SERVICE'
+                    ? 'lifestyle-discovery__type-chip--active'
+                    : ''
+                }`}
+                onClick={() => setSelectedType('SERVICE')}
+              >
+                <Wrench size={13} />
+                <span>Services</span>
+              </button>
+              <button
+                type="button"
+                className={`lifestyle-discovery__type-chip ${
+                  selectedType === 'PRODUCT'
+                    ? 'lifestyle-discovery__type-chip--active'
+                    : ''
+                }`}
+                onClick={() => setSelectedType('PRODUCT')}
+              >
+                <ShoppingBag size={13} />
+                <span>Products</span>
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -363,42 +365,44 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
         {!isUserGoalsLoading && (
           <div className="lifestyle-discovery__context-strip">
             {hasSelectedGoals ? (
-              <div className="lifestyle-discovery__goal-pills-row">
-                <button
-                  type="button"
-                  className={`lifestyle-discovery__goal-pill ${
-                    selectedActiveGoalId === 'ALL'
-                      ? 'lifestyle-discovery__goal-pill--active'
-                      : ''
-                  }`}
-                  onClick={() => setSelectedActiveGoalId('ALL')}
-                >
-                  All For You
-                </button>
-                {activeUserGoals.map((ug) => {
-                  const gTitle = getGoalTitle(ug.goal) || `Goal #${ug.goalId}`
-                  return (
-                    <button
-                      key={ug.goalId}
-                      type="button"
-                      className={`lifestyle-discovery__goal-pill ${
-                        selectedActiveGoalId === ug.goalId
-                          ? 'lifestyle-discovery__goal-pill--active'
-                          : ''
-                      }`}
-                      onClick={() => setSelectedActiveGoalId(ug.goalId)}
-                    >
-                      {gTitle}
-                    </button>
-                  )
-                })}
-                <button
-                  type="button"
-                  className="lifestyle-discovery__goal-edit-link"
-                  onClick={openGoalSheet}
-                >
-                  Edit goals
-                </button>
+              <div className="lifestyle-discovery__goal-scroll-wrap">
+                <div className="lifestyle-discovery__goal-pills-row">
+                  <button
+                    type="button"
+                    className={`lifestyle-discovery__goal-pill ${
+                      selectedActiveGoalId === 'ALL'
+                        ? 'lifestyle-discovery__goal-pill--active'
+                        : ''
+                    }`}
+                    onClick={() => setSelectedActiveGoalId('ALL')}
+                  >
+                    All For You
+                  </button>
+                  {activeUserGoals.map((ug) => {
+                    const gTitle = getGoalTitle(ug.goal) || `Goal #${ug.goalId}`
+                    return (
+                      <button
+                        key={ug.goalId}
+                        type="button"
+                        className={`lifestyle-discovery__goal-pill ${
+                          selectedActiveGoalId === ug.goalId
+                            ? 'lifestyle-discovery__goal-pill--active'
+                            : ''
+                        }`}
+                        onClick={() => setSelectedActiveGoalId(ug.goalId)}
+                      >
+                        {gTitle}
+                      </button>
+                    )
+                  })}
+                  <button
+                    type="button"
+                    className="lifestyle-discovery__goal-edit-link"
+                    onClick={openGoalSheet}
+                  >
+                    Edit goals
+                  </button>
+                </div>
               </div>
             ) : (
               <div className="lifestyle-discovery__nudge-bar">

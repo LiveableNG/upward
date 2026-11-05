@@ -206,7 +206,26 @@ export class PrismaOfferingRepository implements OfferingRepository {
     return created as unknown as Offering
   }
 
-  async updateOffering(id: number, data: Partial<Offering>): Promise<Offering> {
+  async updateOffering(
+    id: number,
+    data: Partial<Offering>,
+    media?: Array<Partial<OfferingMedia>>,
+  ): Promise<Offering> {
+    if (media !== undefined) {
+      await this.prisma.upward_offering_media.deleteMany({ where: { offeringId: id } })
+      if (media.length > 0) {
+        await this.prisma.upward_offering_media.createMany({
+          data: media.map((m, idx) => ({
+            offeringId: id,
+            mediaUrl: m.mediaUrl!,
+            mimeType: m.mimeType || 'image/jpeg',
+            sortOrder: m.sortOrder ?? idx,
+            isPrimary: m.isPrimary ?? idx === 0,
+          })),
+        })
+      }
+    }
+
     const updated = await this.prisma.upward_offering.update({
       where: { id },
       data: {

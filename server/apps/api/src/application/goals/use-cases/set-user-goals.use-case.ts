@@ -13,8 +13,8 @@ export class SetUserGoalsUseCase {
   ) {}
 
   async execute(userId: number | string, goalIds: number[]): Promise<UserGoal[]> {
-    if (!Array.isArray(goalIds) || goalIds.length === 0) {
-      throw new BadRequestException('At least one goal must be provided')
+    if (!Array.isArray(goalIds)) {
+      throw new BadRequestException('Goal IDs must be provided as an array')
     }
 
     return this.goalRepo.setUserGoals(userId, goalIds)

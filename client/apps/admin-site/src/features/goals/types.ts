@@ -97,6 +97,7 @@ export interface Offering {
   price: number
   currency: string
   compareAtPrice?: number | null
+  maxPrice?: number | null
   stockCount?: number | null
   leadTimeDays?: number | null
   isDeliverable: boolean

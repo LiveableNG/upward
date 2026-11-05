@@ -41,17 +41,20 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
     if (offering) {
       setType(offering.type)
       setVendorId(offering.vendorId ?? '')
-      setTitle(offering.title)
-      setSlug(offering.slug)
+      setTitle(offering.title || '')
+      setSlug(offering.slug || (offering.title ? slugify(offering.title) : ''))
       setSubtitle(offering.subtitle || '')
       setDescription(offering.description || '')
-      setPrice(offering.price)
-      setCompareAtPrice(offering.compareAtPrice ?? '')
+      setPrice(offering.price ?? '')
+      setCompareAtPrice(offering.compareAtPrice ?? (offering as any).maxPrice ?? '')
       setStockCount(offering.stockCount ?? '')
       setLeadTimeDays(offering.leadTimeDays ?? '')
-      setIsDeliverable(offering.isDeliverable ?? true)
-      setMediaUrl(offering.media?.[0]?.url || '')
-      setIsPublished(offering.isPublished ?? true)
+      setIsDeliverable((offering as any).deliveryAvailable ?? offering.isDeliverable ?? true)
+      
+      const firstMedia = offering.media?.[0]
+      setMediaUrl(firstMedia?.url || (firstMedia as any)?.mediaUrl || '')
+      
+      setIsPublished(offering.isPublished ?? (offering as any).status === 'PUBLISHED')
       setIsFeatured(offering.isFeatured ?? false)
     } else {
       setType('PRODUCT')

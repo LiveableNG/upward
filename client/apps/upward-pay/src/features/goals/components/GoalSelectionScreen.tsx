@@ -71,10 +71,6 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
 
   const handleSave = async () => {
     const goalIds = Array.from(selectedGoalIds)
-    if (goalIds.length === 0 && mode === 'onboarding') {
-      handleSkip()
-      return
-    }
 
     try {
       await setGoalsMutation.mutateAsync({ goalIds })

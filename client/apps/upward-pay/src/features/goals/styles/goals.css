@@ -510,6 +510,33 @@
   margin: 0 auto;
 }
 
+.lifestyle-discovery__type-scroll-wrap,
+.lifestyle-discovery__goal-scroll-wrap {
+  position: relative;
+  width: 100%;
+}
+
+/* Gradient fade indicators on the right edge */
+.lifestyle-discovery__type-scroll-wrap::after,
+.lifestyle-discovery__goal-scroll-wrap::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 44px;
+  pointer-events: none;
+  background: linear-gradient(to right, transparent, var(--bg));
+  z-index: 2;
+}
+
+@media (min-width: 768px) {
+  .lifestyle-discovery__type-scroll-wrap::after,
+  .lifestyle-discovery__goal-scroll-wrap::after {
+    display: none;
+  }
+}
+
 @media (min-width: 768px) {
   .lifestyle-discovery__controls {
     flex-direction: row;
@@ -573,6 +600,8 @@
   gap: 6px;
   overflow-x: auto;
   scrollbar-width: none;
+  padding-right: 36px;
+  -webkit-overflow-scrolling: touch;
 }
 
 .lifestyle-discovery__type-chip {
@@ -626,7 +655,10 @@
   align-items: center;
   gap: 8px;
   overflow-x: auto;
-  padding-bottom: 2px;
+  padding-bottom: 4px;
+  padding-right: 36px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 .lifestyle-discovery__goal-pill {

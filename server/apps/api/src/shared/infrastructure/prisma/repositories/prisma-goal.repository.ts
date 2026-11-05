@@ -324,6 +324,8 @@ export class PrismaGoalRepository implements GoalRepository {
 
   async setUserGoals(userId: number | string, goalIds: number[]): Promise<UserGoal[]> {
     const resolvedUserId = await this.resolveNumericUserId(userId)
+    const targetSet = new Set(goalIds)
+
     return this.prisma.$transaction(async (tx) => {
       // Find existing goals for this user
       const existing = await tx.upward_user_goal.findMany({
@@ -331,6 +333,20 @@ export class PrismaGoalRepository implements GoalRepository {
         select: { goalId: true },
       })
       const existingGoalIds = new Set(existing.map((e) => e.goalId))
+
+      // Identify goals to remove (unselected)
+      const toRemove = existing
+        .map((e) => e.goalId)
+        .filter((id) => !targetSet.has(id))
+
+      if (toRemove.length > 0) {
+        await tx.upward_user_goal.deleteMany({
+          where: {
+            userId: resolvedUserId,
+            goalId: { in: toRemove },
+          },
+        })
+      }
 
       // Identify goals to add
       const toAdd = goalIds.filter((id) => !existingGoalIds.has(id))

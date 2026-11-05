@@ -247,6 +247,18 @@ export class UpdateOfferingDto {
   @IsBoolean()
   @IsOptional()
   isPublished?: boolean
+
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => OfferingMediaInputDto)
+  media?: OfferingMediaInputDto[]
+
+  @IsArray()
+  @IsOptional()
+  @ValidateNested({ each: true })
+  @Type(() => PackageItemInputDto)
+  packageItems?: PackageItemInputDto[]
 }
 
 export class OfferingQueryDto {
