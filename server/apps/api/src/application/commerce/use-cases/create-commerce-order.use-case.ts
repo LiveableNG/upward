@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Inject,
   Injectable,
@@ -20,6 +21,7 @@ import {
   PriceableItemInput,
   PriceableOffering,
 } from '../../../domains/commerce/commerce-pricing.engine'
+import { DeliveryZoneResolver } from '../../../domains/commerce/delivery-zone.resolver'
 import { CreateCommerceOrderDto } from '../dto/create-commerce-order.dto'
 import { TenantOrderDetailDto } from '../dto/tenant-commerce-order.dto'
 
@@ -79,6 +81,8 @@ export class CreateCommerceOrderUseCase {
         inStock: offering.inStock,
         stockCount: offering.stockCount,
         deliveryAvailable: offering.deliveryAvailable,
+        deliveryCoverageType: offering.deliveryCoverageType,
+        deliveryZones: offering.deliveryZones,
         leadTimeDays: offering.leadTimeDays,
         status: offering.status,
         vendor: offering.vendor,
@@ -90,6 +94,15 @@ export class CreateCommerceOrderUseCase {
           overridePrice: pi.overridePrice,
           vendorId: pi.component?.vendorId,
         })),
+      }
+
+      // Validate delivery coverage for physical offerings against recipient address
+      const deliveryValidation = DeliveryZoneResolver.validateOfferingDelivery(
+        priceableOffering,
+        dto.deliveryAddress,
+      )
+      if (!deliveryValidation.isDeliverable) {
+        throw new BadRequestException(deliveryValidation.reason)
       }
 
       priceableItems.push({

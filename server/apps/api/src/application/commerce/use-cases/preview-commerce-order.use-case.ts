@@ -8,6 +8,7 @@ import {
   PriceableItemInput,
   PriceableOffering,
 } from '../../../domains/commerce/commerce-pricing.engine'
+import { DeliveryZoneResolver } from '../../../domains/commerce/delivery-zone.resolver'
 import { PreviewCommerceOrderDto } from '../dto/preview-commerce-order.dto'
 
 export interface PreviewCommerceOrderResponse {
@@ -17,6 +18,8 @@ export interface PreviewCommerceOrderResponse {
   taxKobo: string
   discountKobo: string
   totalAmountKobo: string
+  deliveryEligible?: boolean
+  deliveryMessage?: string
   subOrders: Array<{
     vendorId: number
     vendorName: string
@@ -68,6 +71,8 @@ export class PreviewCommerceOrderUseCase {
         inStock: offering.inStock,
         stockCount: offering.stockCount,
         deliveryAvailable: offering.deliveryAvailable,
+        deliveryCoverageType: offering.deliveryCoverageType,
+        deliveryZones: offering.deliveryZones,
         leadTimeDays: offering.leadTimeDays,
         status: offering.status,
         vendor: offering.vendor,
@@ -87,6 +92,24 @@ export class PreviewCommerceOrderUseCase {
       })
     }
 
+    // Evaluate deliverability if deliveryAddress is supplied
+    let deliveryEligible = true
+    let deliveryMessage: string | undefined = undefined
+
+    if (dto.deliveryAddress) {
+      for (const item of priceableItems) {
+        const check = DeliveryZoneResolver.validateOfferingDelivery(
+          item.offering,
+          dto.deliveryAddress,
+        )
+        if (!check.isDeliverable) {
+          deliveryEligible = false
+          deliveryMessage = check.reason
+          break
+        }
+      }
+    }
+
     const discountKobo = dto.discountKobo ? BigInt(dto.discountKobo) : 0n
 
     // Calculate using the shared deterministic pricing engine
@@ -102,6 +125,8 @@ export class PreviewCommerceOrderUseCase {
       taxKobo: pricing.taxKobo.toString(),
       discountKobo: pricing.discountKobo.toString(),
       totalAmountKobo: pricing.totalAmountKobo.toString(),
+      deliveryEligible,
+      deliveryMessage,
       subOrders: pricing.subOrders.map((sub) => ({
         vendorId: sub.vendorId,
         vendorName: sub.vendor.name,

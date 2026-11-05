@@ -18,6 +18,12 @@ enum OfferingPricingModel {
   QUOTE_REQUIRED
 }
 
+enum DeliveryCoverageType {
+  NATIONWIDE
+  REGIONAL_ZONES
+  PICKUP_ONLY
+}
+
 enum UserGoalStatus {
   ACTIVE
   PAUSED
@@ -121,6 +127,8 @@ model upward_commerce_vendor {
   website     String?              @db.VarChar(255)
   rating      Float                @default(5.0)
   isActive    Boolean              @default(true)
+  defaultDeliveryCoverage DeliveryCoverageType @default(NATIONWIDE)
+  defaultDeliveryZones    String[]             @default([])
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
 
@@ -150,6 +158,8 @@ model upward_offering {
   inStock            Boolean              @default(true)
   stockCount         Int?
   deliveryAvailable  Boolean              @default(true)
+  deliveryCoverageType DeliveryCoverageType @default(NATIONWIDE)
+  deliveryZones        String[]             @default([])
   leadTimeDays       Int?
   
   status             GoalPublishStatus    @default(DRAFT)

@@ -82,6 +82,8 @@ export interface GoalOffering {
   inStock?: boolean
   stockCount?: number | null
   deliveryAvailable?: boolean
+  deliveryCoverageType?: 'NATIONWIDE' | 'REGIONAL_ZONES' | 'PICKUP_ONLY'
+  deliveryZones?: string[]
   leadTimeDays?: number | null
   isFeatured?: boolean
   status: GoalStatus

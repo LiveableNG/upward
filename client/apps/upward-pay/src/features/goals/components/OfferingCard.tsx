@@ -15,12 +15,17 @@ import {
   type GoalOffering,
   type CommerceVendor,
 } from '../types/goals.types'
+import {
+  type UserDeliveryLocation,
+  isOfferingDeliverableToLocation,
+} from '../utils/deliveryLocation'
 import type { RecommendedOfferingItem } from '../utils/recommendationEngine'
 
 interface OfferingCardProps {
   item:
     | RecommendedOfferingItem
     | { offering: GoalOffering; reason?: string; isGoalMatch?: boolean }
+  userLocation?: UserDeliveryLocation
   onClick?: (offering: GoalOffering) => void
   onVendorClick?: (vendor: CommerceVendor, e: React.MouseEvent) => void
 }
@@ -59,6 +64,7 @@ export function getOfferingTypeIcon(type: string) {
 
 export const OfferingCard: React.FC<OfferingCardProps> = ({
   item,
+  userLocation,
   onClick,
 }) => {
   const [imgError, setImgError] = useState(false)
@@ -70,6 +76,10 @@ export const OfferingCard: React.FC<OfferingCardProps> = ({
       : null
   const isGoalMatch = item.isGoalMatch
   const TypeIcon = getOfferingTypeIcon(offering.type)
+
+  const deliveryCheck = userLocation
+    ? isOfferingDeliverableToLocation(offering, userLocation)
+    : { isDeliverable: true }
 
   const primaryImage =
     offering.media?.find((m) => m.isPrimary)?.mediaUrl ||
@@ -144,6 +154,12 @@ export const OfferingCard: React.FC<OfferingCardProps> = ({
           {offering.deliveryAvailable && (
             <span className="offering-card__delivery-chip" title="Delivery included">
               <Truck size={12} />
+            </span>
+          )}
+
+          {!deliveryCheck.isDeliverable && (
+            <span className="offering-card__undeliverable-badge">
+              Unavailable in your area
             </span>
           )}
         </div>

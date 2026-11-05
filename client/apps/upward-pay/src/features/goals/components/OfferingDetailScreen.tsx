@@ -21,7 +21,11 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  MessageSquare,
+  Send,
+  MapPin,
 } from 'lucide-react'
+import { useAuth } from '@/features/auth/AuthContext'
 import { useGoalOfferingDetail, usePublicOfferings } from '../hooks/useGoals'
 import {
   getGoalTitle,
@@ -33,6 +37,13 @@ import {
   formatCurrencyValue,
   getOfferingTypeIcon,
 } from './OfferingCard'
+import {
+  getStoredDeliveryLocation,
+  isOfferingDeliverableToLocation,
+  formatShortLocation,
+  type UserDeliveryLocation,
+} from '../utils/deliveryLocation'
+import { DeliveryLocationBar } from './DeliveryLocationBar'
 import '../styles/goals.css'
 
 interface OfferingDetailScreenProps {
@@ -61,11 +72,25 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
   identifier,
 }) => {
   const router = useRouter()
+  const { user } = useAuth()
   const [mounted, setMounted] = useState(false)
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [failedImages, setFailedImages] = useState<Record<number, boolean>>({})
   const [copied, setCopied] = useState(false)
   const [isLightboxOpen, setIsLightboxOpen] = useState(false)
+  const [deliveryLocation, setDeliveryLocation] = useState<UserDeliveryLocation>(() =>
+    getStoredDeliveryLocation(user?.properties?.[0]?.property_address),
+  )
+  const [isInquiryOpen, setIsInquiryOpen] = useState(false)
+  const [inquiryCategory, setInquiryCategory] = useState('GENERAL')
+  const [inquiryMessage, setInquiryMessage] = useState('')
+  const [inquirySent, setInquirySent] = useState(false)
+
+  useEffect(() => {
+    if (user?.properties?.[0]?.property_address) {
+      setDeliveryLocation(getStoredDeliveryLocation(user.properties[0].property_address))
+    }
+  }, [user])
 
   useEffect(() => {
     setMounted(true)
@@ -91,6 +116,11 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
 
   const offering: GoalOffering | undefined = detailOffering || fallbackOffering
   const isLoading = isDetailLoading && !offering
+
+  const deliveryCheck = React.useMemo(() => {
+    if (!offering) return { isDeliverable: true }
+    return isOfferingDeliverableToLocation(offering, deliveryLocation)
+  }, [offering, deliveryLocation])
 
   const images = React.useMemo(() => {
     if (!offering) return []
@@ -514,6 +544,43 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                     </div>
                   </div>
                 </div>
+                <div className="offering-detail__perk-item">
+                  <div className="offering-detail__perk-icon">
+                    <MapPin size={18} />
+                  </div>
+                  <div>
+                    <div className="offering-detail__perk-title">
+                      Destination: {formatShortLocation(deliveryLocation)}
+                    </div>
+                    <div className="offering-detail__perk-desc">
+                      {deliveryCheck.isDeliverable
+                        ? 'Eligible for direct dispatch to this address'
+                        : 'Delivery unavailable to this location'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {!deliveryCheck.isDeliverable && (
+                <div className="offering-detail__delivery-warning">
+                  <AlertCircle size={16} />
+                  <div>
+                    <span className="offering-detail__delivery-warning-title">
+                      Delivery unavailable to {formatShortLocation(deliveryLocation)}
+                    </span>
+                    <p className="offering-detail__delivery-warning-desc">
+                      {deliveryCheck.reason ||
+                        'This physical offering can only be delivered to specific coverage areas.'}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <div style={{ marginTop: 14 }}>
+                <DeliveryLocationBar
+                  location={deliveryLocation}
+                  onLocationChange={(loc) => setDeliveryLocation(loc)}
+                />
               </div>
             </section>
           </div>
@@ -556,56 +623,56 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                     </div>
                   </div>
 
-                  <div className="offering-detail__vendor-contacts">
-                    {vendorPhone && (
-                      <a
-                        href={`tel:${vendorPhone}`}
-                        className="offering-detail__contact-row"
-                      >
-                        <Phone size={15} />
-                        <span>{vendorPhone}</span>
-                      </a>
-                    )}
-                    {vendorEmail && (
-                      <a
-                        href={`mailto:${vendorEmail}?subject=${encodeURIComponent(`Inquiry: ${title}`)}`}
-                        className="offering-detail__contact-row"
-                      >
-                        <Mail size={15} />
-                        <span>{vendorEmail}</span>
-                      </a>
-                    )}
-                    {vendorWebsite && (
-                      <a
-                        href={vendorWebsite}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="offering-detail__contact-row"
-                      >
-                        <Globe size={15} />
-                        <span>Visit Merchant Website</span>
-                      </a>
-                    )}
+                  <div className="offering-detail__trust-banner">
+                    <ShieldCheck size={18} className="offering-detail__trust-icon" />
+                    <div>
+                      <span className="offering-detail__trust-title">
+                        Upward Buyer Protection
+                      </span>
+                      <span className="offering-detail__trust-desc">
+                        100% money-back guarantee, centralized order tracking, and full dispute arbitration.
+                      </span>
+                    </div>
                   </div>
 
                   <div className="offering-detail__cta-stack">
-                    {vendorPhone ? (
-                      <a
-                        href={`tel:${vendorPhone}`}
+                    {deliveryCheck.isDeliverable ? (
+                      <button
+                        type="button"
                         className="offering-detail__primary-cta"
+                        onClick={() =>
+                          router.push(
+                            `/dashboard/lifestyle/orders/new?offeringId=${offering.id || offering.uuid}`,
+                          )
+                        }
                       >
-                        <Phone size={16} />
-                        <span>Call Merchant</span>
-                      </a>
-                    ) : vendorEmail ? (
-                      <a
-                        href={`mailto:${vendorEmail}?subject=${encodeURIComponent(`Upward Tenant Inquiry: ${title}`)}`}
-                        className="offering-detail__primary-cta"
+                        <span>
+                          {offering.type === 'SERVICE'
+                            ? 'Book Service'
+                            : 'Order Now'}
+                        </span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        className="offering-detail__primary-cta offering-detail__primary-cta--disabled"
+                        disabled
                       >
-                        <Mail size={16} />
-                        <span>Email Merchant</span>
-                      </a>
-                    ) : null}
+                        <span>Delivery Unavailable in Your Area</span>
+                      </button>
+                    )}
+
+                    <button
+                      type="button"
+                      className="offering-detail__secondary-cta"
+                      onClick={() => {
+                        setIsInquiryOpen(true)
+                        setInquirySent(false)
+                      }}
+                    >
+                      <MessageSquare size={16} />
+                      <span>Ask Upward Support</span>
+                    </button>
                   </div>
                 </>
               ) : (
@@ -708,6 +775,146 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                 >
                   <ChevronRight size={24} />
                 </button>
+              )}
+            </div>
+          </div>,
+          document.body,
+        )}
+
+      {/* Upward Support & Concierge Inquiry Modal */}
+      {mounted &&
+        isInquiryOpen &&
+        createPortal(
+          <div
+            className="lifestyle-sheet__backdrop"
+            onClick={() => setIsInquiryOpen(false)}
+            role="presentation"
+          >
+            <div
+              className="lifestyle-sheet__container delivery-sheet"
+              onClick={(e) => e.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Contact Upward Support"
+            >
+              <div className="lifestyle-sheet__handle" />
+
+              <div className="lifestyle-sheet__header">
+                <div>
+                  <h3 className="lifestyle-sheet__title">Ask Upward Support</h3>
+                  <p className="lifestyle-sheet__subtitle">
+                    Inquiry regarding {title}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="lifestyle-sheet__close"
+                  onClick={() => setIsInquiryOpen(false)}
+                  aria-label="Close"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {inquirySent ? (
+                <div style={{ padding: '24px 0', textAlign: 'center' }}>
+                  <div
+                    style={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: '50%',
+                      background: 'color-mix(in srgb, #10b981 16%, var(--surface))',
+                      color: '#10b981',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      margin: '0 auto 12px',
+                    }}
+                  >
+                    <Check size={24} strokeWidth={2.5} />
+                  </div>
+                  <h4 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 6px' }}>
+                    Inquiry Received
+                  </h4>
+                  <p
+                    style={{
+                      fontSize: 13,
+                      color: 'var(--text-muted)',
+                      lineHeight: 1.45,
+                      margin: '0 0 20px',
+                    }}
+                  >
+                    We’ve logged your request with the Upward Concierge desk and sent
+                    a confirmation email. We will update you via email and app notification.
+                  </p>
+                  <button
+                    type="button"
+                    className="btn btn--primary"
+                    style={{ width: '100%' }}
+                    onClick={() => setIsInquiryOpen(false)}
+                  >
+                    Done
+                  </button>
+                </div>
+              ) : (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault()
+                    if (!inquiryMessage.trim()) return
+                    setInquirySent(true)
+                  }}
+                  className="inquiry-modal"
+                >
+                  <div className="inquiry-modal__field">
+                    <label className="inquiry-modal__label">Inquiry Topic</label>
+                    <select
+                      value={inquiryCategory}
+                      onChange={(e) => setInquiryCategory(e.target.value)}
+                      className="inquiry-modal__select"
+                    >
+                      <option value="GENERAL">General Product / Service Question</option>
+                      <option value="DELIVERY">Delivery Area & Scheduling Inquiry</option>
+                      <option value="CUSTOMIZATION">Customization / Special Request</option>
+                      <option value="PRICING">Pricing & Corporate Volume Quote</option>
+                    </select>
+                  </div>
+
+                  <div className="inquiry-modal__field">
+                    <label className="inquiry-modal__label">Your Message</label>
+                    <textarea
+                      placeholder="Ask any question about this offering, specifications, or fulfillment..."
+                      value={inquiryMessage}
+                      onChange={(e) => setInquiryMessage(e.target.value)}
+                      className="inquiry-modal__textarea"
+                      required
+                      autoFocus
+                    />
+                  </div>
+
+                  <p className="inquiry-modal__notice">
+                    Upward will coordinate directly with the merchant partner and respond
+                    to your registered account email.
+                  </p>
+
+                  <div className="delivery-sheet__custom-actions" style={{ marginTop: 8 }}>
+                    <button
+                      type="button"
+                      className="btn btn--secondary"
+                      onClick={() => setIsInquiryOpen(false)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="btn btn--primary"
+                      disabled={!inquiryMessage.trim()}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    >
+                      <Send size={14} />
+                      <span>Send Inquiry</span>
+                    </button>
+                  </div>
+                </form>
               )}
             </div>
           </div>,

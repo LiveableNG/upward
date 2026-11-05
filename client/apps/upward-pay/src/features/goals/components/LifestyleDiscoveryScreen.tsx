@@ -47,6 +47,12 @@ import {
   type GoalOffering,
   type OfferingType,
 } from '../types/goals.types'
+import { useAuth } from '@/features/auth/AuthContext'
+import {
+  type UserDeliveryLocation,
+  getStoredDeliveryLocation,
+} from '../utils/deliveryLocation'
+import { DeliveryLocationBar } from './DeliveryLocationBar'
 import { useToast } from '@/components/common/Toast'
 import '../styles/goals.css'
 
@@ -115,6 +121,17 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
 
   const { data: userGoals = [], isLoading: isUserGoalsLoading } = useUserGoals()
   const setGoalsMutation = useSetUserGoals()
+
+  const { user } = useAuth()
+  const [deliveryLocation, setDeliveryLocation] = useState<UserDeliveryLocation>(() =>
+    getStoredDeliveryLocation(user?.properties?.[0]?.property_address),
+  )
+
+  useEffect(() => {
+    if (user?.properties?.[0]?.property_address) {
+      setDeliveryLocation(getStoredDeliveryLocation(user.properties[0].property_address))
+    }
+  }, [user])
 
   // Filter & Search State
   const [searchQuery, setSearchQuery] = useState('')
@@ -259,22 +276,40 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
             </div>
           </div>
 
-          <button
-            type="button"
-            className={`lifestyle-discovery__goals-trigger ${
-              hasSelectedGoals ? 'lifestyle-discovery__goals-trigger--active' : ''
-            }`}
-            onClick={openGoalSheet}
-          >
-            <SlidersHorizontal size={14} />
-            <span>{hasSelectedGoals ? 'My Goals' : 'Set Goals'}</span>
-            {hasSelectedGoals && (
-              <span className="lifestyle-discovery__goals-badge">
-                {activeUserGoals.length}
-              </span>
-            )}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              type="button"
+              className="lifestyle-discovery__goals-trigger"
+              onClick={() => router.push('/dashboard/lifestyle/orders')}
+              aria-label="View past orders and tracking"
+            >
+              <Package size={14} />
+              <span>My Orders</span>
+            </button>
+
+            <button
+              type="button"
+              className={`lifestyle-discovery__goals-trigger ${
+                hasSelectedGoals ? 'lifestyle-discovery__goals-trigger--active' : ''
+              }`}
+              onClick={openGoalSheet}
+            >
+              <SlidersHorizontal size={14} />
+              <span>{hasSelectedGoals ? 'My Goals' : 'Set Goals'}</span>
+              {hasSelectedGoals && (
+                <span className="lifestyle-discovery__goals-badge">
+                  {activeUserGoals.length}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
+
+        {/* Delivery Location Context Bar */}
+        <DeliveryLocationBar
+          location={deliveryLocation}
+          onLocationChange={(loc) => setDeliveryLocation(loc)}
+        />
 
         {/* Search & Type Filter Row */}
         <div className="lifestyle-discovery__controls">
@@ -547,6 +582,7 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
               <OfferingCard
                 key={item.offering.id}
                 item={item}
+                userLocation={deliveryLocation}
                 onClick={handleOfferingClick}
               />
             ))}

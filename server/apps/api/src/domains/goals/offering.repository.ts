@@ -1,6 +1,7 @@
 export type OfferingType = 'PRODUCT' | 'SERVICE' | 'PACKAGE' | 'BUNDLE'
 export type OfferingPricingModel = 'FIXED' | 'RANGE' | 'STARTING_AT' | 'QUOTE_REQUIRED'
 export type GoalPublishStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
+export type DeliveryCoverageType = 'NATIONWIDE' | 'REGIONAL_ZONES' | 'PICKUP_ONLY'
 
 export interface OfferingMedia {
   id?: number
@@ -42,6 +43,8 @@ export interface Offering {
   inStock: boolean
   stockCount?: number | null
   deliveryAvailable: boolean
+  deliveryCoverageType?: DeliveryCoverageType
+  deliveryZones?: string[]
   leadTimeDays?: number | null
   status: GoalPublishStatus
   isFeatured: boolean

@@ -21,6 +21,8 @@ export interface PriceableOffering {
   inStock: boolean
   stockCount?: number | null
   deliveryAvailable: boolean
+  deliveryCoverageType?: string
+  deliveryZones?: string[]
   leadTimeDays?: number | null
   status: string // 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
   vendor?: {
