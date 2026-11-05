@@ -65,8 +65,6 @@ export class GetTenantOrderDetailUseCase {
           name: sub.vendor?.name || 'Vendor',
           slug: sub.vendor?.slug || '',
           logoUrl: sub.vendor?.logoUrl,
-          phone: sub.vendor?.phone,
-          email: sub.vendor?.email,
           rating: sub.vendor?.rating ?? 5.0,
         },
         items: (sub.items || []).map((it) => ({

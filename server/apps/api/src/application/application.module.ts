@@ -44,6 +44,10 @@ import { AdminGetCommerceOrdersUseCase } from './commerce/use-cases/admin/admin-
 import { AdminGetCommerceOrderDetailUseCase } from './commerce/use-cases/admin/admin-get-commerce-order-detail.use-case'
 import { AdminUpdateSubOrderFulfilmentUseCase } from './commerce/use-cases/admin/admin-update-sub-order-fulfilment.use-case'
 import { TenantConfirmSubOrderReceiptUseCase } from './commerce/use-cases/tenant-confirm-sub-order-receipt.use-case'
+import { GetCommerceReceiptPdfUseCase } from './commerce/use-cases/get-commerce-receipt-pdf.use-case'
+import { SendCommerceReceiptEmailUseCase } from './commerce/use-cases/send-commerce-receipt-email.use-case'
+import { CreateCommerceDisputeUseCase } from './commerce/use-cases/create-commerce-dispute.use-case'
+import { AdminResolveCommerceDisputeUseCase } from './commerce/use-cases/admin/admin-resolve-commerce-dispute.use-case'
 
 // Use Cases
 import { DeleteAdminUseCase } from './use-cases/admin/delete-admin.use-case'
@@ -1137,6 +1141,10 @@ const UseCases: any[] = [
   AdminGetCommerceOrderDetailUseCase,
   AdminUpdateSubOrderFulfilmentUseCase,
   TenantConfirmSubOrderReceiptUseCase,
+  GetCommerceReceiptPdfUseCase,
+  SendCommerceReceiptEmailUseCase,
+  CreateCommerceDisputeUseCase,
+  AdminResolveCommerceDisputeUseCase,
 ]
 
 // AI Document ingestion imports

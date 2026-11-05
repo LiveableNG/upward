@@ -101,6 +101,14 @@ export interface CommerceRefundRepository {
     explanation: string
     evidenceUrls?: string[]
   }): Promise<CommerceDispute>
+  openDispute(params: {
+    subOrderId: number
+    orderId: number
+    userId: number
+    reason: string
+    explanation: string
+    evidenceUrls?: string[]
+  }): Promise<CommerceDispute>
   findDisputeById(id: number): Promise<CommerceDispute | null>
   findDisputeByUuid(uuid: string): Promise<CommerceDispute | null>
   findDisputes(filter?: {
@@ -116,6 +124,19 @@ export interface CommerceRefundRepository {
       resolvedBy: string
     },
   ): Promise<CommerceDispute>
+  resolveDisputeAndSettle(params: {
+    disputeId: number
+    resolutionStatus: DisputeStatus
+    resolutionNotes: string
+    resolvedBy: string
+    refundAmountKobo?: bigint
+  }): Promise<{
+    dispute: CommerceDispute
+    refund?: CommerceRefund
+    recipientUserId: number
+    orderNumber: string
+    subOrderNumber: string
+  }>
 }
 
 export const COMMERCE_REFUND_REPOSITORY = Symbol('COMMERCE_REFUND_REPOSITORY')

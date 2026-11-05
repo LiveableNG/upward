@@ -83,8 +83,6 @@ export interface TenantVendorSubOrderDto {
     name: string
     slug: string
     logoUrl?: string | null
-    phone?: string | null
-    email?: string | null
     rating: number
   }
   items: TenantOrderItemDto[]

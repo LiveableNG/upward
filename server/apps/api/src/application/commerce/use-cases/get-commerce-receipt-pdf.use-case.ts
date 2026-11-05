@@ -9,10 +9,13 @@ import {
   CommerceOrderRepository,
 } from '../../../domains/commerce/commerce-order.repository'
 import {
+  USER_REPOSITORY,
+  UserRepository,
+} from '../../../domains/users/user.repository'
+import {
   CommerceReceiptData,
   CommerceReceiptService,
 } from '../../../shared/infrastructure/common/receipt/commerce-receipt.service'
-import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 
 @Injectable()
@@ -20,8 +23,9 @@ export class GetCommerceReceiptPdfUseCase {
   constructor(
     @Inject(COMMERCE_ORDER_REPOSITORY)
     private readonly orderRepo: CommerceOrderRepository,
+    @Inject(USER_REPOSITORY)
+    private readonly userRepo: UserRepository,
     private readonly receiptService: CommerceReceiptService,
-    private readonly prisma: PrismaService,
     private readonly encryption: EncryptionService,
   ) {}
 
@@ -35,10 +39,8 @@ export class GetCommerceReceiptPdfUseCase {
       throw new BadRequestException('Receipt is only available for confirmed paid orders')
     }
 
-    // Fetch user for name/email
-    const user = await this.prisma.upward_user.findUnique({
-      where: { id: userId },
-    })
+    // Fetch user for name/email via UserRepository
+    const user = await this.userRepo.findById(userId)
 
     let customerName = order.recipientName
     let customerEmail: string | undefined = undefined
@@ -60,8 +62,8 @@ export class GetCommerceReceiptPdfUseCase {
 
     // Build line items from suborders
     const lineItems: CommerceReceiptData['lineItems'] = []
-    order.subOrders.forEach((sub) => {
-      sub.items.forEach((item) => {
+    ;(order.subOrders || []).forEach((sub) => {
+      ;(sub.items || []).forEach((item) => {
         const title = item.snapshotData?.title || `Item #${item.offeringId}`
         const offeringType = item.offeringType || 'PRODUCT'
         lineItems.push({

@@ -17,10 +17,12 @@ import { Roles } from '../../../application/auth/decorators/roles.decorator'
 import { AdminGetCommerceOrdersUseCase } from '../../../application/commerce/use-cases/admin/admin-get-commerce-orders.use-case'
 import { AdminGetCommerceOrderDetailUseCase } from '../../../application/commerce/use-cases/admin/admin-get-commerce-order-detail.use-case'
 import { AdminUpdateSubOrderFulfilmentUseCase } from '../../../application/commerce/use-cases/admin/admin-update-sub-order-fulfilment.use-case'
+import { AdminResolveCommerceDisputeUseCase } from '../../../application/commerce/use-cases/admin/admin-resolve-commerce-dispute.use-case'
 import {
   AdminGetCommerceOrdersFilterDto,
   AdminUpdateFulfilmentDto,
 } from '../../../application/commerce/dto/admin-commerce.dto'
+import { ResolveCommerceDisputeDto } from '../../../application/commerce/dto/commerce-dispute.dto'
 
 @Controller('admin/commerce')
 @UseGuards(AdminJwtAuthGuard, RolesGuard)
@@ -29,6 +31,7 @@ export class AdminCommerceController {
     private readonly getCommerceOrdersUseCase: AdminGetCommerceOrdersUseCase,
     private readonly getCommerceOrderDetailUseCase: AdminGetCommerceOrderDetailUseCase,
     private readonly updateSubOrderFulfilmentUseCase: AdminUpdateSubOrderFulfilmentUseCase,
+    private readonly resolveCommerceDisputeUseCase: AdminResolveCommerceDisputeUseCase,
   ) {}
 
   @Get('orders')
@@ -57,6 +60,19 @@ export class AdminCommerceController {
   ) {
     const adminId = req.user?.uuid || String(req.user?.id || 'admin')
     const data = await this.updateSubOrderFulfilmentUseCase.execute(uuid, adminId, dto)
+    return { data }
+  }
+
+  @Post('disputes/:uuid/resolve')
+  @Roles(AdminRole.SUPERADMIN, AdminRole.CUSTOMER_SUPPORT)
+  @HttpCode(HttpStatus.OK)
+  async resolveDispute(
+    @Req() req: any,
+    @Param('uuid') uuid: string,
+    @Body() dto: ResolveCommerceDisputeDto,
+  ) {
+    const adminEmail = req.user?.email || 'admin@upward.ng'
+    const data = await this.resolveCommerceDisputeUseCase.execute(adminEmail, uuid, dto)
     return { data }
   }
 }

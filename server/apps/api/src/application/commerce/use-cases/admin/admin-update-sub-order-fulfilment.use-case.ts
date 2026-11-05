@@ -2,7 +2,9 @@ import {
   BadRequestException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common'
 import {
   AdminOperationalStatus,
@@ -18,12 +20,27 @@ import {
   AdminFulfilmentTransitionAction,
   AdminUpdateFulfilmentDto,
 } from '../../dto/admin-commerce.dto'
+import { NotificationService } from '../../../../shared/infrastructure/common/notification.service'
+import { EmailService } from '../../../../shared/infrastructure/email/email.service'
+import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service'
+import { USER_REPOSITORY, UserRepository } from '../../../../domains/users/user.repository'
 
 @Injectable()
 export class AdminUpdateSubOrderFulfilmentUseCase {
+  private readonly logger = new Logger(AdminUpdateSubOrderFulfilmentUseCase.name)
+
   constructor(
     @Inject(COMMERCE_ORDER_REPOSITORY)
     private readonly orderRepo: CommerceOrderRepository,
+    @Optional()
+    private readonly notificationService?: NotificationService,
+    @Optional()
+    private readonly emailService?: EmailService,
+    @Optional()
+    private readonly encryption?: EncryptionService,
+    @Optional()
+    @Inject(USER_REPOSITORY)
+    private readonly userRepo?: UserRepository,
   ) {}
 
   async execute(
@@ -344,6 +361,60 @@ export class AdminUpdateSubOrderFulfilmentUseCase {
         },
       },
     })
+
+    // Multi-channel notifications for customer-visible milestones
+    if (this.notificationService && isCustomerVisible) {
+      this.notificationService
+        .notifyUser(order.userId, {
+          title: `Order Update: ${eventTitle}`,
+          message: `${eventDescription} (Sub-order: ${subOrder.subOrderNumber})`,
+          type: 'PAYMENT',
+          url: `/dashboard/lifestyle/orders/${order.uuid}`,
+        })
+        .catch((err) =>
+          this.logger.error(`Failed to dispatch in-app notification for sub-order ${subOrderUuid}`, err),
+        )
+    }
+
+    if (this.emailService && this.userRepo && this.encryption && isCustomerVisible) {
+      this.userRepo
+        .findById(order.userId)
+        .then((user) => {
+          if (!user?.email) return
+          const tenantEmail = this.encryption!.decrypt(user.email)
+          if (!tenantEmail || tenantEmail.endsWith('@upward.com')) return
+
+          const html = `
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; color: #1E1B18; line-height: 1.5;">
+              <div style="background-color: #B65B37; height: 6px; width: 100%;"></div>
+              <div style="padding: 32px 24px; background-color: #FAF8F6; border-radius: 0 0 12px 12px; border: 1px solid #E5E2DC; border-top: none;">
+                <h2 style="color: #B65B37; margin: 0 0 8px; font-size: 20px;">Order Status Update: ${eventTitle}</h2>
+                <p style="font-size: 14px; color: #666666; margin: 0 0 20px;">Your sub-order <strong>${subOrder.subOrderNumber}</strong> has a new milestone update.</p>
+                <div style="background-color: #FFFFFF; border: 1px solid #E5E2DC; border-radius: 8px; padding: 18px; margin-bottom: 24px;">
+                  <div style="font-size: 14px; font-weight: 600; color: #1E1B18; margin-bottom: 6px;">${eventTitle}</div>
+                  <div style="font-size: 13.5px; color: #555555;">${eventDescription}</div>
+                  ${dispatchData.carrierName && dispatchData.trackingNumber ? `<div style="margin-top: 10px; font-size: 12.5px; color: #888888;">Carrier: ${dispatchData.carrierName} · Tracking: ${dispatchData.trackingNumber}</div>` : ''}
+                </div>
+                <div style="text-align: center; margin: 24px 0;">
+                  <a href="${this.emailService!['frontendUrl'] || 'https://upward.goodtenants.io'}/dashboard/lifestyle/orders/${order.uuid}" style="background-color: #B65B37; color: #FFFFFF; text-decoration: none; font-weight: 700; font-size: 14px; padding: 12px 24px; border-radius: 8px; display: inline-block;">
+                    View Live Order Tracking
+                  </a>
+                </div>
+              </div>
+            </div>
+          `
+
+          return this.emailService!.sendEmailWithRetry({
+            email: tenantEmail,
+            subject: `Order Update: ${eventTitle} (${subOrder.subOrderNumber})`,
+            html,
+            type: 'COMMERCE_FULFILMENT_UPDATE',
+          })
+        })
+        .catch((err) =>
+          this.logger.error(`Failed to send milestone email for sub-order ${subOrderUuid}`, err),
+        )
+    }
 
     return this.mapToAdminSubOrderDto(updatedSubOrder)
   }

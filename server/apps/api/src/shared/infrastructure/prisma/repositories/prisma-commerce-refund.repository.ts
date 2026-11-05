@@ -209,6 +209,282 @@ export class PrismaCommerceRefundRepository implements CommerceRefundRepository 
     return { items: items as unknown as CommerceDispute[], total }
   }
 
+  async openDispute(params: {
+    subOrderId: number
+    orderId: number
+    userId: number
+    reason: string
+    explanation: string
+    evidenceUrls?: string[]
+  }): Promise<CommerceDispute> {
+    return this.prisma.$transaction(async (tx) => {
+      const dispute = await tx.upward_commerce_dispute.create({
+        data: {
+          subOrderId: params.subOrderId,
+          userId: params.userId,
+          reason: params.reason,
+          explanation: params.explanation,
+          evidenceUrls: params.evidenceUrls || [],
+          status: 'OPEN',
+        },
+        include: {
+          subOrder: {
+            include: {
+              order: true,
+              vendor: true,
+            },
+          },
+        },
+      })
+
+      await tx.upward_commerce_vendor_suborder.update({
+        where: { id: params.subOrderId },
+        data: {
+          customerStatus: 'DISPUTED',
+          operationalStatus: 'DISPUTE_LOGGED',
+        },
+      })
+
+      await tx.upward_commerce_vendor_payable.updateMany({
+        where: {
+          subOrderId: params.subOrderId,
+          status: { notIn: ['PAID_OUT', 'VOIDED_REFUNDED'] },
+        },
+        data: {
+          status: 'HELD_FOR_DISPUTE',
+        },
+      })
+
+      await tx.upward_commerce_fulfilment_event.create({
+        data: {
+          subOrderId: params.subOrderId,
+          status: 'DISPUTED',
+          title: 'Dispute Logged with Upward Concierge',
+          description: `Customer submitted an inquiry/dispute: ${params.reason}. Our support concierge is reviewing it directly.`,
+          isCustomerVisible: true,
+          actorType: 'TENANT',
+          actorId: String(params.userId),
+        },
+      })
+
+      await tx.upward_commerce_order_audit.create({
+        data: {
+          orderId: params.orderId,
+          subOrderId: params.subOrderId,
+          event: 'DISPUTE_OPENED',
+          toState: 'DISPUTED',
+          actorType: 'TENANT',
+          actorId: String(params.userId),
+          details: {
+            reason: params.reason,
+            explanation: params.explanation,
+            disputeId: dispute.id,
+          },
+        },
+      })
+
+      return dispute as unknown as CommerceDispute
+    })
+  }
+
+  async resolveDisputeAndSettle(params: {
+    disputeId: number
+    resolutionStatus: DisputeStatus
+    resolutionNotes: string
+    resolvedBy: string
+    refundAmountKobo?: bigint
+  }): Promise<{
+    dispute: CommerceDispute
+    refund?: CommerceRefund
+    recipientUserId: number
+    orderNumber: string
+    subOrderNumber: string
+  }> {
+    const existing = await this.prisma.upward_commerce_dispute.findUnique({
+      where: { id: params.disputeId },
+      include: {
+        subOrder: {
+          include: {
+            order: true,
+            payable: true,
+          },
+        },
+      },
+    })
+
+    if (!existing) {
+      throw new Error(`Dispute #${params.disputeId} not found`)
+    }
+
+    const subOrder = existing.subOrder
+    const order = subOrder.order
+    const now = new Date()
+
+    return this.prisma.$transaction(async (tx) => {
+      let createdRefund: any = undefined
+
+      const updatedDispute = await tx.upward_commerce_dispute.update({
+        where: { id: params.disputeId },
+        data: {
+          status: params.resolutionStatus,
+          resolutionNotes: params.resolutionNotes,
+          resolvedBy: params.resolvedBy,
+          resolvedAt: now,
+        },
+        include: {
+          subOrder: {
+            include: {
+              order: true,
+              vendor: true,
+            },
+          },
+        },
+      })
+
+      if (params.resolutionStatus === 'RESOLVED_REFUND') {
+        const refundAmountKobo = params.refundAmountKobo
+          ? params.refundAmountKobo
+          : subOrder.subtotalKobo + subOrder.deliveryFeeKobo
+
+        createdRefund = await tx.upward_commerce_refund.create({
+          data: {
+            subOrderId: subOrder.id,
+            amountKobo: refundAmountKobo,
+            reason: `Dispute resolved in customer favor: ${params.resolutionNotes}`,
+            status: 'APPROVED',
+            requestedBy: params.resolvedBy,
+            approvedBy: params.resolvedBy,
+            approvedAt: now,
+          },
+        })
+
+        await tx.upward_commerce_vendor_suborder.update({
+          where: { id: subOrder.id },
+          data: {
+            customerStatus: 'CANCELLED',
+            operationalStatus: 'CANCELLED_REFUNDED',
+          },
+        })
+
+        await tx.upward_commerce_vendor_payable.updateMany({
+          where: { subOrderId: subOrder.id },
+          data: {
+            status: 'VOIDED_REFUNDED',
+          },
+        })
+
+        await tx.upward_commerce_fulfilment_event.create({
+          data: {
+            subOrderId: subOrder.id,
+            status: 'CANCELLED',
+            title: 'Dispute Resolved — Refund Approved',
+            description: `Upward Concierge resolved this issue in your favor. Refund approved. Note: ${params.resolutionNotes}`,
+            isCustomerVisible: true,
+            actorType: 'ADMIN',
+            actorId: params.resolvedBy,
+          },
+        })
+
+        await tx.upward_commerce_order_audit.create({
+          data: {
+            orderId: order.id,
+            subOrderId: subOrder.id,
+            event: 'DISPUTE_RESOLVED_REFUND',
+            fromState: 'DISPUTED',
+            toState: 'CANCELLED_REFUNDED',
+            actorType: 'ADMIN',
+            actorId: params.resolvedBy,
+            details: {
+              disputeId: existing.id,
+              refundId: createdRefund.id,
+              refundAmountKobo: refundAmountKobo.toString(),
+              resolutionNotes: params.resolutionNotes,
+            },
+          },
+        })
+      } else if (params.resolutionStatus === 'RESOLVED_PAYOUT') {
+        await tx.upward_commerce_vendor_suborder.update({
+          where: { id: subOrder.id },
+          data: {
+            customerStatus: 'ORDER_CONFIRMED',
+            operationalStatus: 'VENDOR_CONFIRMED',
+          },
+        })
+
+        await tx.upward_commerce_vendor_payable.updateMany({
+          where: { subOrderId: subOrder.id, status: 'HELD_FOR_DISPUTE' },
+          data: {
+            status: 'IN_COOLING_PERIOD',
+            eligibleAt: now,
+          },
+        })
+
+        await tx.upward_commerce_fulfilment_event.create({
+          data: {
+            subOrderId: subOrder.id,
+            status: 'ORDER_CONFIRMED',
+            title: 'Dispute Closed — Fulfilment Re-affirmed',
+            description: `Upward Concierge resolved the dispute. Fulfilment confirmed. Note: ${params.resolutionNotes}`,
+            isCustomerVisible: true,
+            actorType: 'ADMIN',
+            actorId: params.resolvedBy,
+          },
+        })
+
+        await tx.upward_commerce_order_audit.create({
+          data: {
+            orderId: order.id,
+            subOrderId: subOrder.id,
+            event: 'DISPUTE_RESOLVED_PAYOUT',
+            fromState: 'DISPUTED',
+            toState: 'ORDER_CONFIRMED',
+            actorType: 'ADMIN',
+            actorId: params.resolvedBy,
+            details: {
+              disputeId: existing.id,
+              resolutionNotes: params.resolutionNotes,
+            },
+          },
+        })
+      } else {
+        await tx.upward_commerce_fulfilment_event.create({
+          data: {
+            subOrderId: subOrder.id,
+            status: 'ORDER_CONFIRMED',
+            title: `Dispute Closed (${params.resolutionStatus})`,
+            description: `Resolution note: ${params.resolutionNotes}`,
+            isCustomerVisible: true,
+            actorType: 'ADMIN',
+            actorId: params.resolvedBy,
+          },
+        })
+
+        await tx.upward_commerce_order_audit.create({
+          data: {
+            orderId: order.id,
+            subOrderId: subOrder.id,
+            event: `DISPUTE_${params.resolutionStatus}`,
+            actorType: 'ADMIN',
+            actorId: params.resolvedBy,
+            toState: params.resolutionStatus,
+            details: {
+              disputeId: existing.id,
+              resolutionNotes: params.resolutionNotes,
+            },
+          },
+        })
+      }
+
+      return {
+        dispute: updatedDispute as unknown as CommerceDispute,
+        refund: createdRefund as unknown as CommerceRefund | undefined,
+        recipientUserId: order.userId,
+        orderNumber: order.orderNumber,
+        subOrderNumber: subOrder.subOrderNumber,
+      }
+    })
+  }
+
   async resolveDispute(
     disputeId: number,
     data: {

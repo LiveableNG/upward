@@ -15,7 +15,7 @@ export class GetOfferingsUseCase {
 
   async execute(query?: OfferingQueryDto): Promise<{ items: Offering[]; total: number }> {
     const status = query?.status ?? 'PUBLISHED'
-    return this.offeringRepo.findOfferings({
+    const result = await this.offeringRepo.findOfferings({
       goalId: query?.goalId,
       type: query?.type,
       status,
@@ -27,6 +27,23 @@ export class GetOfferingsUseCase {
       skip: query?.skip ?? 0,
       take: query?.take ?? 20,
     })
+
+    // Sanitize vendor details for customer-facing privacy
+    result.items.forEach((item) => {
+      if (item.vendor) {
+        item.vendor = {
+          id: item.vendor.id,
+          uuid: item.vendor.uuid,
+          name: item.vendor.name,
+          slug: item.vendor.slug,
+          logoUrl: item.vendor.logoUrl,
+          rating: item.vendor.rating,
+          isActive: item.vendor.isActive,
+        }
+      }
+    })
+
+    return result
   }
 }
 

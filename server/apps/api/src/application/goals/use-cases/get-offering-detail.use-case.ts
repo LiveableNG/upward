@@ -25,6 +25,19 @@ export class GetOfferingDetailUseCase {
       throw new NotFoundException(`Offering '${identifier}' not found`)
     }
 
+    // Sanitize vendor details for customer-facing privacy
+    if (offering.vendor) {
+      offering.vendor = {
+        id: offering.vendor.id,
+        uuid: offering.vendor.uuid,
+        name: offering.vendor.name,
+        slug: offering.vendor.slug,
+        logoUrl: offering.vendor.logoUrl,
+        rating: offering.vendor.rating,
+        isActive: offering.vendor.isActive,
+      }
+    }
+
     return offering
   }
 }
