@@ -270,12 +270,12 @@ export class PrismaCommerceRefundRepository implements CommerceRefundRepository 
       await tx.upward_commerce_order_audit.create({
         data: {
           orderId: params.orderId,
-          subOrderId: params.subOrderId,
           event: 'DISPUTE_OPENED',
           toState: 'DISPUTED',
           actorType: 'TENANT',
           actorId: String(params.userId),
           details: {
+            subOrderId: params.subOrderId,
             reason: params.reason,
             explanation: params.explanation,
             disputeId: dispute.id,
@@ -306,7 +306,7 @@ export class PrismaCommerceRefundRepository implements CommerceRefundRepository 
         subOrder: {
           include: {
             order: true,
-            payable: true,
+            payableRecord: true,
           },
         },
       },
@@ -388,13 +388,13 @@ export class PrismaCommerceRefundRepository implements CommerceRefundRepository 
         await tx.upward_commerce_order_audit.create({
           data: {
             orderId: order.id,
-            subOrderId: subOrder.id,
             event: 'DISPUTE_RESOLVED_REFUND',
             fromState: 'DISPUTED',
             toState: 'CANCELLED_REFUNDED',
             actorType: 'ADMIN',
             actorId: params.resolvedBy,
             details: {
+              subOrderId: subOrder.id,
               disputeId: existing.id,
               refundId: createdRefund.id,
               refundAmountKobo: refundAmountKobo.toString(),
@@ -434,13 +434,13 @@ export class PrismaCommerceRefundRepository implements CommerceRefundRepository 
         await tx.upward_commerce_order_audit.create({
           data: {
             orderId: order.id,
-            subOrderId: subOrder.id,
             event: 'DISPUTE_RESOLVED_PAYOUT',
             fromState: 'DISPUTED',
             toState: 'ORDER_CONFIRMED',
             actorType: 'ADMIN',
             actorId: params.resolvedBy,
             details: {
+              subOrderId: subOrder.id,
               disputeId: existing.id,
               resolutionNotes: params.resolutionNotes,
             },
@@ -462,12 +462,12 @@ export class PrismaCommerceRefundRepository implements CommerceRefundRepository 
         await tx.upward_commerce_order_audit.create({
           data: {
             orderId: order.id,
-            subOrderId: subOrder.id,
             event: `DISPUTE_${params.resolutionStatus}`,
             actorType: 'ADMIN',
             actorId: params.resolvedBy,
             toState: params.resolutionStatus,
             details: {
+              subOrderId: subOrder.id,
               disputeId: existing.id,
               resolutionNotes: params.resolutionNotes,
             },
