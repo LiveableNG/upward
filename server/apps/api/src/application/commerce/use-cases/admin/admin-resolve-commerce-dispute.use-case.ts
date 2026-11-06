@@ -37,7 +37,7 @@ export class AdminResolveCommerceDisputeUseCase {
   async execute(adminEmail: string, disputeUuid: string, dto: ResolveCommerceDisputeDto) {
     const dispute = await this.refundRepo.findDisputeByUuid(disputeUuid)
     if (!dispute) {
-      // Check if it's a commerce concierge inquiry ticket
+      // Check if it's a commerce product inquiry ticket
       const ticket = await this.prisma.upward_support_ticket.findUnique({
         where: { uuid: disputeUuid },
         include: { user: true },
@@ -47,9 +47,14 @@ export class AdminResolveCommerceDisputeUseCase {
         throw new NotFoundException(`Dispute or Inquiry '${disputeUuid}' not found`)
       }
 
-      if (ticket.status === 'CLOSED' || ticket.status === 'RESOLVED') {
-        throw new BadRequestException('Inquiry is already resolved')
+      // Strip previous resolution block if updating
+      let baseMessage = ticket.message
+      const resIdx = baseMessage.indexOf('\n\n[RESOLUTION_NOTES]')
+      if (resIdx !== -1) {
+        baseMessage = baseMessage.substring(0, resIdx).trim()
       }
+
+      const resolutionBlock = `\n\n[RESOLUTION_NOTES]\n${dto.resolutionNotes.trim()}\n[RESOLVED_BY]\n${adminEmail}`
 
       // Resolve inquiry ticket
       await this.prisma.upward_support_ticket.update({
@@ -57,13 +62,14 @@ export class AdminResolveCommerceDisputeUseCase {
         data: {
           status: 'RESOLVED',
           resolvedAt: new Date(),
+          message: `${baseMessage}${resolutionBlock}`,
         },
       })
 
       // Notify tenant
       try {
         await this.notificationService.notifyUser(ticket.userId, {
-          title: 'Concierge Inquiry Update',
+          title: 'Support Inquiry Update',
           message: `Your inquiry has been addressed: ${dto.resolutionNotes}`,
           type: 'SUPPORT',
           url: `/dashboard/lifestyle`,
@@ -84,7 +90,7 @@ export class AdminResolveCommerceDisputeUseCase {
               <div style="background-color: #B65B37; height: 6px; width: 100%;"></div>
               <div style="padding: 32px 24px; background-color: #FAF8F6; border-radius: 0 0 12px 12px; border: 1px solid #E5E2DC; border-top: none;">
                 <h2 style="color: #B65B37; margin: 0 0 8px; font-size: 20px;">Inquiry Resolved</h2>
-                <p style="font-size: 14px; color: #666666; margin: 0 0 20px;">An Upward Concierge Specialist has replied to your inquiry.</p>
+                <p style="font-size: 14px; color: #666666; margin: 0 0 20px;">An Upward Support Specialist has replied to your inquiry.</p>
                 
                 <div style="background-color: #FFFFFF; border: 1px solid #E5E2DC; border-radius: 8px; padding: 18px; margin-bottom: 20px;">
                   <div style="font-size: 12px; color: #888888; margin-bottom: 4px;">Resolution Notes</div>
@@ -98,7 +104,7 @@ export class AdminResolveCommerceDisputeUseCase {
 
           await this.emailService.sendEmailWithRetry({
             email: tenantEmail,
-            subject: `Inquiry Resolved — Upward Concierge`,
+            subject: `Inquiry Resolved — Upward Support`,
             html,
             type: 'CUSTOMER_SUPPORT',
           })

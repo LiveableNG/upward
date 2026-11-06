@@ -218,7 +218,7 @@ export class CommerceReceiptService {
           .fontSize(8)
           .fillColor('#888888')
           .text(
-            'This is an official commercial receipt issued by Upward Platform. For customer support, inquiries, or dispute arbitrations, please email support@upward.ng or contact our 24/7 concierge.',
+            'This is an official commercial receipt issued by Upward Platform. For customer support, inquiries, or dispute arbitrations, please email support@upward.ng or contact our 24/7 support team.',
             40,
             footerY + 10,
             { width: 515, align: 'center', lineGap: 3 },

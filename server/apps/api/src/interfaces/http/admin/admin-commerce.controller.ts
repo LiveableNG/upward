@@ -75,7 +75,7 @@ export class AdminCommerceController {
   }
 
   @Post('disputes/:uuid/resolve')
-  @Roles(AdminRole.SUPERADMIN, AdminRole.CUSTOMER_SUPPORT)
+  @Roles(AdminRole.SUPERADMIN, AdminRole.CUSTOMER_SUPPORT, AdminRole.DEVELOPER)
   @HttpCode(HttpStatus.OK)
   async resolveDispute(
     @Req() req: any,

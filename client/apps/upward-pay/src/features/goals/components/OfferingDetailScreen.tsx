@@ -923,7 +923,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                       Inquiry Received
                     </h4>
                     <p className="inquiry-sheet__success-desc">
-                      We’ve logged your request with the Upward Concierge desk and sent
+                      We’ve logged your request with the Upward Support team and sent
                       a confirmation email. We will update you via email and app notification.
                     </p>
                     <button

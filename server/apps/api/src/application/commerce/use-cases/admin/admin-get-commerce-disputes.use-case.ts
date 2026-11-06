@@ -34,7 +34,7 @@ export class AdminGetCommerceDisputesUseCase {
       take: 1000,
     })
 
-    // 2. Fetch pre-purchase commerce concierge inquiries
+    // 2. Fetch pre-purchase commerce product inquiries
     const inquiryWhere: any = {
       message: { startsWith: '[Commerce Inquiry:' },
     }
@@ -62,7 +62,24 @@ export class AdminGetCommerceDisputesUseCase {
       const vendorName = vendorLine ? vendorLine.replace('Vendor: ', '').trim() : 'Upward Partner'
 
       const splitIndex = ticket.message.indexOf('\n\n')
-      const userExplanation = splitIndex !== -1 ? ticket.message.substring(splitIndex + 2) : ticket.message
+      let userExplanation = splitIndex !== -1 ? ticket.message.substring(splitIndex + 2) : ticket.message
+
+      let resolutionNotes: string | null = null
+      let resolvedBy: string | null = null
+
+      const resNotesMatch = ticket.message.match(/\[RESOLUTION_NOTES\]\n([\s\S]*?)(?=\n\[RESOLVED_BY\]|$)/)
+      if (resNotesMatch) {
+        resolutionNotes = resNotesMatch[1]!.trim()
+      }
+      const resByMatch = ticket.message.match(/\[RESOLVED_BY\]\n(.*)/)
+      if (resByMatch) {
+        resolvedBy = resByMatch[1]!.trim()
+      }
+
+      const resTagIndex = userExplanation.indexOf('\n\n[RESOLUTION_NOTES]')
+      if (resTagIndex !== -1) {
+        userExplanation = userExplanation.substring(0, resTagIndex).trim()
+      }
 
       const tenantFirst = ticket.user?.firstName ? this.encryption.decrypt(ticket.user.firstName) : ''
       const tenantLast = ticket.user?.lastName ? this.encryption.decrypt(ticket.user.lastName) : ''
@@ -78,6 +95,9 @@ export class AdminGetCommerceDisputesUseCase {
         status: ticket.status as DisputeStatus,
         reason: `[Inquiry] ${offeringTitle} (${topic})`,
         explanation: userExplanation,
+        resolutionNotes: resolutionNotes || null,
+        resolvedAt: ticket.resolvedAt || null,
+        resolvedBy: resolvedBy || null,
         createdAt: ticket.createdAt,
         updatedAt: ticket.updatedAt,
         subOrder: {
@@ -85,7 +105,7 @@ export class AdminGetCommerceDisputesUseCase {
           uuid: ticket.uuid,
           subOrderNumber: `INQ-${ticket.id}`,
           customerStatus: 'INQUIRY_RECEIVED',
-          operationalStatus: 'CONCIERGE_REVIEW',
+          operationalStatus: 'SUPPORT_REVIEW',
           subtotalKobo: '0',
           deliveryFeeKobo: '0',
           order: {

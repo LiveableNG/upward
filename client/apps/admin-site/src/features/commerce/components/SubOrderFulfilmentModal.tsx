@@ -1,14 +1,6 @@
 import React, { useState } from 'react'
-import {
-  X,
-  Truck,
-  Wrench,
-  AlertTriangle,
-  Clock,
-  ShieldCheck,
-  Send,
-  Loader2,
-} from 'lucide-react'
+import { Truck, Wrench, Send, Loader2 } from 'lucide-react'
+import { Modal } from '../../../components/common/modal/Modal'
 import type {
   AdminCommerceSubOrder,
   AdminFulfilmentTransitionAction,
@@ -83,34 +75,56 @@ export function SubOrderFulfilmentModal({
   }
 
   return (
-    <div className="modal-backdrop">
-      <div className="modal-content" style={{ maxWidth: 560 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {isService ? <Wrench size={20} color="var(--primary-color)" /> : <Truck size={20} color="var(--primary-color)" />}
-            <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>
-              Update Sub-Order Milestone
-            </h3>
+    <Modal
+      isOpen={true}
+      onClose={onClose}
+      title={isService ? 'Service Fulfilment Milestone' : 'Shipping & Fulfilment Milestone'}
+      description={`Sub-Order: ${subOrder.subOrderNumber} · Vendor: ${subOrder.vendor?.name || 'Upward Verified Merchant'}`}
+      icon={isService ? <Wrench size={22} /> : <Truck size={22} />}
+      maxWidth="580px"
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {/* Status preview banner */}
+        <div
+          style={{
+            background: 'var(--surface-hover)',
+            border: '1px solid var(--border)',
+            borderRadius: 10,
+            padding: '10px 14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontSize: 12.5,
+          }}
+        >
+          <div>
+            <span style={{ color: 'var(--text-muted)' }}>Customer Status: </span>
+            <strong style={{ color: 'var(--text)' }}>{subOrder.customerStatus.replace(/_/g, ' ')}</strong>
           </div>
-          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-            <X size={18} />
-          </button>
+          <div>
+            <span style={{ color: 'var(--text-muted)' }}>Internal Status: </span>
+            <strong style={{ color: 'var(--text)' }}>{subOrder.operationalStatus.replace(/_/g, ' ')}</strong>
+          </div>
         </div>
-
-        <p style={{ fontSize: 13, color: '#666', marginTop: 0, marginBottom: 16 }}>
-          Sub-Order: <strong>{subOrder.subOrderNumber}</strong> · Current Status: <strong>{subOrder.customerStatus}</strong>
-        </p>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {/* Action Select */}
           <div>
-            <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
-              Milestone Action
+            <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, marginBottom: 6, color: 'var(--text)' }}>
+              Milestone Transition Action *
             </label>
             <select
               value={action}
               onChange={(e) => setAction(e.target.value as AdminFulfilmentTransitionAction)}
-              style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #ddd', fontSize: 13.5 }}
+              style={{
+                width: '100%',
+                padding: '10px 12px',
+                borderRadius: 8,
+                border: '1px solid var(--border)',
+                background: 'var(--white)',
+                fontSize: 13.5,
+                color: 'var(--text)',
+              }}
             >
               {isService ? (
                 <>
@@ -122,7 +136,7 @@ export function SubOrderFulfilmentModal({
                 </>
               ) : (
                 <>
-                  <option value="DISPATCH_CARRIER">Dispatch to Carrier</option>
+                  <option value="DISPATCH_CARRIER">Dispatch to Carrier Partner</option>
                   <option value="OUT_FOR_DELIVERY">Out for Delivery</option>
                   <option value="DELIVER">Mark as Delivered</option>
                   <option value="VENDOR_CONFIRM">Vendor Confirmed</option>
@@ -133,9 +147,9 @@ export function SubOrderFulfilmentModal({
 
           {/* Physical Delivery Fields */}
           {!isService && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 5, color: 'var(--text)' }}>
                   Carrier Partner
                 </label>
                 <input
@@ -143,12 +157,19 @@ export function SubOrderFulfilmentModal({
                   value={carrierName}
                   onChange={(e) => setCarrierName(e.target.value)}
                   placeholder="e.g. GIG Logistics, DHL, Kwik"
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #ddd', fontSize: 13 }}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: 8,
+                    border: '1px solid var(--border)',
+                    fontSize: 13,
+                    color: 'var(--text)',
+                  }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 5, color: 'var(--text)' }}>
                   Tracking Number
                 </label>
                 <input
@@ -156,12 +177,19 @@ export function SubOrderFulfilmentModal({
                   value={trackingNumber}
                   onChange={(e) => setTrackingNumber(e.target.value)}
                   placeholder="e.g. GIG-LAG-98213"
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #ddd', fontSize: 13 }}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: 8,
+                    border: '1px solid var(--border)',
+                    fontSize: 13,
+                    color: 'var(--text)',
+                  }}
                 />
               </div>
 
               <div style={{ gridColumn: 'span 2' }}>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 5, color: 'var(--text)' }}>
                   Carrier Tracking Portal URL
                 </label>
                 <input
@@ -169,7 +197,14 @@ export function SubOrderFulfilmentModal({
                   value={trackingUrl}
                   onChange={(e) => setTrackingUrl(e.target.value)}
                   placeholder="https://track.giglogistics.com/shipment/..."
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #ddd', fontSize: 13 }}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: 8,
+                    border: '1px solid var(--border)',
+                    fontSize: 13,
+                    color: 'var(--text)',
+                  }}
                 />
               </div>
             </div>
@@ -177,21 +212,28 @@ export function SubOrderFulfilmentModal({
 
           {/* Service Fields */}
           {isService && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 5, color: 'var(--text)' }}>
                   Appointment Date & Time
                 </label>
                 <input
                   type="datetime-local"
                   value={serviceScheduledAt}
                   onChange={(e) => setServiceScheduledAt(e.target.value)}
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #ddd', fontSize: 13 }}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: 8,
+                    border: '1px solid var(--border)',
+                    fontSize: 13,
+                    color: 'var(--text)',
+                  }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 5, color: 'var(--text)' }}>
                   Service Window Notes
                 </label>
                 <input
@@ -199,12 +241,19 @@ export function SubOrderFulfilmentModal({
                   value={serviceWindowNotes}
                   onChange={(e) => setServiceWindowNotes(e.target.value)}
                   placeholder="e.g. 10:00 AM - 1:00 PM"
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #ddd', fontSize: 13 }}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: 8,
+                    border: '1px solid var(--border)',
+                    fontSize: 13,
+                    color: 'var(--text)',
+                  }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 5, color: 'var(--text)' }}>
                   Technician Name
                 </label>
                 <input
@@ -212,75 +261,104 @@ export function SubOrderFulfilmentModal({
                   value={technicianName}
                   onChange={(e) => setTechnicianName(e.target.value)}
                   placeholder="e.g. Emmanuel Nwachukwu"
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #ddd', fontSize: 13 }}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: 8,
+                    border: '1px solid var(--border)',
+                    fontSize: 13,
+                    color: 'var(--text)',
+                  }}
                 />
               </div>
 
               <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
-                  Technician Phone (Internal)
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 5, color: 'var(--text)' }}>
+                  Technician Phone
                 </label>
                 <input
                   type="tel"
                   value={technicianPhone}
                   onChange={(e) => setTechnicianPhone(e.target.value)}
                   placeholder="+23480..."
-                  style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #ddd', fontSize: 13 }}
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: 8,
+                    border: '1px solid var(--border)',
+                    fontSize: 13,
+                    color: 'var(--text)',
+                  }}
                 />
               </div>
             </div>
           )}
 
-          {/* Operational Notes / Traffic delay advisory */}
+          {/* Operational Notes */}
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-              <label style={{ fontSize: 12, fontWeight: 700 }}>
-                Operational Notes / Traffic Delay Notice
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>
+                Operational Notes / Dispatch Message
               </label>
-              <span style={{ fontSize: 11, color: '#D97706' }}>
-                Notifies tenant with ETA adjustment
+              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                Visible in tracking timeline
               </span>
             </div>
             <textarea
               rows={3}
               value={adminOperationalNotes}
               onChange={(e) => setAdminOperationalNotes(e.target.value)}
-              placeholder="e.g. Delivery ETA adjusted to 4:30 PM due to Mainland traffic congestion on Third Mainland Bridge."
-              style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: '1px solid #ddd', fontSize: 13, resize: 'vertical' }}
+              placeholder="e.g. Dispatched via GIG Logistics from Ikeja Central Hub; expected delivery by 3:00 PM."
+              style={{
+                width: '100%',
+                padding: '9px 12px',
+                borderRadius: 8,
+                border: '1px solid var(--border)',
+                fontSize: 13,
+                resize: 'vertical',
+                color: 'var(--text)',
+                lineHeight: 1.5,
+              }}
             />
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 12 }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
             <button
               type="button"
+              className="btn btn-secondary"
               onClick={onClose}
-              style={{ padding: '9px 16px', borderRadius: 8, border: '1px solid #ddd', background: '#f5f5f5', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
+              disabled={submitting}
+              style={{ padding: '9px 18px', fontSize: 13 }}
             >
               Cancel
             </button>
             <button
               type="submit"
+              className="btn btn-primary"
               disabled={submitting}
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 6,
                 padding: '9px 20px',
-                borderRadius: 8,
-                background: 'var(--accent)',
-                color: '#fff',
-                border: 'none',
                 fontSize: 13,
-                fontWeight: 700,
-                cursor: 'pointer',
               }}
             >
-              {submitting ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
-              <span>Dispatch Update</span>
+              {submitting ? (
+                <>
+                  <Loader2 size={14} className="loader" />
+                  <span>Updating...</span>
+                </>
+              ) : (
+                <>
+                  <Send size={14} />
+                  <span>Dispatch Update</span>
+                </>
+              )}
             </button>
           </div>
         </form>
       </div>
-    </div>
+    </Modal>
   )
 }

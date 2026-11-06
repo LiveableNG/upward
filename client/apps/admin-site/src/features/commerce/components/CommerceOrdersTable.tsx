@@ -1,15 +1,13 @@
 import React, { useState } from 'react'
 import {
-  Search,
   Package,
   Truck,
   Wrench,
-  Clock,
-  AlertTriangle,
-  ChevronRight,
+  ChevronDown,
+  ChevronUp,
   ExternalLink,
-  ShieldCheck,
-  CheckCircle2,
+  Clock,
+  MapPin,
 } from 'lucide-react'
 import type {
   AdminCommerceOrder,
@@ -34,6 +32,8 @@ function formatDate(dateStr: string): string {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     })
   } catch {
     return dateStr
@@ -67,178 +67,384 @@ export function CommerceOrdersTable({
   onUpdateSubOrder,
 }: CommerceOrdersTableProps) {
   const [activeSubOrderForEdit, setActiveSubOrderForEdit] = useState<AdminCommerceSubOrder | null>(null)
-  const [expandedOrderUuid, setExpandedOrderUuid] = useState<string | null>(null)
+  const [expandedOrderUuids, setExpandedOrderUuids] = useState<Record<string, boolean>>({})
+
+  const toggleExpand = (orderUuid: string) => {
+    setExpandedOrderUuids((prev) => ({
+      ...prev,
+      [orderUuid]: !prev[orderUuid],
+    }))
+  }
 
   return (
-    <div>
-      <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: 13, color: '#666' }}>
-          Showing <strong>{orders.length}</strong> of <strong>{total}</strong> orders
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+          Showing <strong>{orders.length}</strong> of <strong>{total}</strong> commerce orders
         </span>
       </div>
 
-      {loading ? (
-        <div style={{ padding: 40, textAlign: 'center', color: '#888' }}>
-          Loading commerce orders...
-        </div>
-      ) : orders.length === 0 ? (
-        <div style={{ padding: 48, textAlign: 'center', background: '#fafafa', borderRadius: 12, border: '1px dashed #ddd' }}>
-          <Package size={36} color="#aaa" style={{ margin: '0 auto 12px' }} />
-          <h4 style={{ margin: '0 0 4px', fontSize: 16 }}>No orders found</h4>
-          <p style={{ margin: 0, fontSize: 13, color: '#777' }}>
-            There are no customer commerce orders matching the filter criteria.
-          </p>
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {orders.map((order) => {
-            const isExpanded = expandedOrderUuid === order.uuid
-
-            return (
-              <div
-                key={order.uuid}
+      <div className="table-wrapper">
+        <div className="table-container">
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+            <thead>
+              <tr
                 style={{
-                  background: '#fff',
-                  border: '1px solid #e5e5e5',
-                  borderRadius: 12,
-                  padding: 16,
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+                  backgroundColor: 'var(--surface-hover)',
+                  borderBottom: '2px solid var(--border)',
                 }}
               >
-                {/* Order Top Meta */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ fontSize: 15, fontWeight: 800, fontFamily: 'monospace', color: '#111' }}>
-                      {order.orderNumber}
-                    </span>
-                    <span style={{ fontSize: 12, color: '#888' }}>· {formatDate(order.createdAt)}</span>
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        padding: '2px 8px',
-                        borderRadius: 6,
-                        background: order.paymentStatus === 'PAID' ? 'rgba(5, 150, 105, 0.1)' : 'rgba(217, 119, 6, 0.1)',
-                        color: order.paymentStatus === 'PAID' ? '#059669' : '#D97706',
-                      }}
-                    >
-                      {order.paymentStatus}
-                    </span>
-                  </div>
+                <th style={{ padding: '12px 16px', fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', width: '160px' }}>
+                  Order # & Date
+                </th>
+                <th style={{ padding: '12px 16px', fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                  Customer & Delivery
+                </th>
+                <th style={{ padding: '12px 16px', fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', width: '180px' }}>
+                  Shipments / Vendors
+                </th>
+                <th style={{ padding: '12px 16px', fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', width: '140px' }}>
+                  Total Amount
+                </th>
+                <th style={{ padding: '12px 16px', fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', width: '120px' }}>
+                  Payment
+                </th>
+                <th style={{ padding: '12px 16px', fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', textAlign: 'right', width: '150px' }}>
+                  Sub-Orders
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={6} style={{ padding: 48, textAlign: 'center', color: 'var(--text-muted)' }}>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                      <Clock size={16} className="loader" />
+                      <span>Loading commerce orders...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : orders.length === 0 ? (
+                <tr>
+                  <td colSpan={6} style={{ padding: 48, textAlign: 'center' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                      <Package size={36} color="var(--text-muted)" />
+                      <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>
+                        No orders found
+                      </div>
+                      <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                        There are no customer commerce orders matching the filter criteria.
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                orders.map((order) => {
+                  const isExpanded = !!expandedOrderUuids[order.uuid]
+                  const subOrdersCount = (order.subOrders || []).length
+                  const isPaid = order.paymentStatus === 'PAID'
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                    <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>
-                      {formatKoboToNgn(order.totalAmountKobo)}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setExpandedOrderUuid(isExpanded ? null : order.uuid)}
-                      style={{
-                        padding: '6px 12px',
-                        borderRadius: 6,
-                        border: '1px solid var(--border)',
-                        background: 'var(--surface-hover)',
-                        fontSize: 12,
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                        color: 'var(--text)',
-                      }}
-                    >
-                      {isExpanded ? 'Hide Sub-Orders' : `View Sub-Orders (${(order.subOrders || []).length})`}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Recipient Snapshot */}
-                {(order.deliveryAddress || order.recipientName) && (
-                  <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', background: 'var(--surface-hover)', padding: '8px 12px', borderRadius: 8, marginBottom: 12 }}>
-                    <strong>Destination:</strong> {order.deliveryAddress || 'Standard Delivery'} · <strong>Recipient:</strong> {order.recipientName || order.user?.firstName || 'Customer'} {order.recipientPhone ? `(${order.recipientPhone})` : ''}
-                  </div>
-                )}
-
-                {/* Sub-Orders List (Expanded) */}
-                {isExpanded && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 10 }}>
-                    {(order.subOrders || []).map((sub) => {
-                      const items = sub.items || []
-                      const isService = items.some((i) => i.offeringType === 'SERVICE')
-                      const vendorName = sub.vendor?.name || (sub as any).vendorName || 'Partner'
-
-                      return (
-                        <div
-                          key={sub.uuid}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '10px 14px',
-                            background: '#fff',
-                            border: '1px solid var(--border)',
-                            borderRadius: 8,
-                          }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            {isService ? <Wrench size={18} style={{ color: 'var(--accent)' }} /> : <Truck size={18} style={{ color: 'var(--accent)' }} />}
-                            <div>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <span style={{ fontSize: 13, fontWeight: 700, fontFamily: 'monospace' }}>
-                                  {sub.subOrderNumber}
-                                </span>
-                                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                                  ({vendorName})
-                                </span>
-                              </div>
-                              {items.length > 0 && (
-                                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>
-                                  {items.map((it) => it.snapshotData?.title || (it as any).title || `Item #${it.offeringId || ''}`).join(', ')}
-                                </div>
-                              )}
-                            </div>
+                  return (
+                    <React.Fragment key={order.uuid}>
+                      <tr
+                        style={{
+                          borderBottom: isExpanded ? 'none' : '1px solid var(--border)',
+                          backgroundColor: isExpanded ? 'var(--surface-hover)' : 'transparent',
+                          transition: 'background-color 0.15s ease',
+                        }}
+                      >
+                        {/* Order Number & Date */}
+                        <td style={{ padding: '14px 16px', verticalAlign: 'top' }}>
+                          <div
+                            style={{
+                              fontFamily: 'monospace',
+                              fontSize: 13,
+                              fontWeight: 700,
+                              color: 'var(--text)',
+                              background: 'var(--surface)',
+                              padding: '3px 8px',
+                              borderRadius: 6,
+                              border: '1px solid var(--border)',
+                              display: 'inline-block',
+                              marginBottom: 4,
+                            }}
+                          >
+                            {order.orderNumber}
                           </div>
+                          <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
+                            {formatDate(order.createdAt)}
+                          </div>
+                        </td>
 
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                            <span
-                              style={{
-                                fontSize: 11,
-                                fontWeight: 700,
-                                padding: '3px 8px',
-                                borderRadius: 6,
-                                background: 'var(--accent-faint)',
-                                color: 'var(--accent)',
-                              }}
-                            >
-                              {sub.customerStatus}
+                        {/* Customer & Delivery */}
+                        <td style={{ padding: '14px 16px', verticalAlign: 'top' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                            <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>
+                              {order.recipientName}
                             </span>
+                            {order.recipientPhone && (
+                              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                                ({order.recipientPhone})
+                              </span>
+                            )}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: 12,
+                              color: 'var(--text-secondary)',
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              gap: 4,
+                              maxWidth: 360,
+                              lineHeight: 1.4,
+                            }}
+                          >
+                            <MapPin size={13} style={{ flexShrink: 0, marginTop: 2, color: 'var(--text-muted)' }} />
+                            <span>{order.deliveryAddress}</span>
+                          </div>
+                        </td>
 
-                            <button
-                              type="button"
-                              onClick={() => setActiveSubOrderForEdit(sub)}
+                        {/* Sub-Orders / Vendors */}
+                        <td style={{ padding: '14px 16px', verticalAlign: 'top' }}>
+                          <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
+                            {subOrdersCount} {subOrdersCount === 1 ? 'Shipment' : 'Shipments'}
+                          </div>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                            {(order.subOrders || []).map((sub) => (
+                              <span
+                                key={sub.uuid}
+                                style={{
+                                  fontSize: 11,
+                                  fontWeight: 600,
+                                  padding: '2px 6px',
+                                  borderRadius: 4,
+                                  background: 'var(--surface)',
+                                  border: '1px solid var(--border)',
+                                  color: 'var(--text-muted)',
+                                }}
+                              >
+                                {sub.vendor?.name || 'Upward Merchant'}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+
+                        {/* Total Amount */}
+                        <td style={{ padding: '14px 16px', verticalAlign: 'top' }}>
+                          <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>
+                            {formatKoboToNgn(order.totalAmountKobo)}
+                          </div>
+                          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                            Delivery: {formatKoboToNgn(order.deliveryFeeKobo)}
+                          </div>
+                        </td>
+
+                        {/* Payment Status */}
+                        <td style={{ padding: '14px 16px', verticalAlign: 'top' }}>
+                          <span
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              padding: '3px 8px',
+                              borderRadius: 6,
+                              display: 'inline-block',
+                              background: isPaid ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                              color: isPaid ? '#059669' : '#d97706',
+                              border: `1px solid ${isPaid ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'}`,
+                            }}
+                          >
+                            {order.paymentStatus}
+                          </span>
+                        </td>
+
+                        {/* Expand Button */}
+                        <td style={{ padding: '14px 16px', verticalAlign: 'top', textAlign: 'right' }}>
+                          <button
+                            type="button"
+                            onClick={() => toggleExpand(order.uuid)}
+                            className="btn btn-secondary"
+                            style={{
+                              height: 32,
+                              padding: '0 12px',
+                              fontSize: 12,
+                              fontWeight: 600,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
+                            <span>{isExpanded ? 'Hide Details' : `View (${subOrdersCount})`}</span>
+                            {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                          </button>
+                        </td>
+                      </tr>
+
+                      {/* Nested Sub-Orders Row */}
+                      {isExpanded && (
+                        <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                          <td colSpan={6} style={{ padding: '0 16px 16px 16px', background: 'var(--surface-hover)' }}>
+                            <div
                               style={{
-                                padding: '6px 12px',
-                                borderRadius: 6,
-                                background: 'var(--accent)',
-                                color: '#fff',
-                                border: 'none',
-                                fontSize: 12,
-                                fontWeight: 700,
-                                cursor: 'pointer',
+                                background: 'var(--white)',
+                                border: '1px solid var(--border)',
+                                borderRadius: 10,
+                                padding: '12px 14px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 12,
                               }}
                             >
-                              Update Fulfilment
-                            </button>
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      )}
+                              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                                Sub-Orders & Fulfilment Milestones for {order.orderNumber}
+                              </div>
 
-      {/* Edit Fulfilment Modal */}
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                {(order.subOrders || []).map((subOrder) => {
+                                  const isService = (subOrder.items || []).some((i) => i.offeringType === 'SERVICE')
+
+                                  return (
+                                    <div
+                                      key={subOrder.uuid}
+                                      style={{
+                                        border: '1px solid var(--border)',
+                                        borderRadius: 8,
+                                        padding: 12,
+                                        background: 'var(--bg)',
+                                        display: 'flex',
+                                        alignItems: 'flex-start',
+                                        justifyContent: 'space-between',
+                                        gap: 16,
+                                        flexWrap: 'wrap',
+                                      }}
+                                    >
+                                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flex: 1, minWidth: 280 }}>
+                                        <div
+                                          style={{
+                                            width: 36,
+                                            height: 36,
+                                            borderRadius: 8,
+                                            background: 'var(--accent-faint)',
+                                            border: '1px solid var(--accent-muted)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            color: 'var(--accent)',
+                                            flexShrink: 0,
+                                          }}
+                                        >
+                                          {isService ? <Wrench size={18} /> : <Truck size={18} />}
+                                        </div>
+
+                                        <div>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                                            <span style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 800, color: 'var(--text)' }}>
+                                              {subOrder.subOrderNumber}
+                                            </span>
+                                            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                                              · Vendor: <strong>{subOrder.vendor?.name || 'Upward Merchant'}</strong>
+                                            </span>
+                                          </div>
+
+                                          {/* Items List */}
+                                          <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 6 }}>
+                                            {(subOrder.items || []).map((item) => (
+                                              <div key={item.uuid} style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
+                                                • {item.snapshotData?.title || 'Merchandise Item'} × {item.quantity} (
+                                                {formatKoboToNgn(item.totalPriceKobo)})
+                                              </div>
+                                            ))}
+                                          </div>
+
+                                          {/* Status & Carrier / Tracking meta */}
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 12 }}>
+                                            <span
+                                              style={{
+                                                fontSize: 11,
+                                                fontWeight: 700,
+                                                padding: '2px 7px',
+                                                borderRadius: 4,
+                                                background: 'rgba(59, 130, 246, 0.1)',
+                                                color: '#2563eb',
+                                              }}
+                                            >
+                                              {subOrder.customerStatus.replace(/_/g, ' ')}
+                                            </span>
+
+                                            {subOrder.carrierName && (
+                                              <span style={{ color: 'var(--text-muted)' }}>
+                                                Carrier: <strong>{subOrder.carrierName}</strong>
+                                                {subOrder.trackingNumber && ` (${subOrder.trackingNumber})`}
+                                              </span>
+                                            )}
+
+                                            {subOrder.trackingUrl && (
+                                              <a
+                                                href={subOrder.trackingUrl}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                style={{
+                                                  display: 'inline-flex',
+                                                  alignItems: 'center',
+                                                  gap: 3,
+                                                  color: 'var(--accent)',
+                                                  textDecoration: 'underline',
+                                                  fontWeight: 600,
+                                                }}
+                                              >
+                                                <span>Track</span>
+                                                <ExternalLink size={12} />
+                                              </a>
+                                            )}
+
+                                            {subOrder.serviceScheduledAt && (
+                                              <span style={{ color: 'var(--text-muted)' }}>
+                                                Appointment: <strong>{formatDate(subOrder.serviceScheduledAt)}</strong>
+                                                {subOrder.technicianName && ` · Tech: ${subOrder.technicianName}`}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      {/* Action Button */}
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <button
+                                          type="button"
+                                          onClick={() => setActiveSubOrderForEdit(subOrder)}
+                                          className="btn btn-secondary"
+                                          style={{
+                                            height: 32,
+                                            padding: '0 12px',
+                                            fontSize: 12,
+                                            fontWeight: 700,
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: 6,
+                                          }}
+                                        >
+                                          <Truck size={13} />
+                                          <span>Update Milestone</span>
+                                        </button>
+                                      </div>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  )
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Update Fulfilment Modal */}
       {activeSubOrderForEdit && (
         <SubOrderFulfilmentModal
           subOrder={activeSubOrderForEdit}

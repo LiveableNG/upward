@@ -77,7 +77,7 @@ function getStatusDetails(status: CustomerFulfilmentStatus, isService: boolean) 
       }
     case 'DISPUTED':
       return {
-        label: 'Inquiry with Concierge',
+        label: 'Inquiry with Support',
         description: 'Upward Support investigating ticket',
         color: '#D97706',
         bg: 'rgba(217, 119, 6, 0.08)',

@@ -169,7 +169,7 @@ export function OrderTrackingScreen({ orderUuid }: { orderUuid: string }) {
         reason: formData.reason,
         explanation: formData.explanation,
       })
-      alert('Your inquiry has been logged. Upward Concierge is reviewing it.')
+      alert('Your inquiry has been logged. Upward Support is reviewing it.')
       setActiveDisputeSubOrder(null)
       reset()
     } catch (err: any) {
@@ -296,10 +296,10 @@ export function OrderTrackingScreen({ orderUuid }: { orderUuid: string }) {
                     type="button"
                     className="order-tracking__dispute-btn"
                     onClick={() => setActiveDisputeSubOrder(subOrder)}
-                    title="Report issue or ask concierge support"
+                    title="Report issue or ask customer support"
                   >
                     <HelpCircle size={13} />
-                    <span>Concierge Support</span>
+                    <span>Customer Support</span>
                   </button>
                 </div>
               </div>
@@ -483,7 +483,7 @@ export function OrderTrackingScreen({ orderUuid }: { orderUuid: string }) {
             <div className="order-tracking__modal-header">
               <div className="order-tracking__modal-title-wrap">
                 <ShieldCheck size={18} color="var(--clay)" />
-                <h3 className="order-tracking__modal-title">Upward Support Concierge</h3>
+                <h3 className="order-tracking__modal-title">Upward Customer Support</h3>
               </div>
               <button
                 type="button"
@@ -497,7 +497,7 @@ export function OrderTrackingScreen({ orderUuid }: { orderUuid: string }) {
             <form onSubmit={handleSubmit(onSubmitDispute)} className="order-tracking__form">
               <p className="order-tracking__form-intro">
                 Reporting an issue for sub-order{' '}
-                <strong>{activeDisputeSubOrder.subOrderNumber}</strong>. Our concierge desk will
+                <strong>{activeDisputeSubOrder.subOrderNumber}</strong>. Our support team will
                 handle this directly with the partner and hold merchant settlement.
               </p>
 
@@ -544,7 +544,7 @@ export function OrderTrackingScreen({ orderUuid }: { orderUuid: string }) {
                   {isSubmitting ? (
                     <Loader2 size={16} className="animate-spin" />
                   ) : (
-                    <span>Submit to Concierge</span>
+                    <span>Submit to Support</span>
                   )}
                 </button>
               </div>

@@ -74,7 +74,7 @@ export class CreateCommerceDisputeUseCase {
     // 1. In-app and push notification
     try {
       await this.notificationService.notifyUser(user.id!, {
-        title: 'Complaint Logged With Concierge',
+        title: 'Complaint Logged With Support',
         message: `Your issue regarding sub-order ${subOrder.subOrderNumber} has been logged. Upward Support is reviewing it.`,
         type: 'SUPPORT',
         url: `/dashboard/lifestyle/orders/${order.uuid}`,
@@ -96,7 +96,7 @@ export class CreateCommerceDisputeUseCase {
             <div style="background-color: #B65B37; height: 6px; width: 100%;"></div>
             <div style="padding: 32px 24px; background-color: #FAF8F6; border-radius: 0 0 12px 12px; border: 1px solid #E5E2DC; border-top: none;">
               <h2 style="color: #B65B37; margin: 0 0 8px; font-size: 20px;">We Received Your Issue Report</h2>
-              <p style="font-size: 14px; color: #666666; margin: 0 0 20px;">Your complaint for sub-order <strong>${subOrder.subOrderNumber}</strong> has been logged directly with the Upward Operations & Concierge desk.</p>
+              <p style="font-size: 14px; color: #666666; margin: 0 0 20px;">Your complaint for sub-order <strong>${subOrder.subOrderNumber}</strong> has been logged directly with the Upward Operations & Support team.</p>
               
               <div style="background-color: #FFFFFF; border: 1px solid #E5E2DC; border-radius: 8px; padding: 18px; margin-bottom: 20px;">
                 <div style="font-size: 12px; color: #888888; margin-bottom: 4px;">Reason</div>
@@ -110,7 +110,7 @@ export class CreateCommerceDisputeUseCase {
                 <strong>Upward Buyer Protection Active:</strong> Vendor payout has been automatically placed on administrative hold pending resolution.
               </div>
 
-              <p style="font-size: 12px; color: #888888; text-align: center; margin: 0;">Our concierge team will respond directly via email and push notification.</p>
+              <p style="font-size: 12px; color: #888888; text-align: center; margin: 0;">Our support team will respond directly via email and push notification.</p>
             </div>
           </div>
         `
@@ -127,7 +127,7 @@ export class CreateCommerceDisputeUseCase {
     }
 
     return {
-      message: 'Your inquiry/dispute has been logged. Upward Concierge is handling it directly.',
+      message: 'Your inquiry/dispute has been logged. Upward Support is handling it directly.',
       dispute: {
         uuid: dispute.uuid,
         status: dispute.status,

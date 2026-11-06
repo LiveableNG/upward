@@ -3,7 +3,6 @@ import { apiService } from '../../../services/api.service'
 import { showToast } from '@upward/client-core'
 import type {
   AdminCommerceOrder,
-  AdminCommerceSubOrder,
   AdminCommerceDispute,
   AdminFulfilmentTransitionAction,
   DisputeStatus,

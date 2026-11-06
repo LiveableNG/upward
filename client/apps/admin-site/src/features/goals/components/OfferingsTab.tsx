@@ -125,7 +125,10 @@ export const OfferingsTab: React.FC<OfferingsTabProps> = ({
       render: (offering) => {
         const typeConfig: Record<OfferingType, { label: string; bg: string; color: string }> = {
           PRODUCT: { label: 'Product', bg: 'rgba(99, 102, 241, 0.1)', color: '#6366f1' },
+          SERVICE: { label: 'Service', bg: 'rgba(245, 158, 11, 0.1)', color: '#d97706' },
           SERVICE_INDIVIDUAL: { label: 'Service', bg: 'rgba(245, 158, 11, 0.1)', color: '#d97706' },
+          PACKAGE: { label: 'Bundle Package', bg: 'rgba(217, 119, 87, 0.1)', color: 'var(--accent)' },
+          BUNDLE: { label: 'Bundle Package', bg: 'rgba(217, 119, 87, 0.1)', color: 'var(--accent)' },
           SERVICE_PACKAGE: { label: 'Bundle Package', bg: 'rgba(217, 119, 87, 0.1)', color: 'var(--accent)' },
         }
         const conf = typeConfig[offering.type] || { label: offering.type, bg: 'var(--surface-hover)', color: 'var(--text)' }

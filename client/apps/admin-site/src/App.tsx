@@ -39,7 +39,6 @@ import { BulkImportDetail } from './pages/BulkImportDetail'
 import Requests from './pages/Requests'
 import UpwardUniversity from './pages/UpwardUniversity'
 import Settlements from './pages/Settlements'
-import GoalManagement from './pages/GoalManagement'
 import CommerceWorkspace from './pages/CommerceWorkspace'
 
 import ChangePassword from './components/ChangePassword'

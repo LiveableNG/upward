@@ -79,7 +79,7 @@ export class CreateCommerceInquiryUseCase {
       tenantPhone = this.encryption.decrypt(user.phone)
     }
 
-    // 1. Create inquiry record in upward_support_ticket so it surfaces in Concierge & Disputes
+    // 1. Create inquiry record in upward_support_ticket so it surfaces in Inquiries & Disputes
     let ticket: any = null
     try {
       ticket = await this.prisma.upward_support_ticket.create({
@@ -97,8 +97,8 @@ export class CreateCommerceInquiryUseCase {
     // 2. In-app & push notification to tenant
     try {
       await this.notificationService.notifyUser(user.id, {
-        title: 'Inquiry Logged with Upward Concierge',
-        message: `Your inquiry regarding "${offering.title}" (${topic}) has been logged. Upward Concierge is reviewing it.`,
+        title: 'Inquiry Logged with Upward Support',
+        message: `Your inquiry regarding "${offering.title}" (${topic}) has been logged. Upward Support is reviewing it.`,
         type: 'SUPPORT',
         url: `/dashboard/lifestyle/${offering.uuid}`,
       })
@@ -117,7 +117,7 @@ export class CreateCommerceInquiryUseCase {
             <div style="background-color: #B65B37; height: 6px; width: 100%;"></div>
             <div style="padding: 32px 24px; background-color: #FAF8F6; border-radius: 0 0 12px 12px; border: 1px solid #E5E2DC; border-top: none;">
               <h2 style="color: #B65B37; margin: 0 0 8px; font-size: 20px;">We Received Your Inquiry</h2>
-              <p style="font-size: 14px; color: #666666; margin: 0 0 20px;">Your inquiry regarding <strong>${offering.title}</strong> has been logged directly with the Upward Concierge desk.</p>
+              <p style="font-size: 14px; color: #666666; margin: 0 0 20px;">Your inquiry regarding <strong>${offering.title}</strong> has been logged directly with the Upward Support team.</p>
               
               <div style="background-color: #FFFFFF; border: 1px solid #E5E2DC; border-radius: 8px; padding: 18px; margin-bottom: 20px;">
                 <div style="font-size: 12px; color: #888888; margin-bottom: 4px;">Topic</div>
@@ -131,7 +131,7 @@ export class CreateCommerceInquiryUseCase {
               </div>
 
               <div style="background-color: #EBF8F2; border: 1px solid #A7F3D0; border-radius: 8px; padding: 14px; margin-bottom: 24px; font-size: 12.5px; color: #065F46;">
-                <strong>Upward Concierge:</strong> We coordinate directly with the merchant partner so you never have to deal with third parties directly. We will reply to this email once confirmed.
+                <strong>Upward Support:</strong> We coordinate directly with the merchant partner so you never have to deal with third parties directly. We will reply to this email once confirmed.
               </div>
 
               <p style="font-size: 12px; color: #888888; text-align: center; margin: 0;">Reference ID: ${inquiryUuid}</p>
@@ -141,7 +141,7 @@ export class CreateCommerceInquiryUseCase {
 
         await this.emailService.sendEmailWithRetry({
           email: tenantEmail,
-          subject: `Inquiry Received: ${offering.title} — Upward Concierge`,
+          subject: `Inquiry Received: ${offering.title} — Upward Support`,
           html,
           type: 'COMMERCE_INQUIRY_LOGGED',
         })
@@ -170,8 +170,8 @@ export class CreateCommerceInquiryUseCase {
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; color: #1E1B18; line-height: 1.5;">
             <div style="background-color: #B65B37; height: 6px; width: 100%;"></div>
             <div style="padding: 28px 24px; background-color: #FAF8F6; border-radius: 0 0 12px 12px; border: 1px solid #E5E2DC; border-top: none;">
-              <h2 style="color: #B65B37; margin: 0 0 8px; font-size: 20px;">[Commerce Concierge] New Inquiry Received</h2>
-              <p style="font-size: 14px; color: #555555; margin: 0 0 20px;">A tenant has submitted a concierge inquiry for offering <strong>${offering.title}</strong>.</p>
+              <h2 style="color: #B65B37; margin: 0 0 8px; font-size: 20px;">[Commerce Support] New Inquiry Received</h2>
+              <p style="font-size: 14px; color: #555555; margin: 0 0 20px;">A tenant has submitted a product inquiry for offering <strong>${offering.title}</strong>.</p>
               
               <div style="background-color: #FFFFFF; border: 1px solid #E5E2DC; border-radius: 8px; padding: 18px; margin-bottom: 20px;">
                 <div style="font-size: 11px; font-weight: 700; color: #888888; text-transform: uppercase; margin-bottom: 4px;">Inquiry Topic</div>
@@ -190,8 +190,8 @@ export class CreateCommerceInquiryUseCase {
               </div>
 
               <p style="font-size: 12px; color: #888888; text-align: center; margin: 0;">
-                Logged under Concierge Reference: <strong>${inquiryUuid}</strong><br/>
-                Action via Admin Site: <strong>Commerce Workspace &gt; Concierge &amp; Disputes</strong>
+                Logged under Reference: <strong>${inquiryUuid}</strong><br/>
+                Action via Admin Site: <strong>Commerce Workspace &gt; Inquiries &amp; Disputes</strong>
               </p>
             </div>
           </div>
@@ -201,7 +201,7 @@ export class CreateCommerceInquiryUseCase {
           alertAdmins.map(({ email }) =>
             this.emailService.sendEmailWithRetry({
               email,
-              subject: `[Commerce Concierge] New Inquiry: ${offering.title} (${topic})`,
+              subject: `[Commerce Support] New Inquiry: ${offering.title} (${topic})`,
               html: adminHtml,
               type: 'SYSTEM_ALERT',
             }),
@@ -219,7 +219,7 @@ export class CreateCommerceInquiryUseCase {
 
     return {
       message:
-        'Your inquiry has been logged with Upward Concierge. We will reply via email and notification.',
+        'Your inquiry has been logged with Upward Support. We will reply via email and notification.',
       inquiry: {
         uuid: ticket?.uuid || inquiryUuid,
         offeringUuid: offering.uuid,

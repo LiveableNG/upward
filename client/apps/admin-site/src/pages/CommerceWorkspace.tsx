@@ -264,7 +264,7 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
               Commerce & Lifestyle Workspace
             </h1>
             <p style={{ margin: '3px 0 0', fontSize: 13, color: 'var(--text-muted)' }}>
-              Unified operations desk for goals catalog, multi-vendor merchandise, fulfilment logistics & concierge disputes.
+              Unified operations desk for goals catalog, multi-vendor merchandise, fulfilment logistics & customer disputes.
             </p>
           </div>
         </div>
