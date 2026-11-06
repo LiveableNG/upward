@@ -377,25 +377,13 @@ export function DashboardHome({
           <button type="button" className="dash-home__action dash-home__action--primary" onClick={() => router.push('/dashboard/pay-rent')}>
             Pay Rent
           </button>
-          {savingsEnabled ? (
-            <button
-              type="button"
-              className="dash-home__action dash-home__action--secondary"
-              onClick={() => router.push('/dashboard/savings')}
-            >
-              <span>Save Rent</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="dash-home__action dash-home__action--secondary dash-home__action--disabled"
-              disabled
-              aria-disabled="true"
-            >
-              <span>Save Rent</span>
-              <span className="dash-home__action-soon">Coming soon</span>
-            </button>
-          )}
+          <button
+            type="button"
+            className="dash-home__action dash-home__action--secondary"
+            onClick={() => router.push('/dashboard/savings')}
+          >
+            <span>Save Rent</span>
+          </button>
           <button type="button" className="dash-home__action dash-home__action--secondary" onClick={() => router.push('/dashboard/save-for-home')}>
             Save for Home
           </button>

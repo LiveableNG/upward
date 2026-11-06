@@ -127,9 +127,7 @@ export function ProfileSetupBlocker({ user, score, maxScore, onSkip }: ProfileSe
     { label: 'Pay Rent', icon: CreditCard, href: '/dashboard/pay-rent' },
     { label: 'Lifestyle', icon: Target, href: '/dashboard/lifestyle' },
     { label: 'Save Home', icon: Home, href: '/dashboard/save-for-home' },
-    isSavingsWalletEnabled(user)
-      ? { label: 'Save Rent', icon: PiggyBank, href: '/dashboard/savings' }
-      : { label: 'Save Rent', icon: PiggyBank, href: '/dashboard/save-for-rent', comingSoon: true },
+    { label: 'Save Rent', icon: PiggyBank, href: '/dashboard/savings' },
   ]
 
   const title = isGated ? 'Add your rental details' : `Welcome, ${firstName}`

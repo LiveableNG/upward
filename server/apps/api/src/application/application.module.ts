@@ -569,6 +569,16 @@ import { PrismaDeviceTokenRepository } from '../shared/infrastructure/prisma/rep
 import { NotificationService } from '../shared/infrastructure/common/notification.service'
 import { GoogleAnalyticsService } from '../shared/infrastructure/common/google-analytics.service'
 
+import { VerifyKycUseCase } from './use-cases/user/verify-kyc.use-case'
+import { SimulateRentSavingsUseCase } from './use-cases/rent-savings/simulate-rent-savings.use-case'
+import { CreateRentVaultUseCase } from './use-cases/rent-savings/create-rent-vault.use-case'
+import { GetMyRentVaultUseCase } from './use-cases/rent-savings/get-my-rent-vault.use-case'
+import { ProcessPaystackSavingsWebhookUseCase } from './use-cases/rent-savings/process-paystack-savings-webhook.use-case'
+import { DisburseEmergencyAdvanceUseCase } from './use-cases/rent-savings/disburse-emergency-advance.use-case'
+import { ExecuteLandlordSettlementUseCase } from './use-cases/rent-savings/execute-landlord-settlement.use-case'
+import { BreakoutRentVaultUseCase } from './use-cases/rent-savings/breakout-rent-vault.use-case'
+import { OnboardSavingsInvestorUseCase } from './use-cases/rent-savings/onboard-savings-investor.use-case'
+
 import { TogglePmAllianceEnablementUseCase } from './alliance/use-cases/toggle-pm-alliance-enablement.use-case'
 import { CreateAllianceQualificationUseCase } from './alliance/use-cases/create-alliance-qualification.use-case'
 import { ListAllianceQualificationsUseCase } from './alliance/use-cases/list-alliance-qualifications.use-case'
@@ -614,6 +624,15 @@ import { SubmitAllianceInquiryUseCase } from './alliance/use-cases/submit-allian
 import { GetUserAllianceJourneysUseCase } from './alliance/use-cases/get-user-alliance-journeys.use-case'
 
 const UseCases: any[] = [
+  VerifyKycUseCase,
+  SimulateRentSavingsUseCase,
+  CreateRentVaultUseCase,
+  GetMyRentVaultUseCase,
+  ProcessPaystackSavingsWebhookUseCase,
+  DisburseEmergencyAdvanceUseCase,
+  ExecuteLandlordSettlementUseCase,
+  BreakoutRentVaultUseCase,
+  OnboardSavingsInvestorUseCase,
 
   TogglePmAllianceEnablementUseCase,
   CreateAllianceQualificationUseCase,

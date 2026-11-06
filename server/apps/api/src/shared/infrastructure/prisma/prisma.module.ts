@@ -142,6 +142,26 @@ import { EMAIL_SEQUENCE_REPOSITORY } from '../../../domains/email-sequence/email
 import { WHATSAPP_SEQUENCE_REPOSITORY } from '../../../domains/whatsapp-sequence/whatsapp-sequence.repository.interface'
 import { BULK_IMPORT_JOB_REPOSITORY } from '../../../domains/pm/IBulkImportJobRepository'
 import { PrismaBulkImportJobRepository } from '../../../infrastructure/repositories/PrismaBulkImportJobRepository'
+import { ConfigService } from '@nestjs/config'
+import { KYC_PROVIDER } from '../../../domains/kyc/kyc-provider.interface'
+import { KYC_REPOSITORY } from '../../../domains/kyc/kyc.repository'
+import { PrismaKycRepository } from './repositories/prisma-kyc.repository'
+import { MockKycProvider } from '../kyc/mock-kyc.provider'
+import { PremblyKycProvider } from '../kyc/prembly-kyc.provider'
+import { MonnifyKycProvider } from '../kyc/monnify-kyc.provider'
+
+import {
+  RENT_VAULT_REPOSITORY,
+  RENT_ADVANCE_REPOSITORY,
+  RENT_SETTLEMENT_REPOSITORY,
+  ASSET_MANAGEMENT_PROVIDER,
+} from '../../../domains/rent-savings'
+import { PrismaRentVaultRepository } from '../../../infrastructure/repositories/prisma-rent-vault.repository'
+import { PrismaRentAdvanceRepository } from '../../../infrastructure/repositories/prisma-rent-advance.repository'
+import { PrismaRentSettlementRepository } from '../../../infrastructure/repositories/prisma-rent-settlement.repository'
+import { ArmConnectInvestmentProvider } from '../../../infrastructure/providers/asset-management/arm-connect-investment.provider'
+import { MockInvestmentProvider } from '../../../infrastructure/providers/asset-management/mock-investment.provider'
+import { AssetManagementProviderRegistry } from '../../../infrastructure/providers/asset-management/asset-management-provider.registry'
 
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 
@@ -406,6 +426,47 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
       provide: COMMERCE_REFUND_REPOSITORY,
       useClass: PrismaCommerceRefundRepository,
     },
+    {
+      provide: KYC_REPOSITORY,
+      useClass: PrismaKycRepository,
+    },
+    {
+      provide: KYC_PROVIDER,
+      useFactory: (configService: ConfigService) => {
+        const provider = (configService.get<string>('KYC_PROVIDER') || 'monnify').toLowerCase()
+        if (provider === 'prembly') {
+          return new PremblyKycProvider(configService)
+        }
+        if (provider === 'mock') {
+          return new MockKycProvider()
+        }
+        return new MonnifyKycProvider(configService)
+      },
+      inject: [ConfigService],
+    },
+    PrismaRentVaultRepository,
+    PrismaRentAdvanceRepository,
+    PrismaRentSettlementRepository,
+    ArmConnectInvestmentProvider,
+    MockInvestmentProvider,
+    AssetManagementProviderRegistry,
+    {
+      provide: RENT_VAULT_REPOSITORY,
+      useClass: PrismaRentVaultRepository,
+    },
+    {
+      provide: RENT_ADVANCE_REPOSITORY,
+      useClass: PrismaRentAdvanceRepository,
+    },
+    {
+      provide: RENT_SETTLEMENT_REPOSITORY,
+      useClass: PrismaRentSettlementRepository,
+    },
+    {
+      provide: ASSET_MANAGEMENT_PROVIDER,
+      useFactory: (registry: AssetManagementProviderRegistry) => registry.getProvider(),
+      inject: [AssetManagementProviderRegistry],
+    },
   ],
   exports: [
     PrismaService,
@@ -474,6 +535,13 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
     ALLIANCE_REFERRAL_REPOSITORY,
     ALLIANCE_COMMISSION_REPOSITORY,
     ALLIANCE_RATING_REPOSITORY,
+    KYC_REPOSITORY,
+    KYC_PROVIDER,
+    RENT_VAULT_REPOSITORY,
+    RENT_ADVANCE_REPOSITORY,
+    RENT_SETTLEMENT_REPOSITORY,
+    ASSET_MANAGEMENT_PROVIDER,
+    AssetManagementProviderRegistry,
   ],
 })
 export class PrismaModule {}
