@@ -8,6 +8,7 @@ import {
   COMMERCE_ORDER_REPOSITORY,
   CommerceOrderRepository,
 } from '../../../domains/commerce/commerce-order.repository'
+import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import { ConfirmSubOrderReceiptResultDto } from '../dto/confirm-receipt.dto'
 
 @Injectable()
@@ -15,19 +16,26 @@ export class TenantConfirmSubOrderReceiptUseCase {
   constructor(
     @Inject(COMMERCE_ORDER_REPOSITORY)
     private readonly orderRepo: CommerceOrderRepository,
+    @Inject(USER_REPOSITORY)
+    private readonly userRepo: UserRepository,
   ) {}
 
   async execute(
-    userId: number,
+    userUuid: string,
     subOrderUuid: string,
   ): Promise<ConfirmSubOrderReceiptResultDto> {
+    const user = await this.userRepo.findByUuid(userUuid)
+    if (!user?.id) {
+      throw new NotFoundException(`Vendor sub-order '${subOrderUuid}' not found`)
+    }
+
     const subOrder = await this.orderRepo.findSubOrderByUuid(subOrderUuid)
     if (!subOrder) {
       throw new NotFoundException(`Vendor sub-order '${subOrderUuid}' not found`)
     }
 
     const order = subOrder.order || (await this.orderRepo.findOrderById(subOrder.orderId))
-    if (!order || order.userId !== userId) {
+    if (!order || order.userId !== user.id) {
       // Strict data isolation: prevent unauthorized access or existence probing
       throw new NotFoundException(`Vendor sub-order '${subOrderUuid}' not found`)
     }

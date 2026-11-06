@@ -40,6 +40,7 @@ import Requests from './pages/Requests'
 import UpwardUniversity from './pages/UpwardUniversity'
 import Settlements from './pages/Settlements'
 import GoalManagement from './pages/GoalManagement'
+import CommerceWorkspace from './pages/CommerceWorkspace'
 
 import ChangePassword from './components/ChangePassword'
 import './App.css'
@@ -131,6 +132,9 @@ function AppRoutes() {
           <Route path="/goals/offerings" element={<Navigate to="/goals?tab=offerings" replace />} />
           <Route path="/goals/vendors" element={<Navigate to="/goals?tab=vendors" replace />} />
           <Route path="/goals/analytics" element={<Navigate to="/goals?tab=overview" replace />} />
+
+          {/* Commerce Workspace Subsystem */}
+          <Route path="/commerce" element={<CommerceWorkspace token={auth.token} adminRole={auth.user.role} />} />
           {showSandboxTools && (
             <Route path="/demo-bank" element={<DemoBank token={auth.token} />} />
           )}

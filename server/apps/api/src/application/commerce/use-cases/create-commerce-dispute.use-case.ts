@@ -38,14 +38,19 @@ export class CreateCommerceDisputeUseCase {
     private readonly notificationService: NotificationService,
   ) {}
 
-  async execute(userId: number, dto: CreateCommerceDisputeDto) {
+  async execute(userUuid: string, dto: CreateCommerceDisputeDto) {
+    const user = await this.userRepo.findByUuid(userUuid)
+    if (!user?.id) {
+      throw new NotFoundException('User not found')
+    }
+
     const subOrder = await this.orderRepo.findSubOrderByUuid(dto.subOrderUuid)
     if (!subOrder) {
       throw new NotFoundException('Sub-order not found')
     }
 
     const order = subOrder.order || (await this.orderRepo.findOrderById(subOrder.orderId))
-    if (!order || order.userId !== userId) {
+    if (!order || order.userId !== user.id) {
       throw new NotFoundException('Sub-order not found')
     }
 
@@ -57,7 +62,7 @@ export class CreateCommerceDisputeUseCase {
     const dispute = await this.refundRepo.openDispute({
       subOrderId: subOrder.id!,
       orderId: order.id!,
-      userId,
+      userId: user.id,
       reason: dto.reason.trim(),
       explanation: dto.explanation.trim(),
       evidenceUrls: dto.evidenceUrls || [],

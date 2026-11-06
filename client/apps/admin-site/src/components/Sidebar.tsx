@@ -23,6 +23,7 @@ import {
   Download,
   FlaskConical,
   Target,
+  ShoppingBag,
   BarChart3,
   TrendingDown,
   GraduationCap,
@@ -109,11 +110,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
       items: opsItems,
     })
 
-    // 4. Lifestyle & Commerce (Single Consolidated Entry)
+    // 4. Lifestyle & Commerce
     list.push({
       id: 'lifestyle-commerce',
       title: 'Lifestyle & Commerce',
-      items: [{ name: 'Lifestyle & Commerce', path: '/goals', icon: Target }],
+      items: [
+        { name: 'Lifestyle Catalog & Goals', path: '/goals', icon: Target },
+        { name: 'Commerce & Fulfilment', path: '/commerce', icon: ShoppingBag },
+      ],
     })
 
     // 5. Growth & Marketing

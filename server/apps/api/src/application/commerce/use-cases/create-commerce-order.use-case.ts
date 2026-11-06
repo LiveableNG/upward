@@ -16,6 +16,7 @@ import {
   OFFERING_REPOSITORY,
   OfferingRepository,
 } from '../../../domains/goals/offering.repository'
+import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import {
   CommercePricingEngine,
   PriceableItemInput,
@@ -38,16 +39,23 @@ export class CreateCommerceOrderUseCase {
     private readonly orderRepo: CommerceOrderRepository,
     @Inject(OFFERING_REPOSITORY)
     private readonly offeringRepo: OfferingRepository,
+    @Inject(USER_REPOSITORY)
+    private readonly userRepo: UserRepository,
   ) {}
 
-  async execute(userId: number, dto: CreateCommerceOrderDto): Promise<CreateCommerceOrderResponse> {
+  async execute(userUuid: string, dto: CreateCommerceOrderDto): Promise<CreateCommerceOrderResponse> {
+    const user = await this.userRepo.findByUuid(userUuid)
+    if (!user?.id) {
+      throw new NotFoundException('User not found')
+    }
+
     // 1. Idempotency Check - distinct from payment reference
     const idempotencyKey = dto.idempotencyKey ? dto.idempotencyKey.trim() : null
 
     if (idempotencyKey) {
       const existingOrder = await this.orderRepo.findOrderByIdempotencyKey(idempotencyKey)
       if (existingOrder) {
-        if (existingOrder.userId !== userId) {
+        if (existingOrder.userId !== user.id) {
           throw new ConflictException('Idempotency key is already in use by another account')
         }
         return {
@@ -126,7 +134,7 @@ export class CreateCommerceOrderUseCase {
 
     // 5. Prepare transactional create order data
     const createOrderData: CreateOrderData = {
-      userId,
+      userId: user.id!,
       orderNumber,
       currency: pricing.currency,
       itemsSubtotalKobo: pricing.itemsSubtotalKobo,

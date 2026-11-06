@@ -48,12 +48,12 @@ export class TenantCommerceController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async createOrder(@Req() req: any, @Body() dto: CreateCommerceOrderDto) {
-    const userId = req.user?.id || req.user?.sub
-    if (!userId) {
+    const userUuid = req.user?.id || req.user?.sub
+    if (!userUuid) {
       throw new UnauthorizedException('Authentication required')
     }
 
-    const data = await this.createCommerceOrderUseCase.execute(Number(userId), dto)
+    const data = await this.createCommerceOrderUseCase.execute(userUuid, dto)
     return { data }
   }
 
@@ -63,38 +63,38 @@ export class TenantCommerceController {
     @Req() req: any,
     @Query() filter: GetTenantOrdersFilterDto,
   ) {
-    const userId = req.user?.id || req.user?.sub
-    if (!userId) {
+    const userUuid = req.user?.id || req.user?.sub
+    if (!userUuid) {
       throw new UnauthorizedException('Authentication required')
     }
 
-    const data = await this.getTenantOrdersUseCase.execute(Number(userId), filter)
+    const data = await this.getTenantOrdersUseCase.execute(userUuid, filter)
     return { data }
   }
 
   @Get(':uuid')
   @HttpCode(HttpStatus.OK)
   async getTenantOrderDetail(@Req() req: any, @Param('uuid') uuid: string) {
-    const userId = req.user?.id || req.user?.sub
-    if (!userId) {
+    const userUuid = req.user?.id || req.user?.sub
+    if (!userUuid) {
       throw new UnauthorizedException('Authentication required')
     }
 
-    const data = await this.getTenantOrderDetailUseCase.execute(Number(userId), uuid)
+    const data = await this.getTenantOrderDetailUseCase.execute(userUuid, uuid)
     return { data }
   }
 
   @Post(':uuid/pay')
   @HttpCode(HttpStatus.OK)
   async initializePayment(@Req() req: any, @Param('uuid') uuid: string) {
-    const userId = req.user?.id || req.user?.sub
-    if (!userId) {
+    const userUuid = req.user?.id || req.user?.sub
+    if (!userUuid) {
       throw new UnauthorizedException('Authentication required')
     }
 
     const ipAddress = req.ip || req.headers?.['x-forwarded-for']
     const data = await this.initializeCommercePaymentUseCase.execute({
-      userId: Number(userId),
+      userUuid,
       orderUuid: uuid,
       ipAddress: typeof ipAddress === 'string' ? ipAddress : undefined,
     })
@@ -107,13 +107,13 @@ export class TenantCommerceController {
     @Param('uuid') uuid: string,
     @Res({ passthrough: false }) res: any,
   ) {
-    const userId = req.user?.id || req.user?.sub
-    if (!userId) {
+    const userUuid = req.user?.id || req.user?.sub
+    if (!userUuid) {
       throw new UnauthorizedException('Authentication required')
     }
 
     const { buffer, filename } = await this.getCommerceReceiptPdfUseCase.execute(
-      Number(userId),
+      userUuid,
       uuid,
     )
 
@@ -125,12 +125,12 @@ export class TenantCommerceController {
   @Post('disputes')
   @HttpCode(HttpStatus.CREATED)
   async createDispute(@Req() req: any, @Body() dto: CreateCommerceDisputeDto) {
-    const userId = req.user?.id || req.user?.sub
-    if (!userId) {
+    const userUuid = req.user?.id || req.user?.sub
+    if (!userUuid) {
       throw new UnauthorizedException('Authentication required')
     }
 
-    const data = await this.createCommerceDisputeUseCase.execute(Number(userId), dto)
+    const data = await this.createCommerceDisputeUseCase.execute(userUuid, dto)
     return { data }
   }
 }

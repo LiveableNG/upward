@@ -34,13 +34,18 @@ export class InitializeCommercePaymentUseCase {
   ) {}
 
   async execute(params: {
-    userId: number
+    userUuid: string
     orderUuid: string
     ipAddress?: string
   }): Promise<InitializeCommercePaymentResponse> {
+    const user = await this.userRepo.findByUuid(params.userUuid)
+    if (!user?.id) {
+      throw new NotFoundException('User not found')
+    }
+
     // 1. Retrieve order and verify tenant ownership
     const order = await this.orderRepo.findOrderByUuid(params.orderUuid)
-    if (!order || order.userId !== params.userId) {
+    if (!order || order.userId !== user.id) {
       throw new NotFoundException(`Order '${params.orderUuid}' not found`)
     }
 
@@ -58,8 +63,7 @@ export class InitializeCommercePaymentUseCase {
     }
 
     // 3. Retrieve tenant email
-    const user = await this.userRepo.findById(params.userId)
-    const email = user?.email || order.recipientPhone || 'customer@upward.ng'
+    const email = user.email || order.user?.email || order.recipientPhone || 'customer@upward.ng'
 
     // 4. Generate unique payment attempt reference (distinct from order idempotency key)
     const paymentReference = `UPW_ORD_PAY_${randomUUID()}`

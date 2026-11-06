@@ -29,18 +29,20 @@ export class GetCommerceReceiptPdfUseCase {
     private readonly encryption: EncryptionService,
   ) {}
 
-  async execute(userId: number, orderUuid: string): Promise<{ buffer: Buffer; filename: string }> {
+  async execute(userUuid: string, orderUuid: string): Promise<{ buffer: Buffer; filename: string }> {
+    const user = await this.userRepo.findByUuid(userUuid)
+    if (!user?.id) {
+      throw new NotFoundException('Order not found')
+    }
+
     const order = await this.orderRepo.findOrderByUuid(orderUuid)
-    if (!order || order.userId !== userId) {
+    if (!order || order.userId !== user.id) {
       throw new NotFoundException('Order not found')
     }
 
     if (order.paymentStatus !== 'PAID') {
       throw new BadRequestException('Receipt is only available for confirmed paid orders')
     }
-
-    // Fetch user for name/email via UserRepository
-    const user = await this.userRepo.findById(userId)
 
     let customerName = order.recipientName
     let customerEmail: string | undefined = undefined

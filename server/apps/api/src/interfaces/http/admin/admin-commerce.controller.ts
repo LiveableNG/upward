@@ -19,6 +19,7 @@ import { AdminGetCommerceOrdersUseCase } from '../../../application/commerce/use
 import { AdminGetCommerceOrderDetailUseCase } from '../../../application/commerce/use-cases/admin/admin-get-commerce-order-detail.use-case'
 import { AdminUpdateSubOrderFulfilmentUseCase } from '../../../application/commerce/use-cases/admin/admin-update-sub-order-fulfilment.use-case'
 import { AdminResolveCommerceDisputeUseCase } from '../../../application/commerce/use-cases/admin/admin-resolve-commerce-dispute.use-case'
+import { AdminGetCommerceDisputesUseCase } from '../../../application/commerce/use-cases/admin/admin-get-commerce-disputes.use-case'
 import {
   AdminGetCommerceOrdersFilterDto,
   AdminUpdateFulfilmentDto,
@@ -33,7 +34,16 @@ export class AdminCommerceController {
     private readonly getCommerceOrderDetailUseCase: AdminGetCommerceOrderDetailUseCase,
     private readonly updateSubOrderFulfilmentUseCase: AdminUpdateSubOrderFulfilmentUseCase,
     private readonly resolveCommerceDisputeUseCase: AdminResolveCommerceDisputeUseCase,
+    private readonly getCommerceDisputesUseCase: AdminGetCommerceDisputesUseCase,
   ) {}
+
+  @Get('disputes')
+  @Roles(AdminRole.SUPERADMIN, AdminRole.CUSTOMER_SUPPORT, AdminRole.DEVELOPER)
+  @HttpCode(HttpStatus.OK)
+  async getDisputes(@Query() filter: any) {
+    const data = await this.getCommerceDisputesUseCase.execute(filter)
+    return { data }
+  }
 
   @Get('orders')
   @Roles(AdminRole.SUPERADMIN, AdminRole.CUSTOMER_SUPPORT, AdminRole.DEVELOPER)

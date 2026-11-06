@@ -4,6 +4,7 @@ import {
   CommerceOrder,
   CommerceOrderRepository,
 } from '../../../domains/commerce/commerce-order.repository'
+import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import { TenantOrderDetailDto } from '../dto/tenant-commerce-order.dto'
 
 @Injectable()
@@ -11,13 +12,20 @@ export class GetTenantOrderDetailUseCase {
   constructor(
     @Inject(COMMERCE_ORDER_REPOSITORY)
     private readonly orderRepo: CommerceOrderRepository,
+    @Inject(USER_REPOSITORY)
+    private readonly userRepo: UserRepository,
   ) {}
 
-  async execute(userId: number, orderUuid: string): Promise<TenantOrderDetailDto> {
+  async execute(userUuid: string, orderUuid: string): Promise<TenantOrderDetailDto> {
+    const user = await this.userRepo.findByUuid(userUuid)
+    if (!user?.id) {
+      throw new NotFoundException(`Order '${orderUuid}' not found`)
+    }
+
     const order = await this.orderRepo.findOrderByUuid(orderUuid)
 
     // Strict tenant isolation: one tenant cannot view another tenant's order
-    if (!order || order.userId !== userId) {
+    if (!order || order.userId !== user.id) {
       throw new NotFoundException(`Order '${orderUuid}' not found`)
     }
 

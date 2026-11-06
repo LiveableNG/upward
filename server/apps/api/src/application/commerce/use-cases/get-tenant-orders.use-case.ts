@@ -1,9 +1,10 @@
-import { Inject, Injectable } from '@nestjs/common'
+import { Inject, Injectable, UnauthorizedException } from '@nestjs/common'
 import {
   COMMERCE_ORDER_REPOSITORY,
   CommerceOrder,
   CommerceOrderRepository,
 } from '../../../domains/commerce/commerce-order.repository'
+import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import {
   GetTenantOrdersFilterDto,
   TenantOrderSummaryDto,
@@ -21,16 +22,23 @@ export class GetTenantOrdersUseCase {
   constructor(
     @Inject(COMMERCE_ORDER_REPOSITORY)
     private readonly orderRepo: CommerceOrderRepository,
+    @Inject(USER_REPOSITORY)
+    private readonly userRepo: UserRepository,
   ) {}
 
   async execute(
-    userId: number,
+    userUuid: string,
     filter: GetTenantOrdersFilterDto,
   ): Promise<GetTenantOrdersResponse> {
+    const user = await this.userRepo.findByUuid(userUuid)
+    if (!user?.id) {
+      throw new UnauthorizedException('User not found')
+    }
+
     const skip = filter.skip ?? 0
     const take = filter.take ?? 20
 
-    const { items, total } = await this.orderRepo.findOrdersByUserId(userId, {
+    const { items, total } = await this.orderRepo.findOrdersByUserId(user.id, {
       skip,
       take,
       status: filter.status,

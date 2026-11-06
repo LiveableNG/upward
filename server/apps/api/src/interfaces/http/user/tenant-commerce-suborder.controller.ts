@@ -21,12 +21,12 @@ export class TenantCommerceSubOrderController {
   @Post(':uuid/confirm-receipt')
   @HttpCode(HttpStatus.OK)
   async confirmReceipt(@Req() req: any, @Param('uuid') uuid: string) {
-    const userId = req.user?.id || req.user?.sub
-    if (!userId) {
+    const userUuid = req.user?.id || req.user?.sub
+    if (!userUuid) {
       throw new UnauthorizedException('Authentication required')
     }
 
-    const data = await this.confirmReceiptUseCase.execute(Number(userId), uuid)
+    const data = await this.confirmReceiptUseCase.execute(userUuid, uuid)
     return { data }
   }
 }
