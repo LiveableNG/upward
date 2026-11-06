@@ -99,7 +99,7 @@ export const OfferingDetailModal: React.FC<OfferingDetailModalProps> = ({
   if (!isOpen || !offering) return null
 
   const TypeIcon = getTypeIcon(offering.type)
-  const title = offering.title || offering.name || 'Untitled Offering'
+  const title = offering.title || offering.name || 'Untitled Item'
   const images = offering.media && offering.media.length > 0
     ? offering.media.map((m) => m.mediaUrl)
     : offering.imageUrl
@@ -338,7 +338,7 @@ export const OfferingDetailModal: React.FC<OfferingDetailModalProps> = ({
           <div className="offering-modal__notice">
             <Info size={16} className="offering-modal__notice-icon" />
             <p className="offering-modal__notice-text">
-              Direct ordering and booking for lifestyle offerings will be enabled in an upcoming release. In the meantime, you can connect directly with verified merchants.
+              Direct ordering and booking for lifestyle products and services will be enabled in an upcoming release. In the meantime, you can connect directly with verified merchants.
             </p>
           </div>
         </div>

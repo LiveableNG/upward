@@ -57,7 +57,7 @@ export function getRecommendationExplanation(
   _matchedGoalName?: string,
 ): string {
   if (offering.isFeatured) {
-    return 'Featured offering'
+    return 'Featured perk'
   }
   if (offering.type === 'PACKAGE' || offering.type === 'BUNDLE') {
     return 'Curated bundle'

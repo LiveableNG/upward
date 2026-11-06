@@ -89,7 +89,7 @@ export const LifestyleGoalsWidget: React.FC = () => {
             type="button"
             className="lifestyle-goals-widget__chip lifestyle-goals-widget__chip--interactive"
             onClick={() => router.push(`/dashboard/lifestyle?goalId=${ug.goalId}`)}
-            title="View tailored offerings for this goal"
+            title="View curated perks for this goal"
           >
             <CheckCircle2 size={13} color="var(--clay)" />
             <span>{getGoalTitle(ug.goal) || `Goal #${ug.goalId}`}</span>

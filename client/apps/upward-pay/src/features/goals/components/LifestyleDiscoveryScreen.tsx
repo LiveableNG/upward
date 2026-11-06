@@ -325,7 +325,7 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
             <Search size={16} className="lifestyle-discovery__search-icon" />
             <input
               type="text"
-              placeholder="Search services, bundles, or merchants..."
+              placeholder="Search products, services, or merchants..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="lifestyle-discovery__search-input"
@@ -506,10 +506,10 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
               ? getGoalTitle(
                   activeUserGoals.find((g) => g.goalId === selectedActiveGoalId)
                     ?.goal,
-                ) || 'Matched Offerings'
+                ) || 'Recommended for You'
               : hasSelectedGoals
-                ? 'Tailored Offerings'
-                : 'Available Offerings'}
+                ? 'Curated for You'
+                : 'Explore Perks'}
           </h2>
           {!isLoading && (
             <span className="lifestyle-discovery__count-badge">
@@ -536,7 +536,7 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
           <div className="lifestyle-discovery__error-card">
             <AlertCircle size={24} className="lifestyle-discovery__error-icon" />
             <p className="lifestyle-discovery__error-msg">
-              Unable to load offerings right now.
+              Unable to load items right now.
             </p>
             <button
               type="button"
@@ -560,10 +560,10 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
             <div className="lifestyle-discovery__empty-state">
               <ShoppingBag size={30} className="lifestyle-discovery__empty-icon" />
               <h3 className="lifestyle-discovery__empty-title">
-                No matching offerings found
+                No matching items found
               </h3>
               <p className="lifestyle-discovery__empty-desc">
-                Try clearing your search or switching the offering category.
+                Try clearing your search or switching categories.
               </p>
               {(searchQuery ||
                 selectedType !== 'ALL' ||

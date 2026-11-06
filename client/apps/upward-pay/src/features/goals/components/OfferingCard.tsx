@@ -87,7 +87,7 @@ export const OfferingCard: React.FC<OfferingCardProps> = ({
     offering.imageUrl
 
   const showImage = Boolean(primaryImage) && !imgError
-  const title = offering.title || offering.name || 'Untitled Offering'
+  const title = offering.title || offering.name || 'Untitled Item'
   const vendor = offering.vendor
   const verified = isVendorVerified(vendor)
   const compareAtPrice = offering.compareAtPrice ?? (offering.pricingModel === 'FIXED' ? offering.maxPrice : null)

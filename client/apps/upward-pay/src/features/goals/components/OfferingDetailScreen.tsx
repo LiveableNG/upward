@@ -242,7 +242,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
           <div className="lifestyle-discovery__error-card">
             <AlertCircle size={28} className="lifestyle-discovery__error-icon" />
             <h2 className="lifestyle-discovery__empty-title">
-              Offering Unavailable
+              Item Unavailable
             </h2>
             <p className="lifestyle-discovery__empty-desc">
               This item could not be loaded or is no longer available.
@@ -260,7 +260,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                 className="lifestyle-discovery__empty-btn"
                 onClick={handleBack}
               >
-                Back to Catalog
+                Back to Explore
               </button>
             </div>
           </div>
@@ -270,7 +270,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
   }
 
   const TypeIcon = getOfferingTypeIcon(offering.type)
-  const title = offering.title || offering.name || 'Untitled Offering'
+  const title = offering.title || offering.name || 'Untitled Item'
 
   const activeImage = images[selectedImageIndex] || null
   const showActiveImage =
@@ -603,7 +603,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                     </span>
                     <p className="offering-detail__delivery-warning-desc">
                       {deliveryCheck.reason ||
-                        'This physical offering can only be delivered to specific coverage areas.'}
+                        'This item can only be delivered to specific coverage areas.'}
                     </p>
                   </div>
                 </div>
@@ -903,7 +903,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                     <div className="inquiry-form__field">
                       <label className="inquiry-form__label">Your Message</label>
                       <textarea
-                        placeholder="Ask any question about this offering, specifications, or fulfillment..."
+                        placeholder="Ask any question about this item, specifications, or delivery..."
                         value={inquiryMessage}
                         onChange={(e) => setInquiryMessage(e.target.value)}
                         className="inquiry-form__textarea"
