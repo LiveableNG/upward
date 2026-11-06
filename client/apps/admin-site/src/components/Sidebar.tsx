@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { NavLink, useLocation } from 'react-router-dom'
+import { NavLink, useLocation, Link } from 'react-router-dom'
 import {
   LayoutDashboard,
   Mail,
@@ -29,6 +29,9 @@ import {
   GraduationCap,
   Lock,
   ChevronDown,
+  ArrowLeft,
+  Truck,
+  ShieldAlert,
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -70,8 +73,34 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
     return {}
   })
 
+  const isCommerceWorkspace = location.pathname.startsWith('/commerce')
+
   // ── Construct Structured Nav Sections ──────────────────────────
   const sections: NavSection[] = useMemo(() => {
+    if (isCommerceWorkspace) {
+      return [
+        {
+          id: 'commerce-catalog',
+          title: 'Catalog & Merchandising',
+          items: [
+            { name: 'Overview', path: '/commerce', icon: LayoutDashboard },
+            { name: 'Goals Catalog', path: '/commerce/goals', icon: Target },
+            { name: 'Categories', path: '/commerce/categories', icon: Sparkles },
+            { name: 'Offerings & Bundles', path: '/commerce/offerings', icon: ShoppingBag },
+            { name: 'Vendors & Partners', path: '/commerce/vendors', icon: Landmark },
+          ],
+        },
+        {
+          id: 'commerce-ops',
+          title: 'Fulfilment & Operations',
+          items: [
+            { name: 'Orders & Fulfilment', path: '/commerce/orders', icon: Truck },
+            { name: 'Concierge & Disputes', path: '/commerce/disputes', icon: ShieldAlert },
+          ],
+        },
+      ]
+    }
+
     const list: NavSection[] = []
 
     // 1. Overview
@@ -110,13 +139,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
       items: opsItems,
     })
 
-    // 4. Lifestyle & Commerce
+    // 4. Lifestyle & Commerce Workspace
     list.push({
       id: 'lifestyle-commerce',
-      title: 'Lifestyle & Commerce',
+      title: 'Commerce',
       items: [
-        { name: 'Lifestyle Catalog & Goals', path: '/goals', icon: Target },
-        { name: 'Commerce & Fulfilment', path: '/commerce', icon: ShoppingBag },
+        { name: 'Commerce & Lifestyle', path: '/commerce', icon: ShoppingBag },
       ],
     })
 
@@ -190,7 +218,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
     }
 
     return list
-  }, [isSuperadmin])
+  }, [isSuperadmin, isCommerceWorkspace])
 
   // ── Auto-expand section containing current active path ─────────
   useEffect(() => {
@@ -247,6 +275,45 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
       aria-label="Admin Navigation"
     >
       <nav className="sidebar__nav">
+        {isCommerceWorkspace && (
+          <div style={{ marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid var(--border)' }}>
+            <Link
+              to="/dashboard"
+              className="sidebar__link"
+              style={{
+                background: 'var(--surface-hover)',
+                color: 'var(--text)',
+                fontWeight: 600,
+                fontSize: 12.5,
+                padding: isExpanded ? '8px 12px' : '8px 0',
+                justifyContent: isExpanded ? 'flex-start' : 'center',
+                textDecoration: 'none',
+              }}
+              title="Return to Main Admin Dashboard"
+            >
+              <ArrowLeft size={16} style={{ flexShrink: 0, color: 'var(--accent)' }} />
+              {isExpanded && <span style={{ marginLeft: 6 }}>Exit to Main Admin</span>}
+            </Link>
+            {isExpanded && (
+              <div style={{ padding: '8px 4px 2px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 800,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                    color: '#B65B37',
+                    background: 'rgba(182, 91, 55, 0.1)',
+                    padding: '2px 6px',
+                    borderRadius: 4,
+                  }}
+                >
+                  Commerce Workspace
+                </span>
+              </div>
+            )}
+          </div>
+        )}
         {sections.map((section, idx) => {
           const isSectionCollapsed = Boolean(collapsedSections[section.id])
           return (
@@ -293,7 +360,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
                         const effectiveActive =
                           item.path === '/'
                             ? location.pathname === '/' || location.pathname === '/dashboard'
-                            : isActive || location.pathname.startsWith(item.path + '/')
+                            : item.path === '/commerce'
+                              ? location.pathname === '/commerce' || location.pathname === '/commerce/' || location.pathname === '/commerce/overview'
+                              : isActive || location.pathname === item.path || location.pathname.startsWith(item.path + '/')
                         return effectiveActive
                           ? `sidebar__link sidebar__link--active ${!isExpanded ? 'sidebar__link--collapsed' : ''}`
                           : `sidebar__link ${!isExpanded ? 'sidebar__link--collapsed' : ''}`

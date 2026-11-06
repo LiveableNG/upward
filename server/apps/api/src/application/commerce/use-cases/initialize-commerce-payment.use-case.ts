@@ -34,18 +34,33 @@ export class InitializeCommercePaymentUseCase {
   ) {}
 
   async execute(params: {
-    userUuid: string
+    userUuid?: string
+    userId?: number | string
     orderUuid: string
     ipAddress?: string
   }): Promise<InitializeCommercePaymentResponse> {
-    const user = await this.userRepo.findByUuid(params.userUuid)
-    if (!user?.id) {
-      throw new NotFoundException('User not found')
+    const rawUser = params.userUuid ?? params.userId
+    let resolvedUserId: number
+    let userEmail: string | undefined = undefined
+
+    if (typeof rawUser === 'number') {
+      resolvedUserId = rawUser
+      const u = await this.userRepo.findById(rawUser)
+      userEmail = u?.email
+    } else if (rawUser) {
+      const user = await this.userRepo.findByUuid(rawUser)
+      if (!user?.id) {
+        throw new NotFoundException('User not found')
+      }
+      resolvedUserId = user.id
+      userEmail = user.email
+    } else {
+      throw new NotFoundException('User identifier required')
     }
 
     // 1. Retrieve order and verify tenant ownership
     const order = await this.orderRepo.findOrderByUuid(params.orderUuid)
-    if (!order || order.userId !== user.id) {
+    if (!order || order.userId !== resolvedUserId) {
       throw new NotFoundException(`Order '${params.orderUuid}' not found`)
     }
 
@@ -63,7 +78,7 @@ export class InitializeCommercePaymentUseCase {
     }
 
     // 3. Retrieve tenant email
-    const email = user.email || order.user?.email || order.recipientPhone || 'customer@upward.ng'
+    const email = userEmail || order.user?.email || order.recipientPhone || 'customer@upward.ng'
 
     // 4. Generate unique payment attempt reference (distinct from order idempotency key)
     const paymentReference = `UPW_ORD_PAY_${randomUUID()}`
@@ -92,7 +107,7 @@ export class InitializeCommercePaymentUseCase {
           orderUuid: order.uuid,
           orderNumber: order.orderNumber,
           orderId: order.id,
-          userId: params.userId,
+          userId: resolvedUserId,
         },
       })
     } catch (error: any) {
@@ -111,7 +126,7 @@ export class InitializeCommercePaymentUseCase {
       fromState: 'UNPAID',
       toState: 'INITIATED',
       actorType: 'TENANT',
-      actorId: String(params.userId),
+      actorId: String(resolvedUserId),
       details: {
         paymentReference,
         orderNumber: order.orderNumber,

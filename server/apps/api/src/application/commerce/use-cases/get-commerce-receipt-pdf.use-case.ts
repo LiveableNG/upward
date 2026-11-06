@@ -29,8 +29,10 @@ export class GetCommerceReceiptPdfUseCase {
     private readonly encryption: EncryptionService,
   ) {}
 
-  async execute(userUuid: string, orderUuid: string): Promise<{ buffer: Buffer; filename: string }> {
-    const user = await this.userRepo.findByUuid(userUuid)
+  async execute(userIdentifier: number | string, orderUuid: string): Promise<{ buffer: Buffer; filename: string }> {
+    const user = typeof userIdentifier === 'number'
+      ? await this.userRepo.findById(userIdentifier)
+      : await this.userRepo.findByUuid(userIdentifier)
     if (!user?.id) {
       throw new NotFoundException('Order not found')
     }

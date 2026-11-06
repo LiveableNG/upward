@@ -38,8 +38,10 @@ export class CreateCommerceDisputeUseCase {
     private readonly notificationService: NotificationService,
   ) {}
 
-  async execute(userUuid: string, dto: CreateCommerceDisputeDto) {
-    const user = await this.userRepo.findByUuid(userUuid)
+  async execute(userIdentifier: number | string, dto: CreateCommerceDisputeDto) {
+    const user = typeof userIdentifier === 'number'
+      ? await this.userRepo.findById(userIdentifier)
+      : await this.userRepo.findByUuid(userIdentifier)
     if (!user?.id) {
       throw new NotFoundException('User not found')
     }
@@ -71,7 +73,7 @@ export class CreateCommerceDisputeUseCase {
     // Multi-channel notifications
     // 1. In-app and push notification
     try {
-      await this.notificationService.notifyUser(userId, {
+      await this.notificationService.notifyUser(user.id!, {
         title: 'Complaint Logged With Concierge',
         message: `Your issue regarding sub-order ${subOrder.subOrderNumber} has been logged. Upward Support is reviewing it.`,
         type: 'SUPPORT',
@@ -83,9 +85,8 @@ export class CreateCommerceDisputeUseCase {
 
     // 2. Email confirmation to tenant
     try {
-      const user = await this.userRepo.findById(userId)
       let tenantEmail: string | null = null
-      if (user?.email) {
+      if (user.email) {
         tenantEmail = this.encryption.decrypt(user.email)
       }
 

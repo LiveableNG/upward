@@ -27,18 +27,24 @@ export class GetTenantOrdersUseCase {
   ) {}
 
   async execute(
-    userUuid: string,
+    userIdentifier: number | string,
     filter: GetTenantOrdersFilterDto,
   ): Promise<GetTenantOrdersResponse> {
-    const user = await this.userRepo.findByUuid(userUuid)
-    if (!user?.id) {
-      throw new UnauthorizedException('User not found')
+    let resolvedUserId: number
+    if (typeof userIdentifier === 'number') {
+      resolvedUserId = userIdentifier
+    } else {
+      const user = await this.userRepo.findByUuid(userIdentifier)
+      if (!user?.id) {
+        throw new UnauthorizedException('User not found')
+      }
+      resolvedUserId = user.id
     }
 
     const skip = filter.skip ?? 0
     const take = filter.take ?? 20
 
-    const { items, total } = await this.orderRepo.findOrdersByUserId(user.id, {
+    const { items, total } = await this.orderRepo.findOrdersByUserId(resolvedUserId, {
       skip,
       take,
       status: filter.status,

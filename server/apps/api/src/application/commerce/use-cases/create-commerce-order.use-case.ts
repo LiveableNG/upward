@@ -43,10 +43,16 @@ export class CreateCommerceOrderUseCase {
     private readonly userRepo: UserRepository,
   ) {}
 
-  async execute(userUuid: string, dto: CreateCommerceOrderDto): Promise<CreateCommerceOrderResponse> {
-    const user = await this.userRepo.findByUuid(userUuid)
-    if (!user?.id) {
-      throw new NotFoundException('User not found')
+  async execute(userIdentifier: number | string, dto: CreateCommerceOrderDto): Promise<CreateCommerceOrderResponse> {
+    let resolvedUserId: number
+    if (typeof userIdentifier === 'number') {
+      resolvedUserId = userIdentifier
+    } else {
+      const user = await this.userRepo.findByUuid(userIdentifier)
+      if (!user?.id) {
+        throw new NotFoundException('User not found')
+      }
+      resolvedUserId = user.id
     }
 
     // 1. Idempotency Check - distinct from payment reference
@@ -55,7 +61,7 @@ export class CreateCommerceOrderUseCase {
     if (idempotencyKey) {
       const existingOrder = await this.orderRepo.findOrderByIdempotencyKey(idempotencyKey)
       if (existingOrder) {
-        if (existingOrder.userId !== user.id) {
+        if (existingOrder.userId !== resolvedUserId) {
           throw new ConflictException('Idempotency key is already in use by another account')
         }
         return {
@@ -134,7 +140,7 @@ export class CreateCommerceOrderUseCase {
 
     // 5. Prepare transactional create order data
     const createOrderData: CreateOrderData = {
-      userId: user.id!,
+      userId: resolvedUserId,
       orderNumber,
       currency: pricing.currency,
       itemsSubtotalKobo: pricing.itemsSubtotalKobo,

@@ -16,16 +16,22 @@ export class GetTenantOrderDetailUseCase {
     private readonly userRepo: UserRepository,
   ) {}
 
-  async execute(userUuid: string, orderUuid: string): Promise<TenantOrderDetailDto> {
-    const user = await this.userRepo.findByUuid(userUuid)
-    if (!user?.id) {
-      throw new NotFoundException(`Order '${orderUuid}' not found`)
+  async execute(userIdentifier: number | string, orderUuid: string): Promise<TenantOrderDetailDto> {
+    let resolvedUserId: number
+    if (typeof userIdentifier === 'number') {
+      resolvedUserId = userIdentifier
+    } else {
+      const user = await this.userRepo.findByUuid(userIdentifier)
+      if (!user?.id) {
+        throw new NotFoundException(`Order '${orderUuid}' not found`)
+      }
+      resolvedUserId = user.id
     }
 
     const order = await this.orderRepo.findOrderByUuid(orderUuid)
 
     // Strict tenant isolation: one tenant cannot view another tenant's order
-    if (!order || order.userId !== user.id) {
+    if (!order || order.userId !== resolvedUserId) {
       throw new NotFoundException(`Order '${orderUuid}' not found`)
     }
 

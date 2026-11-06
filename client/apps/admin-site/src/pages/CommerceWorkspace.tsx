@@ -1,18 +1,49 @@
 import React, { useState, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ShoppingBag,
   Truck,
   ShieldAlert,
   Search,
-  Filter,
   RefreshCw,
-  PackageCheck,
-  Clock,
+  Target,
+  Sparkles,
+  Store,
+  LayoutDashboard,
+  Plus,
 } from 'lucide-react'
 import { useCommerceAdmin } from '../features/commerce/hooks/useCommerceAdmin'
 import { CommerceOrdersTable } from '../features/commerce/components/CommerceOrdersTable'
 import { CommerceDisputesTable } from '../features/commerce/components/CommerceDisputesTable'
+import {
+  type GoalCategory,
+  type Goal,
+  type Offering,
+  type CommerceVendor,
+  type DeleteTarget,
+  useGoalManagement,
+  OverviewTab,
+  GoalsTab,
+  CategoriesTab,
+  OfferingsTab,
+  VendorsTab,
+  CategoryModal,
+  GoalModal,
+  OfferingModal,
+  PackageItemsModal,
+  GoalOfferingsModal,
+  VendorModal,
+  DeleteGoalItemModal,
+} from '../features/goals'
+
+export type WorkspaceTab =
+  | 'OVERVIEW'
+  | 'GOALS'
+  | 'CATEGORIES'
+  | 'OFFERINGS'
+  | 'VENDORS'
+  | 'ORDERS'
+  | 'DISPUTES'
 
 interface CommerceWorkspaceProps {
   token?: string
@@ -20,9 +51,31 @@ interface CommerceWorkspaceProps {
 }
 
 export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
+  const location = useLocation()
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const activeTab = (searchParams.get('tab')?.toUpperCase() || 'ORDERS') as 'ORDERS' | 'DISPUTES'
 
+  // Determine active tab from route path (e.g. /commerce/orders) or query param (?tab=orders)
+  const pathSuffix = location.pathname.split('/commerce/')[1]?.toUpperCase()
+  const queryTab = searchParams.get('tab')?.toUpperCase()
+  const validTabs: WorkspaceTab[] = [
+    'OVERVIEW',
+    'GOALS',
+    'CATEGORIES',
+    'OFFERINGS',
+    'VENDORS',
+    'ORDERS',
+    'DISPUTES',
+  ]
+
+  const activeTab: WorkspaceTab =
+    pathSuffix && validTabs.includes(pathSuffix as WorkspaceTab)
+      ? (pathSuffix as WorkspaceTab)
+      : queryTab && validTabs.includes(queryTab as WorkspaceTab)
+        ? (queryTab as WorkspaceTab)
+        : 'OVERVIEW'
+
+  // Commerce Operations hook (Orders & Disputes)
   const {
     orders,
     ordersTotal,
@@ -36,41 +89,167 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
     resolveDispute,
   } = useCommerceAdmin(token)
 
-  const [search, setSearch] = useState('')
+  // Goal & Merchandising Catalog hook
+  const {
+    overview,
+    loadingOverview,
+    fetchOverview,
+
+    categories,
+    loadingCategories,
+    fetchCategories,
+    createCategory,
+    updateCategory,
+    deleteCategory,
+
+    goals,
+    goalsTotal,
+    goalsPage,
+    goalsSearch,
+    setGoalsSearch,
+    goalsCategoryFilter,
+    setGoalsCategoryFilter,
+    goalsPublishedFilter,
+    setGoalsPublishedFilter,
+    loadingGoals,
+    fetchGoals,
+    createGoal,
+    updateGoal,
+    deleteGoal,
+    togglePublishGoal,
+    fetchGoalCollections,
+    createCollection,
+    deleteCollection,
+    linkOfferingToGoal,
+    unlinkOfferingFromGoal,
+
+    offerings,
+    offeringsTotal,
+    offeringsPage,
+    offeringsSearch,
+    setOfferingsSearch,
+    offeringsTypeFilter,
+    setOfferingsTypeFilter,
+    offeringsVendorFilter,
+    setOfferingsVendorFilter,
+    offeringsPublishedFilter,
+    setOfferingsPublishedFilter,
+    loadingOfferings,
+    fetchOfferings,
+    createOffering,
+    updateOffering,
+    deleteOffering,
+    togglePublishOffering,
+    setPackageItems,
+
+    vendors,
+    vendorsSearch,
+    setVendorsSearch,
+    vendorsActiveFilter,
+    setVendorsActiveFilter,
+    loadingVendors,
+    fetchVendors,
+    createVendor,
+    updateVendor,
+    deleteVendor,
+    toggleVendorActive,
+  } = useGoalManagement(token)
+
+  // Orders table local state
+  const [orderSearch, setOrderSearch] = useState('')
   const [paymentStatusFilter, setPaymentStatusFilter] = useState('ALL')
 
+  // Modals for catalog management
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false)
+  const [editingCategory, setEditingCategory] = useState<GoalCategory | null>(null)
+  const [goalModalOpen, setGoalModalOpen] = useState(false)
+  const [editingGoal, setEditingGoal] = useState<Goal | null>(null)
+  const [offeringModalOpen, setOfferingModalOpen] = useState(false)
+  const [editingOffering, setEditingOffering] = useState<Offering | null>(null)
+  const [packageItemsModalOpen, setPackageItemsModalOpen] = useState(false)
+  const [packageOffering, setPackageOffering] = useState<Offering | null>(null)
+  const [goalOfferingsModalOpen, setGoalOfferingsModalOpen] = useState(false)
+  const [goalForOfferings, setGoalForOfferings] = useState<Goal | null>(null)
+  const [vendorModalOpen, setVendorModalOpen] = useState(false)
+  const [editingVendor, setEditingVendor] = useState<CommerceVendor | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
+
+  // Fetch data on active tab changes
   useEffect(() => {
-    fetchOrders({
-      search: search || undefined,
-      paymentStatus: paymentStatusFilter !== 'ALL' ? paymentStatusFilter : undefined,
-    })
-    fetchDisputes()
-  }, [fetchOrders, fetchDisputes, search, paymentStatusFilter])
-
-  const handleTabChange = (tab: 'ORDERS' | 'DISPUTES') => {
-    setSearchParams((prev) => {
-      const next = new URLSearchParams(prev)
-      if (tab === 'ORDERS') next.delete('tab')
-      else next.set('tab', tab.toLowerCase())
-      return next
-    })
-  }
-
-  const handleRefresh = () => {
     if (activeTab === 'ORDERS') {
       fetchOrders({
-        search: search || undefined,
+        search: orderSearch || undefined,
         paymentStatus: paymentStatusFilter !== 'ALL' ? paymentStatusFilter : undefined,
       })
-    } else {
+    } else if (activeTab === 'DISPUTES') {
       fetchDisputes()
+    }
+  }, [activeTab, fetchOrders, fetchDisputes, orderSearch, paymentStatusFilter])
+
+  const handleTabChange = (tab: WorkspaceTab) => {
+    if (tab === 'OVERVIEW') {
+      navigate('/commerce')
+    } else {
+      navigate(`/commerce/${tab.toLowerCase()}`)
     }
   }
 
+  // Master refresh
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const handleRefresh = async () => {
+    setIsRefreshing(true)
+    if (activeTab === 'ORDERS') {
+      await fetchOrders({
+        search: orderSearch || undefined,
+        paymentStatus: paymentStatusFilter !== 'ALL' ? paymentStatusFilter : undefined,
+      })
+    } else if (activeTab === 'DISPUTES') {
+      await fetchDisputes()
+    } else {
+      await Promise.all([
+        fetchOverview(),
+        fetchCategories(),
+        fetchGoals(goalsPage),
+        fetchOfferings(offeringsPage),
+        fetchVendors(),
+      ])
+    }
+    setIsRefreshing(false)
+  }
+
+  // Delete Confirm Action for Catalog items
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return
+    switch (deleteTarget.type) {
+      case 'CATEGORY':
+        await deleteCategory(deleteTarget.id)
+        break
+      case 'GOAL':
+        await deleteGoal(deleteTarget.id)
+        break
+      case 'OFFERING':
+        await deleteOffering(deleteTarget.id)
+        break
+      case 'VENDOR':
+        await deleteVendor(deleteTarget.id)
+        break
+    }
+    setDeleteTarget(null)
+  }
+
   return (
-    <div className="admin-page-container" style={{ padding: '24px 32px' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+    <div className="admin-page-container fade-in" style={{ padding: '24px 32px' }}>
+      {/* Workspace Header */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: 20,
+          flexWrap: 'wrap',
+          gap: 16,
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div
             style={{
@@ -86,56 +265,249 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
             <ShoppingBag size={24} color="#B65B37" />
           </div>
           <div>
-            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: '#111' }}>
-              Commerce & Fulfilment Desk
-            </h1>
-            <p style={{ margin: 0, fontSize: 13, color: '#666' }}>
-              Operations management for multi-vendor lifestyle purchases, dispatch logistics & concierge support
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: 'var(--text)' }}>
+                Commerce & Lifestyle Workspace
+              </h1>
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                  color: '#B65B37',
+                  background: 'rgba(182, 91, 55, 0.1)',
+                  padding: '2px 8px',
+                  borderRadius: 12,
+                  border: '1px solid rgba(182, 91, 55, 0.25)',
+                }}
+              >
+                Dedicated Hub
+              </span>
+            </div>
+            <p style={{ margin: '3px 0 0', fontSize: 13, color: 'var(--text-muted)' }}>
+              Unified operations desk for goals catalog, multi-vendor merchandise, fulfilment logistics & concierge disputes.
             </p>
           </div>
         </div>
 
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {/* Quick Action Button depending on tab */}
+          {activeTab === 'GOALS' && (
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                setEditingGoal(null)
+                setGoalModalOpen(true)
+              }}
+              style={{ height: 36, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13 }}
+            >
+              <Plus size={15} />
+              <span>New Goal</span>
+            </button>
+          )}
+          {activeTab === 'CATEGORIES' && (
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                setEditingCategory(null)
+                setCategoryModalOpen(true)
+              }}
+              style={{ height: 36, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13 }}
+            >
+              <Plus size={15} />
+              <span>New Category</span>
+            </button>
+          )}
+          {activeTab === 'OFFERINGS' && (
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                setEditingOffering(null)
+                setOfferingModalOpen(true)
+              }}
+              style={{ height: 36, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13 }}
+            >
+              <Plus size={15} />
+              <span>New Offering</span>
+            </button>
+          )}
+          {activeTab === 'VENDORS' && (
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => {
+                setEditingVendor(null)
+                setVendorModalOpen(true)
+              }}
+              style={{ height: 36, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13 }}
+            >
+              <Plus size={15} />
+              <span>New Vendor</span>
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={handleRefresh}
+            className="btn btn-secondary"
+            style={{
+              height: 36,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              fontSize: 13,
+              fontWeight: 600,
+            }}
+            disabled={isRefreshing || loadingOrders || loadingDisputes}
+          >
+            <RefreshCw
+              size={14}
+              className={isRefreshing || loadingOrders || loadingDisputes ? 'loader' : ''}
+            />
+            <span>Refresh</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Workspace Sub-Navigation Tabs */}
+      <div
+        style={{
+          display: 'flex',
+          gap: 4,
+          borderBottom: '1px solid var(--border)',
+          marginBottom: 20,
+          overflowX: 'auto',
+          whiteSpace: 'nowrap',
+          paddingBottom: 2,
+        }}
+      >
         <button
           type="button"
-          onClick={handleRefresh}
+          onClick={() => handleTabChange('OVERVIEW')}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
             gap: 6,
-            padding: '8px 14px',
-            borderRadius: 8,
-            border: '1px solid #ddd',
-            background: '#fff',
-            fontSize: 13,
-            fontWeight: 600,
+            padding: '9px 14px',
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'OVERVIEW' ? '2px solid #B65B37' : '2px solid transparent',
+            color: activeTab === 'OVERVIEW' ? '#B65B37' : 'var(--text-secondary)',
+            fontSize: 13.5,
+            fontWeight: activeTab === 'OVERVIEW' ? 700 : 500,
             cursor: 'pointer',
           }}
         >
-          <RefreshCw size={14} className={loadingOrders || loadingDisputes ? 'animate-spin' : ''} />
-          <span>Refresh</span>
+          <LayoutDashboard size={15} />
+          <span>Overview</span>
         </button>
-      </div>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: 10, borderBottom: '1px solid #eee', marginBottom: 20 }}>
+        <button
+          type="button"
+          onClick={() => handleTabChange('GOALS')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '9px 14px',
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'GOALS' ? '2px solid #B65B37' : '2px solid transparent',
+            color: activeTab === 'GOALS' ? '#B65B37' : 'var(--text-secondary)',
+            fontSize: 13.5,
+            fontWeight: activeTab === 'GOALS' ? 700 : 500,
+            cursor: 'pointer',
+          }}
+        >
+          <Target size={15} />
+          <span>Goals Catalog ({goalsTotal})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleTabChange('CATEGORIES')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '9px 14px',
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'CATEGORIES' ? '2px solid #B65B37' : '2px solid transparent',
+            color: activeTab === 'CATEGORIES' ? '#B65B37' : 'var(--text-secondary)',
+            fontSize: 13.5,
+            fontWeight: activeTab === 'CATEGORIES' ? 700 : 500,
+            cursor: 'pointer',
+          }}
+        >
+          <Sparkles size={15} />
+          <span>Categories ({categories.length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleTabChange('OFFERINGS')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '9px 14px',
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'OFFERINGS' ? '2px solid #B65B37' : '2px solid transparent',
+            color: activeTab === 'OFFERINGS' ? '#B65B37' : 'var(--text-secondary)',
+            fontSize: 13.5,
+            fontWeight: activeTab === 'OFFERINGS' ? 700 : 500,
+            cursor: 'pointer',
+          }}
+        >
+          <ShoppingBag size={15} />
+          <span>Offerings & Bundles ({offeringsTotal})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => handleTabChange('VENDORS')}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '9px 14px',
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'VENDORS' ? '2px solid #B65B37' : '2px solid transparent',
+            color: activeTab === 'VENDORS' ? '#B65B37' : 'var(--text-secondary)',
+            fontSize: 13.5,
+            fontWeight: activeTab === 'VENDORS' ? 700 : 500,
+            cursor: 'pointer',
+          }}
+        >
+          <Store size={15} />
+          <span>Vendors ({vendors.length})</span>
+        </button>
+
         <button
           type="button"
           onClick={() => handleTabChange('ORDERS')}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: 8,
-            padding: '10px 18px',
+            gap: 6,
+            padding: '9px 14px',
             background: 'none',
             border: 'none',
             borderBottom: activeTab === 'ORDERS' ? '2px solid #B65B37' : '2px solid transparent',
-            color: activeTab === 'ORDERS' ? '#B65B37' : '#666',
-            fontSize: 14,
-            fontWeight: 700,
+            color: activeTab === 'ORDERS' ? '#B65B37' : 'var(--text-secondary)',
+            fontSize: 13.5,
+            fontWeight: activeTab === 'ORDERS' ? 700 : 500,
             cursor: 'pointer',
           }}
         >
-          <Truck size={16} />
+          <Truck size={15} />
           <span>Orders & Fulfilment ({ordersTotal})</span>
         </button>
 
@@ -145,70 +517,232 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
           style={{
             display: 'inline-flex',
             alignItems: 'center',
-            gap: 8,
-            padding: '10px 18px',
+            gap: 6,
+            padding: '9px 14px',
             background: 'none',
             border: 'none',
             borderBottom: activeTab === 'DISPUTES' ? '2px solid #B65B37' : '2px solid transparent',
-            color: activeTab === 'DISPUTES' ? '#B65B37' : '#666',
-            fontSize: 14,
-            fontWeight: 700,
+            color: activeTab === 'DISPUTES' ? '#B65B37' : 'var(--text-secondary)',
+            fontSize: 13.5,
+            fontWeight: activeTab === 'DISPUTES' ? 700 : 500,
             cursor: 'pointer',
           }}
         >
-          <ShieldAlert size={16} />
-          <span>Concierge Inquiries & Disputes ({disputesTotal})</span>
+          <ShieldAlert size={15} />
+          <span>Concierge & Disputes ({disputesTotal})</span>
         </button>
       </div>
 
-      {/* Search / Filter Row for Orders */}
-      {activeTab === 'ORDERS' && (
-        <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
-          <div style={{ flex: 1, position: 'relative' }}>
-            <Search size={16} color="#888" style={{ position: 'absolute', left: 12, top: 11 }} />
-            <input
-              type="text"
-              placeholder="Search by order number, customer name, or phone..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '9px 12px 9px 36px',
-                borderRadius: 8,
-                border: '1px solid #ddd',
-                fontSize: 13,
-                outline: 'none',
-              }}
-            />
-          </div>
-
-          <select
-            value={paymentStatusFilter}
-            onChange={(e) => setPaymentStatusFilter(e.target.value)}
-            style={{ padding: '9px 14px', borderRadius: 8, border: '1px solid #ddd', fontSize: 13 }}
-          >
-            <option value="ALL">All Payment Statuses</option>
-            <option value="PAID">Paid Only</option>
-            <option value="UNPAID">Unpaid Only</option>
-          </select>
-        </div>
-      )}
-
       {/* Tab Panels */}
-      {activeTab === 'ORDERS' ? (
-        <CommerceOrdersTable
-          orders={orders}
-          total={ordersTotal}
-          loading={loadingOrders}
-          onUpdateSubOrder={async (subOrderUuid, payload) => {
-            await updateSubOrderFulfilment(subOrderUuid, payload)
-            fetchOrders({
-              search: search || undefined,
-              paymentStatus: paymentStatusFilter !== 'ALL' ? paymentStatusFilter : undefined,
-            })
+      {activeTab === 'OVERVIEW' && (
+        <OverviewTab
+          overview={overview}
+          isLoading={loadingOverview}
+          onNavigateTab={(tab) => handleTabChange(tab as WorkspaceTab)}
+          onNewGoal={() => {
+            setEditingGoal(null)
+            setGoalModalOpen(true)
+          }}
+          onNewCategory={() => {
+            setEditingCategory(null)
+            setCategoryModalOpen(true)
+          }}
+          onNewOffering={() => {
+            setEditingOffering(null)
+            setOfferingModalOpen(true)
+          }}
+          onNewVendor={() => {
+            setEditingVendor(null)
+            setVendorModalOpen(true)
           }}
         />
-      ) : (
+      )}
+
+      {activeTab === 'GOALS' && (
+        <GoalsTab
+          goals={goals}
+          categories={categories}
+          totalGoals={goalsTotal}
+          currentPage={goalsPage}
+          onPageChange={(p) => fetchGoals(p)}
+          search={goalsSearch}
+          onSearchChange={(v) => {
+            setGoalsSearch(v)
+            fetchGoals(1)
+          }}
+          categoryFilter={goalsCategoryFilter}
+          onCategoryFilterChange={(c) => {
+            setGoalsCategoryFilter(c)
+            fetchGoals(1)
+          }}
+          publishedFilter={goalsPublishedFilter}
+          onPublishedFilterChange={(pub) => {
+            setGoalsPublishedFilter(pub)
+            fetchGoals(1)
+          }}
+          isLoading={loadingGoals}
+          onNewGoal={() => {
+            setEditingGoal(null)
+            setGoalModalOpen(true)
+          }}
+          onEditGoal={(g) => {
+            setEditingGoal(g)
+            setGoalModalOpen(true)
+          }}
+          onManageCollections={(g) => {
+            setGoalForOfferings(g)
+            setGoalOfferingsModalOpen(true)
+          }}
+          onDeleteGoal={(g) => {
+            setDeleteTarget({ type: 'GOAL', id: g.id, title: g.title })
+          }}
+          onTogglePublish={togglePublishGoal}
+        />
+      )}
+
+      {activeTab === 'CATEGORIES' && (
+        <CategoriesTab
+          categories={categories}
+          isLoading={loadingCategories}
+          onNewCategory={() => {
+            setEditingCategory(null)
+            setCategoryModalOpen(true)
+          }}
+          onEditCategory={(c) => {
+            setEditingCategory(c)
+            setCategoryModalOpen(true)
+          }}
+          onDeleteCategory={(c) => {
+            setDeleteTarget({ type: 'CATEGORY', id: c.id, title: c.name })
+          }}
+          onTogglePublish={(c) => updateCategory(c.id, { isPublished: !c.isPublished })}
+        />
+      )}
+
+      {activeTab === 'OFFERINGS' && (
+        <OfferingsTab
+          offerings={offerings}
+          vendors={vendors}
+          totalOfferings={offeringsTotal}
+          currentPage={offeringsPage}
+          onPageChange={(p) => fetchOfferings(p)}
+          search={offeringsSearch}
+          onSearchChange={(v) => {
+            setOfferingsSearch(v)
+            fetchOfferings(1)
+          }}
+          typeFilter={offeringsTypeFilter}
+          onTypeFilterChange={(t) => {
+            setOfferingsTypeFilter(t)
+            fetchOfferings(1)
+          }}
+          vendorFilter={offeringsVendorFilter}
+          onVendorFilterChange={(vId) => {
+            setOfferingsVendorFilter(vId)
+            fetchOfferings(1)
+          }}
+          publishedFilter={offeringsPublishedFilter}
+          onPublishedFilterChange={(pub) => {
+            setOfferingsPublishedFilter(pub)
+            fetchOfferings(1)
+          }}
+          isLoading={loadingOfferings}
+          onNewOffering={() => {
+            setEditingOffering(null)
+            setOfferingModalOpen(true)
+          }}
+          onEditOffering={(off) => {
+            setEditingOffering(off)
+            setOfferingModalOpen(true)
+          }}
+          onManagePackageItems={(off) => {
+            setPackageOffering(off)
+            setPackageItemsModalOpen(true)
+          }}
+          onDeleteOffering={(off) => {
+            setDeleteTarget({ type: 'OFFERING', id: off.id, title: off.title })
+          }}
+          onTogglePublish={togglePublishOffering}
+        />
+      )}
+
+      {activeTab === 'VENDORS' && (
+        <VendorsTab
+          vendors={vendors}
+          isLoading={loadingVendors}
+          search={vendorsSearch}
+          onSearchChange={(v) => {
+            setVendorsSearch(v)
+            fetchVendors()
+          }}
+          activeFilter={vendorsActiveFilter}
+          onActiveFilterChange={(act) => {
+            setVendorsActiveFilter(act)
+            fetchVendors()
+          }}
+          onNewVendor={() => {
+            setEditingVendor(null)
+            setVendorModalOpen(true)
+          }}
+          onEditVendor={(v) => {
+            setEditingVendor(v)
+            setVendorModalOpen(true)
+          }}
+          onDeleteVendor={(v) => {
+            setDeleteTarget({ type: 'VENDOR', id: v.id, title: v.name })
+          }}
+          onToggleActive={toggleVendorActive}
+        />
+      )}
+
+      {activeTab === 'ORDERS' && (
+        <>
+          <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+            <div style={{ flex: 1, position: 'relative' }}>
+              <Search size={16} color="#888" style={{ position: 'absolute', left: 12, top: 11 }} />
+              <input
+                type="text"
+                placeholder="Search by order number, customer name, or phone..."
+                value={orderSearch}
+                onChange={(e) => setOrderSearch(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '9px 12px 9px 36px',
+                  borderRadius: 8,
+                  border: '1px solid #ddd',
+                  fontSize: 13,
+                  outline: 'none',
+                }}
+              />
+            </div>
+
+            <select
+              value={paymentStatusFilter}
+              onChange={(e) => setPaymentStatusFilter(e.target.value)}
+              style={{ padding: '9px 14px', borderRadius: 8, border: '1px solid #ddd', fontSize: 13 }}
+            >
+              <option value="ALL">All Payment Statuses</option>
+              <option value="PAID">Paid Only</option>
+              <option value="UNPAID">Unpaid Only</option>
+            </select>
+          </div>
+
+          <CommerceOrdersTable
+            orders={orders}
+            total={ordersTotal}
+            loading={loadingOrders}
+            onUpdateSubOrder={async (subOrderUuid, payload) => {
+              await updateSubOrderFulfilment(subOrderUuid, payload)
+              fetchOrders({
+                search: orderSearch || undefined,
+                paymentStatus: paymentStatusFilter !== 'ALL' ? paymentStatusFilter : undefined,
+              })
+            }}
+          />
+        </>
+      )}
+
+      {activeTab === 'DISPUTES' && (
         <CommerceDisputesTable
           disputes={disputes}
           total={disputesTotal}
@@ -219,6 +753,107 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
           }}
         />
       )}
+
+      {/* Catalog Management Modals */}
+      <CategoryModal
+        isOpen={categoryModalOpen}
+        onClose={() => setCategoryModalOpen(false)}
+        category={editingCategory}
+        onSubmit={async (data) => {
+          if (editingCategory) {
+            await updateCategory(editingCategory.id, data)
+          } else {
+            await createCategory(data)
+          }
+        }}
+      />
+
+      <GoalModal
+        isOpen={goalModalOpen}
+        onClose={() => setGoalModalOpen(false)}
+        goal={editingGoal}
+        categories={categories}
+        onSubmit={async (data) => {
+          if (editingGoal) {
+            await updateGoal(editingGoal.id, data)
+          } else {
+            await createGoal(data)
+          }
+        }}
+      />
+
+      <OfferingModal
+        isOpen={offeringModalOpen}
+        onClose={() => setOfferingModalOpen(false)}
+        offering={editingOffering}
+        vendors={vendors}
+        goals={goals}
+        onSubmit={async (data, linkedGoalIds) => {
+          let savedOffering: Offering | undefined
+          if (editingOffering) {
+            savedOffering = await updateOffering(editingOffering.id, data)
+          } else {
+            savedOffering = await createOffering(data)
+          }
+
+          if (savedOffering && linkedGoalIds !== undefined) {
+            const currentLinked = (savedOffering.goalLinks || editingOffering?.goalLinks || []).map(
+              (gl) => gl.goalId,
+            )
+            const toAdd = linkedGoalIds.filter((id) => !currentLinked.includes(id))
+            const toRemove = currentLinked.filter((id) => !linkedGoalIds.includes(id))
+
+            for (const goalId of toAdd) {
+              await linkOfferingToGoal(goalId, { offeringId: savedOffering.id })
+            }
+            for (const goalId of toRemove) {
+              await unlinkOfferingFromGoal(goalId, savedOffering.id)
+            }
+            fetchOfferings(offeringsPage)
+            fetchGoals(goalsPage)
+          }
+        }}
+      />
+
+      <PackageItemsModal
+        isOpen={packageItemsModalOpen}
+        onClose={() => setPackageItemsModalOpen(false)}
+        packageOffering={packageOffering}
+        allOfferings={offerings}
+        onSubmit={setPackageItems}
+      />
+
+      <GoalOfferingsModal
+        isOpen={goalOfferingsModalOpen}
+        onClose={() => setGoalOfferingsModalOpen(false)}
+        goal={goalForOfferings}
+        allOfferings={offerings}
+        fetchGoalCollections={fetchGoalCollections}
+        onCreateCollection={createCollection}
+        onDeleteCollection={deleteCollection}
+        onLinkOffering={linkOfferingToGoal}
+        onUnlinkOffering={unlinkOfferingFromGoal}
+      />
+
+      <VendorModal
+        isOpen={vendorModalOpen}
+        onClose={() => setVendorModalOpen(false)}
+        vendor={editingVendor}
+        onSubmit={async (data) => {
+          if (editingVendor) {
+            await updateVendor(editingVendor.id, data)
+          } else {
+            await createVendor(data)
+          }
+        }}
+      />
+
+      <DeleteGoalItemModal
+        isOpen={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        target={deleteTarget}
+        onConfirm={handleDeleteConfirm}
+      />
     </div>
   )
 }

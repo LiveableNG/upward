@@ -104,7 +104,7 @@ export const LifestyleCommerceCard: React.FC<LifestyleCommerceCardProps> = ({ to
             <RefreshCcw size={14} className={loading ? 'loader' : ''} />
           </button>
           <Link
-            to="/goals"
+            to="/commerce"
             className="btn btn-primary"
             style={{
               height: '36px',
@@ -116,7 +116,7 @@ export const LifestyleCommerceCard: React.FC<LifestyleCommerceCardProps> = ({ to
               gap: '6px',
             }}
           >
-            <span>Manage Catalog & Vendors</span>
+            <span>Manage Commerce Hub</span>
             <ArrowRight size={14} />
           </Link>
         </div>

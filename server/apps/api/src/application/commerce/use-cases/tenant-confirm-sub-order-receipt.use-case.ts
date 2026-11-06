@@ -21,10 +21,12 @@ export class TenantConfirmSubOrderReceiptUseCase {
   ) {}
 
   async execute(
-    userUuid: string,
+    userIdentifier: number | string,
     subOrderUuid: string,
   ): Promise<ConfirmSubOrderReceiptResultDto> {
-    const user = await this.userRepo.findByUuid(userUuid)
+    const user = typeof userIdentifier === 'number'
+      ? await this.userRepo.findById(userIdentifier)
+      : await this.userRepo.findByUuid(userIdentifier)
     if (!user?.id) {
       throw new NotFoundException(`Vendor sub-order '${subOrderUuid}' not found`)
     }
@@ -79,7 +81,7 @@ export class TenantConfirmSubOrderReceiptUseCase {
         description: 'Customer confirmed receipt and satisfactory delivery of offering',
         isCustomerVisible: true,
         actorType: 'TENANT',
-        actorId: String(userId),
+        actorId: String(user.id!),
       },
       payableStatusUpdate: {
         status: 'ELIGIBLE_FOR_PAYOUT',
@@ -91,7 +93,7 @@ export class TenantConfirmSubOrderReceiptUseCase {
         fromState: subOrder.customerStatus,
         toState: 'RECEIVED_CONFIRMED',
         actorType: 'TENANT',
-        actorId: String(userId),
+        actorId: String(user.id!),
         details: {
           subOrderUuid,
           subOrderNumber: subOrder.subOrderNumber,
