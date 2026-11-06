@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { useToast } from '@/components/common/Toast'
+import { useAuth } from '@/features/auth/AuthContext'
 import { EmergencyAdvanceModal } from './EmergencyAdvanceModal'
 import { FairBreakoutModal } from './FairBreakoutModal'
 import { FundVaultModal } from './FundVaultModal'
@@ -63,11 +64,28 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
 
   const { success: toastSuccess } = useToast()
 
+  const { user } = useAuth()
+  const [nowTimestamp] = useState(() => Date.now())
+  const activeProperty = (user?.properties || []).find((p: any) => !p.isPastTenancy && p.rentAmount)
+
   const currentBalanceNaira = vault.current_balance_kobo / 100
-  const targetAmountNaira = vault.target_amount_kobo / 100
+  const targetAmountNaira = activeProperty?.rentAmount || vault.target_amount_kobo / 100
+  const targetDueDate = activeProperty?.rentEndDate || vault.contractual_due_date
+  const daysRemaining = targetDueDate
+    ? Math.max(
+        0,
+        Math.ceil((new Date(targetDueDate).getTime() - nowTimestamp) / (1000 * 60 * 60 * 24)),
+      )
+    : vault.days_remaining
+
   const accruedYieldNaira = vault.accrued_yield_kobo / 100
   const dailyRate = vault.daily_yield_rate || 0.145 / 365
   const estimatedDailyAddNaira = currentBalanceNaira * dailyRate
+
+  const targetCompletionPercentage =
+    targetAmountNaira > 0
+      ? Math.min(100, Math.round((currentBalanceNaira / targetAmountNaira) * 1000) / 10)
+      : vault.target_completion_percentage
 
   const isSettlementReady = vault.days_to_unlock <= 0 || vault.lock_status === 'SETTLEMENT_READY'
 
@@ -89,19 +107,19 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
             <Lock size={13} color="var(--clay)" />
             <span>{isSettlementReady ? 'Settlement Ready' : 'Maturity Locked'}</span>
           </div>
-          <span className="vault-dashboard__countdown-pill">
-            {vault.days_remaining} Days to Rent Day
-          </span>
+          <span className="vault-dashboard__countdown-pill">{daysRemaining} Days to Rent Day</span>
         </div>
 
         <div className="vault-dashboard__amounts">
           <span className="vault-dashboard__target-label">
             Target: {formatCurrency(targetAmountNaira, 'NGN')} due on{' '}
-            {new Date(vault.contractual_due_date).toLocaleDateString('en-GB', {
-              day: 'numeric',
-              month: 'short',
-              year: 'numeric',
-            })}
+            {targetDueDate
+              ? new Date(targetDueDate).toLocaleDateString('en-GB', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                })
+              : 'Rent Day'}
           </span>
           <span className="vault-dashboard__current-balance">
             {formatCurrency(currentBalanceNaira, 'NGN')}
@@ -112,12 +130,12 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
         <div className="vault-dashboard__gauge-wrapper">
           <div className="vault-dashboard__gauge-header">
             <span>Target Progress</span>
-            <span style={{ fontWeight: 700 }}>{vault.target_completion_percentage}%</span>
+            <span style={{ fontWeight: 700 }}>{targetCompletionPercentage}%</span>
           </div>
           <div className="vault-dashboard__progress-bar">
             <div
               className="vault-dashboard__progress-fill"
-              style={{ width: `${Math.min(100, vault.target_completion_percentage)}%` }}
+              style={{ width: `${Math.min(100, targetCompletionPercentage)}%` }}
             />
           </div>
         </div>

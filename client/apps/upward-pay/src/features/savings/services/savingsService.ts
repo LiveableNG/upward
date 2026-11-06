@@ -55,6 +55,13 @@ export async function getMyRentVault() {
   return res.data
 }
 
+export async function consentToSavings() {
+  const res = await request<{ status: string; message: string }>('/rent-vaults/consent', {
+    method: 'POST',
+  })
+  return res
+}
+
 export async function disburseEmergencyAdvance(vaultId: string, payload: DisburseAdvancePayload) {
   const res = await request<{ status: string; data: any }>(
     `/rent-vaults/${vaultId}/advance/disburse`,
@@ -98,9 +105,9 @@ export interface OnboardInvestorPayload {
   next_of_kin_phone: string
   next_of_kin_email?: string
   next_of_kin_address?: string
-  settlement_bank_code: string
-  settlement_account_number: string
-  settlement_account_name: string
+  settlement_bank_code?: string
+  settlement_account_number?: string
+  settlement_account_name?: string
   settlement_bank_name?: string
 }
 

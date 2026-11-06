@@ -64,7 +64,23 @@ export class CreateRentVaultUseCase {
       throw new ConflictException('You already have an active rent vault.')
     }
 
-    const dueDate = new Date(dto.contractual_due_date)
+    // Single Source of Truth: Active property in Settings
+    const activeProperty = this.prisma?.upward_user_property
+      ? await this.prisma.upward_user_property.findFirst({
+          where: { userId, isPastTenancy: false },
+          orderBy: { createdAt: 'desc' },
+        })
+      : null
+
+    const targetAmountKobo =
+      activeProperty?.rentAmount && activeProperty.rentAmount > 0
+        ? BigInt(Math.round(activeProperty.rentAmount * 100))
+        : BigInt(Math.round(dto.target_amount_kobo))
+
+    const dueDate = activeProperty?.rentEndDate
+      ? new Date(activeProperty.rentEndDate)
+      : new Date(dto.contractual_due_date)
+
     const now = new Date()
     if (dueDate.getTime() <= now.getTime()) {
       throw new BadRequestException('Contractual due date must be in the future.')
@@ -85,30 +101,38 @@ export class CreateRentVaultUseCase {
     }
 
     // Retrieve active investor KYC registration to link ARM membership
-    const latestKyc = await this.prisma.upward_kyc_verification.findFirst({
-      where: { userId, status: 'VERIFIED' },
-      orderBy: { createdAt: 'desc' },
-    })
+    const latestKyc = this.prisma?.upward_kyc_verification
+      ? await this.prisma.upward_kyc_verification.findFirst({
+          where: { userId, status: 'VERIFIED' },
+          orderBy: { createdAt: 'desc' },
+        })
+      : null
 
     const userName = `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Tenant'
     const dvaAccountName = `Upward / ${userName}`
 
-    // Provision DVA details (or simulated Wema / Providus bank account)
-    let dvaBankName = 'Wema Bank'
-    let dvaAccountNumber: string | null = null
-    let dvaAssignmentStatus = 'PENDING'
+    // Provision DVA details (reusing existing DVA if already allocated during KYC)
+    const existingDvaRecord = this.prisma?.upward_rent_vault
+      ? await this.prisma.upward_rent_vault.findFirst({
+          where: { userId, dvaAccountNumber: { not: null } },
+          orderBy: { createdAt: 'desc' },
+        })
+      : null
 
-    if (dto.preferred_funding_method === 'DVA') {
+    let dvaBankName = existingDvaRecord?.dvaBankName || 'Wema Bank'
+    let dvaAccountNumber: string | null = existingDvaRecord?.dvaAccountNumber || null
+    let dvaAssignmentStatus = existingDvaRecord?.dvaAssignmentStatus || 'PENDING'
+
+    if (!dvaAccountNumber && dto.preferred_funding_method === 'DVA') {
       dvaBankName = 'Wema Bank'
-      // Deterministic generation based on user ID or provisioned
-      const randomAcc = '90' + Math.floor(10000000 + Math.random() * 90000000).toString()
+      const randomAcc = '02' + Math.floor(10000000 + Math.random() * 90000000).toString()
       dvaAccountNumber = randomAcc
       dvaAssignmentStatus = 'ACTIVE'
     }
 
     const vault = await this.rentVaultRepo.create({
       userId,
-      targetAmountKobo: BigInt(Math.round(dto.target_amount_kobo)),
+      targetAmountKobo,
       cadence: dto.cadence,
       contractualDueDate: dueDate,
       unlockDate,

@@ -1370,6 +1370,84 @@
   background: #fdfcfb;
 }
 
+/* Gated Overlay for Rent Runway Card */
+.runway-hero__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 22px 20px;
+  text-align: center;
+  z-index: 10;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.runway-hero__overlay-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--clay-faint, rgba(217, 119, 87, 0.08));
+  color: var(--skin-primary, #c2501f);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  border: 1px solid rgba(217, 119, 87, 0.18);
+  box-shadow: 0 4px 14px rgba(217, 119, 87, 0.12);
+}
+
+.runway-hero__overlay-title {
+  font-size: 1.0625rem;
+  font-weight: 800;
+  color: var(--text, #1a1714);
+  margin-bottom: 6px;
+  letter-spacing: -0.01em;
+}
+
+.runway-hero__overlay-desc {
+  font-size: 0.8125rem;
+  color: var(--text-muted, #7a7268);
+  margin: 0 0 16px;
+  max-width: 270px;
+  line-height: 1.45;
+}
+
+.runway-hero__overlay-btn {
+  height: 42px;
+  padding: 0 22px;
+  background: var(--btn-primary-bg, linear-gradient(135deg, #d97757 0%, #c86848 100%));
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: var(--btn-primary-shadow, 0 4px 14px rgba(217, 119, 87, 0.35));
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.runway-hero__overlay-btn:hover {
+  background: var(--btn-primary-hover, linear-gradient(135deg, #c86848 0%, #b85c3e 100%));
+  box-shadow: var(--btn-primary-shadow-hover, 0 6px 18px rgba(217, 119, 87, 0.45));
+  transform: translateY(-1px);
+}
+
+.runway-hero__overlay-btn:active {
+  transform: translateY(0);
+}
+
 /* My Home Quick Hub — Strictly Contained 2x2 Grid */
 .myhome-hub {
   display: flex;

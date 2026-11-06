@@ -130,3 +130,4 @@ The tenant payment application (`upward-pay`) is wrapped with **Capacitor** to r
 
 - Read [2-environment-variables.md](./2-environment-variables.md) to populate your credentials.
 - Review [3-architecture-guidelines.md](./3-architecture-guidelines.md) to understand clean architecture, Use Case execution patterns, and our premium styling system.
+- Check [KYC Test Credentials (BVN & NIN)](../README.md#10-kyc--identity-verification-test-credentials-sandbox) when testing identity verification or savings onboarding.

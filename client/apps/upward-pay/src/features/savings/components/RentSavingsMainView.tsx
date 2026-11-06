@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { ArrowLeft, Loader2, ShieldCheck, AlertCircle } from 'lucide-react'
+import { ArrowLeft, Loader2, ShieldCheck, AlertCircle, Lock, Sparkles } from 'lucide-react'
 import { useRentVault } from '../hooks/useRentSavings'
 import { useAuth } from '@/features/auth/AuthContext'
 import { SavingsInvestorKycModal } from './SavingsInvestorKycModal'
@@ -72,6 +72,12 @@ export function RentSavingsMainView() {
   const isVaultActive =
     vault && vault.lock_status !== 'SETTLED' && vault.lock_status !== 'BROKEN_OUT'
 
+  const isKycRequired = Boolean(user && !user.isIdentityVerified)
+  const hasConsented = Boolean(
+    user?.savingsWalletEnabled || (vault && vault.current_balance_kobo > 0),
+  )
+  const shouldBlurActivities = (isKycRequired || !hasConsented) && Boolean(isVaultActive)
+
   const renderKycBanner = () => {
     if (!user) return null
 
@@ -97,6 +103,32 @@ export function RentSavingsMainView() {
             onClick={() => setShowKycModal(true)}
           >
             Verify Now
+          </button>
+        </div>
+      )
+    }
+
+    if (!hasConsented) {
+      return (
+        <div className="savings-kyc-banner">
+          <div className="savings-kyc-banner__icon">
+            <Sparkles size={20} color="var(--clay)" />
+          </div>
+          <div className="savings-kyc-banner__content">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <span className="savings-kyc-banner__title">Rent Savings Plan Ready</span>
+              <span className="savings-kyc-banner__partner">powered by ARM</span>
+            </div>
+            <span className="savings-kyc-banner__desc">
+              Get cash back on your next rent when you save up for it regularly.
+            </span>
+          </div>
+          <button
+            type="button"
+            className="savings-kyc-banner__btn"
+            onClick={() => setShowKycModal(true)}
+          >
+            Start Saving Today
           </button>
         </div>
       )
@@ -149,41 +181,78 @@ export function RentSavingsMainView() {
         </>
       )}
 
-      {/* Screen 5: Settlement Hub */}
-      {isVaultActive && viewMode === 'SETTLEMENT' && (
-        <div>
-          <button
-            type="button"
-            onClick={() => setViewMode('DASHBOARD')}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              color: 'var(--text-muted)',
-              fontSize: '0.875rem',
-              cursor: 'pointer',
-              marginBottom: 16,
-            }}
+      {/* Active Vault Activities (Gated & blurred when KYC is pending) */}
+      {isVaultActive && (
+        <div className="rent-savings__gated-container">
+          <div
+            className={`rent-savings__gated-content ${
+              shouldBlurActivities ? 'rent-savings__gated-content--blurred' : ''
+            }`}
           >
-            <ArrowLeft size={16} />
-            <span>Back to Vault Dashboard</span>
-          </button>
+            {/* Screen 5: Settlement Hub */}
+            {viewMode === 'SETTLEMENT' && (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('DASHBOARD')}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    color: 'var(--text-muted)',
+                    fontSize: '0.875rem',
+                    cursor: 'pointer',
+                    marginBottom: 16,
+                  }}
+                >
+                  <ArrowLeft size={16} />
+                  <span>Back to Vault Dashboard</span>
+                </button>
 
-          <SettlementHubView
-            vault={vault}
-            onRestartVault={() => {
-              refetch()
-              setViewMode('DASHBOARD')
-            }}
-          />
+                <SettlementHubView
+                  vault={vault}
+                  onRestartVault={() => {
+                    refetch()
+                    setViewMode('DASHBOARD')
+                  }}
+                />
+              </div>
+            )}
+
+            {/* Screen 3: Active Locked Dashboard */}
+            {viewMode === 'DASHBOARD' && (
+              <VaultDashboardView
+                vault={vault}
+                onGoToSettlementHub={() => setViewMode('SETTLEMENT')}
+              />
+            )}
+          </div>
+
+          {shouldBlurActivities && (
+            <div
+              className="rent-savings__gated-overlay"
+              onClick={() => setShowKycModal(true)}
+              role="button"
+              tabIndex={0}
+              aria-label={
+                !user?.isIdentityVerified
+                  ? 'Verification required to unlock savings activities'
+                  : 'Consent required to start saving'
+              }
+            >
+              <div className="rent-savings__gated-badge">
+                <Lock size={15} color="var(--clay)" />
+                <span>
+                  {!user?.isIdentityVerified
+                    ? 'Verification required to access and fund your vault'
+                    : 'Get cash back on your next rent when you save up for it regularly'}
+                </span>
+              </div>
+            </div>
+          )}
         </div>
-      )}
-
-      {/* Screen 3: Active Locked Dashboard */}
-      {isVaultActive && viewMode === 'DASHBOARD' && (
-        <VaultDashboardView vault={vault} onGoToSettlementHub={() => setViewMode('SETTLEMENT')} />
       )}
 
       <SavingsInvestorKycModal

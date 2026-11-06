@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { X, Copy, Check, Landmark, ShieldCheck, ArrowRight, Zap, Info } from 'lucide-react'
 import { useToast } from '@/components/common/Toast'
 
@@ -16,9 +17,25 @@ interface FundVaultModalProps {
 
 export function FundVaultModal({ isOpen, onClose, dedicatedAccount }: FundVaultModalProps) {
   const [copiedField, setCopiedField] = useState<'account' | 'all' | null>(null)
+  const [mounted, setMounted] = useState(false)
   const { success: toastSuccess } = useToast()
 
-  if (!isOpen) return null
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [isOpen])
+
+  if (!isOpen || !mounted || typeof document === 'undefined') return null
 
   const bankName = dedicatedAccount?.bank_name || 'Wema Bank'
   const accountNumber = dedicatedAccount?.account_number || '9012345678'
@@ -31,7 +48,7 @@ export function FundVaultModal({ isOpen, onClose, dedicatedAccount }: FundVaultM
     setTimeout(() => setCopiedField(null), 2500)
   }
 
-  return (
+  return createPortal(
     <div className="vault-modal-overlay" onClick={onClose}>
       <div
         className="vault-modal-card"
@@ -243,6 +260,7 @@ export function FundVaultModal({ isOpen, onClose, dedicatedAccount }: FundVaultM
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

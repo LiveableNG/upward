@@ -1,9 +1,18 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Calendar, DollarSign, AlertCircle, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react'
+import {
+  Calendar,
+  DollarSign,
+  AlertCircle,
+  ArrowRight,
+  ShieldCheck,
+  Sparkles,
+  Home,
+} from 'lucide-react'
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from '@/lib/utils'
 import { useSimulateRentSavings } from '../hooks/useRentSavings'
+import { useAuth } from '@/features/auth/AuthContext'
 
 interface RentCalculatorViewProps {
   onProceedToSetup: (config: {
@@ -15,11 +24,32 @@ interface RentCalculatorViewProps {
 }
 
 export function RentCalculatorView({ onProceedToSetup }: RentCalculatorViewProps) {
-  const [targetAmountRaw, setTargetAmountRaw] = useState<string>('')
-  const [contractualDueDate, setContractualDueDate] = useState<string>('')
+  const { user } = useAuth()
+  const activeProperty = (user?.properties || []).find((p: any) => !p.isPastTenancy && p.rentAmount)
+
+  const [targetAmountRaw, setTargetAmountRaw] = useState<string>(() =>
+    activeProperty?.rentAmount ? formatCurrencyInput(activeProperty.rentAmount) : '',
+  )
+  const [contractualDueDate, setContractualDueDate] = useState<string>(() =>
+    activeProperty?.rentEndDate ? activeProperty.rentEndDate.split('T')[0] : '',
+  )
+  const [minDate] = useState(() => {
+    const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
+    return tomorrow.toISOString().split('T')[0]
+  })
   const [initialDepositNaira, setInitialDepositNaira] = useState<number>(0)
   const [cadence, setCadence] = useState<'DAILY' | 'WEEKLY' | 'MONTHLY'>('MONTHLY')
   const [monthlyIncomeRaw, setMonthlyIncomeRaw] = useState<string>('')
+
+  // Sync if activeProperty loads asynchronously
+  useEffect(() => {
+    if (activeProperty?.rentAmount && !targetAmountRaw) {
+      setTargetAmountRaw(formatCurrencyInput(activeProperty.rentAmount))
+    }
+    if (activeProperty?.rentEndDate && !contractualDueDate) {
+      setContractualDueDate(activeProperty.rentEndDate.split('T')[0])
+    }
+  }, [activeProperty, targetAmountRaw, contractualDueDate])
 
   const targetAmountNaira = parseCurrencyInput(targetAmountRaw) || 0
   const monthlyIncomeNaira = parseCurrencyInput(monthlyIncomeRaw) || 0
@@ -63,6 +93,59 @@ export function RentCalculatorView({ onProceedToSetup }: RentCalculatorViewProps
           of mind.
         </p>
 
+        {activeProperty && (
+          <div
+            style={{
+              padding: '12px 14px',
+              borderRadius: '10px',
+              background: 'var(--surface-sunken, #f8f6f3)',
+              border: '1px solid var(--border)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 12,
+              marginBottom: 16,
+            }}
+          >
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: '8px',
+                background: 'var(--clay-faint)',
+                color: 'var(--clay)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+              }}
+            >
+              <Home size={18} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text)' }}>
+                  {activeProperty.title || 'Linked Property'}
+                </span>
+                <span
+                  style={{
+                    fontSize: '0.6875rem',
+                    fontWeight: 700,
+                    padding: '2px 6px',
+                    borderRadius: 4,
+                    background: 'rgba(16, 185, 129, 0.1)',
+                    color: '#10b981',
+                  }}
+                >
+                  Settings Sourced
+                </span>
+              </div>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '2px 0 0' }}>
+                Rental obligation automatically pre-filled from your settings.
+              </p>
+            </div>
+          </div>
+        )}
+
         <form className="rent-calculator__form" onSubmit={(e) => e.preventDefault()}>
           <div className="rent-calculator__field">
             <label className="rent-calculator__label" htmlFor="calc-target">
@@ -94,7 +177,7 @@ export function RentCalculatorView({ onProceedToSetup }: RentCalculatorViewProps
                 className="rent-calculator__input rent-calculator__input--no-prefix"
                 value={contractualDueDate}
                 onChange={(e) => setContractualDueDate(e.target.value)}
-                min={new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
+                min={minDate}
                 required
               />
             </div>

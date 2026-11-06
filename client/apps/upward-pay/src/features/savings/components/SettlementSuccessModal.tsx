@@ -1,6 +1,7 @@
 'use client'
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { CheckCircle2, Download, Award, ArrowRight, ShieldCheck, Share2 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 
@@ -29,13 +30,27 @@ export function SettlementSuccessModal({
   const amountPaidNaira = data.amount_paid_to_landlord_kobo / 100
   const cashbackNaira = data.cashback_credited_kobo / 100
   const surplusNaira = (data.surplus_to_wallet_kobo || 0) / 100
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [])
 
   const handleDownloadReceipt = () => {
     // In production, triggers the PDF receipt download
     window.open(data.receipt_download_url, '_blank')
   }
 
-  return (
+  if (!mounted || typeof document === 'undefined') return null
+
+  return createPortal(
     <div className="vault-modal-overlay">
       <div className="vault-modal-card" style={{ maxWidth: 520, textAlign: 'center' }}>
         {/* Animated Success Badge */}
@@ -164,6 +179,7 @@ export function SettlementSuccessModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

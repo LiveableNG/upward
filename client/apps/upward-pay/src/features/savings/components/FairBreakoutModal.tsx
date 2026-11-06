@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { X, Shield, AlertTriangle, ArrowRight, CheckCircle2 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { useBreakoutRentVault } from '../hooks/useRentSavings'
@@ -21,9 +22,23 @@ export function FairBreakoutModal({
 }: FairBreakoutModalProps) {
   const [breakoutResult, setBreakoutResult] = useState<any | null>(null)
   const [confirmStep, setConfirmStep] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
   const { error: toastError, success: toastSuccess } = useToast()
   const breakoutMutation = useBreakoutRentVault()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [])
+
+  if (!mounted || typeof document === 'undefined') return null
 
   // Estimated preview figures
   // 7% p.a. base yield vs 1.5% admin fee
@@ -46,7 +61,7 @@ export function FairBreakoutModal({
     }
   }
 
-  return (
+  return createPortal(
     <div className="vault-modal-overlay" onClick={onClose}>
       <div className="vault-modal-card" onClick={(e) => e.stopPropagation()}>
         <div className="vault-modal-header">
@@ -206,6 +221,7 @@ export function FairBreakoutModal({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

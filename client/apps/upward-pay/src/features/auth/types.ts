@@ -34,6 +34,7 @@ export interface UserProfile {
   properties?: Array<{
     id: number
     uuid?: string
+    title?: string
     address: string
     rentStartDate?: string
     rentEndDate: string

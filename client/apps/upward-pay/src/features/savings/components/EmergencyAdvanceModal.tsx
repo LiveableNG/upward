@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -36,9 +37,21 @@ export function EmergencyAdvanceModal({
     Math.min(maxBorrowableKobo, Math.max(1000000, Math.floor(maxBorrowableKobo * 0.5))),
   )
   const [successData, setSuccessData] = useState<any | null>(null)
+  const [mounted, setMounted] = useState(false)
 
   const { error: toastError, success: toastSuccess } = useToast()
   const disburseMutation = useDisburseAdvance()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [])
 
   const {
     register,
@@ -80,7 +93,9 @@ export function EmergencyAdvanceModal({
     }
   }
 
-  return (
+  if (!mounted || typeof document === 'undefined') return null
+
+  return createPortal(
     <div className="vault-modal-overlay" onClick={onClose}>
       <div className="vault-modal-card" onClick={(e) => e.stopPropagation()}>
         <div className="vault-modal-header">
@@ -297,6 +312,7 @@ export function EmergencyAdvanceModal({
           </form>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

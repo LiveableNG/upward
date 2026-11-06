@@ -119,13 +119,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           window.dispatchEvent(new CustomEvent('upward:payment.request.changed', { detail: data }))
         }
       } catch (err) {
-        console.error('[SSE] Error processing event:', err)
+        console.warn('[SSE] Error processing event:', err)
       }
     }
 
-    eventSource.onerror = (err) => {
-      console.error('[SSE] Connection error:', err)
-      eventSource.close()
+    eventSource.onerror = () => {
+      // EventSource fires an error event on network disconnects or backend restarts.
+      // We use console.warn instead of console.error to avoid Next.js dev overlay popups.
+      // If the connection is definitively closed, close the instance cleanly;
+      // otherwise, keep it open so the browser's native EventSource auto-reconnects.
+      if (eventSource.readyState === EventSource.CLOSED) {
+        console.warn('[SSE] Connection closed.')
+        eventSource.close()
+      } else {
+        console.warn('[SSE] Connection interrupted. Reconnecting in background...')
+      }
     }
 
     return () => {

@@ -69,6 +69,12 @@ describe('CreateRentVaultUseCase', () => {
           armSyncStatus: 'Approved',
         }),
       },
+      upward_user_property: {
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
+      upward_rent_vault: {
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
     }
 
     useCase = new CreateRentVaultUseCase(rentVaultRepo, userRepo, prisma)

@@ -45,6 +45,16 @@ function checkNameMatch(
     return true
   }
 
+  // In local development, Prembly sandbox always returns "RONALD EKOM".
+  // Allow local testers to verify their accounts without needing to rename their profiles.
+  if (
+    (process.env.NODE_ENV === 'development' || process.env.ALLOW_KYC_TEST_NAMES === 'true') &&
+    provFull.includes('ronald') &&
+    provFull.includes('ekom')
+  ) {
+    return true
+  }
+
   return false
 }
 
@@ -155,12 +165,21 @@ export class VerifyKycUseCase {
     // Anti-fraud: Verify this ID number is not already verified by another user
     const existingVerified = await this.kycRepository.findVerifiedByHash(idNumberHash)
     if (existingVerified && existingVerified.userId !== user.id) {
-      this.logger.warn(
-        `Fraud detection: ${idType} hash collision for user ID ${user.id} against user ID ${existingVerified.userId}`,
-      )
-      throw new BadRequestException(
-        `This ${idType} is already linked to another verified account. Please contact support.`,
-      )
+      if (
+        process.env.NODE_ENV === 'development' ||
+        process.env.ALLOW_TEST_KYC_DUPLICATES === 'true'
+      ) {
+        this.logger.warn(
+          `[Dev Sandbox] Allowing duplicate ${idType} for dev user ID ${user.id} (previously used by user ID ${existingVerified.userId})`,
+        )
+      } else {
+        this.logger.warn(
+          `Fraud detection: ${idType} hash collision for user ID ${user.id} against user ID ${existingVerified.userId}`,
+        )
+        throw new BadRequestException(
+          `This ${idType} is already linked to another verified account. Please contact support.`,
+        )
+      }
     }
 
     this.logger.log(`Initiating ${idType} verification for user ID: ${user.id} (UUID: ${userUuid})`)
