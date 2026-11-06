@@ -583,187 +583,135 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                 </div>
               </section>
             )}
-
-            {/* Delivery & Fulfillment */}
-            <section className="offering-detail__card">
-              <div className="offering-detail__section-header-row">
-                <h2 className="offering-detail__section-label">
-                  Delivery & Fulfillment
-                </h2>
-                {deliveryCheck.isDeliverable ? (
-                  <span className="offering-detail__delivery-badge">
-                    <CheckCircle2 size={12} />
-                    <span>Eligible for {formatShortLocation(deliveryLocation)}</span>
-                  </span>
-                ) : (
-                  <span className="offering-detail__delivery-badge offering-detail__delivery-badge--warn">
-                    <AlertCircle size={12} />
-                    <span>Coverage Notice</span>
-                  </span>
-                )}
-              </div>
-
-              <div className="offering-detail__fulfillment-box">
-                {/* Method */}
-                <div className="offering-detail__fulfillment-row">
-                  <div className="offering-detail__fulfillment-icon">
-                    <Truck size={17} />
-                  </div>
-                  <div className="offering-detail__fulfillment-content">
-                    <div className="offering-detail__fulfillment-title">
-                      <span>
-                        {offering.deliveryAvailable
-                          ? 'Direct Home Delivery'
-                          : 'Merchant Fulfillment'}
-                      </span>
-                    </div>
-                    <div className="offering-detail__fulfillment-sub">
-                      {offering.deliveryAvailable
-                        ? 'Delivered straight to your rental address'
-                        : 'Scheduled directly with verified provider'}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Turnaround Window */}
-                <div className="offering-detail__fulfillment-row">
-                  <div className="offering-detail__fulfillment-icon">
-                    <Clock size={17} />
-                  </div>
-                  <div className="offering-detail__fulfillment-content">
-                    <div className="offering-detail__fulfillment-title">
-                      <span>
-                        {offering.leadTimeDays == null
-                          ? 'Flexible Scheduling'
-                          : offering.leadTimeDays === 0
-                            ? 'Same-Day Turnaround'
-                            : `${offering.leadTimeDays}-Day Delivery Turnaround`}
-                      </span>
-                    </div>
-                    <div className="offering-detail__fulfillment-sub">
-                      Estimated fulfillment window upon order confirmation
-                    </div>
-                  </div>
-                </div>
-
-                {/* Destination Context with Integrated Location Bar */}
-                <div className="offering-detail__fulfillment-row">
-                  <div className="offering-detail__fulfillment-icon">
-                    <MapPin size={17} />
-                  </div>
-                  <div className="offering-detail__fulfillment-content">
-                    <div className="offering-detail__fulfillment-title">
-                      <span>Destination</span>
-                      <DeliveryLocationBar
-                        location={deliveryLocation}
-                        onLocationChange={(loc) => setDeliveryLocation(loc)}
-                      />
-                    </div>
-                    <div className="offering-detail__fulfillment-sub">
-                      {deliveryCheck.isDeliverable
-                        ? 'Eligible for direct dispatch to your address'
-                        : 'Delivery currently unavailable to this area'}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {!deliveryCheck.isDeliverable && (
-                <div className="offering-detail__delivery-warning" style={{ marginTop: 12 }}>
-                  <AlertCircle size={16} />
-                  <div>
-                    <span className="offering-detail__delivery-warning-title">
-                      Delivery unavailable to {formatShortLocation(deliveryLocation)}
-                    </span>
-                    <p className="offering-detail__delivery-warning-desc">
-                      {deliveryCheck.reason ||
-                        'This item can only be delivered to specific coverage areas.'}
-                    </p>
-                  </div>
-                </div>
-              )}
-            </section>
           </div>
 
           {/* Right / Merchant & Action Column */}
           <aside className="offering-detail__aside">
             <section className="offering-detail__card offering-detail__vendor-card">
               <h2 className="offering-detail__section-label">
-                Merchant & Provider
+                Merchant & Fulfillment
               </h2>
 
               {vendor ? (
-                <>
-                  <div className="offering-detail__vendor-header">
-                    <div className="offering-detail__vendor-avatar">
-                      <Building2 size={22} />
+                <div className="offering-detail__vendor-header">
+                  <div className="offering-detail__vendor-avatar">
+                    <Building2 size={22} />
+                  </div>
+                  <div className="offering-detail__vendor-info">
+                    <div className="offering-detail__vendor-name-row">
+                      <span className="offering-detail__vendor-name">
+                        {vendor.name}
+                      </span>
+                      {vendorVerified && (
+                        <ShieldCheck
+                          size={15}
+                          className="offering-detail__vendor-verified"
+                          aria-label="Verified Merchant"
+                        />
+                      )}
                     </div>
-                    <div className="offering-detail__vendor-info">
-                      <div className="offering-detail__vendor-name-row">
-                        <span className="offering-detail__vendor-name">
-                          {vendor.name}
+                    <div className="offering-detail__vendor-meta">
+                      {vendorVerified && <span>Verified Upward Partner</span>}
+                      {vendor.rating != null && (
+                        <span className="offering-detail__vendor-rating">
+                          <Star size={12} fill="currentColor" />
+                          {vendor.rating.toFixed(1)}
                         </span>
-                        {vendorVerified && (
-                          <ShieldCheck
-                            size={15}
-                            className="offering-detail__vendor-verified"
-                            aria-label="Verified Merchant"
-                          />
-                        )}
-                      </div>
-                      <div className="offering-detail__vendor-meta">
-                        {vendorVerified && <span>Verified Upward Partner</span>}
-                        {vendor.rating != null && (
-                          <span className="offering-detail__vendor-rating">
-                            <Star size={12} fill="currentColor" />
-                            {vendor.rating.toFixed(1)}
-                          </span>
-                        )}
-                      </div>
+                      )}
                     </div>
                   </div>
-
-                  <div className="offering-detail__cta-stack">
-                    {deliveryCheck.isDeliverable ? (
-                      <button
-                        type="button"
-                        className="offering-detail__primary-cta"
-                        onClick={() => setIsCheckoutOpen(true)}
-                      >
-                        <span>
-                          {offering.type === 'SERVICE'
-                            ? 'Book Service'
-                            : 'Order Now'}
-                        </span>
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        className="offering-detail__primary-cta offering-detail__primary-cta--disabled"
-                        disabled
-                      >
-                        <span>Delivery Unavailable in Your Area</span>
-                      </button>
-                    )}
-
-                    <button
-                      type="button"
-                      className="offering-detail__secondary-cta"
-                      onClick={() => {
-                        setIsInquiryOpen(true)
-                        setInquirySent(false)
-                      }}
-                    >
-                      <MessageSquare size={16} />
-                      <span>Ask Upward Support</span>
-                    </button>
-                  </div>
-                </>
+                </div>
               ) : (
-                <p className="offering-detail__perk-desc">
+                <p className="offering-detail__perk-desc" style={{ marginBottom: 12 }}>
                   Fulfilled by an Upward-verified partner merchant.
                 </p>
               )}
+
+              {/* Compact Delivery & Eligibility Snippet */}
+              <div className="offering-detail__delivery-snippet">
+                <div className="offering-detail__delivery-snippet-info">
+                  <div className="offering-detail__delivery-snippet-icon-wrap">
+                    <Truck size={16} />
+                  </div>
+                  <div>
+                    <div className="offering-detail__delivery-snippet-main">
+                      <span>
+                        {offering.leadTimeDays == null
+                          ? 'Flexible Scheduling'
+                          : offering.leadTimeDays === 0
+                            ? 'Same-Day Turnaround'
+                            : `${offering.leadTimeDays}-Day Delivery`}
+                      </span>
+                      {deliveryCheck.isDeliverable ? (
+                        <span className="offering-detail__delivery-snippet-pill">
+                          <CheckCircle2 size={11} /> Eligible
+                        </span>
+                      ) : (
+                        <span className="offering-detail__delivery-snippet-pill offering-detail__delivery-snippet-pill--warn">
+                          <AlertCircle size={11} /> Unavailable
+                        </span>
+                      )}
+                    </div>
+                    <div className="offering-detail__delivery-snippet-sub">
+                      {offering.deliveryAvailable
+                        ? 'Doorstep delivery to your home'
+                        : 'Merchant scheduled fulfillment'}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="offering-detail__delivery-snippet-trigger">
+                  <DeliveryLocationBar
+                    location={deliveryLocation}
+                    onLocationChange={(loc) => setDeliveryLocation(loc)}
+                  />
+                </div>
+              </div>
+
+              {!deliveryCheck.isDeliverable && (
+                <div className="offering-detail__delivery-warning-compact">
+                  <AlertCircle size={14} style={{ flexShrink: 0 }} />
+                  <span>
+                    Delivery unavailable to {formatShortLocation(deliveryLocation)}. Tap location to check other areas.
+                  </span>
+                </div>
+              )}
+
+              <div className="offering-detail__cta-stack">
+                {deliveryCheck.isDeliverable ? (
+                  <button
+                    type="button"
+                    className="offering-detail__primary-cta"
+                    onClick={() => setIsCheckoutOpen(true)}
+                  >
+                    <span>
+                      {offering.type === 'SERVICE'
+                        ? 'Book Service'
+                        : 'Order Now'}
+                    </span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="offering-detail__primary-cta offering-detail__primary-cta--disabled"
+                    disabled
+                  >
+                    <span>Delivery Unavailable in Your Area</span>
+                  </button>
+                )}
+
+                <button
+                  type="button"
+                  className="offering-detail__secondary-cta"
+                  onClick={() => {
+                    setIsInquiryOpen(true)
+                    setInquirySent(false)
+                  }}
+                >
+                  <MessageSquare size={16} />
+                  <span>Ask Upward Support</span>
+                </button>
+              </div>
             </section>
           </aside>
         </div>

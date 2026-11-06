@@ -1659,54 +1659,32 @@
   gap: 10px;
 }
 
-.offering-detail__section-header-row {
+/* ==========================================================================
+   Compact Delivery & Eligibility Snippet (Inside Merchant Card)
+   ========================================================================== */
+.offering-detail__delivery-snippet {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 14px;
-}
-
-.offering-detail__delivery-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11.5px;
-  font-weight: 700;
-  padding: 4px 10px;
-  border-radius: var(--radius-sm);
-  background: rgba(16, 185, 129, 0.12);
-  color: #10b981;
-}
-
-.offering-detail__delivery-badge--warn {
-  background: rgba(245, 158, 11, 0.12);
-  color: #d97706;
-}
-
-.offering-detail__fulfillment-box {
-  display: flex;
-  flex-direction: column;
+  gap: 12px;
+  padding: 12px 14px;
+  margin: 16px 0 12px;
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  overflow: hidden;
+  flex-wrap: wrap;
 }
 
-.offering-detail__fulfillment-row {
+.offering-detail__delivery-snippet-info {
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 13px 16px;
+  gap: 12px;
+  min-width: 0;
 }
 
-.offering-detail__fulfillment-row + .offering-detail__fulfillment-row {
-  border-top: 1px solid var(--border);
-}
-
-.offering-detail__fulfillment-icon {
-  width: 36px;
-  height: 36px;
+.offering-detail__delivery-snippet-icon-wrap {
+  width: 34px;
+  height: 34px;
   border-radius: 10px;
   background: var(--clay-faint);
   color: var(--clay);
@@ -1716,59 +1694,55 @@
   flex-shrink: 0;
 }
 
-.offering-detail__fulfillment-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.offering-detail__fulfillment-title {
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--text);
+.offering-detail__delivery-snippet-main {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.offering-detail__fulfillment-sub {
-  font-size: 12px;
-  color: var(--text-muted);
-  margin-top: 2px;
-}
-
-.offering-detail__perk-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  border-radius: var(--radius-md);
-  background: var(--bg);
-  border: 1px solid var(--border);
-}
-
-.offering-detail__perk-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-sm);
-  background: var(--clay-faint);
-  color: var(--clay);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.offering-detail__perk-title {
+  gap: 6px;
   font-size: 13.5px;
   font-weight: 700;
   color: var(--text);
+  line-height: 1.2;
 }
 
-.offering-detail__perk-desc {
-  font-size: 12px;
+.offering-detail__delivery-snippet-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  background: rgba(16, 185, 129, 0.12);
+  color: #10b981;
+}
+
+.offering-detail__delivery-snippet-pill--warn {
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+}
+
+.offering-detail__delivery-snippet-sub {
+  font-size: 11.5px;
   color: var(--text-muted);
+  margin-top: 3px;
+}
+
+.offering-detail__delivery-snippet-trigger {
+  flex-shrink: 0;
+}
+
+.offering-detail__delivery-warning-compact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: var(--radius-md);
+  color: #d97706;
+  font-size: 12px;
+  line-height: 1.35;
 }
 
 /* Merchant Aside Card */
