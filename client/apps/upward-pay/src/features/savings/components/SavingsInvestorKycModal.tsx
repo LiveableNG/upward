@@ -393,22 +393,29 @@ export function SavingsInvestorKycModal({
 
             <div className="rent-calculator__field">
               <label className="rent-calculator__label">Primary Source of Income</label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(4, 1fr)',
+                  gap: 6,
+                }}
+              >
                 {(['Salary', 'Business', 'Savings', 'Investment'] as const).map((source) => (
                   <button
                     key={source}
                     type="button"
                     onClick={() => setSourceOfFunds(source)}
                     style={{
-                      padding: '8px 4px',
+                      padding: '8px 2px',
                       borderRadius: '8px',
                       border: `1.5px solid ${sourceOfFunds === source ? 'var(--clay)' : 'var(--border)'}`,
                       background: sourceOfFunds === source ? 'var(--clay-faint)' : 'transparent',
                       color: sourceOfFunds === source ? 'var(--clay)' : 'var(--text)',
-                      fontSize: '0.8125rem',
+                      fontSize: '0.75rem',
                       fontWeight: 600,
                       cursor: 'pointer',
                       transition: 'all 0.15s ease',
+                      textAlign: 'center',
                     }}
                   >
                     {source}
@@ -844,77 +851,48 @@ export function SavingsInvestorKycModal({
             </div>
 
             {/* Dedicated Account Card */}
-            <div
-              style={{
-                padding: '16px 20px',
-                borderRadius: '12px',
-                background: 'var(--surface-sunken, #f8f6f3)',
-                border: '1px solid var(--border)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 12,
-              }}
-            >
-              <div
-                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-              >
-                <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Bank Name</span>
-                <span style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text)' }}>
-                  {dvaToShow.bank_name || 'Wema Bank'}
-                </span>
-              </div>
-
-              <div
-                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-              >
-                <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-                  Account Number
-                </span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span
-                    style={{
-                      fontSize: '1.125rem',
-                      fontWeight: 800,
-                      letterSpacing: '0.05em',
-                      color: 'var(--clay)',
-                      fontFamily: 'monospace',
-                    }}
-                  >
-                    {dvaToShow.account_number}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(dvaToShow.account_number)
-                      setCopiedAccount(true)
-                      toastSuccess('Account number copied to clipboard!')
-                      setTimeout(() => setCopiedAccount(false), 2000)
-                    }}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      color: copiedAccount ? '#10b981' : 'var(--clay)',
-                      padding: 4,
-                      display: 'flex',
-                      alignItems: 'center',
-                    }}
-                    title="Copy Account Number"
-                  >
-                    {copiedAccount ? <Check size={16} /> : <Copy size={16} />}
-                  </button>
+            <div className="vault-dva-card">
+              <div className="vault-dva-card__number-row">
+                <div className="vault-dva-card__number-block">
+                  <span className="vault-dva-card__number-label">Account Number</span>
+                  <span className="vault-dva-card__number">{dvaToShow.account_number}</span>
                 </div>
+                <button
+                  type="button"
+                  className={`vault-dva-card__copy-btn ${
+                    copiedAccount ? 'vault-dva-card__copy-btn--copied' : ''
+                  }`}
+                  onClick={() => {
+                    navigator.clipboard.writeText(dvaToShow.account_number)
+                    setCopiedAccount(true)
+                    toastSuccess('Account number copied to clipboard!')
+                    setTimeout(() => setCopiedAccount(false), 2000)
+                  }}
+                  title="Copy Account Number"
+                >
+                  {copiedAccount ? (
+                    <>
+                      <Check size={14} /> Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={14} /> Copy
+                    </>
+                  )}
+                </button>
               </div>
 
-              <div
-                style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-              >
-                <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-                  Account Name
-                </span>
-                <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text)' }}>
-                  {dvaToShow.account_name}
-                </span>
+              <div className="vault-dva-card__meta-list">
+                <div className="vault-dva-card__meta-row">
+                  <span className="vault-dva-card__meta-label">Bank Name</span>
+                  <span className="vault-dva-card__meta-value">
+                    {dvaToShow.bank_name || 'Wema Bank'}
+                  </span>
+                </div>
+                <div className="vault-dva-card__meta-row">
+                  <span className="vault-dva-card__meta-label">Account Name</span>
+                  <span className="vault-dva-card__meta-value">{dvaToShow.account_name}</span>
+                </div>
               </div>
             </div>
 

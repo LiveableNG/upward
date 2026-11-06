@@ -76,6 +76,7 @@ export function RentRunwayHero({ rentDue }: RentRunwayHeroProps) {
     return (
       <div className="runway-hero" style={{ position: 'relative', overflow: 'hidden' }}>
         <div
+          className="runway-hero__content-layer"
           style={{
             filter: shouldBlur ? 'blur(4px)' : 'none',
             pointerEvents: shouldBlur ? 'none' : 'auto',

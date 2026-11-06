@@ -509,16 +509,152 @@
 
 @media (max-width: 640px) {
   .vault-modal-overlay {
-    padding: 12px;
+    padding: 10px 8px;
     align-items: center;
     justify-content: center;
   }
 
   .vault-modal-card {
     padding: 18px 14px;
-    gap: 16px;
+    gap: 14px;
     max-height: 92vh;
-    border-radius: 16px;
+    border-radius: 18px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+/* Dedicated Virtual Account (DVA) Card & Responsive Layout */
+.vault-dva-card {
+  background: var(--surface, #f9fafb);
+  border: 1.5px solid var(--border, #e5e7eb);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-sizing: border-box;
+}
+
+.vault-dva-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.vault-dva-card__title {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.vault-dva-card__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.08);
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.vault-dva-card__number-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 10px;
+  padding: 10px 12px;
+  gap: 8px;
+  box-sizing: border-box;
+}
+
+.vault-dva-card__number-block {
+  min-width: 0;
+  flex: 1;
+}
+
+.vault-dva-card__number-label {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  display: block;
+}
+
+.vault-dva-card__number {
+  font-size: clamp(1.125rem, 5vw, 1.35rem);
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--text);
+  font-family: monospace;
+  line-height: 1.2;
+  word-break: break-all;
+}
+
+.vault-dva-card__copy-btn {
+  background: var(--clay-faint, rgba(200, 107, 73, 0.1));
+  color: var(--clay);
+  border: none;
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.vault-dva-card__copy-btn--copied {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.vault-dva-card__meta-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+.vault-dva-card__meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.vault-dva-card__meta-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.vault-dva-card__meta-value {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text);
+  text-align: right;
+  word-break: break-word;
+}
+
+@media (max-width: 640px) {
+  .vault-dva-card {
+    padding: 14px 12px;
+    gap: 10px;
+  }
+
+  .vault-dva-card__number-row {
+    padding: 8px 10px;
   }
 }
 

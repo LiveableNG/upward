@@ -87,94 +87,26 @@ export function FundVaultModal({ isOpen, onClose, dedicatedAccount }: FundVaultM
         </div>
 
         {/* Dedicated Bank Transfer Card */}
-        <div
-          style={{
-            background: 'var(--surface, #f9fafb)',
-            border: '1.5px solid var(--border, #e5e7eb)',
-            borderRadius: 12,
-            padding: '18px 20px',
-            marginBottom: 20,
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 14,
-          }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span
-              style={{
-                fontSize: '0.75rem',
-                fontWeight: 600,
-                color: 'var(--text-muted)',
-                textTransform: 'uppercase',
-                letterSpacing: 0.5,
-              }}
-            >
-              Dedicated Virtual Account
-            </span>
-            <span
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 4,
-                fontSize: '0.6875rem',
-                fontWeight: 700,
-                color: '#10b981',
-                background: 'rgba(16, 185, 129, 0.08)',
-                padding: '2px 8px',
-                borderRadius: 999,
-              }}
-            >
+        <div className="vault-dva-card">
+          <div className="vault-dva-card__header">
+            <span className="vault-dva-card__title">Dedicated Virtual Account</span>
+            <span className="vault-dva-card__badge">
               <Zap size={11} /> Instant Credit
             </span>
           </div>
 
           {/* Account Number Row */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              background: 'var(--bg, #fff)',
-              border: '1px solid var(--border, #e5e7eb)',
-              borderRadius: 10,
-              padding: '12px 16px',
-            }}
-          >
-            <div>
-              <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', display: 'block' }}>
-                Account Number
-              </span>
-              <span
-                style={{
-                  fontSize: '1.375rem',
-                  fontWeight: 800,
-                  letterSpacing: 1.5,
-                  color: 'var(--text)',
-                }}
-              >
-                {accountNumber}
-              </span>
+          <div className="vault-dva-card__number-row">
+            <div className="vault-dva-card__number-block">
+              <span className="vault-dva-card__number-label">Account Number</span>
+              <span className="vault-dva-card__number">{accountNumber}</span>
             </div>
             <button
               type="button"
+              className={`vault-dva-card__copy-btn ${
+                copiedField === 'account' ? 'vault-dva-card__copy-btn--copied' : ''
+              }`}
               onClick={() => handleCopy(accountNumber, 'account')}
-              style={{
-                background:
-                  copiedField === 'account'
-                    ? 'rgba(16, 185, 129, 0.1)'
-                    : 'var(--clay-faint, rgba(200, 107, 73, 0.1))',
-                color: copiedField === 'account' ? '#10b981' : 'var(--clay)',
-                border: 'none',
-                borderRadius: 8,
-                padding: '8px 12px',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                cursor: 'pointer',
-                transition: 'all 0.15s ease',
-              }}
             >
               {copiedField === 'account' ? (
                 <>
@@ -189,22 +121,14 @@ export function FundVaultModal({ isOpen, onClose, dedicatedAccount }: FundVaultM
           </div>
 
           {/* Bank & Beneficiary Info */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div>
-              <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', display: 'block' }}>
-                Bank Name
-              </span>
-              <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text)' }}>
-                {bankName}
-              </span>
+          <div className="vault-dva-card__meta-list">
+            <div className="vault-dva-card__meta-row">
+              <span className="vault-dva-card__meta-label">Bank Name</span>
+              <span className="vault-dva-card__meta-value">{bankName}</span>
             </div>
-            <div>
-              <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', display: 'block' }}>
-                Account Name
-              </span>
-              <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text)' }}>
-                {accountName}
-              </span>
+            <div className="vault-dva-card__meta-row">
+              <span className="vault-dva-card__meta-label">Account Name</span>
+              <span className="vault-dva-card__meta-value">{accountName}</span>
             </div>
           </div>
         </div>
@@ -215,11 +139,10 @@ export function FundVaultModal({ isOpen, onClose, dedicatedAccount }: FundVaultM
             background: 'rgba(200, 107, 73, 0.05)',
             border: '1px solid rgba(200, 107, 73, 0.15)',
             borderRadius: 10,
-            padding: '12px 14px',
+            padding: '10px 12px',
             fontSize: '0.75rem',
             color: 'var(--text-secondary)',
-            lineHeight: 1.5,
-            marginBottom: 20,
+            lineHeight: 1.45,
             display: 'flex',
             gap: 10,
           }}
@@ -233,12 +156,12 @@ export function FundVaultModal({ isOpen, onClose, dedicatedAccount }: FundVaultM
         </div>
 
         {/* Action Button */}
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
           <button
             type="button"
             className="vault-btn-secondary"
             onClick={onClose}
-            style={{ flex: 1 }}
+            style={{ flex: 1, height: 44 }}
           >
             Close
           </button>
@@ -246,7 +169,7 @@ export function FundVaultModal({ isOpen, onClose, dedicatedAccount }: FundVaultM
             type="button"
             className="vault-btn-primary"
             onClick={() => handleCopy(`${accountNumber}\n${bankName}\n${accountName}`, 'all')}
-            style={{ flex: 2 }}
+            style={{ flex: 1.5, height: 44 }}
           >
             {copiedField === 'all' ? (
               <>
