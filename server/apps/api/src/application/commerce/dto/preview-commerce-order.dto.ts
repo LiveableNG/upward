@@ -12,8 +12,12 @@ import { Type } from 'class-transformer'
 export class CommerceOrderItemInputDto {
   @IsInt()
   @Min(1)
-  @IsNotEmpty()
-  offeringId!: number
+  @IsOptional()
+  offeringId?: number
+
+  @IsString()
+  @IsOptional()
+  offeringUuid?: string
 
   @IsInt()
   @Min(1)

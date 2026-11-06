@@ -1,4 +1,5 @@
 import React from 'react'
+import { redirect } from 'next/navigation'
 import { OrderTrackingScreen } from '@/features/goals/components/OrderTrackingScreen'
 
 export const metadata = {
@@ -12,5 +13,8 @@ export default async function LifestyleOrderTrackingPage({
   params: Promise<{ uuid: string }>
 }) {
   const { uuid } = await params
+  if (uuid === 'new') {
+    redirect('/dashboard/lifestyle')
+  }
   return <OrderTrackingScreen orderUuid={uuid} />
 }

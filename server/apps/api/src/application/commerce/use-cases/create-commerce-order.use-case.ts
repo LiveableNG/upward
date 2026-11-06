@@ -76,9 +76,16 @@ export class CreateCommerceOrderUseCase {
     const priceableItems: PriceableItemInput[] = []
 
     for (const item of dto.items) {
-      const offering = await this.offeringRepo.findOfferingById(item.offeringId)
+      const offering = item.offeringUuid
+        ? await this.offeringRepo.findOfferingByUuid(item.offeringUuid)
+        : item.offeringId
+        ? await this.offeringRepo.findOfferingById(item.offeringId)
+        : null
+
       if (!offering) {
-        throw new NotFoundException(`Offering with ID ${item.offeringId} not found`)
+        throw new NotFoundException(
+          `Offering '${item.offeringUuid || item.offeringId}' not found`,
+        )
       }
 
       const priceableOffering: PriceableOffering = {

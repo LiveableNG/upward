@@ -6,6 +6,11 @@ import {
   createCommerceDispute,
   createCommerceInquiry,
   confirmSubOrderReceipt,
+  previewCommerceOrder,
+  createCommerceOrder,
+  initializeCommercePayment,
+  type PreviewCommerceOrderInput,
+  type CreateCommerceOrderInput,
 } from '../services/commerceService'
 
 export function useTenantOrders(filter?: { status?: string; skip?: number; take?: number }) {
@@ -71,5 +76,27 @@ export function useDownloadCommerceReceipt() {
   return useMutation({
     mutationFn: ({ orderUuid, filename }: { orderUuid: string; filename?: string }) =>
       downloadCommerceReceiptPdf(orderUuid, filename),
+  })
+}
+
+export function usePreviewCommerceOrder() {
+  return useMutation({
+    mutationFn: (input: PreviewCommerceOrderInput) => previewCommerceOrder(input),
+  })
+}
+
+export function useCreateCommerceOrder() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: CreateCommerceOrderInput) => createCommerceOrder(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tenant-commerce-orders'] })
+    },
+  })
+}
+
+export function useInitializeCommercePayment() {
+  return useMutation({
+    mutationFn: (orderUuid: string) => initializeCommercePayment(orderUuid),
   })
 }

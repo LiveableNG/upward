@@ -90,3 +90,94 @@ export async function confirmSubOrderReceipt(
   )
   return res.data
 }
+
+export interface PreviewCommerceOrderInput {
+  items: Array<{ offeringUuid?: string; offeringId?: number; quantity: number }>
+  deliveryAddress?: string
+  discountKobo?: string
+}
+
+export interface PreviewCommerceOrderResult {
+  currency: string
+  itemsSubtotalKobo: string
+  deliveryFeeKobo: string
+  taxKobo: string
+  discountKobo: string
+  totalAmountKobo: string
+  deliveryEligible?: boolean
+  deliveryMessage?: string
+  subOrders: Array<{
+    vendorId: number
+    vendorName: string
+    subtotalKobo: string
+    deliveryFeeKobo: string
+    items: Array<{
+      title: string
+      quantity: number
+      unitPriceKobo: string
+      totalPriceKobo: string
+    }>
+  }>
+}
+
+export async function previewCommerceOrder(
+  data: PreviewCommerceOrderInput,
+): Promise<PreviewCommerceOrderResult> {
+  const res = await request<{ data: PreviewCommerceOrderResult }>(
+    `/user/commerce/orders/preview`,
+    {
+      method: 'POST',
+      body: JSON.stringify(data),
+    },
+  )
+  return res.data
+}
+
+export interface CreateCommerceOrderInput {
+  recipientName: string
+  recipientPhone: string
+  deliveryAddress: string
+  deliveryNotes?: string
+  items: Array<{ offeringUuid?: string; offeringId?: number; quantity: number }>
+  discountKobo?: string
+}
+
+export interface CreateCommerceOrderResult {
+  message: string
+  order: TenantOrderDetailDto
+  paymentRequired: boolean
+}
+
+export async function createCommerceOrder(
+  data: CreateCommerceOrderInput,
+): Promise<CreateCommerceOrderResult> {
+  const res = await request<{ data: CreateCommerceOrderResult }>(
+    `/user/commerce/orders`,
+    {
+      method: 'POST',
+      body: JSON.stringify(data),
+    },
+  )
+  return res.data
+}
+
+export interface InitializeCommercePaymentResult {
+  authorizationUrl: string
+  accessCode?: string
+  reference: string
+  orderNumber: string
+  amountKobo: string
+  currency: string
+}
+
+export async function initializeCommercePayment(
+  orderUuid: string,
+): Promise<InitializeCommercePaymentResult> {
+  const res = await request<{ data: InitializeCommercePaymentResult }>(
+    `/user/commerce/orders/${orderUuid}/pay`,
+    {
+      method: 'POST',
+    },
+  )
+  return res.data
+}

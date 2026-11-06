@@ -45,6 +45,7 @@ import {
   type UserDeliveryLocation,
 } from '../utils/deliveryLocation'
 import { DeliveryLocationBar } from './DeliveryLocationBar'
+import { CommerceCheckoutModal } from './CommerceCheckoutModal'
 import '../styles/goals.css'
 
 interface OfferingDetailScreenProps {
@@ -83,6 +84,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
     getStoredDeliveryLocation(user?.properties?.[0]?.address),
   )
   const [isInquiryOpen, setIsInquiryOpen] = useState(false)
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
   const [inquiryCategory, setInquiryCategory] = useState('GENERAL')
   const [inquiryMessage, setInquiryMessage] = useState('')
   const [inquirySent, setInquirySent] = useState(false)
@@ -661,11 +663,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                       <button
                         type="button"
                         className="offering-detail__primary-cta"
-                        onClick={() =>
-                          router.push(
-                            `/dashboard/lifestyle/orders/new?offeringId=${offering.id || offering.uuid}`,
-                          )
-                        }
+                        onClick={() => setIsCheckoutOpen(true)}
                       >
                         <span>
                           {offering.type === 'SERVICE'
@@ -952,6 +950,15 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
           </div>,
           document.body,
         )}
+
+      {/* Commerce Checkout & Paystack Modal */}
+      {offering && (
+        <CommerceCheckoutModal
+          offering={offering}
+          isOpen={isCheckoutOpen}
+          onClose={() => setIsCheckoutOpen(false)}
+        />
+      )}
     </div>
   )
 }
