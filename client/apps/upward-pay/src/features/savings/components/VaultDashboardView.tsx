@@ -3,19 +3,14 @@
 import React, { useState } from 'react'
 import {
   Lock,
-  Calendar,
   TrendingUp,
   PlusCircle,
-  AlertCircle,
-  Copy,
-  Check,
   ShieldCheck,
   ArrowRight,
   Sparkles,
   ArrowDownToLine,
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
-import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/features/auth/AuthContext'
 import { EmergencyAdvanceModal } from './EmergencyAdvanceModal'
 import { FairBreakoutModal } from './FairBreakoutModal'
@@ -44,7 +39,7 @@ interface VaultDashboardViewProps {
     emergency_advance: {
       has_active_loan: boolean
       max_borrowable_kobo: number
-      active_loan_details?: any
+      active_loan_details?: Record<string, unknown> | null
     }
     savings_score: {
       total_score: number
@@ -60,13 +55,13 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
   const [showFundModal, setShowFundModal] = useState(false)
   const [showAdvanceModal, setShowAdvanceModal] = useState(false)
   const [showBreakoutModal, setShowBreakoutModal] = useState(false)
-  const [copiedDva, setCopiedDva] = useState(false)
-
-  const { success: toastSuccess } = useToast()
 
   const { user } = useAuth()
   const [nowTimestamp] = useState(() => Date.now())
-  const activeProperty = (user?.properties || []).find((p: any) => !p.isPastTenancy && p.rentAmount)
+  const activeProperty = (user?.properties || []).find(
+    (p: { isPastTenancy?: boolean; rentAmount?: number; rentEndDate?: string }) =>
+      !p.isPastTenancy && p.rentAmount,
+  )
 
   const currentBalanceNaira = vault.current_balance_kobo / 100
   const targetAmountNaira = activeProperty?.rentAmount || vault.target_amount_kobo / 100
@@ -89,15 +84,6 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
 
   const isSettlementReady = vault.days_to_unlock <= 0 || vault.lock_status === 'SETTLEMENT_READY'
 
-  const handleCopyDva = () => {
-    if (vault.dedicated_account?.account_number) {
-      navigator.clipboard.writeText(vault.dedicated_account.account_number)
-      setCopiedDva(true)
-      toastSuccess('Dedicated account number copied to clipboard!')
-      setTimeout(() => setCopiedDva(false), 2500)
-    }
-  }
-
   return (
     <div className="rent-savings">
       {/* Active Locked Hero Banner */}
@@ -105,7 +91,7 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
         <div className="vault-dashboard__top-row">
           <div className="vault-dashboard__lock-pill">
             <Lock size={13} color="var(--clay)" />
-            <span>{isSettlementReady ? 'Settlement Ready' : 'Maturity Locked'}</span>
+            <span>{isSettlementReady ? 'Ready to Pay Rent' : 'Rent Locked'}</span>
           </div>
           <span className="vault-dashboard__countdown-pill">{daysRemaining} Days to Rent Day</span>
         </div>
@@ -144,10 +130,10 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
         <div className="vault-dashboard__interest-card">
           <div className="vault-dashboard__interest-text">
             <TrendingUp size={16} />
-            <span>+{formatCurrency(accruedYieldNaira, 'NGN')} profit earned</span>
+            <span>+{formatCurrency(accruedYieldNaira, 'NGN')} Total Profit</span>
           </div>
           <span className="vault-dashboard__interest-rate">
-            (+{formatCurrency(estimatedDailyAddNaira, 'NGN')} added today)
+            Earning ~{formatCurrency(estimatedDailyAddNaira, 'NGN')} / day (14.5% p.a.)
           </span>
         </div>
 

@@ -43,7 +43,10 @@ export function RentRunwayHero({ rentDue }: RentRunwayHeroProps) {
   const [nowTimestamp] = useState(() => Date.now())
 
   // Settings is the absolute single source of truth for rental details
-  const activeProperty = (user?.properties || []).find((p: any) => !p.isPastTenancy && p.rentAmount)
+  const activeProperty = (user?.properties || []).find(
+    (p: { isPastTenancy?: boolean; rentAmount?: number; rentEndDate?: string }) =>
+      !p.isPastTenancy && p.rentAmount,
+  )
 
   // 1. ACTIVE VAULT SCENARIO
   if (vault && vault.lock_status !== 'SETTLED' && vault.lock_status !== 'BROKEN_OUT') {
@@ -87,7 +90,7 @@ export function RentRunwayHero({ rentDue }: RentRunwayHeroProps) {
           <div className="runway-hero__top-row">
             <div className="runway-hero__eyebrow">
               <Lock size={12} color="var(--skin-primary, #c2501f)" />
-              <span>{isSettlementReady ? 'SETTLEMENT READY' : 'RENT VAULT · MATURITY LOCKED'}</span>
+              <span>{isSettlementReady ? 'READY TO PAY RENT' : 'RENT SAVINGS · LOCKED'}</span>
             </div>
             <span className="runway-hero__countdown-badge">
               <Calendar size={12} />

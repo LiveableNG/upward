@@ -141,13 +141,11 @@ export function RentSavingsMainView() {
         </div>
         <div className="savings-kyc-banner__content">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span className="savings-kyc-banner__title">
-              Investor Profile Verified &bull; SEC Compliant
-            </span>
+            <span className="savings-kyc-banner__title">Savings Active &amp; Verified</span>
             <span className="savings-kyc-banner__partner">powered by ARM</span>
           </div>
           <span className="savings-kyc-banner__desc">
-            Mutual Fund Portfolio active earning 14.5% p.a. daily compounding yield.
+            Your rent savings grow daily with 14.5% annual returns.
           </span>
         </div>
       </div>

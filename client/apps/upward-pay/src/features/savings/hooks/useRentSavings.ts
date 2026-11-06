@@ -9,8 +9,9 @@ export function useRentVault() {
     queryFn: async () => {
       try {
         return await savingsService.getMyRentVault()
-      } catch (err: any) {
-        if (err?.status === 404 || err?.statusCode === 404) {
+      } catch (err: unknown) {
+        const error = err as { status?: number; statusCode?: number }
+        if (error?.status === 404 || error?.statusCode === 404) {
           return null
         }
         throw err
@@ -99,6 +100,17 @@ export function useConsentToSavings() {
     mutationFn: () => savingsService.consentToSavings(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user'] })
+      queryClient.invalidateQueries({ queryKey: RENT_VAULT_QUERY_KEY })
+    },
+  })
+}
+
+export function useSimulateVaultDeposit() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ accountNumber, amountKobo }: { accountNumber: string; amountKobo: number }) =>
+      savingsService.simulateVaultDeposit(accountNumber, amountKobo),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: RENT_VAULT_QUERY_KEY })
     },
   })

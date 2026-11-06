@@ -4,18 +4,10 @@ import React, { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import {
-  Sparkles,
-  Building,
-  ShieldCheck,
-  CheckCircle2,
-  ArrowRight,
-  TrendingUp,
-  AlertCircle,
-  HelpCircle,
-} from 'lucide-react'
+import { Sparkles, ArrowRight, TrendingUp } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { useExecuteSettlement } from '../hooks/useRentSavings'
+import type { SettlementResultData } from '../services/savingsService'
 import { useToast } from '@/components/common/Toast'
 import { SettlementSuccessModal } from './SettlementSuccessModal'
 
@@ -43,7 +35,7 @@ const settlementFormSchema = z.object({
 type SettlementFormData = z.infer<typeof settlementFormSchema>
 
 export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewProps) {
-  const [successData, setSuccessData] = useState<any | null>(null)
+  const [successData, setSuccessData] = useState<SettlementResultData | null>(null)
   const [landlordNameSubmitted, setLandlordNameSubmitted] = useState<string>('')
 
   const { error: toastError, success: toastSuccess } = useToast()
@@ -51,7 +43,6 @@ export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewPr
 
   const currentBalanceNaira = vault.current_balance_kobo / 100
   const targetRentNaira = vault.target_amount_kobo / 100
-  const accruedYieldNaira = vault.accrued_yield_kobo / 100
   const surplusNaira = Math.max(0, currentBalanceNaira - targetRentNaira)
 
   // 1.2x early bird bonus estimation (approx 0.6% on rent target)
@@ -60,7 +51,6 @@ export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewPr
   const {
     register,
     handleSubmit,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm<SettlementFormData>({
     resolver: zodResolver(settlementFormSchema),
@@ -72,8 +62,6 @@ export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewPr
       disburseSurplusToWallet: true,
     },
   })
-
-  const disburseSurplus = watch('disburseSurplusToWallet')
 
   const onSubmit = async (data: SettlementFormData) => {
     try {
@@ -88,10 +76,11 @@ export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewPr
           disburse_surplus_to_wallet: data.disburseSurplusToWallet,
         },
       })
-      setSuccessData(res.data)
+      setSuccessData(res)
       toastSuccess('Rent settlement authorized! Dispatched to landlord via NIP.')
-    } catch (err: any) {
-      toastError(err?.message || 'Settlement failed. Please verify landlord account details.')
+    } catch (err: unknown) {
+      const error = err as { message?: string }
+      toastError(error?.message || 'Settlement failed. Please verify landlord account details.')
     }
   }
 
@@ -111,11 +100,12 @@ export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewPr
 
         <div>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 800, letterSpacing: -0.5 }}>
-            Settlement Hub (T-30 Window Open)
+            Pay Your Landlord (Rent Ready)
           </h2>
           <p style={{ fontSize: '0.875rem', opacity: 0.8, marginTop: 4, lineHeight: 1.45 }}>
-            Your rent savings are mature and ready for payout. Direct payment to your landlord
-            unlocks an official legal receipt and credits your early-bird cashback bonus.
+            Your rent savings are complete and ready for payment. Sending rent directly to your
+            landlord generates an official rent receipt and credits your early-bird cashback bonus
+            to your wallet.
           </p>
         </div>
 
@@ -130,13 +120,13 @@ export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewPr
           }}
         >
           <div>
-            <div style={{ fontSize: '0.75rem', opacity: 0.7 }}>Accumulated Vault Total</div>
+            <div style={{ fontSize: '0.75rem', opacity: 0.7 }}>Total Saved + Interest</div>
             <div style={{ fontSize: '1.25rem', fontWeight: 800 }}>
               {formatCurrency(currentBalanceNaira, 'NGN')}
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '0.75rem', opacity: 0.7 }}>Target Rent Due</div>
+            <div style={{ fontSize: '0.75rem', opacity: 0.7 }}>Total Rent Due</div>
             <div style={{ fontSize: '1.25rem', fontWeight: 800 }}>
               {formatCurrency(targetRentNaira, 'NGN')}
             </div>

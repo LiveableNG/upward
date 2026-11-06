@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { CheckCircle2, Download, Award, ArrowRight, ShieldCheck, Share2 } from 'lucide-react'
+import { CheckCircle2, Download, Award, ArrowRight } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 
 interface SettlementSuccessModalProps {
@@ -51,8 +51,12 @@ export function SettlementSuccessModal({
   if (!mounted || typeof document === 'undefined') return null
 
   return createPortal(
-    <div className="vault-modal-overlay">
-      <div className="vault-modal-card" style={{ maxWidth: 520, textAlign: 'center' }}>
+    <div className="vault-modal-overlay" onClick={onClose}>
+      <div
+        className="vault-modal-card"
+        style={{ maxWidth: 520, textAlign: 'center' }}
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Animated Success Badge */}
         <div
           style={{
@@ -161,7 +165,7 @@ export function SettlementSuccessModal({
             onClick={handleDownloadReceipt}
           >
             <Download size={18} />
-            <span>Download Official PDF Rent Receipt</span>
+            <span>Download Official Rent Receipt</span>
           </button>
 
           <p style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
@@ -174,7 +178,7 @@ export function SettlementSuccessModal({
             onClick={onRestartVault}
             style={{ marginTop: 6 }}
           >
-            <span>Start Next Year&apos;s Rent Vault</span>
+            <span>Start Saving for Next Year&apos;s Rent</span>
             <ArrowRight size={18} />
           </button>
         </div>

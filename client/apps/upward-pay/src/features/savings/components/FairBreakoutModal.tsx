@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { X, Shield, AlertTriangle, ArrowRight, CheckCircle2 } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, X, Shield } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { useBreakoutRentVault } from '../hooks/useRentSavings'
+import type { BreakoutResultData } from '../services/savingsService'
 import { useToast } from '@/components/common/Toast'
 
 interface FairBreakoutModalProps {
@@ -20,7 +21,7 @@ export function FairBreakoutModal({
   accruedYieldKobo,
   onClose,
 }: FairBreakoutModalProps) {
-  const [breakoutResult, setBreakoutResult] = useState<any | null>(null)
+  const [breakoutResult, setBreakoutResult] = useState<BreakoutResultData | null>(null)
   const [confirmStep, setConfirmStep] = useState(false)
   const [mounted, setMounted] = useState(false)
 
@@ -54,10 +55,11 @@ export function FairBreakoutModal({
   const handleExecuteBreakout = async () => {
     try {
       const res = await breakoutMutation.mutateAsync(vaultId)
-      setBreakoutResult(res.data)
+      setBreakoutResult(res)
       toastSuccess('Vault breakout executed. Funds liquidated.')
-    } catch (err: any) {
-      toastError(err?.message || 'Failed to execute vault breakout')
+    } catch (err: unknown) {
+      const error = err as { message?: string }
+      toastError(error?.message || 'Failed to execute vault breakout')
     }
   }
 
@@ -67,7 +69,7 @@ export function FairBreakoutModal({
         <div className="vault-modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <AlertTriangle size={20} color="var(--warning)" />
-            <span className="vault-modal-title">Fair Exit & Recalculation</span>
+            <span className="vault-modal-title">Withdraw Early Before Rent Day</span>
           </div>
           <button type="button" className="vault-modal-close" onClick={onClose}>
             <X size={20} />
@@ -94,7 +96,7 @@ export function FairBreakoutModal({
 
             <div>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text)' }}>
-                Vault Liquidated
+                Early Withdrawal Successful
               </h3>
               <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: 4 }}>
                 Reference: {breakoutResult.breakout_reference}
@@ -103,31 +105,31 @@ export function FairBreakoutModal({
 
             <div className="vault-fee-breakdown">
               <div className="vault-fee-breakdown__row">
-                <span>Principal Returned</span>
+                <span>Your Savings Returned</span>
                 <span>{formatCurrency(breakoutResult.original_principal_kobo / 100, 'NGN')}</span>
               </div>
               <div className="vault-fee-breakdown__row">
-                <span>Recalculated Base Yield (7.0%)</span>
+                <span>Base Interest Kept (7.0%)</span>
                 <span>
                   +{formatCurrency(breakoutResult.recalculated_base_yield_kobo / 100, 'NGN')}
                 </span>
               </div>
               <div className="vault-fee-breakdown__row">
-                <span>Early Exit Admin Fee (1.5%)</span>
+                <span>Early Withdrawal Fee (1.5%)</span>
                 <span style={{ color: 'var(--error)' }}>
                   -{formatCurrency(breakoutResult.admin_fee_kobo / 100, 'NGN')}
                 </span>
               </div>
               {breakoutResult.advance_deduction_kobo > 0 && (
                 <div className="vault-fee-breakdown__row">
-                  <span>Advance Offset Deduction</span>
+                  <span>Emergency Cash Deducted</span>
                   <span style={{ color: 'var(--error)' }}>
                     -{formatCurrency(breakoutResult.advance_deduction_kobo / 100, 'NGN')}
                   </span>
                 </div>
               )}
               <div className="vault-fee-breakdown__row vault-fee-breakdown__row--total">
-                <span>Net Payout to Wallet</span>
+                <span>Total Sent to Your Wallet</span>
                 <span>{formatCurrency(breakoutResult.net_payout_kobo / 100, 'NGN')}</span>
               </div>
             </div>
@@ -139,36 +141,37 @@ export function FairBreakoutModal({
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
             <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-              Upward is built to protect your roof. If you choose to break your maturity lock early,
-              we do not confiscate your principal, but premium 14.5% p.a. returns will be forfeited.
+              Upward is built to protect your roof. If you need to withdraw your savings before rent
+              day, your money is completely safe, but the 14.5% annual bonus returns will be
+              adjusted to the 7% base rate.
             </p>
 
             {/* Recalculation Breakdown Card */}
             <div className="vault-fee-breakdown">
               <div className="vault-fee-breakdown__row">
-                <span>Current Principal</span>
+                <span>Your Total Savings</span>
                 <span style={{ fontWeight: 600 }}>{formatCurrency(principalNaira, 'NGN')}</span>
               </div>
               <div className="vault-fee-breakdown__row">
-                <span>Forfeited Compound Yield (14.5%)</span>
+                <span>Forfeited Bonus Interest (14.5%)</span>
                 <span style={{ color: 'var(--text-muted)', textDecoration: 'line-through' }}>
                   {formatCurrency(accruedYieldNaira, 'NGN')}
                 </span>
               </div>
               <div className="vault-fee-breakdown__row">
-                <span>Fair Recalculation Yield (7.0% p.a.)</span>
+                <span>Base Interest Kept (7.0%)</span>
                 <span style={{ color: 'var(--success)' }}>
                   +{formatCurrency(estimatedRecalculatedYieldNaira, 'NGN')}
                 </span>
               </div>
               <div className="vault-fee-breakdown__row">
-                <span>Administrative Liquidation Fee (1.5%)</span>
+                <span>Early Withdrawal Fee (1.5%)</span>
                 <span style={{ color: 'var(--error)' }}>
                   -{formatCurrency(estimatedAdminFeeNaira, 'NGN')}
                 </span>
               </div>
               <div className="vault-fee-breakdown__row vault-fee-breakdown__row--total">
-                <span>Estimated Net Payout</span>
+                <span>Estimated Amount You Receive</span>
                 <span>{formatCurrency(estimatedNetPayoutNaira, 'NGN')}</span>
               </div>
             </div>

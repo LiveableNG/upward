@@ -1,15 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import {
-  Calendar,
-  DollarSign,
-  AlertCircle,
-  ArrowRight,
-  ShieldCheck,
-  Sparkles,
-  Home,
-} from 'lucide-react'
+import { Calendar, AlertCircle, ArrowRight, Sparkles, Home } from 'lucide-react'
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from '@/lib/utils'
 import { useSimulateRentSavings } from '../hooks/useRentSavings'
 import { useAuth } from '@/features/auth/AuthContext'
@@ -25,7 +17,10 @@ interface RentCalculatorViewProps {
 
 export function RentCalculatorView({ onProceedToSetup }: RentCalculatorViewProps) {
   const { user } = useAuth()
-  const activeProperty = (user?.properties || []).find((p: any) => !p.isPastTenancy && p.rentAmount)
+  const activeProperty = (user?.properties || []).find(
+    (p: { isPastTenancy?: boolean; rentAmount?: number; rentEndDate?: string }) =>
+      !p.isPastTenancy && p.rentAmount,
+  )
 
   const [targetAmountRaw, setTargetAmountRaw] = useState<string>(() =>
     activeProperty?.rentAmount ? formatCurrencyInput(activeProperty.rentAmount) : '',
@@ -37,7 +32,7 @@ export function RentCalculatorView({ onProceedToSetup }: RentCalculatorViewProps
     const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
     return tomorrow.toISOString().split('T')[0]
   })
-  const [initialDepositNaira, setInitialDepositNaira] = useState<number>(0)
+  const [initialDepositNaira] = useState<number>(0)
   const [cadence, setCadence] = useState<'DAILY' | 'WEEKLY' | 'MONTHLY'>('MONTHLY')
   const [monthlyIncomeRaw, setMonthlyIncomeRaw] = useState<string>('')
 
@@ -76,7 +71,6 @@ export function RentCalculatorView({ onProceedToSetup }: RentCalculatorViewProps
       cadence,
       monthly_income_kobo: monthlyIncomeNaira ? Math.round(monthlyIncomeNaira * 100) : undefined,
     })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [targetAmountNaira, contractualDueDate, initialDepositNaira, cadence, monthlyIncomeNaira])
 
   const simData = simulateMutation.data
@@ -258,10 +252,12 @@ export function RentCalculatorView({ onProceedToSetup }: RentCalculatorViewProps
           </div>
         </div>
 
-        {simData?.affordability?.isOverThreshold && (
+        {(simData?.affordability?.isOverThreshold || simData?.affordability?.is_over_threshold) && (
           <div className="rent-calculator__affordability">
             <AlertCircle size={18} style={{ flexShrink: 0 }} />
-            <span>{simData.affordability.advisoryMessage}</span>
+            <span>
+              {simData.affordability.advisoryMessage || simData.affordability.advisory_message}
+            </span>
           </div>
         )}
 

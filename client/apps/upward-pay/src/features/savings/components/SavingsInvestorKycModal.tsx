@@ -18,6 +18,7 @@ import {
   TrendingUp,
   Gift,
   Calendar,
+  Zap,
 } from 'lucide-react'
 import {
   useOnboardSavingsInvestor,
@@ -75,7 +76,10 @@ export function SavingsInvestorKycModal({
     }
   }, [user?.isIdentityVerified, step])
 
-  const activeProperty = (user?.properties || []).find((p: any) => !p.isPastTenancy && p.rentAmount)
+  const activeProperty = (user?.properties || []).find(
+    (p: { isPastTenancy?: boolean; rentAmount?: number; rentEndDate?: string }) =>
+      !p.isPastTenancy && p.rentAmount,
+  )
 
   // Step 1: BVN & Security
   const [bvn, setBvn] = useState('')
@@ -188,7 +192,7 @@ export function SavingsInvestorKycModal({
         next_of_kin_phone: nextOfKinPhone.trim(),
       })
 
-      const dva = (res as any)?.data?.dedicated_account || (res as any)?.dedicated_account
+      const dva = res?.dedicated_account
       if (dva) {
         setCreatedDva(dva)
       } else {
@@ -200,10 +204,10 @@ export function SavingsInvestorKycModal({
       }
       setStep(3)
       toastSuccess('Investor profile verified and dedicated Wema account ready!')
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err as { message?: string }
       const msg =
-        err?.message || 'Verification failed with identity provider. Please check details.'
+        error?.message || 'Verification failed with identity provider. Please check details.'
       setFormError(msg)
       toastError(msg)
     }
@@ -246,17 +250,17 @@ export function SavingsInvestorKycModal({
             <div>
               <span className="vault-modal-title" style={{ fontSize: '1.0625rem' }}>
                 {step === 4
-                  ? 'Fund Your Wema Account'
+                  ? 'Your Rent Savings Account'
                   : step === 3
-                    ? 'Rent Runway & Rewards'
-                    : 'Investor KYC Verification'}
+                    ? 'Rent Savings Plan'
+                    : 'Identity Verification'}
               </span>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>
                 {step === 4
-                  ? 'Transfer to your dedicated account anytime'
+                  ? 'Transfer to your rent account anytime'
                   : step === 3
                     ? 'Based on your verified rental details'
-                    : 'Required by SEC regulation • powered by ARM'}
+                    : 'Required by CBN & SEC • backed by ARM'}
               </p>
             </div>
           </div>
@@ -843,15 +847,21 @@ export function SavingsInvestorKycModal({
                   color: 'var(--text)',
                 }}
               >
-                KYC Approved &amp; Funding Account Ready
+                Verification Successful &amp; Rent Account Ready
               </h3>
               <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', margin: 0 }}>
-                Your dedicated Wema Bank funding account has been provisioned.
+                Your personal Wema Bank account for rent savings has been created.
               </p>
             </div>
 
             {/* Dedicated Account Card */}
             <div className="vault-dva-card">
+              <div className="vault-dva-card__header">
+                <span className="vault-dva-card__title">Your Rent Savings Account</span>
+                <span className="vault-dva-card__badge">
+                  <Zap size={11} /> Instant Credit
+                </span>
+              </div>
               <div className="vault-dva-card__number-row">
                 <div className="vault-dva-card__number-block">
                   <span className="vault-dva-card__number-label">Account Number</span>
@@ -911,8 +921,8 @@ export function SavingsInvestorKycModal({
             >
               <Info size={16} color="var(--clay)" style={{ flexShrink: 0 }} />
               <span>
-                Transfer to this account anytime from your bank app. Deposits automatically fund
-                your rent vault and start earning 14.5% p.a. compound yield.
+                Send money to this account anytime from your bank app or USSD. Your savings enter
+                immediately and start growing with 14.5% annual interest.
               </span>
             </div>
 
@@ -925,7 +935,7 @@ export function SavingsInvestorKycModal({
               }}
               style={{ marginTop: 4 }}
             >
-              View My Rent Vault <ArrowRight size={16} />
+              Go to My Rent Savings <ArrowRight size={16} />
             </button>
           </div>
         )}
