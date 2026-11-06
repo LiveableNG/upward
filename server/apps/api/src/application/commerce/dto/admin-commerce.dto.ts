@@ -241,18 +241,32 @@ export interface AdminCommerceOrderSummaryDto {
   taxKobo: string
   discountKobo: string
   totalAmountKobo: string
+  recipientName: string
+  recipientPhone: string
+  deliveryAddress: string
   paymentReference?: string | null
   paidAt?: Date | null
   customer: AdminCommerceOrderCustomerDto
   subOrdersCount: number
   subOrders: Array<{
+    id?: number
     uuid: string
     subOrderNumber: string
     vendorName: string
+    vendor?: {
+      id: number
+      name: string
+      slug?: string
+      email?: string | null
+      phone?: string | null
+    }
     customerStatus: CustomerFulfilmentStatus
     operationalStatus: AdminOperationalStatus
     subtotalKobo: string
+    deliveryFeeKobo?: string
+    platformFeeKobo?: string
     vendorPayoutKobo: string
+    items: AdminCommerceOrderItemDto[]
   }>
   createdAt: Date
   updatedAt: Date

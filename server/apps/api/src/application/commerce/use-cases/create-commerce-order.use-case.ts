@@ -209,6 +209,9 @@ export class CreateCommerceOrderUseCase {
   }
 
   private mapToTenantOrderDetail(order: CommerceOrder): TenantOrderDetailDto {
+    if (!order) {
+      throw new NotFoundException('Order record could not be loaded')
+    }
     return {
       id: order.id!,
       uuid: order.uuid,

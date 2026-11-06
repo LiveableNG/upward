@@ -38,7 +38,7 @@ export function SubOrderFulfilmentModal({
   onClose,
   onUpdate,
 }: SubOrderFulfilmentModalProps) {
-  const isService = subOrder.items.some((i) => i.offeringType === 'SERVICE')
+  const isService = (subOrder.items || []).some((i) => i.offeringType === 'SERVICE')
 
   const [action, setAction] = useState<AdminFulfilmentTransitionAction>(
     isService ? 'SERVICE_SCHEDULE' : 'DISPATCH_CARRIER',

@@ -1348,7 +1348,7 @@
   max-width: 1080px;
   margin: 0 auto;
   padding: 20px var(--shell-px);
-  padding-bottom: 96px;
+  padding-bottom: 40px;
 }
 
 .offering-detail__layout {
@@ -1727,7 +1727,9 @@
   color: var(--text);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .offering-detail__fulfillment-sub {
@@ -1884,6 +1886,101 @@
 
 .offering-detail__primary-cta:active:not(:disabled) {
   transform: scale(0.975);
+}
+
+/* ==========================================================================
+   Similar Products & Packages — Horizontal Carousel
+   ========================================================================== */
+.offering-detail__similar-section {
+  margin-top: 36px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+  width: 100%;
+}
+
+.offering-detail__similar-header-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.offering-detail__similar-title {
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0;
+}
+
+.offering-detail__similar-desc {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin: 4px 0 0;
+}
+
+.offering-detail__carousel-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.offering-detail__carousel-arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-full);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.offering-detail__carousel-arrow:hover {
+  background: var(--surface);
+  border-color: var(--clay);
+  color: var(--clay);
+}
+
+.offering-detail__carousel-arrow:active {
+  transform: scale(0.92);
+}
+
+.offering-detail__carousel-track {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding: 4px 2px 16px 2px;
+}
+
+.offering-detail__carousel-track::-webkit-scrollbar {
+  display: none;
+}
+
+.offering-detail__carousel-item {
+  flex: 0 0 280px;
+  width: 280px;
+  min-width: 280px;
+  scroll-snap-align: start;
+}
+
+.offering-detail__carousel-item .offering-card {
+  height: 100%;
+}
+
+@media (max-width: 480px) {
+  .offering-detail__carousel-item {
+    flex: 0 0 260px;
+    width: 260px;
+    min-width: 260px;
+  }
 }
 
 .offering-detail__skeleton-media {

@@ -34,6 +34,7 @@ import {
   type GoalOffering,
 } from '../types/goals.types'
 import {
+  OfferingCard,
   formatOfferingPrice,
   formatCurrencyValue,
   getOfferingTypeIcon,
@@ -107,7 +108,17 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
     refetch,
   } = useGoalOfferingDetail(identifier)
 
-  const { data: cachedOfferings = [] } = usePublicOfferings()
+  const { data: cachedOfferings = [], isLoading: isOfferingsLoading } =
+    usePublicOfferings()
+
+  const carouselRef = React.useRef<HTMLDivElement>(null)
+
+  const scrollCarousel = (direction: 'left' | 'right') => {
+    if (carouselRef.current) {
+      const scrollAmount = direction === 'left' ? -300 : 300
+      carouselRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' })
+    }
+  }
 
   const fallbackOffering = React.useMemo(() => {
     return cachedOfferings.find(
@@ -136,6 +147,41 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
     }
     return []
   }, [offering])
+
+  // Similar & Recommended Products / Packages
+  const similarItems = React.useMemo(() => {
+    if (!offering || !cachedOfferings || cachedOfferings.length === 0) return []
+
+    // Filter out current item
+    const candidates = cachedOfferings.filter((item) => {
+      if (offering.id && item.id === offering.id) return false
+      if (offering.uuid && item.uuid === offering.uuid) return false
+      if (offering.slug && item.slug === offering.slug) return false
+      return true
+    })
+
+    // Score by relevance (same type, shared goals, or featured)
+    const scored = candidates.map((item) => {
+      let score = 0
+      if (item.type === offering.type) score += 3
+      const sharesGoal =
+        item.goalLinks?.some((gl) =>
+          offering.goalLinks?.some((og) => og.goalId === gl.goalId),
+        ) ||
+        item.goals?.some((g) =>
+          offering.goals?.some((og) => og.goalId === g.goalId),
+        )
+      if (sharesGoal) score += 4
+      if (item.vendor?.id && offering.vendor?.id && item.vendor.id === offering.vendor.id) {
+        score += 1
+      }
+      if (item.isFeatured) score += 1
+      return { item, score }
+    })
+
+    scored.sort((a, b) => b.score - a.score)
+    return scored.slice(0, 6).map((s) => s.item)
+  }, [offering, cachedOfferings])
 
   const handleBack = () => {
     router.push('/dashboard/lifestyle')
@@ -538,66 +584,92 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
               </section>
             )}
 
-            {/* Fulfillment & Availability */}
+            {/* Delivery & Fulfillment */}
             <section className="offering-detail__card">
-              <h2 className="offering-detail__section-label">
-                Fulfillment & Delivery
-              </h2>
-              <div className="offering-detail__perks-grid">
-                <div className="offering-detail__perk-item">
-                  <div className="offering-detail__perk-icon">
-                    <Truck size={18} />
+              <div className="offering-detail__section-header-row">
+                <h2 className="offering-detail__section-label">
+                  Delivery & Fulfillment
+                </h2>
+                {deliveryCheck.isDeliverable ? (
+                  <span className="offering-detail__delivery-badge">
+                    <CheckCircle2 size={12} />
+                    <span>Eligible for {formatShortLocation(deliveryLocation)}</span>
+                  </span>
+                ) : (
+                  <span className="offering-detail__delivery-badge offering-detail__delivery-badge--warn">
+                    <AlertCircle size={12} />
+                    <span>Coverage Notice</span>
+                  </span>
+                )}
+              </div>
+
+              <div className="offering-detail__fulfillment-box">
+                {/* Method */}
+                <div className="offering-detail__fulfillment-row">
+                  <div className="offering-detail__fulfillment-icon">
+                    <Truck size={17} />
                   </div>
-                  <div>
-                    <div className="offering-detail__perk-title">
-                      {offering.deliveryAvailable
-                        ? 'Direct Home Delivery'
-                        : 'Merchant Fulfillment'}
+                  <div className="offering-detail__fulfillment-content">
+                    <div className="offering-detail__fulfillment-title">
+                      <span>
+                        {offering.deliveryAvailable
+                          ? 'Direct Home Delivery'
+                          : 'Merchant Fulfillment'}
+                      </span>
                     </div>
-                    <div className="offering-detail__perk-desc">
+                    <div className="offering-detail__fulfillment-sub">
                       {offering.deliveryAvailable
                         ? 'Delivered straight to your rental address'
-                        : 'Scheduled directly with the provider'}
+                        : 'Scheduled directly with verified provider'}
                     </div>
                   </div>
                 </div>
 
-                <div className="offering-detail__perk-item">
-                  <div className="offering-detail__perk-icon">
-                    <Clock size={18} />
+                {/* Turnaround Window */}
+                <div className="offering-detail__fulfillment-row">
+                  <div className="offering-detail__fulfillment-icon">
+                    <Clock size={17} />
                   </div>
-                  <div>
-                    <div className="offering-detail__perk-title">
-                      {offering.leadTimeDays == null
-                        ? 'Flexible Scheduling'
-                        : offering.leadTimeDays === 0
-                          ? 'Same-Day Turnaround'
-                          : `${offering.leadTimeDays}-Day Lead Time`}
+                  <div className="offering-detail__fulfillment-content">
+                    <div className="offering-detail__fulfillment-title">
+                      <span>
+                        {offering.leadTimeDays == null
+                          ? 'Flexible Scheduling'
+                          : offering.leadTimeDays === 0
+                            ? 'Same-Day Turnaround'
+                            : `${offering.leadTimeDays}-Day Delivery Turnaround`}
+                      </span>
                     </div>
-                    <div className="offering-detail__perk-desc">
-                      Estimated fulfillment window
+                    <div className="offering-detail__fulfillment-sub">
+                      Estimated fulfillment window upon order confirmation
                     </div>
                   </div>
                 </div>
-                <div className="offering-detail__perk-item">
-                  <div className="offering-detail__perk-icon">
-                    <MapPin size={18} />
+
+                {/* Destination Context with Integrated Location Bar */}
+                <div className="offering-detail__fulfillment-row">
+                  <div className="offering-detail__fulfillment-icon">
+                    <MapPin size={17} />
                   </div>
-                  <div>
-                    <div className="offering-detail__perk-title">
-                      Destination: {formatShortLocation(deliveryLocation)}
+                  <div className="offering-detail__fulfillment-content">
+                    <div className="offering-detail__fulfillment-title">
+                      <span>Destination</span>
+                      <DeliveryLocationBar
+                        location={deliveryLocation}
+                        onLocationChange={(loc) => setDeliveryLocation(loc)}
+                      />
                     </div>
-                    <div className="offering-detail__perk-desc">
+                    <div className="offering-detail__fulfillment-sub">
                       {deliveryCheck.isDeliverable
-                        ? 'Eligible for direct dispatch to this address'
-                        : 'Delivery unavailable to this location'}
+                        ? 'Eligible for direct dispatch to your address'
+                        : 'Delivery currently unavailable to this area'}
                     </div>
                   </div>
                 </div>
               </div>
 
               {!deliveryCheck.isDeliverable && (
-                <div className="offering-detail__delivery-warning">
+                <div className="offering-detail__delivery-warning" style={{ marginTop: 12 }}>
                   <AlertCircle size={16} />
                   <div>
                     <span className="offering-detail__delivery-warning-title">
@@ -610,13 +682,6 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                   </div>
                 </div>
               )}
-
-              <div style={{ marginTop: 14 }}>
-                <DeliveryLocationBar
-                  location={deliveryLocation}
-                  onLocationChange={(loc) => setDeliveryLocation(loc)}
-                />
-              </div>
             </section>
           </div>
 
@@ -702,6 +767,71 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
             </section>
           </aside>
         </div>
+
+        {/* Similar / Recommended Packages & Products — Horizontal Carousel */}
+        {(similarItems.length > 0 || isOfferingsLoading) && (
+          <section className="offering-detail__similar-section">
+            <div className="offering-detail__similar-header-row">
+              <div>
+                <h2 className="offering-detail__similar-title">
+                  Similar Products & Packages
+                </h2>
+                <p className="offering-detail__similar-desc">
+                  Curated alternatives and bundles tailored for your living space
+                </p>
+              </div>
+
+              {similarItems.length > 1 && (
+                <div className="offering-detail__carousel-nav">
+                  <button
+                    type="button"
+                    className="offering-detail__carousel-arrow"
+                    onClick={() => scrollCarousel('left')}
+                    aria-label="Previous items"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    className="offering-detail__carousel-arrow"
+                    onClick={() => scrollCarousel('right')}
+                    aria-label="Next items"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="offering-detail__carousel-track" ref={carouselRef}>
+              {isOfferingsLoading && similarItems.length === 0 ? (
+                [1, 2, 3].map((n) => (
+                  <div key={n} className="offering-detail__carousel-item">
+                    <div className="offering-card offering-card--skeleton">
+                      <div className="offering-card__media-skeleton" />
+                      <div className="offering-card__body-skeleton" />
+                    </div>
+                  </div>
+                ))
+              ) : (
+                similarItems.map((item) => (
+                  <div key={item.id} className="offering-detail__carousel-item">
+                    <OfferingCard
+                      item={{ offering: item, isGoalMatch: true }}
+                      userLocation={deliveryLocation}
+                      onClick={(clicked) => {
+                        const nextId =
+                          clicked.uuid || clicked.slug || String(clicked.id)
+                        router.push(`/dashboard/lifestyle/${nextId}`)
+                        window.scrollTo({ top: 0, behavior: 'smooth' })
+                      }}
+                    />
+                  </div>
+                ))
+              )}
+            </div>
+          </section>
+        )}
       </main>
 
       {/* Fullscreen Fluid Image Lightbox */}

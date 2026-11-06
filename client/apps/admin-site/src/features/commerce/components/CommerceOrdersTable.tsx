@@ -144,86 +144,94 @@ export function CommerceOrdersTable({
                         color: 'var(--text)',
                       }}
                     >
-                      {isExpanded ? 'Hide Sub-Orders' : `View Sub-Orders (${order.subOrders.length})`}
+                      {isExpanded ? 'Hide Sub-Orders' : `View Sub-Orders (${(order.subOrders || []).length})`}
                     </button>
                   </div>
                 </div>
 
                 {/* Recipient Snapshot */}
-                <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', background: 'var(--surface-hover)', padding: '8px 12px', borderRadius: 8, marginBottom: 12 }}>
-                  <strong>Destination:</strong> {order.deliveryAddress} · <strong>Recipient:</strong> {order.recipientName} ({order.recipientPhone})
-                </div>
+                {(order.deliveryAddress || order.recipientName) && (
+                  <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', background: 'var(--surface-hover)', padding: '8px 12px', borderRadius: 8, marginBottom: 12 }}>
+                    <strong>Destination:</strong> {order.deliveryAddress || 'Standard Delivery'} · <strong>Recipient:</strong> {order.recipientName || order.user?.firstName || 'Customer'} {order.recipientPhone ? `(${order.recipientPhone})` : ''}
+                  </div>
+                )}
 
-                {/* Sub-Orders List */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {order.subOrders.map((sub) => {
-                    const isService = sub.items.some((i) => i.offeringType === 'SERVICE')
+                {/* Sub-Orders List (Expanded) */}
+                {isExpanded && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 10 }}>
+                    {(order.subOrders || []).map((sub) => {
+                      const items = sub.items || []
+                      const isService = items.some((i) => i.offeringType === 'SERVICE')
+                      const vendorName = sub.vendor?.name || (sub as any).vendorName || 'Partner'
 
-                    return (
-                      <div
-                        key={sub.uuid}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '10px 14px',
-                          background: '#fff',
-                          border: '1px solid var(--border)',
-                          borderRadius: 8,
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          {isService ? <Wrench size={18} style={{ color: 'var(--accent)' }} /> : <Truck size={18} style={{ color: 'var(--accent)' }} />}
-                          <div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <span style={{ fontSize: 13, fontWeight: 700, fontFamily: 'monospace' }}>
-                                {sub.subOrderNumber}
-                              </span>
-                              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                                ({sub.vendor?.name || 'Partner'})
-                              </span>
-                            </div>
-                            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>
-                              {sub.items.map((it) => it.snapshotData?.title || `Item #${it.offeringId}`).join(', ')}
+                      return (
+                        <div
+                          key={sub.uuid}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '10px 14px',
+                            background: '#fff',
+                            border: '1px solid var(--border)',
+                            borderRadius: 8,
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            {isService ? <Wrench size={18} style={{ color: 'var(--accent)' }} /> : <Truck size={18} style={{ color: 'var(--accent)' }} />}
+                            <div>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <span style={{ fontSize: 13, fontWeight: 700, fontFamily: 'monospace' }}>
+                                  {sub.subOrderNumber}
+                                </span>
+                                <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                                  ({vendorName})
+                                </span>
+                              </div>
+                              {items.length > 0 && (
+                                <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>
+                                  {items.map((it) => it.snapshotData?.title || (it as any).title || `Item #${it.offeringId || ''}`).join(', ')}
+                                </div>
+                              )}
                             </div>
                           </div>
-                        </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          <span
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 700,
-                              padding: '3px 8px',
-                              borderRadius: 6,
-                              background: 'var(--accent-faint)',
-                              color: 'var(--accent)',
-                            }}
-                          >
-                            {sub.customerStatus}
-                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                            <span
+                              style={{
+                                fontSize: 11,
+                                fontWeight: 700,
+                                padding: '3px 8px',
+                                borderRadius: 6,
+                                background: 'var(--accent-faint)',
+                                color: 'var(--accent)',
+                              }}
+                            >
+                              {sub.customerStatus}
+                            </span>
 
-                          <button
-                            type="button"
-                            onClick={() => setActiveSubOrderForEdit(sub)}
-                            style={{
-                              padding: '6px 12px',
-                              borderRadius: 6,
-                              background: 'var(--accent)',
-                              color: '#fff',
-                              border: 'none',
-                              fontSize: 12,
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                            }}
-                          >
-                            Update Fulfilment
-                          </button>
+                            <button
+                              type="button"
+                              onClick={() => setActiveSubOrderForEdit(sub)}
+                              style={{
+                                padding: '6px 12px',
+                                borderRadius: 6,
+                                background: 'var(--accent)',
+                                color: '#fff',
+                                border: 'none',
+                                fontSize: 12,
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                              }}
+                            >
+                              Update Fulfilment
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    )
-                  })}
-                </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             )
           })}

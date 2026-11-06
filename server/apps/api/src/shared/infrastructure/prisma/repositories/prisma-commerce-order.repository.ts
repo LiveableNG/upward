@@ -19,7 +19,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async createOrder(data: CreateOrderData): Promise<CommerceOrder> {
-    return this.prisma.$transaction(async (tx) => {
+    const createdOrderId = await this.prisma.$transaction(async (tx) => {
       // 1. Create master order
       const order = await tx.upward_commerce_order.create({
         data: {
@@ -178,8 +178,14 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
         },
       })
 
-      return this.findOrderById(order.id) as unknown as CommerceOrder
+      return order.id
     })
+
+    const created = await this.findOrderById(createdOrderId)
+    if (!created) {
+      throw new Error(`Failed to retrieve created order ID ${createdOrderId}`)
+    }
+    return created
   }
 
   async findOrderById(id: number): Promise<CommerceOrder | null> {
@@ -722,7 +728,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
     channel?: string
     paidAt: Date
   }): Promise<CommerceOrder> {
-    return this.prisma.$transaction(async (tx) => {
+    await this.prisma.$transaction(async (tx) => {
       // 1. Fetch current order with sub-orders and vendor info
       const order = await tx.upward_commerce_order.findUnique({
         where: { id: params.orderId },
@@ -740,9 +746,9 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
         throw new Error(`ORDER_NOT_FOUND: Order with ID ${params.orderId} does not exist`)
       }
 
-      // Idempotency: If order is already paid, return it without duplicate mutations
+      // Idempotency: If order is already paid, return without duplicate mutations
       if (order.status === 'CONFIRMED' && order.paymentStatus === 'PAID') {
-        return this.findOrderById(order.id) as unknown as CommerceOrder
+        return
       }
 
       // If order is cancelled/expired, prevent normal confirmation
@@ -831,8 +837,13 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
         },
       })
 
-      return this.findOrderById(order.id) as unknown as CommerceOrder
     })
+
+    const updated = await this.findOrderById(params.orderId)
+    if (!updated) {
+      throw new Error(`Failed to retrieve confirmed order ID ${params.orderId}`)
+    }
+    return updated
   }
 
   async recordAuditLog(
