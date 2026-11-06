@@ -46,10 +46,7 @@ export function SettlementSuccessModal({
     }
   }, [])
 
-  if (!isClient || typeof document === 'undefined') return null
-
   const handleDownloadReceipt = () => {
-    // In production, triggers the PDF receipt download
     window.open(data.receipt_download_url, '_blank')
   }
 
@@ -62,7 +59,6 @@ export function SettlementSuccessModal({
         style={{ maxWidth: 520, textAlign: 'center' }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Animated Success Badge */}
         <div
           style={{
             width: 64,
@@ -88,7 +84,6 @@ export function SettlementSuccessModal({
           </p>
         </div>
 
-        {/* NIP Session ID & Settlement Details */}
         <div className="vault-fee-breakdown" style={{ textAlign: 'left' }}>
           <div className="vault-fee-breakdown__row">
             <span>Amount Paid to Landlord</span>
@@ -122,7 +117,6 @@ export function SettlementSuccessModal({
           </div>
         </div>
 
-        {/* Cashback & Discipline Gamification Banner */}
         <div
           style={{
             background:
@@ -161,7 +155,6 @@ export function SettlementSuccessModal({
           </span>
         </div>
 
-        {/* Legal Tenancy Receipt Action */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
           <button
             type="button"

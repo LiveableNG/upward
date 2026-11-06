@@ -63,17 +63,14 @@ export function SavingsInvestorKycModal({
     }
   }, [isOpen])
 
-  // Pure references to avoid impure Date.now() calls during render
   const [minDate] = useState(() => {
     const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
     return tomorrow.toISOString().split('T')[0]
   })
   const [nowTimestamp] = useState(() => Date.now())
 
-  // Initial step: If already verified, jump directly to Step 3 (Simulation & Consent)
   const [step, setStep] = useState<1 | 2 | 3 | 4>(() => (user?.isIdentityVerified ? 3 : 1))
 
-  // Adjust step during rendering if user verification status changes (React recommended pattern)
   const [prevVerified, setPrevVerified] = useState(Boolean(user?.isIdentityVerified))
   if (Boolean(user?.isIdentityVerified) !== prevVerified) {
     setPrevVerified(Boolean(user?.isIdentityVerified))
@@ -87,11 +84,9 @@ export function SavingsInvestorKycModal({
       !p.isPastTenancy && p.rentAmount,
   )
 
-  // Step 1: BVN & Security
   const [bvn, setBvn] = useState('')
   const [mothersMaidenName, setMothersMaidenName] = useState('')
 
-  // Step 2: Investor Suitability & Next of Kin
   const [occupation, setOccupation] = useState('')
   const [sourceOfFunds, setSourceOfFunds] = useState<
     'Salary' | 'Business' | 'Savings' | 'Investment'
@@ -100,11 +95,9 @@ export function SavingsInvestorKycModal({
   const [nextOfKinRelationship, setNextOfKinRelationship] = useState('Spouse')
   const [nextOfKinPhone, setNextOfKinPhone] = useState('')
 
-  // Step 3: Runway Simulation fallback if settings is empty
   const [manualRentTarget, setManualRentTarget] = useState<number>(0)
   const [manualDueDate, setManualDueDate] = useState<string>('')
 
-  // Step 4: Generated Dedicated Virtual Account (Wema Bank)
   const [createdDva, setCreatedDva] = useState<{
     bank_name: string
     account_number: string
@@ -119,14 +112,12 @@ export function SavingsInvestorKycModal({
 
   if (!isOpen) return null
 
-  // Source of truth: Settings active property
   const targetRent = activeProperty?.rentAmount || manualRentTarget || 2400000
   const targetDueDate = activeProperty?.rentEndDate || manualDueDate || '2027-10-15'
   const runwayDays = Math.max(
     1,
     Math.ceil((new Date(targetDueDate).getTime() - nowTimestamp) / (1000 * 60 * 60 * 24)),
   )
-  // Target completion is 30 days before contractual rent due date
   const daysToTargetEarly = Math.max(1, runwayDays - 30)
   const monthsToTarget = Math.max(1, Math.round(daysToTargetEarly / 30.417))
   const monthlyTargetToFinishEarly = Math.round(targetRent / monthsToTarget)
@@ -230,7 +221,6 @@ export function SavingsInvestorKycModal({
         onClick={(e) => e.stopPropagation()}
         style={{ maxWidth: 520 }}
       >
-        {/* Header */}
         <div className="vault-modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div
@@ -284,7 +274,6 @@ export function SavingsInvestorKycModal({
           )}
         </div>
 
-        {/* Stepper Progress (4 Steps) */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 20 }}>
           {[1, 2, 3, 4].map((s) => (
             <div
@@ -315,7 +304,6 @@ export function SavingsInvestorKycModal({
           </div>
         )}
 
-        {/* STEP 1: BVN & Security */}
         {step === 1 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div className="rent-calculator__field">
@@ -384,7 +372,6 @@ export function SavingsInvestorKycModal({
           </div>
         )}
 
-        {/* STEP 2: Investor Profile & Next of Kin */}
         {step === 2 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div className="rent-calculator__field">
@@ -519,10 +506,8 @@ export function SavingsInvestorKycModal({
           </div>
         )}
 
-        {/* STEP 3: Rent Runway & Simulation */}
         {step === 3 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {/* If no property is linked in Settings, allow entering rent obligation */}
             {!activeProperty && (
               <div
                 style={{
@@ -569,7 +554,6 @@ export function SavingsInvestorKycModal({
               </div>
             )}
 
-            {/* Target & Countdown Summary Card */}
             <div
               style={{
                 display: 'flex',
@@ -632,7 +616,6 @@ export function SavingsInvestorKycModal({
               </div>
             </div>
 
-            {/* Monthly Savings Target (Save fully by 30 days before due date) */}
             <div
               style={{
                 padding: '14px 16px',
@@ -714,7 +697,6 @@ export function SavingsInvestorKycModal({
               </p>
             </div>
 
-            {/* Projected ARM Yield Card */}
             <div
               style={{
                 padding: '12px 14px',
@@ -758,7 +740,6 @@ export function SavingsInvestorKycModal({
               </div>
             </div>
 
-            {/* Cashback Reward Card */}
             <div
               style={{
                 padding: '12px 14px',
@@ -796,7 +777,6 @@ export function SavingsInvestorKycModal({
               </div>
             </div>
 
-            {/* CTA Button directly to fund account */}
             <button
               type="button"
               className="vault-btn-primary"
@@ -804,9 +784,7 @@ export function SavingsInvestorKycModal({
                 try {
                   await consentMutation.mutateAsync()
                   await refreshUser()
-                } catch {
-                  // non-blocking
-                }
+                } catch {}
                 setStep(4)
               }}
               disabled={consentMutation.isPending}
@@ -825,7 +803,6 @@ export function SavingsInvestorKycModal({
           </div>
         )}
 
-        {/* STEP 4: Dedicated Wema Bank Account Created */}
         {step === 4 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div
@@ -860,7 +837,6 @@ export function SavingsInvestorKycModal({
               </p>
             </div>
 
-            {/* Dedicated Account Card */}
             <div className="vault-dva-card">
               <div className="vault-dva-card__header">
                 <span className="vault-dva-card__title">Your Rent Savings Account</span>

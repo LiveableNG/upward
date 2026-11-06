@@ -156,7 +156,6 @@ export function RentSavingsMainView() {
     <div>
       {renderKycBanner()}
 
-      {/* Screen 1 or Screen 2: No active vault */}
       {!isVaultActive && (
         <>
           {step === 'SETUP' && simulationConfig ? (
@@ -179,7 +178,6 @@ export function RentSavingsMainView() {
         </>
       )}
 
-      {/* Active Vault Activities (Gated & blurred when KYC is pending) */}
       {isVaultActive && (
         <div className="rent-savings__gated-container">
           <div
@@ -187,7 +185,6 @@ export function RentSavingsMainView() {
               shouldBlurActivities ? 'rent-savings__gated-content--blurred' : ''
             }`}
           >
-            {/* Screen 5: Settlement Hub */}
             {viewMode === 'SETTLEMENT' && (
               <div>
                 <button
@@ -219,7 +216,6 @@ export function RentSavingsMainView() {
               </div>
             )}
 
-            {/* Screen 3: Active Locked Dashboard */}
             {viewMode === 'DASHBOARD' && (
               <VaultDashboardView
                 vault={vault}

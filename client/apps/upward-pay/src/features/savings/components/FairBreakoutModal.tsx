@@ -44,12 +44,10 @@ export function FairBreakoutModal({
 
   if (!isClient || typeof document === 'undefined') return null
 
-  // Estimated preview figures
-  // 7% p.a. base yield vs 1.5% admin fee
   const principalNaira = principalKobo / 100
   const accruedYieldNaira = accruedYieldKobo / 100
   const estimatedAdminFeeNaira = principalNaira * 0.015
-  const estimatedRecalculatedYieldNaira = principalNaira * (0.07 / 365) * 30 // indicative
+  const estimatedRecalculatedYieldNaira = principalNaira * (0.07 / 365) * 30
   const estimatedNetPayoutNaira = Math.max(
     0,
     principalNaira + estimatedRecalculatedYieldNaira - estimatedAdminFeeNaira,
@@ -149,7 +147,6 @@ export function FairBreakoutModal({
               adjusted to the 7% base rate.
             </p>
 
-            {/* Recalculation Breakdown Card */}
             <div className="vault-fee-breakdown">
               <div className="vault-fee-breakdown__row">
                 <span>Your Total Savings</span>
@@ -179,7 +176,6 @@ export function FairBreakoutModal({
               </div>
             </div>
 
-            {/* Upward Score Deterrent Warning */}
             <div
               style={{
                 background: 'rgba(239, 68, 68, 0.08)',
@@ -195,7 +191,6 @@ export function FairBreakoutModal({
               Savings Discipline Score and resets your streak.
             </div>
 
-            {/* Action Buttons: Primary is Keep Rent Safe */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
               <button type="button" className="vault-btn-primary" onClick={onClose}>
                 <Shield size={18} />

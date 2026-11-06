@@ -86,7 +86,6 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
 
   return (
     <div className="rent-savings">
-      {/* Active Locked Hero Banner */}
       <div className="vault-dashboard__hero">
         <div className="vault-dashboard__top-row">
           <div className="vault-dashboard__lock-pill">
@@ -112,7 +111,6 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
           </span>
         </div>
 
-        {/* Target Progress Bar */}
         <div className="vault-dashboard__gauge-wrapper">
           <div className="vault-dashboard__gauge-header">
             <span>Target Progress</span>
@@ -126,7 +124,6 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
           </div>
         </div>
 
-        {/* Daily Accrued Yield Card */}
         <div className="vault-dashboard__interest-card">
           <div className="vault-dashboard__interest-text">
             <TrendingUp size={16} />
@@ -137,7 +134,6 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
           </span>
         </div>
 
-        {/* Quick Fund Action */}
         <button
           type="button"
           className="vault-btn-primary"
@@ -153,7 +149,6 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
           <span>Fund Vault</span>
         </button>
 
-        {/* If T-30 has arrived, present Settlement Hub banner */}
         {isSettlementReady && (
           <button
             type="button"
@@ -167,7 +162,6 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
         )}
       </div>
 
-      {/* Upward Score Discipline Meter */}
       <div className="vault-score-card">
         <div className="vault-score-card__header">
           <div className="vault-score-card__title">
@@ -201,7 +195,6 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
         </div>
       </div>
 
-      {/* Quick Action Cards Grid */}
       <div className="vault-actions-grid">
         <div className="vault-action-btn" onClick={() => setShowFundModal(true)}>
           <div className="vault-action-btn__icon">
@@ -228,7 +221,6 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
         </div>
       </div>
 
-      {/* Fair Exit Deterrent Footer Link */}
       <div style={{ textAlign: 'center', marginTop: 12 }}>
         <button
           type="button"
@@ -246,7 +238,6 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
         </button>
       </div>
 
-      {/* Modals */}
       <FundVaultModal
         isOpen={showFundModal}
         onClose={() => setShowFundModal(false)}

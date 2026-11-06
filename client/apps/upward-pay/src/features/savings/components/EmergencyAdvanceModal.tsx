@@ -74,7 +74,7 @@ export function EmergencyAdvanceModal({
   const { data: banksData, isLoading: isLoadingBanks } = useQuery({
     queryKey: ['banks'],
     queryFn: () => api.getBanks(),
-    staleTime: 1000 * 60 * 30, // 30 mins
+    staleTime: 1000 * 60 * 30,
   })
 
   const bankList = useMemo(() => {
@@ -126,7 +126,6 @@ export function EmergencyAdvanceModal({
 
   const rawAccountNumber = (destinationAccountNumber || '').replace(/\D/g, '')
 
-  // Paystack Account Resolution via TanStack Query
   const {
     data: resolvedData,
     isLoading: isResolving,
@@ -275,7 +274,6 @@ export function EmergencyAdvanceModal({
             onSubmit={handleSubmit(onSubmit)}
             style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
           >
-            {/* Limit Cap Notice - Concise */}
             <div
               style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}
             >
@@ -284,7 +282,6 @@ export function EmergencyAdvanceModal({
               the emergency.
             </div>
 
-            {/* Slider Section */}
             <div className="vault-slider-group">
               <div
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}
@@ -301,9 +298,9 @@ export function EmergencyAdvanceModal({
               <input
                 type="range"
                 className="vault-slider"
-                min={1000000} // Min ₦10,000
+                min={1000000}
                 max={Math.max(1000000, maxBorrowableKobo)}
-                step={500000} // ₦5,000 steps
+                step={500000}
                 value={borrowAmountKobo}
                 onChange={handleSliderChange}
                 disabled={maxBorrowableKobo < 1000000}
@@ -321,7 +318,6 @@ export function EmergencyAdvanceModal({
               </div>
             </div>
 
-            {/* Transparent Fee & Term Breakdown - Concise */}
             <div className="vault-fee-breakdown">
               <div className="vault-fee-breakdown__row">
                 <span>Borrow Amount</span>
@@ -337,7 +333,6 @@ export function EmergencyAdvanceModal({
               </div>
             </div>
 
-            {/* Destination Bank Account with Paystack Resolution */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div className="rent-calculator__field">
                 <label className="rent-calculator__label">
@@ -372,7 +367,6 @@ export function EmergencyAdvanceModal({
                   />
                 </div>
 
-                {/* Paystack Resolution Feedback */}
                 {isResolving && (
                   <div className="vault-account-resolving">
                     <Loader2 size={13} className="animate-spin" />
@@ -402,7 +396,6 @@ export function EmergencyAdvanceModal({
               </div>
             </div>
 
-            {/* Clean, simplified 30-day note */}
             <div
               style={{
                 display: 'flex',
@@ -417,7 +410,6 @@ export function EmergencyAdvanceModal({
               <span>Repay within 30 days. You can repay early anytime with zero fees.</span>
             </div>
 
-            {/* Submit CTA */}
             <button type="submit" className="vault-btn-primary" disabled={!canSubmit}>
               {disburseMutation.isPending
                 ? 'Sending Cash...'

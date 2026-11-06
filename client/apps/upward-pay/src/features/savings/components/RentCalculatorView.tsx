@@ -36,7 +36,6 @@ export function RentCalculatorView({ onProceedToSetup }: RentCalculatorViewProps
   const [cadence, setCadence] = useState<'DAILY' | 'WEEKLY' | 'MONTHLY'>('MONTHLY')
   const [monthlyIncomeRaw, setMonthlyIncomeRaw] = useState<string>('')
 
-  // Sync if activeProperty loads asynchronously (React recommended pattern without effect setState)
   const [prevPropertyId, setPrevPropertyId] = useState<number | string | undefined>(
     activeProperty?.id,
   )
@@ -228,7 +227,6 @@ export function RentCalculatorView({ onProceedToSetup }: RentCalculatorViewProps
         </form>
       </div>
 
-      {/* Dynamic Results Card */}
       <div className="rent-calculator__results">
         <div className="rent-calculator__results-head">
           <span className="rent-calculator__days-badge">

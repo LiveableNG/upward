@@ -44,8 +44,6 @@ export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewPr
   const currentBalanceNaira = vault.current_balance_kobo / 100
   const targetRentNaira = vault.target_amount_kobo / 100
   const surplusNaira = Math.max(0, currentBalanceNaira - targetRentNaira)
-
-  // 1.2x early bird bonus estimation (approx 0.6% on rent target)
   const estimatedCashbackNaira = targetRentNaira * 0.005 * 1.2
 
   const {
@@ -86,7 +84,6 @@ export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewPr
 
   return (
     <div className="rent-savings">
-      {/* Hero Settlement Banner */}
       <div className="settlement-hub-banner">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div className="settlement-hub-banner__multiplier">
@@ -134,7 +131,6 @@ export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewPr
         </div>
       </div>
 
-      {/* Daily Compounding Notice */}
       <div
         style={{
           background: 'rgba(34, 197, 94, 0.08)',
@@ -155,7 +151,6 @@ export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewPr
         </span>
       </div>
 
-      {/* Landlord Payment Form */}
       <div className="rent-calculator__card">
         <h3 className="rent-calculator__title">Landlord Verification & Payout</h3>
         <p className="rent-calculator__subtitle">
@@ -239,7 +234,6 @@ export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewPr
             )}
           </div>
 
-          {/* Surplus Toggle */}
           {surplusNaira > 0 && (
             <label
               style={{
@@ -265,7 +259,6 @@ export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewPr
             </label>
           )}
 
-          {/* Payout Breakdown Card */}
           <div className="vault-fee-breakdown" style={{ marginTop: 8 }}>
             <div className="vault-fee-breakdown__row">
               <span>Gross Payment to Landlord</span>
@@ -297,7 +290,6 @@ export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewPr
         </form>
       </div>
 
-      {/* Screen 6: Success Modal */}
       {successData && (
         <SettlementSuccessModal
           data={successData}

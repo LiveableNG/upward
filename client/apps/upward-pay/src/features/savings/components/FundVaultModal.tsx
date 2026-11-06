@@ -87,7 +87,6 @@ export function FundVaultModal({ isOpen, onClose, dedicatedAccount }: FundVaultM
         onClick={(e) => e.stopPropagation()}
         style={{ maxWidth: 480 }}
       >
-        {/* Header */}
         <div className="vault-modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div
@@ -118,7 +117,6 @@ export function FundVaultModal({ isOpen, onClose, dedicatedAccount }: FundVaultM
           </button>
         </div>
 
-        {/* Dedicated Bank Transfer Card */}
         <div className="vault-dva-card">
           <div className="vault-dva-card__header">
             <span className="vault-dva-card__title">Your Rent Account Details</span>
@@ -127,7 +125,6 @@ export function FundVaultModal({ isOpen, onClose, dedicatedAccount }: FundVaultM
             </span>
           </div>
 
-          {/* Account Number Row */}
           <div className="vault-dva-card__number-row">
             <div className="vault-dva-card__number-block">
               <span className="vault-dva-card__number-label">Account Number</span>
@@ -152,7 +149,6 @@ export function FundVaultModal({ isOpen, onClose, dedicatedAccount }: FundVaultM
             </button>
           </div>
 
-          {/* Bank & Beneficiary Info */}
           <div className="vault-dva-card__meta-list">
             <div className="vault-dva-card__meta-row">
               <span className="vault-dva-card__meta-label">Bank Name</span>
@@ -165,7 +161,6 @@ export function FundVaultModal({ isOpen, onClose, dedicatedAccount }: FundVaultM
           </div>
         </div>
 
-        {/* How it works guidance */}
         <div
           style={{
             background: 'rgba(200, 107, 73, 0.05)',
@@ -186,7 +181,6 @@ export function FundVaultModal({ isOpen, onClose, dedicatedAccount }: FundVaultM
           </div>
         </div>
 
-        {/* Sandbox Simulation Widget (Local / Dev Environment) */}
         {process.env.NODE_ENV !== 'production' && (
           <div className="vault-sandbox-card">
             <div className="vault-sandbox-card__header">
@@ -200,7 +194,6 @@ export function FundVaultModal({ isOpen, onClose, dedicatedAccount }: FundVaultM
               Simulate a bank transfer with any amount to test your balance & daily interest:
             </p>
 
-            {/* Quick Preset Chips */}
             <div className="vault-sandbox-card__chips">
               {PRESET_AMOUNTS.map((preset) => (
                 <button
@@ -218,7 +211,6 @@ export function FundVaultModal({ isOpen, onClose, dedicatedAccount }: FundVaultM
               ))}
             </div>
 
-            {/* Custom Amount Input Row */}
             <div className="vault-sandbox-card__input-row">
               <div className="vault-sandbox-card__input-wrapper">
                 <span className="vault-sandbox-card__currency-prefix">₦</span>
@@ -259,7 +251,6 @@ export function FundVaultModal({ isOpen, onClose, dedicatedAccount }: FundVaultM
           </div>
         )}
 
-        {/* Action Button */}
         <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
           <button
             type="button"

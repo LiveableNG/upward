@@ -47,7 +47,6 @@ export function VaultSetupFlow({ initialConfig, onBack, onSuccess }: VaultSetupF
       return
     }
 
-    // Intercept with ARM & SEC Investor KYC Modal if user identity is not yet verified
     if (!user?.isIdentityVerified) {
       setIsKycModalOpen(true)
       return
