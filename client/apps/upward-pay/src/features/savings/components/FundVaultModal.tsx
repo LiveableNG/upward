@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import { X, Copy, Check, Landmark, Zap, Info, FlaskConical, Loader2 } from 'lucide-react'
 import { useToast } from '@/components/common/Toast'
@@ -17,18 +17,21 @@ interface FundVaultModalProps {
   } | null
 }
 
+const emptySubscribe = () => () => {}
+
 export function FundVaultModal({ isOpen, onClose, dedicatedAccount }: FundVaultModalProps) {
   const [copiedField, setCopiedField] = useState<'account' | 'all' | null>(null)
-  const [mounted, setMounted] = useState(false)
   const [customAmount, setCustomAmount] = useState('500,000')
   const { success: toastSuccess, error: toastError } = useToast()
   const simulateMutation = useSimulateVaultDeposit()
 
-  const PRESET_AMOUNTS = [50_000, 100_000, 500_000, 1_000_000]
+  const isClient = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  )
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  const PRESET_AMOUNTS = [50_000, 100_000, 500_000, 1_000_000]
 
   useEffect(() => {
     if (isOpen) {
@@ -41,7 +44,7 @@ export function FundVaultModal({ isOpen, onClose, dedicatedAccount }: FundVaultM
     }
   }, [isOpen])
 
-  if (!isOpen || !mounted || typeof document === 'undefined') return null
+  if (!isOpen || !isClient || typeof document === 'undefined') return null
 
   const bankName = dedicatedAccount?.bank_name || 'Wema Bank'
   const accountNumber = dedicatedAccount?.account_number || '9012345678'

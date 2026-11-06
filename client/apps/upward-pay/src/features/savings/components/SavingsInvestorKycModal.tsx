@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import {
   X,
@@ -35,6 +35,8 @@ interface SavingsInvestorKycModalProps {
   onSuccess: () => void
 }
 
+const emptySubscribe = () => () => {}
+
 export function SavingsInvestorKycModal({
   isOpen,
   onClose,
@@ -44,10 +46,11 @@ export function SavingsInvestorKycModal({
   const { data: vault } = useRentVault()
   const consentMutation = useConsentToSavings()
 
-  const [mounted, setMounted] = useState(false)
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  const isClient = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  )
 
   useEffect(() => {
     if (isOpen) {
@@ -70,11 +73,14 @@ export function SavingsInvestorKycModal({
   // Initial step: If already verified, jump directly to Step 3 (Simulation & Consent)
   const [step, setStep] = useState<1 | 2 | 3 | 4>(() => (user?.isIdentityVerified ? 3 : 1))
 
-  useEffect(() => {
+  // Adjust step during rendering if user verification status changes (React recommended pattern)
+  const [prevVerified, setPrevVerified] = useState(Boolean(user?.isIdentityVerified))
+  if (Boolean(user?.isIdentityVerified) !== prevVerified) {
+    setPrevVerified(Boolean(user?.isIdentityVerified))
     if (user?.isIdentityVerified && step < 3) {
       setStep(3)
     }
-  }, [user?.isIdentityVerified, step])
+  }
 
   const activeProperty = (user?.properties || []).find(
     (p: { isPastTenancy?: boolean; rentAmount?: number; rentEndDate?: string }) =>
@@ -215,7 +221,7 @@ export function SavingsInvestorKycModal({
 
   const isLoading = onboardMutation.isPending
 
-  if (!isOpen || !mounted || typeof document === 'undefined') return null
+  if (!isOpen || !isClient || typeof document === 'undefined') return null
 
   return createPortal(
     <div className="vault-modal-overlay" onClick={isLoading ? undefined : onClose}>

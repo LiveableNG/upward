@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import { CheckCircle2, Download, Award, ArrowRight } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
@@ -21,6 +21,8 @@ interface SettlementSuccessModalProps {
   onRestartVault: () => void
 }
 
+const emptySubscribe = () => () => {}
+
 export function SettlementSuccessModal({
   data,
   landlordName,
@@ -30,11 +32,12 @@ export function SettlementSuccessModal({
   const amountPaidNaira = data.amount_paid_to_landlord_kobo / 100
   const cashbackNaira = data.cashback_credited_kobo / 100
   const surplusNaira = (data.surplus_to_wallet_kobo || 0) / 100
-  const [mounted, setMounted] = useState(false)
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  const isClient = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  )
 
   useEffect(() => {
     document.body.style.overflow = 'hidden'
@@ -43,12 +46,14 @@ export function SettlementSuccessModal({
     }
   }, [])
 
+  if (!isClient || typeof document === 'undefined') return null
+
   const handleDownloadReceipt = () => {
     // In production, triggers the PDF receipt download
     window.open(data.receipt_download_url, '_blank')
   }
 
-  if (!mounted || typeof document === 'undefined') return null
+  if (!isClient || typeof document === 'undefined') return null
 
   return createPortal(
     <div className="vault-modal-overlay" onClick={onClose}>

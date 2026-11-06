@@ -36,15 +36,19 @@ export function RentCalculatorView({ onProceedToSetup }: RentCalculatorViewProps
   const [cadence, setCadence] = useState<'DAILY' | 'WEEKLY' | 'MONTHLY'>('MONTHLY')
   const [monthlyIncomeRaw, setMonthlyIncomeRaw] = useState<string>('')
 
-  // Sync if activeProperty loads asynchronously
-  useEffect(() => {
+  // Sync if activeProperty loads asynchronously (React recommended pattern without effect setState)
+  const [prevPropertyId, setPrevPropertyId] = useState<number | string | undefined>(
+    activeProperty?.id,
+  )
+  if (activeProperty?.id !== prevPropertyId) {
+    setPrevPropertyId(activeProperty?.id)
     if (activeProperty?.rentAmount && !targetAmountRaw) {
       setTargetAmountRaw(formatCurrencyInput(activeProperty.rentAmount))
     }
     if (activeProperty?.rentEndDate && !contractualDueDate) {
       setContractualDueDate(activeProperty.rentEndDate.split('T')[0])
     }
-  }, [activeProperty, targetAmountRaw, contractualDueDate])
+  }
 
   const targetAmountNaira = parseCurrencyInput(targetAmountRaw) || 0
   const monthlyIncomeNaira = parseCurrencyInput(monthlyIncomeRaw) || 0
@@ -61,17 +65,26 @@ export function RentCalculatorView({ onProceedToSetup }: RentCalculatorViewProps
     setMonthlyIncomeRaw(num ? formatCurrencyInput(num) : '')
   }
 
+  const mutateSimulate = simulateMutation.mutate
+
   useEffect(() => {
     if (!targetAmountNaira || !contractualDueDate) return
 
-    simulateMutation.mutate({
+    mutateSimulate({
       target_amount_kobo: Math.round(targetAmountNaira * 100),
       contractual_due_date: contractualDueDate,
       initial_deposit_kobo: Math.round(initialDepositNaira * 100),
       cadence,
       monthly_income_kobo: monthlyIncomeNaira ? Math.round(monthlyIncomeNaira * 100) : undefined,
     })
-  }, [targetAmountNaira, contractualDueDate, initialDepositNaira, cadence, monthlyIncomeNaira])
+  }, [
+    targetAmountNaira,
+    contractualDueDate,
+    initialDepositNaira,
+    cadence,
+    monthlyIncomeNaira,
+    mutateSimulate,
+  ])
 
   const simData = simulateMutation.data
   const periodicDepositNaira = simData ? simData.periodic_deposit_kobo / 100 : 0

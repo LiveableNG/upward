@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import { AlertTriangle, CheckCircle2, X, Shield } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
@@ -15,6 +15,8 @@ interface FairBreakoutModalProps {
   onClose: () => void
 }
 
+const emptySubscribe = () => () => {}
+
 export function FairBreakoutModal({
   vaultId,
   principalKobo,
@@ -23,14 +25,15 @@ export function FairBreakoutModal({
 }: FairBreakoutModalProps) {
   const [breakoutResult, setBreakoutResult] = useState<BreakoutResultData | null>(null)
   const [confirmStep, setConfirmStep] = useState(false)
-  const [mounted, setMounted] = useState(false)
+
+  const isClient = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  )
 
   const { error: toastError, success: toastSuccess } = useToast()
   const breakoutMutation = useBreakoutRentVault()
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   useEffect(() => {
     document.body.style.overflow = 'hidden'
@@ -39,7 +42,7 @@ export function FairBreakoutModal({
     }
   }, [])
 
-  if (!mounted || typeof document === 'undefined') return null
+  if (!isClient || typeof document === 'undefined') return null
 
   // Estimated preview figures
   // 7% p.a. base yield vs 1.5% admin fee
