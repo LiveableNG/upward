@@ -70,6 +70,9 @@ export function CommerceDisputesTable({
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {disputes.map((dispute) => {
             const isResolved = dispute.status.startsWith('RESOLVED') || dispute.status === 'CLOSED'
+            const isInquiry =
+              dispute.reason.startsWith('[Inquiry]') ||
+              Boolean(dispute.subOrder?.subOrderNumber?.startsWith('INQ-'))
 
             return (
               <div
@@ -94,16 +97,29 @@ export function CommerceDisputesTable({
                           fontWeight: 700,
                           padding: '2px 8px',
                           borderRadius: 6,
-                          background: isResolved ? 'rgba(5, 150, 105, 0.1)' : 'rgba(220, 38, 38, 0.1)',
-                          color: isResolved ? '#059669' : '#DC2626',
+                          background: isResolved
+                            ? 'rgba(5, 150, 105, 0.1)'
+                            : isInquiry
+                              ? 'rgba(217, 119, 87, 0.12)'
+                              : 'rgba(220, 38, 38, 0.1)',
+                          color: isResolved
+                            ? '#059669'
+                            : isInquiry
+                              ? '#B65B37'
+                              : '#DC2626',
                         }}
                       >
-                        {dispute.status.replace('_', ' ')}
+                        {isInquiry && !isResolved ? 'INQUIRY PENDING' : dispute.status.replace('_', ' ')}
                       </span>
                     </div>
 
                     <div style={{ fontSize: 12, color: '#666' }}>
-                      Sub-Order: <strong>{dispute.subOrder?.subOrderNumber || dispute.subOrderId}</strong> · Logged on {formatDate(dispute.createdAt)}
+                      {isInquiry ? 'Inquiry Ref' : 'Sub-Order'}: <strong>{dispute.subOrder?.subOrderNumber || dispute.subOrderId}</strong> · Logged on {formatDate(dispute.createdAt)}
+                      {dispute.subOrder?.order?.recipientName && (
+                        <span style={{ marginLeft: 8, color: '#444' }}>
+                          · Tenant: <strong>{dispute.subOrder.order.recipientName}</strong>
+                        </span>
+                      )}
                     </div>
                   </div>
 
@@ -116,7 +132,7 @@ export function CommerceDisputesTable({
                         alignItems: 'center',
                         gap: 6,
                         padding: '7px 14px',
-                        background: '#DC2626',
+                        background: isInquiry ? '#B65B37' : '#DC2626',
                         color: '#fff',
                         border: 'none',
                         borderRadius: 6,
@@ -125,7 +141,7 @@ export function CommerceDisputesTable({
                         cursor: 'pointer',
                       }}
                     >
-                      Resolve Case
+                      {isInquiry ? 'Reply & Resolve' : 'Resolve Case'}
                     </button>
                   )}
                 </div>

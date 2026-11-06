@@ -13,6 +13,7 @@ import {
   USER_REPOSITORY,
   UserRepository,
 } from '../../../../domains/users/user.repository'
+import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service'
 import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service'
 import { EmailService } from '../../../../shared/infrastructure/email/email.service'
 import { NotificationService } from '../../../../shared/infrastructure/common/notification.service'
@@ -27,6 +28,7 @@ export class AdminResolveCommerceDisputeUseCase {
     private readonly refundRepo: CommerceRefundRepository,
     @Inject(USER_REPOSITORY)
     private readonly userRepo: UserRepository,
+    private readonly prisma: PrismaService,
     private readonly encryption: EncryptionService,
     private readonly emailService: EmailService,
     private readonly notificationService: NotificationService,
@@ -35,7 +37,85 @@ export class AdminResolveCommerceDisputeUseCase {
   async execute(adminEmail: string, disputeUuid: string, dto: ResolveCommerceDisputeDto) {
     const dispute = await this.refundRepo.findDisputeByUuid(disputeUuid)
     if (!dispute) {
-      throw new NotFoundException(`Dispute '${disputeUuid}' not found`)
+      // Check if it's a commerce concierge inquiry ticket
+      const ticket = await this.prisma.upward_support_ticket.findUnique({
+        where: { uuid: disputeUuid },
+        include: { user: true },
+      })
+
+      if (!ticket) {
+        throw new NotFoundException(`Dispute or Inquiry '${disputeUuid}' not found`)
+      }
+
+      if (ticket.status === 'CLOSED' || ticket.status === 'RESOLVED') {
+        throw new BadRequestException('Inquiry is already resolved')
+      }
+
+      // Resolve inquiry ticket
+      await this.prisma.upward_support_ticket.update({
+        where: { id: ticket.id },
+        data: {
+          status: 'RESOLVED',
+          resolvedAt: new Date(),
+        },
+      })
+
+      // Notify tenant
+      try {
+        await this.notificationService.notifyUser(ticket.userId, {
+          title: 'Concierge Inquiry Update',
+          message: `Your inquiry has been addressed: ${dto.resolutionNotes}`,
+          type: 'SUPPORT',
+          url: `/dashboard/lifestyle`,
+        })
+      } catch (err) {
+        this.logger.error(`Failed to send resolution notification for inquiry ${disputeUuid}`, err)
+      }
+
+      try {
+        let tenantEmail: string | null = null
+        if (ticket.user?.email) {
+          tenantEmail = this.encryption.decrypt(ticket.user.email)
+        }
+
+        if (tenantEmail && !tenantEmail.endsWith('@upward.com')) {
+          const html = `
+            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; color: #1E1B18; line-height: 1.5;">
+              <div style="background-color: #B65B37; height: 6px; width: 100%;"></div>
+              <div style="padding: 32px 24px; background-color: #FAF8F6; border-radius: 0 0 12px 12px; border: 1px solid #E5E2DC; border-top: none;">
+                <h2 style="color: #B65B37; margin: 0 0 8px; font-size: 20px;">Inquiry Resolved</h2>
+                <p style="font-size: 14px; color: #666666; margin: 0 0 20px;">An Upward Concierge Specialist has replied to your inquiry.</p>
+                
+                <div style="background-color: #FFFFFF; border: 1px solid #E5E2DC; border-radius: 8px; padding: 18px; margin-bottom: 20px;">
+                  <div style="font-size: 12px; color: #888888; margin-bottom: 4px;">Resolution Notes</div>
+                  <div style="font-size: 13.5px; color: #333333; line-height: 1.6; white-space: pre-wrap;">${dto.resolutionNotes}</div>
+                </div>
+
+                <p style="font-size: 12px; color: #888888; text-align: center; margin: 0;">Resolved by ${adminEmail} · Upward Support</p>
+              </div>
+            </div>
+          `
+
+          await this.emailService.sendEmailWithRetry({
+            email: tenantEmail,
+            subject: `Inquiry Resolved — Upward Concierge`,
+            html,
+            type: 'CUSTOMER_SUPPORT',
+          })
+        }
+      } catch (err) {
+        this.logger.error(`Failed to send inquiry resolution email for ${disputeUuid}`, err)
+      }
+
+      return {
+        dispute: {
+          uuid: ticket.uuid,
+          status: 'RESOLVED',
+          resolutionNotes: dto.resolutionNotes,
+          resolvedBy: adminEmail,
+          resolvedAt: new Date(),
+        },
+      }
     }
 
     if (dispute.status === 'CLOSED' || dispute.status.startsWith('RESOLVED')) {

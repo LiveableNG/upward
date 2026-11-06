@@ -4,6 +4,7 @@ import {
   fetchTenantOrderDetail,
   downloadCommerceReceiptPdf,
   createCommerceDispute,
+  createCommerceInquiry,
   confirmSubOrderReceipt,
 } from '../services/commerceService'
 
@@ -52,6 +53,16 @@ export function useConfirmSubOrderReceipt() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tenant-commerce-orders'] })
       queryClient.invalidateQueries({ queryKey: ['tenant-commerce-order'] })
+    },
+  })
+}
+
+export function useCreateCommerceInquiry() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: createCommerceInquiry,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] })
     },
   })
 }

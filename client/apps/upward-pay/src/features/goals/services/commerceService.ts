@@ -64,6 +64,21 @@ export async function createCommerceDispute(data: {
   return res.data
 }
 
+export async function createCommerceInquiry(data: {
+  offeringUuid: string
+  category: string
+  message: string
+}): Promise<{ message: string; inquiry: any }> {
+  const res = await request<{ data: { message: string; inquiry: any } }>(
+    `/user/commerce/orders/inquiries`,
+    {
+      method: 'POST',
+      body: JSON.stringify(data),
+    },
+  )
+  return res.data
+}
+
 export async function confirmSubOrderReceipt(
   subOrderUuid: string,
 ): Promise<{ message: string; subOrder: any }> {

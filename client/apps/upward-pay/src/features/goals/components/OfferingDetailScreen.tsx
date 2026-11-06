@@ -27,6 +27,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useGoalOfferingDetail, usePublicOfferings } from '../hooks/useGoals'
+import { useCreateCommerceInquiry } from '../hooks/useCommerceOrders'
 import {
   getGoalTitle,
   isVendorVerified,
@@ -85,6 +86,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
   const [inquiryCategory, setInquiryCategory] = useState('GENERAL')
   const [inquiryMessage, setInquiryMessage] = useState('')
   const [inquirySent, setInquirySent] = useState(false)
+  const createInquiryMutation = useCreateCommerceInquiry()
 
   useEffect(() => {
     if (user?.properties?.[0]?.address) {
@@ -142,6 +144,22 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
       navigator.clipboard.writeText(window.location.href)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  const handleSubmitInquiry = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!inquiryMessage.trim() || createInquiryMutation.isPending) return
+    try {
+      const targetUuid = offering?.uuid || String(offering?.id || identifier)
+      await createInquiryMutation.mutateAsync({
+        offeringUuid: targetUuid,
+        category: inquiryCategory,
+        message: inquiryMessage.trim(),
+      })
+      setInquirySent(true)
+    } catch (err) {
+      console.error('Failed to submit commerce inquiry:', err)
     }
   }
 
@@ -843,13 +861,31 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                   </div>
                 ) : (
                   <form
-                    onSubmit={(e) => {
-                      e.preventDefault()
-                      if (!inquiryMessage.trim()) return
-                      setInquirySent(true)
-                    }}
+                    onSubmit={handleSubmitInquiry}
                     className="inquiry-form"
                   >
+                    {createInquiryMutation.isError && (
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8,
+                          padding: '10px 12px',
+                          borderRadius: 'var(--radius-md)',
+                          background: 'rgba(239, 68, 68, 0.08)',
+                          border: '1px solid rgba(239, 68, 68, 0.25)',
+                          color: '#dc2626',
+                          fontSize: '12.5px',
+                        }}
+                      >
+                        <AlertCircle size={15} style={{ flexShrink: 0 }} />
+                        <span>
+                          {createInquiryMutation.error?.message ||
+                            'Failed to submit inquiry. Please try again.'}
+                        </span>
+                      </div>
+                    )}
+
                     <div className="inquiry-form__field">
                       <label className="inquiry-form__label">Inquiry Topic</label>
                       <select
@@ -895,10 +931,18 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                       <button
                         type="submit"
                         className="inquiry-form__btn inquiry-form__btn--submit"
-                        disabled={!inquiryMessage.trim()}
+                        disabled={
+                          !inquiryMessage.trim() || createInquiryMutation.isPending
+                        }
                       >
-                        <Send size={14} />
-                        <span>Send Inquiry</span>
+                        {createInquiryMutation.isPending ? (
+                          <span>Sending...</span>
+                        ) : (
+                          <>
+                            <Send size={14} />
+                            <span>Send Inquiry</span>
+                          </>
+                        )}
                       </button>
                     </div>
                   </form>

@@ -20,10 +20,12 @@ import { GetTenantOrderDetailUseCase } from '../../../application/commerce/use-c
 import { InitializeCommercePaymentUseCase } from '../../../application/commerce/use-cases/initialize-commerce-payment.use-case'
 import { GetCommerceReceiptPdfUseCase } from '../../../application/commerce/use-cases/get-commerce-receipt-pdf.use-case'
 import { CreateCommerceDisputeUseCase } from '../../../application/commerce/use-cases/create-commerce-dispute.use-case'
+import { CreateCommerceInquiryUseCase } from '../../../application/commerce/use-cases/create-commerce-inquiry.use-case'
 import { PreviewCommerceOrderDto } from '../../../application/commerce/dto/preview-commerce-order.dto'
 import { CreateCommerceOrderDto } from '../../../application/commerce/dto/create-commerce-order.dto'
 import { GetTenantOrdersFilterDto } from '../../../application/commerce/dto/tenant-commerce-order.dto'
 import { CreateCommerceDisputeDto } from '../../../application/commerce/dto/commerce-dispute.dto'
+import { CreateCommerceInquiryDto } from '../../../application/commerce/dto/commerce-inquiry.dto'
 
 @Controller('user/commerce/orders')
 @UseGuards(JwtAuthGuard)
@@ -36,6 +38,7 @@ export class TenantCommerceController {
     private readonly initializeCommercePaymentUseCase: InitializeCommercePaymentUseCase,
     private readonly getCommerceReceiptPdfUseCase: GetCommerceReceiptPdfUseCase,
     private readonly createCommerceDisputeUseCase: CreateCommerceDisputeUseCase,
+    private readonly createCommerceInquiryUseCase: CreateCommerceInquiryUseCase,
   ) {}
 
   @Post('preview')
@@ -131,6 +134,18 @@ export class TenantCommerceController {
     }
 
     const data = await this.createCommerceDisputeUseCase.execute(userUuid, dto)
+    return { data }
+  }
+
+  @Post('inquiries')
+  @HttpCode(HttpStatus.CREATED)
+  async createInquiry(@Req() req: any, @Body() dto: CreateCommerceInquiryDto) {
+    const userUuid = req.user?.id || req.user?.sub
+    if (!userUuid) {
+      throw new UnauthorizedException('Authentication required')
+    }
+
+    const data = await this.createCommerceInquiryUseCase.execute(userUuid, dto)
     return { data }
   }
 }
