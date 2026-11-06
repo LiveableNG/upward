@@ -8,6 +8,7 @@ import {
   Loader2,
   AlertCircle,
   ArrowRight,
+  Target,
 } from 'lucide-react'
 import {
   useGoalCategories,
@@ -109,6 +110,11 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
 
   const isSaving = setGoalsMutation.isPending
   const selectedCount = selectedGoalIds.size
+  const totalGoalsCount = categories.reduce(
+    (acc, cat) => acc + (cat.goals?.length || 0),
+    0,
+  )
+  const hasNoGoals = !isCategoriesLoading && !isError && totalGoalsCount === 0
 
   return (
     <div className="goal-selection">
@@ -125,50 +131,66 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
           </button>
 
           <div className="goal-selection__top-actions">
-            {mode === 'onboarding' && selectedCount === 0 && (
+            {hasNoGoals ? (
               <button
                 type="button"
-                className="goal-selection__skip-link"
+                className="goal-selection__btn-primary goal-selection__btn-primary--compact"
                 onClick={handleSkip}
-                disabled={isSaving}
               >
-                Skip
+                <span>Dashboard</span>
+                <ArrowRight size={14} />
               </button>
+            ) : (
+              <>
+                {mode === 'onboarding' && selectedCount === 0 && (
+                  <button
+                    type="button"
+                    className="goal-selection__skip-link"
+                    onClick={handleSkip}
+                    disabled={isSaving}
+                  >
+                    Skip
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="goal-selection__btn-primary goal-selection__btn-primary--compact"
+                  onClick={handleSave}
+                  disabled={isSaving}
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 size={14} className="loader" />
+                      <span>Saving</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>
+                        {selectedCount > 0
+                          ? `Save & Continue (${selectedCount})`
+                          : 'Continue'}
+                      </span>
+                      <ArrowRight size={14} />
+                    </>
+                  )}
+                </button>
+              </>
             )}
-            <button
-              type="button"
-              className="goal-selection__btn-primary goal-selection__btn-primary--compact"
-              onClick={handleSave}
-              disabled={isSaving}
-            >
-              {isSaving ? (
-                <>
-                  <Loader2 size={14} className="loader" />
-                  <span>Saving</span>
-                </>
-              ) : (
-                <>
-                  <span>
-                    {selectedCount > 0
-                      ? `Save & Continue (${selectedCount})`
-                      : 'Continue'}
-                  </span>
-                  <ArrowRight size={14} />
-                </>
-              )}
-            </button>
           </div>
         </div>
 
         <div className="goal-selection__title-group">
           <h1 className="goal-selection__title">
-            {mode === 'onboarding'
-              ? 'What are your priorities right now?'
-              : 'Your Lifestyle Goals'}
+            {hasNoGoals
+              ? 'Lifestyle Goals'
+              : mode === 'onboarding'
+                ? 'What are your priorities right now?'
+                : 'Your Lifestyle Goals'}
           </h1>
           <p className="goal-selection__subtitle">
-            Choose any home or personal goals so we can tailor service packages
-            and verified merchant perks for your tenancy.
+            {hasNoGoals
+              ? 'Select your tenancy priorities and perks once available.'
+              : 'Choose any home or personal goals so we can tailor service packages and verified merchant perks for your tenancy.'}
           </p>
         </div>
       </header>
@@ -206,8 +228,29 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
           </div>
         )}
 
+        {hasNoGoals && (
+          <div className="lifestyle-discovery__empty-state">
+            <Target size={32} color="var(--text-muted)" className="lifestyle-discovery__empty-icon" />
+            <h2 className="lifestyle-discovery__empty-title">
+              No lifestyle goals available yet
+            </h2>
+            <p className="lifestyle-discovery__empty-desc">
+              Goals and priority packages have not been configured for your property yet. You can proceed to your dashboard in the meantime.
+            </p>
+            <button
+              type="button"
+              className="goal-selection__btn-primary"
+              onClick={handleSkip}
+            >
+              <span>Go to dashboard</span>
+              <ArrowRight size={14} />
+            </button>
+          </div>
+        )}
+
         {!isCategoriesLoading &&
           !isError &&
+          !hasNoGoals &&
           categories.map((cat) => {
             const goals = cat.goals || []
             if (goals.length === 0) return null

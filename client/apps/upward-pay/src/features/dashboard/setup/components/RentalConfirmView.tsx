@@ -13,6 +13,7 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
 import { useRentalExperiment } from '../hooks/useRentalExperiment'
 import { sessionTracker } from '@/lib/sessionTracker'
+import { useGoalCategories } from '@/features/goals/hooks/useGoals'
 
 const STEP_NAMES = ['Location', 'Tenancy', 'Landlord', 'Review']
 
@@ -24,6 +25,8 @@ export function RentalConfirmView() {
   const queryClient = useQueryClient()
   const { isEdit, withMode, returnTo } = useSetupMode()
   const { trackCompletion, variant } = useRentalExperiment()
+  const { data: goalCategories = [] } = useGoalCategories()
+  const hasGoalsConfigured = goalCategories.some((cat) => (cat.goals?.length || 0) > 0)
 
   const addressLine = [draft.formData.address, draft.formData.area, draft.formData.state]
     .filter(Boolean)
@@ -72,7 +75,11 @@ export function RentalConfirmView() {
         router.push(setupRentalListPath())
       } else {
         toast.success('Your property has been saved.', 'Saved')
-        router.push(SETUP_PATHS.goals)
+        if (hasGoalsConfigured) {
+          router.push(SETUP_PATHS.goals)
+        } else {
+          router.push('/dashboard')
+        }
       }
     },
     onError: (err: any) => {
