@@ -112,4 +112,25 @@ export default tseslint.config(
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
     },
   },
+
+  // ── Upward Pay native — shared text components own all copy ───────────────
+  {
+    files: ['client/apps/upward-pay-native/**/*.{ts,tsx}'],
+    ignores: ['client/apps/upward-pay-native/src/components/text/AppText.tsx'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'react-native',
+              importNames: ['Text'],
+              message:
+                'Use the shared text components from @/components/text so size, font, and responsive scaling stay consistent.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 )

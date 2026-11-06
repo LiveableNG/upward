@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Landmark, CreditCard, Lock, ShieldCheck, ArrowLeft, CheckCircle2 } from 'lucide-react'
+import { Landmark, CreditCard, Lock, ArrowLeft, CheckCircle2 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { useCreateRentVault } from '../hooks/useRentSavings'
 import { useToast } from '@/components/common/Toast'
@@ -47,7 +47,6 @@ export function VaultSetupFlow({ initialConfig, onBack, onSuccess }: VaultSetupF
       return
     }
 
-    // Intercept with ARM & SEC Investor KYC Modal if user identity is not yet verified
     if (!user?.isIdentityVerified) {
       setIsKycModalOpen(true)
       return
@@ -55,8 +54,9 @@ export function VaultSetupFlow({ initialConfig, onBack, onSuccess }: VaultSetupF
 
     try {
       await executeVaultCreation()
-    } catch (err: any) {
-      toastError(err?.message || 'Failed to create rent vault. Please try again.')
+    } catch (err: unknown) {
+      const error = err as { message?: string }
+      toastError(error?.message || 'Failed to create rent vault. Please try again.')
     }
   }
 
@@ -64,8 +64,9 @@ export function VaultSetupFlow({ initialConfig, onBack, onSuccess }: VaultSetupF
     try {
       await refreshUser()
       await executeVaultCreation()
-    } catch (err: any) {
-      toastError(err?.message || 'Failed to activate vault after KYC. Please try again.')
+    } catch (err: unknown) {
+      const error = err as { message?: string }
+      toastError(error?.message || 'Failed to activate vault after KYC. Please try again.')
     }
   }
 
@@ -111,10 +112,10 @@ export function VaultSetupFlow({ initialConfig, onBack, onSuccess }: VaultSetupF
           >
             <Landmark size={22} color="var(--clay)" style={{ flexShrink: 0, marginTop: 2 }} />
             <div className="vault-setup__option-content">
-              <span className="vault-setup__option-title">Dedicated Bank Account (DVA)</span>
+              <span className="vault-setup__option-title">Bank Transfer to Your Rent Account</span>
               <span className="vault-setup__option-desc">
-                We assign a personalized Wema/Providus bank account to your vault for free bank
-                transfers, salary standing orders, or bonus top-ups.
+                Get a personal Wema Bank account number for your rent savings. Transfer anytime from
+                your bank app or USSD without charges.
               </span>
             </div>
           </div>
@@ -127,10 +128,10 @@ export function VaultSetupFlow({ initialConfig, onBack, onSuccess }: VaultSetupF
           >
             <CreditCard size={22} color="var(--clay)" style={{ flexShrink: 0, marginTop: 2 }} />
             <div className="vault-setup__option-content">
-              <span className="vault-setup__option-title">Automated Payday Debit Card Sweep</span>
+              <span className="vault-setup__option-title">Automatic Card Debit on Payday</span>
               <span className="vault-setup__option-desc">
-                Automatically debit your salary card on payday (24th–28th of every month) via
-                Paystack.
+                Automatically save from your card whenever salary drops (between 24th and 28th of
+                each month).
               </span>
             </div>
           </div>

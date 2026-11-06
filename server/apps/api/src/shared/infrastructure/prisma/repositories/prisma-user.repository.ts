@@ -468,6 +468,7 @@ export class PrismaUserRepository implements UserRepository {
       'gender',
       'dateOfBirth',
       'isIdentityVerified',
+      'savingsWalletEnabled',
       'isFromWaitlist',
       'isFromInvite',
       'invitedAt',

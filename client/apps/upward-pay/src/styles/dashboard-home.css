@@ -1203,6 +1203,13 @@
   box-shadow: 0 4px 14px rgba(239, 68, 68, 0.06);
 }
 
+.runway-hero__content-layer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
 .runway-hero__top-row {
   display: flex;
   justify-content: space-between;
@@ -1368,6 +1375,84 @@
 .runway-hero__btn-secondary:hover {
   border-color: #d8cdbf;
   background: #fdfcfb;
+}
+
+/* Gated Overlay for Rent Runway Card */
+.runway-hero__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 22px 20px;
+  text-align: center;
+  z-index: 10;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.runway-hero__overlay-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--clay-faint, rgba(217, 119, 87, 0.08));
+  color: var(--skin-primary, #c2501f);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+  border: 1px solid rgba(217, 119, 87, 0.18);
+  box-shadow: 0 4px 14px rgba(217, 119, 87, 0.12);
+}
+
+.runway-hero__overlay-title {
+  font-size: 1.0625rem;
+  font-weight: 800;
+  color: var(--text, #1a1714);
+  margin-bottom: 6px;
+  letter-spacing: -0.01em;
+}
+
+.runway-hero__overlay-desc {
+  font-size: 0.8125rem;
+  color: var(--text-muted, #7a7268);
+  margin: 0 0 16px;
+  max-width: 270px;
+  line-height: 1.45;
+}
+
+.runway-hero__overlay-btn {
+  height: 42px;
+  padding: 0 22px;
+  background: var(--btn-primary-bg, linear-gradient(135deg, #d97757 0%, #c86848 100%));
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: var(--btn-primary-shadow, 0 4px 14px rgba(217, 119, 87, 0.35));
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.runway-hero__overlay-btn:hover {
+  background: var(--btn-primary-hover, linear-gradient(135deg, #c86848 0%, #b85c3e 100%));
+  box-shadow: var(--btn-primary-shadow-hover, 0 6px 18px rgba(217, 119, 87, 0.45));
+  transform: translateY(-1px);
+}
+
+.runway-hero__overlay-btn:active {
+  transform: translateY(0);
 }
 
 /* My Home Quick Hub — Strictly Contained 2x2 Grid */
@@ -1543,86 +1628,116 @@
     padding-right: 12px;
   }
 
-  /* 1. Primary Runway Hero Card */
+  /* 1. Primary Runway Hero Card — Expanded, Spacious & Premium on Mobile */
   .runway-hero {
-    padding: 16px 14px;
-    gap: 12px;
-    border-radius: 14px;
+    padding: 22px 18px;
+    border-radius: 18px;
+    box-shadow: 0 4px 18px rgba(60, 40, 20, 0.05);
+  }
+
+  .runway-hero__content-layer {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    width: 100%;
   }
 
   .runway-hero__top-row {
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 8px;
     align-items: center;
   }
 
   .runway-hero__eyebrow {
-    font-size: 10px;
-    letter-spacing: 0.08em;
+    font-size: 11px;
+    letter-spacing: 0.1em;
   }
 
   .runway-hero__countdown-badge {
-    font-size: 10.5px;
-    padding: 3px 8px;
+    font-size: 11px;
+    padding: 4px 10px;
     white-space: nowrap;
+    border-radius: 20px;
+  }
+
+  .runway-hero__amounts {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 2px;
   }
 
   .runway-hero__target-label {
-    font-size: 11.5px;
-    line-height: 1.35;
+    font-size: 12.5px;
+    line-height: 1.4;
+    color: var(--shell-muted, #a9a096);
   }
 
   .runway-hero__current-balance {
-    font-size: 28px;
-    letter-spacing: -0.3px;
+    font-size: 32px;
+    letter-spacing: -0.4px;
+    line-height: 1.15;
   }
 
   .runway-hero__gauge {
-    gap: 5px;
+    gap: 7px;
+    margin: 2px 0;
+  }
+
+  .runway-hero__progress-bar {
+    height: 8px;
+    border-radius: 4px;
+  }
+
+  .runway-hero__progress-fill {
+    border-radius: 4px;
   }
 
   .runway-hero__interest-card {
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
-    padding: 8px 12px;
-    border-radius: 10px;
+    padding: 12px 14px;
+    border-radius: 12px;
   }
 
   .runway-hero__interest-text {
-    font-size: 12px;
+    font-size: 13px;
   }
 
   .runway-hero__interest-rate {
-    font-size: 11px;
+    font-size: 11.5px;
     opacity: 0.9;
   }
 
   .runway-hero__pitch {
-    padding: 10px 12px;
-    font-size: 11.5px;
-    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 12px;
+    border-radius: 12px;
   }
 
   .runway-hero__actions {
     flex-direction: column;
     width: 100%;
-    gap: 8px;
-    margin-top: 0;
+    gap: 10px;
+    margin-top: 4px;
   }
 
   .runway-hero__btn-primary {
     width: 100%;
     flex: none;
-    height: 42px;
-    font-size: 13.5px;
+    height: 48px;
+    font-size: 14.5px;
+    border-radius: 13px;
+    box-shadow: 0 4px 14px rgba(217, 119, 87, 0.28);
   }
 
   .runway-hero__btn-secondary {
     width: 100%;
     flex: none;
-    height: 40px;
-    font-size: 13px;
+    height: 44px;
+    font-size: 14px;
+    border-radius: 13px;
   }
 
   /* 2. Upward Rent Score Card */

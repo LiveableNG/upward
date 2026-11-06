@@ -1,0 +1,66 @@
+/**
+ * Tokens copied from upward-pay `src/styles/variables.css`.
+ * `clayDeep` is the dashboard skin primary (`--skin-primary`).
+ * The web shell forces `theme--light`, so this app uses `lightColors`.
+ */
+export const lightColors = {
+  clay: '#d97757',
+  clayHover: '#c46648',
+  clayGlow: 'rgba(217, 119, 87, 0.2)',
+  clayFaint: 'rgba(217, 119, 87, 0.06)',
+  clayDeep: '#c2501f',
+  clayDeepHover: '#a8410f',
+  dark: '#0a0a0f',
+  darkSurface: '#141413',
+  darkElevated: '#1c1c1b',
+  darkCard: '#242423',
+  oat: '#faf9f5',
+  oatDim: '#f0efe8',
+  bg: '#ffffff',
+  surface: '#f7f7f7',
+  surface2: '#efefef',
+  border: 'rgba(0, 0, 0, 0.08)',
+  borderSolid: '#e2ddd7',
+  text: '#0a0a0f',
+  textSecondary: '#4a4642',
+  textMuted: '#8a8a8a',
+  success: '#22c55e',
+  successBg: 'rgba(34, 197, 94, 0.08)',
+  info: '#3b82f6',
+  infoBg: 'rgba(59, 130, 246, 0.08)',
+  warning: '#f59e0b',
+  error: '#ef4444',
+  danger: '#dc2626',
+  dangerPressed: '#b91c1c',
+  white: '#ffffff',
+  shellBorder: '#f0e9df',
+  shellTabBorder: '#efe7dc',
+  shellTint: '#fbede5',
+  shellTabInactive: '#bcb3a7',
+  shellMuted: '#a9a096',
+  shellInkMuted: '#7a7268',
+  shellPageBg: '#faf9f5',
+  skinTeal: '#1c4a43',
+  primaryGradientStart: '#d97757',
+  primaryGradientEnd: '#c86848',
+  primaryGradientPressedStart: '#c86848',
+  primaryGradientPressedEnd: '#b85c3e',
+} as const
+
+export type ThemeColorName = keyof typeof lightColors
+
+export const darkColors: { [K in ThemeColorName]: string } = {
+  ...lightColors,
+  bg: '#141413',
+  surface: '#1c1c1b',
+  surface2: '#242423',
+  border: 'rgba(255, 255, 255, 0.08)',
+  borderSolid: '#2a2826',
+  text: '#faf9f5',
+  textSecondary: '#b0aba8',
+  clayFaint: 'rgba(217, 119, 87, 0.08)',
+  successBg: 'rgba(34, 197, 94, 0.12)',
+  oat: '#1a1918',
+  oatDim: '#22211f',
+  shellPageBg: '#141413',
+}

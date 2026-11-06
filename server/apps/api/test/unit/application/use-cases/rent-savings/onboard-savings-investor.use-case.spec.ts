@@ -105,6 +105,17 @@ describe('OnboardSavingsInvestorUseCase', () => {
       upward_user_bank_details: {
         upsert: jest.fn().mockResolvedValue({}),
       },
+      upward_user_property: {
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
+      upward_rent_vault: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        update: jest.fn().mockResolvedValue({}),
+        create: jest.fn().mockResolvedValue({ id: 10 }),
+      },
+      upward_rent_savings_score: {
+        upsert: jest.fn().mockResolvedValue({}),
+      },
     } as any
 
     useCase = new OnboardSavingsInvestorUseCase(
@@ -172,6 +183,31 @@ describe('OnboardSavingsInvestorUseCase', () => {
           passport: '/9j/4AAQSkZJRg...',
           bvn_passport: '/9j/4AAQSkZJRg...',
         }),
+      }),
+    )
+  })
+
+  it('should successfully verify without settlement bank details', async () => {
+    const result = await useCase.execute(42, {
+      bvn: '22222222222',
+      mothers_maiden_name: 'Adewale',
+      occupation: 'Engineer',
+      source_of_funds: 'Salary',
+      income_range: '1M-5M',
+      next_of_kin_name: 'Amaka Okonkwo',
+      next_of_kin_relationship: 'Spouse',
+      next_of_kin_phone: '08099887766',
+    })
+
+    expect(result.status).toBe('success')
+    expect(result.data.is_verified).toBe(true)
+    // Bank upsert should not be called when bank details are omitted
+    expect(prisma.upward_user_bank_details.upsert).not.toHaveBeenCalled()
+    // ARM dispatch should still succeed with bankDetails undefined
+    expect(armProvider.onboardInvestor).toHaveBeenCalledWith(
+      expect.objectContaining({
+        customerEmail: 'chinedu@example.com',
+        bankDetails: undefined,
       }),
     )
   })
