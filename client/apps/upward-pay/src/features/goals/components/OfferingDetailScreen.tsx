@@ -170,6 +170,21 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
     }
   }, [isLightboxOpen, images.length])
 
+  useEffect(() => {
+    if (isInquiryOpen) {
+      const original = document.body.style.overflow
+      document.body.style.overflow = 'hidden'
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') setIsInquiryOpen(false)
+      }
+      window.addEventListener('keydown', handleKeyDown)
+      return () => {
+        document.body.style.overflow = original
+        window.removeEventListener('keydown', handleKeyDown)
+      }
+    }
+  }, [isInquiryOpen])
+
   if (isLoading) {
     return (
       <div className="offering-detail">
@@ -623,18 +638,6 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                     </div>
                   </div>
 
-                  <div className="offering-detail__trust-banner">
-                    <ShieldCheck size={18} className="offering-detail__trust-icon" />
-                    <div>
-                      <span className="offering-detail__trust-title">
-                        Upward Buyer Protection
-                      </span>
-                      <span className="offering-detail__trust-desc">
-                        100% money-back guarantee, centralized order tracking, and full dispute arbitration.
-                      </span>
-                    </div>
-                  </div>
-
                   <div className="offering-detail__cta-stack">
                     {deliveryCheck.isDeliverable ? (
                       <button
@@ -786,29 +789,29 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
         isInquiryOpen &&
         createPortal(
           <div
-            className="lifestyle-sheet__backdrop"
+            className="inquiry-sheet__backdrop"
             onClick={() => setIsInquiryOpen(false)}
             role="presentation"
           >
             <div
-              className="lifestyle-sheet__container delivery-sheet"
+              className="inquiry-sheet__panel"
               onClick={(e) => e.stopPropagation()}
               role="dialog"
               aria-modal="true"
               aria-label="Contact Upward Support"
             >
-              <div className="lifestyle-sheet__handle" />
+              <div className="inquiry-sheet__handle" aria-hidden="true" />
 
-              <div className="lifestyle-sheet__header">
+              <div className="inquiry-sheet__header">
                 <div>
-                  <h3 className="lifestyle-sheet__title">Ask Upward Support</h3>
-                  <p className="lifestyle-sheet__subtitle">
+                  <h3 className="inquiry-sheet__title">Ask Upward Support</h3>
+                  <p className="inquiry-sheet__subtitle">
                     Inquiry regarding {title}
                   </p>
                 </div>
                 <button
                   type="button"
-                  className="lifestyle-sheet__close"
+                  className="inquiry-sheet__close"
                   onClick={() => setIsInquiryOpen(false)}
                   aria-label="Close"
                 >
@@ -816,106 +819,91 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                 </button>
               </div>
 
-              {inquirySent ? (
-                <div style={{ padding: '24px 0', textAlign: 'center' }}>
-                  <div
-                    style={{
-                      width: 48,
-                      height: 48,
-                      borderRadius: '50%',
-                      background: 'color-mix(in srgb, #10b981 16%, var(--surface))',
-                      color: '#10b981',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      margin: '0 auto 12px',
-                    }}
-                  >
-                    <Check size={24} strokeWidth={2.5} />
-                  </div>
-                  <h4 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 6px' }}>
-                    Inquiry Received
-                  </h4>
-                  <p
-                    style={{
-                      fontSize: 13,
-                      color: 'var(--text-muted)',
-                      lineHeight: 1.45,
-                      margin: '0 0 20px',
-                    }}
-                  >
-                    We’ve logged your request with the Upward Concierge desk and sent
-                    a confirmation email. We will update you via email and app notification.
-                  </p>
-                  <button
-                    type="button"
-                    className="btn btn--primary"
-                    style={{ width: '100%' }}
-                    onClick={() => setIsInquiryOpen(false)}
-                  >
-                    Done
-                  </button>
-                </div>
-              ) : (
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault()
-                    if (!inquiryMessage.trim()) return
-                    setInquirySent(true)
-                  }}
-                  className="inquiry-modal"
-                >
-                  <div className="inquiry-modal__field">
-                    <label className="inquiry-modal__label">Inquiry Topic</label>
-                    <select
-                      value={inquiryCategory}
-                      onChange={(e) => setInquiryCategory(e.target.value)}
-                      className="inquiry-modal__select"
-                    >
-                      <option value="GENERAL">General Product / Service Question</option>
-                      <option value="DELIVERY">Delivery Area & Scheduling Inquiry</option>
-                      <option value="CUSTOMIZATION">Customization / Special Request</option>
-                      <option value="PRICING">Pricing & Corporate Volume Quote</option>
-                    </select>
-                  </div>
-
-                  <div className="inquiry-modal__field">
-                    <label className="inquiry-modal__label">Your Message</label>
-                    <textarea
-                      placeholder="Ask any question about this offering, specifications, or fulfillment..."
-                      value={inquiryMessage}
-                      onChange={(e) => setInquiryMessage(e.target.value)}
-                      className="inquiry-modal__textarea"
-                      required
-                      autoFocus
-                    />
-                  </div>
-
-                  <p className="inquiry-modal__notice">
-                    Upward will coordinate directly with the merchant partner and respond
-                    to your registered account email.
-                  </p>
-
-                  <div className="delivery-sheet__custom-actions" style={{ marginTop: 8 }}>
+              <div className="inquiry-sheet__body">
+                {inquirySent ? (
+                  <div className="inquiry-sheet__success">
+                    <div className="inquiry-sheet__success-icon">
+                      <Check size={24} strokeWidth={2.5} />
+                    </div>
+                    <h4 className="inquiry-sheet__success-title">
+                      Inquiry Received
+                    </h4>
+                    <p className="inquiry-sheet__success-desc">
+                      We’ve logged your request with the Upward Concierge desk and sent
+                      a confirmation email. We will update you via email and app notification.
+                    </p>
                     <button
                       type="button"
-                      className="btn btn--secondary"
+                      className="inquiry-form__btn inquiry-form__btn--submit"
+                      style={{ width: '100%' }}
                       onClick={() => setIsInquiryOpen(false)}
                     >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="btn btn--primary"
-                      disabled={!inquiryMessage.trim()}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                    >
-                      <Send size={14} />
-                      <span>Send Inquiry</span>
+                      Done
                     </button>
                   </div>
-                </form>
-              )}
+                ) : (
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault()
+                      if (!inquiryMessage.trim()) return
+                      setInquirySent(true)
+                    }}
+                    className="inquiry-form"
+                  >
+                    <div className="inquiry-form__field">
+                      <label className="inquiry-form__label">Inquiry Topic</label>
+                      <select
+                        value={inquiryCategory}
+                        onChange={(e) => setInquiryCategory(e.target.value)}
+                        className="inquiry-form__select"
+                      >
+                        <option value="GENERAL">General Product / Service Question</option>
+                        <option value="DELIVERY">Delivery Area & Scheduling Inquiry</option>
+                        <option value="CUSTOMIZATION">Customization / Special Request</option>
+                        <option value="PRICING">Pricing & Corporate Volume Quote</option>
+                      </select>
+                    </div>
+
+                    <div className="inquiry-form__field">
+                      <label className="inquiry-form__label">Your Message</label>
+                      <textarea
+                        placeholder="Ask any question about this offering, specifications, or fulfillment..."
+                        value={inquiryMessage}
+                        onChange={(e) => setInquiryMessage(e.target.value)}
+                        className="inquiry-form__textarea"
+                        rows={4}
+                        required
+                        autoFocus
+                      />
+                    </div>
+
+                    <div className="inquiry-form__notice">
+                      <ShieldCheck size={16} className="inquiry-form__notice-icon" />
+                      <span>
+                        Upward coordinates directly with the merchant partner and replies to your registered account email.
+                      </span>
+                    </div>
+
+                    <div className="inquiry-form__actions">
+                      <button
+                        type="button"
+                        className="inquiry-form__btn inquiry-form__btn--cancel"
+                        onClick={() => setIsInquiryOpen(false)}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="inquiry-form__btn inquiry-form__btn--submit"
+                        disabled={!inquiryMessage.trim()}
+                      >
+                        <Send size={14} />
+                        <span>Send Inquiry</span>
+                      </button>
+                    </div>
+                  </form>
+                )}
+              </div>
             </div>
           </div>,
           document.body,

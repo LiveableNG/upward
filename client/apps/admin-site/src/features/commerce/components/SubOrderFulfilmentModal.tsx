@@ -267,7 +267,7 @@ export function SubOrderFulfilmentModal({
                 gap: 6,
                 padding: '9px 20px',
                 borderRadius: 8,
-                background: 'var(--primary-color, #B65B37)',
+                background: 'var(--accent)',
                 color: '#fff',
                 border: 'none',
                 fontSize: 13,

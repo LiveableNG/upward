@@ -41,13 +41,18 @@ export const DeliveryLocationBar: React.FC<DeliveryLocationBarProps> = ({
     setMounted(true)
   }, [])
 
-  // Lock body scroll when modal/sheet is open
+  // Lock body scroll and listen for Escape when sheet is open
   useEffect(() => {
     if (isOpen) {
       const orig = document.body.style.overflow
       document.body.style.overflow = 'hidden'
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') setIsOpen(false)
+      }
+      window.addEventListener('keydown', handleKeyDown)
       return () => {
         document.body.style.overflow = orig
+        window.removeEventListener('keydown', handleKeyDown)
       }
     }
   }, [isOpen])
@@ -125,29 +130,29 @@ export const DeliveryLocationBar: React.FC<DeliveryLocationBarProps> = ({
         mounted &&
         createPortal(
           <div
-            className="lifestyle-sheet__backdrop"
+            className="delivery-sheet__backdrop"
             onClick={() => setIsOpen(false)}
             role="presentation"
           >
             <div
-              className="lifestyle-sheet__container delivery-sheet"
+              className="delivery-sheet__panel"
               onClick={(e) => e.stopPropagation()}
               role="dialog"
               aria-modal="true"
               aria-label="Select Delivery Location"
             >
-              <div className="lifestyle-sheet__handle" />
+              <div className="delivery-sheet__handle" aria-hidden="true" />
 
-              <div className="lifestyle-sheet__header">
+              <div className="delivery-sheet__header">
                 <div>
-                  <h3 className="lifestyle-sheet__title">Delivery Address</h3>
-                  <p className="lifestyle-sheet__subtitle">
+                  <h3 className="delivery-sheet__title">Delivery Address</h3>
+                  <p className="delivery-sheet__subtitle">
                     Select where you would like physical items and services delivered.
                   </p>
                 </div>
                 <button
                   type="button"
-                  className="lifestyle-sheet__close"
+                  className="delivery-sheet__close"
                   onClick={() => setIsOpen(false)}
                   aria-label="Close"
                 >
@@ -262,14 +267,14 @@ export const DeliveryLocationBar: React.FC<DeliveryLocationBarProps> = ({
                       <div className="delivery-sheet__custom-actions">
                         <button
                           type="button"
-                          className="btn btn--secondary"
+                          className="delivery-sheet__btn delivery-sheet__btn--cancel"
                           onClick={() => setIsCustomMode(false)}
                         >
                           Cancel
                         </button>
                         <button
                           type="submit"
-                          className="btn btn--primary"
+                          className="delivery-sheet__btn delivery-sheet__btn--save"
                           disabled={!customAddress.trim()}
                         >
                           Save Address

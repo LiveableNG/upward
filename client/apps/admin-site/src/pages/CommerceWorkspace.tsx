@@ -1,15 +1,9 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ShoppingBag,
-  Truck,
-  ShieldAlert,
   Search,
   RefreshCw,
-  Target,
-  Sparkles,
-  Store,
-  LayoutDashboard,
   Plus,
 } from 'lucide-react'
 import { useCommerceAdmin } from '../features/commerce/hooks/useCommerceAdmin'
@@ -53,7 +47,7 @@ interface CommerceWorkspaceProps {
 export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
   const location = useLocation()
   const navigate = useNavigate()
-  const [searchParams, setSearchParams] = useSearchParams()
+  const [searchParams, _setSearchParams] = useSearchParams()
 
   // Determine active tab from route path (e.g. /commerce/orders) or query param (?tab=orders)
   const pathSuffix = location.pathname.split('/commerce/')[1]?.toUpperCase()
@@ -256,35 +250,19 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
               width: 44,
               height: 44,
               borderRadius: 12,
-              background: 'rgba(182, 91, 55, 0.1)',
+              background: 'var(--accent-faint)',
+              border: '1px solid var(--accent-muted)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <ShoppingBag size={24} color="#B65B37" />
+            <ShoppingBag size={22} style={{ color: 'var(--accent)' }} />
           </div>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: 'var(--text)' }}>
-                Commerce & Lifestyle Workspace
-              </h1>
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 800,
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.08em',
-                  color: '#B65B37',
-                  background: 'rgba(182, 91, 55, 0.1)',
-                  padding: '2px 8px',
-                  borderRadius: 12,
-                  border: '1px solid rgba(182, 91, 55, 0.25)',
-                }}
-              >
-                Dedicated Hub
-              </span>
-            </div>
+            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: 'var(--text)' }}>
+              Commerce & Lifestyle Workspace
+            </h1>
             <p style={{ margin: '3px 0 0', fontSize: 13, color: 'var(--text-muted)' }}>
               Unified operations desk for goals catalog, multi-vendor merchandise, fulfilment logistics & concierge disputes.
             </p>
@@ -371,166 +349,6 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
             <span>Refresh</span>
           </button>
         </div>
-      </div>
-
-      {/* Workspace Sub-Navigation Tabs */}
-      <div
-        style={{
-          display: 'flex',
-          gap: 4,
-          borderBottom: '1px solid var(--border)',
-          marginBottom: 20,
-          overflowX: 'auto',
-          whiteSpace: 'nowrap',
-          paddingBottom: 2,
-        }}
-      >
-        <button
-          type="button"
-          onClick={() => handleTabChange('OVERVIEW')}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '9px 14px',
-            background: 'none',
-            border: 'none',
-            borderBottom: activeTab === 'OVERVIEW' ? '2px solid #B65B37' : '2px solid transparent',
-            color: activeTab === 'OVERVIEW' ? '#B65B37' : 'var(--text-secondary)',
-            fontSize: 13.5,
-            fontWeight: activeTab === 'OVERVIEW' ? 700 : 500,
-            cursor: 'pointer',
-          }}
-        >
-          <LayoutDashboard size={15} />
-          <span>Overview</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleTabChange('GOALS')}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '9px 14px',
-            background: 'none',
-            border: 'none',
-            borderBottom: activeTab === 'GOALS' ? '2px solid #B65B37' : '2px solid transparent',
-            color: activeTab === 'GOALS' ? '#B65B37' : 'var(--text-secondary)',
-            fontSize: 13.5,
-            fontWeight: activeTab === 'GOALS' ? 700 : 500,
-            cursor: 'pointer',
-          }}
-        >
-          <Target size={15} />
-          <span>Goals Catalog ({goalsTotal})</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleTabChange('CATEGORIES')}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '9px 14px',
-            background: 'none',
-            border: 'none',
-            borderBottom: activeTab === 'CATEGORIES' ? '2px solid #B65B37' : '2px solid transparent',
-            color: activeTab === 'CATEGORIES' ? '#B65B37' : 'var(--text-secondary)',
-            fontSize: 13.5,
-            fontWeight: activeTab === 'CATEGORIES' ? 700 : 500,
-            cursor: 'pointer',
-          }}
-        >
-          <Sparkles size={15} />
-          <span>Categories ({categories.length})</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleTabChange('OFFERINGS')}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '9px 14px',
-            background: 'none',
-            border: 'none',
-            borderBottom: activeTab === 'OFFERINGS' ? '2px solid #B65B37' : '2px solid transparent',
-            color: activeTab === 'OFFERINGS' ? '#B65B37' : 'var(--text-secondary)',
-            fontSize: 13.5,
-            fontWeight: activeTab === 'OFFERINGS' ? 700 : 500,
-            cursor: 'pointer',
-          }}
-        >
-          <ShoppingBag size={15} />
-          <span>Offerings & Bundles ({offeringsTotal})</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleTabChange('VENDORS')}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '9px 14px',
-            background: 'none',
-            border: 'none',
-            borderBottom: activeTab === 'VENDORS' ? '2px solid #B65B37' : '2px solid transparent',
-            color: activeTab === 'VENDORS' ? '#B65B37' : 'var(--text-secondary)',
-            fontSize: 13.5,
-            fontWeight: activeTab === 'VENDORS' ? 700 : 500,
-            cursor: 'pointer',
-          }}
-        >
-          <Store size={15} />
-          <span>Vendors ({vendors.length})</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleTabChange('ORDERS')}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '9px 14px',
-            background: 'none',
-            border: 'none',
-            borderBottom: activeTab === 'ORDERS' ? '2px solid #B65B37' : '2px solid transparent',
-            color: activeTab === 'ORDERS' ? '#B65B37' : 'var(--text-secondary)',
-            fontSize: 13.5,
-            fontWeight: activeTab === 'ORDERS' ? 700 : 500,
-            cursor: 'pointer',
-          }}
-        >
-          <Truck size={15} />
-          <span>Orders & Fulfilment ({ordersTotal})</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => handleTabChange('DISPUTES')}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 6,
-            padding: '9px 14px',
-            background: 'none',
-            border: 'none',
-            borderBottom: activeTab === 'DISPUTES' ? '2px solid #B65B37' : '2px solid transparent',
-            color: activeTab === 'DISPUTES' ? '#B65B37' : 'var(--text-secondary)',
-            fontSize: 13.5,
-            fontWeight: activeTab === 'DISPUTES' ? 700 : 500,
-            cursor: 'pointer',
-          }}
-        >
-          <ShieldAlert size={15} />
-          <span>Concierge & Disputes ({disputesTotal})</span>
-        </button>
       </div>
 
       {/* Tab Panels */}

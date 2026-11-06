@@ -294,24 +294,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
               <ArrowLeft size={16} style={{ flexShrink: 0, color: 'var(--accent)' }} />
               {isExpanded && <span style={{ marginLeft: 6 }}>Exit to Main Admin</span>}
             </Link>
-            {isExpanded && (
-              <div style={{ padding: '8px 4px 2px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span
-                  style={{
-                    fontSize: 10,
-                    fontWeight: 800,
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.08em',
-                    color: '#B65B37',
-                    background: 'rgba(182, 91, 55, 0.1)',
-                    padding: '2px 6px',
-                    borderRadius: 4,
-                  }}
-                >
-                  Commerce Workspace
-                </span>
-              </div>
-            )}
           </div>
         )}
         {sections.map((section, idx) => {

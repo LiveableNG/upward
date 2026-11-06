@@ -269,7 +269,7 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
             >
               <ArrowLeft size={18} />
             </button>
-            <div>
+            <div className="lifestyle-discovery__title-group">
               <h1 className="lifestyle-discovery__title">Lifestyle & Perks</h1>
               <p className="lifestyle-discovery__subtitle">
                 Verified services, packages, and home essentials for tenants
@@ -277,15 +277,16 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="lifestyle-discovery__top-actions">
             <button
               type="button"
               className="lifestyle-discovery__goals-trigger"
               onClick={() => router.push('/dashboard/lifestyle/orders')}
               aria-label="View past orders and tracking"
+              title="My Orders"
             >
               <Package size={14} />
-              <span>My Orders</span>
+              <span>Orders</span>
             </button>
 
             <button
@@ -294,9 +295,10 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
                 hasSelectedGoals ? 'lifestyle-discovery__goals-trigger--active' : ''
               }`}
               onClick={openGoalSheet}
+              aria-label="Select and edit lifestyle goals"
             >
               <SlidersHorizontal size={14} />
-              <span>{hasSelectedGoals ? 'My Goals' : 'Set Goals'}</span>
+              <span>{hasSelectedGoals ? 'Goals' : 'Set Goals'}</span>
               {hasSelectedGoals && (
                 <span className="lifestyle-discovery__goals-badge">
                   {activeUserGoals.length}
@@ -307,10 +309,12 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
         </div>
 
         {/* Delivery Location Context Bar */}
-        <DeliveryLocationBar
-          location={deliveryLocation}
-          onLocationChange={(loc) => setDeliveryLocation(loc)}
-        />
+        <div className="lifestyle-discovery__location-row">
+          <DeliveryLocationBar
+            location={deliveryLocation}
+            onLocationChange={(loc) => setDeliveryLocation(loc)}
+          />
+        </div>
 
         {/* Live Active Order Tracking Banner (if order in flight) */}
         <LiveOrderTrackingCard />

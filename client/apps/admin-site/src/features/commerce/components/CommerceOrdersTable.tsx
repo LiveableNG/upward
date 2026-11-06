@@ -127,7 +127,7 @@ export function CommerceOrdersTable({
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                    <span style={{ fontSize: 16, fontWeight: 800, color: '#B65B37' }}>
+                    <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--text)' }}>
                       {formatKoboToNgn(order.totalAmountKobo)}
                     </span>
                     <button
@@ -136,11 +136,12 @@ export function CommerceOrdersTable({
                       style={{
                         padding: '6px 12px',
                         borderRadius: 6,
-                        border: '1px solid #ddd',
-                        background: '#f9f9f9',
+                        border: '1px solid var(--border)',
+                        background: 'var(--surface-hover)',
                         fontSize: 12,
                         fontWeight: 600,
                         cursor: 'pointer',
+                        color: 'var(--text)',
                       }}
                     >
                       {isExpanded ? 'Hide Sub-Orders' : `View Sub-Orders (${order.subOrders.length})`}
@@ -149,7 +150,7 @@ export function CommerceOrdersTable({
                 </div>
 
                 {/* Recipient Snapshot */}
-                <div style={{ fontSize: 12.5, color: '#555', background: '#faf8f6', padding: '8px 12px', borderRadius: 8, marginBottom: 12 }}>
+                <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', background: 'var(--surface-hover)', padding: '8px 12px', borderRadius: 8, marginBottom: 12 }}>
                   <strong>Destination:</strong> {order.deliveryAddress} · <strong>Recipient:</strong> {order.recipientName} ({order.recipientPhone})
                 </div>
 
@@ -167,22 +168,22 @@ export function CommerceOrdersTable({
                           justifyContent: 'space-between',
                           padding: '10px 14px',
                           background: '#fff',
-                          border: '1px solid #eee',
+                          border: '1px solid var(--border)',
                           borderRadius: 8,
                         }}
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          {isService ? <Wrench size={18} color="#B65B37" /> : <Truck size={18} color="#B65B37" />}
+                          {isService ? <Wrench size={18} style={{ color: 'var(--accent)' }} /> : <Truck size={18} style={{ color: 'var(--accent)' }} />}
                           <div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                               <span style={{ fontSize: 13, fontWeight: 700, fontFamily: 'monospace' }}>
                                 {sub.subOrderNumber}
                               </span>
-                              <span style={{ fontSize: 11, color: '#666' }}>
+                              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
                                 ({sub.vendor?.name || 'Partner'})
                               </span>
                             </div>
-                            <div style={{ fontSize: 11.5, color: '#777', marginTop: 2 }}>
+                            <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>
                               {sub.items.map((it) => it.snapshotData?.title || `Item #${it.offeringId}`).join(', ')}
                             </div>
                           </div>
@@ -195,8 +196,8 @@ export function CommerceOrdersTable({
                               fontWeight: 700,
                               padding: '3px 8px',
                               borderRadius: 6,
-                              background: 'rgba(182, 91, 55, 0.08)',
-                              color: '#B65B37',
+                              background: 'var(--accent-faint)',
+                              color: 'var(--accent)',
                             }}
                           >
                             {sub.customerStatus}
@@ -208,7 +209,7 @@ export function CommerceOrdersTable({
                             style={{
                               padding: '6px 12px',
                               borderRadius: 6,
-                              background: '#B65B37',
+                              background: 'var(--accent)',
                               color: '#fff',
                               border: 'none',
                               fontSize: 12,

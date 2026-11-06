@@ -147,7 +147,7 @@ export function ResolveDisputeModal({
                 gap: 6,
                 padding: '9px 20px',
                 borderRadius: 8,
-                background: resolutionStatus === 'RESOLVED_REFUND' ? '#059669' : 'var(--primary-color, #B65B37)',
+                background: resolutionStatus === 'RESOLVED_REFUND' ? '#059669' : 'var(--accent)',
                 color: '#fff',
                 border: 'none',
                 fontSize: 13,
