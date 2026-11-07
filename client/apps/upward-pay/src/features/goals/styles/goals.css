@@ -627,20 +627,34 @@
   .lifestyle-discovery__goal-scroll-wrap::after {
     display: none;
   }
-}
 
-@media (min-width: 768px) {
   .lifestyle-discovery__controls {
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
+    gap: 16px;
+  }
+
+  .lifestyle-discovery__search-wrap {
+    flex: 1 1 360px;
+    min-width: 280px;
+    max-width: 520px;
+  }
+
+  .lifestyle-discovery__type-scroll-wrap {
+    width: auto;
+    flex: 0 0 auto;
+    max-width: 100%;
+  }
+
+  .lifestyle-discovery__type-chips {
+    padding-right: 0;
   }
 }
 
 .lifestyle-discovery__search-wrap {
   position: relative;
-  flex: 1;
-  max-width: 460px;
+  width: 100%;
 }
 
 .lifestyle-discovery__search-icon {
