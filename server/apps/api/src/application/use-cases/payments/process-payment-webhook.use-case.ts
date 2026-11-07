@@ -16,6 +16,7 @@ import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.serv
 import { PaymentConfigurationService } from '../../../shared/infrastructure/common/payment-config.service'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 import { UnifiedCommunicationService } from '../../../shared/infrastructure/communication/unified-communication.service'
+import { ConfirmCommercePaymentUseCase } from '../../commerce/use-cases/confirm-commerce-payment.use-case'
 
 @Injectable()
 export class ProcessPaymentWebhookUseCase {
@@ -36,6 +37,7 @@ export class ProcessPaymentWebhookUseCase {
     private readonly encryption: EncryptionService,
     private readonly creditWalletUseCase: CreditWalletUseCase,
     private readonly unifiedCommService: UnifiedCommunicationService,
+    private readonly confirmCommercePaymentUseCase: ConfirmCommercePaymentUseCase,
   ) { }
 
   async execute(payload: any, signature?: string, url: string = '/payments/webhook') {
@@ -130,6 +132,19 @@ export class ProcessPaymentWebhookUseCase {
         } catch (e) {
           this.logger.warn(`Failed to parse metadata string for reference ${reference}`)
         }
+      }
+
+      const isCommerceOrder =
+        (typeof reference === 'string' &&
+          (reference.startsWith('UPW_ORD_PAY_') ||
+            reference.startsWith('UPW_ORD_') ||
+            reference.startsWith('UPW_COMM_'))) ||
+        metadata?.paymentKind === 'COMMERCE_ORDER' ||
+        metadata?.type === 'COMMERCE_ORDER'
+
+      if (isCommerceOrder) {
+        this.logger.log(`Commerce order payment detected for reference ${reference}`)
+        return this.confirmCommercePaymentUseCase.execute(payload.data)
       }
 
       const isAcademyApp =

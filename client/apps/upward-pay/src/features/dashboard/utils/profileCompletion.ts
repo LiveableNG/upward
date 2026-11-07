@@ -40,9 +40,19 @@ export function isOnboardingComplete(user: UserProfile | null | undefined): bool
   return hasRentalInfo(user) && hasContactDetails(user)
 }
 
-/** Rental + phone + identity (when required) — used for the dashboard setup blocker */
-export function isProfileSetupComplete(user: UserProfile | null | undefined): boolean {
-  return isOnboardingComplete(user) && !needsIdentityVerification(user)
+/** Rental + phone + identity (when required) + goals (when available) — used for the dashboard setup blocker */
+export function isProfileSetupComplete(
+  user: UserProfile | null | undefined,
+  options?: { hasGoals?: boolean; goalsAvailable?: boolean },
+): boolean {
+  const baseComplete = isOnboardingComplete(user) && !needsIdentityVerification(user)
+  if (!baseComplete) return false
+
+  if (options?.goalsAvailable) {
+    return !!options.hasGoals
+  }
+
+  return true
 }
 
 /** @deprecated Use hasRentalInfo for rental-only checks or isOnboardingComplete for the gate */
@@ -62,9 +72,13 @@ export function getIdentityVerificationPath(redirect = SETUP_PATHS.dashboard): s
   return `${SETUP_PATHS.identity}?redirect=${encodeURIComponent(redirect)}`
 }
 
-export function getSetupEntryPath(user: UserProfile | null | undefined): string {
+export function getSetupEntryPath(
+  user: UserProfile | null | undefined,
+  options?: { hasGoals?: boolean; goalsAvailable?: boolean },
+): string {
   if (!hasRentalInfo(user)) return SETUP_PATHS.rental
   if (!hasContactDetails(user)) return SETUP_PATHS.phone
   if (needsIdentityVerification(user)) return getIdentityVerificationPath()
+  if (options?.goalsAvailable && !options.hasGoals) return '/dashboard/lifestyle?goals=open'
   return SETUP_PATHS.rental
 }

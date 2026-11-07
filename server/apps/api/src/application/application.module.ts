@@ -15,6 +15,49 @@ import { UnifiedReminderService } from '../shared/infrastructure/common/reminder
 import { PaymentConfigurationService } from '../shared/infrastructure/common/payment-config.service'
 import { RentalPeriodService } from './services/rental-period.service'
 
+// Goal Domain Use Cases
+import { GetGoalCategoriesUseCase } from './goals/use-cases/get-goal-categories.use-case'
+import { GetGoalsUseCase } from './goals/use-cases/get-goals.use-case'
+import { GetGoalDetailUseCase } from './goals/use-cases/get-goal-detail.use-case'
+import { GetUserGoalsUseCase } from './goals/use-cases/get-user-goals.use-case'
+import { SetUserGoalsUseCase } from './goals/use-cases/set-user-goals.use-case'
+import { UpdateUserGoalUseCase } from './goals/use-cases/update-user-goal.use-case'
+import { RemoveUserGoalUseCase } from './goals/use-cases/remove-user-goal.use-case'
+import { GetOfferingsUseCase } from './goals/use-cases/get-offerings.use-case'
+import { GetOfferingDetailUseCase } from './goals/use-cases/get-offering-detail.use-case'
+import { AdminManageCategoriesUseCase } from './goals/use-cases/admin/admin-manage-categories.use-case'
+import { AdminManageGoalsUseCase } from './goals/use-cases/admin/admin-manage-goals.use-case'
+import { AdminManageCollectionsUseCase } from './goals/use-cases/admin/admin-manage-collections.use-case'
+import { AdminManageOfferingsUseCase } from './goals/use-cases/admin/admin-manage-offerings.use-case'
+import { AdminManageVendorsUseCase } from './goals/use-cases/admin/admin-manage-vendors.use-case'
+import { AdminGetGoalsOverviewUseCase } from './goals/use-cases/admin/admin-get-goals-overview.use-case'
+
+// Commerce Domain Use Cases
+import { PreviewCommerceOrderUseCase } from './commerce/use-cases/preview-commerce-order.use-case'
+import { CreateCommerceOrderUseCase } from './commerce/use-cases/create-commerce-order.use-case'
+import { GetTenantOrdersUseCase } from './commerce/use-cases/get-tenant-orders.use-case'
+import { GetTenantOrderDetailUseCase } from './commerce/use-cases/get-tenant-order-detail.use-case'
+import { CancelExpiredCommerceOrdersUseCase } from './commerce/use-cases/cancel-expired-commerce-orders.use-case'
+import { InitializeCommercePaymentUseCase } from './commerce/use-cases/initialize-commerce-payment.use-case'
+import { VerifyCommercePaymentUseCase } from './commerce/use-cases/verify-commerce-payment.use-case'
+import { ConfirmCommercePaymentUseCase } from './commerce/use-cases/confirm-commerce-payment.use-case'
+import { AdminGetCommerceOrdersUseCase } from './commerce/use-cases/admin/admin-get-commerce-orders.use-case'
+import { AdminGetCommerceOrderDetailUseCase } from './commerce/use-cases/admin/admin-get-commerce-order-detail.use-case'
+import { AdminUpdateSubOrderFulfilmentUseCase } from './commerce/use-cases/admin/admin-update-sub-order-fulfilment.use-case'
+import { TenantConfirmSubOrderReceiptUseCase } from './commerce/use-cases/tenant-confirm-sub-order-receipt.use-case'
+import { GetCommerceReceiptPdfUseCase } from './commerce/use-cases/get-commerce-receipt-pdf.use-case'
+import { SendCommerceReceiptEmailUseCase } from './commerce/use-cases/send-commerce-receipt-email.use-case'
+import { SendCommerceThankYouEmailUseCase } from './commerce/use-cases/send-commerce-thank-you-email.use-case'
+import { CreateCommerceDisputeUseCase } from './commerce/use-cases/create-commerce-dispute.use-case'
+import { CreateCommerceInquiryUseCase } from './commerce/use-cases/create-commerce-inquiry.use-case'
+import { AdminResolveCommerceDisputeUseCase } from './commerce/use-cases/admin/admin-resolve-commerce-dispute.use-case'
+import { AdminGetCommerceDisputesUseCase } from './commerce/use-cases/admin/admin-get-commerce-disputes.use-case'
+import { GetDeliveryZonesUseCase } from './commerce/use-cases/get-delivery-zones.use-case'
+import { AdminCreateDeliveryZoneUseCase } from './commerce/use-cases/admin/admin-create-delivery-zone.use-case'
+import { AdminUpdateDeliveryZoneUseCase } from './commerce/use-cases/admin/admin-update-delivery-zone.use-case'
+import { AdminToggleDeliveryZoneUseCase } from './commerce/use-cases/admin/admin-toggle-delivery-zone.use-case'
+import { AdminDeleteDeliveryZoneUseCase } from './commerce/use-cases/admin/admin-delete-delivery-zone.use-case'
+
 // Use Cases
 import { DeleteAdminUseCase } from './use-cases/admin/delete-admin.use-case'
 import { GetAdminsUseCase } from './use-cases/admin/get-admins.use-case'
@@ -192,6 +235,7 @@ import { ClearDevEmailsAdminUseCase } from './use-cases/admin/dev-email/clear-de
 import { RetryWebhookUseCase } from './use-cases/admin/retry-webhook.use-case'
 import { GetCountriesUseCase } from './use-cases/location/get-countries.use-case'
 import { GetCitiesUseCase } from './use-cases/location/get-cities.use-case'
+import { GetStatesUseCase } from './use-cases/location/get-states.use-case'
 import { CompleteUserProfileUseCase } from './use-cases/user/complete-user-profile.use-case'
 import { GetPublicProfileUseCase } from './use-cases/user/get-public-profile.use-case'
 import { CalculateRentScoreUseCase } from './use-cases/user/calculate-rent-score.use-case'
@@ -533,6 +577,16 @@ import { PrismaDeviceTokenRepository } from '../shared/infrastructure/prisma/rep
 import { NotificationService } from '../shared/infrastructure/common/notification.service'
 import { GoogleAnalyticsService } from '../shared/infrastructure/common/google-analytics.service'
 
+import { VerifyKycUseCase } from './use-cases/user/verify-kyc.use-case'
+import { SimulateRentSavingsUseCase } from './use-cases/rent-savings/simulate-rent-savings.use-case'
+import { CreateRentVaultUseCase } from './use-cases/rent-savings/create-rent-vault.use-case'
+import { GetMyRentVaultUseCase } from './use-cases/rent-savings/get-my-rent-vault.use-case'
+import { ProcessPaystackSavingsWebhookUseCase } from './use-cases/rent-savings/process-paystack-savings-webhook.use-case'
+import { DisburseEmergencyAdvanceUseCase } from './use-cases/rent-savings/disburse-emergency-advance.use-case'
+import { ExecuteLandlordSettlementUseCase } from './use-cases/rent-savings/execute-landlord-settlement.use-case'
+import { BreakoutRentVaultUseCase } from './use-cases/rent-savings/breakout-rent-vault.use-case'
+import { OnboardSavingsInvestorUseCase } from './use-cases/rent-savings/onboard-savings-investor.use-case'
+
 import { TogglePmAllianceEnablementUseCase } from './alliance/use-cases/toggle-pm-alliance-enablement.use-case'
 import { CreateAllianceQualificationUseCase } from './alliance/use-cases/create-alliance-qualification.use-case'
 import { ListAllianceQualificationsUseCase } from './alliance/use-cases/list-alliance-qualifications.use-case'
@@ -578,6 +632,15 @@ import { SubmitAllianceInquiryUseCase } from './alliance/use-cases/submit-allian
 import { GetUserAllianceJourneysUseCase } from './alliance/use-cases/get-user-alliance-journeys.use-case'
 
 const UseCases: any[] = [
+  VerifyKycUseCase,
+  SimulateRentSavingsUseCase,
+  CreateRentVaultUseCase,
+  GetMyRentVaultUseCase,
+  ProcessPaystackSavingsWebhookUseCase,
+  DisburseEmergencyAdvanceUseCase,
+  ExecuteLandlordSettlementUseCase,
+  BreakoutRentVaultUseCase,
+  OnboardSavingsInvestorUseCase,
 
   TogglePmAllianceEnablementUseCase,
   CreateAllianceQualificationUseCase,
@@ -741,6 +804,7 @@ const UseCases: any[] = [
   RetryWebhookUseCase,
   GetCountriesUseCase,
   GetCitiesUseCase,
+  GetStatesUseCase,
   CompleteUserProfileUseCase,
   GetPublicProfileUseCase,
   CalculateRentScoreUseCase,
@@ -1077,6 +1141,49 @@ const UseCases: any[] = [
   GetInviteDataUseCase,
   RequestInviteOTPUseCase,
   AcceptInviteUseCase,
+
+  // Goal & Commerce Domain
+  GetGoalCategoriesUseCase,
+  GetGoalsUseCase,
+  GetGoalDetailUseCase,
+  GetUserGoalsUseCase,
+  SetUserGoalsUseCase,
+  UpdateUserGoalUseCase,
+  RemoveUserGoalUseCase,
+  GetOfferingsUseCase,
+  GetOfferingDetailUseCase,
+  AdminManageCategoriesUseCase,
+  AdminManageGoalsUseCase,
+  AdminManageCollectionsUseCase,
+  AdminManageOfferingsUseCase,
+  AdminManageVendorsUseCase,
+  AdminGetGoalsOverviewUseCase,
+
+  // Commerce Use Cases
+  PreviewCommerceOrderUseCase,
+  CreateCommerceOrderUseCase,
+  GetTenantOrdersUseCase,
+  GetTenantOrderDetailUseCase,
+  CancelExpiredCommerceOrdersUseCase,
+  InitializeCommercePaymentUseCase,
+  VerifyCommercePaymentUseCase,
+  ConfirmCommercePaymentUseCase,
+  AdminGetCommerceOrdersUseCase,
+  AdminGetCommerceOrderDetailUseCase,
+  AdminUpdateSubOrderFulfilmentUseCase,
+  TenantConfirmSubOrderReceiptUseCase,
+  GetCommerceReceiptPdfUseCase,
+  SendCommerceReceiptEmailUseCase,
+  SendCommerceThankYouEmailUseCase,
+  CreateCommerceDisputeUseCase,
+  CreateCommerceInquiryUseCase,
+  AdminResolveCommerceDisputeUseCase,
+  AdminGetCommerceDisputesUseCase,
+  GetDeliveryZonesUseCase,
+  AdminCreateDeliveryZoneUseCase,
+  AdminUpdateDeliveryZoneUseCase,
+  AdminToggleDeliveryZoneUseCase,
+  AdminDeleteDeliveryZoneUseCase,
 ]
 
 // AI Document ingestion imports

@@ -1,20 +1,20 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ArrowDownRight,
   ArrowUpRight,
   Building2,
   ChevronRight,
-  Flame,
-  History,
+  CreditCard,
+  PiggyBank,
   Receipt,
   ShieldCheck,
   Smartphone,
+  Target,
   TrendingUp,
   X,
-  Zap,
 } from 'lucide-react'
 import { useHasMyHome, useMyHomeProperties, useAllPendingBills } from '@/features/my-home/hooks/useMyHome'
 import { formatCurrency, formatDate, formatTime } from '@/lib/utils'
@@ -27,6 +27,11 @@ import { UpcomingFeaturesWidget } from './UpcomingFeaturesWidget'
 import { ExclusiveHomesBrowseLink } from './exclusive-homes/ExclusiveHomesPromo'
 import { isSavingsWalletEnabled } from '../utils/savingsWallet'
 import { RentDepositCard } from './RentDepositCard'
+import {
+  LifestyleGoalsWidget,
+  useTenantOrders,
+  type TenantOrderSummaryDto,
+} from '@/features/goals'
 
 interface DashboardHomeProps {
   user: UserProfile
@@ -167,6 +172,56 @@ export function DashboardHome({
   const { bills: gtBills } = useAllPendingBills()
   const [isNavigatingToBreakdown, setIsNavigatingToBreakdown] = useState(false)
 
+  const { data: tenantOrdersData } = useTenantOrders({ take: 10 })
+  const { activeOrders, unpaidOrder } = useMemo(() => {
+    const orders = tenantOrdersData?.orders || []
+
+    const getStageWeight = (status: string) => {
+      switch (status) {
+        case 'OUT_FOR_DELIVERY':
+        case 'TECHNICIAN_EN_ROUTE':
+          return 100
+        case 'DISPATCHED':
+          return 80
+        case 'PROCESSING':
+        case 'SERVICE_SCHEDULED':
+          return 60
+        case 'ORDER_CONFIRMED':
+          return 40
+        default:
+          return 20
+      }
+    }
+
+    // 1. Paid active in-flight orders only, sorted by stage precedence
+    const paid = orders
+      .filter((ord) => {
+        if (ord.paymentStatus !== 'PAID') return false
+        if (['CANCELLED', 'REFUNDED'].includes(ord.status)) return false
+        return [
+          'ORDER_CONFIRMED',
+          'PROCESSING',
+          'DISPATCHED',
+          'OUT_FOR_DELIVERY',
+          'SERVICE_SCHEDULED',
+          'TECHNICIAN_EN_ROUTE',
+          'DISPUTED',
+        ].includes(ord.primaryStatus)
+      })
+      .sort((a, b) => getStageWeight(b.primaryStatus) - getStageWeight(a.primaryStatus))
+
+    // 2. Unpaid order awaiting payment
+    const unpaid = orders.find((ord) => {
+      if (['CANCELLED', 'REFUNDED'].includes(ord.status)) return false
+      return ord.paymentStatus !== 'PAID'
+    })
+
+    return {
+      activeOrders: paid,
+      unpaidOrder: unpaid,
+    }
+  }, [tenantOrdersData])
+
   const handleScoreClick = () => {
     setIsNavigatingToBreakdown(true)
     setTimeout(() => {
@@ -196,6 +251,8 @@ export function DashboardHome({
   const recent = completedPayments.slice(0, 3)
 
   const showActivityCenter =
+    activeOrders.length > 0 ||
+    Boolean(unpaidOrder) ||
     pendingPayments.length > 0 ||
     gtBills.length > 0 ||
     isNewUser ||
@@ -218,7 +275,7 @@ export function DashboardHome({
 
   return (
     <div className="dash-home">
-      <RentDepositCard />
+      {/* <RentDepositCard /> */}
       <button
         type="button"
         className={`dash-home__benefits-card ${benefitsActive ? 'is-active' : ''}`}
@@ -283,6 +340,8 @@ export function DashboardHome({
             isIdentityVerified={!verificationOn || isIdentityVerified}
             skin="proto"
             showBenefitsUpsell={!benefitsActive}
+            activeOrders={activeOrders}
+            unpaidOrder={unpaidOrder}
           />
         </div>
       )}
@@ -321,82 +380,36 @@ export function DashboardHome({
           </div>
         </button>
 
-        <div className="dash-home__metrics">
-          <div className="dash-home__metric">
-            <Flame size={18} className={streak > 0 ? 'dash-home__metric-icon--active' : 'dash-home__metric-icon--muted'} />
-            <span className="dash-home__metric-val">{streak}</span>
-            <span className="dash-home__metric-lbl">Streak</span>
-          </div>
-          <div className="dash-home__metric">
-            <ShieldCheck size={18} className={onTimePct > 0 ? 'dash-home__metric-icon--active' : 'dash-home__metric-icon--muted'} />
-            <span className="dash-home__metric-val">{onTimePct}%</span>
-            <span className="dash-home__metric-lbl">On-time</span>
-          </div>
-          <div className="dash-home__metric">
-            <Zap size={18} className={profileCompletion > 0 ? 'dash-home__metric-icon--active' : 'dash-home__metric-icon--muted'} />
-            <span className="dash-home__metric-val">{profileCompletion}%</span>
-            <span className="dash-home__metric-lbl">Profile</span>
-          </div>
-        </div>
-
-        {/* <div className="dash-home__insights">
-          <div className="dash-home__insight">
-            <div className="dash-home__insight-head">
-              <span>Reliability rating</span>
-              <span>{onTimePct}%</span>
-            </div>
-            <div className="dash-home__goal-bar">
-              <div className="dash-home__goal-fill" style={{ width: `${onTimePct}%` }} />
-            </div>
-          </div>
-          <div className="dash-home__insight">
-            <div className="dash-home__insight-head">
-              <span>Score band</span>
-              <span>{(band || '—').toUpperCase()}</span>
-            </div>
-            <div className="dash-home__goal-bar">
-              <div
-                className="dash-home__goal-fill"
-                style={{ width: `${Math.min(100, (credScore / maxScore) * 100)}%` }}
-              />
-            </div>
-          </div>
+        <div className="dash-home__actions">
           <button
             type="button"
-            className="dash-home__records-link"
-            onClick={() => router.push('/dashboard/request-records')}
+            className="dash-home__action"
+            onClick={() => router.push('/dashboard/pay-rent')}
           >
-            <History size={16} />
-            <span>Request rent records</span>
-            <ChevronRight size={16} />
+            <span className="dash-home__action-icon">
+              <CreditCard size={18} strokeWidth={2.2} />
+            </span>
+            <span className="dash-home__action-lbl">Pay Rent</span>
           </button>
-        </div> */}
-
-        <div className="dash-home__actions">
-          <button type="button" className="dash-home__action dash-home__action--primary" onClick={() => router.push('/dashboard/pay-rent')}>
-            Pay Rent
+          <button
+            type="button"
+            className="dash-home__action"
+            onClick={() => router.push('/dashboard/savings')}
+          >
+            <span className="dash-home__action-icon">
+              <PiggyBank size={18} strokeWidth={2.2} />
+            </span>
+            <span className="dash-home__action-lbl">Save Rent</span>
           </button>
-          {savingsEnabled ? (
-            <button
-              type="button"
-              className="dash-home__action dash-home__action--secondary"
-              onClick={() => router.push('/dashboard/savings')}
-            >
-              <span>Save Rent</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="dash-home__action dash-home__action--secondary dash-home__action--disabled"
-              disabled
-              aria-disabled="true"
-            >
-              <span>Save Rent</span>
-              <span className="dash-home__action-soon">Coming soon</span>
-            </button>
-          )}
-          <button type="button" className="dash-home__action dash-home__action--secondary" onClick={() => router.push('/dashboard/save-for-home')}>
-            Save for Home
+          <button
+            type="button"
+            className="dash-home__action"
+            onClick={() => router.push('/dashboard/lifestyle')}
+          >
+            <span className="dash-home__action-icon">
+              <Target size={18} strokeWidth={2.2} />
+            </span>
+            <span className="dash-home__action-lbl">Living Goals</span>
           </button>
         </div>
 
@@ -488,13 +501,7 @@ export function DashboardHome({
       </div>
 
       <div className="dash-home__wide">
-        {/* Hidden for now — exclusive homes prototype hidden for production deployment
-        <div className="dash-home__discover">
-          <h2 className="dash-home__discover-title">Discover</h2>
-          <ExclusiveHomesPromo />
-          <ExclusiveHomesBrowseLink />
-        </div>
-        */}
+        <LifestyleGoalsWidget />
 
         <div className="dash-home__section-head">
           <h2 className="dash-home__section-title">Recent Activity</h2>

@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Send, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { Send, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { useSubmitAllianceInquiry } from '../hooks/useAllianceMarketplace';
+import { BottomSheetModal } from '@/components/common/BottomSheetModal';
 import type { PublicPmProfile } from '../types/alliance.types';
 
 interface AllianceInquiryModalProps {
@@ -83,17 +84,7 @@ export const AllianceInquiryModal: React.FC<AllianceInquiryModalProps> = ({
   };
 
   return (
-    <div className="pay-alliance-modal-backdrop" onClick={handleClose}>
-      <div className="pay-alliance-modal" onClick={(e) => e.stopPropagation()}>
-        {/* Close Button */}
-        <button
-          type="button"
-          onClick={handleClose}
-          className="pay-alliance-modal__close"
-          aria-label="Close modal"
-        >
-          <X size={18} />
-        </button>
+    <BottomSheetModal isOpen={isOpen} onClose={handleClose} maxWidth="480px">
 
         {isSuccess ? (
           <div style={{ textAlign: 'center', padding: '16px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
@@ -257,7 +248,6 @@ export const AllianceInquiryModal: React.FC<AllianceInquiryModalProps> = ({
             </form>
           </div>
         )}
-      </div>
-    </div>
+    </BottomSheetModal>
   );
 };

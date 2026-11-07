@@ -39,6 +39,7 @@ const AnnouncementManager = dynamic(() => import('@/features/dashboard/component
 const RentReminderManager = dynamic(() => import('@/features/dashboard/components/RentReminderManager').then(mod => mod.RentReminderManager), { ssr: false })
 const ProfileSetupBlocker = dynamic(() => import('@/features/dashboard/components/ProfileSetupBlocker').then(mod => mod.ProfileSetupBlocker), { ssr: false })
 const TermsAcceptanceModal = dynamic(() => import('@/features/auth/components/TermsAcceptanceModal').then(mod => mod.TermsAcceptanceModal), { ssr: false })
+import { useUserGoals, useGoalCategories } from '@/features/goals/hooks/useGoals'
 import { PageTransition } from '@/components/common/PageTransition'
 import { DashboardSkeleton } from '@/features/dashboard/components/DashboardSkeleton'
 import { api } from '@/lib/api'
@@ -49,7 +50,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { isLoggedIn, loading, user, isPinLocked } = useAuth()
   const { data: scoreProfile } = useScoreProfile()
   const [blockerDismissed, setBlockerDismissed] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const dashboardEnteredTrackedRef = useRef(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  const { data: userGoals = [] } = useUserGoals({ enabled: !!user?.uuid })
+  const { data: goalCategories = [] } = useGoalCategories()
+  const hasGoals = userGoals.filter((g) => g.status === 'ACTIVE').length > 0
+  const totalGoalsCount = goalCategories.reduce((acc, cat) => acc + (cat.goals?.length || 0), 0)
+  const goalsAvailable = totalGoalsCount > 0
 
   const { variant, isRequired, isLoading: isExperimentLoading } = useRentalExperiment()
   const { isGated: isRentalGated, notifyGated } = useRentalGate()
@@ -94,7 +106,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const isDashboardHome = pathname === '/dashboard'
   const isHomeRequestRoute = pathname?.startsWith('/dashboard/exclusive-homes/request')
-  const showTermsGate = !!(user && !user.termsAcceptedAt)
+  const showTermsGate = mounted && !!(user && !user.termsAcceptedAt)
 
   // Gated users may only reach rental/personal setup and the profile screen (personal details + sign out)
   const isSetupRoute = !!pathname?.startsWith('/dashboard/setup')
@@ -140,14 +152,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     router,
   ])
 
+  const isSetupComplete = isProfileSetupComplete(user, {
+    hasGoals,
+    goalsAvailable,
+  })
+
   const showProfileBlocker =
+    mounted &&
     !showTermsGate &&
     !!user &&
     !isExperimentLoading &&
     !shouldAutoOpenRental &&
     (isRequired
       ? isRentalGated && !isExemptRoute
-      : isDashboardHome && !isProfileSetupComplete(user) && !isDismissed)
+      : isDashboardHome && !isSetupComplete && !isDismissed)
 
   useEffect(() => {
     if (!loading && isLoggedIn && user && !showProfileBlocker && !showTermsGate) {
@@ -178,12 +196,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     !!isHomeRequestRoute ||
     !!pathname?.startsWith('/dashboard/savings/deposit') ||
     !!pathname?.startsWith('/dashboard/notifications') ||
+    !!pathname?.startsWith('/dashboard/goals') ||
+    !!pathname?.startsWith('/dashboard/lifestyle') ||
+    !!pathname?.startsWith('/dashboard/alliance') ||
     !!pathname?.startsWith('/dashboard/kyc') ||
     !!pathname?.startsWith('/dashboard/my-home/complaints') ||
     !!pathname?.startsWith('/dashboard/my-home/visitors')
 
   return (
-    <div className={`dashboard-layout${showProfileBlocker || showTermsGate ? ' dashboard-layout--blocker' : ''}`}>
+    <div className={`dashboard-layout${showProfileBlocker || showTermsGate ? ' dashboard-layout--blocker' : ''}${hideBottomNav ? ' dashboard-layout--no-bottom-nav' : ''}`}>
       {showTermsGate && (
         <TermsAcceptanceModal onAccepted={() => window.location.reload()} />
       )}
