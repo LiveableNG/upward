@@ -26,6 +26,7 @@ import {
   MapPin,
 } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
+import { BottomSheetModal } from '@/components/common/BottomSheetModal'
 import { useGoalOfferingDetail, usePublicOfferings } from '../hooks/useGoals'
 import { useCreateCommerceInquiry } from '../hooks/useCommerceOrders'
 import {
@@ -880,156 +881,124 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
           document.body,
         )}
 
-      {/* Upward Support & Concierge Inquiry Modal */}
-      {mounted &&
-        isInquiryOpen &&
-        createPortal(
-          <div
-            className="inquiry-sheet__backdrop"
-            onClick={() => setIsInquiryOpen(false)}
-            role="presentation"
-          >
-            <div
-              className="inquiry-sheet__panel"
-              onClick={(e) => e.stopPropagation()}
-              role="dialog"
-              aria-modal="true"
-              aria-label="Contact Upward Support"
-            >
-              <div className="inquiry-sheet__handle" aria-hidden="true" />
-
-              <div className="inquiry-sheet__header">
-                <div>
-                  <h3 className="inquiry-sheet__title">Ask Upward Support</h3>
-                  <p className="inquiry-sheet__subtitle">
-                    Inquiry regarding {title}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  className="inquiry-sheet__close"
-                  onClick={() => setIsInquiryOpen(false)}
-                  aria-label="Close"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              <div className="inquiry-sheet__body">
-                {inquirySent ? (
-                  <div className="inquiry-sheet__success">
-                    <div className="inquiry-sheet__success-icon">
-                      <Check size={24} strokeWidth={2.5} />
-                    </div>
-                    <h4 className="inquiry-sheet__success-title">
-                      Inquiry Received
-                    </h4>
-                    <p className="inquiry-sheet__success-desc">
-                      We’ve logged your request with the Upward Support team and sent
-                      a confirmation email. We will update you via email and app notification.
-                    </p>
-                    <button
-                      type="button"
-                      className="inquiry-form__btn inquiry-form__btn--submit"
-                      style={{ width: '100%' }}
-                      onClick={() => setIsInquiryOpen(false)}
-                    >
-                      Done
-                    </button>
-                  </div>
-                ) : (
-                  <form
-                    onSubmit={handleSubmitInquiry}
-                    className="inquiry-form"
-                  >
-                    {createInquiryMutation.isError && (
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 8,
-                          padding: '10px 12px',
-                          borderRadius: 'var(--radius-md)',
-                          background: 'rgba(239, 68, 68, 0.08)',
-                          border: '1px solid rgba(239, 68, 68, 0.25)',
-                          color: '#dc2626',
-                          fontSize: '12.5px',
-                        }}
-                      >
-                        <AlertCircle size={15} style={{ flexShrink: 0 }} />
-                        <span>
-                          {createInquiryMutation.error?.message ||
-                            'Failed to submit inquiry. Please try again.'}
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="inquiry-form__field">
-                      <label className="inquiry-form__label">Inquiry Topic</label>
-                      <select
-                        value={inquiryCategory}
-                        onChange={(e) => setInquiryCategory(e.target.value)}
-                        className="inquiry-form__select"
-                      >
-                        <option value="GENERAL">General Product / Service Question</option>
-                        <option value="DELIVERY">Delivery Area & Scheduling Inquiry</option>
-                        <option value="CUSTOMIZATION">Customization / Special Request</option>
-                        <option value="PRICING">Pricing & Corporate Volume Quote</option>
-                      </select>
-                    </div>
-
-                    <div className="inquiry-form__field">
-                      <label className="inquiry-form__label">Your Message</label>
-                      <textarea
-                        placeholder="Ask any question about this item, specifications, or delivery..."
-                        value={inquiryMessage}
-                        onChange={(e) => setInquiryMessage(e.target.value)}
-                        className="inquiry-form__textarea"
-                        rows={4}
-                        required
-                        autoFocus
-                      />
-                    </div>
-
-                    <div className="inquiry-form__notice">
-                      <ShieldCheck size={16} className="inquiry-form__notice-icon" />
-                      <span>
-                        Upward coordinates directly with the merchant partner and replies to your registered account email.
-                      </span>
-                    </div>
-
-                    <div className="inquiry-form__actions">
-                      <button
-                        type="button"
-                        className="inquiry-form__btn inquiry-form__btn--cancel"
-                        onClick={() => setIsInquiryOpen(false)}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        className="inquiry-form__btn inquiry-form__btn--submit"
-                        disabled={
-                          !inquiryMessage.trim() || createInquiryMutation.isPending
-                        }
-                      >
-                        {createInquiryMutation.isPending ? (
-                          <span>Sending...</span>
-                        ) : (
-                          <>
-                            <Send size={14} />
-                            <span>Send Inquiry</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </form>
-                )}
-              </div>
+      {/* Upward Support & Inquiry Modal */}
+      <BottomSheetModal
+        isOpen={isInquiryOpen}
+        onClose={() => setIsInquiryOpen(false)}
+        title="Ask Upward Support"
+        subtitle={`Inquiry regarding ${title}`}
+        maxWidth="500px"
+      >
+        {inquirySent ? (
+          <div className="inquiry-sheet__success">
+            <div className="inquiry-sheet__success-icon">
+              <Check size={24} strokeWidth={2.5} />
             </div>
-          </div>,
-          document.body,
+            <h4 className="inquiry-sheet__success-title">
+              Inquiry Received
+            </h4>
+            <p className="inquiry-sheet__success-desc">
+              We’ve logged your request with the Upward Support team and sent
+              a confirmation email. We will update you via email and app notification.
+            </p>
+            <button
+              type="button"
+              className="inquiry-form__btn inquiry-form__btn--submit"
+              style={{ width: '100%' }}
+              onClick={() => setIsInquiryOpen(false)}
+            >
+              Done
+            </button>
+          </div>
+        ) : (
+          <form
+            onSubmit={handleSubmitInquiry}
+            className="inquiry-form"
+          >
+            {createInquiryMutation.isError && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '10px 12px',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'rgba(239, 68, 68, 0.08)',
+                  border: '1px solid rgba(239, 68, 68, 0.25)',
+                  color: '#dc2626',
+                  fontSize: '12.5px',
+                }}
+              >
+                <AlertCircle size={15} style={{ flexShrink: 0 }} />
+                <span>
+                  {createInquiryMutation.error?.message ||
+                    'Failed to submit inquiry. Please try again.'}
+                </span>
+              </div>
+            )}
+
+            <div className="inquiry-form__field">
+              <label className="inquiry-form__label">Inquiry Topic</label>
+              <select
+                value={inquiryCategory}
+                onChange={(e) => setInquiryCategory(e.target.value)}
+                className="inquiry-form__select"
+              >
+                <option value="GENERAL">General Product / Service Question</option>
+                <option value="DELIVERY">Delivery Area & Scheduling Inquiry</option>
+                <option value="CUSTOMIZATION">Customization / Special Request</option>
+                <option value="PRICING">Pricing & Corporate Volume Quote</option>
+              </select>
+            </div>
+
+            <div className="inquiry-form__field">
+              <label className="inquiry-form__label">Your Message</label>
+              <textarea
+                placeholder="Ask any question about this item, specifications, or delivery..."
+                value={inquiryMessage}
+                onChange={(e) => setInquiryMessage(e.target.value)}
+                className="inquiry-form__textarea"
+                rows={4}
+                required
+                autoFocus
+              />
+            </div>
+
+            <div className="inquiry-form__notice">
+              <ShieldCheck size={16} className="inquiry-form__notice-icon" />
+              <span>
+                Upward coordinates directly with the merchant partner and replies to your registered account email.
+              </span>
+            </div>
+
+            <div className="inquiry-form__actions">
+              <button
+                type="button"
+                className="inquiry-form__btn inquiry-form__btn--cancel"
+                onClick={() => setIsInquiryOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="inquiry-form__btn inquiry-form__btn--submit"
+                disabled={
+                  !inquiryMessage.trim() || createInquiryMutation.isPending
+                }
+              >
+                {createInquiryMutation.isPending ? (
+                  <span>Sending...</span>
+                ) : (
+                  <>
+                    <Send size={14} />
+                    <span>Send Inquiry</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
         )}
+      </BottomSheetModal>
 
       {/* Commerce Checkout & Paystack Modal */}
       {offering && (

@@ -23,6 +23,7 @@ import {
   useCreateCommerceDispute,
 } from '../hooks/useCommerceOrders'
 import type { CustomerFulfilmentStatus, TenantOrderSummaryDto } from '../types/commerce.types'
+import '../styles/goals.css'
 
 function formatKoboToNgn(koboStr: string): string {
   const amount = Number(koboStr) / 100

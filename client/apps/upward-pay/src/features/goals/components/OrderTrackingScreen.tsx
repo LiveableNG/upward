@@ -32,6 +32,7 @@ import {
   useCreateCommerceDispute,
 } from '../hooks/useCommerceOrders'
 import { BottomSheetModal } from '@/components/common/BottomSheetModal'
+import '../styles/goals.css'
 import type {
   CustomerFulfilmentStatus,
   TenantOrderDetailDto,

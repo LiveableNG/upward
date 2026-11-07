@@ -22,6 +22,7 @@ import {
   saveStoredDeliveryLocation,
 } from '../utils/deliveryLocation'
 import { fetchDeliveryZones } from '../services/goalsService'
+import { BottomSheetModal } from '@/components/common/BottomSheetModal'
 import '../styles/goals.css'
 
 interface DeliveryLocationBarProps {
@@ -176,43 +177,15 @@ export const DeliveryLocationBar: React.FC<DeliveryLocationBarProps> = ({
         </button>
       </div>
 
-      {isOpen &&
-        mounted &&
-        createPortal(
-          <div
-            className="delivery-sheet__backdrop"
-            onClick={() => setIsOpen(false)}
-            role="presentation"
-          >
-            <div
-              className="delivery-sheet__panel"
-              onClick={(e) => e.stopPropagation()}
-              role="dialog"
-              aria-modal="true"
-              aria-label="Select Delivery Location"
-              style={{ maxWidth: '520px' }}
-            >
-              <div className="delivery-sheet__handle" aria-hidden="true" />
-
-              <div className="delivery-sheet__header">
-                <div>
-                  <h3 className="delivery-sheet__title">Choose Delivery Coverage Zone</h3>
-                  <p className="delivery-sheet__subtitle">
-                    Select your region or search your delivery area to check verified logistics coverage.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  className="delivery-sheet__close"
-                  onClick={() => setIsOpen(false)}
-                  aria-label="Close"
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              {/* Search Bar */}
-              <div style={{ padding: '0 20px 12px' }}>
+      <BottomSheetModal
+        isOpen={isOpen}
+        onClose={() => setIsOpen(false)}
+        title="Choose Delivery Coverage Zone"
+        subtitle="Select your region or search your delivery area to check verified logistics coverage."
+        maxWidth="520px"
+      >
+        {/* Search Bar */}
+        <div style={{ marginBottom: '12px' }}>
                 <div style={{ position: 'relative', width: '100%' }}>
                   <Search
                     size={16}
@@ -515,10 +488,7 @@ export const DeliveryLocationBar: React.FC<DeliveryLocationBarProps> = ({
                   </div>
                 </div>
               </div>
-            </div>
-          </div>,
-          document.body,
-        )}
+      </BottomSheetModal>
     </>
   )
 }

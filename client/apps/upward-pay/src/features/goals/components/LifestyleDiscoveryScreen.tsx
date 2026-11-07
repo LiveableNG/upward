@@ -53,6 +53,7 @@ import {
 } from '../utils/deliveryLocation'
 import { DeliveryLocationBar } from './DeliveryLocationBar'
 import { LiveOrderTrackingCard } from './LiveOrderTrackingCard'
+import { BottomSheetModal } from '@/components/common/BottomSheetModal'
 import { useToast } from '@/components/common/Toast'
 import '../styles/goals.css'
 
@@ -627,150 +628,114 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
       </main>
 
       {/* Inline Goal Preferences Drawer / Sheet */}
-      {mounted &&
-        isGoalSheetOpen &&
-        createPortal(
-          <div
-            className="goal-sheet__backdrop"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="goal-sheet-title"
-            onClick={closeGoalSheet}
-            onTouchMove={(e) => {
-              // Prevent background page touch dragging when touching the backdrop
-              if (e.target === e.currentTarget) {
-                e.preventDefault()
-              }
-            }}
-          >
-            <div
-              className="goal-sheet__panel"
-              onClick={(e) => e.stopPropagation()}
+      <BottomSheetModal
+        isOpen={isGoalSheetOpen}
+        onClose={closeGoalSheet}
+        title="Lifestyle Goals"
+        subtitle={
+          hasNoGoals
+            ? 'No priorities currently available'
+            : `Choose priorities to tailor your services & bundles (${draftGoalIds.size} selected)`
+        }
+        maxWidth="540px"
+        headerActions={
+          !hasNoGoals && (
+            <button
+              type="button"
+              className="goal-sheet__save-btn"
+              onClick={handleSaveGoals}
+              disabled={setGoalsMutation.isPending}
             >
-              <div className="goal-sheet__handle" aria-hidden="true" />
-
-              <div className="goal-sheet__header">
-                <div>
-                  <h2 id="goal-sheet-title" className="goal-sheet__title">
-                    Lifestyle Goals
-                  </h2>
-                  <p className="goal-sheet__subtitle">
-                    {hasNoGoals
-                      ? 'No priorities currently available'
-                      : `Choose priorities to tailor your services & bundles (${draftGoalIds.size} selected)`}
-                  </p>
-                </div>
-
-                <div className="goal-sheet__header-actions">
-                  {!hasNoGoals && (
-                    <button
-                      type="button"
-                      className="goal-sheet__save-btn"
-                      onClick={handleSaveGoals}
-                      disabled={setGoalsMutation.isPending}
-                    >
-                      {setGoalsMutation.isPending ? (
-                        <>
-                          <Loader2 size={14} className="loader" />
-                          <span>Saving</span>
-                        </>
-                      ) : (
-                        <span>Save</span>
-                      )}
-                    </button>
-                  )}
-                  <button
-                    type="button"
-                    className="goal-sheet__close-btn"
-                    onClick={closeGoalSheet}
-                    aria-label="Close"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-              </div>
-
-              <div className="goal-sheet__body">
-                {hasNoGoals ? (
-                  <div
-                    className="lifestyle-discovery__empty-state"
-                    style={{ margin: '30px 20px', border: 'none', background: 'transparent' }}
-                  >
-                    <Target
-                      size={28}
-                      color="var(--text-muted)"
-                      className="lifestyle-discovery__empty-icon"
-                    />
-                    <h3 className="lifestyle-discovery__empty-title">
-                      No lifestyle goals available
-                    </h3>
-                    <p className="lifestyle-discovery__empty-desc">
-                      Priority packages have not been activated for your tenancy yet. Once configured, you can select them here.
-                    </p>
-                    <button
-                      type="button"
-                      className="lifestyle-discovery__empty-btn"
-                      onClick={closeGoalSheet}
-                    >
-                      Close
-                    </button>
-                  </div>
-                ) : (
-                  categories.map((cat) => {
-                    const goals = cat.goals || []
-                    if (goals.length === 0) return null
-                    const catTitle = getCategoryTitle(cat) || 'Lifestyle'
-
-                    return (
-                      <div key={cat.id} className="goal-sheet__group">
-                        <h3 className="goal-sheet__group-title">{catTitle}</h3>
-                        <div className="goal-sheet__list">
-                          {goals.map((goal) => {
-                            const isSelected = draftGoalIds.has(goal.id)
-                            const gTitle =
-                              getGoalTitle(goal) ||
-                              goal.tagline ||
-                              'Lifestyle Goal'
-                            const gDesc = goal.tagline || goal.description
-                            const IconComp = getGoalIconComponent(
-                              goal.iconName,
-                              goal.slug || cat.slug,
-                            )
-
-                            return (
-                              <button
-                                key={goal.id}
-                                type="button"
-                                className={`goal-card ${
-                                  isSelected ? 'goal-card--selected' : ''
-                                }`}
-                                onClick={() => toggleDraftGoal(goal.id)}
-                              >
-                                <div className="goal-card__icon-box">
-                                 <IconComp size={18} />
-                                </div>
-                                <div className="goal-card__body">
-                                  <div className="goal-card__name">{gTitle}</div>
-                                  {gDesc && gDesc !== gTitle && (
-                                    <div className="goal-card__desc">{gDesc}</div>
-                                  )}
-                                </div>
-                                <div className="goal-card__checkbox">
-                                  {isSelected && <Check size={13} strokeWidth={3} />}
-                                </div>
-                              </button>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    )
-                  })
-                )}
-              </div>
+              {setGoalsMutation.isPending ? (
+                <>
+                  <Loader2 size={14} className="loader" />
+                  <span>Saving</span>
+                </>
+              ) : (
+                <span>Save</span>
+              )}
+            </button>
+          )
+        }
+      >
+        <div className="goal-sheet__body" style={{ padding: 0 }}>
+          {hasNoGoals ? (
+            <div
+              className="lifestyle-discovery__empty-state"
+              style={{ margin: '30px 20px', border: 'none', background: 'transparent' }}
+            >
+              <Target
+                size={28}
+                color="var(--text-muted)"
+                className="lifestyle-discovery__empty-icon"
+              />
+              <h3 className="lifestyle-discovery__empty-title">
+                No lifestyle goals available
+              </h3>
+              <p className="lifestyle-discovery__empty-desc">
+                Priority packages have not been activated for your tenancy yet. Once configured, you can select them here.
+              </p>
+              <button
+                type="button"
+                className="lifestyle-discovery__empty-btn"
+                onClick={closeGoalSheet}
+              >
+                Close
+              </button>
             </div>
-          </div>,
-          document.body,
-        )}
+          ) : (
+            categories.map((cat) => {
+              const goals = cat.goals || []
+              if (goals.length === 0) return null
+              const catTitle = getCategoryTitle(cat) || 'Lifestyle'
+
+              return (
+                <div key={cat.id} className="goal-sheet__group">
+                  <h3 className="goal-sheet__group-title">{catTitle}</h3>
+                  <div className="goal-sheet__list">
+                    {goals.map((goal) => {
+                      const isSelected = draftGoalIds.has(goal.id)
+                      const gTitle =
+                        getGoalTitle(goal) ||
+                        goal.tagline ||
+                        'Lifestyle Goal'
+                      const gDesc = goal.tagline || goal.description
+                      const IconComp = getGoalIconComponent(
+                        goal.iconName,
+                        goal.slug || cat.slug,
+                      )
+
+                      return (
+                        <button
+                          key={goal.id}
+                          type="button"
+                          className={`goal-card ${
+                            isSelected ? 'goal-card--selected' : ''
+                          }`}
+                          onClick={() => toggleDraftGoal(goal.id)}
+                        >
+                          <div className="goal-card__icon-box">
+                           <IconComp size={18} />
+                          </div>
+                          <div className="goal-card__body">
+                            <div className="goal-card__name">{gTitle}</div>
+                            {gDesc && gDesc !== gTitle && (
+                              <div className="goal-card__desc">{gDesc}</div>
+                            )}
+                          </div>
+                          <div className="goal-card__checkbox">
+                            {isSelected && <Check size={13} strokeWidth={3} />}
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })
+          )}
+        </div>
+      </BottomSheetModal>
     </div>
   )
 }
