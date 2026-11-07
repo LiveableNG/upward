@@ -302,7 +302,10 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
               aria-label="Select and edit lifestyle goals"
             >
               <SlidersHorizontal size={14} />
-              <span>{hasSelectedGoals ? 'Goals' : 'Set Goals'}</span>
+              <span className="lifestyle-discovery__goals-text">
+                {!hasSelectedGoals && <span className="lifestyle-discovery__goals-prefix">Set </span>}
+                Goals
+              </span>
               {hasSelectedGoals && (
                 <span className="lifestyle-discovery__goals-badge">
                   {activeUserGoals.length}

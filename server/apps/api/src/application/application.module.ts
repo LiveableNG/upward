@@ -50,6 +50,11 @@ import { CreateCommerceDisputeUseCase } from './commerce/use-cases/create-commer
 import { CreateCommerceInquiryUseCase } from './commerce/use-cases/create-commerce-inquiry.use-case'
 import { AdminResolveCommerceDisputeUseCase } from './commerce/use-cases/admin/admin-resolve-commerce-dispute.use-case'
 import { AdminGetCommerceDisputesUseCase } from './commerce/use-cases/admin/admin-get-commerce-disputes.use-case'
+import { GetDeliveryZonesUseCase } from './commerce/use-cases/get-delivery-zones.use-case'
+import { AdminCreateDeliveryZoneUseCase } from './commerce/use-cases/admin/admin-create-delivery-zone.use-case'
+import { AdminUpdateDeliveryZoneUseCase } from './commerce/use-cases/admin/admin-update-delivery-zone.use-case'
+import { AdminToggleDeliveryZoneUseCase } from './commerce/use-cases/admin/admin-toggle-delivery-zone.use-case'
+import { AdminDeleteDeliveryZoneUseCase } from './commerce/use-cases/admin/admin-delete-delivery-zone.use-case'
 
 // Use Cases
 import { DeleteAdminUseCase } from './use-cases/admin/delete-admin.use-case'
@@ -228,6 +233,7 @@ import { ClearDevEmailsAdminUseCase } from './use-cases/admin/dev-email/clear-de
 import { RetryWebhookUseCase } from './use-cases/admin/retry-webhook.use-case'
 import { GetCountriesUseCase } from './use-cases/location/get-countries.use-case'
 import { GetCitiesUseCase } from './use-cases/location/get-cities.use-case'
+import { GetStatesUseCase } from './use-cases/location/get-states.use-case'
 import { CompleteUserProfileUseCase } from './use-cases/user/complete-user-profile.use-case'
 import { GetPublicProfileUseCase } from './use-cases/user/get-public-profile.use-case'
 import { CalculateRentScoreUseCase } from './use-cases/user/calculate-rent-score.use-case'
@@ -796,6 +802,7 @@ const UseCases: any[] = [
   RetryWebhookUseCase,
   GetCountriesUseCase,
   GetCitiesUseCase,
+  GetStatesUseCase,
   CompleteUserProfileUseCase,
   GetPublicProfileUseCase,
   CalculateRentScoreUseCase,
@@ -1168,6 +1175,11 @@ const UseCases: any[] = [
   CreateCommerceInquiryUseCase,
   AdminResolveCommerceDisputeUseCase,
   AdminGetCommerceDisputesUseCase,
+  GetDeliveryZonesUseCase,
+  AdminCreateDeliveryZoneUseCase,
+  AdminUpdateDeliveryZoneUseCase,
+  AdminToggleDeliveryZoneUseCase,
+  AdminDeleteDeliveryZoneUseCase,
 ]
 
 // AI Document ingestion imports

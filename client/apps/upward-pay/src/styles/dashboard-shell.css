@@ -31,6 +31,10 @@
   background: var(--shell-page-bg);
   scrollbar-width: none !important;
   -ms-overflow-style: none !important;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .dashboard-layout::-webkit-scrollbar,
@@ -44,6 +48,8 @@
   padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
   scrollbar-width: none !important;
   -ms-overflow-style: none !important;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .dashboard-layout--blocker .dashboard-layout__content {

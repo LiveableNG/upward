@@ -152,6 +152,7 @@ export interface CommerceOrder {
   recipientPhone: string
   deliveryAddress: string
   deliveryNotes?: string | null
+  deliveryZoneTag?: string | null
   subOrders?: CommerceVendorSuborder[]
   paymentAttempts?: CommercePaymentAttempt[]
   auditLogs?: CommerceOrderAudit[]
@@ -175,6 +176,7 @@ export interface CreateOrderData {
   recipientPhone: string
   deliveryAddress: string
   deliveryNotes?: string
+  deliveryZoneTag?: string
   subOrders: Array<{
     vendorId: number
     subOrderNumber: string

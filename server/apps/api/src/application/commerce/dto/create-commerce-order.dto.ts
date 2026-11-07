@@ -28,6 +28,11 @@ export class CreateCommerceOrderDto {
 
   @IsString()
   @IsOptional()
+  @MaxLength(100)
+  deliveryZoneTag?: string
+
+  @IsString()
+  @IsOptional()
   deliveryNotes?: string
 
   @IsArray()

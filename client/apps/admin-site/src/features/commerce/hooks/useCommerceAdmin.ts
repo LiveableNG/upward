@@ -5,6 +5,7 @@ import type {
   AdminCommerceOrder,
   AdminCommerceDispute,
   AdminFulfilmentTransitionAction,
+  AdminDeliveryZone,
   DisputeStatus,
 } from '../types'
 
@@ -20,6 +21,10 @@ export function useCommerceAdmin(token?: string) {
   const [disputes, setDisputes] = useState<AdminCommerceDispute[]>([])
   const [disputesTotal, setDisputesTotal] = useState(0)
   const [loadingDisputes, setLoadingDisputes] = useState(false)
+
+  // Delivery Zones
+  const [deliveryZones, setDeliveryZones] = useState<AdminDeliveryZone[]>([])
+  const [loadingDeliveryZones, setLoadingDeliveryZones] = useState(false)
 
   const fetchOrders = useCallback(
     async (filter: { status?: string; paymentStatus?: string; search?: string; skip?: number; take?: number } = {}) => {
@@ -137,6 +142,110 @@ export function useCommerceAdmin(token?: string) {
     [token],
   )
 
+  // Delivery Zones Operations
+  const fetchDeliveryZones = useCallback(async () => {
+    setLoadingDeliveryZones(true)
+    try {
+      const res = await apiService.get('/admin/commerce/delivery-zones', token)
+      if (res?.data) {
+        setDeliveryZones(Array.isArray(res.data) ? res.data : [])
+      }
+    } catch (err: any) {
+      showToast(err?.message || 'Failed to load delivery coverage zones', true)
+    } finally {
+      setLoadingDeliveryZones(false)
+    }
+  }, [token])
+
+  const createDeliveryZone = useCallback(
+    async (payload: {
+      tag: string
+      name: string
+      state: string
+      region?: string
+      areasCovered?: string
+      isDelivering?: boolean
+      deliveryFeeKobo?: number
+      estimatedDeliveryDays?: string
+      pauseReason?: string
+      sortOrder?: number
+    }) => {
+      try {
+        const res = await apiService.post('/admin/commerce/delivery-zones', payload, token)
+        showToast('Delivery zone created successfully')
+        await fetchDeliveryZones()
+        return res?.data?.zone
+      } catch (err: any) {
+        showToast(err?.message || 'Failed to create delivery zone', true)
+        throw err
+      }
+    },
+    [token, fetchDeliveryZones],
+  )
+
+  const updateDeliveryZone = useCallback(
+    async (
+      uuid: string,
+      payload: {
+        tag?: string
+        name?: string
+        state?: string
+        region?: string
+        areasCovered?: string
+        isDelivering?: boolean
+        deliveryFeeKobo?: number
+        estimatedDeliveryDays?: string
+        pauseReason?: string
+        sortOrder?: number
+      },
+    ) => {
+      try {
+        const { tag: _t, ...cleanPayload } = payload
+        const res = await apiService.patch(`/admin/commerce/delivery-zones/${uuid}`, cleanPayload, token)
+        showToast('Delivery zone updated')
+        await fetchDeliveryZones()
+        return res?.data?.zone
+      } catch (err: any) {
+        showToast(err?.message || 'Failed to update delivery zone', true)
+        throw err
+      }
+    },
+    [token, fetchDeliveryZones],
+  )
+
+  const toggleDeliveryZone = useCallback(
+    async (uuid: string, isDelivering: boolean, pauseReason?: string) => {
+      try {
+        const res = await apiService.patch(
+          `/admin/commerce/delivery-zones/${uuid}/toggle-delivering`,
+          { isDelivering, pauseReason },
+          token,
+        )
+        showToast(isDelivering ? 'Delivery resumed for zone' : 'Delivery paused for zone')
+        await fetchDeliveryZones()
+        return res?.data?.zone
+      } catch (err: any) {
+        showToast(err?.message || 'Failed to update delivery status', true)
+        throw err
+      }
+    },
+    [token, fetchDeliveryZones],
+  )
+
+  const deleteDeliveryZone = useCallback(
+    async (uuid: string) => {
+      try {
+        await apiService.delete(`/admin/commerce/delivery-zones/${uuid}`, token)
+        showToast('Delivery zone deleted')
+        await fetchDeliveryZones()
+      } catch (err: any) {
+        showToast(err?.message || 'Failed to delete delivery zone', true)
+        throw err
+      }
+    },
+    [token, fetchDeliveryZones],
+  )
+
   return {
     orders,
     ordersTotal,
@@ -151,5 +260,12 @@ export function useCommerceAdmin(token?: string) {
     loadingDisputes,
     fetchDisputes,
     resolveDispute,
+    deliveryZones,
+    loadingDeliveryZones,
+    fetchDeliveryZones,
+    createDeliveryZone,
+    updateDeliveryZone,
+    toggleDeliveryZone,
+    deleteDeliveryZone,
   }
 }

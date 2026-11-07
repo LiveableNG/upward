@@ -159,3 +159,21 @@ export interface AdminCommerceDispute {
     }
   }
 }
+
+export interface AdminDeliveryZone {
+  id: number
+  uuid: string
+  tag: string
+  name: string
+  state: string
+  region?: string | null
+  areasCovered?: string | null
+  isDelivering: boolean
+  deliveryFeeKobo: string
+  estimatedDeliveryDays?: string | null
+  pauseReason?: string | null
+  sortOrder: number
+  createdAt: string
+  updatedAt: string
+}
+

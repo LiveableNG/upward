@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -20,11 +21,21 @@ import { AdminGetCommerceOrderDetailUseCase } from '../../../application/commerc
 import { AdminUpdateSubOrderFulfilmentUseCase } from '../../../application/commerce/use-cases/admin/admin-update-sub-order-fulfilment.use-case'
 import { AdminResolveCommerceDisputeUseCase } from '../../../application/commerce/use-cases/admin/admin-resolve-commerce-dispute.use-case'
 import { AdminGetCommerceDisputesUseCase } from '../../../application/commerce/use-cases/admin/admin-get-commerce-disputes.use-case'
+import { GetDeliveryZonesUseCase } from '../../../application/commerce/use-cases/get-delivery-zones.use-case'
+import { AdminCreateDeliveryZoneUseCase } from '../../../application/commerce/use-cases/admin/admin-create-delivery-zone.use-case'
+import { AdminUpdateDeliveryZoneUseCase } from '../../../application/commerce/use-cases/admin/admin-update-delivery-zone.use-case'
+import { AdminToggleDeliveryZoneUseCase } from '../../../application/commerce/use-cases/admin/admin-toggle-delivery-zone.use-case'
+import { AdminDeleteDeliveryZoneUseCase } from '../../../application/commerce/use-cases/admin/admin-delete-delivery-zone.use-case'
 import {
   AdminGetCommerceOrdersFilterDto,
   AdminUpdateFulfilmentDto,
 } from '../../../application/commerce/dto/admin-commerce.dto'
 import { ResolveCommerceDisputeDto } from '../../../application/commerce/dto/commerce-dispute.dto'
+import {
+  CreateDeliveryZoneDto,
+  UpdateDeliveryZoneDto,
+  ToggleDeliveryZoneDto,
+} from '../../../application/commerce/dto/delivery-zone.dto'
 
 @Controller('admin/commerce')
 @UseGuards(AdminJwtAuthGuard, RolesGuard)
@@ -35,6 +46,11 @@ export class AdminCommerceController {
     private readonly updateSubOrderFulfilmentUseCase: AdminUpdateSubOrderFulfilmentUseCase,
     private readonly resolveCommerceDisputeUseCase: AdminResolveCommerceDisputeUseCase,
     private readonly getCommerceDisputesUseCase: AdminGetCommerceDisputesUseCase,
+    private readonly getDeliveryZonesUseCase: GetDeliveryZonesUseCase,
+    private readonly createDeliveryZoneUseCase: AdminCreateDeliveryZoneUseCase,
+    private readonly updateDeliveryZoneUseCase: AdminUpdateDeliveryZoneUseCase,
+    private readonly toggleDeliveryZoneUseCase: AdminToggleDeliveryZoneUseCase,
+    private readonly deleteDeliveryZoneUseCase: AdminDeleteDeliveryZoneUseCase,
   ) {}
 
   @Get('disputes')
@@ -84,6 +100,54 @@ export class AdminCommerceController {
   ) {
     const adminEmail = req.user?.email || 'admin@upward.ng'
     const data = await this.resolveCommerceDisputeUseCase.execute(adminEmail, uuid, dto)
+    return { data }
+  }
+
+  // --- Delivery Coverage Zones Management ---
+
+  @Get('delivery-zones')
+  @Roles(AdminRole.SUPERADMIN, AdminRole.CUSTOMER_SUPPORT, AdminRole.DEVELOPER)
+  @HttpCode(HttpStatus.OK)
+  async getDeliveryZones() {
+    const data = await this.getDeliveryZonesUseCase.execute()
+    return { data }
+  }
+
+  @Post('delivery-zones')
+  @Roles(AdminRole.SUPERADMIN, AdminRole.DEVELOPER)
+  @HttpCode(HttpStatus.CREATED)
+  async createDeliveryZone(@Body() dto: CreateDeliveryZoneDto) {
+    const data = await this.createDeliveryZoneUseCase.execute(dto)
+    return { data }
+  }
+
+  @Patch('delivery-zones/:uuid')
+  @Roles(AdminRole.SUPERADMIN, AdminRole.DEVELOPER)
+  @HttpCode(HttpStatus.OK)
+  async updateDeliveryZone(
+    @Param('uuid') uuid: string,
+    @Body() dto: UpdateDeliveryZoneDto,
+  ) {
+    const data = await this.updateDeliveryZoneUseCase.execute(uuid, dto)
+    return { data }
+  }
+
+  @Patch('delivery-zones/:uuid/toggle-delivering')
+  @Roles(AdminRole.SUPERADMIN, AdminRole.CUSTOMER_SUPPORT, AdminRole.DEVELOPER)
+  @HttpCode(HttpStatus.OK)
+  async toggleDeliveryZone(
+    @Param('uuid') uuid: string,
+    @Body() dto: ToggleDeliveryZoneDto,
+  ) {
+    const data = await this.toggleDeliveryZoneUseCase.execute(uuid, dto)
+    return { data }
+  }
+
+  @Delete('delivery-zones/:uuid')
+  @Roles(AdminRole.SUPERADMIN, AdminRole.DEVELOPER)
+  @HttpCode(HttpStatus.OK)
+  async deleteDeliveryZone(@Param('uuid') uuid: string) {
+    const data = await this.deleteDeliveryZoneUseCase.execute(uuid)
     return { data }
   }
 }

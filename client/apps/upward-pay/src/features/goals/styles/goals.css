@@ -423,6 +423,7 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  flex: 1;
 }
 
 .lifestyle-discovery__back-btn {
@@ -446,12 +447,14 @@
 }
 
 .lifestyle-discovery__title {
-  font-size: clamp(17px, 3.8vw, 21px);
+  font-size: clamp(16px, 3.8vw, 21px);
   font-weight: 800;
   letter-spacing: -0.02em;
   color: var(--text);
   line-height: 1.2;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .lifestyle-discovery__subtitle {
@@ -464,8 +467,71 @@
 }
 
 @media (max-width: 540px) {
+  .lifestyle-discovery__header {
+    padding: calc(var(--safe-top) + 10px) 12px 10px;
+  }
+
+  .lifestyle-discovery__top-bar {
+    gap: 8px;
+    margin: 0 auto 6px;
+  }
+
+  .lifestyle-discovery__top-left {
+    gap: 8px;
+  }
+
+  .lifestyle-discovery__back-btn {
+    width: 32px;
+    height: 32px;
+  }
+
+  .lifestyle-discovery__title {
+    font-size: 16px;
+  }
+
   .lifestyle-discovery__subtitle {
     display: none;
+  }
+
+  .lifestyle-discovery__top-actions {
+    gap: 5px;
+  }
+
+  .lifestyle-discovery__goals-trigger,
+  .lifestyle-discovery__header-btn {
+    height: 30px;
+    padding: 0 8px;
+    font-size: 11.5px;
+    gap: 4px;
+  }
+
+  .lifestyle-discovery__goals-prefix {
+    display: none;
+  }
+}
+
+@media (max-width: 360px) {
+  .lifestyle-discovery__header {
+    padding: calc(var(--safe-top) + 8px) 8px 8px;
+  }
+
+  .lifestyle-discovery__top-bar {
+    gap: 6px;
+  }
+
+  .lifestyle-discovery__top-left {
+    gap: 6px;
+  }
+
+  .lifestyle-discovery__title {
+    font-size: 14px;
+  }
+
+  .lifestyle-discovery__goals-trigger,
+  .lifestyle-discovery__header-btn {
+    padding: 0 6px;
+    font-size: 11px;
+    gap: 3px;
   }
 }
 
@@ -669,6 +735,13 @@
   max-width: 1200px;
   margin: 0 auto;
   width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 540px) {
+  .lifestyle-discovery__container {
+    padding: 12px 12px 24px;
+  }
 }
 
 /* Contextual Goal Filter Strip & Subtle Nudge Bar */
@@ -834,6 +907,14 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
   gap: 16px;
+  width: 100%;
+}
+
+@media (max-width: 540px) {
+  .lifestyle-discovery__grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
 }
 
 /* Empty & Error States */
@@ -1097,6 +1178,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center center;
 }
 
 .offering-card__placeholder {
@@ -1301,6 +1383,10 @@
   background: var(--bg);
   color: var(--text);
   padding-bottom: calc(36px + var(--safe-bottom));
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .offering-detail__header {
@@ -1312,6 +1398,8 @@
   -webkit-backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--border);
   padding: calc(var(--safe-top) + 12px) var(--shell-px) 12px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .offering-detail__header-inner {
@@ -1320,6 +1408,8 @@
   justify-content: space-between;
   max-width: 1080px;
   margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .offering-detail__back-btn,
@@ -1336,6 +1426,7 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
+  flex-shrink: 0;
   transition: transform 100ms ease-out;
 }
 
@@ -1349,12 +1440,16 @@
   margin: 0 auto;
   padding: 20px var(--shell-px);
   padding-bottom: 40px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .offering-detail__layout {
   display: grid;
   grid-template-columns: 1fr;
   gap: 20px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 @media (min-width: 860px) {
@@ -1368,17 +1463,27 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.offering-detail__aside {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .offering-detail__hero-media {
   position: relative;
   width: 100%;
-  height: clamp(280px, 52vw, 420px);
+  height: clamp(260px, 52vw, 420px);
   border-radius: var(--radius-xl);
   overflow: hidden;
   background: var(--surface2);
   border: 1px solid var(--border);
   transition: border-color 0.2s ease;
+  box-sizing: border-box;
 }
 
 .offering-detail__hero-media--clickable {
@@ -1397,6 +1502,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center center;
   transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -1465,6 +1571,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center center;
 }
 
 .offering-detail__card {
@@ -1475,6 +1582,8 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .offering-detail__title {
@@ -1483,6 +1592,7 @@
   line-height: 1.25;
   color: var(--text);
   margin-bottom: 4px;
+  word-break: break-word;
 }
 
 .offering-detail__subtitle {
@@ -1495,10 +1605,55 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
   padding: 12px 16px;
   border-radius: var(--radius-lg);
   background: var(--bg);
   border: 1px solid var(--border);
+  box-sizing: border-box;
+}
+
+@media (max-width: 540px) {
+  .offering-detail__header {
+    padding: calc(var(--safe-top) + 10px) 12px 10px;
+  }
+
+  .offering-detail__back-btn,
+  .offering-detail__share-btn {
+    height: 32px;
+    padding: 0 10px;
+    font-size: 12px;
+    gap: 4px;
+  }
+
+  .offering-detail__container {
+    padding: 12px 12px 32px;
+  }
+
+  .offering-detail__layout {
+    gap: 14px;
+  }
+
+  .offering-detail__card {
+    padding: 14px 14px;
+    border-radius: var(--radius-lg, 16px);
+    gap: 12px;
+  }
+
+  .offering-detail__hero-media {
+    height: clamp(210px, 58vw, 320px);
+    border-radius: var(--radius-lg, 16px);
+  }
+
+  .offering-detail__title {
+    font-size: clamp(17px, 4.5vw, 21px);
+  }
+
+  .offering-detail__price-banner {
+    padding: 10px 12px;
+    gap: 8px;
+  }
 }
 
 .offering-detail__price-col {
@@ -3044,6 +3199,14 @@
   max-width: 800px;
   margin: 0 auto;
   padding: 16px 20px 80px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 540px) {
+  .orders-hub {
+    padding: 12px 12px 60px;
+  }
 }
 
 .orders-hub__header {
@@ -3396,6 +3559,14 @@
   max-width: 800px;
   margin: 0 auto;
   padding: 16px 20px 80px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 540px) {
+  .order-tracking {
+    padding: 12px 12px 60px;
+  }
 }
 
 .order-tracking__header {

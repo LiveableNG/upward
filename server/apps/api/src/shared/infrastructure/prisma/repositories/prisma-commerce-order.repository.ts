@@ -37,6 +37,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
           recipientPhone: data.recipientPhone,
           deliveryAddress: data.deliveryAddress,
           deliveryNotes: data.deliveryNotes,
+          deliveryZoneTag: data.deliveryZoneTag,
           status: 'PENDING',
           paymentStatus: 'UNPAID',
         },

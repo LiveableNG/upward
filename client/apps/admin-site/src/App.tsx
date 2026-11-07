@@ -141,6 +141,7 @@ function AppRoutes() {
           <Route path="/commerce/vendors" element={<CommerceWorkspace token={auth.token} adminRole={auth.user.role} />} />
           <Route path="/commerce/orders" element={<CommerceWorkspace token={auth.token} adminRole={auth.user.role} />} />
           <Route path="/commerce/disputes" element={<CommerceWorkspace token={auth.token} adminRole={auth.user.role} />} />
+          <Route path="/commerce/zones" element={<CommerceWorkspace token={auth.token} adminRole={auth.user.role} />} />
           {showSandboxTools && (
             <Route path="/demo-bank" element={<DemoBank token={auth.token} />} />
           )}

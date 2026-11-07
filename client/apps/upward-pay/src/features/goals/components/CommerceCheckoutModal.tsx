@@ -10,14 +10,11 @@ import {
   X,
   ShieldCheck,
   MapPin,
-  Truck,
-  Wrench,
   Lock,
   Plus,
   Minus,
   Loader2,
   AlertCircle,
-  Building,
 } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
@@ -27,7 +24,14 @@ import {
   useInitializeCommercePayment,
 } from '../hooks/useCommerceOrders'
 import type { GoalOffering } from '../types/goals.types'
-import { getStoredDeliveryLocation } from '../utils/deliveryLocation'
+import {
+  getStoredDeliveryLocation,
+  saveStoredDeliveryLocation,
+  type UserDeliveryLocation,
+  type DeliveryZoneItem,
+  PRESET_DELIVERY_ZONES,
+} from '../utils/deliveryLocation'
+import { fetchDeliveryZones } from '../services/goalsService'
 import '../styles/goals.css'
 
 interface CommerceCheckoutModalProps {
@@ -39,7 +43,8 @@ interface CommerceCheckoutModalProps {
 const checkoutSchema = z.object({
   recipientName: z.string().trim().min(2, 'Please enter your full name'),
   recipientPhone: z.string().trim().min(8, 'Please enter a valid phone number'),
-  deliveryAddress: z.string().trim().min(5, 'Delivery address is required'),
+  streetAddress: z.string().trim().min(3, 'Specific street address and house/flat number is required'),
+  landmark: z.string().trim().optional(),
   deliveryNotes: z.string().trim().optional(),
 })
 
@@ -135,11 +140,48 @@ export function CommerceCheckoutModal({
   const [isProcessing, setIsProcessing] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
+  // Configured delivery zones & user selected zone
+  const [availableZones, setAvailableZones] = useState<DeliveryZoneItem[]>(PRESET_DELIVERY_ZONES)
+  const [selectedLocation, setSelectedLocation] = useState<UserDeliveryLocation>(() =>
+    getStoredDeliveryLocation(),
+  )
+
   const createOrder = useCreateCommerceOrder()
   const initializePayment = useInitializeCommercePayment()
 
   useEffect(() => {
     setMounted(true)
+  }, [])
+
+  // Fetch available zones from API to ensure freshest data
+  useEffect(() => {
+    let isSubscribed = true
+    const load = async () => {
+      try {
+        const remote = await fetchDeliveryZones()
+        if (isSubscribed && remote && remote.length > 0) {
+          setAvailableZones(remote)
+          setSelectedLocation((prev) => {
+            const matched = remote.find((z) => z.tag === prev.zoneTag)
+            if (matched) {
+              return {
+                ...prev,
+                zoneName: matched.name,
+                isDelivering: matched.isDelivering,
+                pauseReason: matched.pauseReason,
+              }
+            }
+            return prev
+          })
+        }
+      } catch (e) {
+        // use preset
+      }
+    }
+    load()
+    return () => {
+      isSubscribed = false
+    }
   }, [])
 
   // Lock body scroll and listen for Escape key
@@ -162,12 +204,6 @@ export function CommerceCheckoutModal({
     ? `${user.firstName || ''} ${user.lastName || ''}`.trim()
     : ''
   const initialPhone = user?.phone || ''
-  const storedLoc = getStoredDeliveryLocation()
-  const initialAddress =
-    storedLoc?.address ||
-    user?.properties?.[0]?.address ||
-    user?.address ||
-    ''
 
   const {
     register,
@@ -179,24 +215,23 @@ export function CommerceCheckoutModal({
     defaultValues: {
       recipientName: initialName,
       recipientPhone: initialPhone,
-      deliveryAddress: initialAddress,
+      streetAddress: '',
+      landmark: '',
       deliveryNotes: '',
     },
   })
 
-  // Synchronize prefill when user or stored location changes
+  // Synchronize initial recipient defaults
   useEffect(() => {
     if (initialName) setValue('recipientName', initialName)
     if (initialPhone) setValue('recipientPhone', initialPhone)
-    if (initialAddress) setValue('deliveryAddress', initialAddress)
-  }, [initialName, initialPhone, initialAddress, setValue])
+  }, [initialName, initialPhone, setValue])
 
   if (!isOpen || !mounted) return null
 
   const unitPrice = offering.price ? Number(offering.price) : 0
   const itemsSubtotal = unitPrice * quantity
   const isService = offering.type === 'SERVICE'
-  // Delivery is free for Upward lifestyle orders or included in pricing
   const deliveryFee = 0
   const grandTotal = itemsSubtotal + deliveryFee
 
@@ -207,17 +242,34 @@ export function CommerceCheckoutModal({
     offering.media?.find((m) => m.isPrimary)?.mediaUrl ||
     offering.media?.[0]?.mediaUrl
 
+  const isZoneDeliverable = Boolean(
+    selectedLocation.isDelivering &&
+      selectedLocation.zoneTag &&
+      selectedLocation.zoneTag !== 'UNCONFIGURED' &&
+      selectedLocation.zoneTag !== 'UNCOVERED',
+  )
+
   const onSubmit = async (data: CheckoutFormData) => {
+    if (!isZoneDeliverable) {
+      setErrorMessage(
+        'Delivery is not currently supported for this zone. Please select a supported delivery zone to proceed.',
+      )
+      return
+    }
+
     try {
       setIsProcessing(true)
       setErrorMessage(null)
 
-      // 1. Create order on the backend (using offering UUID)
+      const fullDeliveryAddress = `${data.streetAddress.trim()}, ${selectedLocation.zoneName || selectedLocation.address}${data.landmark?.trim() ? ` (Near ${data.landmark.trim()})` : ''}`
+
+      // 1. Create order on the backend
       const orderPayload = {
         recipientName: data.recipientName,
         recipientPhone: data.recipientPhone,
-        deliveryAddress: data.deliveryAddress,
-        deliveryNotes: data.deliveryNotes || undefined,
+        deliveryAddress: fullDeliveryAddress,
+        deliveryZoneTag: selectedLocation.zoneTag,
+        deliveryNotes: data.deliveryNotes ? data.deliveryNotes.trim() : undefined,
         items: [
           {
             offeringUuid: offering.uuid,
@@ -250,7 +302,6 @@ export function CommerceCheckoutModal({
             onClose()
             router.push(`/dashboard/lifestyle/orders/${createdOrder.uuid}`)
           } else if (paymentInit.authorizationUrl) {
-            // Fallback to full-page redirect if inline popup fails
             window.location.href = paymentInit.authorizationUrl
           } else {
             throw popupErr
@@ -259,16 +310,15 @@ export function CommerceCheckoutModal({
       } else if (paymentInit.authorizationUrl) {
         window.location.href = paymentInit.authorizationUrl
       } else {
-        throw new Error('Payment gateway access code could not be resolved.')
+        toast.success('Order placed successfully!')
+        onClose()
+        router.push(`/dashboard/lifestyle/orders/${createdOrder.uuid}`)
       }
     } catch (err: any) {
-      console.error('Checkout failed:', err)
-      const msg =
-        err?.message ||
-        err?.response?.data?.message ||
-        'Unable to process order. Please check your connection and try again.'
-      setErrorMessage(msg)
-      toast.error(msg, 'Order Failed')
+      console.error('Order creation failed:', err)
+      setErrorMessage(
+        err?.message || 'Could not initiate checkout. Please try again or contact support.',
+      )
     } finally {
       setIsProcessing(false)
     }
@@ -277,9 +327,7 @@ export function CommerceCheckoutModal({
   return createPortal(
     <div
       className="checkout-sheet__backdrop"
-      onClick={() => {
-        if (!isProcessing) onClose()
-      }}
+      onClick={() => !isProcessing && onClose()}
       role="presentation"
     >
       <div
@@ -287,20 +335,18 @@ export function CommerceCheckoutModal({
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
-        aria-label="Secure Checkout"
+        aria-label="Secure Commerce Checkout"
       >
+        {/* Drag handle pill */}
         <div className="checkout-sheet__handle" aria-hidden="true" />
 
-        {/* Header */}
+        {/* Modal Header */}
         <div className="checkout-sheet__header">
-          <div className="checkout-sheet__title-wrap">
-            <h3 className="checkout-sheet__title">
-              {isService ? 'Confirm Booking' : 'Review & Checkout'}
-            </h3>
-            <span className="checkout-sheet__badge">
-              <Lock size={12} />
-              <span>256-Bit Encrypted</span>
-            </span>
+          <div>
+            <h3 className="checkout-sheet__title">Secure Checkout</h3>
+            <p className="checkout-sheet__subtitle">
+              Verify your delivery address &amp; checkout securely with Upward Escrow.
+            </p>
           </div>
           <button
             type="button"
@@ -313,7 +359,7 @@ export function CommerceCheckoutModal({
           </button>
         </div>
 
-        {/* Content Form */}
+        {/* Content Form Body */}
         <form onSubmit={handleSubmit(onSubmit)} className="checkout-sheet__body">
           {errorMessage && (
             <div className="checkout-sheet__alert" role="alert">
@@ -322,7 +368,7 @@ export function CommerceCheckoutModal({
             </div>
           )}
 
-          {/* Item Summary Card */}
+          {/* Item Summary Card (Restored exact 58px thumb styling) */}
           <div className="checkout-sheet__item-card">
             {primaryImage ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -333,7 +379,7 @@ export function CommerceCheckoutModal({
               />
             ) : (
               <div className="checkout-sheet__item-thumb-placeholder">
-                {isService ? <Wrench size={24} /> : <Truck size={24} />}
+                <MapPin size={24} />
               </div>
             )}
             <div className="checkout-sheet__item-details">
@@ -344,6 +390,11 @@ export function CommerceCheckoutModal({
               </div>
               <div className="checkout-sheet__item-price">
                 {formatNgn(unitPrice)}
+                {offering.pricingModel === 'STARTING_AT' && (
+                  <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)' }}>
+                    {' '}starting
+                  </span>
+                )}
               </div>
             </div>
 
@@ -375,8 +426,7 @@ export function CommerceCheckoutModal({
 
           {/* Recipient & Contact Details */}
           <div className="checkout-sheet__section">
-            <h4 className="checkout-sheet__section-title">Recipient & Contact</h4>
-
+            <h4 className="checkout-sheet__section-title">Recipient &amp; Contact</h4>
             <div className="checkout-sheet__grid">
               <div className="checkout-sheet__field">
                 <label className="checkout-sheet__label" htmlFor="recipientName">
@@ -422,65 +472,174 @@ export function CommerceCheckoutModal({
             </div>
           </div>
 
-          {/* Delivery Destination */}
+          {/* Delivery Coverage Zone Section */}
           <div className="checkout-sheet__section">
             <div className="checkout-sheet__section-header">
               <h4 className="checkout-sheet__section-title">
-                {isService ? 'Service Location' : 'Delivery Address'}
+                Delivery Coverage Zone <span style={{ color: 'var(--clay)' }}>*</span>
               </h4>
-              {user?.properties?.[0]?.address && (
-                <button
-                  type="button"
-                  className="checkout-sheet__use-rental-btn"
-                  onClick={() =>
-                    setValue(
-                      'deliveryAddress',
-                      user.properties![0].address,
-                      { shouldValidate: true },
-                    )
-                  }
-                  disabled={isProcessing}
-                >
-                  <Building size={12} />
-                  <span>Use Rental Unit</span>
-                </button>
-              )}
             </div>
 
+            {/* Prefilled Locked Zone Card */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                padding: '12px 14px',
+                borderRadius: 'var(--radius-md, 12px)',
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
+                width: '100%',
+                boxSizing: 'border-box',
+              }}
+            >
+              <div
+                style={{
+                  width: '38px',
+                  height: '38px',
+                  borderRadius: '10px',
+                  background: isZoneDeliverable
+                    ? 'var(--success-bg, rgba(34, 197, 94, 0.08))'
+                    : 'var(--surface2)',
+                  color: isZoneDeliverable
+                    ? 'var(--success, #22c55e)'
+                    : 'var(--text-muted)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <MapPin size={18} />
+              </div>
+
+              <div style={{ flex: 1, minWidth: 0 }}>
+
+                {/* Zone Full Name with clean line-height & wrapping */}
+                <div
+                  style={{
+                    fontWeight: 700,
+                    fontSize: '13.5px',
+                    color: 'var(--text)',
+                    lineHeight: 1.35,
+                    wordBreak: 'break-word',
+                  }}
+                >
+                  {selectedLocation.zoneName || selectedLocation.address}
+                </div>
+
+                {selectedLocation.state && (
+                  <div
+                    style={{
+                      fontSize: '11.5px',
+                      color: 'var(--text-secondary)',
+                      marginTop: '2px',
+                    }}
+                  >
+                    {selectedLocation.state}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Unsupported / Paused Zone Notice Banner */}
+            {!isZoneDeliverable && (
+              <div
+                style={{
+                  background: 'var(--surface)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-md, 10px)',
+                  padding: '12px 14px',
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '10px',
+                  marginTop: '8px',
+                }}
+              >
+                <AlertCircle
+                  size={16}
+                  style={{
+                    color: 'var(--clay)',
+                    flexShrink: 0,
+                    marginTop: '2px',
+                  }}
+                />
+                <div
+                  style={{
+                    fontSize: '12.5px',
+                    color: 'var(--text-secondary)',
+                    lineHeight: 1.4,
+                  }}
+                >
+                  <span style={{ color: 'var(--text)', fontWeight: 600 }}>
+                    {selectedLocation.pauseReason ||
+                      'We are working towards expanding our delivery coverage to other locations soon!'}
+                  </span>
+                  <br />
+                  Delivery to this zone is currently paused or pending rollout. You cannot place orders to this location at this time.
+                </div>
+              </div>
+            )}
+
+            {/* Specific Address Input */}
             <div className="checkout-sheet__field">
+              <label className="checkout-sheet__label" htmlFor="streetAddress">
+                Specific Street Address &amp; House / Unit Number <span style={{ color: 'var(--clay)' }}>*</span>
+              </label>
               <div className="checkout-sheet__input-with-icon">
                 <MapPin size={16} className="checkout-sheet__input-icon" />
                 <input
-                  id="deliveryAddress"
+                  id="streetAddress"
                   type="text"
                   className={`checkout-sheet__input checkout-sheet__input--icon ${
-                    errors.deliveryAddress ? 'checkout-sheet__input--error' : ''
+                    errors.streetAddress ? 'checkout-sheet__input--error' : ''
                   }`}
-                  placeholder="Street, building/apartment unit, city"
+                  placeholder="e.g. 14 Adeleke Street, Block B Flat 4"
                   disabled={isProcessing}
-                  {...register('deliveryAddress')}
+                  {...register('streetAddress')}
                 />
               </div>
-              {errors.deliveryAddress && (
+              {errors.streetAddress && (
                 <span className="checkout-sheet__field-error">
-                  {errors.deliveryAddress.message}
+                  {errors.streetAddress.message}
                 </span>
               )}
             </div>
 
-            <div className="checkout-sheet__field" style={{ marginTop: '8px' }}>
-              <input
-                id="deliveryNotes"
-                type="text"
-                className="checkout-sheet__input checkout-sheet__input--subtle"
-                placeholder="Gate code, landmark, or special delivery notes (optional)"
-                disabled={isProcessing}
-                {...register('deliveryNotes')}
-              />
+            {/* Nearest Landmark & Driver Notes */}
+            <div className="checkout-sheet__grid">
+              <div className="checkout-sheet__field">
+                <label className="checkout-sheet__label" htmlFor="landmark">
+                  Nearest Landmark (Optional)
+                </label>
+                <input
+                  id="landmark"
+                  type="text"
+                  className="checkout-sheet__input"
+                  placeholder="e.g. Opposite Ebeano Supermarket"
+                  disabled={isProcessing}
+                  {...register('landmark')}
+                />
+              </div>
+
+              <div className="checkout-sheet__field">
+                <label className="checkout-sheet__label" htmlFor="deliveryNotes">
+                  Gate Code / Driver Notes (Optional)
+                </label>
+                <input
+                  id="deliveryNotes"
+                  type="text"
+                  className="checkout-sheet__input"
+                  placeholder="e.g. Call at the main gate"
+                  disabled={isProcessing}
+                  {...register('deliveryNotes')}
+                />
+              </div>
             </div>
           </div>
 
-          {/* Price Ledger Breakdown */}
+          {/* Ledger Breakdown */}
           <div className="checkout-sheet__ledger">
             <div className="checkout-sheet__ledger-row">
               <span className="checkout-sheet__ledger-label">
@@ -510,17 +669,29 @@ export function CommerceCheckoutModal({
             </div>
           </div>
 
-          {/* Submit Action */}
+          {/* Checkout CTA */}
           <div className="checkout-sheet__footer">
             <button
               type="submit"
               className="checkout-sheet__pay-btn"
-              disabled={isProcessing}
+              disabled={isProcessing || !isZoneDeliverable}
+              style={{
+                opacity: !isZoneDeliverable ? 0.5 : 1,
+                cursor: !isZoneDeliverable ? 'not-allowed' : 'pointer',
+                background: !isZoneDeliverable ? 'var(--surface2)' : undefined,
+                color: !isZoneDeliverable ? 'var(--text-muted)' : undefined,
+                border: !isZoneDeliverable ? '1px solid var(--border)' : undefined,
+              }}
             >
               {isProcessing ? (
                 <>
                   <Loader2 size={18} className="animate-spin" />
                   <span>Connecting to Paystack...</span>
+                </>
+              ) : !isZoneDeliverable ? (
+                <>
+                  <MapPin size={16} />
+                  <span>Location Not Supported Yet</span>
                 </>
               ) : (
                 <>

@@ -672,7 +672,8 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                 <div className="offering-detail__delivery-warning-compact">
                   <AlertCircle size={14} style={{ flexShrink: 0 }} />
                   <span>
-                    Delivery unavailable to {formatShortLocation(deliveryLocation)}. Tap location to check other areas.
+                    {deliveryLocation.pauseReason ||
+                      `Delivery is not supported yet in ${formatShortLocation(deliveryLocation)}. We are working towards expanding our delivery coverage to other locations soon!`}
                   </span>
                 </div>
               )}
@@ -696,7 +697,8 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                     className="offering-detail__primary-cta offering-detail__primary-cta--disabled"
                     disabled
                   >
-                    <span>Delivery Unavailable in Your Area</span>
+                    <MapPin size={16} />
+                    <span>Location Not Supported Yet</span>
                   </button>
                 )}
 

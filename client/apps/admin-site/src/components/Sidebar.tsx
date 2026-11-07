@@ -96,6 +96,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
           items: [
             { name: 'Orders & Fulfilment', path: '/commerce/orders', icon: Truck },
             { name: 'Inquiries & Disputes', path: '/commerce/disputes', icon: ShieldAlert },
+            { name: 'Delivery Coverage Zones', path: '/commerce/zones', icon: MapPin },
           ],
         },
       ]

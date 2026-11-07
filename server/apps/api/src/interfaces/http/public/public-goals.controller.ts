@@ -11,6 +11,7 @@ import { GetGoalsUseCase } from '../../../application/goals/use-cases/get-goals.
 import { GetGoalDetailUseCase } from '../../../application/goals/use-cases/get-goal-detail.use-case'
 import { GetOfferingsUseCase } from '../../../application/goals/use-cases/get-offerings.use-case'
 import { GetOfferingDetailUseCase } from '../../../application/goals/use-cases/get-offering-detail.use-case'
+import { GetDeliveryZonesUseCase } from '../../../application/commerce/use-cases/get-delivery-zones.use-case'
 import { GoalQueryDto } from '../../../application/goals/dto/goal.dto'
 import { OfferingQueryDto } from '../../../application/goals/dto/offering.dto'
 
@@ -22,7 +23,15 @@ export class PublicGoalsController {
     private readonly getGoalDetailUseCase: GetGoalDetailUseCase,
     private readonly getOfferingsUseCase: GetOfferingsUseCase,
     private readonly getOfferingDetailUseCase: GetOfferingDetailUseCase,
+    private readonly getDeliveryZonesUseCase: GetDeliveryZonesUseCase,
   ) {}
+
+  @Get('delivery-zones')
+  @HttpCode(HttpStatus.OK)
+  async getDeliveryZones() {
+    const data = await this.getDeliveryZonesUseCase.execute()
+    return { data }
+  }
 
   @Get('categories')
   @HttpCode(HttpStatus.OK)

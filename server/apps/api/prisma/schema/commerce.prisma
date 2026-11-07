@@ -105,6 +105,7 @@ model upward_commerce_order {
   recipientPhone        String                  @db.VarChar(50)
   deliveryAddress       String                  @db.Text
   deliveryNotes         String?                 @db.Text
+  deliveryZoneTag       String?                 @db.VarChar(100)
   
   user                  upward_user             @relation(fields: [userId], references: [id], onDelete: Restrict)
   subOrders             upward_commerce_vendor_suborder[]
@@ -353,4 +354,25 @@ model upward_commerce_order_audit {
   order                 upward_commerce_order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
+}
+
+model upward_commerce_delivery_zone {
+  id                    Int                      @id @default(autoincrement())
+  uuid                  String                   @unique @default(uuid())
+  tag                   String                   @unique @db.VarChar(100)
+  name                  String                   @db.VarChar(150)
+  state                 String                   @db.VarChar(100)
+  region                String?                  @db.VarChar(150)
+  areasCovered          String?                  @db.Text
+  isDelivering          Boolean                  @default(true)
+  deliveryFeeKobo       BigInt                   @default(0)
+  estimatedDeliveryDays String?                  @db.VarChar(100)
+  pauseReason           String?                  @db.VarChar(255)
+  sortOrder             Int                      @default(0)
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+
+  @@index([state])
+  @@index([isDelivering])
+  @@index([sortOrder])
 }

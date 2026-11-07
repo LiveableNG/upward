@@ -161,6 +161,7 @@ export class CreateCommerceOrderUseCase {
       recipientPhone: dto.recipientPhone.trim(),
       deliveryAddress: dto.deliveryAddress.trim(),
       deliveryNotes: dto.deliveryNotes?.trim(),
+      deliveryZoneTag: dto.deliveryZoneTag?.trim(),
       subOrders: pricing.subOrders.map((sub, idx) => ({
         vendorId: sub.vendorId,
         subOrderNumber: `${orderNumber}-V${idx + 1}`,

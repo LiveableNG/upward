@@ -9,6 +9,7 @@ import {
 import { useCommerceAdmin } from '../features/commerce/hooks/useCommerceAdmin'
 import { CommerceOrdersTable } from '../features/commerce/components/CommerceOrdersTable'
 import { CommerceDisputesTable } from '../features/commerce/components/CommerceDisputesTable'
+import { DeliveryZonesTable } from '../features/commerce/components/DeliveryZonesTable'
 import {
   type GoalCategory,
   type Goal,
@@ -38,6 +39,7 @@ export type WorkspaceTab =
   | 'VENDORS'
   | 'ORDERS'
   | 'DISPUTES'
+  | 'ZONES'
 
 interface CommerceWorkspaceProps {
   token?: string
@@ -60,6 +62,7 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
     'VENDORS',
     'ORDERS',
     'DISPUTES',
+    'ZONES',
   ]
 
   const activeTab: WorkspaceTab =
@@ -69,7 +72,7 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
         ? (queryTab as WorkspaceTab)
         : 'OVERVIEW'
 
-  // Commerce Operations hook (Orders & Disputes)
+  // Commerce Operations hook (Orders, Disputes & Delivery Zones)
   const {
     orders,
     ordersTotal,
@@ -81,6 +84,13 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
     loadingDisputes,
     fetchDisputes,
     resolveDispute,
+    deliveryZones,
+    loadingDeliveryZones,
+    fetchDeliveryZones,
+    createDeliveryZone,
+    updateDeliveryZone,
+    toggleDeliveryZone,
+    deleteDeliveryZone,
   } = useCommerceAdmin(token)
 
   // Goal & Merchandising Catalog hook
@@ -177,8 +187,10 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
       })
     } else if (activeTab === 'DISPUTES') {
       fetchDisputes()
+    } else if (activeTab === 'ZONES') {
+      fetchDeliveryZones()
     }
-  }, [activeTab, fetchOrders, fetchDisputes, orderSearch, paymentStatusFilter])
+  }, [activeTab, fetchOrders, fetchDisputes, fetchDeliveryZones, orderSearch, paymentStatusFilter])
 
   const handleTabChange = (tab: WorkspaceTab) => {
     if (tab === 'OVERVIEW') {
@@ -199,6 +211,8 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
       })
     } else if (activeTab === 'DISPUTES') {
       await fetchDisputes()
+    } else if (activeTab === 'ZONES') {
+      await fetchDeliveryZones()
     } else {
       await Promise.all([
         fetchOverview(),
@@ -569,6 +583,18 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
             await resolveDispute(disputeUuid, payload)
             fetchDisputes()
           }}
+        />
+      )}
+
+      {activeTab === 'ZONES' && (
+        <DeliveryZonesTable
+          zones={deliveryZones}
+          isLoading={loadingDeliveryZones}
+          onRefresh={fetchDeliveryZones}
+          onCreateZone={createDeliveryZone}
+          onUpdateZone={updateDeliveryZone}
+          onToggleZone={toggleDeliveryZone}
+          onDeleteZone={deleteDeliveryZone}
         />
       )}
 

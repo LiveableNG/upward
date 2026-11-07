@@ -130,3 +130,30 @@ export async function removeUserGoal(
   )
   return res
 }
+
+export interface DeliveryZoneConfig {
+  id?: number
+  uuid: string
+  tag: string
+  name: string
+  state: string
+  region?: string | null
+  areasCovered?: string | null
+  isDelivering: boolean
+  deliveryFeeKobo: string
+  estimatedDeliveryDays?: string | null
+  pauseReason?: string | null
+  sortOrder: number
+}
+
+export async function fetchDeliveryZones(): Promise<DeliveryZoneConfig[]> {
+  try {
+    const res = await request<{ data: DeliveryZoneConfig[] }>('/public/goals/delivery-zones', {
+      method: 'GET',
+    })
+    return res.data || []
+  } catch (err) {
+    console.warn('Failed to fetch dynamic delivery zones from server', err)
+    return []
+  }
+}
