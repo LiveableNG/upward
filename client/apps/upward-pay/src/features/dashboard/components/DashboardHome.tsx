@@ -275,7 +275,7 @@ export function DashboardHome({
 
   return (
     <div className="dash-home">
-      <RentDepositCard />
+      {/* <RentDepositCard /> */}
       <button
         type="button"
         className={`dash-home__benefits-card ${benefitsActive ? 'is-active' : ''}`}
