@@ -31,6 +31,7 @@ import {
   useConfirmSubOrderReceipt,
   useCreateCommerceDispute,
 } from '../hooks/useCommerceOrders'
+import { BottomSheetModal } from '@/components/common/BottomSheetModal'
 import type {
   CustomerFulfilmentStatus,
   TenantOrderDetailDto,
@@ -464,94 +465,72 @@ export function OrderTrackingScreen({ orderUuid }: { orderUuid: string }) {
         })}
       </div>
 
-      {/* Upward Escrow & Buyer Protection Footer */}
-      <div className="order-tracking__protection-footer">
-        <ShieldCheck size={24} color="#059669" />
-        <div>
-          <strong>Protected by Upward Buyer Protection</strong>
-          <p>
-            Your funds are held securely in escrow. Merchant payouts are only settled after delivery
-            and service inspection are finalized.
-          </p>
-        </div>
-      </div>
+      {/* Customer Support / Dispute Modal */}
+      <BottomSheetModal
+        isOpen={!!activeDisputeSubOrder}
+        onClose={() => setActiveDisputeSubOrder(null)}
+        title="Upward Customer Support"
+        icon={<ShieldCheck size={18} color="var(--clay)" />}
+        maxWidth="480px"
+      >
+        {activeDisputeSubOrder && (
+          <form onSubmit={handleSubmit(onSubmitDispute)} className="order-tracking__form">
+            <p className="order-tracking__form-intro">
+              Reporting an issue for sub-order{' '}
+              <strong>{activeDisputeSubOrder.subOrderNumber}</strong>. Our support team will
+              coordinate directly with the partner to resolve this for you.
+            </p>
 
-      {/* Concierge Support / Dispute Modal */}
-      {activeDisputeSubOrder && (
-        <div className="order-tracking__modal-backdrop" role="dialog" aria-modal="true">
-          <div className="order-tracking__modal">
-            <div className="order-tracking__modal-header">
-              <div className="order-tracking__modal-title-wrap">
-                <ShieldCheck size={18} color="var(--clay)" />
-                <h3 className="order-tracking__modal-title">Upward Customer Support</h3>
-              </div>
-              <button
-                type="button"
-                className="order-tracking__modal-close"
-                onClick={() => setActiveDisputeSubOrder(null)}
-              >
-                <X size={18} />
-              </button>
+            <div className="order-tracking__form-field">
+              <label className="order-tracking__form-label">Nature of Issue</label>
+              <select {...register('reason')} className="order-tracking__select">
+                <option value="Damaged or incorrect item received">Damaged or incorrect item received</option>
+                <option value="Item not delivered / severe transit delay">Item not delivered / severe transit delay</option>
+                <option value="Technician did not show up for appointment">Technician did not show up for appointment</option>
+                <option value="Service quality does not match specification">Service quality does not match specification</option>
+                <option value="Other complaint or question">Other complaint or question</option>
+              </select>
+              {errors.reason && (
+                <span className="order-tracking__error">{errors.reason.message}</span>
+              )}
             </div>
 
-            <form onSubmit={handleSubmit(onSubmitDispute)} className="order-tracking__form">
-              <p className="order-tracking__form-intro">
-                Reporting an issue for sub-order{' '}
-                <strong>{activeDisputeSubOrder.subOrderNumber}</strong>. Our support team will
-                handle this directly with the partner and hold merchant settlement.
-              </p>
+            <div className="order-tracking__form-field">
+              <label className="order-tracking__form-label">Detailed Explanation</label>
+              <textarea
+                {...register('explanation')}
+                rows={4}
+                className="order-tracking__textarea"
+                placeholder="Please describe what happened in detail..."
+              />
+              {errors.explanation && (
+                <span className="order-tracking__error">{errors.explanation.message}</span>
+              )}
+            </div>
 
-              <div className="order-tracking__form-field">
-                <label className="order-tracking__form-label">Nature of Issue</label>
-                <select {...register('reason')} className="order-tracking__select">
-                  <option value="Damaged or incorrect item received">Damaged or incorrect item received</option>
-                  <option value="Item not delivered / severe transit delay">Item not delivered / severe transit delay</option>
-                  <option value="Technician did not show up for appointment">Technician did not show up for appointment</option>
-                  <option value="Service quality does not match specification">Service quality does not match specification</option>
-                  <option value="Other complaint or question">Other complaint or question</option>
-                </select>
-                {errors.reason && (
-                  <span className="order-tracking__error">{errors.reason.message}</span>
+            <div className="order-tracking__modal-actions">
+              <button
+                type="button"
+                className="order-tracking__cancel-btn"
+                onClick={() => setActiveDisputeSubOrder(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="order-tracking__submit-btn"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <span>Submit to Support</span>
                 )}
-              </div>
-
-              <div className="order-tracking__form-field">
-                <label className="order-tracking__form-label">Detailed Explanation</label>
-                <textarea
-                  {...register('explanation')}
-                  rows={4}
-                  className="order-tracking__textarea"
-                  placeholder="Please describe what happened in detail..."
-                />
-                {errors.explanation && (
-                  <span className="order-tracking__error">{errors.explanation.message}</span>
-                )}
-              </div>
-
-              <div className="order-tracking__modal-actions">
-                <button
-                  type="button"
-                  className="order-tracking__cancel-btn"
-                  onClick={() => setActiveDisputeSubOrder(null)}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="order-tracking__submit-btn"
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <Loader2 size={16} className="animate-spin" />
-                  ) : (
-                    <span>Submit to Support</span>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+              </button>
+            </div>
+          </form>
+        )}
+      </BottomSheetModal>
     </div>
   )
 }

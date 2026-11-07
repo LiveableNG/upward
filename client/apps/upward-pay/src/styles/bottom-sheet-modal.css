@@ -1,0 +1,184 @@
+/* ==========================================================================
+   Upward Global Dynamic Bottom-Sheet Modal (.sheet-modal)
+   Responsive Apple-fluid design:
+   - Mobile: Slides up as a bottom sheet with handle
+   - Desktop / Tablet: Centered floating modal
+   ========================================================================== */
+
+.sheet-modal__backdrop {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  z-index: 99999;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  overscroll-behavior: contain;
+  touch-action: none;
+}
+
+@media (min-width: 640px) {
+  .sheet-modal__backdrop {
+    align-items: center;
+    padding: 20px;
+    touch-action: auto;
+  }
+}
+
+.sheet-modal__panel {
+  width: 100%;
+  max-width: 500px;
+  max-height: 88vh;
+  max-height: 88dvh;
+  background: var(--surface, #ffffff);
+  border-top: 1px solid var(--border);
+  border-radius: 24px 24px 0 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.35);
+  animation: sheetModalUp 280ms cubic-bezier(0.16, 1, 0.3, 1);
+  overscroll-behavior: contain;
+  touch-action: auto;
+}
+
+@media (max-width: 639px) {
+  .sheet-modal__panel {
+    padding-bottom: max(0px, env(safe-area-inset-bottom));
+  }
+}
+
+@media (min-width: 640px) {
+  .sheet-modal__panel {
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    height: auto;
+    max-height: 85vh;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+  }
+}
+
+@keyframes sheetModalUp {
+  from {
+    opacity: 0;
+    transform: translateY(28px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.sheet-modal__handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--border-solid, rgba(140, 140, 140, 0.3));
+  margin: 10px auto 2px;
+  flex-shrink: 0;
+}
+
+@media (min-width: 640px) {
+  .sheet-modal__handle {
+    display: none;
+  }
+}
+
+.sheet-modal__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.sheet-modal__header-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.sheet-modal__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.sheet-modal__title-wrap {
+  min-width: 0;
+  flex: 1;
+}
+
+.sheet-modal__title {
+  font-size: 16.5px;
+  font-weight: 800;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.35;
+}
+
+.sheet-modal__subtitle {
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  margin: 2px 0 0;
+  line-height: 1.4;
+}
+
+.sheet-modal__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.sheet-modal__close {
+  background: var(--surface2, #f5f5f5);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 150ms ease, transform 100ms ease;
+  flex-shrink: 0;
+}
+
+.sheet-modal__close:hover {
+  background: var(--border-solid, #e5e5e5);
+}
+
+.sheet-modal__close:active {
+  transform: scale(0.92);
+}
+
+.sheet-modal__body {
+  padding: 20px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  flex: 1;
+}
+
+.sheet-modal__footer {
+  padding: 14px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-shrink: 0;
+}

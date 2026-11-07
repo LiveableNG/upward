@@ -3705,12 +3705,18 @@
   gap: 12px;
 }
 
+.order-tracking__suborder-head > div:first-child {
+  min-width: 0;
+  flex: 1;
+}
+
 .order-tracking__suborder-num {
   font-size: 14.5px;
   font-weight: 800;
   color: var(--text);
   font-family: monospace;
   margin-bottom: 4px;
+  word-break: break-all;
 }
 
 .order-tracking__vendor-tag {
@@ -3719,12 +3725,22 @@
   gap: 5px;
   font-size: 12px;
   color: var(--text-secondary);
+  word-break: break-word;
 }
 
 .order-tracking__suborder-actions {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 360px) {
+  .order-tracking__suborder-head {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
 }
 
 .order-tracking__confirm-btn {
@@ -3739,6 +3755,8 @@
   font-size: 12px;
   font-weight: 700;
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: transform 100ms ease;
 }
 
@@ -3758,6 +3776,17 @@
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: transform 100ms ease, background 150ms ease;
+}
+
+.order-tracking__dispute-btn:hover {
+  background: var(--border-solid, rgba(140, 140, 140, 0.15));
+}
+
+.order-tracking__dispute-btn:active {
+  transform: scale(0.97);
 }
 
 .order-tracking__alert-banner {

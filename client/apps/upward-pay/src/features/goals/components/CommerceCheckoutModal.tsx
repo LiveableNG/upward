@@ -360,7 +360,7 @@ export function CommerceCheckoutModal({
           <div>
             <h3 className="checkout-sheet__title">Secure Checkout</h3>
             <p className="checkout-sheet__subtitle">
-              Verify your delivery address &amp; checkout securely with Upward Escrow.
+              Verify your delivery address &amp; checkout securely.
             </p>
           </div>
           <button
@@ -720,7 +720,7 @@ export function CommerceCheckoutModal({
               )}
             </button>
             <p className="checkout-sheet__security-note">
-              Funds are held securely by Upward Escrow until delivery is confirmed.
+              Payments are processed securely via Paystack.
             </p>
           </div>
         </form>

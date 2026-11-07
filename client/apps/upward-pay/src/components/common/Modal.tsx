@@ -4,6 +4,9 @@ import React, { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 
+export { BottomSheetModal } from './BottomSheetModal'
+export type { BottomSheetModalProps } from './BottomSheetModal'
+
 interface ModalProps {
   isOpen: boolean
   onClose: () => void
