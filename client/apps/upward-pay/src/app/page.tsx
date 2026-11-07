@@ -16,6 +16,24 @@ import { FillRecordClient } from '@/features/records/components/FillRecordClient
 function getPathInfo() {
   if (typeof window === 'undefined') return { token: null, type: null }
   const pathname = window.location.pathname
+  const search = window.location.search
+
+  // Check lifestyle and orders routes in Capacitor
+  if (pathname.includes('/dashboard/lifestyle/orders')) {
+    const sp = new URLSearchParams(search)
+    const uuid = sp.get('uuid') || pathname.split('/dashboard/lifestyle/orders/')[1]?.split(/[?#]/)[0]
+    if (uuid && uuid !== 'placeholder') {
+      return { token: uuid, type: 'lifestyle-order' as const }
+    }
+  }
+  if (pathname.includes('/dashboard/lifestyle')) {
+    const sp = new URLSearchParams(search)
+    const id = sp.get('id') || sp.get('offering') || pathname.split('/dashboard/lifestyle/')[1]?.split(/[?#]/)[0]
+    if (id && id !== 'placeholder') {
+      return { token: id, type: 'lifestyle-detail' as const }
+    }
+  }
+
   const routes: { prefix: string; type: 'pay' | 'invite' | 'waitlist' | 'welcome' | 'fill-record' }[] = [
     { prefix: '/pay/', type: 'pay' },
     { prefix: '/invite/', type: 'invite' },
@@ -52,9 +70,18 @@ function LandingPageContent() {
 
   // On mount, check if we're on a subpath (for Capacitor fallback)
   useEffect(() => {
-    if (typeof window !== 'undefined' && Capacitor.isNativePlatform()) {
+    if (typeof window !== 'undefined') {
       const info = getPathInfo()
-      if (info.token) {
+      if (info.type === 'lifestyle-detail' && info.token) {
+        router.replace(`/dashboard/lifestyle?id=${encodeURIComponent(info.token)}`)
+        return
+      }
+      if (info.type === 'lifestyle-order' && info.token) {
+        router.replace(`/dashboard/lifestyle/orders?uuid=${encodeURIComponent(info.token)}`)
+        return
+      }
+
+      if (info.token && Capacitor.isNativePlatform()) {
         console.log('[Landing] Detected subpath on mobile:', info.type, info.token)
         setPathToken(info.token)
         setIsPayRoute(info.type === 'pay')
@@ -65,7 +92,7 @@ function LandingPageContent() {
         setFetchingInvitation(false)
       }
     }
-  }, [])
+  }, [router])
 
   const finalToken = token || pathToken
 
@@ -128,16 +155,7 @@ function LandingPageContent() {
     handleRedirect()
   }, [finalToken, email, router, isLoggedIn, authLoading, searchParams, isPayRoute, isWaitlistRoute, isInviteRoute, isWelcomeRoute, isFillRecordRoute])
 
-  const isLoading = authLoading || fetchingInvitation
-
-  if (isLoading) {
-    return <LogoSplash />
-  }
-
-  if (!finalToken && !email && !isPayRoute && !isWaitlistRoute && !isInviteRoute && !isWelcomeRoute && !isFillRecordRoute) {
-    return <LogoSplash />
-  }
-
+  // Direct renders for routes that don't need auth session checks
   if (isPayRoute && finalToken) {
     return <PayClient overrideToken={finalToken} />
   }
@@ -160,6 +178,16 @@ function LandingPageContent() {
         <FillRecordClient uuid={finalToken} />
       </div>
     )
+  }
+
+  const isLoading = authLoading || fetchingInvitation
+
+  if (isLoading) {
+    return <LogoSplash />
+  }
+
+  if (!finalToken && !email && !isPayRoute && !isWaitlistRoute && !isInviteRoute && !isWelcomeRoute && !isFillRecordRoute) {
+    return <LogoSplash />
   }
 }
 

@@ -309,7 +309,7 @@ export function OrdersListScreen() {
                             <button
                               type="button"
                               className="orders-hub__track-btn orders-hub__track-btn--pay"
-                              onClick={() => router.push(`/dashboard/lifestyle/orders/${order.uuid}`)}
+                              onClick={() => router.push(`/dashboard/lifestyle/orders?uuid=${order.uuid}`)}
                             >
                               <CreditCard size={14} />
                               <span>Pay Now</span>
@@ -325,7 +325,7 @@ export function OrdersListScreen() {
                           <button
                             type="button"
                             className={`orders-hub__track-btn ${isCompleted ? 'orders-hub__track-btn--completed' : ''}`}
-                            onClick={() => router.push(`/dashboard/lifestyle/orders/${order.uuid}`)}
+                            onClick={() => router.push(`/dashboard/lifestyle/orders?uuid=${order.uuid}`)}
                           >
                             <span>{isCompleted ? 'View Details' : 'Track Live'}</span>
                             <ChevronRight size={14} />

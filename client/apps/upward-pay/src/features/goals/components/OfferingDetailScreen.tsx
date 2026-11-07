@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import {
   ArrowLeft,
   ShieldCheck,
@@ -73,9 +73,26 @@ function getSafeExternalUrl(raw?: string | null): string | null {
 }
 
 export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
-  identifier,
+  identifier: propIdentifier,
 }) => {
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  const identifier = React.useMemo(() => {
+    if (propIdentifier && propIdentifier !== 'placeholder') {
+      return propIdentifier
+    }
+    const fromSearch = searchParams?.get('id') || searchParams?.get('offering')
+    if (fromSearch) return fromSearch
+    if (typeof window !== 'undefined') {
+      const parts = window.location.pathname.split('/dashboard/lifestyle/')
+      if (parts[1]) {
+        const seg = parts[1].split(/[/?#]/)[0]
+        if (seg && seg !== 'placeholder') return seg
+      }
+    }
+    return propIdentifier || ''
+  }, [propIdentifier, searchParams])
   const { user } = useAuth()
   const [mounted, setMounted] = useState(false)
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
@@ -773,7 +790,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                       onClick={(clicked) => {
                         const nextId =
                           clicked.uuid || clicked.slug || String(clicked.id)
-                        router.push(`/dashboard/lifestyle/${nextId}`)
+                        router.push(`/dashboard/lifestyle?id=${encodeURIComponent(nextId)}`)
                         window.scrollTo({ top: 0, behavior: 'smooth' })
                       }}
                     />

@@ -13,7 +13,13 @@
 
 .setup-gate {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
   z-index: 1100;
   display: flex;
   flex-direction: column;
@@ -22,19 +28,16 @@
   color: var(--text);
 }
 
-/* Header — translucent so content scrolls underneath */
+/* Header — clean top bar properly offset by safe area */
 .setup-gate__header {
-  position: sticky;
-  top: 0;
+  position: relative;
   z-index: 2;
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
-  padding: calc(var(--safe-top) + 10px) 20px 10px;
-  background: color-mix(in srgb, var(--shell-page-bg, var(--bg)) 78%, transparent);
-  -webkit-backdrop-filter: saturate(180%) blur(16px);
-  backdrop-filter: saturate(180%) blur(16px);
+  padding: calc(var(--safe-top, 0px) + 12px) 20px 8px;
+  background: var(--shell-page-bg, var(--bg));
 }
 
 .setup-gate__avatar,
@@ -55,7 +58,7 @@
   width: 38px;
   height: 38px;
   background: var(--bg);
-  border: 1px solid var(--shell-border);
+  border: 1.5px solid var(--shell-border);
   color: var(--text);
 }
 
@@ -69,13 +72,13 @@
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
-  padding: 12px 20px 24px;
+  padding: 8px 20px 24px;
 }
 
 .setup-gate__body {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
   width: 100%;
   max-width: 440px;
   margin: 0 auto;
@@ -376,10 +379,8 @@
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  padding: 12px 20px calc(16px + env(safe-area-inset-bottom, 0px));
-  background: color-mix(in srgb, var(--shell-page-bg, var(--bg)) 85%, transparent);
-  -webkit-backdrop-filter: saturate(180%) blur(16px);
-  backdrop-filter: saturate(180%) blur(16px);
+  padding: 10px 20px calc(12px + env(safe-area-inset-bottom, 0px));
+  background: var(--shell-page-bg, var(--bg));
   border-top: 1px solid var(--shell-border);
 }
 

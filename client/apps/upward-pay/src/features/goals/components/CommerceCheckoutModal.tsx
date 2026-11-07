@@ -257,12 +257,12 @@ export function CommerceCheckoutModal({
 
           toast.success('Payment confirmed! Your order has been placed.')
           onClose()
-          router.push(`/dashboard/lifestyle/orders/${createdOrder.uuid}`)
+          router.push(`/dashboard/lifestyle/orders?uuid=${createdOrder.uuid}`)
         } catch (popupErr: any) {
           if (popupErr?.message === 'Payment cancelled') {
             toast.info('Payment was cancelled. You can resume at any time from My Orders.')
             onClose()
-            router.push(`/dashboard/lifestyle/orders/${createdOrder.uuid}`)
+            router.push(`/dashboard/lifestyle/orders?uuid=${createdOrder.uuid}`)
           } else if (paymentInit.authorizationUrl) {
             window.location.href = paymentInit.authorizationUrl
           } else {
@@ -274,7 +274,7 @@ export function CommerceCheckoutModal({
       } else {
         toast.success('Order placed successfully!')
         onClose()
-        router.push(`/dashboard/lifestyle/orders/${createdOrder.uuid}`)
+        router.push(`/dashboard/lifestyle/orders?uuid=${createdOrder.uuid}`)
       }
     } catch (err: any) {
       console.error('Order creation failed:', err)

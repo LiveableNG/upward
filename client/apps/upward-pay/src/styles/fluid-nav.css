@@ -1,45 +1,32 @@
 /* ═══════════════════════════════════════════════════════════════
-   APPLE LIQUID GLASS ISLAND DOCK (Modern iOS Floating Tab Bar)
-   With Dynamic Prismatic Sliding Glass Lens & Scrubbing Gesture
-   Inspired by iOS 18+, Slack, WhatsApp, Instagram & visionOS
+   UPWARD LUXURY FLUID ISLAND DOCK (iOS 18+ Floating Tab Bar)
+   Tailored to Upward's Warm Cream & Clay Brand Aesthetic
    ═══════════════════════════════════════════════════════════════ */
 
 .bottom-nav.bottom-nav--fluid-dock {
   position: fixed;
-  bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
-  left: 14px;
-  right: 14px;
-  max-width: 396px;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  left: 16px;
+  right: 16px;
+  max-width: 384px;
   margin: 0 auto;
   border-radius: 9999px;
-  padding: 5px 6px;
+  padding: 4px 6px;
   z-index: 1000;
   
-  /* Frosted Glass Outer Capsule */
-  background: rgba(255, 255, 255, 0.74);
-  -webkit-backdrop-filter: blur(28px) saturate(210%);
-  backdrop-filter: blur(28px) saturate(210%);
-  border: 1px solid rgba(255, 255, 255, 0.85);
+  /* Frosted Warm Milk Glass - Harmonious with Upward #FAF9F5 */
+  background: rgba(255, 255, 255, 0.88);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  backdrop-filter: blur(24px) saturate(190%);
+  border: 1.5px solid rgba(235, 228, 218, 0.9);
   box-shadow: 
-    0 16px 36px -6px rgba(28, 22, 16, 0.15),
-    0 4px 12px rgba(28, 22, 16, 0.05),
-    inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.95);
+    0 12px 32px -4px rgba(60, 42, 28, 0.1),
+    0 2px 8px rgba(60, 42, 28, 0.04),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.95);
   
   transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
   user-select: none;
   -webkit-user-select: none;
-}
-
-/* Dark theme / Dark mode glass adaptation */
-@media (prefers-color-scheme: dark) {
-  .bottom-nav.bottom-nav--fluid-dock {
-    background: rgba(22, 20, 18, 0.78);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    box-shadow: 
-      0 20px 44px -4px rgba(0, 0, 0, 0.6),
-      0 4px 14px rgba(0, 0, 0, 0.4),
-      inset 0 1px 1px 0 rgba(255, 255, 255, 0.2);
-  }
 }
 
 /* Dock inner items layout */
@@ -60,30 +47,27 @@
   cursor: pointer;
 }
 
-/* ── The Dynamic Prismatic Sliding Glass Lens (The Slack / iOS Specular Lens) ── */
+/* ── The Sliding Pill Lens (Smooth Apple spring retargeting) ── */
 .bottom-nav__liquid-lens {
   position: absolute;
-  top: 2px;
-  bottom: 2px;
+  top: 3px;
+  bottom: 3px;
   left: 0;
   border-radius: 9999px;
   pointer-events: none;
   z-index: 1;
   
-  /* Smooth Apple spring retargeting between tabs or upon finger release */
-  transition: transform 320ms cubic-bezier(0.18, 0.9, 0.25, 1), width 280ms cubic-bezier(0.18, 0.9, 0.25, 1);
+  /* Spring motion */
+  transition: transform 300ms cubic-bezier(0.18, 0.9, 0.25, 1), width 260ms cubic-bezier(0.18, 0.9, 0.25, 1);
   will-change: transform, width;
 
-  /* Frosted Glass Core */
-  background: rgba(255, 255, 255, 0.65);
-  -webkit-backdrop-filter: blur(18px) saturate(200%);
-  backdrop-filter: blur(18px) saturate(200%);
-  
-  /* Soft Ambient Depth */
+  /* Crisp Elevated White Pill matching Upward card surfaces */
+  background: #FFFFFF;
+  border: 1px solid rgba(230, 220, 208, 0.9);
   box-shadow: 
-    0 4px 16px -2px rgba(28, 22, 16, 0.14),
-    0 1px 3px rgba(28, 22, 16, 0.06),
-    inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.95);
+    0 3px 10px -1px rgba(60, 42, 28, 0.08),
+    0 1px 3px rgba(60, 42, 28, 0.04),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 1);
 }
 
 /* Direct finger drag tracking (zero lag, 1:1 touch response) */
@@ -91,62 +75,18 @@
   transition: none !important;
   transform-origin: center;
   box-shadow: 
-    0 8px 24px -2px rgba(28, 22, 16, 0.22),
-    0 2px 6px rgba(28, 22, 16, 0.1),
-    inset 0 1px 2px 0 rgba(255, 255, 255, 1);
+    0 6px 18px -1px rgba(60, 42, 28, 0.14),
+    0 2px 6px rgba(60, 42, 28, 0.06),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 1);
 }
 
-/* Prismatic Chromatic Sheen Rim (Subtle rainbow/iridescent refraction as seen in Slack) */
-.bottom-nav__liquid-lens-rim {
-  position: absolute;
-  inset: 0;
-  border-radius: 9999px;
-  padding: 1px;
-  background: linear-gradient(
-    135deg, 
-    rgba(255, 255, 255, 0.9) 0%, 
-    rgba(165, 215, 255, 0.65) 28%, 
-    rgba(255, 190, 235, 0.68) 64%, 
-    rgba(255, 230, 185, 0.5) 82%,
-    rgba(255, 255, 255, 0.95) 100%
-  );
-  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-  pointer-events: none;
-}
-
-/* Top-lit glass specular highlight */
+/* Subtle clean sheen */
 .bottom-nav__liquid-lens-sheen {
-  position: absolute;
-  top: 1px;
-  left: 12%;
-  right: 12%;
-  height: 48%;
-  border-radius: 9999px 9999px 40% 40%;
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.55), transparent);
-  pointer-events: none;
+  display: none;
 }
 
-/* Dark mode glass lens adaptation */
-@media (prefers-color-scheme: dark) {
-  .bottom-nav__liquid-lens {
-    background: rgba(255, 255, 255, 0.18);
-    box-shadow: 
-      0 6px 22px -2px rgba(0, 0, 0, 0.55),
-      0 1px 4px rgba(0, 0, 0, 0.35),
-      inset 0 1px 1px 0 rgba(255, 255, 255, 0.35);
-  }
-  
-  .bottom-nav__liquid-lens-rim {
-    background: linear-gradient(
-      135deg, 
-      rgba(255, 255, 255, 0.6) 0%, 
-      rgba(150, 210, 255, 0.45) 30%, 
-      rgba(255, 170, 230, 0.48) 65%, 
-      rgba(255, 255, 255, 0.65) 100%
-    );
-  }
+.bottom-nav__liquid-lens-rim {
+  display: none;
 }
 
 /* Individual navigation item sits in z-index: 2 above the sliding lens */
@@ -156,8 +96,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2.5px;
-  padding: 5px 0;
+  gap: 3px;
+  padding: 6px 0;
   text-decoration: none;
   color: var(--text-muted, #8F857A);
   position: relative;
@@ -167,7 +107,7 @@
   transition: transform 120ms cubic-bezier(0.2, 0.9, 0.3, 1), color 150ms ease;
 }
 
-/* Active and Hover tab states */
+/* Active and Hover tab states: Upward Clay */
 .bottom-nav--fluid-dock .bottom-nav__item--active,
 .bottom-nav--fluid-dock .bottom-nav__item--hovered {
   color: var(--clay, #B65B37);
@@ -175,7 +115,7 @@
 
 .bottom-nav--fluid-dock .bottom-nav__icon-pill {
   width: 44px;
-  height: 28px;
+  height: 26px;
   border-radius: 9999px;
   display: flex;
   align-items: center;
@@ -189,30 +129,23 @@
   align-items: center;
   justify-content: center;
   line-height: 0;
+  color: var(--text-muted, #8F857A);
   transition: transform 150ms cubic-bezier(0.2, 0.9, 0.3, 1), color 150ms ease;
 }
 
 /* Item pop when hovered / active under the lens */
 .bottom-nav--fluid-dock .bottom-nav__item--active .bottom-nav__icon,
 .bottom-nav--fluid-dock .bottom-nav__item--hovered .bottom-nav__icon {
-  transform: scale(1.08);
+  transform: scale(1.06);
   color: var(--clay, #B65B37);
 }
 
-@media (prefers-color-scheme: dark) {
-  .bottom-nav--fluid-dock .bottom-nav__item--active,
-  .bottom-nav--fluid-dock .bottom-nav__item--hovered,
-  .bottom-nav--fluid-dock .bottom-nav__item--active .bottom-nav__icon,
-  .bottom-nav--fluid-dock .bottom-nav__item--hovered .bottom-nav__icon {
-    color: #FFFFFF;
-  }
-}
-
 .bottom-nav--fluid-dock .bottom-nav__label {
-  font-size: 9.5px;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 500;
   letter-spacing: -0.01em;
   line-height: 1;
+  color: var(--text-muted, #8F857A);
   transition: color 150ms ease, font-weight 150ms ease;
 }
 
@@ -220,13 +153,6 @@
 .bottom-nav--fluid-dock .bottom-nav__item--hovered .bottom-nav__label {
   color: var(--clay, #B65B37);
   font-weight: 700;
-}
-
-@media (prefers-color-scheme: dark) {
-  .bottom-nav--fluid-dock .bottom-nav__item--active .bottom-nav__label,
-  .bottom-nav--fluid-dock .bottom-nav__item--hovered .bottom-nav__label {
-    color: #FFFFFF;
-  }
 }
 
 /* Content clearance for floating island when active */

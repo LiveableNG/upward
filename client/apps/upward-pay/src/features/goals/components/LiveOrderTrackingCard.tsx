@@ -130,10 +130,10 @@ export function LiveOrderTrackingCard() {
       className="live-order-card"
       role="button"
       tabIndex={0}
-      onClick={() => router.push(`/dashboard/lifestyle/orders/${activeOrder.uuid}`)}
+      onClick={() => router.push(`/dashboard/lifestyle/orders?uuid=${activeOrder.uuid}`)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
-          router.push(`/dashboard/lifestyle/orders/${activeOrder.uuid}`)
+          router.push(`/dashboard/lifestyle/orders?uuid=${activeOrder.uuid}`)
         }
       }}
       aria-label={`Track active order ${activeOrder.orderNumber}`}

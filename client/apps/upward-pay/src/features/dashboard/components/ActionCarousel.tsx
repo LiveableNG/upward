@@ -179,7 +179,7 @@ export function ActionCarousel({
       title: `${statusLabel} · ${singleOrder.orderNumber}`,
       meta: `${itemTitle}${countBadge} · Tracking in progress`,
       actionLabel: 'Track Live',
-      action: () => router.push(`/dashboard/lifestyle/orders/${singleOrder.uuid}`),
+      action: () => router.push(`/dashboard/lifestyle/orders?uuid=${singleOrder.uuid}`),
       urgency: 'pending',
     })
   }
@@ -198,7 +198,7 @@ export function ActionCarousel({
       title: `Payment Pending · ${unpaidOrder.orderNumber}`,
       meta: `Complete payment of ${formattedAmt} to begin merchant fulfilment`,
       actionLabel: 'Pay Now',
-      action: () => router.push(`/dashboard/lifestyle/orders/${unpaidOrder.uuid}`),
+      action: () => router.push(`/dashboard/lifestyle/orders?uuid=${unpaidOrder.uuid}`),
       urgency: 'critical',
     })
   }

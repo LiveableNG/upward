@@ -1,11 +1,26 @@
-import React from 'react'
-import { OrdersListScreen } from '@/features/goals/components/OrdersListScreen'
+'use client'
 
-export const metadata = {
-  title: 'My Orders & Fulfillment | Upward',
-  description: 'Track your lifestyle marketplace orders and service appointments',
+import React, { Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { OrdersListScreen, OrderTrackingScreen } from '@/features/goals'
+import FallbackSuspense from '@/components/FallbackSuspense'
+
+function LifestyleOrdersContent() {
+  const searchParams = useSearchParams()
+  const orderUuid = searchParams.get('uuid') || searchParams.get('order') || searchParams.get('id')
+
+  if (orderUuid) {
+    return <OrderTrackingScreen orderUuid={orderUuid} />
+  }
+
+  return <OrdersListScreen />
 }
 
 export default function LifestyleOrdersPage() {
-  return <OrdersListScreen />
+  return (
+    <Suspense fallback={<FallbackSuspense message="Loading orders…" />}>
+      <LifestyleOrdersContent />
+    </Suspense>
+  )
 }
+

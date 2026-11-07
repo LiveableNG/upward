@@ -264,7 +264,7 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
 
   const handleOfferingClick = (offering: GoalOffering) => {
     const identifier = offering.uuid || offering.slug || String(offering.id)
-    router.push(`/dashboard/lifestyle/${identifier}`)
+    router.push(`/dashboard/lifestyle?id=${encodeURIComponent(identifier)}`)
   }
 
   const isLoading = isCategoriesLoading || isOfferingsLoading

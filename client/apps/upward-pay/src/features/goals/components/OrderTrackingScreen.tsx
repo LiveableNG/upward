@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -80,10 +80,31 @@ const disputeSchema = z.object({
 
 type DisputeFormData = z.infer<typeof disputeSchema>
 
-export function OrderTrackingScreen({ orderUuid }: { orderUuid: string }) {
+export function OrderTrackingScreen({ orderUuid: propOrderUuid }: { orderUuid?: string }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const toast = useToast()
-  const { data: order, isLoading, error } = useTenantOrderDetail(orderUuid)
+
+  const orderUuid = React.useMemo(() => {
+    if (propOrderUuid && propOrderUuid !== 'placeholder') {
+      return propOrderUuid
+    }
+    const fromSearch = searchParams?.get('uuid') || searchParams?.get('order') || searchParams?.get('id')
+    if (fromSearch) return fromSearch
+    if (typeof window !== 'undefined') {
+      const parts = window.location.pathname.split('/dashboard/lifestyle/orders/')
+      if (parts[1]) {
+        const seg = parts[1].split(/[/?#]/)[0]
+        if (seg && seg !== 'placeholder') return seg
+      }
+    }
+    return propOrderUuid || ''
+  }, [propOrderUuid, searchParams])
+
+  const { data: order, isLoading, error } = useTenantOrderDetail(
+    orderUuid,
+    Boolean(orderUuid && orderUuid !== 'placeholder'),
+  )
   const downloadReceipt = useDownloadCommerceReceipt()
   const confirmReceipt = useConfirmSubOrderReceipt()
   const createDispute = useCreateCommerceDispute()

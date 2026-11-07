@@ -225,7 +225,7 @@ export function BottomNav() {
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerCancel}
       >
-        {/* Dynamic Prismatic Sliding Glass Lens (The Slack/iOS specular lens) */}
+        {/* Dynamic Sliding Pill Lens */}
         {isFluidNav && lensWidth > 0 && (
           <div
             className={`bottom-nav__liquid-lens ${
@@ -235,10 +235,7 @@ export function BottomNav() {
               transform: `translate3d(${lensLeft}px, 0, 0)`,
               width: `${lensWidth}px`,
             }}
-          >
-            <div className="bottom-nav__liquid-lens-sheen" />
-            <div className="bottom-nav__liquid-lens-rim" />
-          </div>
+          />
         )}
 
         {items.map((item) => {
