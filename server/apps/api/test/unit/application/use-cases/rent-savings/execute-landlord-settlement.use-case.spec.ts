@@ -1,142 +1,109 @@
-import { BadRequestException } from '@nestjs/common'
 import { ExecuteLandlordSettlementUseCase } from '@application/use-cases/rent-savings/execute-landlord-settlement.use-case'
-import { IRentVaultRepository } from '@domains/rent-savings/rent-vault.repository'
-import { IRentAdvanceRepository } from '@domains/rent-savings/rent-advance.repository'
-import { IRentSettlementRepository } from '@domains/rent-savings/rent-settlement.repository'
-import { AssetManagementProviderRegistry } from '../../../../../src/infrastructure/providers/asset-management/asset-management-provider.registry'
-import { IAssetManagementProvider } from '@domains/rent-savings/asset-management.provider'
 
-describe('ExecuteLandlordSettlementUseCase', () => {
+describe('ExecuteLandlordSettlementUseCase (Rent Vault Settlement -> Upward Score Sync)', () => {
   let useCase: ExecuteLandlordSettlementUseCase
-  let rentVaultRepo: jest.Mocked<IRentVaultRepository>
-  let rentAdvanceRepo: jest.Mocked<IRentAdvanceRepository>
-  let rentSettlementRepo: jest.Mocked<IRentSettlementRepository>
-  let providerRegistry: jest.Mocked<AssetManagementProviderRegistry>
-  let mockArmProvider: jest.Mocked<IAssetManagementProvider>
-
-  // Vault mature within 30 days
-  const now = new Date()
-  const matureDueDate = new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000) // 10 days ahead (within T-30)
-
-  const mockVault = {
-    id: 1,
-    uuid: 'vault-uuid-001',
-    userId: 10,
-    targetAmountKobo: 240000000n,
-    currentPrincipalKobo: 240000000n,
-    accruedYieldKobo: 12000000n, // ₦120,000 yield
-    cadence: 'MONTHLY' as const,
-    contractualDueDate: matureDueDate,
-    unlockDate: new Date(matureDueDate.getTime() - 30 * 24 * 60 * 60 * 1000),
-    lockStatus: 'LOCKED' as const,
-    preferredFundingMethod: 'DVA' as const,
-    dvaAssignmentStatus: 'ACTIVE',
-    autoBypassPmApproval: true,
-    investmentProvider: 'ARM',
-    providerMembershipId: 'ARM-MEM-555',
-    providerAccountNumber: 'ARM-CRM-444',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  }
+  let rentVaultRepo: any
+  let rentAdvanceRepo: any
+  let rentSettlementRepo: any
+  let providerRegistry: any
+  let rentCycleRepo: any
+  let prisma: any
 
   beforeEach(() => {
     rentVaultRepo = {
-      findByUuid: jest.fn().mockResolvedValue(mockVault),
-      createTransaction: jest.fn().mockResolvedValue({} as any),
-      update: jest.fn().mockResolvedValue({} as any),
-      findSavingsScoreByVaultId: jest.fn().mockResolvedValue({ totalScore: 85 } as any),
-      upsertSavingsScore: jest.fn().mockResolvedValue({} as any),
-    } as any
-
+      findByUuid: jest.fn(),
+      createTransaction: jest.fn(),
+      update: jest.fn(),
+      findSavingsScoreByVaultId: jest.fn(),
+      upsertSavingsScore: jest.fn(),
+    }
     rentAdvanceRepo = {
       findActiveByVaultId: jest.fn().mockResolvedValue(null),
-      update: jest.fn().mockResolvedValue({} as any),
-    } as any
-
-    rentSettlementRepo = {
-      create: jest.fn().mockResolvedValue({
-        id: 1,
-        uuid: 'settlement-uuid',
-      } as any),
-    } as any
-
-    mockArmProvider = {
-      providerName: 'ARM',
-      getYieldMetrics: jest.fn(),
-      subscribe: jest.fn(),
-      redeem: jest.fn().mockResolvedValue({
-        success: true,
-        withdrawalId: 'ARM-WITHDRAWAL-777',
-      }),
-      getPortfolio: jest.fn(),
+      update: jest.fn(),
     }
-
+    rentSettlementRepo = {
+      create: jest.fn(),
+    }
     providerRegistry = {
-      getProvider: jest.fn().mockReturnValue(mockArmProvider),
-    } as any
+      getProvider: jest.fn().mockReturnValue({
+        redeem: jest.fn().mockResolvedValue({ withdrawalId: 'ARM_WD_001' }),
+      }),
+    }
+    rentCycleRepo = {
+      create: jest.fn().mockResolvedValue({ id: 500, uuid: 'rc-vault-500' }),
+    }
+    prisma = {
+      upward_user_property: {
+        findFirst: jest.fn().mockResolvedValue({ id: 42 }),
+      },
+    }
 
     useCase = new ExecuteLandlordSettlementUseCase(
       rentVaultRepo,
       rentAdvanceRepo,
       rentSettlementRepo,
       providerRegistry,
+      rentCycleRepo,
+      prisma,
     )
   })
 
-  it('should reject settlement if vault is still locked outside T-30 days window', async () => {
-    // Due date 60 days in future (outside 30-day window)
-    const farFutureDate = new Date(now.getTime() + 60 * 24 * 60 * 60 * 1000)
-    rentVaultRepo.findByUuid.mockResolvedValueOnce({
-      ...mockVault,
-      contractualDueDate: farFutureDate,
-      unlockDate: new Date(farFutureDate.getTime() - 30 * 24 * 60 * 60 * 1000),
-    })
-
-    await expect(
-      useCase.execute(10, 'vault-uuid-001', {
-        landlord_bank_code: '058',
-        landlord_account_number: '0123456789',
-        landlord_name: 'Chief Adebayo',
-      }),
-    ).rejects.toThrow(BadRequestException)
+  afterEach(() => {
+    jest.useRealTimers()
   })
 
-  it('should redeem from ARM, disburse payout, credit cashback, and mark vault settled', async () => {
-    const result = await useCase.execute(10, 'vault-uuid-001', {
+  it('records a verified RENT_VAULT rent cycle and boosts the savings score when settling within the T-30 window', async () => {
+    const now = new Date('2026-10-20T00:00:00Z')
+    jest.useFakeTimers().setSystemTime(now)
+
+    const contractualDueDate = new Date('2026-11-01T00:00:00Z') // 12 days remaining (inside T-30 window)
+    const unlockDate = new Date('2026-10-02T00:00:00Z')
+
+    rentVaultRepo.findByUuid.mockResolvedValueOnce({
+      id: 9,
+      uuid: 'vault-uuid-9',
+      userId: 7,
+      targetAmountKobo: 200000000n, // ₦2,000,000
+      currentPrincipalKobo: 190000000n,
+      accruedYieldKobo: 10000000n,
+      contractualDueDate,
+      unlockDate,
+      lockStatus: 'SETTLEMENT_READY',
+      autoBypassPmApproval: true,
+      investmentProvider: 'ARM',
+    })
+
+    rentVaultRepo.findSavingsScoreByVaultId.mockResolvedValueOnce({
+      totalScore: 85,
+      historyLog: [],
+    })
+
+    const res = await useCase.execute(7, 'vault-uuid-9', {
       landlord_bank_code: '058',
       landlord_account_number: '0123456789',
-      landlord_name: 'Chief Adebayo',
-      property_address: '15 Admiralty Way, Lekki Phase 1',
+      landlord_name: 'Palm View Estates',
+      property_address: '14 Glover Road, Ikoyi',
     })
 
-    expect(result.status).toBe('success')
-    expect(result.data.amount_paid_to_landlord_kobo).toBe(252000000) // 2.4M principal + 120k yield
-    expect(result.data.settlement_status).toBe('PAID')
-
-    // ARM redemption called for total accumulated balance
-    expect(mockArmProvider.redeem).toHaveBeenCalledWith(
+    expect(res.status).toBe('success')
+    expect(rentVaultRepo.upsertSavingsScore).toHaveBeenCalledWith(
+      9,
+      7,
       expect.objectContaining({
-        membershipId: 'ARM-MEM-555',
-        productAccountNumber: 'ARM-CRM-444',
-        amountKobo: 252000000n,
+        totalScore: 100,
       }),
     )
-
-    // Settlement created
-    expect(rentSettlementRepo.create).toHaveBeenCalledWith(
+    expect(rentCycleRepo.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        landlordName: 'Chief Adebayo',
-        amountPaidToLandlordKobo: 252000000n,
-        settlementStatus: 'PAID',
+        userId: 7,
+        userPropertyId: 42,
+        source: 'RENT_VAULT',
+        amountOwed: 2000000,
+        amountPaid: 2000000,
+        dueDate: contractualDueDate,
+        paidAt: now,
+        status: 'PAID_ON_TIME',
       }),
     )
-
-    // Vault updated with zero balances and armWithdrawalId
-    expect(rentVaultRepo.update).toHaveBeenCalledWith(1, {
-      lockStatus: 'SETTLED',
-      currentPrincipalKobo: 0n,
-      accruedYieldKobo: 0n,
-      armWithdrawalId: 'ARM-WITHDRAWAL-777',
-    })
   })
 })

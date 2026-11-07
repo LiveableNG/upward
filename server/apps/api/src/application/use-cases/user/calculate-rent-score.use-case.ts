@@ -701,14 +701,8 @@ export class CalculateRentScoreUseCase {
       }
     })
 
-    // Tenure Years: max of calendar history span and verified paid cycle lease equivalents
-    let calendarSpanYears = 0
-    if (scoredCycles.length > 0) {
-      const firstCycleDate = new Date(scoredCycles[0]!.dueDate)
-      const historyMs = now.getTime() - firstCycleDate.getTime()
-      calendarSpanYears = Math.max(0, historyMs / (1000 * 60 * 60 * 24 * 365))
-    }
-
+    // Tenure Years: strictly based on verified paid cycle lease equivalents
+    // (so wall-clock time passing without rent payments never grants free tenure points)
     let paidCyclesEquivalentYears = 0
     scoredCycles.forEach((sc) => {
       if (sc.isFullySettled || sc.status === 'PAID_ON_TIME' || sc.status === 'PAID_LATE') {
@@ -729,7 +723,7 @@ export class CalculateRentScoreUseCase {
       }
     })
 
-    const yearsOfHistory = Math.max(calendarSpanYears, paidCyclesEquivalentYears)
+    const yearsOfHistory = paidCyclesEquivalentYears
 
     const PT = scoredCount > 0 ? totalPTScore / scoredCount : 0
     const D = scoredCount > 0 ? 1 - partialCyclesCount / scoredCount : 1
