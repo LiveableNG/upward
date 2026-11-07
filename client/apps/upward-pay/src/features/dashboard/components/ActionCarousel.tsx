@@ -6,6 +6,7 @@ import { formatCurrency } from '@/lib/utils'
 import { type PendingPayment } from '../types'
 import { isSelfInitiatedPayment } from './payment/paymentOrigin'
 import type { GtActivityBill } from '@/features/my-home/hooks/useMyHome'
+import type { TenantOrderSummaryDto } from '@/features/goals'
 
 interface ActionCarouselProps {
   pendingPayments: PendingPayment[]
@@ -17,6 +18,7 @@ interface ActionCarouselProps {
   skin?: 'default' | 'proto'
   showBenefitsUpsell?: boolean
   benefitsEndsAt?: string | null
+  activeOrder?: TenantOrderSummaryDto | null
 }
 
 type Urgency = 'critical' | 'pending' | 'neutral'
@@ -125,9 +127,45 @@ export function ActionCarousel({
   isIdentityVerified,
   skin = 'default',
   showBenefitsUpsell = false,
+  activeOrder,
 }: ActionCarouselProps) {
   const router = useRouter()
   const items: ActionItem[] = []
+
+  if (activeOrder) {
+    const isService = (activeOrder.itemsPreview || []).some((i) => i.offeringType === 'SERVICE')
+    const firstItem = (activeOrder.itemsPreview || [])[0]
+    const statusLabel =
+      activeOrder.primaryStatus === 'OUT_FOR_DELIVERY'
+        ? 'Out for Delivery'
+        : activeOrder.primaryStatus === 'TECHNICIAN_EN_ROUTE'
+        ? 'Technician En Route'
+        : activeOrder.primaryStatus === 'DISPATCHED'
+        ? 'Dispatched to Carrier'
+        : activeOrder.primaryStatus === 'PROCESSING'
+        ? 'Order in Preparation'
+        : activeOrder.primaryStatus === 'SERVICE_SCHEDULED'
+        ? 'Service Scheduled'
+        : activeOrder.primaryStatus === 'DISPUTED'
+        ? 'Inquiry Logged'
+        : isService
+        ? 'Booking Confirmed'
+        : 'Order Confirmed'
+
+    const itemTitle = firstItem ? firstItem.title : 'Lifestyle Order'
+    const count = activeOrder.itemsCount ?? (activeOrder.itemsPreview?.length || 1)
+    const countBadge = count > 1 ? ` (+${count - 1} more)` : ''
+
+    items.push({
+      type: 'live_order',
+      id: `live-order-${activeOrder.uuid}`,
+      title: `${statusLabel} · ${activeOrder.orderNumber}`,
+      meta: `${itemTitle}${countBadge} · Tracking in progress`,
+      actionLabel: 'Track Live',
+      action: () => router.push(`/dashboard/lifestyle/orders/${activeOrder.uuid}`),
+      urgency: 'pending',
+    })
+  }
 
   if (!isIdentityVerified) {
     items.push({
@@ -276,7 +314,7 @@ export function ActionCarousel({
       {items.map((item) => (
         <article
           key={item.id}
-          className={`activity-alerts__item activity-alerts__item--${item.urgency}`}
+          className={`activity-alerts__item activity-alerts__item--${item.urgency} ${item.type === 'live_order' ? 'activity-alerts__item--live-order' : ''}`}
           onClick={item.action}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
@@ -288,7 +326,18 @@ export function ActionCarousel({
           tabIndex={0}
         >
           <div className="activity-alerts__body">
-            <h4 className="activity-alerts__title">{item.title}</h4>
+            <div className="activity-alerts__header-row">
+              {item.type === 'live_order' && (
+                <span
+                  className="live-order-card__beacon live-order-card__beacon--pulse"
+                  style={{ backgroundColor: '#059669', flexShrink: 0, display: 'inline-block' }}
+                  aria-hidden="true"
+                />
+              )}
+              <h4 className="activity-alerts__title">
+                {item.title}
+              </h4>
+            </div>
             {item.meta ? <p className="activity-alerts__meta">{item.meta}</p> : null}
             <span className="activity-alerts__cta">
               {item.actionLabel}

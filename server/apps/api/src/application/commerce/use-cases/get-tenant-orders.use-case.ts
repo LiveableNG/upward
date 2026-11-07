@@ -50,16 +50,66 @@ export class GetTenantOrdersUseCase {
       status: filter.status,
     })
 
+    const mapped = items.map((order) => this.mapToTenantSummary(order))
     return {
-      items: items.map((order) => this.mapToTenantSummary(order)),
+      items: mapped,
+      orders: mapped,
       total,
       skip,
       take,
-    }
+    } as any
   }
 
   private mapToTenantSummary(order: CommerceOrder): TenantOrderSummaryDto {
     const subOrders = order.subOrders || []
+
+    const allItems: Array<{
+      title: string
+      thumbnailUrl?: string | null
+      offeringType: string
+      quantity: number
+    }> = []
+
+    for (const sub of subOrders) {
+      if (Array.isArray(sub.items)) {
+        for (const it of sub.items) {
+          allItems.push({
+            title: it.snapshotData?.title || 'Lifestyle Item',
+            thumbnailUrl:
+              it.snapshotData?.media?.[0]?.url ||
+              it.snapshotData?.thumbnailUrl ||
+              null,
+            offeringType: it.offeringType || 'PRODUCT',
+            quantity: it.quantity || 1,
+          })
+        }
+      }
+    }
+
+    let primaryStatus: any = 'ORDER_CONFIRMED'
+    if (subOrders.length > 0) {
+      const statuses = subOrders.map((s) => s.customerStatus)
+      if (statuses.some((s) => s === 'DISPUTED')) {
+        primaryStatus = 'DISPUTED'
+      } else if (
+        statuses.every((s) =>
+          ['DELIVERED', 'SERVICE_COMPLETED', 'RECEIVED_CONFIRMED'].includes(s),
+        )
+      ) {
+        primaryStatus = statuses[0]
+      } else {
+        const activePriority = [
+          'OUT_FOR_DELIVERY',
+          'TECHNICIAN_EN_ROUTE',
+          'DISPATCHED',
+          'SERVICE_SCHEDULED',
+          'PROCESSING',
+          'ORDER_CONFIRMED',
+        ]
+        const found = activePriority.find((p) => statuses.includes(p as any))
+        if (found) primaryStatus = found
+      }
+    }
 
     return {
       id: order.id!,
@@ -77,6 +127,10 @@ export class GetTenantOrdersUseCase {
       recipientPhone: order.recipientPhone,
       deliveryAddress: order.deliveryAddress,
       subOrderCount: subOrders.length,
+      subOrdersCount: subOrders.length,
+      itemsCount: allItems.reduce((acc, it) => acc + (it.quantity || 1), 0),
+      itemsPreview: allItems,
+      primaryStatus,
       createdAt: order.createdAt || new Date(),
       subOrders: subOrders.map((sub) => ({
         uuid: sub.uuid,

@@ -35,6 +35,7 @@ import {
   useUserGoals,
   useSetUserGoals,
 } from '../hooks/useGoals'
+import { useTenantOrders } from '../hooks/useCommerceOrders'
 import {
   getRecommendedOfferings,
   type RecommendedOfferingItem,
@@ -122,6 +123,15 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
 
   const { data: userGoals = [], isLoading: isUserGoalsLoading } = useUserGoals()
   const setGoalsMutation = useSetUserGoals()
+  const { data: tenantOrdersData } = useTenantOrders({ take: 20 })
+
+  const activeOrdersCount = useMemo(() => {
+    const orders = tenantOrdersData?.orders || []
+    return orders.filter((ord) => {
+      if (['CANCELLED', 'REFUNDED'].includes(ord.status)) return false
+      return !['DELIVERED', 'SERVICE_COMPLETED', 'RECEIVED_CONFIRMED'].includes(ord.primaryStatus)
+    }).length
+  }, [tenantOrdersData])
 
   const { user } = useAuth()
   const [deliveryLocation, setDeliveryLocation] = useState<UserDeliveryLocation>(() =>
@@ -285,13 +295,20 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
           <div className="lifestyle-discovery__top-actions">
             <button
               type="button"
-              className="lifestyle-discovery__goals-trigger"
+              className={`lifestyle-discovery__goals-trigger ${
+                activeOrdersCount > 0 ? 'lifestyle-discovery__goals-trigger--active' : ''
+              }`}
               onClick={() => router.push('/dashboard/lifestyle/orders')}
               aria-label="View past orders and tracking"
               title="My Orders"
             >
               <Package size={14} />
               <span>Orders</span>
+              {activeOrdersCount > 0 && (
+                <span className="lifestyle-discovery__goals-badge">
+                  {activeOrdersCount}
+                </span>
+              )}
             </button>
 
             <button

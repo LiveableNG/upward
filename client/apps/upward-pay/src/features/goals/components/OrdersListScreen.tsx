@@ -218,7 +218,8 @@ export function OrdersListScreen() {
         ) : (
           <div className="orders-hub__list">
             {displayedOrders.map((order) => {
-              const isService = order.itemsPreview.some((i) => i.offeringType === 'SERVICE')
+              const itemsList = order.itemsPreview || []
+              const isService = itemsList.some((i) => i.offeringType === 'SERVICE')
               const badge = getStatusBadge(order.primaryStatus, isService)
               const isDownloading = downloadingUuid === order.uuid
 
@@ -238,7 +239,7 @@ export function OrdersListScreen() {
 
                   {/* Card Items Preview */}
                   <div className="orders-hub__items">
-                    {order.itemsPreview.map((item, idx) => (
+                    {itemsList.map((item, idx) => (
                       <div key={idx} className="orders-hub__item">
                         <div className="orders-hub__item-thumb">
                           {item.thumbnailUrl ? (
@@ -257,9 +258,9 @@ export function OrdersListScreen() {
                         </div>
                       </div>
                     ))}
-                    {order.itemsCount > order.itemsPreview.length && (
+                    {(order.itemsCount ?? 0) > itemsList.length && (
                       <div className="orders-hub__more-items">
-                        +{order.itemsCount - order.itemsPreview.length} more item(s)
+                        +{(order.itemsCount ?? 0) - itemsList.length} more item(s)
                       </div>
                     )}
                   </div>

@@ -270,9 +270,11 @@ export function OrderTrackingScreen({ orderUuid }: { orderUuid: string }) {
               {/* Suborder Header */}
               <div className="order-tracking__suborder-head">
                 <div>
-                  <div className="order-tracking__suborder-num">{subOrder.subOrderNumber}</div>
+                  {order.subOrders.length > 1 && (
+                    <div className="order-tracking__suborder-num">{subOrder.subOrderNumber}</div>
+                  )}
                   <div className="order-tracking__vendor-tag">
-                    <ShieldCheck size={13} color="var(--clay)" />
+                    <ShieldCheck size={14} color="var(--clay)" />
                     <span>Fulfilled by {subOrder.vendorName}</span>
                   </div>
                 </div>
@@ -477,9 +479,13 @@ export function OrderTrackingScreen({ orderUuid }: { orderUuid: string }) {
         {activeDisputeSubOrder && (
           <form onSubmit={handleSubmit(onSubmitDispute)} className="order-tracking__form">
             <p className="order-tracking__form-intro">
-              Reporting an issue for sub-order{' '}
-              <strong>{activeDisputeSubOrder.subOrderNumber}</strong>. Our support team will
-              coordinate directly with the partner to resolve this for you.
+              Reporting an issue for{' '}
+              {order.subOrders.length > 1 ? (
+                <>package <strong>{activeDisputeSubOrder.subOrderNumber}</strong></>
+              ) : (
+                <>order <strong>{order.orderNumber}</strong></>
+              )}
+              . Our support team will coordinate directly with the partner to resolve this for you.
             </p>
 
             <div className="order-tracking__form-field">

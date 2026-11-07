@@ -22,6 +22,7 @@ function getStatusDetails(status: CustomerFulfilmentStatus, isService: boolean) 
         color: 'var(--clay)',
         bg: 'var(--clay-tint, rgba(182, 91, 55, 0.08))',
         progress: 25,
+        pulse: true,
       }
     case 'PROCESSING':
       return {
@@ -30,6 +31,7 @@ function getStatusDetails(status: CustomerFulfilmentStatus, isService: boolean) 
         color: 'var(--clay)',
         bg: 'var(--clay-tint, rgba(182, 91, 55, 0.08))',
         progress: 45,
+        pulse: true,
       }
     case 'DISPATCHED':
       return {
@@ -38,6 +40,7 @@ function getStatusDetails(status: CustomerFulfilmentStatus, isService: boolean) 
         color: '#0D9488',
         bg: 'rgba(13, 148, 136, 0.08)',
         progress: 65,
+        pulse: true,
       }
     case 'OUT_FOR_DELIVERY':
       return {
@@ -55,6 +58,7 @@ function getStatusDetails(status: CustomerFulfilmentStatus, isService: boolean) 
         color: '#0D9488',
         bg: 'rgba(13, 148, 136, 0.08)',
         progress: 60,
+        pulse: true,
       }
     case 'TECHNICIAN_EN_ROUTE':
       return {
@@ -74,6 +78,7 @@ function getStatusDetails(status: CustomerFulfilmentStatus, isService: boolean) 
         color: '#10B981',
         bg: 'rgba(16, 185, 129, 0.08)',
         progress: 100,
+        pulse: false,
       }
     case 'DISPUTED':
       return {
@@ -82,6 +87,7 @@ function getStatusDetails(status: CustomerFulfilmentStatus, isService: boolean) 
         color: '#D97706',
         bg: 'rgba(217, 119, 6, 0.08)',
         progress: 50,
+        pulse: true,
       }
     default:
       return {
@@ -90,6 +96,7 @@ function getStatusDetails(status: CustomerFulfilmentStatus, isService: boolean) 
         color: 'var(--text-muted)',
         bg: 'var(--bg-card)',
         progress: 30,
+        pulse: true,
       }
   }
 }

@@ -105,6 +105,15 @@ export interface TenantOrderSummaryDto {
   recipientPhone: string
   deliveryAddress: string
   subOrderCount: number
+  subOrdersCount?: number
+  itemsCount?: number
+  itemsPreview?: Array<{
+    title: string
+    thumbnailUrl?: string | null
+    offeringType: string
+    quantity: number
+  }>
+  primaryStatus?: CustomerFulfilmentStatus
   createdAt: Date
   subOrders: Array<{
     uuid: string

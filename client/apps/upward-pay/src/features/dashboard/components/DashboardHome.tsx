@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ArrowDownRight,
@@ -27,7 +27,11 @@ import { UpcomingFeaturesWidget } from './UpcomingFeaturesWidget'
 import { ExclusiveHomesBrowseLink } from './exclusive-homes/ExclusiveHomesPromo'
 import { isSavingsWalletEnabled } from '../utils/savingsWallet'
 import { RentDepositCard } from './RentDepositCard'
-import { LifestyleGoalsWidget, LiveOrderTrackingCard } from '@/features/goals'
+import {
+  LifestyleGoalsWidget,
+  useTenantOrders,
+  type TenantOrderSummaryDto,
+} from '@/features/goals'
 
 interface DashboardHomeProps {
   user: UserProfile
@@ -168,6 +172,23 @@ export function DashboardHome({
   const { bills: gtBills } = useAllPendingBills()
   const [isNavigatingToBreakdown, setIsNavigatingToBreakdown] = useState(false)
 
+  const { data: tenantOrdersData } = useTenantOrders({ take: 5 })
+  const activeOrder: TenantOrderSummaryDto | undefined = useMemo(() => {
+    const orders = tenantOrdersData?.orders || []
+    return orders.find((ord) => {
+      if (['CANCELLED', 'REFUNDED'].includes(ord.status)) return false
+      return [
+        'ORDER_CONFIRMED',
+        'PROCESSING',
+        'DISPATCHED',
+        'OUT_FOR_DELIVERY',
+        'SERVICE_SCHEDULED',
+        'TECHNICIAN_EN_ROUTE',
+        'DISPUTED',
+      ].includes(ord.primaryStatus)
+    })
+  }, [tenantOrdersData])
+
   const handleScoreClick = () => {
     setIsNavigatingToBreakdown(true)
     setTimeout(() => {
@@ -197,6 +218,7 @@ export function DashboardHome({
   const recent = completedPayments.slice(0, 3)
 
   const showActivityCenter =
+    Boolean(activeOrder) ||
     pendingPayments.length > 0 ||
     gtBills.length > 0 ||
     isNewUser ||
@@ -284,6 +306,7 @@ export function DashboardHome({
             isIdentityVerified={!verificationOn || isIdentityVerified}
             skin="proto"
             showBenefitsUpsell={!benefitsActive}
+            activeOrder={activeOrder}
           />
         </div>
       )}
@@ -477,8 +500,6 @@ export function DashboardHome({
       </div>
 
       <div className="dash-home__wide">
-        <LiveOrderTrackingCard />
-
         <LifestyleGoalsWidget />
 
         <div className="dash-home__section-head">

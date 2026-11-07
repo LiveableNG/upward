@@ -13,11 +13,31 @@ export async function fetchTenantOrders(
   if (filter.take !== undefined) params.set('take', String(filter.take))
 
   const qs = params.toString()
-  const res = await request<{ data: { orders: TenantOrderSummaryDto[]; total: number } }>(
+  const res = await request<{ data: any }>(
     `/user/commerce/orders${qs ? `?${qs}` : ''}`,
     { method: 'GET' },
   )
-  return res.data || { orders: [], total: 0 }
+  const rawList: any[] = res.data?.orders || res.data?.items || []
+  const total: number = res.data?.total ?? rawList.length
+
+  const orders: TenantOrderSummaryDto[] = rawList.map((ord: any) => {
+    const subOrders = ord.subOrders || []
+    const itemsPreview = ord.itemsPreview || []
+    const itemsCount = ord.itemsCount ?? (itemsPreview.length || 1)
+    const primaryStatus =
+      ord.primaryStatus ||
+      (subOrders[0]?.customerStatus ?? (ord.status === 'COMPLETED' ? 'DELIVERED' : 'ORDER_CONFIRMED'))
+
+    return {
+      ...ord,
+      itemsPreview,
+      itemsCount,
+      primaryStatus,
+      subOrdersCount: ord.subOrdersCount ?? ord.subOrderCount ?? subOrders.length,
+    }
+  })
+
+  return { orders, total }
 }
 
 export async function fetchTenantOrderDetail(
