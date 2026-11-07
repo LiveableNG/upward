@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { AlertCircle, Loader2, ShieldCheck } from 'lucide-react'
+import { AlertCircle, Loader2, ShieldCheck, Award } from 'lucide-react'
 import { verifyBvn, getMe } from '@/features/auth/services/authService'
 import { useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/features/auth/AuthContext'
@@ -101,14 +101,15 @@ export default function VerifyIdentityPage() {
             )}
           </SetupPrimaryButton>
           <p className="verify-identity-page__trust">
-            🔒 Encrypted &amp; secure. <strong>We do not save your BVN number</strong>.
+            <ShieldCheck size={14} style={{ display: 'inline-block', verticalAlign: '-2px', marginRight: 5 }} aria-hidden />
+            Encrypted &amp; secure. <strong>We do not save your BVN number</strong>.
           </p>
         </>
       }
     >
       <div className="verify-identity-page__promo">
         <div className="verify-identity-page__promo-icon" aria-hidden="true">
-          ✦
+          <Award size={20} />
         </div>
         <div>
           <p className="verify-identity-page__promo-title">Unlock +50 points</p>

@@ -281,7 +281,7 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
               onClick={() => router.push('/dashboard')}
               aria-label="Back to dashboard"
             >
-              <ArrowLeft size={18} />
+              <ArrowLeft size={16} />
             </button>
             <div className="lifestyle-discovery__title-group">
               <h1 className="lifestyle-discovery__title">Lifestyle & Perks</h1>

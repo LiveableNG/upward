@@ -261,7 +261,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
             className="offering-detail__back-btn"
             onClick={handleBack}
           >
-            <ArrowLeft size={18} />
+            <ArrowLeft size={16} />
             <span>Back</span>
           </button>
         </header>
@@ -283,7 +283,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
             className="offering-detail__back-btn"
             onClick={handleBack}
           >
-            <ArrowLeft size={18} />
+            <ArrowLeft size={16} />
             <span>Back to Lifestyle</span>
           </button>
         </header>
@@ -361,7 +361,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
             className="offering-detail__back-btn"
             onClick={handleBack}
           >
-            <ArrowLeft size={18} />
+            <ArrowLeft size={16} />
             <span>Lifestyle & Perks</span>
           </button>
 

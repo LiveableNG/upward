@@ -157,7 +157,7 @@ export function OrdersListScreen() {
           onClick={() => router.push('/dashboard/lifestyle')}
           aria-label="Back to lifestyle marketplace"
         >
-          <ArrowLeft size={18} />
+          <ArrowLeft size={16} />
         </button>
         <div className="orders-hub__header-text">
           <h1 className="orders-hub__title">My Orders & Fulfillment</h1>

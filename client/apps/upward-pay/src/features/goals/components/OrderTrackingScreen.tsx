@@ -120,7 +120,7 @@ export function OrderTrackingScreen({ orderUuid }: { orderUuid: string }) {
             className="order-tracking__back-btn"
             onClick={() => router.push('/dashboard/lifestyle/orders')}
           >
-            <ArrowLeft size={18} />
+            <ArrowLeft size={16} />
           </button>
           <div className="order-tracking__title-skel animate-pulse" />
         </header>
@@ -240,7 +240,7 @@ export function OrderTrackingScreen({ orderUuid }: { orderUuid: string }) {
           onClick={() => router.push('/dashboard/lifestyle/orders')}
           aria-label="Back to orders"
         >
-          <ArrowLeft size={18} />
+          <ArrowLeft size={16} />
         </button>
         <div className="order-tracking__header-meta">
           <div className="order-tracking__order-id">{order.orderNumber}</div>
