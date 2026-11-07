@@ -2,7 +2,9 @@ import {
   BadRequestException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common'
 import {
   COMMERCE_ORDER_REPOSITORY,
@@ -10,14 +12,19 @@ import {
 } from '../../../domains/commerce/commerce-order.repository'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import { ConfirmSubOrderReceiptResultDto } from '../dto/confirm-receipt.dto'
+import { SendCommerceThankYouEmailUseCase } from './send-commerce-thank-you-email.use-case'
 
 @Injectable()
 export class TenantConfirmSubOrderReceiptUseCase {
+  private readonly logger = new Logger(TenantConfirmSubOrderReceiptUseCase.name)
+
   constructor(
     @Inject(COMMERCE_ORDER_REPOSITORY)
     private readonly orderRepo: CommerceOrderRepository,
     @Inject(USER_REPOSITORY)
     private readonly userRepo: UserRepository,
+    @Optional()
+    private readonly thankYouEmailUseCase?: SendCommerceThankYouEmailUseCase,
   ) {}
 
   async execute(
@@ -102,6 +109,14 @@ export class TenantConfirmSubOrderReceiptUseCase {
     })
 
     const parentOrder = await this.orderRepo.findOrderById(order.id!)
+
+    if (this.thankYouEmailUseCase) {
+      this.thankYouEmailUseCase
+        .execute(order.id!, subOrder.id!)
+        .catch((err) =>
+          this.logger.error(`Failed to dispatch thank-you email on receipt confirmation for order #${order.id}`, err),
+        )
+    }
 
     return {
       success: true,

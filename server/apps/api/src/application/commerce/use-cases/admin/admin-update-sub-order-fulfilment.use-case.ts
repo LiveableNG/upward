@@ -24,10 +24,13 @@ import { NotificationService } from '../../../../shared/infrastructure/common/no
 import { EmailService } from '../../../../shared/infrastructure/email/email.service'
 import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service'
 import { USER_REPOSITORY, UserRepository } from '../../../../domains/users/user.repository'
+import { ConfigService } from '@nestjs/config'
+import { SendCommerceThankYouEmailUseCase } from '../send-commerce-thank-you-email.use-case'
 
 @Injectable()
 export class AdminUpdateSubOrderFulfilmentUseCase {
   private readonly logger = new Logger(AdminUpdateSubOrderFulfilmentUseCase.name)
+  private readonly frontendUrl: string
 
   constructor(
     @Inject(COMMERCE_ORDER_REPOSITORY)
@@ -41,7 +44,17 @@ export class AdminUpdateSubOrderFulfilmentUseCase {
     @Optional()
     @Inject(USER_REPOSITORY)
     private readonly userRepo?: UserRepository,
-  ) {}
+    @Optional()
+    private readonly configService?: ConfigService,
+    @Optional()
+    private readonly thankYouEmailUseCase?: SendCommerceThankYouEmailUseCase,
+  ) {
+    this.frontendUrl = (
+      this.configService?.get<string>('FRONTEND_URL') || 'https://upward.goodtenants.io'
+    )
+      .split(',')[0]!
+      .trim()
+  }
 
   async execute(
     subOrderUuid: string,
@@ -83,7 +96,8 @@ export class AdminUpdateSubOrderFulfilmentUseCase {
     const now = new Date()
 
     switch (dto.action) {
-      case AdminFulfilmentTransitionAction.CONFIRM_BY_VENDOR: {
+      case AdminFulfilmentTransitionAction.CONFIRM_BY_VENDOR:
+      case AdminFulfilmentTransitionAction.VENDOR_CONFIRM: {
         if (subOrder.operationalStatus === 'VENDOR_CONFIRMED') {
           return this.mapToAdminSubOrderDto(subOrder)
         }
@@ -94,12 +108,10 @@ export class AdminUpdateSubOrderFulfilmentUseCase {
       }
 
       // PRODUCT LIFECYCLE
-      case AdminFulfilmentTransitionAction.DISPATCH: {
+      case AdminFulfilmentTransitionAction.DISPATCH:
+      case AdminFulfilmentTransitionAction.DISPATCH_CARRIER: {
         if (isServiceSubOrder) {
           throw new BadRequestException('Cannot dispatch carrier for a service sub-order; use service scheduling')
-        }
-        if (!dto.carrierName || !dto.trackingNumber) {
-          throw new BadRequestException('carrierName and trackingNumber are required for carrier dispatch')
         }
 
         // Idempotency check
@@ -113,14 +125,18 @@ export class AdminUpdateSubOrderFulfilmentUseCase {
 
         targetCustomerStatus = 'DISPATCHED'
         targetOperationalStatus = 'CARRIER_DISPATCHED'
-        dispatchData.carrierName = dto.carrierName
-        dispatchData.trackingNumber = dto.trackingNumber
+        if (dto.carrierName) dispatchData.carrierName = dto.carrierName
+        if (dto.trackingNumber) dispatchData.trackingNumber = dto.trackingNumber
         if (dto.trackingUrl) dispatchData.trackingUrl = dto.trackingUrl
 
         eventTitle = eventTitle || 'Package Dispatched'
         eventDescription =
           eventDescription ||
-          `Package dispatched via ${dto.carrierName}. Tracking number: ${dto.trackingNumber}`
+          (dto.carrierName && dto.trackingNumber
+            ? `Package dispatched via ${dto.carrierName}. Tracking: ${dto.trackingNumber}`
+            : dto.carrierName
+            ? `Package dispatched via ${dto.carrierName}`
+            : 'Package has been dispatched and is in transit to destination')
         break
       }
 
@@ -178,7 +194,8 @@ export class AdminUpdateSubOrderFulfilmentUseCase {
       }
 
       // SERVICE LIFECYCLE
-      case AdminFulfilmentTransitionAction.SCHEDULE_SERVICE: {
+      case AdminFulfilmentTransitionAction.SCHEDULE_SERVICE:
+      case AdminFulfilmentTransitionAction.SERVICE_SCHEDULE: {
         if (!isServiceSubOrder) {
           throw new BadRequestException('Cannot schedule service appointment on a product sub-order')
         }
@@ -206,7 +223,8 @@ export class AdminUpdateSubOrderFulfilmentUseCase {
         break
       }
 
-      case AdminFulfilmentTransitionAction.ASSIGN_TECHNICIAN: {
+      case AdminFulfilmentTransitionAction.ASSIGN_TECHNICIAN:
+      case AdminFulfilmentTransitionAction.TECHNICIAN_ASSIGN: {
         if (!isServiceSubOrder) {
           throw new BadRequestException('Cannot assign technician to a product sub-order')
         }
@@ -363,11 +381,14 @@ export class AdminUpdateSubOrderFulfilmentUseCase {
     })
 
     // Multi-channel notifications for customer-visible milestones
+    const isMultiPackage = Boolean(order.subOrders && order.subOrders.length > 1)
+    const orderLabel = isMultiPackage ? subOrder.subOrderNumber : order.orderNumber
+
     if (this.notificationService && isCustomerVisible) {
       this.notificationService
         .notifyUser(order.userId, {
           title: `Order Update: ${eventTitle}`,
-          message: `${eventDescription} (Sub-order: ${subOrder.subOrderNumber})`,
+          message: `${eventDescription} (${orderLabel})`,
           type: 'PAYMENT',
           url: `/dashboard/lifestyle/orders/${order.uuid}`,
         })
@@ -384,19 +405,20 @@ export class AdminUpdateSubOrderFulfilmentUseCase {
           const tenantEmail = this.encryption!.decrypt(user.email)
           if (!tenantEmail || tenantEmail.endsWith('@upward.com')) return
 
+          const trackingUrl = `${this.frontendUrl}/dashboard/lifestyle/orders/${order.uuid}`
           const html = `
             <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; color: #1E1B18; line-height: 1.5;">
               <div style="background-color: #B65B37; height: 6px; width: 100%;"></div>
               <div style="padding: 32px 24px; background-color: #FAF8F6; border-radius: 0 0 12px 12px; border: 1px solid #E5E2DC; border-top: none;">
                 <h2 style="color: #B65B37; margin: 0 0 8px; font-size: 20px;">Order Status Update: ${eventTitle}</h2>
-                <p style="font-size: 14px; color: #666666; margin: 0 0 20px;">Your sub-order <strong>${subOrder.subOrderNumber}</strong> has a new milestone update.</p>
+                <p style="font-size: 14px; color: #666666; margin: 0 0 20px;">Your order <strong>${orderLabel}</strong> has a new milestone update.</p>
                 <div style="background-color: #FFFFFF; border: 1px solid #E5E2DC; border-radius: 8px; padding: 18px; margin-bottom: 24px;">
                   <div style="font-size: 14px; font-weight: 600; color: #1E1B18; margin-bottom: 6px;">${eventTitle}</div>
                   <div style="font-size: 13.5px; color: #555555;">${eventDescription}</div>
                   ${dispatchData.carrierName && dispatchData.trackingNumber ? `<div style="margin-top: 10px; font-size: 12.5px; color: #888888;">Carrier: ${dispatchData.carrierName} · Tracking: ${dispatchData.trackingNumber}</div>` : ''}
                 </div>
                 <div style="text-align: center; margin: 24px 0;">
-                  <a href="${this.emailService!['frontendUrl'] || 'https://upward.goodtenants.io'}/dashboard/lifestyle/orders/${order.uuid}" style="background-color: #B65B37; color: #FFFFFF; text-decoration: none; font-weight: 700; font-size: 14px; padding: 12px 24px; border-radius: 8px; display: inline-block;">
+                  <a href="${trackingUrl}" style="background-color: #B65B37; color: #FFFFFF; text-decoration: none; font-weight: 700; font-size: 14px; padding: 12px 24px; border-radius: 8px; display: inline-block;">
                     View Live Order Tracking
                   </a>
                 </div>
@@ -406,13 +428,25 @@ export class AdminUpdateSubOrderFulfilmentUseCase {
 
           return this.emailService!.sendEmailWithRetry({
             email: tenantEmail,
-            subject: `Order Update: ${eventTitle} (${subOrder.subOrderNumber})`,
+            subject: `Order Update: ${eventTitle} (${orderLabel})`,
             html,
             type: 'COMMERCE_FULFILMENT_UPDATE',
           })
         })
         .catch((err) =>
           this.logger.error(`Failed to send milestone email for sub-order ${subOrderUuid}`, err),
+        )
+    }
+
+    // Trigger completion Thank-You notification & email if completed
+    if (
+      this.thankYouEmailUseCase &&
+      (targetCustomerStatus === 'DELIVERED' || targetCustomerStatus === 'SERVICE_COMPLETED')
+    ) {
+      this.thankYouEmailUseCase
+        .execute(order.id!, subOrder.id!)
+        .catch((err) =>
+          this.logger.error(`Failed to dispatch thank-you email on completion for order #${order.id}`, err),
         )
     }
 

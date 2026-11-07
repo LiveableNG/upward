@@ -23,15 +23,20 @@ export type AdminOperationalStatus =
   | 'CANCELLED_REFUNDED'
 
 export type AdminFulfilmentTransitionAction =
+  | 'CONFIRM_BY_VENDOR'
   | 'VENDOR_CONFIRM'
   | 'VENDOR_DECLINE'
+  | 'DISPATCH'
   | 'DISPATCH_CARRIER'
-  | 'TECHNICIAN_ASSIGN'
+  | 'SCHEDULE_SERVICE'
   | 'SERVICE_SCHEDULE'
+  | 'ASSIGN_TECHNICIAN'
+  | 'TECHNICIAN_ASSIGN'
   | 'TECHNICIAN_EN_ROUTE'
   | 'COMPLETE_SERVICE'
   | 'OUT_FOR_DELIVERY'
   | 'DELIVER'
+  | 'ADMIN_CONFIRM_RECEIPT'
   | 'CANCEL_REFUND'
 
 export type DisputeStatus =

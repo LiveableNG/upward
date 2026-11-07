@@ -46,6 +46,7 @@ import { AdminUpdateSubOrderFulfilmentUseCase } from './commerce/use-cases/admin
 import { TenantConfirmSubOrderReceiptUseCase } from './commerce/use-cases/tenant-confirm-sub-order-receipt.use-case'
 import { GetCommerceReceiptPdfUseCase } from './commerce/use-cases/get-commerce-receipt-pdf.use-case'
 import { SendCommerceReceiptEmailUseCase } from './commerce/use-cases/send-commerce-receipt-email.use-case'
+import { SendCommerceThankYouEmailUseCase } from './commerce/use-cases/send-commerce-thank-you-email.use-case'
 import { CreateCommerceDisputeUseCase } from './commerce/use-cases/create-commerce-dispute.use-case'
 import { CreateCommerceInquiryUseCase } from './commerce/use-cases/create-commerce-inquiry.use-case'
 import { AdminResolveCommerceDisputeUseCase } from './commerce/use-cases/admin/admin-resolve-commerce-dispute.use-case'
@@ -1171,6 +1172,7 @@ const UseCases: any[] = [
   TenantConfirmSubOrderReceiptUseCase,
   GetCommerceReceiptPdfUseCase,
   SendCommerceReceiptEmailUseCase,
+  SendCommerceThankYouEmailUseCase,
   CreateCommerceDisputeUseCase,
   CreateCommerceInquiryUseCase,
   AdminResolveCommerceDisputeUseCase,

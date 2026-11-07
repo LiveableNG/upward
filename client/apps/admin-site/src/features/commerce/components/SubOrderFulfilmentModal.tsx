@@ -33,9 +33,9 @@ export function SubOrderFulfilmentModal({
   const isService = (subOrder.items || []).some((i) => i.offeringType === 'SERVICE')
 
   const [action, setAction] = useState<AdminFulfilmentTransitionAction>(
-    isService ? 'SERVICE_SCHEDULE' : 'DISPATCH_CARRIER',
+    isService ? 'SCHEDULE_SERVICE' : 'DISPATCH',
   )
-  const [carrierName, setCarrierName] = useState(subOrder.carrierName || 'GIG Logistics')
+  const [carrierName, setCarrierName] = useState(subOrder.carrierName || '')
   const [trackingNumber, setTrackingNumber] = useState(subOrder.trackingNumber || '')
   const [trackingUrl, setTrackingUrl] = useState(subOrder.trackingUrl || '')
   const [serviceScheduledAt, setServiceScheduledAt] = useState(
@@ -53,6 +53,17 @@ export function SubOrderFulfilmentModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if ((action === 'SCHEDULE_SERVICE' || action === 'SERVICE_SCHEDULE') && !serviceScheduledAt) {
+      alert('Please select an Appointment Date & Time to schedule service.')
+      return
+    }
+
+    if ((action === 'ASSIGN_TECHNICIAN' || action === 'TECHNICIAN_ASSIGN') && !technicianName.trim()) {
+      alert('Please provide the Technician Name.')
+      return
+    }
+
     setSubmitting(true)
     try {
       await onUpdate(subOrder.uuid, {
@@ -128,18 +139,18 @@ export function SubOrderFulfilmentModal({
             >
               {isService ? (
                 <>
-                  <option value="SERVICE_SCHEDULE">Schedule Service Appointment</option>
-                  <option value="TECHNICIAN_ASSIGN">Assign Technician</option>
+                  <option value="SCHEDULE_SERVICE">Schedule Service Appointment</option>
+                  <option value="ASSIGN_TECHNICIAN">Assign Technician</option>
                   <option value="TECHNICIAN_EN_ROUTE">Technician En Route</option>
                   <option value="COMPLETE_SERVICE">Complete Service</option>
-                  <option value="VENDOR_CONFIRM">Confirm Booking</option>
+                  <option value="CONFIRM_BY_VENDOR">Confirm Booking (Vendor Confirmed)</option>
                 </>
               ) : (
                 <>
-                  <option value="DISPATCH_CARRIER">Dispatch to Carrier Partner</option>
+                  <option value="DISPATCH">Dispatch to Carrier Partner</option>
                   <option value="OUT_FOR_DELIVERY">Out for Delivery</option>
                   <option value="DELIVER">Mark as Delivered</option>
-                  <option value="VENDOR_CONFIRM">Vendor Confirmed</option>
+                  <option value="CONFIRM_BY_VENDOR">Confirm Vendor Acceptance</option>
                 </>
               )}
             </select>
@@ -150,13 +161,14 @@ export function SubOrderFulfilmentModal({
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 5, color: 'var(--text)' }}>
-                  Carrier Partner
+                  Carrier Partner {action === 'DISPATCH' && <span style={{ color: 'var(--accent-red, #dc2626)' }}>*</span>}
                 </label>
                 <input
                   type="text"
                   value={carrierName}
                   onChange={(e) => setCarrierName(e.target.value)}
                   placeholder="e.g. GIG Logistics, DHL, Kwik"
+                  required={action === 'DISPATCH'}
                   style={{
                     width: '100%',
                     padding: '9px 12px',
@@ -170,13 +182,14 @@ export function SubOrderFulfilmentModal({
 
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 5, color: 'var(--text)' }}>
-                  Tracking Number
+                  Tracking Number {action === 'DISPATCH' && <span style={{ color: 'var(--accent-red, #dc2626)' }}>*</span>}
                 </label>
                 <input
                   type="text"
                   value={trackingNumber}
                   onChange={(e) => setTrackingNumber(e.target.value)}
                   placeholder="e.g. GIG-LAG-98213"
+                  required={action === 'DISPATCH'}
                   style={{
                     width: '100%',
                     padding: '9px 12px',
