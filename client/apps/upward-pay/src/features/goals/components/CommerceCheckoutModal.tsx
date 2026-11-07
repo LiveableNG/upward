@@ -478,7 +478,6 @@ export function CommerceCheckoutModal({
 
               <div style={{ flex: 1, minWidth: 0 }}>
 
-                {/* Zone Full Name with clean line-height & wrapping */}
                 <div
                   style={{
                     fontWeight: 700,
@@ -505,7 +504,6 @@ export function CommerceCheckoutModal({
               </div>
             </div>
 
-            {/* Unsupported / Paused Zone Notice Banner */}
             {!isZoneDeliverable && (
               <div
                 style={{
@@ -544,7 +542,6 @@ export function CommerceCheckoutModal({
               </div>
             )}
 
-            {/* Specific Address Input */}
             <div className="checkout-sheet__field">
               <label className="checkout-sheet__label" htmlFor="streetAddress">
                 Specific Street Address &amp; House / Unit Number <span style={{ color: 'var(--clay)' }}>*</span>
