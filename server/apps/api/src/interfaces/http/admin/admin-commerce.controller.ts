@@ -98,7 +98,7 @@ export class AdminCommerceController {
     @Param('uuid') uuid: string,
     @Body() dto: ResolveCommerceDisputeDto,
   ) {
-    const adminEmail = req.user?.email || 'admin@upward.ng'
+    const adminEmail = req.user?.email || 'admin@goodtenants.africa'
     const data = await this.resolveCommerceDisputeUseCase.execute(adminEmail, uuid, dto)
     return { data }
   }

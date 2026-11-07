@@ -449,7 +449,7 @@ export class CommerceReceiptService {
           .fontSize(8)
           .fillColor(inkFaint)
           .text(
-            'This receipt confirms a verified purchase through the Upward platform.\nFor inquiries or dispute arbitration, email support@upward.ng',
+            'This receipt confirms a verified purchase through the Upward platform.\nFor inquiries or dispute arbitration, email hello@goodtenants.africa',
             CARD_X,
             FOOTER_Y + 14,
             { lineGap: 2 },

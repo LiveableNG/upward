@@ -57,6 +57,49 @@ export async function downloadCommerceReceiptPdf(
   const blob = await requestBlob(`/user/commerce/orders/${orderUuid}/receipt`, {
     method: 'GET',
   })
+
+  if (typeof window !== 'undefined') {
+    try {
+      const { Capacitor } = await import('@capacitor/core')
+
+      if (Capacitor.isNativePlatform()) {
+        const { Filesystem, Directory } = await import('@capacitor/filesystem')
+        const { Share } = await import('@capacitor/share')
+
+        const reader = new FileReader()
+        const base64Data = await new Promise<string>((resolve, reject) => {
+          reader.onloadend = () => {
+            const result = reader.result as string
+            if (result) {
+              resolve(result.split(',')[1]) // Extract pure base64
+            } else {
+              reject(new Error('Failed to convert blob to base64'))
+            }
+          }
+          reader.onerror = reject
+          reader.readAsDataURL(blob)
+        })
+
+        const cleanFileName = receiptFileName.replace(/\//g, '-')
+        const writeResult = await Filesystem.writeFile({
+          path: cleanFileName,
+          data: base64Data,
+          directory: Directory.Cache,
+        })
+
+        await Share.share({
+          title: cleanFileName,
+          text: `Your Upward order receipt: ${cleanFileName}`,
+          url: writeResult.uri,
+        })
+
+        return
+      }
+    } catch (err) {
+      console.error('[downloadCommerceReceiptPdf] Native download/share failed, falling back to browser download:', err)
+    }
+  }
+
   const url = window.URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.style.display = 'none'

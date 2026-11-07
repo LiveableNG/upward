@@ -76,45 +76,62 @@ export class AdminGetCommerceOrdersUseCase {
         phone: order.user?.phone,
       },
       subOrdersCount: subOrders.length,
-      subOrders: subOrders.map((sub: CommerceVendorSuborder) => ({
-        id: sub.id,
-        uuid: sub.uuid,
-        subOrderNumber: sub.subOrderNumber,
-        vendorName: sub.vendor?.name || 'Vendor',
-        vendor: sub.vendor
-          ? {
-              id: sub.vendor.id,
-              name: sub.vendor.name,
-              slug: sub.vendor.slug,
-              email: sub.vendor.email,
-              phone: sub.vendor.phone,
-            }
-          : undefined,
-        customerStatus: sub.customerStatus,
-        operationalStatus: sub.operationalStatus,
-        carrierName: sub.carrierName,
-        trackingNumber: sub.trackingNumber,
-        trackingUrl: sub.trackingUrl,
-        serviceScheduledAt: sub.serviceScheduledAt,
-        serviceWindowNotes: sub.serviceWindowNotes,
-        technicianName: sub.technicianName,
-        technicianPhone: sub.technicianPhone,
-        adminOperationalNotes: sub.adminOperationalNotes,
-        subtotalKobo: sub.subtotalKobo.toString(),
-        deliveryFeeKobo: sub.deliveryFeeKobo?.toString() || '0',
-        platformFeeKobo: sub.platformFeeKobo?.toString() || '0',
-        vendorPayoutKobo: sub.vendorPayoutKobo.toString(),
-        items: (sub.items || []).map((it) => ({
-          id: it.id,
-          uuid: it.uuid,
-          offeringId: it.offeringId,
-          offeringType: it.offeringType,
-          quantity: it.quantity,
-          unitPriceKobo: it.unitPriceKobo.toString(),
-          totalPriceKobo: it.totalPriceKobo.toString(),
-          snapshotData: (it.snapshotData as Record<string, any>) || {},
-        })),
-      })),
+      subOrders: subOrders.map((sub: CommerceVendorSuborder) => {
+        const confirmEvent = (sub.fulfilmentEvents || []).find(
+          (ev: any) => ev.status === 'RECEIVED_CONFIRMED',
+        )
+        let customerRating: number | null = null
+        let customerFeedback: string | null = null
+        if (confirmEvent?.description) {
+          const ratingMatch = confirmEvent.description.match(/(\d+)★/)
+          if (ratingMatch?.[1]) customerRating = Number(ratingMatch[1])
+          const feedbackMatch = confirmEvent.description.match(/:\s*"([^"]+)"/)
+          if (feedbackMatch?.[1]) customerFeedback = feedbackMatch[1]
+        }
+
+        return {
+          id: sub.id,
+          uuid: sub.uuid,
+          subOrderNumber: sub.subOrderNumber,
+          vendorName: sub.vendor?.name || 'Vendor',
+          vendor: sub.vendor
+            ? {
+                id: sub.vendor.id,
+                name: sub.vendor.name,
+                slug: sub.vendor.slug,
+                email: sub.vendor.email,
+                phone: sub.vendor.phone,
+              }
+            : undefined,
+          customerStatus: sub.customerStatus,
+          operationalStatus: sub.operationalStatus,
+          carrierName: sub.carrierName,
+          trackingNumber: sub.trackingNumber,
+          trackingUrl: sub.trackingUrl,
+          serviceScheduledAt: sub.serviceScheduledAt,
+          serviceWindowNotes: sub.serviceWindowNotes,
+          technicianName: sub.technicianName,
+          technicianPhone: sub.technicianPhone,
+          adminOperationalNotes: sub.adminOperationalNotes,
+          customerRating,
+          customerFeedback,
+          tenantConfirmedAt: sub.tenantConfirmedAt || confirmEvent?.createdAt || null,
+          subtotalKobo: sub.subtotalKobo.toString(),
+          deliveryFeeKobo: sub.deliveryFeeKobo?.toString() || '0',
+          platformFeeKobo: sub.platformFeeKobo?.toString() || '0',
+          vendorPayoutKobo: sub.vendorPayoutKobo.toString(),
+          items: (sub.items || []).map((it) => ({
+            id: it.id,
+            uuid: it.uuid,
+            offeringId: it.offeringId,
+            offeringType: it.offeringType,
+            quantity: it.quantity,
+            unitPriceKobo: it.unitPriceKobo.toString(),
+            totalPriceKobo: it.totalPriceKobo.toString(),
+            snapshotData: (it.snapshotData as Record<string, any>) || {},
+          })),
+        }
+      }),
       createdAt: order.createdAt || new Date(),
       updatedAt: order.updatedAt || new Date(),
     }

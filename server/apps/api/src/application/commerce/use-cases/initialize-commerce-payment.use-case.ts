@@ -78,7 +78,7 @@ export class InitializeCommercePaymentUseCase {
     }
 
     // 3. Retrieve tenant email
-    const email = userEmail || order.user?.email || order.recipientPhone || 'customer@upward.ng'
+    const email = userEmail || order.user?.email || order.recipientPhone || 'customer@goodtenants.africa'
 
     // 4. Generate unique payment attempt reference (distinct from order idempotency key)
     const paymentReference = `UPW_ORD_PAY_${randomUUID()}`

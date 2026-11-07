@@ -202,6 +202,8 @@ export interface AdminCommerceSubOrderDto {
   adminOperationalNotes?: string | null
   deliveredAt?: Date | null
   tenantConfirmedAt?: Date | null
+  customerRating?: number | null
+  customerFeedback?: string | null
   coolingPeriodEndsAt?: Date | null
   vendor: {
     id: number
@@ -283,6 +285,9 @@ export interface AdminCommerceOrderSummaryDto {
     technicianName?: string | null
     technicianPhone?: string | null
     adminOperationalNotes?: string | null
+    customerRating?: number | null
+    customerFeedback?: string | null
+    tenantConfirmedAt?: Date | null
     subtotalKobo: string
     deliveryFeeKobo?: string
     platformFeeKobo?: string

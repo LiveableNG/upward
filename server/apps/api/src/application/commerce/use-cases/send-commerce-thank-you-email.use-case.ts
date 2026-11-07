@@ -125,39 +125,97 @@ export class SendCommerceThankYouEmailUseCase {
           : '<li style="color: #1E1B18;">Lifestyle Order Package</li>'
 
         const html = `
-          <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; color: #1E1B18; line-height: 1.5;">
-            <div style="background-color: #059669; height: 6px; width: 100%;"></div>
-            <div style="padding: 32px 24px; background-color: #FAF8F6; border-radius: 0 0 12px 12px; border: 1px solid #E5E2DC; border-top: none;">
-              <span style="display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; background: #DEF7EC; color: #03543F; padding: 4px 10px; border-radius: 6px; margin-bottom: 12px;">
-                Fulfilment Complete
-              </span>
-              <h2 style="color: #1E1B18; margin: 0 0 8px; font-size: 22px;">Thank You, ${tenantName}!</h2>
-              <p style="font-size: 14.5px; color: #555555; margin: 0 0 24px;">Your order has been successfully delivered and completed. We hope you enjoy your new experience.</p>
-              
-              <div style="background-color: #FFFFFF; border: 1px solid #E5E2DC; border-radius: 8px; padding: 18px; margin-bottom: 24px;">
-                <div style="font-size: 12px; font-weight: 700; color: #888888; text-transform: uppercase; margin-bottom: 4px;">Completed Order</div>
-                <div style="font-size: 16px; font-weight: 700; color: #1E1B18; margin-bottom: 14px;">${order.orderNumber}</div>
+          <div style="background-color: #F6F4EE; padding: 40px 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.5; color: #1E1B18;">
+            <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; margin: 0 auto; background-color: #FFFFFF; border-radius: 16px; overflow: hidden; border: 1px solid #EAE6DF; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);">
+              <!-- Top Gradient Accent -->
+              <tr>
+                <td style="background: linear-gradient(90deg, #059669 0%, #047857 100%); height: 6px; font-size: 0; line-height: 0;">&nbsp;</td>
+              </tr>
+              <!-- Brand Header -->
+              <tr>
+                <td style="padding: 32px 32px 20px; border-bottom: 1px solid #F0ECE4;">
+                  <table width="100%" border="0" cellpadding="0" cellspacing="0">
+                    <tr>
+                      <td valign="middle">
+                        <div style="font-size: 18px; font-weight: 800; letter-spacing: 1px; color: #1E1B18; line-height: 1;">
+                          UPWARD
+                        </div>
+                        <div style="font-size: 9.5px; font-weight: 600; letter-spacing: 1.5px; color: #8A8275; margin-top: 4px; text-transform: uppercase;">
+                          Commerce &amp; Lifestyle
+                        </div>
+                      </td>
+                      <td align="right" valign="middle">
+                        <span style="display: inline-block; background-color: #DEF7EC; border: 1px solid #A7F3D0; color: #03543F; padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;">
+                          ✓ FULFILMENT COMPLETE
+                        </span>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
 
-                <div style="font-size: 12px; font-weight: 700; color: #888888; text-transform: uppercase; margin-bottom: 6px;">Delivered Items</div>
-                <ul style="margin: 0 0 14px 18px; padding: 0; font-size: 14px;">
-                  ${itemsListHtml}
-                </ul>
+              <!-- Hero Content -->
+              <tr>
+                <td style="padding: 28px 32px 20px;">
+                  <h1 style="margin: 0 0 8px; font-size: 22px; font-weight: 800; color: #1E1B18; letter-spacing: -0.3px;">
+                    Thank You, ${tenantName}!
+                  </h1>
+                  <p style="margin: 0 0 24px; font-size: 14.5px; line-height: 1.6; color: #5C554B;">
+                    Your order has been successfully delivered and completed. We hope you enjoy your new experience.
+                  </p>
 
-                <div style="font-size: 12px; font-weight: 700; color: #888888; text-transform: uppercase; margin-bottom: 4px;">Delivered To</div>
-                <div style="font-size: 13.5px; color: #1E1B18;">${order.deliveryAddress}</div>
-              </div>
+                  <!-- Completed Order Card -->
+                  <table width="100%" border="0" cellpadding="0" cellspacing="0" style="margin-bottom: 24px; border: 1px solid #EAE6DF; border-radius: 12px; overflow: hidden;">
+                    <tr>
+                      <td style="padding: 16px 20px; background-color: #FAF8F5; border-bottom: 1px solid #EAE6DF;">
+                        <div style="font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #8A8275;">Completed Order</div>
+                        <div style="font-size: 16px; font-weight: 700; color: #1E1B18; margin-top: 3px;">${order.orderNumber}</div>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 18px 20px; background-color: #FFFFFF; border-bottom: 1px solid #F0ECE4;">
+                        <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #8A8275; margin-bottom: 8px;">Delivered Items</div>
+                        <ul style="margin: 0 0 0 18px; padding: 0; font-size: 13.5px; line-height: 1.6; color: #1E1B18;">
+                          ${itemsListHtml}
+                        </ul>
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style="padding: 16px 20px; background-color: #FAFAFA;">
+                        <div style="font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #8A8275;">Delivered To</div>
+                        <div style="font-size: 13px; line-height: 1.5; color: #5C554B; margin-top: 3px;">${order.deliveryAddress}</div>
+                      </td>
+                    </tr>
+                  </table>
 
-              <div style="text-align: center; margin: 28px 0;">
-                <a href="${trackingUrl}" style="background-color: #B65B37; color: #FFFFFF; text-decoration: none; font-weight: 700; font-size: 14px; padding: 12px 28px; border-radius: 8px; display: inline-block;">
-                  View Order Details &amp; Receipt
-                </a>
-              </div>
+                  <!-- Primary CTA Button -->
+                  <table align="center" border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto 28px;">
+                    <tr>
+                      <td align="center" style="border-radius: 10px; background-color: #B65B37;">
+                        <a href="${trackingUrl}" target="_blank" style="display: inline-block; padding: 14px 32px; font-size: 14px; font-weight: 700; color: #FFFFFF; text-decoration: none; border-radius: 10px; letter-spacing: 0.2px;">
+                          View Order Details &amp; Receipt &rarr;
+                        </a>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
 
-              <div style="border-top: 1px solid #E5E2DC; padding-top: 20px; font-size: 12.5px; color: #777777; text-align: center;">
-                <p style="margin: 0 0 4px;">Have questions, feedback, or need customer support?</p>
-                <p style="margin: 0;">Our support team is always ready to help at <a href="mailto:support@upward.ng" style="color: #B65B37; text-decoration: none;">support@upward.ng</a></p>
-              </div>
-            </div>
+              <!-- Footer -->
+              <tr>
+                <td style="padding: 24px 32px; background-color: #FAFAFA; border-top: 1px solid #EAE6DF; text-align: center;">
+                  <p style="margin: 0 0 6px; font-size: 12px; color: #8A8275;">
+                    Have questions, feedback, or need customer support?
+                  </p>
+                  <p style="margin: 0 0 16px; font-size: 12.5px; color: #1E1B18;">
+                    Our support team is always ready to help at <a href="mailto:hello@goodtenants.africa" style="color: #B65B37; font-weight: 700; text-decoration: underline;">hello@goodtenants.africa</a>
+                  </p>
+                  <div style="font-size: 11px; color: #B0A99E;">
+                    &copy; ${new Date().getFullYear()} Upward Platform &middot; GoodTenants. All rights reserved.
+                  </div>
+                </td>
+              </tr>
+            </table>
           </div>
         `
 

@@ -11,6 +11,7 @@ import {
   Phone,
   MessageSquare,
   Key,
+  Star,
 } from 'lucide-react'
 import type {
   AdminCommerceOrder,
@@ -218,6 +219,7 @@ export function CommerceOrdersTable({
                   const isPaid = order.paymentStatus === 'PAID'
                   const primarySubOrder = (order.subOrders || [])[0]
                   const primaryStatusBadge = primarySubOrder ? getFulfilmentBadge(primarySubOrder.customerStatus) : null
+                  const ratingSubOrder = (order.subOrders || []).find((s) => typeof s.customerRating === 'number' && s.customerRating > 0)
 
                   return (
                     <React.Fragment key={order.uuid}>
@@ -369,6 +371,27 @@ export function CommerceOrdersTable({
                                 }}
                               >
                                 {primaryStatusBadge.label}
+                              </span>
+                            )}
+                            {ratingSubOrder?.customerRating && (
+                              <span
+                                style={{
+                                  fontSize: 10.5,
+                                  fontWeight: 700,
+                                  padding: '2px 8px',
+                                  borderRadius: 6,
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  background: 'rgba(245, 158, 11, 0.12)',
+                                  color: '#b45309',
+                                  border: '1px solid rgba(245, 158, 11, 0.3)',
+                                  whiteSpace: 'nowrap',
+                                }}
+                                title={ratingSubOrder.customerFeedback ? `"${ratingSubOrder.customerFeedback}"` : 'Customer Review'}
+                              >
+                                <Star size={11} fill="#f59e0b" color="#f59e0b" />
+                                <span>{ratingSubOrder.customerRating}.0★ Review</span>
                               </span>
                             )}
                           </div>
@@ -574,6 +597,51 @@ export function CommerceOrdersTable({
                                               <div>
                                                 <strong style={{ color: 'var(--text)' }}>Dispatch Note:</strong> {subOrder.adminOperationalNotes}
                                               </div>
+                                            </div>
+                                          )}
+
+                                          {/* Verified Customer Rating & Feedback */}
+                                          {typeof subOrder.customerRating === 'number' && subOrder.customerRating > 0 && (
+                                            <div
+                                              style={{
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                gap: 6,
+                                                marginTop: 8,
+                                                padding: '8px 12px',
+                                                borderRadius: 8,
+                                                background: 'rgba(245, 158, 11, 0.07)',
+                                                border: '1px solid rgba(245, 158, 11, 0.25)',
+                                              }}
+                                            >
+                                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                  {[1, 2, 3, 4, 5].map((starVal) => (
+                                                    <Star
+                                                      key={starVal}
+                                                      size={12}
+                                                      fill={starVal <= (subOrder.customerRating || 0) ? '#f59e0b' : 'none'}
+                                                      color={starVal <= (subOrder.customerRating || 0) ? '#f59e0b' : 'var(--text-muted)'}
+                                                    />
+                                                  ))}
+                                                  <span style={{ fontSize: 12, fontWeight: 800, color: '#92400e', marginLeft: 4 }}>
+                                                    {subOrder.customerRating}.0 / 5.0
+                                                  </span>
+                                                  <span style={{ fontSize: 11, color: '#b45309', fontWeight: 600 }}>
+                                                    (Verified Customer Review)
+                                                  </span>
+                                                </div>
+                                                {subOrder.tenantConfirmedAt && (
+                                                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                                                    {formatDate(subOrder.tenantConfirmedAt)}
+                                                  </span>
+                                                )}
+                                              </div>
+                                              {subOrder.customerFeedback && (
+                                                <div style={{ fontSize: 12, color: '#78350f', fontStyle: 'italic', lineHeight: 1.4 }}>
+                                                  &ldquo;{subOrder.customerFeedback}&rdquo;
+                                                </div>
+                                              )}
                                             </div>
                                           )}
                                         </div>

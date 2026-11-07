@@ -366,6 +366,9 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
             include: {
               vendor: true,
               items: true,
+              fulfilmentEvents: {
+                orderBy: { createdAt: 'desc' },
+              },
             },
           },
         },

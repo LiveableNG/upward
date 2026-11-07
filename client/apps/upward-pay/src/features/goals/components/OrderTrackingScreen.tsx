@@ -28,6 +28,7 @@ import {
   PackageCheck,
   Star,
   CreditCard,
+  Key,
 } from 'lucide-react'
 import { useToast } from '@/components/common/Toast'
 import {
@@ -328,11 +329,6 @@ export function OrderTrackingScreen({ orderUuid }: { orderUuid: string }) {
           <div className="order-tracking__destination-contact">
             Recipient: {order.recipientName} ({order.recipientPhone})
           </div>
-          {(order.deliveryNotes || order.deliveryInstructions) && (
-            <div className="order-tracking__destination-notes">
-              <strong>Gate / Delivery Note:</strong> {order.deliveryNotes || order.deliveryInstructions}
-            </div>
-          )}
         </div>
       </div>
 
@@ -441,31 +437,33 @@ export function OrderTrackingScreen({ orderUuid }: { orderUuid: string }) {
                   <div
                     className="order-tracking__stepper-fill"
                     style={{
-                      width: `${(activeStepIndex / (steps.length - 1)) * 100}%`,
+                      width: ['DELIVERED', 'RECEIVED_CONFIRMED', 'SERVICE_COMPLETED'].includes(subOrder.customerStatus)
+                        ? '100%'
+                        : `${(activeStepIndex / (steps.length - 1)) * 100}%`,
                     }}
                   />
                 </div>
                 <div className="order-tracking__stepper-nodes">
                   {steps.map((step, idx) => {
-                    const isDone = idx < activeStepIndex
-                    const isCurrent = idx === activeStepIndex
+                    const isFinalReached = ['DELIVERED', 'RECEIVED_CONFIRMED', 'SERVICE_COMPLETED'].includes(subOrder.customerStatus)
+                    const isAllFinalized = ['RECEIVED_CONFIRMED', 'SERVICE_COMPLETED'].includes(subOrder.customerStatus)
+                    const isDone = isFinalReached ? idx <= activeStepIndex : idx < activeStepIndex
+                    const isCurrent = isFinalReached ? false : idx === activeStepIndex
                     const isBeamingStep = isCurrent && isDispatchedLive
 
                     return (
                       <div
                         key={step.key}
-                        className={`order-tracking__node ${
-                          isDone
-                            ? 'order-tracking__node--done'
-                            : isCurrent
+                        className={`order-tracking__node ${isDone
+                          ? 'order-tracking__node--done'
+                          : isCurrent
                             ? 'order-tracking__node--current'
                             : ''
-                        }`}
+                          }`}
                       >
                         <div
-                          className={`order-tracking__node-dot ${
-                            isBeamingStep ? 'order-tracking__node-dot--beaming' : ''
-                          }`}
+                          className={`order-tracking__node-dot ${isBeamingStep ? 'order-tracking__node-dot--beaming' : ''
+                            }`}
                         >
                           {isBeamingStep ? (
                             <>
@@ -479,7 +477,11 @@ export function OrderTrackingScreen({ orderUuid }: { orderUuid: string }) {
                           )}
                         </div>
                         <div className="order-tracking__node-label">
-                          <span>{step.label}</span>
+                          <span>
+                            {isAllFinalized && idx === steps.length - 1
+                              ? (isService ? 'Service Confirmed' : 'Delivered & Confirmed')
+                              : step.label}
+                          </span>
                           {isBeamingStep && (
                             <span className="order-tracking__live-pill">
                               <span className="order-tracking__live-beacon" />
@@ -498,103 +500,103 @@ export function OrderTrackingScreen({ orderUuid }: { orderUuid: string }) {
                 subOrder.serviceScheduledAt ||
                 subOrder.technicianName ||
                 subOrder.technicianPhone) && (
-                <div className="order-tracking__dispatch-box">
-                  {/* Delivery Rider (Physical goods delivery) */}
-                  {!isService && (subOrder.technicianName || subOrder.technicianPhone) && (
-                    <div className="order-tracking__dispatch-item order-tracking__dispatch-item--rider">
-                      <Truck size={16} color="var(--clay)" />
-                      <div className="order-tracking__dispatch-details">
-                        <div className="order-tracking__dispatch-label">Delivery Rider</div>
-                        <div className="order-tracking__dispatch-val">
-                          {subOrder.technicianName || 'Assigned Rider'}
-                          {subOrder.technicianPhone && (
-                            <span className="order-tracking__dispatch-phone"> · {subOrder.technicianPhone}</span>
-                          )}
+                  <div className="order-tracking__dispatch-box">
+                    {/* Delivery Rider (Physical goods delivery) */}
+                    {!isService && (subOrder.technicianName || subOrder.technicianPhone) && (
+                      <div className="order-tracking__dispatch-item order-tracking__dispatch-item--rider">
+                        <Truck size={16} color="var(--clay)" />
+                        <div className="order-tracking__dispatch-details">
+                          <div className="order-tracking__dispatch-label">Delivery Rider</div>
+                          <div className="order-tracking__dispatch-val">
+                            {subOrder.technicianName || 'Assigned Rider'}
+                            {subOrder.technicianPhone && (
+                              <span className="order-tracking__dispatch-phone"> · {subOrder.technicianPhone}</span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                      {subOrder.technicianPhone && (
-                        <a
-                          href={`tel:${subOrder.technicianPhone.replace(/\s+/g, '')}`}
-                          className="order-tracking__call-btn"
-                          aria-label={`Call delivery rider at ${subOrder.technicianPhone}`}
-                        >
-                          <Phone size={13} />
-                          <span>Call Rider</span>
-                        </a>
-                      )}
-                    </div>
-                  )}
-
-                  {/* 3rd Party Carrier details if provided */}
-                  {subOrder.carrierName && (
-                    <div className="order-tracking__dispatch-item">
-                      <Truck size={16} color="var(--clay)" />
-                      <div>
-                        <div className="order-tracking__dispatch-label">Carrier & Tracking</div>
-                        <div className="order-tracking__dispatch-val">
-                          {subOrder.carrierName}
-                          {subOrder.trackingNumber && ` · #${subOrder.trackingNumber}`}
-                        </div>
-                        {subOrder.trackingUrl && (
+                        {subOrder.technicianPhone && (
                           <a
-                            href={subOrder.trackingUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="order-tracking__carrier-link"
+                            href={`tel:${subOrder.technicianPhone.replace(/\s+/g, '')}`}
+                            className="order-tracking__call-btn"
+                            aria-label={`Call delivery rider at ${subOrder.technicianPhone}`}
                           >
-                            <span>Carrier Tracking Portal</span>
-                            <ExternalLink size={12} />
+                            <Phone size={13} />
+                            <span>Call Rider</span>
                           </a>
                         )}
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {/* Service appointment */}
-                  {subOrder.serviceScheduledAt && (
-                    <div className="order-tracking__dispatch-item">
-                      <Calendar size={16} color="var(--clay)" />
-                      <div>
-                        <div className="order-tracking__dispatch-label">Scheduled Appointment</div>
-                        <div className="order-tracking__dispatch-val">
-                          {formatDateTime(subOrder.serviceScheduledAt)}
-                        </div>
-                        {subOrder.serviceWindowNotes && (
-                          <div className="order-tracking__dispatch-notes">
-                            {subOrder.serviceWindowNotes}
+                    {/* 3rd Party Carrier details if provided */}
+                    {subOrder.carrierName && (
+                      <div className="order-tracking__dispatch-item">
+                        <Truck size={16} color="var(--clay)" />
+                        <div>
+                          <div className="order-tracking__dispatch-label">Carrier & Tracking</div>
+                          <div className="order-tracking__dispatch-val">
+                            {subOrder.carrierName}
+                            {subOrder.trackingNumber && ` · #${subOrder.trackingNumber}`}
                           </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Service specialist */}
-                  {isService && subOrder.technicianName && (
-                    <div className="order-tracking__dispatch-item order-tracking__dispatch-item--rider">
-                      <User size={16} color="var(--clay)" />
-                      <div className="order-tracking__dispatch-details">
-                        <div className="order-tracking__dispatch-label">Assigned Specialist</div>
-                        <div className="order-tracking__dispatch-val">
-                          {subOrder.technicianName} (Upward Verified)
-                          {subOrder.technicianPhone && (
-                            <span className="order-tracking__dispatch-phone"> · {subOrder.technicianPhone}</span>
+                          {subOrder.trackingUrl && (
+                            <a
+                              href={subOrder.trackingUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="order-tracking__carrier-link"
+                            >
+                              <span>Carrier Tracking Portal</span>
+                              <ExternalLink size={12} />
+                            </a>
                           )}
                         </div>
                       </div>
-                      {subOrder.technicianPhone && (
-                        <a
-                          href={`tel:${subOrder.technicianPhone.replace(/\s+/g, '')}`}
-                          className="order-tracking__call-btn"
-                          aria-label={`Call specialist at ${subOrder.technicianPhone}`}
-                        >
-                          <Phone size={13} />
-                          <span>Call Specialist</span>
-                        </a>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
+                    )}
+
+                    {/* Service appointment */}
+                    {subOrder.serviceScheduledAt && (
+                      <div className="order-tracking__dispatch-item">
+                        <Calendar size={16} color="var(--clay)" />
+                        <div>
+                          <div className="order-tracking__dispatch-label">Scheduled Appointment</div>
+                          <div className="order-tracking__dispatch-val">
+                            {formatDateTime(subOrder.serviceScheduledAt)}
+                          </div>
+                          {subOrder.serviceWindowNotes && (
+                            <div className="order-tracking__dispatch-notes">
+                              {subOrder.serviceWindowNotes}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Service specialist */}
+                    {isService && subOrder.technicianName && (
+                      <div className="order-tracking__dispatch-item order-tracking__dispatch-item--rider">
+                        <User size={16} color="var(--clay)" />
+                        <div className="order-tracking__dispatch-details">
+                          <div className="order-tracking__dispatch-label">Assigned Specialist</div>
+                          <div className="order-tracking__dispatch-val">
+                            {subOrder.technicianName} (Upward Verified)
+                            {subOrder.technicianPhone && (
+                              <span className="order-tracking__dispatch-phone"> · {subOrder.technicianPhone}</span>
+                            )}
+                          </div>
+                        </div>
+                        {subOrder.technicianPhone && (
+                          <a
+                            href={`tel:${subOrder.technicianPhone.replace(/\s+/g, '')}`}
+                            className="order-tracking__call-btn"
+                            aria-label={`Call specialist at ${subOrder.technicianPhone}`}
+                          >
+                            <Phone size={13} />
+                            <span>Call Specialist</span>
+                          </a>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
 
               {/* Items in this suborder */}
               <div className="order-tracking__items-section">

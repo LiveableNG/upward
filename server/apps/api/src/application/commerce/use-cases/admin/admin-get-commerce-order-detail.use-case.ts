@@ -59,7 +59,20 @@ export class AdminGetCommerceOrderDetailUseCase {
         lastName: order.user?.lastName,
         phone: order.user?.phone,
       },
-      subOrders: subOrders.map((sub: CommerceVendorSuborder) => ({
+      subOrders: subOrders.map((sub: CommerceVendorSuborder) => {
+        const confirmEvent = (sub.fulfilmentEvents || []).find(
+          (ev: any) => ev.status === 'RECEIVED_CONFIRMED',
+        )
+        let customerRating: number | null = null
+        let customerFeedback: string | null = null
+        if (confirmEvent?.description) {
+          const ratingMatch = confirmEvent.description.match(/(\d+)★/)
+          if (ratingMatch?.[1]) customerRating = Number(ratingMatch[1])
+          const feedbackMatch = confirmEvent.description.match(/:\s*"([^"]+)"/)
+          if (feedbackMatch?.[1]) customerFeedback = feedbackMatch[1]
+        }
+
+        return {
         id: sub.id,
         uuid: sub.uuid,
         subOrderNumber: sub.subOrderNumber,
@@ -79,7 +92,9 @@ export class AdminGetCommerceOrderDetailUseCase {
         technicianPhone: sub.technicianPhone,
         adminOperationalNotes: sub.adminOperationalNotes,
         deliveredAt: sub.deliveredAt,
-        tenantConfirmedAt: sub.tenantConfirmedAt,
+        tenantConfirmedAt: sub.tenantConfirmedAt || confirmEvent?.createdAt || null,
+        customerRating,
+        customerFeedback,
         coolingPeriodEndsAt: sub.coolingPeriodEndsAt,
         vendor: {
           id: sub.vendor?.id || sub.vendorId,
@@ -131,7 +146,8 @@ export class AdminGetCommerceOrderDetailUseCase {
           : null,
         createdAt: sub.createdAt,
         updatedAt: sub.updatedAt,
-      })),
+      }
+    }),
       paymentAttempts: paymentAttempts.map((pa: CommercePaymentAttempt) => ({
         uuid: pa.uuid,
         reference: pa.reference,

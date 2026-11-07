@@ -89,6 +89,9 @@ export interface AdminCommerceSubOrder {
   technicianName?: string | null
   technicianPhone?: string | null
   adminOperationalNotes?: string | null
+  customerRating?: number | null
+  customerFeedback?: string | null
+  tenantConfirmedAt?: string | null
   vendor?: {
     id: number
     name: string

@@ -53,7 +53,6 @@ import {
   getStoredDeliveryLocation,
 } from '../utils/deliveryLocation'
 import { DeliveryLocationBar } from './DeliveryLocationBar'
-import { LiveOrderTrackingCard } from './LiveOrderTrackingCard'
 import { BottomSheetModal } from '@/components/common/BottomSheetModal'
 import { useToast } from '@/components/common/Toast'
 import '../styles/goals.css'
@@ -340,9 +339,6 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
             onLocationChange={(loc) => setDeliveryLocation(loc)}
           />
         </div>
-
-        {/* Live Active Order Tracking Banner (if order in flight) */}
-        <LiveOrderTrackingCard />
 
         {/* Search & Type Filter Row */}
         <div className="lifestyle-discovery__controls">
