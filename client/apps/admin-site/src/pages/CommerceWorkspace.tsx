@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import {
   ShoppingBag,
@@ -162,6 +162,25 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
   // Orders table local state - default to PAID orders so fulfilment staff see actionable orders
   const [orderSearch, setOrderSearch] = useState('')
   const [paymentStatusFilter, setPaymentStatusFilter] = useState('PAID')
+  const [fulfilmentStatusFilter, setFulfilmentStatusFilter] = useState('ALL')
+
+  const filteredOrders = useMemo(() => {
+    if (fulfilmentStatusFilter === 'ALL') return orders
+    return orders.filter((order) => {
+      const subOrders = order.subOrders || []
+      if (fulfilmentStatusFilter === 'DISPATCHED') {
+        return subOrders.some((s) =>
+          ['DISPATCHED', 'OUT_FOR_DELIVERY', 'TECHNICIAN_EN_ROUTE'].includes(s.customerStatus),
+        )
+      }
+      if (fulfilmentStatusFilter === 'DELIVERED') {
+        return subOrders.some((s) =>
+          ['DELIVERED', 'SERVICE_COMPLETED'].includes(s.customerStatus),
+        )
+      }
+      return subOrders.some((s) => s.customerStatus === fulfilmentStatusFilter)
+    })
+  }, [orders, fulfilmentStatusFilter])
 
   // Modals for catalog management
   const [categoryModalOpen, setCategoryModalOpen] = useState(false)
@@ -551,17 +570,31 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
             <select
               value={paymentStatusFilter}
               onChange={(e) => setPaymentStatusFilter(e.target.value)}
-              style={{ padding: '9px 14px', borderRadius: 8, border: '1px solid #ddd', fontSize: 13 }}
+              style={{ padding: '9px 14px', borderRadius: 8, border: '1px solid #ddd', fontSize: 13, backgroundColor: '#fff' }}
             >
               <option value="PAID">Paid Orders (Actionable)</option>
               <option value="ALL">All Orders (Including Abandoned)</option>
               <option value="UNPAID">Unpaid / Abandoned Only</option>
             </select>
+
+            <select
+              value={fulfilmentStatusFilter}
+              onChange={(e) => setFulfilmentStatusFilter(e.target.value)}
+              style={{ padding: '9px 14px', borderRadius: 8, border: '1px solid #ddd', fontSize: 13, backgroundColor: '#fff' }}
+            >
+              <option value="ALL">All Fulfilment Stages</option>
+              <option value="ORDER_CONFIRMED">Awaiting Confirmation</option>
+              <option value="PROCESSING">In Preparation</option>
+              <option value="DISPATCHED">Dispatched & En Route</option>
+              <option value="DELIVERED">Delivered</option>
+              <option value="RECEIVED_CONFIRMED">Received & Confirmed</option>
+              <option value="DISPUTED">Disputed</option>
+            </select>
           </div>
 
           <CommerceOrdersTable
-            orders={orders}
-            total={ordersTotal}
+            orders={filteredOrders}
+            total={fulfilmentStatusFilter === 'ALL' ? ordersTotal : filteredOrders.length}
             loading={loadingOrders}
             onUpdateSubOrder={async (subOrderUuid, payload) => {
               await updateSubOrderFulfilment(subOrderUuid, payload)

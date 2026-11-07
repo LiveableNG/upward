@@ -114,7 +114,10 @@ export class SendCommerceReceiptEmailUseCase {
       receiptNumber,
       customerName: tenantName,
       customerEmail: tenantEmail || undefined,
+      recipientName: order.recipientName,
+      recipientPhone: order.recipientPhone,
       deliveryAddress: order.deliveryAddress,
+      deliveryNotes: order.deliveryNotes || undefined,
       paymentReference: order.paymentReference || 'N/A',
       paymentChannel: 'Paystack Central Checkout',
       paidAt: order.paidAt || new Date(),
@@ -164,7 +167,7 @@ export class SendCommerceReceiptEmailUseCase {
 
               <div style="border-top: 1px solid #E5E2DC; padding-top: 20px; font-size: 12px; color: #888888; text-align: center;">
                 <p style="margin: 0 0 4px;">Your official PDF receipt is attached to this email.</p>
-                <p style="margin: 0;">Protected by Upward Buyer Protection · support@upward.ng</p>
+                <p style="margin: 0;">Upward Platform · support@upward.ng</p>
               </div>
             </div>
           </div>

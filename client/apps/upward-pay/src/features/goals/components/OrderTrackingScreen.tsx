@@ -328,6 +328,11 @@ export function OrderTrackingScreen({ orderUuid }: { orderUuid: string }) {
           <div className="order-tracking__destination-contact">
             Recipient: {order.recipientName} ({order.recipientPhone})
           </div>
+          {(order.deliveryNotes || order.deliveryInstructions) && (
+            <div className="order-tracking__destination-notes">
+              <strong>Gate / Delivery Note:</strong> {order.deliveryNotes || order.deliveryInstructions}
+            </div>
+          )}
         </div>
       </div>
 

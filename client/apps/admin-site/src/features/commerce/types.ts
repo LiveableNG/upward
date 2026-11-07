@@ -115,6 +115,7 @@ export interface AdminCommerceOrder {
   recipientPhone: string
   deliveryAddress: string
   deliveryInstructions?: string | null
+  deliveryNotes?: string | null
   paymentReference?: string | null
   paidAt?: string | null
   createdAt: string

@@ -256,6 +256,7 @@ export interface AdminCommerceOrderSummaryDto {
   recipientName: string
   recipientPhone: string
   deliveryAddress: string
+  deliveryNotes?: string | null
   paymentReference?: string | null
   paidAt?: Date | null
   customer: AdminCommerceOrderCustomerDto

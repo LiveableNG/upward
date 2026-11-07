@@ -68,7 +68,8 @@ export class GetCommerceReceiptPdfUseCase {
     const lineItems: CommerceReceiptData['lineItems'] = []
     ;(order.subOrders || []).forEach((sub) => {
       ;(sub.items || []).forEach((item) => {
-        const title = item.snapshotData?.title || `Item #${item.offeringId}`
+        const snap = (item.snapshotData as any) || {}
+        const title = snap.title || snap.name || `Item #${item.offeringId}`
         const offeringType = item.offeringType || 'PRODUCT'
         lineItems.push({
           title,
@@ -87,7 +88,10 @@ export class GetCommerceReceiptPdfUseCase {
       receiptNumber,
       customerName,
       customerEmail,
+      recipientName: order.recipientName,
+      recipientPhone: order.recipientPhone,
       deliveryAddress: order.deliveryAddress,
+      deliveryNotes: order.deliveryNotes || undefined,
       paymentReference: order.paymentReference || 'N/A',
       paymentChannel: 'Paystack Central Checkout',
       paidAt: order.paidAt || order.createdAt || new Date(),

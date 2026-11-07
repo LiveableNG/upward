@@ -64,6 +64,7 @@ export class AdminGetCommerceOrdersUseCase {
       recipientName: order.recipientName || '',
       recipientPhone: order.recipientPhone || '',
       deliveryAddress: order.deliveryAddress || '',
+      deliveryNotes: order.deliveryNotes,
       paymentReference: order.paymentReference,
       paidAt: order.paidAt,
       customer: {

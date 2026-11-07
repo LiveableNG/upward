@@ -96,6 +96,7 @@ export interface TenantOrderDetailDto {
   recipientPhone: string
   deliveryAddress: string
   deliveryInstructions?: string | null
+  deliveryNotes?: string | null
   paidAt?: string | null
   createdAt: string
   subOrders: TenantSubOrderDetailDto[]

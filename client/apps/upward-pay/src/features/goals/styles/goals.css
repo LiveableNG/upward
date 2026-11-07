@@ -3832,6 +3832,18 @@
   color: var(--text-muted);
 }
 
+.order-tracking__destination-notes {
+  margin-top: 6px;
+  font-size: 11.5px;
+  color: #92400e;
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: 5px;
+  padding: 3px 8px;
+  display: inline-block;
+  line-height: 1.35;
+}
+
 .order-tracking__suborders {
   display: flex;
   flex-direction: column;

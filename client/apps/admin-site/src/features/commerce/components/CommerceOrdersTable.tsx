@@ -8,6 +8,9 @@ import {
   ExternalLink,
   Clock,
   MapPin,
+  Phone,
+  MessageSquare,
+  Key,
 } from 'lucide-react'
 import type {
   AdminCommerceOrder,
@@ -37,6 +40,76 @@ function formatDate(dateStr: string): string {
     })
   } catch {
     return dateStr
+  }
+}
+
+function getFulfilmentBadge(status: string) {
+  switch (status) {
+    case 'ORDER_CONFIRMED':
+      return {
+        label: 'Awaiting Vendor',
+        bg: 'rgba(217, 119, 6, 0.08)',
+        color: '#D97706',
+        border: 'rgba(217, 119, 6, 0.2)',
+      }
+    case 'PROCESSING':
+      return {
+        label: 'In Preparation',
+        bg: 'rgba(59, 130, 246, 0.08)',
+        color: '#2563EB',
+        border: 'rgba(59, 130, 246, 0.2)',
+      }
+    case 'DISPATCHED':
+      return {
+        label: 'Dispatched & En Route',
+        bg: 'rgba(13, 148, 136, 0.08)',
+        color: '#0D9488',
+        border: 'rgba(13, 148, 136, 0.2)',
+      }
+    case 'OUT_FOR_DELIVERY':
+    case 'TECHNICIAN_EN_ROUTE':
+      return {
+        label: 'Out for Delivery',
+        bg: 'rgba(139, 92, 246, 0.08)',
+        color: '#7C3AED',
+        border: 'rgba(139, 92, 246, 0.2)',
+      }
+    case 'DELIVERED':
+    case 'SERVICE_COMPLETED':
+      return {
+        label: 'Delivered',
+        bg: 'rgba(16, 185, 129, 0.1)',
+        color: '#059669',
+        border: 'rgba(16, 185, 129, 0.25)',
+      }
+    case 'RECEIVED_CONFIRMED':
+      return {
+        label: 'Received & Confirmed',
+        bg: 'rgba(5, 150, 105, 0.15)',
+        color: '#047857',
+        border: 'rgba(5, 150, 105, 0.3)',
+      }
+    case 'DISPUTED':
+      return {
+        label: 'Disputed',
+        bg: 'rgba(220, 38, 38, 0.08)',
+        color: '#DC2626',
+        border: 'rgba(220, 38, 38, 0.2)',
+      }
+    case 'CANCELLED':
+      return {
+        label: 'Cancelled',
+        bg: 'rgba(107, 114, 128, 0.1)',
+        color: '#6B7280',
+        border: 'rgba(107, 114, 128, 0.2)',
+      }
+    default:
+      return {
+        label: status ? status.replace(/_/g, ' ') : 'Pending',
+        bg: 'rgba(0,0,0,0.05)',
+        color: 'var(--text-muted)',
+        border: 'var(--border)',
+      }
   }
 }
 
@@ -106,8 +179,8 @@ export function CommerceOrdersTable({
                 <th style={{ padding: '12px 16px', fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', width: '140px' }}>
                   Total Amount
                 </th>
-                <th style={{ padding: '12px 16px', fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', width: '120px' }}>
-                  Payment
+                <th style={{ padding: '12px 16px', fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', width: '150px' }}>
+                  Payment & Status
                 </th>
                 <th style={{ padding: '12px 16px', fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', textAlign: 'right', width: '150px' }}>
                   Sub-Orders
@@ -143,6 +216,8 @@ export function CommerceOrdersTable({
                   const isExpanded = !!expandedOrderUuids[order.uuid]
                   const subOrdersCount = (order.subOrders || []).length
                   const isPaid = order.paymentStatus === 'PAID'
+                  const primarySubOrder = (order.subOrders || [])[0]
+                  const primaryStatusBadge = primarySubOrder ? getFulfilmentBadge(primarySubOrder.customerStatus) : null
 
                   return (
                     <React.Fragment key={order.uuid}>
@@ -202,6 +277,29 @@ export function CommerceOrdersTable({
                             <MapPin size={13} style={{ flexShrink: 0, marginTop: 2, color: 'var(--text-muted)' }} />
                             <span>{order.deliveryAddress}</span>
                           </div>
+                          {(order.deliveryNotes || order.deliveryInstructions) && (
+                            <div
+                              style={{
+                                marginTop: 6,
+                                fontSize: 11.5,
+                                color: '#92400e',
+                                background: '#fef3c7',
+                                border: '1px solid #fde68a',
+                                borderRadius: 5,
+                                padding: '3px 7px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                maxWidth: 360,
+                                lineHeight: 1.35,
+                              }}
+                            >
+                              <Key size={11} style={{ flexShrink: 0 }} />
+                              <span>
+                                <strong>Gate / Driver Note:</strong> {order.deliveryNotes || order.deliveryInstructions}
+                              </span>
+                            </div>
+                          )}
                         </td>
 
                         {/* Sub-Orders / Vendors */}
@@ -239,22 +337,41 @@ export function CommerceOrdersTable({
                           </div>
                         </td>
 
-                        {/* Payment Status */}
+                        {/* Payment & Fulfilment Status */}
                         <td style={{ padding: '14px 16px', verticalAlign: 'top' }}>
-                          <span
-                            style={{
-                              fontSize: 11,
-                              fontWeight: 700,
-                              padding: '3px 8px',
-                              borderRadius: 6,
-                              display: 'inline-block',
-                              background: isPaid ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                              color: isPaid ? '#059669' : '#d97706',
-                              border: `1px solid ${isPaid ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'}`,
-                            }}
-                          >
-                            {order.paymentStatus}
-                          </span>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
+                            <span
+                              style={{
+                                fontSize: 11,
+                                fontWeight: 700,
+                                padding: '2px 8px',
+                                borderRadius: 6,
+                                display: 'inline-block',
+                                background: isPaid ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                                color: isPaid ? '#059669' : '#d97706',
+                                border: `1px solid ${isPaid ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'}`,
+                              }}
+                            >
+                              {order.paymentStatus}
+                            </span>
+                            {primaryStatusBadge && (
+                              <span
+                                style={{
+                                  fontSize: 10.5,
+                                  fontWeight: 700,
+                                  padding: '2px 8px',
+                                  borderRadius: 6,
+                                  display: 'inline-block',
+                                  background: primaryStatusBadge.bg,
+                                  color: primaryStatusBadge.color,
+                                  border: `1px solid ${primaryStatusBadge.border}`,
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {primaryStatusBadge.label}
+                              </span>
+                            )}
+                          </div>
                         </td>
 
                         {/* Expand Button */}
@@ -397,13 +514,68 @@ export function CommerceOrdersTable({
                                               </a>
                                             )}
 
+                                            {/* Driver / Courier Details */}
+                                            {(subOrder.technicianName || subOrder.technicianPhone) && (
+                                              <span
+                                                style={{
+                                                  display: 'inline-flex',
+                                                  alignItems: 'center',
+                                                  gap: 5,
+                                                  padding: '2px 8px',
+                                                  borderRadius: 4,
+                                                  background: 'rgba(182, 91, 55, 0.08)',
+                                                  border: '1px solid rgba(182, 91, 55, 0.2)',
+                                                  color: 'var(--clay)',
+                                                  fontSize: 11.5,
+                                                  fontWeight: 600,
+                                                }}
+                                              >
+                                                <Phone size={11} />
+                                                <span>
+                                                  {isService ? 'Technician' : 'Driver'}: <strong>{subOrder.technicianName || 'Assigned'}</strong>
+                                                  {subOrder.technicianPhone && (
+                                                    <a
+                                                      href={`tel:${subOrder.technicianPhone}`}
+                                                      style={{ color: 'inherit', marginLeft: 4, textDecoration: 'underline' }}
+                                                      title="Call driver"
+                                                    >
+                                                      ({subOrder.technicianPhone})
+                                                    </a>
+                                                  )}
+                                                </span>
+                                              </span>
+                                            )}
+
                                             {subOrder.serviceScheduledAt && (
                                               <span style={{ color: 'var(--text-muted)' }}>
                                                 Appointment: <strong>{formatDate(subOrder.serviceScheduledAt)}</strong>
-                                                {subOrder.technicianName && ` · Tech: ${subOrder.technicianName}`}
                                               </span>
                                             )}
                                           </div>
+
+                                          {/* Operational Dispatch / Logistics Notes */}
+                                          {subOrder.adminOperationalNotes && (
+                                            <div
+                                              style={{
+                                                display: 'flex',
+                                                alignItems: 'flex-start',
+                                                gap: 6,
+                                                marginTop: 8,
+                                                padding: '6px 10px',
+                                                borderRadius: 6,
+                                                background: 'rgba(0, 0, 0, 0.03)',
+                                                border: '1px solid var(--border)',
+                                                fontSize: 12,
+                                                color: 'var(--text-secondary)',
+                                                lineHeight: 1.4,
+                                              }}
+                                            >
+                                              <MessageSquare size={13} style={{ flexShrink: 0, marginTop: 2, color: 'var(--clay)' }} />
+                                              <div>
+                                                <strong style={{ color: 'var(--text)' }}>Dispatch Note:</strong> {subOrder.adminOperationalNotes}
+                                              </div>
+                                            </div>
+                                          )}
                                         </div>
                                       </div>
 
