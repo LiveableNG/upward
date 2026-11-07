@@ -125,9 +125,8 @@ export function ProfileSetupBlocker({ user, score, maxScore, onSkip }: ProfileSe
 
   const quickActions: QuickAction[] = [
     { label: 'Pay Rent', icon: CreditCard, href: '/dashboard/pay-rent' },
-    { label: 'Lifestyle', icon: Target, href: '/dashboard/lifestyle' },
-    { label: 'Save Home', icon: Home, href: '/dashboard/save-for-home' },
-    { label: 'Save Rent', icon: PiggyBank, href: '/dashboard/savings' },
+    { label: 'Save for Rent', icon: PiggyBank, href: '/dashboard/savings' },
+    ...(showGoalsStep ? [{ label: 'Living Goals', icon: Target, href: '/dashboard/lifestyle' }] : []),
   ]
 
   const title = isGated ? 'Add your rental details' : `Welcome, ${firstName}`

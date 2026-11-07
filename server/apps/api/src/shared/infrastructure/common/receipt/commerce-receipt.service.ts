@@ -247,7 +247,7 @@ export class CommerceReceiptService {
         const deliveryDisplay =
           data.deliveryFeeKobo > 0n
             ? formatNgnAmount(data.deliveryFeeKobo, data.currency)
-            : 'Free (Included)'
+            : 'Free'
         doc
           .font('Helvetica')
           .fontSize(8.5)

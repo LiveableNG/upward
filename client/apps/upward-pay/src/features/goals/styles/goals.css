@@ -377,6 +377,76 @@
   transform: scale(0.98);
 }
 
+.lifestyle-goals-widget__vault {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+
+.lifestyle-goals-widget__vault-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.lifestyle-goals-widget__vault-amount {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+.lifestyle-goals-widget__vault-target {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.lifestyle-goals-widget__vault-pct {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--clay);
+}
+
+.lifestyle-goals-widget__track {
+  width: 100%;
+  height: 6px;
+  background: var(--surface2);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin-bottom: 9px;
+}
+
+.lifestyle-goals-widget__fill {
+  height: 100%;
+  background: var(--clay);
+  border-radius: var(--radius-full);
+  transition: width 0.4s ease;
+}
+
+.lifestyle-goals-widget__vault-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.lifestyle-goals-widget__vault-yield {
+  color: #059669;
+  font-weight: 700;
+}
+
+.lifestyle-goals-widget__divider {
+  height: 1px;
+  background: var(--border);
+  margin: 14px 0 12px 0;
+}
+
 /* ==========================================================================
    Unified Lifestyle & Perks Hub (/dashboard/lifestyle)
    ========================================================================== */

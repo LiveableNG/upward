@@ -7,14 +7,14 @@ import {
   ArrowUpRight,
   Building2,
   ChevronRight,
-  Flame,
-  History,
+  CreditCard,
+  PiggyBank,
   Receipt,
   ShieldCheck,
   Smartphone,
+  Target,
   TrendingUp,
   X,
-  Zap,
 } from 'lucide-react'
 import { useHasMyHome, useMyHomeProperties, useAllPendingBills } from '@/features/my-home/hooks/useMyHome'
 import { formatCurrency, formatDate, formatTime } from '@/lib/utils'
@@ -380,70 +380,36 @@ export function DashboardHome({
           </div>
         </button>
 
-        <div className="dash-home__metrics">
-          <div className="dash-home__metric">
-            <Flame size={18} className={streak > 0 ? 'dash-home__metric-icon--active' : 'dash-home__metric-icon--muted'} />
-            <span className="dash-home__metric-val">{streak}</span>
-            <span className="dash-home__metric-lbl">Streak</span>
-          </div>
-          <div className="dash-home__metric">
-            <ShieldCheck size={18} className={onTimePct > 0 ? 'dash-home__metric-icon--active' : 'dash-home__metric-icon--muted'} />
-            <span className="dash-home__metric-val">{onTimePct}%</span>
-            <span className="dash-home__metric-lbl">On-time</span>
-          </div>
-          <div className="dash-home__metric">
-            <Zap size={18} className={profileCompletion > 0 ? 'dash-home__metric-icon--active' : 'dash-home__metric-icon--muted'} />
-            <span className="dash-home__metric-val">{profileCompletion}%</span>
-            <span className="dash-home__metric-lbl">Profile</span>
-          </div>
-        </div>
-
-        {/* <div className="dash-home__insights">
-          <div className="dash-home__insight">
-            <div className="dash-home__insight-head">
-              <span>Reliability rating</span>
-              <span>{onTimePct}%</span>
-            </div>
-            <div className="dash-home__goal-bar">
-              <div className="dash-home__goal-fill" style={{ width: `${onTimePct}%` }} />
-            </div>
-          </div>
-          <div className="dash-home__insight">
-            <div className="dash-home__insight-head">
-              <span>Score band</span>
-              <span>{(band || '—').toUpperCase()}</span>
-            </div>
-            <div className="dash-home__goal-bar">
-              <div
-                className="dash-home__goal-fill"
-                style={{ width: `${Math.min(100, (credScore / maxScore) * 100)}%` }}
-              />
-            </div>
-          </div>
-          <button
-            type="button"
-            className="dash-home__records-link"
-            onClick={() => router.push('/dashboard/request-records')}
-          >
-            <History size={16} />
-            <span>Request rent records</span>
-            <ChevronRight size={16} />
-          </button>
-        </div> */}
-
         <div className="dash-home__actions">
-          <button type="button" className="dash-home__action dash-home__action--primary" onClick={() => router.push('/dashboard/pay-rent')}>
-            Pay Rent
+          <button
+            type="button"
+            className="dash-home__action"
+            onClick={() => router.push('/dashboard/pay-rent')}
+          >
+            <span className="dash-home__action-icon">
+              <CreditCard size={18} strokeWidth={2.2} />
+            </span>
+            <span className="dash-home__action-lbl">Pay Rent</span>
           </button>
           <button
             type="button"
-            className="dash-home__action dash-home__action--secondary"
+            className="dash-home__action"
             onClick={() => router.push('/dashboard/savings')}
           >
-            <span>Save Rent</span>
+            <span className="dash-home__action-icon">
+              <PiggyBank size={18} strokeWidth={2.2} />
+            </span>
+            <span className="dash-home__action-lbl">Save Rent</span>
           </button>
-          <button type="button" className="dash-home__action dash-home__action--secondary" onClick={() => router.push('/dashboard/save-for-home')}>
-            Save for Home
+          <button
+            type="button"
+            className="dash-home__action"
+            onClick={() => router.push('/dashboard/lifestyle')}
+          >
+            <span className="dash-home__action-icon">
+              <Target size={18} strokeWidth={2.2} />
+            </span>
+            <span className="dash-home__action-lbl">Living Goals</span>
           </button>
         </div>
 

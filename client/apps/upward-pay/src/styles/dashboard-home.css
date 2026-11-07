@@ -592,61 +592,66 @@
   margin-top: 2px;
 }
 
-/* Quick actions */
+/* Quick action tiles */
 .dash-home__actions {
-  display: flex;
-  gap: 9px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  width: 100%;
   margin-top: 16px;
 }
 
 .dash-home__action {
-  flex: 1;
-  height: 46px;
-  border-radius: 13px;
-  font-family: inherit;
-  font-weight: 700;
-  font-size: 13px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 1px;
+  gap: 6px;
+  padding: 12px 6px 10px;
+  min-height: 80px;
+  border-radius: 16px;
+  border: 1px solid var(--shell-border, #e5dbcf);
+  background: var(--surface, #ffffff);
+  font-family: inherit;
+  color: var(--text, #1a1714);
   cursor: pointer;
   transition:
-    background 0.2s ease,
-    transform 0.15s ease;
+    transform 100ms ease-out,
+    background 120ms ease-out,
+    border-color 120ms ease-out;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.dash-home__action:hover {
+  border-color: var(--clay, #c2501f);
 }
 
 .dash-home__action:active {
-  transform: scale(0.98);
+  transform: scale(0.96);
 }
 
-.dash-home__action--primary {
-  background: var(--skin-primary, #c2501f);
-  color: #fff;
-  border: none;
+.dash-home__action-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--clay-faint, rgba(194, 80, 31, 0.1));
+  color: var(--clay, #c2501f);
+  transition: transform 100ms ease-out;
 }
 
-.dash-home__action--primary:hover {
-  background: var(--skin-primary-hover, #a8410f);
-}
-
-.dash-home__action--secondary {
-  background: #fff;
-  color: #1a1714;
-  border: 1.5px solid #e5dbcf;
-}
-
-.dash-home__action--disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.dash-home__action-soon {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--shell-muted, #a9a096);
-  line-height: 1;
+.dash-home__action-lbl {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.25;
+  color: var(--text, #1a1714);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 /* Rent due card */
