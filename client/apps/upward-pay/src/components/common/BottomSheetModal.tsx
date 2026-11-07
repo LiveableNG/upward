@@ -60,10 +60,32 @@ export function BottomSheetModal({
 
   useEffect(() => {
     if (!isOpen) return
-    const originalOverflow = document.body.style.overflow
+
+    const scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0
+    const originalHtmlOverflow = document.documentElement.style.overflow
+    const originalBodyOverflow = document.body.style.overflow
+    const originalBodyPosition = document.body.style.position
+    const originalBodyTop = document.body.style.top
+    const originalBodyWidth = document.body.style.width
+
+    document.documentElement.style.overflow = 'hidden'
     document.body.style.overflow = 'hidden'
+    document.body.style.position = 'fixed'
+    document.body.style.top = `-${scrollY}px`
+    document.body.style.left = '0'
+    document.body.style.right = '0'
+    document.body.style.width = '100%'
+
     return () => {
-      document.body.style.overflow = originalOverflow
+      document.documentElement.style.overflow = originalHtmlOverflow
+      document.body.style.overflow = originalBodyOverflow
+      document.body.style.position = originalBodyPosition
+      document.body.style.top = originalBodyTop
+      document.body.style.left = ''
+      document.body.style.right = ''
+      document.body.style.width = originalBodyWidth
+
+      window.scrollTo(0, scrollY)
     }
   }, [isOpen])
 
@@ -90,6 +112,11 @@ export function BottomSheetModal({
       onClick={(e) => {
         if (closeOnOverlayClick && e.target === e.currentTarget) {
           onClose()
+        }
+      }}
+      onTouchMove={(e) => {
+        if (e.target === e.currentTarget) {
+          e.preventDefault()
         }
       }}
       role="presentation"

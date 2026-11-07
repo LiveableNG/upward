@@ -226,7 +226,10 @@ export function ProfileSetupBlocker({ user, score, maxScore, onSkip }: ProfileSe
             <h2 className="setup-gate__section-label">
               {isGated ? 'Unlocks after setup' : 'Quick actions'}
             </h2>
-            <div className="setup-gate__tiles">
+            <div
+              className="setup-gate__tiles"
+              style={{ gridTemplateColumns: `repeat(${quickActions.length || 3}, 1fr)` }}
+            >
               {quickActions.map((action) => {
                 const Icon = action.icon
                 const locked = isGated || !!action.comingSoon
