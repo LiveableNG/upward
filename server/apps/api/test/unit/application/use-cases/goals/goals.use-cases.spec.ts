@@ -162,9 +162,17 @@ describe('Goals Domain Use Cases', () => {
       expect(mockGoalRepo.setUserGoals).toHaveBeenCalledWith(10, [1, 2])
     })
 
-    it('rejects empty goalIds list', async () => {
+    it('allows empty goalIds list to clear goals', async () => {
+      mockGoalRepo.setUserGoals!.mockResolvedValue([])
       const useCase = new SetUserGoalsUseCase(mockGoalRepo as GoalRepository)
-      await expect(useCase.execute(10, [])).rejects.toThrow(BadRequestException)
+      const result = await useCase.execute(10, [])
+      expect(result).toEqual([])
+      expect(mockGoalRepo.setUserGoals).toHaveBeenCalledWith(10, [])
+    })
+
+    it('rejects non-array goalIds', async () => {
+      const useCase = new SetUserGoalsUseCase(mockGoalRepo as GoalRepository)
+      await expect(useCase.execute(10, 'invalid' as any)).rejects.toThrow(BadRequestException)
     })
   })
 
