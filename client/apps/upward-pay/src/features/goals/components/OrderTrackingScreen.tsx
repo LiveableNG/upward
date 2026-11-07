@@ -24,7 +24,11 @@ import {
   MapPin,
   Calendar,
   User,
+  Phone,
+  PackageCheck,
+  Star,
 } from 'lucide-react'
+import { useToast } from '@/components/common/Toast'
 import {
   useTenantOrderDetail,
   useDownloadCommerceReceipt,
@@ -73,14 +77,18 @@ type DisputeFormData = z.infer<typeof disputeSchema>
 
 export function OrderTrackingScreen({ orderUuid }: { orderUuid: string }) {
   const router = useRouter()
+  const toast = useToast()
   const { data: order, isLoading, error } = useTenantOrderDetail(orderUuid)
   const downloadReceipt = useDownloadCommerceReceipt()
   const confirmReceipt = useConfirmSubOrderReceipt()
   const createDispute = useCreateCommerceDispute()
 
   const [activeDisputeSubOrder, setActiveDisputeSubOrder] = useState<TenantSubOrderDetailDto | null>(null)
+  const [subOrderToConfirm, setSubOrderToConfirm] = useState<TenantSubOrderDetailDto | null>(null)
+  const [rating, setRating] = useState<number>(5)
+  const [feedback, setFeedback] = useState<string>('')
+  const [hoveredRating, setHoveredRating] = useState<number | null>(null)
   const [isDownloading, setIsDownloading] = useState(false)
-  const [confirmingSubOrderUuid, setConfirmingSubOrderUuid] = useState<string | null>(null)
 
   const {
     register,
@@ -143,23 +151,27 @@ export function OrderTrackingScreen({ orderUuid }: { orderUuid: string }) {
         filename: `${order.orderNumber}-receipt.pdf`,
       })
     } catch (err: any) {
-      alert(err?.message || 'Could not download receipt.')
+      toast.error(err?.message || 'Could not download receipt.')
     } finally {
       setIsDownloading(false)
     }
   }
 
-  const handleConfirmReceipt = async (subOrderUuid: string) => {
-    if (!window.confirm('Are you sure you want to confirm delivery? This releases vendor payout.')) {
-      return
-    }
+  const executeConfirmReceipt = async () => {
+    if (!subOrderToConfirm) return
     try {
-      setConfirmingSubOrderUuid(subOrderUuid)
-      await confirmReceipt.mutateAsync(subOrderUuid)
+      await confirmReceipt.mutateAsync({
+        subOrderUuid: subOrderToConfirm.uuid,
+        rating,
+        feedback: feedback.trim() || undefined,
+      })
+      toast.success('Delivery receipt confirmed! Thank you for rating.')
+      setSubOrderToConfirm(null)
+      setRating(5)
+      setFeedback('')
+      setHoveredRating(null)
     } catch (err: any) {
-      alert(err?.message || 'Could not confirm delivery.')
-    } finally {
-      setConfirmingSubOrderUuid(null)
+      toast.error(err?.message || 'Could not confirm delivery.')
     }
   }
 
@@ -171,11 +183,11 @@ export function OrderTrackingScreen({ orderUuid }: { orderUuid: string }) {
         reason: formData.reason,
         explanation: formData.explanation,
       })
-      alert('Your inquiry has been logged. Upward Support is reviewing it.')
+      toast.success('Your inquiry has been logged. Upward Support is reviewing it.')
       setActiveDisputeSubOrder(null)
       reset()
     } catch (err: any) {
-      alert(err?.message || 'Failed to submit inquiry.')
+      toast.error(err?.message || 'Failed to submit inquiry.')
     }
   }
 
@@ -234,18 +246,15 @@ export function OrderTrackingScreen({ orderUuid }: { orderUuid: string }) {
         {order.subOrders.map((subOrder) => {
           const isService = subOrder.items.some((i) => i.offeringType === 'SERVICE')
 
-          // Derive milestone steps
+          // Consolidated 3-step pipeline for physical goods
           const productSteps = [
-            { key: 'ORDER_CONFIRMED', label: 'Confirmed' },
-            { key: 'PROCESSING', label: 'Processing' },
-            { key: 'DISPATCHED', label: 'Dispatched' },
-            { key: 'OUT_FOR_DELIVERY', label: 'Out for Delivery' },
+            { key: 'CONFIRMED', label: 'Order Confirmed' },
+            { key: 'DISPATCHED', label: 'Dispatched & En Route' },
             { key: 'DELIVERED', label: 'Delivered' },
           ]
 
           const serviceSteps = [
             { key: 'ORDER_CONFIRMED', label: 'Confirmed' },
-            { key: 'PROCESSING', label: 'Assigned' },
             { key: 'SERVICE_SCHEDULED', label: 'Scheduled' },
             { key: 'TECHNICIAN_EN_ROUTE', label: 'En Route' },
             { key: 'SERVICE_COMPLETED', label: 'Completed' },
@@ -253,17 +262,30 @@ export function OrderTrackingScreen({ orderUuid }: { orderUuid: string }) {
 
           const steps = isService ? serviceSteps : productSteps
 
-          const currentIdx = steps.findIndex((s) => s.key === subOrder.customerStatus)
-          const activeStepIndex =
-            currentIdx !== -1
-              ? currentIdx
-              : subOrder.customerStatus === 'RECEIVED_CONFIRMED'
-              ? steps.length - 1
-              : 0
+          let activeStepIndex = 0
+          if (isService) {
+            if (['SERVICE_COMPLETED', 'RECEIVED_CONFIRMED'].includes(subOrder.customerStatus)) {
+              activeStepIndex = 3
+            } else if (subOrder.customerStatus === 'TECHNICIAN_EN_ROUTE') {
+              activeStepIndex = 2
+            } else if (subOrder.customerStatus === 'SERVICE_SCHEDULED' || subOrder.customerStatus === 'PROCESSING') {
+              activeStepIndex = 1
+            } else {
+              activeStepIndex = 0
+            }
+          } else {
+            if (['DELIVERED', 'RECEIVED_CONFIRMED'].includes(subOrder.customerStatus)) {
+              activeStepIndex = 2
+            } else if (['DISPATCHED', 'OUT_FOR_DELIVERY'].includes(subOrder.customerStatus)) {
+              activeStepIndex = 1
+            } else {
+              activeStepIndex = 0
+            }
+          }
 
-          const hasTrafficDelay =
-            subOrder.adminOperationalNotes &&
-            subOrder.adminOperationalNotes.toLowerCase().includes('traffic')
+          const isDispatchedLive =
+            (!isService && ['DISPATCHED', 'OUT_FOR_DELIVERY'].includes(subOrder.customerStatus)) ||
+            (isService && subOrder.customerStatus === 'TECHNICIAN_EN_ROUTE')
 
           return (
             <div key={subOrder.uuid} className="order-tracking__suborder-card">
@@ -275,7 +297,7 @@ export function OrderTrackingScreen({ orderUuid }: { orderUuid: string }) {
                   )}
                   <div className="order-tracking__vendor-tag">
                     <ShieldCheck size={14} color="var(--clay)" />
-                    <span>Fulfilled by {subOrder.vendorName}</span>
+                    <span>Fulfilled by {subOrder.vendor?.name || subOrder.vendorName || 'Upward Merchant'}</span>
                   </div>
                 </div>
 
@@ -284,14 +306,14 @@ export function OrderTrackingScreen({ orderUuid }: { orderUuid: string }) {
                     <button
                       type="button"
                       className="order-tracking__confirm-btn"
-                      onClick={() => handleConfirmReceipt(subOrder.uuid)}
-                      disabled={confirmingSubOrderUuid === subOrder.uuid}
+                      onClick={() => {
+                        setSubOrderToConfirm(subOrder)
+                        setRating(5)
+                        setFeedback('')
+                        setHoveredRating(null)
+                      }}
                     >
-                      {confirmingSubOrderUuid === subOrder.uuid ? (
-                        <Loader2 size={13} className="animate-spin" />
-                      ) : (
-                        <CheckCircle2 size={13} />
-                      )}
+                      <CheckCircle2 size={13} />
                       <span>Confirm Received</span>
                     </button>
                   )}
@@ -308,12 +330,12 @@ export function OrderTrackingScreen({ orderUuid }: { orderUuid: string }) {
                 </div>
               </div>
 
-              {/* Traffic / Delay Advisory if present */}
-              {hasTrafficDelay && (
-                <div className="order-tracking__alert-banner">
-                  <AlertTriangle size={16} color="#B45309" />
+              {/* Operational Dispatch Message / Live Advisory */}
+              {subOrder.adminOperationalNotes && (
+                <div className="order-tracking__alert-banner order-tracking__alert-banner--dispatch">
+                  <MessageSquare size={16} color="var(--clay)" style={{ flexShrink: 0, marginTop: 2 }} />
                   <div className="order-tracking__alert-text">
-                    <strong>Transit Notice:</strong> {subOrder.adminOperationalNotes}
+                    <strong>Dispatch Note:</strong> {subOrder.adminOperationalNotes}
                   </div>
                 </div>
               )}
@@ -332,6 +354,8 @@ export function OrderTrackingScreen({ orderUuid }: { orderUuid: string }) {
                   {steps.map((step, idx) => {
                     const isDone = idx < activeStepIndex
                     const isCurrent = idx === activeStepIndex
+                    const isBeamingStep = isCurrent && isDispatchedLive
+
                     return (
                       <div
                         key={step.key}
@@ -343,19 +367,70 @@ export function OrderTrackingScreen({ orderUuid }: { orderUuid: string }) {
                             : ''
                         }`}
                       >
-                        <div className="order-tracking__node-dot">
-                          {isDone ? <CheckCircle2 size={12} /> : idx + 1}
+                        <div
+                          className={`order-tracking__node-dot ${
+                            isBeamingStep ? 'order-tracking__node-dot--beaming' : ''
+                          }`}
+                        >
+                          {isBeamingStep ? (
+                            <>
+                              <span className="order-tracking__radar-ring" />
+                              <Truck size={13} className="order-tracking__icon-moving" />
+                            </>
+                          ) : isDone ? (
+                            <CheckCircle2 size={12} />
+                          ) : (
+                            idx + 1
+                          )}
                         </div>
-                        <div className="order-tracking__node-label">{step.label}</div>
+                        <div className="order-tracking__node-label">
+                          <span>{step.label}</span>
+                          {isBeamingStep && (
+                            <span className="order-tracking__live-pill">
+                              <span className="order-tracking__live-beacon" />
+                              LIVE
+                            </span>
+                          )}
+                        </div>
                       </div>
                     )
                   })}
                 </div>
               </div>
 
-              {/* Carrier or Appointment Info Box */}
-              {(subOrder.carrierName || subOrder.serviceScheduledAt) && (
+              {/* Carrier, Rider, or Appointment Info Box */}
+              {(subOrder.carrierName ||
+                subOrder.serviceScheduledAt ||
+                subOrder.technicianName ||
+                subOrder.technicianPhone) && (
                 <div className="order-tracking__dispatch-box">
+                  {/* Delivery Rider (Physical goods delivery) */}
+                  {!isService && (subOrder.technicianName || subOrder.technicianPhone) && (
+                    <div className="order-tracking__dispatch-item order-tracking__dispatch-item--rider">
+                      <Truck size={16} color="var(--clay)" />
+                      <div className="order-tracking__dispatch-details">
+                        <div className="order-tracking__dispatch-label">Delivery Rider</div>
+                        <div className="order-tracking__dispatch-val">
+                          {subOrder.technicianName || 'Assigned Rider'}
+                          {subOrder.technicianPhone && (
+                            <span className="order-tracking__dispatch-phone"> · {subOrder.technicianPhone}</span>
+                          )}
+                        </div>
+                      </div>
+                      {subOrder.technicianPhone && (
+                        <a
+                          href={`tel:${subOrder.technicianPhone.replace(/\s+/g, '')}`}
+                          className="order-tracking__call-btn"
+                          aria-label={`Call delivery rider at ${subOrder.technicianPhone}`}
+                        >
+                          <Phone size={13} />
+                          <span>Call Rider</span>
+                        </a>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 3rd Party Carrier details if provided */}
                   {subOrder.carrierName && (
                     <div className="order-tracking__dispatch-item">
                       <Truck size={16} color="var(--clay)" />
@@ -380,6 +455,7 @@ export function OrderTrackingScreen({ orderUuid }: { orderUuid: string }) {
                     </div>
                   )}
 
+                  {/* Service appointment */}
                   {subOrder.serviceScheduledAt && (
                     <div className="order-tracking__dispatch-item">
                       <Calendar size={16} color="var(--clay)" />
@@ -397,15 +473,29 @@ export function OrderTrackingScreen({ orderUuid }: { orderUuid: string }) {
                     </div>
                   )}
 
-                  {subOrder.technicianName && (
-                    <div className="order-tracking__dispatch-item">
+                  {/* Service specialist */}
+                  {isService && subOrder.technicianName && (
+                    <div className="order-tracking__dispatch-item order-tracking__dispatch-item--rider">
                       <User size={16} color="var(--clay)" />
-                      <div>
+                      <div className="order-tracking__dispatch-details">
                         <div className="order-tracking__dispatch-label">Assigned Specialist</div>
                         <div className="order-tracking__dispatch-val">
                           {subOrder.technicianName} (Upward Verified)
+                          {subOrder.technicianPhone && (
+                            <span className="order-tracking__dispatch-phone"> · {subOrder.technicianPhone}</span>
+                          )}
                         </div>
                       </div>
+                      {subOrder.technicianPhone && (
+                        <a
+                          href={`tel:${subOrder.technicianPhone.replace(/\s+/g, '')}`}
+                          className="order-tracking__call-btn"
+                          aria-label={`Call specialist at ${subOrder.technicianPhone}`}
+                        >
+                          <Phone size={13} />
+                          <span>Call Specialist</span>
+                        </a>
+                      )}
                     </div>
                   )}
                 </div>
@@ -536,6 +626,139 @@ export function OrderTrackingScreen({ orderUuid }: { orderUuid: string }) {
               </button>
             </div>
           </form>
+        )}
+      </BottomSheetModal>
+
+      {/* Confirm Delivery Receipt BottomSheet Modal */}
+      <BottomSheetModal
+        isOpen={Boolean(subOrderToConfirm)}
+        onClose={() => setSubOrderToConfirm(null)}
+        title="Confirm Order Received"
+        subtitle={
+          subOrderToConfirm
+            ? `Package: ${subOrderToConfirm.subOrderNumber} · ${subOrderToConfirm.vendor?.name || subOrderToConfirm.vendorName || 'Upward Merchant'}`
+            : undefined
+        }
+        icon={<PackageCheck size={20} color="var(--clay)" />}
+        maxWidth="480px"
+      >
+        {subOrderToConfirm && (
+          <div className="order-tracking__confirm-sheet">
+            {/* Vendor & Delivery Rating System */}
+            <div className="order-tracking__rating-card">
+              <div className="order-tracking__rating-header">
+                <h4 className="order-tracking__rating-title">Rate Delivery & Experience</h4>
+                <p className="order-tracking__rating-subtitle">
+                  How satisfied are you with {subOrderToConfirm.vendor?.name || subOrderToConfirm.vendorName || 'the merchant'}&apos;s service?
+                </p>
+              </div>
+
+              {/* 5-Star Rating Selector */}
+              <div
+                className="order-tracking__rating-stars"
+                role="radiogroup"
+                aria-label="Service Rating"
+                onMouseLeave={() => setHoveredRating(null)}
+              >
+                {[1, 2, 3, 4, 5].map((starVal) => {
+                  const effectiveRating = hoveredRating !== null ? hoveredRating : rating
+                  const isFilled = starVal <= effectiveRating
+
+                  return (
+                    <button
+                      key={starVal}
+                      type="button"
+                      className={`order-tracking__star-btn ${isFilled ? 'order-tracking__star-btn--filled' : ''}`}
+                      onClick={() => setRating(starVal)}
+                      onMouseEnter={() => setHoveredRating(starVal)}
+                      aria-label={`${starVal} star${starVal > 1 ? 's' : ''}`}
+                    >
+                      <Star
+                        size={28}
+                        strokeWidth={1.5}
+                        fill={isFilled ? '#F59E0B' : 'transparent'}
+                        color={isFilled ? '#F59E0B' : 'var(--text-muted)'}
+                      />
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Dynamic feedback badge */}
+              <div className="order-tracking__rating-label">
+                {(() => {
+                  const currentScore = hoveredRating !== null ? hoveredRating : rating
+                  switch (currentScore) {
+                    case 5:
+                      return 'Excellent Experience (5/5)'
+                    case 4:
+                      return 'Very Good (4/5)'
+                    case 3:
+                      return 'Satisfactory (3/5)'
+                    case 2:
+                      return 'Could Be Better (2/5)'
+                    case 1:
+                      return 'Poor Experience (1/5)'
+                    default:
+                      return 'Tap to Rate'
+                  }
+                })()}
+              </div>
+
+              {/* Optional comments */}
+              <div className="order-tracking__rating-input-box">
+                <textarea
+                  className="order-tracking__rating-textarea"
+                  rows={2}
+                  value={feedback}
+                  onChange={(e) => setFeedback(e.target.value)}
+                  placeholder="Optional: Tell us what you loved or how service can improve..."
+                  maxLength={500}
+                />
+              </div>
+            </div>
+
+            <div className="order-tracking__confirm-items-box">
+              <div className="order-tracking__confirm-items-title">Items in this Delivery</div>
+              <div className="order-tracking__confirm-items-list">
+                {subOrderToConfirm.items.map((item) => (
+                  <div key={item.uuid} className="order-tracking__confirm-item-row">
+                    <span className="order-tracking__confirm-item-title">• {item.snapshotData?.title || 'Package Item'}</span>
+                    <span className="order-tracking__confirm-item-qty">Qty: {item.quantity}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="order-tracking__modal-actions">
+              <button
+                type="button"
+                className="order-tracking__cancel-btn"
+                onClick={() => setSubOrderToConfirm(null)}
+                disabled={confirmReceipt.isPending}
+              >
+                Not Yet
+              </button>
+              <button
+                type="button"
+                className="order-tracking__submit-btn"
+                onClick={executeConfirmReceipt}
+                disabled={confirmReceipt.isPending}
+              >
+                {confirmReceipt.isPending ? (
+                  <>
+                    <Loader2 size={15} className="animate-spin" />
+                    <span>Confirming...</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 size={15} />
+                    <span>Confirm Received</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
         )}
       </BottomSheetModal>
     </div>

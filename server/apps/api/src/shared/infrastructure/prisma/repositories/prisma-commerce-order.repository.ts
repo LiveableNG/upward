@@ -331,7 +331,13 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
     const { skip = 0, take = 50, status, paymentStatus, vendorId, search, startDate, endDate } = filter
     const where: any = {}
     if (status) where.status = status
-    if (paymentStatus) where.paymentStatus = paymentStatus
+    if (paymentStatus) {
+      if (paymentStatus === 'UNPAID') {
+        where.paymentStatus = { in: ['UNPAID', 'INITIATED'] }
+      } else {
+        where.paymentStatus = paymentStatus
+      }
+    }
     if (vendorId) where.subOrders = { some: { vendorId } }
     if (startDate || endDate) {
       where.createdAt = {}

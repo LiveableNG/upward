@@ -70,9 +70,11 @@ export class GetTenantOrderDetailUseCase {
         serviceWindowNotes: sub.serviceWindowNotes,
         technicianName: sub.technicianName,
         technicianPhone: sub.technicianPhone,
+        adminOperationalNotes: sub.adminOperationalNotes,
         deliveredAt: sub.deliveredAt,
         tenantConfirmedAt: sub.tenantConfirmedAt,
         coolingPeriodEndsAt: sub.coolingPeriodEndsAt,
+        vendorName: sub.vendor?.name || 'Vendor',
         vendor: {
           id: sub.vendor?.id || sub.vendorId,
           uuid: sub.vendor?.uuid || '',

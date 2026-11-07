@@ -74,9 +74,11 @@ export interface TenantVendorSubOrderDto {
   serviceWindowNotes?: string | null
   technicianName?: string | null
   technicianPhone?: string | null
+  adminOperationalNotes?: string | null
   deliveredAt?: Date | null
   tenantConfirmedAt?: Date | null
   coolingPeriodEndsAt?: Date | null
+  vendorName?: string
   vendor: {
     id: number
     uuid: string

@@ -409,23 +409,43 @@ export function CommerceOrdersTable({
 
                                       {/* Action Button */}
                                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                        <button
-                                          type="button"
-                                          onClick={() => setActiveSubOrderForEdit(subOrder)}
-                                          className="btn btn-secondary"
-                                          style={{
-                                            height: 32,
-                                            padding: '0 12px',
-                                            fontSize: 12,
-                                            fontWeight: 700,
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            gap: 6,
-                                          }}
-                                        >
-                                          <Truck size={13} />
-                                          <span>Update Milestone</span>
-                                        </button>
+                                        {isPaid ? (
+                                          <button
+                                            type="button"
+                                            onClick={() => setActiveSubOrderForEdit(subOrder)}
+                                            className="btn btn-secondary"
+                                            style={{
+                                              height: 32,
+                                              padding: '0 12px',
+                                              fontSize: 12,
+                                              fontWeight: 700,
+                                              display: 'inline-flex',
+                                              alignItems: 'center',
+                                              gap: 6,
+                                            }}
+                                          >
+                                            <Truck size={13} />
+                                            <span>Update Milestone</span>
+                                          </button>
+                                        ) : (
+                                          <span
+                                            style={{
+                                              fontSize: 11.5,
+                                              fontWeight: 600,
+                                              color: 'var(--text-muted)',
+                                              background: 'rgba(0, 0, 0, 0.04)',
+                                              border: '1px dashed var(--border)',
+                                              padding: '5px 10px',
+                                              borderRadius: 6,
+                                              display: 'inline-flex',
+                                              alignItems: 'center',
+                                              gap: 4,
+                                            }}
+                                            title="This order was abandoned or not yet paid by the customer."
+                                          >
+                                            Awaiting Payment
+                                          </span>
+                                        )}
                                       </div>
                                     </div>
                                   )

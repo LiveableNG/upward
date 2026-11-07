@@ -58,6 +58,14 @@ export interface TenantSubOrderDetailDto {
   customerStatus: CustomerFulfilmentStatus
   vendorName: string
   vendorSlug: string
+  vendor?: {
+    id: number
+    uuid: string
+    name: string
+    slug: string
+    logoUrl?: string | null
+    rating: number
+  }
   subtotalKobo: string
   deliveryFeeKobo: string
   carrierName?: string | null
@@ -66,6 +74,7 @@ export interface TenantSubOrderDetailDto {
   serviceScheduledAt?: string | null
   serviceWindowNotes?: string | null
   technicianName?: string | null
+  technicianPhone?: string | null
   deliveredAt?: string | null
   tenantConfirmedAt?: string | null
   adminOperationalNotes?: string | null

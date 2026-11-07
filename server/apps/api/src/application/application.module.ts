@@ -39,6 +39,7 @@ import { GetTenantOrdersUseCase } from './commerce/use-cases/get-tenant-orders.u
 import { GetTenantOrderDetailUseCase } from './commerce/use-cases/get-tenant-order-detail.use-case'
 import { CancelExpiredCommerceOrdersUseCase } from './commerce/use-cases/cancel-expired-commerce-orders.use-case'
 import { InitializeCommercePaymentUseCase } from './commerce/use-cases/initialize-commerce-payment.use-case'
+import { VerifyCommercePaymentUseCase } from './commerce/use-cases/verify-commerce-payment.use-case'
 import { ConfirmCommercePaymentUseCase } from './commerce/use-cases/confirm-commerce-payment.use-case'
 import { AdminGetCommerceOrdersUseCase } from './commerce/use-cases/admin/admin-get-commerce-orders.use-case'
 import { AdminGetCommerceOrderDetailUseCase } from './commerce/use-cases/admin/admin-get-commerce-order-detail.use-case'
@@ -1165,6 +1166,7 @@ const UseCases: any[] = [
   GetTenantOrderDetailUseCase,
   CancelExpiredCommerceOrdersUseCase,
   InitializeCommercePaymentUseCase,
+  VerifyCommercePaymentUseCase,
   ConfirmCommercePaymentUseCase,
   AdminGetCommerceOrdersUseCase,
   AdminGetCommerceOrderDetailUseCase,

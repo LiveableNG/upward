@@ -11,7 +11,10 @@ import {
   CommerceOrderRepository,
 } from '../../../domains/commerce/commerce-order.repository'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
-import { ConfirmSubOrderReceiptResultDto } from '../dto/confirm-receipt.dto'
+import {
+  ConfirmSubOrderReceiptInputDto,
+  ConfirmSubOrderReceiptResultDto,
+} from '../dto/confirm-receipt.dto'
 import { SendCommerceThankYouEmailUseCase } from './send-commerce-thank-you-email.use-case'
 
 @Injectable()
@@ -30,6 +33,7 @@ export class TenantConfirmSubOrderReceiptUseCase {
   async execute(
     userIdentifier: number | string,
     subOrderUuid: string,
+    input?: ConfirmSubOrderReceiptInputDto,
   ): Promise<ConfirmSubOrderReceiptResultDto> {
     const user = typeof userIdentifier === 'number'
       ? await this.userRepo.findById(userIdentifier)
@@ -85,7 +89,9 @@ export class TenantConfirmSubOrderReceiptUseCase {
       event: {
         status: 'RECEIVED_CONFIRMED',
         title: 'Receipt Confirmed',
-        description: 'Customer confirmed receipt and satisfactory delivery of offering',
+        description: input?.rating
+          ? `Customer confirmed receipt with ${input.rating}★ rating${input.feedback?.trim() ? `: "${input.feedback.trim()}"` : ''}`
+          : 'Customer confirmed receipt and satisfactory delivery of offering',
         isCustomerVisible: true,
         actorType: 'TENANT',
         actorId: String(user.id!),
@@ -104,6 +110,8 @@ export class TenantConfirmSubOrderReceiptUseCase {
         details: {
           subOrderUuid,
           subOrderNumber: subOrder.subOrderNumber,
+          rating: input?.rating,
+          feedback: input?.feedback?.trim(),
         },
       },
     })

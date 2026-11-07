@@ -292,14 +292,22 @@ export function OrdersListScreen() {
                         </button>
                       )}
 
-                      <button
-                        type="button"
-                        className="orders-hub__track-btn"
-                        onClick={() => router.push(`/dashboard/lifestyle/orders/${order.uuid}`)}
-                      >
-                        <span>Track Live</span>
-                        <ChevronRight size={14} />
-                      </button>
+                      {(() => {
+                        const isCompleted =
+                          ['DELIVERED', 'SERVICE_COMPLETED', 'RECEIVED_CONFIRMED'].includes(order.primaryStatus) ||
+                          ['CANCELLED', 'REFUNDED'].includes(order.status)
+
+                        return (
+                          <button
+                            type="button"
+                            className={`orders-hub__track-btn ${isCompleted ? 'orders-hub__track-btn--completed' : ''}`}
+                            onClick={() => router.push(`/dashboard/lifestyle/orders/${order.uuid}`)}
+                          >
+                            <span>{isCompleted ? 'View Details' : 'Track Live'}</span>
+                            <ChevronRight size={14} />
+                          </button>
+                        )
+                      })()}
                     </div>
                   </div>
                 </div>

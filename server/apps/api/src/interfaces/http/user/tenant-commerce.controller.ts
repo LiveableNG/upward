@@ -18,11 +18,13 @@ import { CreateCommerceOrderUseCase } from '../../../application/commerce/use-ca
 import { GetTenantOrdersUseCase } from '../../../application/commerce/use-cases/get-tenant-orders.use-case'
 import { GetTenantOrderDetailUseCase } from '../../../application/commerce/use-cases/get-tenant-order-detail.use-case'
 import { InitializeCommercePaymentUseCase } from '../../../application/commerce/use-cases/initialize-commerce-payment.use-case'
+import { VerifyCommercePaymentUseCase } from '../../../application/commerce/use-cases/verify-commerce-payment.use-case'
 import { GetCommerceReceiptPdfUseCase } from '../../../application/commerce/use-cases/get-commerce-receipt-pdf.use-case'
 import { CreateCommerceDisputeUseCase } from '../../../application/commerce/use-cases/create-commerce-dispute.use-case'
 import { CreateCommerceInquiryUseCase } from '../../../application/commerce/use-cases/create-commerce-inquiry.use-case'
 import { PreviewCommerceOrderDto } from '../../../application/commerce/dto/preview-commerce-order.dto'
 import { CreateCommerceOrderDto } from '../../../application/commerce/dto/create-commerce-order.dto'
+import { VerifyCommercePaymentDto } from '../../../application/commerce/dto/verify-commerce-payment.dto'
 import { GetTenantOrdersFilterDto } from '../../../application/commerce/dto/tenant-commerce-order.dto'
 import { CreateCommerceDisputeDto } from '../../../application/commerce/dto/commerce-dispute.dto'
 import { CreateCommerceInquiryDto } from '../../../application/commerce/dto/commerce-inquiry.dto'
@@ -36,6 +38,7 @@ export class TenantCommerceController {
     private readonly getTenantOrdersUseCase: GetTenantOrdersUseCase,
     private readonly getTenantOrderDetailUseCase: GetTenantOrderDetailUseCase,
     private readonly initializeCommercePaymentUseCase: InitializeCommercePaymentUseCase,
+    private readonly verifyCommercePaymentUseCase: VerifyCommercePaymentUseCase,
     private readonly getCommerceReceiptPdfUseCase: GetCommerceReceiptPdfUseCase,
     private readonly createCommerceDisputeUseCase: CreateCommerceDisputeUseCase,
     private readonly createCommerceInquiryUseCase: CreateCommerceInquiryUseCase,
@@ -100,6 +103,26 @@ export class TenantCommerceController {
       userUuid,
       orderUuid: uuid,
       ipAddress: typeof ipAddress === 'string' ? ipAddress : undefined,
+    })
+    return { data }
+  }
+
+  @Post(':uuid/verify-payment')
+  @HttpCode(HttpStatus.OK)
+  async verifyPayment(
+    @Req() req: any,
+    @Param('uuid') uuid: string,
+    @Body() dto: VerifyCommercePaymentDto,
+  ) {
+    const userUuid = req.user?.id || req.user?.sub
+    if (!userUuid) {
+      throw new UnauthorizedException('Authentication required')
+    }
+
+    const data = await this.verifyCommercePaymentUseCase.execute({
+      userUuid,
+      orderUuid: uuid,
+      reference: dto.reference,
     })
     return { data }
   }

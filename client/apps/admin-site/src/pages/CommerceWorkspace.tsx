@@ -159,9 +159,9 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
     toggleVendorActive,
   } = useGoalManagement(token)
 
-  // Orders table local state
+  // Orders table local state - default to PAID orders so fulfilment staff see actionable orders
   const [orderSearch, setOrderSearch] = useState('')
-  const [paymentStatusFilter, setPaymentStatusFilter] = useState('ALL')
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState('PAID')
 
   // Modals for catalog management
   const [categoryModalOpen, setCategoryModalOpen] = useState(false)
@@ -553,9 +553,9 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
               onChange={(e) => setPaymentStatusFilter(e.target.value)}
               style={{ padding: '9px 14px', borderRadius: 8, border: '1px solid #ddd', fontSize: 13 }}
             >
-              <option value="ALL">All Payment Statuses</option>
-              <option value="PAID">Paid Only</option>
-              <option value="UNPAID">Unpaid Only</option>
+              <option value="PAID">Paid Orders (Actionable)</option>
+              <option value="ALL">All Orders (Including Abandoned)</option>
+              <option value="UNPAID">Unpaid / Abandoned Only</option>
             </select>
           </div>
 

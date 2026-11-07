@@ -99,13 +99,22 @@ export async function createCommerceInquiry(data: {
   return res.data
 }
 
+export interface ConfirmSubOrderReceiptInput {
+  subOrderUuid: string
+  rating?: number
+  feedback?: string
+}
+
 export async function confirmSubOrderReceipt(
-  subOrderUuid: string,
+  input: string | ConfirmSubOrderReceiptInput,
 ): Promise<{ message: string; subOrder: any }> {
+  const uuid = typeof input === 'string' ? input : input.subOrderUuid
+  const payload = typeof input === 'string' ? {} : { rating: input.rating, feedback: input.feedback }
   const res = await request<{ data: { message: string; subOrder: any } }>(
-    `/user/commerce/sub-orders/${subOrderUuid}/confirm-receipt`,
+    `/user/commerce/sub-orders/${uuid}/confirm-receipt`,
     {
       method: 'POST',
+      body: JSON.stringify(payload),
     },
   )
   return res.data
@@ -197,6 +206,28 @@ export async function initializeCommercePayment(
     `/user/commerce/orders/${orderUuid}/pay`,
     {
       method: 'POST',
+    },
+  )
+  return res.data
+}
+
+export interface VerifyCommercePaymentResult {
+  success: boolean
+  orderNumber?: string
+  status?: string
+  paymentStatus?: string
+  alreadyPaid?: boolean
+}
+
+export async function verifyCommercePayment(
+  orderUuid: string,
+  reference: string,
+): Promise<VerifyCommercePaymentResult> {
+  const res = await request<{ data: VerifyCommercePaymentResult }>(
+    `/user/commerce/orders/${orderUuid}/verify-payment`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ reference }),
     },
   )
   return res.data

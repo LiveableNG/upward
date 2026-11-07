@@ -108,6 +108,14 @@ export class AdminUpdateFulfilmentDto {
 
   @IsOptional()
   @IsString()
+  riderName?: string
+
+  @IsOptional()
+  @IsString()
+  riderPhone?: string
+
+  @IsOptional()
+  @IsString()
   adminOperationalNotes?: string
 
   @IsOptional()
@@ -266,6 +274,14 @@ export interface AdminCommerceOrderSummaryDto {
     }
     customerStatus: CustomerFulfilmentStatus
     operationalStatus: AdminOperationalStatus
+    carrierName?: string | null
+    trackingNumber?: string | null
+    trackingUrl?: string | null
+    serviceScheduledAt?: Date | null
+    serviceWindowNotes?: string | null
+    technicianName?: string | null
+    technicianPhone?: string | null
+    adminOperationalNotes?: string | null
     subtotalKobo: string
     deliveryFeeKobo?: string
     platformFeeKobo?: string

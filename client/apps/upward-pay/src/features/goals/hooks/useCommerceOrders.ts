@@ -9,6 +9,7 @@ import {
   previewCommerceOrder,
   createCommerceOrder,
   initializeCommercePayment,
+  verifyCommercePayment,
   type PreviewCommerceOrderInput,
   type CreateCommerceOrderInput,
 } from '../services/commerceService'
@@ -98,5 +99,17 @@ export function useCreateCommerceOrder() {
 export function useInitializeCommercePayment() {
   return useMutation({
     mutationFn: (orderUuid: string) => initializeCommercePayment(orderUuid),
+  })
+}
+
+export function useVerifyCommercePayment() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ orderUuid, reference }: { orderUuid: string; reference: string }) =>
+      verifyCommercePayment(orderUuid, reference),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['tenant-commerce-orders'] })
+      queryClient.invalidateQueries({ queryKey: ['tenant-commerce-order', variables.orderUuid] })
+    },
   })
 }

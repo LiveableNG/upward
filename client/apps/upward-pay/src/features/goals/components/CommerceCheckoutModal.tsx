@@ -22,6 +22,7 @@ import { sessionTracker } from '@/lib/sessionTracker'
 import {
   useCreateCommerceOrder,
   useInitializeCommercePayment,
+  useVerifyCommercePayment,
 } from '../hooks/useCommerceOrders'
 import type { GoalOffering } from '../types/goals.types'
 import {
@@ -150,6 +151,7 @@ export function CommerceCheckoutModal({
 
   const createOrder = useCreateCommerceOrder()
   const initializePayment = useInitializeCommercePayment()
+  const verifyPayment = useVerifyCommercePayment()
 
   useEffect(() => {
     setMounted(true)
@@ -307,7 +309,18 @@ export function CommerceCheckoutModal({
       // 3. Open Paystack Inline Checkout popup
       if (paymentInit.accessCode) {
         try {
-          await openPaystackInline(paymentInit.accessCode, grandTotal)
+          const paidReference = await openPaystackInline(paymentInit.accessCode, grandTotal)
+
+          // Authoritatively verify with backend so order transitions to PAID in DB
+          try {
+            await verifyPayment.mutateAsync({
+              orderUuid: createdOrder.uuid,
+              reference: paidReference || paymentInit.reference,
+            })
+          } catch (verifyErr) {
+            console.warn('Payment direct verification note:', verifyErr)
+          }
+
           toast.success('Payment confirmed! Your order has been placed.')
           onClose()
           router.push(`/dashboard/lifestyle/orders/${createdOrder.uuid}`)

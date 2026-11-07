@@ -83,6 +83,8 @@ export class AdminUpdateSubOrderFulfilmentUseCase {
 
     const items = subOrder.items || []
     const isServiceSubOrder = items.some((it) => it.offeringType === 'SERVICE')
+    const effectiveRiderName = dto.riderName ?? dto.technicianName
+    const effectiveRiderPhone = dto.riderPhone ?? dto.technicianPhone
 
     let targetCustomerStatus: CustomerFulfilmentStatus | undefined
     let targetOperationalStatus: AdminOperationalStatus | undefined
@@ -98,9 +100,7 @@ export class AdminUpdateSubOrderFulfilmentUseCase {
     switch (dto.action) {
       case AdminFulfilmentTransitionAction.CONFIRM_BY_VENDOR:
       case AdminFulfilmentTransitionAction.VENDOR_CONFIRM: {
-        if (subOrder.operationalStatus === 'VENDOR_CONFIRMED') {
-          return this.mapToAdminSubOrderDto(subOrder)
-        }
+        targetCustomerStatus = 'PROCESSING'
         targetOperationalStatus = 'VENDOR_CONFIRMED'
         eventTitle = eventTitle || 'Vendor Confirmed'
         eventDescription = eventDescription || 'Vendor has confirmed and begun preparing the order items'
@@ -114,29 +114,22 @@ export class AdminUpdateSubOrderFulfilmentUseCase {
           throw new BadRequestException('Cannot dispatch carrier for a service sub-order; use service scheduling')
         }
 
-        // Idempotency check
-        if (
-          subOrder.customerStatus === 'DISPATCHED' &&
-          subOrder.carrierName === dto.carrierName &&
-          subOrder.trackingNumber === dto.trackingNumber
-        ) {
-          return this.mapToAdminSubOrderDto(subOrder)
-        }
-
         targetCustomerStatus = 'DISPATCHED'
         targetOperationalStatus = 'CARRIER_DISPATCHED'
-        if (dto.carrierName) dispatchData.carrierName = dto.carrierName
-        if (dto.trackingNumber) dispatchData.trackingNumber = dto.trackingNumber
-        if (dto.trackingUrl) dispatchData.trackingUrl = dto.trackingUrl
+        if (dto.carrierName !== undefined) dispatchData.carrierName = dto.carrierName
+        if (dto.trackingNumber !== undefined) dispatchData.trackingNumber = dto.trackingNumber
+        if (dto.trackingUrl !== undefined) dispatchData.trackingUrl = dto.trackingUrl
+        if (effectiveRiderName !== undefined) dispatchData.technicianName = effectiveRiderName
+        if (effectiveRiderPhone !== undefined) dispatchData.technicianPhone = effectiveRiderPhone
+
+        const riderInfo = effectiveRiderName
+          ? `with rider ${effectiveRiderName}${effectiveRiderPhone ? ` (${effectiveRiderPhone})` : ''}`
+          : dto.carrierName
+          ? `via ${dto.carrierName}`
+          : 'and is in transit to destination'
 
         eventTitle = eventTitle || 'Package Dispatched'
-        eventDescription =
-          eventDescription ||
-          (dto.carrierName && dto.trackingNumber
-            ? `Package dispatched via ${dto.carrierName}. Tracking: ${dto.trackingNumber}`
-            : dto.carrierName
-            ? `Package dispatched via ${dto.carrierName}`
-            : 'Package has been dispatched and is in transit to destination')
+        eventDescription = eventDescription || `Package has been dispatched ${riderInfo}`
         break
       }
 
@@ -144,37 +137,26 @@ export class AdminUpdateSubOrderFulfilmentUseCase {
         if (isServiceSubOrder) {
           throw new BadRequestException('Cannot set out for delivery on a service sub-order')
         }
-        if (subOrder.customerStatus === 'OUT_FOR_DELIVERY') {
-          return this.mapToAdminSubOrderDto(subOrder)
-        }
-        if (subOrder.customerStatus !== 'DISPATCHED' && subOrder.customerStatus !== 'PROCESSING') {
-          throw new BadRequestException(
-            `Cannot transition to OUT_FOR_DELIVERY from current status '${subOrder.customerStatus}'`,
-          )
-        }
 
         targetCustomerStatus = 'OUT_FOR_DELIVERY'
+        if (dto.carrierName !== undefined) dispatchData.carrierName = dto.carrierName
+        if (dto.trackingNumber !== undefined) dispatchData.trackingNumber = dto.trackingNumber
+        if (dto.trackingUrl !== undefined) dispatchData.trackingUrl = dto.trackingUrl
+        if (effectiveRiderName !== undefined) dispatchData.technicianName = effectiveRiderName
+        if (effectiveRiderPhone !== undefined) dispatchData.technicianPhone = effectiveRiderPhone
+
+        const riderInfo = effectiveRiderName
+          ? `with rider ${effectiveRiderName}${effectiveRiderPhone ? ` (${effectiveRiderPhone})` : ''}`
+          : 'with local delivery dispatch'
+
         eventTitle = eventTitle || 'Out for Delivery'
-        eventDescription =
-          eventDescription || 'Package is out for delivery with the local courier'
+        eventDescription = eventDescription || `Package is out for delivery ${riderInfo}`
         break
       }
 
       case AdminFulfilmentTransitionAction.DELIVER: {
         if (isServiceSubOrder) {
           throw new BadRequestException('Cannot deliver a service sub-order; use complete service')
-        }
-        if (subOrder.customerStatus === 'DELIVERED') {
-          return this.mapToAdminSubOrderDto(subOrder)
-        }
-        if (
-          subOrder.customerStatus !== 'OUT_FOR_DELIVERY' &&
-          subOrder.customerStatus !== 'DISPATCHED' &&
-          subOrder.customerStatus !== 'PROCESSING'
-        ) {
-          throw new BadRequestException(
-            `Cannot transition to DELIVERED from current status '${subOrder.customerStatus}'`,
-          )
         }
 
         targetCustomerStatus = 'DELIVERED'
@@ -186,6 +168,9 @@ export class AdminUpdateSubOrderFulfilmentUseCase {
 
         // Vendor payable moves to IN_COOLING_PERIOD
         payableStatusUpdate = { status: 'IN_COOLING_PERIOD' }
+
+        if (effectiveRiderName !== undefined) dispatchData.technicianName = effectiveRiderName
+        if (effectiveRiderPhone !== undefined) dispatchData.technicianPhone = effectiveRiderPhone
 
         eventTitle = eventTitle || 'Package Delivered'
         eventDescription =
