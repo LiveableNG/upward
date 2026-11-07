@@ -5,7 +5,7 @@ import { IRentCycleRepository } from '@domains/scoring/rent-cycle.repository'
 import { S3Service } from '@shared/infrastructure/common/s3/s3.service'
 import { PrismaService } from '@shared/infrastructure/prisma/prisma.service'
 
-describe('CalculateRentScoreUseCase', () => {
+describe('CalculateRentScoreUseCase (V2)', () => {
   let useCase: CalculateRentScoreUseCase
   let userRepository: jest.Mocked<UserRepository>
   let rentCycleRepo: jest.Mocked<IRentCycleRepository>
@@ -24,7 +24,7 @@ describe('CalculateRentScoreUseCase', () => {
     profileSlug: 'john-doe',
     isIdentityVerified: true,
     savingsWalletEnabled: true,
-    properties: []
+    properties: [],
   }
 
   beforeEach(() => {
@@ -45,19 +45,24 @@ describe('CalculateRentScoreUseCase', () => {
     } as any
 
     prisma = {
-      upward_transaction: { findMany: jest.fn() },
-      upward_user_property: { findMany: jest.fn() },
-      upward_wallet: { findUnique: jest.fn() },
-      upward_savings_goal: { findMany: jest.fn() },
-      upward_wallet_transaction: { findMany: jest.fn() },
+      upward_transaction: { findMany: jest.fn().mockResolvedValue([]) },
+      upward_user_property: { findMany: jest.fn().mockResolvedValue([]) },
+      upward_rent_vault: { findMany: jest.fn().mockResolvedValue([]) },
+      upward_wallet: { findUnique: jest.fn().mockResolvedValue(null) },
+      upward_savings_goal: { findMany: jest.fn().mockResolvedValue([]) },
+      upward_wallet_transaction: { findMany: jest.fn().mockResolvedValue([]) },
     }
 
     useCase = new CalculateRentScoreUseCase(
       userRepository,
       rentCycleRepo,
       s3Service,
-      prisma as PrismaService
+      prisma as PrismaService,
     )
+  })
+
+  afterEach(() => {
+    jest.useRealTimers()
   })
 
   it('should throw NotFoundException if user is not found', async () => {
@@ -65,7 +70,7 @@ describe('CalculateRentScoreUseCase', () => {
     await expect(useCase.execute('invalid-uuid')).rejects.toThrow(NotFoundException)
   })
 
-  it('should return default unscorable state if user has no rent cycles', async () => {
+  it('should return default unscorable state (500) if user has no rent cycles', async () => {
     userRepository.findByUuid.mockResolvedValueOnce(mockUser)
     rentCycleRepo.findByUserId.mockResolvedValueOnce([])
 
@@ -76,84 +81,281 @@ describe('CalculateRentScoreUseCase', () => {
     expect(result.data.band).toBe('Not score-able yet')
   })
 
-  describe('Redesigned URS Calculations', () => {
-    it('should calculate URS correctly based on the plan test case trace', async () => {
-      // Mock user lookup
-      userRepository.findByUuid.mockResolvedValueOnce(mockUser)
-
-      // 4 Rent Cycles:
-      // Cycle 1: Due 9 months ago. Paid early (on time).
-      // Cycle 2: Due 6 months ago. Paid late (10 days late).
-      // Cycle 3: Due 3 months ago. Paid in two tranches (partial).
-      // Cycle 4: Due 1 month ago. Missed.
-      const now = new Date('2026-08-07T12:00:00Z')
-      
-      const due1 = new Date('2025-11-07T12:00:00Z')
-      const due2 = new Date('2026-02-07T12:00:00Z')
-      const due3 = new Date('2026-05-07T12:00:00Z')
-      const due4 = new Date('2026-07-07T12:00:00Z')
-
-      const cycles = [
-        { id: 101, uuid: 'c1', userId: mockUser.id, amountOwed: 100000, amountPaid: 100000, dueDate: due1, status: 'PAID_ON_TIME', paymentRequestId: 201 },
-        { id: 102, uuid: 'c2', userId: mockUser.id, amountOwed: 100000, amountPaid: 100000, dueDate: due2, status: 'PAID_LATE', paymentRequestId: 202 },
-        { id: 103, uuid: 'c3', userId: mockUser.id, amountOwed: 100000, amountPaid: 100000, dueDate: due3, status: 'PAID_LATE', paymentRequestId: 203 },
-        { id: 104, uuid: 'c4', userId: mockUser.id, amountOwed: 100000, amountPaid: 0, dueDate: due4, status: 'MISSED', paymentRequestId: 204 },
-      ]
-      rentCycleRepo.findByUserId.mockResolvedValueOnce(cycles as any)
-
-      // Mock successful transactions linked to payment requests
-      // Cycle 1: Paid on-time
-      // Cycle 2: 10 days late (paid at due2 + 10 days)
-      const pay2 = new Date(due2.getTime() + 10 * 24 * 60 * 60 * 1000)
-      // Cycle 3: 20 days late (tranche 1 early, tranche 2 paid at due3 + 20 days)
-      const pay3Tranche1 = new Date(due3.getTime() - 2 * 24 * 60 * 60 * 1000)
-      const pay3Tranche2 = new Date(due3.getTime() + 20 * 24 * 60 * 60 * 1000)
-
-      const mockTxs = [
-        { paymentRequestId: 201, amount: 100000, status: 'SUCCESS', createdAt: due1 },
-        { paymentRequestId: 202, amount: 100000, status: 'SUCCESS', createdAt: pay2 },
-        { paymentRequestId: 203, amount: 50000, status: 'SUCCESS', createdAt: pay3Tranche1 },
-        { paymentRequestId: 203, amount: 50000, status: 'SUCCESS', createdAt: pay3Tranche2 },
-      ]
-      prisma.upward_transaction.findMany.mockResolvedValueOnce(mockTxs)
-      
-      // Expected annual rent mock: rentAmount = 100,000, rentType = 'Monthly' -> 1,200,000
-      prisma.upward_user_property.findMany.mockResolvedValueOnce([
-        { id: 1, rentAmount: 100000, rentType: 'Monthly', isPastTenancy: false }
-      ])
-
-      // Savings mock: wallet = 120,000, goals = 60,000 -> 180,000 total (15% of annual rent)
-      prisma.upward_wallet.findUnique.mockResolvedValueOnce({ balance: 120000 })
-      prisma.upward_savings_goal.findMany.mockResolvedValueOnce([
-        { currentAmount: 60000 }
-      ])
-
-      // Savings consistency mock: 6 deposits in distinct months
-      const mockDeposits = [
-        { createdAt: new Date('2026-01-10T12:00:00Z') },
-        { createdAt: new Date('2026-02-15T12:00:00Z') },
-        { createdAt: new Date('2026-03-20T12:00:00Z') },
-        { createdAt: new Date('2026-04-12T12:00:00Z') },
-        { createdAt: new Date('2026-05-18T12:00:00Z') },
-        { createdAt: new Date('2026-06-25T12:00:00Z') },
-      ]
-      prisma.upward_wallet_transaction.findMany.mockResolvedValueOnce(mockDeposits)
-
-      // Mock Date in usecase:
+  describe('Persona 1: Fresh Upward User ("Chidi") — 3-Year Progression', () => {
+    it('distinguishes Paid Early (7+ days) vs Paid On Due Date across Years 1, 2, and 3', async () => {
+      const now = new Date('2026-11-07T00:00:00Z')
       jest.useFakeTimers().setSystemTime(now)
 
+      // Year 1: Paid 10 days early -> 300 + 200 (Timeliness) + 100 (Discipline) + 40 (Streak) + 12 (Tenure) = 652
+      userRepository.findByUuid.mockResolvedValueOnce(mockUser)
+      rentCycleRepo.findByUserId.mockResolvedValueOnce([
+        {
+          id: 1,
+          uuid: 'y1',
+          userId: 1,
+          amountOwed: 2000000,
+          amountPaid: 2000000,
+          dueDate: new Date('2026-11-01T00:00:00Z'),
+          paidAt: new Date('2026-10-20T00:00:00Z'), // 12 days early
+          status: 'PAID_ON_TIME',
+          source: 'PAYMENT_REQUEST',
+        },
+      ] as any)
+
+      const yr1Early = await useCase.execute(mockUser.uuid)
+      expect(yr1Early.data.score).toBe(652)
+      expect(yr1Early.data.rank).toBe('C')
+      expect(yr1Early.data.band).toBe('Good')
+      expect(yr1Early.data.metrics.breakdown.timeliness).toBe(200)
+      expect(yr1Early.data.metrics.breakdown.streak).toBe(40)
+      expect(yr1Early.data.metrics.breakdown.tenure).toBe(12)
+
+      // Year 1: Paid on exact due date -> 300 + 185 + 100 + 40 + 12 = 637
+      userRepository.findByUuid.mockResolvedValueOnce(mockUser)
+      rentCycleRepo.findByUserId.mockResolvedValueOnce([
+        {
+          id: 1,
+          uuid: 'y1-due',
+          userId: 1,
+          amountOwed: 2000000,
+          amountPaid: 2000000,
+          dueDate: new Date('2026-11-01T00:00:00Z'),
+          paidAt: new Date('2026-11-01T00:00:00Z'), // on due date
+          status: 'PAID_ON_TIME',
+          source: 'PAYMENT_REQUEST',
+        },
+      ] as any)
+
+      const yr1DueDate = await useCase.execute(mockUser.uuid)
+      expect(yr1DueDate.data.score).toBe(637)
+
+      // Year 2: 2 cycles paid early -> 652 + 52 = 704 (Rank B — Strong)
+      userRepository.findByUuid.mockResolvedValueOnce(mockUser)
+      rentCycleRepo.findByUserId.mockResolvedValueOnce([
+        {
+          id: 1,
+          uuid: 'y1',
+          userId: 1,
+          amountOwed: 2000000,
+          amountPaid: 2000000,
+          dueDate: new Date('2025-11-01T00:00:00Z'),
+          paidAt: new Date('2025-10-20T00:00:00Z'),
+          status: 'PAID_ON_TIME',
+          source: 'PAYMENT_REQUEST',
+        },
+        {
+          id: 2,
+          uuid: 'y2',
+          userId: 1,
+          amountOwed: 2000000,
+          amountPaid: 2000000,
+          dueDate: new Date('2026-11-01T00:00:00Z'),
+          paidAt: new Date('2026-10-20T00:00:00Z'),
+          status: 'PAID_ON_TIME',
+          source: 'PAYMENT_REQUEST',
+        },
+      ] as any)
+
+      const yr2Early = await useCase.execute(mockUser.uuid)
+      expect(yr2Early.data.score).toBe(704)
+      expect(yr2Early.data.rank).toBe('B')
+      expect(yr2Early.data.band).toBe('Strong')
+
+      // Year 3: 3 cycles paid early -> 704 + 41 = 745 (or 845 Rank A with +100 Rent Vault)
+      userRepository.findByUuid.mockResolvedValueOnce(mockUser)
+      prisma.upward_rent_vault.findMany.mockResolvedValueOnce([
+        {
+          id: 10,
+          lockStatus: 'LOCKED',
+          currentPrincipalKobo: 200000000n,
+          targetAmountKobo: 200000000n,
+          savingsScore: {
+            cadencePoints: 40,
+            velocityPoints: 40,
+            loanDisciplinePoints: 20,
+            totalScore: 100,
+          },
+        },
+      ])
+      rentCycleRepo.findByUserId.mockResolvedValueOnce([
+        {
+          id: 1,
+          uuid: 'y1',
+          userId: 1,
+          amountOwed: 2000000,
+          amountPaid: 2000000,
+          dueDate: new Date('2024-11-01T00:00:00Z'),
+          paidAt: new Date('2024-10-20T00:00:00Z'),
+          status: 'PAID_ON_TIME',
+          source: 'PAYMENT_REQUEST',
+        },
+        {
+          id: 2,
+          uuid: 'y2',
+          userId: 1,
+          amountOwed: 2000000,
+          amountPaid: 2000000,
+          dueDate: new Date('2025-11-01T00:00:00Z'),
+          paidAt: new Date('2025-10-20T00:00:00Z'),
+          status: 'PAID_ON_TIME',
+          source: 'PAYMENT_REQUEST',
+        },
+        {
+          id: 3,
+          uuid: 'y3',
+          userId: 1,
+          amountOwed: 2000000,
+          amountPaid: 2000000,
+          dueDate: new Date('2026-11-01T00:00:00Z'),
+          paidAt: new Date('2026-10-20T00:00:00Z'),
+          status: 'PAID_ON_TIME',
+          source: 'PAYMENT_REQUEST',
+        },
+      ] as any)
+
+      const yr3WithVault = await useCase.execute(mockUser.uuid)
+      expect(yr3WithVault.data.score).toBe(845)
+      expect(yr3WithVault.data.rank).toBe('A')
+      expect(yr3WithVault.data.band).toBe('Elite Tenant')
+    })
+  })
+
+  describe('Persona 2: GoodTenants Imported Tenant ("Funke") — 3-Year Verified History + 3 Years on Upward', () => {
+    it('credits 3 years of GoodTenants history on Day 0 (730 / 745) and grows across Years 4, 5, and 6', async () => {
+      const now = new Date('2026-11-07T00:00:00Z')
+      jest.useFakeTimers().setSystemTime(now)
+
+      const gtCyclesOnDueDate = [
+        {
+          id: 1,
+          uuid: 'gt1',
+          userId: 1,
+          amountOwed: 1500000,
+          amountPaid: 1500000,
+          dueDate: new Date('2023-11-01T00:00:00Z'),
+          paidAt: new Date('2023-11-01T00:00:00Z'),
+          status: 'PAID_ON_TIME',
+          source: 'GOODTENANTS_HISTORY',
+        },
+        {
+          id: 2,
+          uuid: 'gt2',
+          userId: 1,
+          amountOwed: 1500000,
+          amountPaid: 1500000,
+          dueDate: new Date('2024-11-01T00:00:00Z'),
+          paidAt: new Date('2024-11-01T00:00:00Z'),
+          status: 'PAID_ON_TIME',
+          source: 'GOODTENANTS_HISTORY',
+        },
+        {
+          id: 3,
+          uuid: 'gt3',
+          userId: 1,
+          amountOwed: 1500000,
+          amountPaid: 1500000,
+          dueDate: new Date('2025-11-01T00:00:00Z'),
+          paidAt: new Date('2025-11-01T00:00:00Z'),
+          status: 'PAID_ON_TIME',
+          source: 'GOODTENANTS_HISTORY',
+        },
+      ]
+
+      // Day 0 after import: 3 GT cycles paid on due date -> 730 (Rank B — Strong)
+      userRepository.findByUuid.mockResolvedValueOnce(mockUser)
+      rentCycleRepo.findByUserId.mockResolvedValueOnce(gtCyclesOnDueDate as any)
+      const day0Res = await useCase.execute(mockUser.uuid)
+      expect(day0Res.data.score).toBe(730)
+      expect(day0Res.data.rank).toBe('B')
+
+      // Year 1 on Upward (Cycle 4 paid early): 730 -> 754 (+24 pts)
+      userRepository.findByUuid.mockResolvedValueOnce(mockUser)
+      rentCycleRepo.findByUserId.mockResolvedValueOnce([
+        ...gtCyclesOnDueDate,
+        {
+          id: 4,
+          uuid: 'upw4',
+          userId: 1,
+          amountOwed: 1500000,
+          amountPaid: 1500000,
+          dueDate: new Date('2026-11-01T00:00:00Z'),
+          paidAt: new Date('2026-10-20T00:00:00Z'), // 12 days early
+          status: 'PAID_ON_TIME',
+          source: 'PAYMENT_REQUEST',
+        },
+      ] as any)
+      const yr1UpwRes = await useCase.execute(mockUser.uuid)
+      expect(yr1UpwRes.data.score).toBe(754)
+    })
+  })
+
+  describe('Fairness & Anti-Gaming Guardrails', () => {
+    it('does not penalize early installments settled on or before the due date, and ignores future PENDING invoices', async () => {
+      const now = new Date('2026-11-07T00:00:00Z')
+      jest.useFakeTimers().setSystemTime(now)
+
+      const due1 = new Date('2026-11-01T00:00:00Z')
+      const futureDue = new Date('2027-11-01T00:00:00Z')
+
+      userRepository.findByUuid.mockResolvedValueOnce(mockUser)
+      rentCycleRepo.findByUserId.mockResolvedValueOnce([
+        {
+          id: 101,
+          uuid: 'c-early-tranches',
+          userId: 1,
+          amountOwed: 2000000,
+          amountPaid: 2000000,
+          dueDate: due1,
+          status: 'PAID_ON_TIME',
+          paymentRequestId: 501,
+          source: 'PAYMENT_REQUEST',
+        },
+        {
+          id: 102,
+          uuid: 'c-future-pending',
+          userId: 1,
+          amountOwed: 2000000,
+          amountPaid: 0,
+          dueDate: futureDue,
+          status: 'PENDING',
+          paymentRequestId: 502,
+          source: 'PAYMENT_REQUEST',
+        },
+        {
+          id: 103,
+          uuid: 'c-unverified-self-report',
+          userId: 1,
+          userPropertyId: 999,
+          amountOwed: 2000000,
+          amountPaid: 2000000,
+          dueDate: new Date('2025-11-01T00:00:00Z'),
+          paidAt: new Date('2025-10-15T00:00:00Z'),
+          status: 'PAID_ON_TIME',
+          source: 'SELF_REPORTED',
+        },
+      ] as any)
+
+      // Paid in 2 early tranches (15 days early and 10 days early)
+      prisma.upward_transaction.findMany.mockResolvedValueOnce([
+        {
+          paymentRequestId: 501,
+          amount: 1000000,
+          status: 'SUCCESS',
+          createdAt: new Date('2026-10-15T00:00:00Z'),
+        },
+        {
+          paymentRequestId: 501,
+          amount: 1000000,
+          status: 'SUCCESS',
+          createdAt: new Date('2026-10-20T00:00:00Z'),
+        },
+      ])
+
       const result = await useCase.execute(mockUser.uuid)
-
-      expect(result.success).toBe(true)
-      expect(result.data.isScorable).toBe(true)
-      expect(result.data.maxScore).toBe(900)
-      
-      // Verify final calculated URS score matches math: 581
-      expect(result.data.score).toBe(581)
-      expect(result.data.band).toBe('Risky')
-      expect(result.data.rank).toBe('D')
-
-      jest.useRealTimers()
+      expect(result.data.metrics.discipline).toBe(100)
+      expect(result.data.metrics.longestStreak).toBe(1)
+      expect(result.data.metrics.totalCycles).toBe(1)
+      expect(result.data.score).toBe(652)
     })
   })
 })

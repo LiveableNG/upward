@@ -75,7 +75,7 @@ export class GetAdminUserDetailUseCase {
     if (u) {
       const decryptedUser = this.decryptUser(u)
 
-        // Calculate Upward Rent Score
+      // Calculate Upward Rent Score
       let rentScore = 500
       let scoreBand = 'Fair'
       let scoreMetrics: any = null
@@ -92,13 +92,15 @@ export class GetAdminUserDetailUseCase {
         rentScore = 500
       }
 
-      let bandColor = '#4f46e5'
-      if (rentScore >= 750) {
+      let bandColor = '#f59e0b'
+      if (rentScore >= 800) {
+        bandColor = '#d97757'
+      } else if (rentScore >= 700) {
         bandColor = '#16a34a'
-      } else if (rentScore >= 650) {
+      } else if (rentScore >= 600) {
         bandColor = '#0284c7'
-      } else if (rentScore >= 550) {
-        bandColor = '#4f46e5'
+      } else if (rentScore >= 500) {
+        bandColor = '#f59e0b'
       } else {
         bandColor = '#dc2626'
       }
@@ -189,16 +191,13 @@ export class GetAdminUserDetailUseCase {
               source: c.source,
             })),
           }
-        })
+        }),
       )
 
       // Fetch user's activity logs
       const activityLogs = await this.prisma.upward_app_activity_log.findMany({
         where: {
-          OR: [
-            { userId: u.id },
-            { userEmail: decryptedUser.email },
-          ],
+          OR: [{ userId: u.id }, { userEmail: decryptedUser.email }],
         },
         orderBy: { createdAt: 'desc' },
         take: 100,
@@ -206,9 +205,10 @@ export class GetAdminUserDetailUseCase {
 
       // Fetch user property locations
       const propertyIds = decryptedUser.properties.map((p: any) => p.locationId).filter(Boolean)
-      const locations = propertyIds.length > 0
-        ? await this.prisma.upward_location.findMany({ where: { id: { in: propertyIds } } })
-        : []
+      const locations =
+        propertyIds.length > 0
+          ? await this.prisma.upward_location.findMany({ where: { id: { in: propertyIds } } })
+          : []
 
       const resolvedProperties = decryptedUser.properties.map((p: any) => {
         const loc = locations.find((l: any) => l.id === p.locationId) || p.location
@@ -313,7 +313,7 @@ export class GetAdminUserDetailUseCase {
         hearAboutUs: u.hearAboutUs || null,
         isFromInvite: u.isFromInvite,
         isFromWaitlist: u.isFromWaitlist,
-        invitedAt: u.isFromInvite ? ((u as any).invitedAt || u.createdAt) : null,
+        invitedAt: u.isFromInvite ? (u as any).invitedAt || u.createdAt : null,
         joinedAt: (u as any).joinedAt || (u.isFromInvite ? null : u.createdAt),
         createdAt: u.createdAt,
         updatedAt: u.updatedAt,

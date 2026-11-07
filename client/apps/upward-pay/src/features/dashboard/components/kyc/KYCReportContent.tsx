@@ -13,17 +13,21 @@ import {
   Copy,
   Check,
 } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { UpwardLogo } from '@/components/PoweredByUpward'
 import { useAuth } from '@/features/auth/AuthContext'
 import { Capacitor } from '@capacitor/core'
-import FallbackSuspense from '@/components/FallbackSuspense'
 import {
   PayFlowPrimaryButton,
   PayPageShell,
 } from '@/features/dashboard/components/payment/PayPageShell'
 import { useToast } from '@/components/common/Toast'
-import { useScoreProfile, usePublicScoreProfile } from '../../services/scoreService'
+import {
+  useScoreProfile,
+  usePublicScoreProfile,
+  type ScoreCycle,
+  type ScoreProperty,
+} from '../../services/scoreService'
 import { PublicProfileShell } from './PublicProfileShell'
 
 interface KYCReportContentProps {
@@ -122,13 +126,7 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
   const router = useRouter()
   const { isLoggedIn } = useAuth()
   const { success, error: toastError } = useToast()
-  const [isApp, setIsApp] = useState(false)
-
-  useEffect(() => {
-    if (Capacitor.isNativePlatform()) {
-      setIsApp(true)
-    }
-  }, [])
+  const isApp = typeof window !== 'undefined' && Capacitor.isNativePlatform()
 
   const privateProfile = useScoreProfile()
   const publicProfile = usePublicScoreProfile(publicSlug || '')
@@ -193,17 +191,16 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
     maxScore,
     rank,
     band,
-    metrics,
     profile,
     cycles,
     properties = [],
   } = scoreProfile.data
   const isFaded = !isScorable
   const paidPaymentsCount = cycles.filter(
-    (c: any) => c.status && (c.status.includes('PAID') || c.status.includes('PARTIAL')),
+    (c: ScoreCycle) => c.status && (c.status.includes('PAID') || c.status.includes('PARTIAL')),
   ).length
   const hasVerifiedPmProperty = properties.some(
-    (p: any) =>
+    (p: ScoreProperty) =>
       p.isVerified &&
       (p.isPmVerified || p.isPlatformLinked || p.pm?.isVerified || !!p.company?.platformId),
   )
@@ -230,8 +227,6 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
 
   const safeMaxScore = maxScore > 0 ? maxScore : 1
   const scorePct = Math.min(100, Math.max(0, (score / safeMaxScore) * 100))
-  const gaugeCircumference = 2 * Math.PI * 45
-  const gaugeFilled = (scorePct / 100) * gaugeCircumference
 
   const shareHeaderButton = (
     <button
@@ -330,7 +325,7 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
             {properties.length === 0 ? (
               <div className="kyc-report__property-empty">No verified properties linked yet.</div>
             ) : (
-              properties.map((p: any, i: number) => {
+              properties.map((p: ScoreProperty, i: number) => {
                 const isPmVerified = p.isPmVerified || p.pm?.isVerified
                 const isPlatformLinked = p.isPlatformLinked || !!p.company?.platformId
 
@@ -395,15 +390,15 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
             Recent Observations
           </p>
           <div className="kyc-report__timeline">
-            {cycles.filter((c: any) => !c.excluded).length === 0 ? (
+            {cycles.filter((c: ScoreCycle) => !c.excluded).length === 0 ? (
               <p className="kyc-report__timeline-empty">
                 No recent payment history observed on this profile.
               </p>
             ) : (
               cycles
-                .filter((c: any) => !c.excluded)
+                .filter((c: ScoreCycle) => !c.excluded)
                 .slice(0, 5)
-                .map((t: any, i: number) => (
+                .map((t: ScoreCycle, i: number) => (
                   <div key={i} className="kyc-report__timeline-item">
                     <div className="kyc-report__timeline-dot">
                       <Home size={13} />
@@ -418,24 +413,24 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
                           </p>
                         </div>
                         <span
-                          className={`${t.ptValue >= 1 ? 'status-tag--perfect' : t.ptValue >= 0.7 ? 'status-tag--grace' : 'status-tag--late'} kyc-report__status-tag`}
+                          className={`${t.ptValue >= 0.925 ? 'status-tag--perfect' : t.ptValue >= 0.7 ? 'status-tag--grace' : 'status-tag--late'} kyc-report__status-tag`}
                         >
                           {(() => {
-                            const isPerfect = t.ptValue >= 1
-                            const isGrace = t.ptValue >= 0.7 && t.ptValue < 1
+                            const isEarly = t.ptValue >= 0.95
+                            const isOnTime = t.ptValue >= 0.925
+                            const isGrace = t.ptValue >= 0.7 && t.ptValue < 0.925
                             const isLate = t.ptValue < 0.7
-                            if (isGrace) return 'Grace'
+                            if (isGrace) return 'Minor Delay'
                             if (t.paidDate && t.dueDate) {
                               const dueDate = new Date(t.dueDate)
                               const paidDate = new Date(t.paidDate)
                               const diffTime = dueDate.getTime() - paidDate.getTime()
                               const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-                              if (isPerfect && diffDays > 0)
-                                return `${diffDays} days before due date`
+                              if (isEarly && diffDays > 0) return `Paid ${diffDays}d early`
                               if (isLate && diffDays < 0)
-                                return `${Math.abs(diffDays)} days after due date`
+                                return `${Math.abs(diffDays)}d after due date`
                             }
-                            return isPerfect ? 'On-Time' : 'Late'
+                            return isEarly ? 'Paid Early' : isOnTime ? 'Paid On Due Date' : 'Late'
                           })()}
                         </span>
                       </div>

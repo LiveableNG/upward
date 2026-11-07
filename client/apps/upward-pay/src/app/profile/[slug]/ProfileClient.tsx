@@ -3,31 +3,24 @@
 import { useParams } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
-import { 
-  ShieldCheck, 
-  MapPin, 
-  Calendar, 
-  Flame, 
+import {
+  ShieldCheck,
+  MapPin,
+  Calendar,
+  Flame,
   Target,
   CheckCircle2,
   Award,
-  ChevronLeft
+  ChevronLeft,
 } from 'lucide-react'
 import FallbackSuspense from '@/components/FallbackSuspense'
 import Link from 'next/link'
-import { useRef, useState, useEffect } from 'react'
 import { Capacitor } from '@capacitor/core'
 
 export default function ProfileClient() {
   const params = useParams()
   const slug = params?.slug as string
-  const [isApp, setIsApp] = useState(false)
-
-  useEffect(() => {
-    if (Capacitor.isNativePlatform()) {
-      setIsApp(true)
-    }
-  }, [])
+  const isApp = typeof window !== 'undefined' && Capacitor.isNativePlatform()
 
   const {
     data: scoreProfile,
@@ -39,8 +32,6 @@ export default function ProfileClient() {
     retry: false,
   })
 
-
-
   if (isLoading) return <FallbackSuspense />
 
   if (error || !scoreProfile) {
@@ -50,19 +41,42 @@ export default function ProfileClient() {
           <ShieldCheck size={48} style={{ color: '#928e89' }} />
           <h2>Certificate Not Found</h2>
           <p>The credibility profile for this slug could not be verified or is set to private.</p>
-          <Link href="/" className="btn btn--primary">Return Home</Link>
+          <Link href="/" className="btn btn--primary">
+            Return Home
+          </Link>
         </div>
       </div>
     )
   }
 
-  const { isScorable, score, rank, band, metrics, profile: userData } = scoreProfile.data
-  const isFaded = !isScorable
-  
+  const {
+    isScorable,
+    score,
+    rank,
+    band,
+    metrics,
+    profile: userData,
+    properties = [],
+  } = scoreProfile.data
+
   const streak = metrics.longestStreak
   const avgLead = metrics.avgDaysLeadTime
-  const savingsImpact = metrics.discipline
+  const onTimeRate = Math.round(metrics.ptPercentage ?? metrics.discipline ?? 0)
   const fullName = userData.name
+
+  const primaryProp = properties[0]
+  const locationLabel = primaryProp?.location
+    ? [primaryProp.location.area, primaryProp.location.state].filter(Boolean).join(', ') ||
+      primaryProp.location.country ||
+      'Nigeria'
+    : 'Nigeria'
+
+  const isIdentityVerified = Boolean(userData?.isIdentityVerified)
+  const isHistoryAuthenticated = Boolean(isScorable && (metrics.totalCycles || 0) > 0)
+  const isVaultOrDisciplineVerified = Boolean(
+    (metrics.savingsBonus || 0) > 0 || (isScorable && (metrics.discipline || 0) >= 90),
+  )
+  const isPmVerified = properties.some((p: { isVerified?: boolean }) => p.isVerified)
 
   const getRankColor = () => {
     if (!isScorable) return '#928e89'
@@ -92,7 +106,6 @@ export default function ProfileClient() {
               <span className="logo-tag">VERIFIED</span>
             </Link>
           </div>
-
         </div>
       </nav>
 
@@ -111,7 +124,9 @@ export default function ProfileClient() {
               </div>
               <div className="cert-id">
                 <span className="cert-id__label">VERIFICATION ID</span>
-                <strong className="cert-id__val">UPW-{userData.name?.split(' ')[0]?.toUpperCase() || 'VALID'}</strong>
+                <strong className="cert-id__val">
+                  UPW-{userData.name?.split(' ')[0]?.toUpperCase() || 'VALID'}
+                </strong>
               </div>
             </header>
 
@@ -130,11 +145,11 @@ export default function ProfileClient() {
                     <div className="profile-meta">
                       <span className="meta-tag">
                         <MapPin size={13} />
-                        Lagos, Nigeria
+                        {locationLabel}
                       </span>
                       <span className="meta-tag">
                         <Calendar size={13} />
-                        Member
+                        {metrics.historyYears ? `${metrics.historyYears} yr Tenure` : 'Member'}
                       </span>
                     </div>
                   </div>
@@ -145,23 +160,36 @@ export default function ProfileClient() {
                     <span className="score-lbl">TRUST SCORE</span>
                   </div>
                   <div className="rank-summary" style={{ borderColor: rankBorderColor }}>
-                    <span className="rank-val" style={{ color: rankColor }}>{isScorable ? rank : '–'}</span>
-                    <span className="rank-lbl" style={{ color: rankColor }}>{isScorable ? band.toUpperCase() : 'PENDING'}</span>
+                    <span className="rank-val" style={{ color: rankColor }}>
+                      {isScorable ? rank : '–'}
+                    </span>
+                    <span className="rank-lbl" style={{ color: rankColor }}>
+                      {isScorable ? band.toUpperCase() : 'PENDING'}
+                    </span>
                   </div>
                 </div>
               </div>
 
               <div className="metrics-grid">
                 <div className="metric-card">
-                  <div className="metric-card__icon" style={{ color: avgLead >= 0 ? '#22c55e' : '#f59e0b' }}>
+                  <div
+                    className="metric-card__icon"
+                    style={{ color: avgLead >= 0 ? '#22c55e' : '#f59e0b' }}
+                  >
                     <CheckCircle2 size={22} />
                   </div>
                   <div className="metric-card__content">
                     <span className="m-val">
-                      {avgLead === 0 ? 'On Time' : `${Math.abs(avgLead)} ${Math.abs(avgLead) === 1 ? 'Day' : 'Days'}`}
+                      {avgLead === 0
+                        ? 'On Time'
+                        : `${Math.abs(avgLead)} ${Math.abs(avgLead) === 1 ? 'Day' : 'Days'}`}
                     </span>
                     <span className="m-lbl">
-                      {avgLead === 0 ? 'Average Payment' : avgLead > 0 ? 'Before Due Date' : 'After Due Date'}
+                      {avgLead === 0
+                        ? 'Average Payment'
+                        : avgLead > 0
+                          ? 'Before Due Date'
+                          : 'After Due Date'}
                     </span>
                   </div>
                 </div>
@@ -179,8 +207,8 @@ export default function ProfileClient() {
                     <Target size={22} />
                   </div>
                   <div className="metric-card__content">
-                    <span className="m-val">{Math.floor(savingsImpact)}%</span>
-                    <span className="m-lbl">Positive Savings Impact</span>
+                    <span className="m-val">{onTimeRate}%</span>
+                    <span className="m-lbl">On-Time Payment Rate</span>
                   </div>
                 </div>
               </div>
@@ -188,28 +216,68 @@ export default function ProfileClient() {
               <div className="verification-details">
                 <h3 className="check-heading">Verification Checklist</h3>
                 <div className="check-list">
-                  <div className="check-item check-item--verified">
-                    <CheckCircle2 size={15} style={{ color: '#22c55e', flexShrink: 0 }} />
-                    <span>Identity Verified</span>
+                  <div className={`check-item ${isIdentityVerified ? 'check-item--verified' : ''}`}>
+                    {isIdentityVerified ? (
+                      <CheckCircle2 size={15} style={{ color: '#22c55e', flexShrink: 0 }} />
+                    ) : (
+                      <ShieldCheck size={15} style={{ color: '#928e89', flexShrink: 0 }} />
+                    )}
+                    <span>
+                      {isIdentityVerified ? 'Identity Verified' : 'Identity Verification Pending'}
+                    </span>
                   </div>
-                  <div className="check-item check-item--verified">
-                    <CheckCircle2 size={15} style={{ color: '#22c55e', flexShrink: 0 }} />
-                    <span>Payment History Authenticated</span>
+                  <div
+                    className={`check-item ${isHistoryAuthenticated ? 'check-item--verified' : ''}`}
+                  >
+                    {isHistoryAuthenticated ? (
+                      <CheckCircle2 size={15} style={{ color: '#22c55e', flexShrink: 0 }} />
+                    ) : (
+                      <ShieldCheck size={15} style={{ color: '#928e89', flexShrink: 0 }} />
+                    )}
+                    <span>
+                      {isHistoryAuthenticated
+                        ? 'Payment History Authenticated'
+                        : 'Payment History Building'}
+                    </span>
                   </div>
-                  <div className="check-item check-item--verified">
-                    <CheckCircle2 size={15} style={{ color: '#22c55e', flexShrink: 0 }} />
-                    <span>Wallet Integrity Confirmed</span>
+                  <div
+                    className={`check-item ${isVaultOrDisciplineVerified ? 'check-item--verified' : ''}`}
+                  >
+                    {isVaultOrDisciplineVerified ? (
+                      <CheckCircle2 size={15} style={{ color: '#22c55e', flexShrink: 0 }} />
+                    ) : (
+                      <ShieldCheck size={15} style={{ color: '#928e89', flexShrink: 0 }} />
+                    )}
+                    <span>
+                      {(metrics.savingsBonus || 0) > 0
+                        ? `Rent Vault Active (+${metrics.savingsBonus} pts)`
+                        : isVaultOrDisciplineVerified
+                          ? 'Full Settlement Discipline Confirmed'
+                          : 'Rent Vault Not Active Yet'}
+                    </span>
                   </div>
-                  <div className="check-item">
-                    <ShieldCheck size={15} style={{ color: '#928e89', flexShrink: 0 }} />
-                    <span>Tenancy Background: Verified by PMs</span>
+                  <div className={`check-item ${isPmVerified ? 'check-item--verified' : ''}`}>
+                    {isPmVerified ? (
+                      <CheckCircle2 size={15} style={{ color: '#22c55e', flexShrink: 0 }} />
+                    ) : (
+                      <ShieldCheck size={15} style={{ color: '#928e89', flexShrink: 0 }} />
+                    )}
+                    <span>
+                      {isPmVerified
+                        ? 'Tenancy Background: Verified by PM'
+                        : 'Tenancy Background: Pending PM'}
+                    </span>
                   </div>
                 </div>
               </div>
 
               <div className="cert-footer">
                 <div className="footer-note">
-                  <p>Upward uses event-driven verified banking and transaction data to calculate credibility scores. This report is valid as of {new Date().toLocaleDateString()}.</p>
+                  <p>
+                    Upward uses event-driven verified banking and transaction data to calculate
+                    credibility scores. This report is valid as of {new Date().toLocaleDateString()}
+                    .
+                  </p>
                 </div>
                 <div className="cert-seal">
                   <div className="seal-inner">
@@ -225,8 +293,13 @@ export default function ProfileClient() {
         {!isApp && (
           <div className="join-cta">
             <h2>Trust is the New Currency</h2>
-            <p>Join thousands of tenants using Upward to unlock better housing and financial opportunities.</p>
-            <Link href="/signup" className="btn--premium">Build Your Reputation</Link>
+            <p>
+              Join thousands of tenants using Upward to unlock better housing and financial
+              opportunities.
+            </p>
+            <Link href="/signup" className="btn--premium">
+              Build Your Reputation
+            </Link>
           </div>
         )}
       </main>
@@ -236,7 +309,12 @@ export default function ProfileClient() {
           min-height: 100vh;
           background: #f4f2ee;
           padding-bottom: 4rem;
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+          font-family:
+            'Inter',
+            -apple-system,
+            BlinkMacSystemFont,
+            'Segoe UI',
+            sans-serif;
           color: #0a0a0f;
         }
 
@@ -247,7 +325,7 @@ export default function ProfileClient() {
           position: sticky;
           top: 0;
           z-index: 100;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
         }
 
         .nav-container {
@@ -307,8 +385,6 @@ export default function ProfileClient() {
           letter-spacing: 0.5px;
         }
 
-
-
         .main-container {
           max-width: 960px;
           margin: 0 auto;
@@ -318,7 +394,9 @@ export default function ProfileClient() {
         .report-wrapper {
           background: #ffffff;
           border-radius: 4px;
-          box-shadow: 0 4px 24px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.04);
+          box-shadow:
+            0 4px 24px rgba(0, 0, 0, 0.07),
+            0 1px 3px rgba(0, 0, 0, 0.04);
           overflow: hidden;
         }
 
@@ -691,7 +769,9 @@ export default function ProfileClient() {
           font-weight: 800;
           text-decoration: none;
           display: inline-block;
-          transition: transform 0.2s, opacity 0.2s;
+          transition:
+            transform 0.2s,
+            opacity 0.2s;
         }
 
         .btn--premium:hover {

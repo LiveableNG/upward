@@ -4,7 +4,14 @@ export interface RentCycle {
   userId: number
   userPropertyId?: number
   paymentRequestId?: number
-  source: 'MANUAL' | 'PAYMENT_REQUEST' | 'PAST_RECORD'
+  source:
+    | 'MANUAL'
+    | 'PAYMENT_REQUEST'
+    | 'PAST_RECORD'
+    | 'PM_ASSIGNMENT'
+    | 'GOODTENANTS_HISTORY'
+    | 'RENT_VAULT'
+    | 'SELF_REPORTED'
   amountOwed: number
   amountPaid: number
   currency: string
@@ -17,12 +24,19 @@ export interface RentCycle {
 }
 
 export interface IRentCycleRepository {
-  create(data: Omit<RentCycle, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>, tx?: any): Promise<RentCycle>
+  create(
+    data: Omit<RentCycle, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>,
+    tx?: any,
+  ): Promise<RentCycle>
   update(id: number, data: Partial<RentCycle>, tx?: any): Promise<RentCycle>
   findByUserId(userId: number, tx?: any): Promise<RentCycle[]>
   findByUserPropertyId(propertyId: number, tx?: any): Promise<RentCycle[]>
   findByPaymentRequestId(paymentRequestId: number, tx?: any): Promise<RentCycle | null>
-  upsertByPaymentRequestId(paymentRequestId: number, data: Partial<Omit<RentCycle, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>>, tx?: any): Promise<RentCycle>
+  upsertByPaymentRequestId(
+    paymentRequestId: number,
+    data: Partial<Omit<RentCycle, 'id' | 'uuid' | 'createdAt' | 'updatedAt'>>,
+    tx?: any,
+  ): Promise<RentCycle>
 }
 
 export const RENT_CYCLE_REPOSITORY = Symbol('RENT_CYCLE_REPOSITORY')

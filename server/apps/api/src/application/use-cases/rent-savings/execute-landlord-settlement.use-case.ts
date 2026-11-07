@@ -1,6 +1,7 @@
 import {
   Injectable,
   Inject,
+  Optional,
   BadRequestException,
   NotFoundException,
   ForbiddenException,
@@ -19,8 +20,13 @@ import {
   IRentSettlementRepository,
   RENT_SETTLEMENT_REPOSITORY,
 } from '../../../domains/rent-savings/rent-settlement.repository'
+import {
+  IRentCycleRepository,
+  RENT_CYCLE_REPOSITORY,
+} from '../../../domains/scoring/rent-cycle.repository'
 import { RentSavingsCalculatorEngine } from '../../../domains/rent-savings/rent-savings-calculator.engine'
 import { AssetManagementProviderRegistry } from '../../../infrastructure/providers/asset-management/asset-management-provider.registry'
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 
 export class ExecuteLandlordSettlementDto {
   @IsNotEmpty()
@@ -56,6 +62,11 @@ export class ExecuteLandlordSettlementUseCase {
     @Inject(RENT_SETTLEMENT_REPOSITORY)
     private readonly rentSettlementRepo: IRentSettlementRepository,
     private readonly providerRegistry: AssetManagementProviderRegistry,
+    @Optional()
+    @Inject(RENT_CYCLE_REPOSITORY)
+    private readonly rentCycleRepo?: IRentCycleRepository,
+    @Optional()
+    private readonly prisma?: PrismaService,
   ) {}
 
   async execute(userId: number, vaultUuid: string, dto: ExecuteLandlordSettlementDto) {
@@ -224,6 +235,34 @@ export class ExecuteLandlordSettlementUseCase {
         },
       ],
     })
+
+    // Log a verified Rent Cycle for Upward Score V2 upon Rent Vault settlement
+    if (this.rentCycleRepo) {
+      try {
+        const activeProperty = await this.prisma?.upward_user_property?.findFirst({
+          where: { userId, isPastTenancy: false },
+          orderBy: { createdAt: 'desc' },
+        })
+        const graceMs = 2 * 24 * 60 * 60 * 1000
+        const isPaidOnTime = now.getTime() <= new Date(vault.contractualDueDate).getTime() + graceMs
+        await this.rentCycleRepo.create({
+          userId,
+          userPropertyId: activeProperty?.id,
+          source: 'RENT_VAULT',
+          amountOwed: Number(vault.targetAmountKobo) / 100,
+          amountPaid: Number(amountToDisburse) / 100,
+          currency: 'NGN',
+          dueDate: new Date(vault.contractualDueDate),
+          paidAt: now,
+          status: isPaidOnTime ? 'PAID_ON_TIME' : 'PAID_LATE',
+          description: `Rent Settlement via Upward Rent Vault (${dto.landlord_name})`,
+        })
+      } catch (cycleErr: any) {
+        this.logger.warn(
+          `Could not record rent cycle for vault settlement ${vault.uuid}: ${cycleErr?.message}`,
+        )
+      }
+    }
 
     return {
       status: 'success',

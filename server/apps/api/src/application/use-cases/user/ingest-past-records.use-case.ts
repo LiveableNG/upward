@@ -22,6 +22,7 @@ export interface PastRecordItem {
 export interface PastRecordInput {
   propertyUuid: string
   records: PastRecordItem[]
+  verifiedByPm?: boolean
 }
 
 @Injectable()
@@ -34,7 +35,7 @@ export class IngestPastRecordsUseCase {
     private readonly rentalPeriodService: RentalPeriodService,
   ) {}
 
-  async execute(userId: string, input: PastRecordInput) {
+  async execute(userId: string, input: PastRecordInput, verifiedByPm = false) {
     if (!input.records || input.records.length === 0) {
       throw new BadRequestException('At least one past payment record is required.')
     }
@@ -55,6 +56,10 @@ export class IngestPastRecordsUseCase {
 
     const property = user.properties.find((p: any) => p.uuid === input.propertyUuid)
     if (!property) throw new NotFoundException('Property not found on user profile')
+
+    const isPmConfirmed = Boolean(verifiedByPm || input.verifiedByPm)
+    const isTrustedRecord = isPmConfirmed || Boolean(property.isVerified)
+    const cycleSource = isTrustedRecord ? 'PAST_RECORD' : 'SELF_REPORTED'
 
     const results = []
 
@@ -82,8 +87,9 @@ export class IngestPastRecordsUseCase {
         periodEnd ||
         paymentDate
 
-      // Determine partial vs full payment and on-time vs late
-      const isPaidOnTime = paymentDate.getTime() <= dueDate.getTime()
+      // Determine partial vs full payment and on-time vs late (including 48-hour bank transfer grace)
+      const graceMs = 2 * 24 * 60 * 60 * 1000
+      const isPaidOnTime = paymentDate.getTime() <= dueDate.getTime() + graceMs
       const isPartial = Boolean(
         record.isPartial || (record.expectedAmount && Number(record.expectedAmount) > amount),
       )
@@ -106,7 +112,7 @@ export class IngestPastRecordsUseCase {
       const cycle = await this.rentCycleRepo.create({
         userId: user.id,
         userPropertyId: property.id,
-        source: 'PAST_RECORD',
+        source: cycleSource,
         amountOwed: amountOwed,
         amountPaid: amountPaid,
         currency: property.currency || 'NGN',
@@ -121,15 +127,24 @@ export class IngestPastRecordsUseCase {
       results.push(cycle)
     }
 
-    await this.prisma.upward_user_property.update({
-      where: { id: property.id },
-      data: { isVerified: true },
-    })
+    if (isPmConfirmed) {
+      await this.prisma.upward_user_property.update({
+        where: { id: property.id },
+        data: { isVerified: true, verificationStatus: 'VERIFIED' },
+      })
+      await this.prisma.upward_rent_cycle.updateMany({
+        where: { userId: user.id, userPropertyId: property.id, source: 'SELF_REPORTED' },
+        data: { source: 'PAST_RECORD' },
+      })
+    }
 
     return {
       success: true,
-      message: `Ingested ${results.length} past records for scoring`,
+      message: isTrustedRecord
+        ? `Ingested ${results.length} verified past records for scoring`
+        : `Submitted ${results.length} past records pending landlord/PM verification`,
       ingested: results.length,
+      verified: isTrustedRecord,
     }
   }
 }

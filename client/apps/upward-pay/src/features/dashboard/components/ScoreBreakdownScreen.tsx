@@ -18,7 +18,7 @@ import {
   Sparkles,
   ArrowLeft,
 } from 'lucide-react'
-import { useScoreProfile } from '../services/scoreService'
+import { useScoreProfile, type ScoreCycle, type ScoreProperty } from '../services/scoreService'
 import { formatCurrency } from '@/lib/utils'
 import { useToast } from '@/components/common/Toast'
 import { Capacitor } from '@capacitor/core'
@@ -113,11 +113,12 @@ export function ScoreBreakdownScreen() {
     }
   }
 
-  const cycles = scoreProfile?.data?.cycles || []
-  const sortedCycles = useMemo(
-    () => [...cycles].sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime()),
-    [cycles],
-  )
+  const sortedCycles = useMemo(() => {
+    const rawCycles = scoreProfile?.data?.cycles || []
+    return [...rawCycles].sort(
+      (a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime(),
+    )
+  }, [scoreProfile?.data?.cycles])
 
   if (isLoading || !scoreProfile) {
     return <ScoreBreakdownSkeleton />
@@ -129,15 +130,18 @@ export function ScoreBreakdownScreen() {
     rank,
     band,
     metrics,
+    scoreHistory = [],
     properties = [],
     profile,
     maxScore,
+    cycles = [],
   } = scoreProfile.data
+  const breakdown = metrics?.breakdown
   const paidPaymentsCount = cycles.filter(
-    (c: any) => c.status && (c.status.includes('PAID') || c.status.includes('PARTIAL')),
+    (c: ScoreCycle) => c.status && (c.status.includes('PAID') || c.status.includes('PARTIAL')),
   ).length
   const hasVerifiedPmProperty = properties.some(
-    (p: any) =>
+    (p: ScoreProperty) =>
       p.isVerified &&
       (p.isPmVerified || p.isPlatformLinked || p.pm?.isVerified || !!p.company?.platformId),
   )
@@ -146,7 +150,7 @@ export function ScoreBreakdownScreen() {
     ((verificationOn === false || !!profile?.isIdentityVerified) &&
       paidPaymentsCount > 0 &&
       hasVerifiedPmProperty) ||
-    properties.some((p: any) => p.isVerified)
+    properties.some((p: ScoreProperty) => p.isVerified)
 
   const getRankColor = () => {
     if (!isScorable || !isVerified) return '#928e89'
@@ -157,7 +161,9 @@ export function ScoreBreakdownScreen() {
     return 'var(--error)'
   }
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string, timelinessTier?: string) => {
+    if (timelinessTier === 'PAID_EARLY' || timelinessTier === 'PAID_SLIGHTLY_EARLY')
+      return 'var(--success, #16a34a)'
     if (status === 'PAID_ON_TIME' || status === 'PAID_BEFORE_DUE') return 'var(--clay)'
     if (status === 'PAID_LATE' || status === 'PARTIAL_LATE' || status === 'MISSED')
       return 'var(--error)'
@@ -165,12 +171,24 @@ export function ScoreBreakdownScreen() {
     return 'var(--text-muted)'
   }
 
-  const getStatusLabel = (status: string) => {
-    return status.replace(/_/g, ' ')
+  const getStatusLabel = (cycle: ScoreCycle) => {
+    if (cycle.source === 'SELF_REPORTED' && cycle.excluded) {
+      return 'PENDING VERIFICATION'
+    }
+    if (cycle.timelinessTier === 'PAID_EARLY') {
+      return 'PAID EARLY (7+ DAYS)'
+    }
+    if (cycle.timelinessTier === 'PAID_SLIGHTLY_EARLY') {
+      return 'PAID EARLY'
+    }
+    if (cycle.status === 'PAID_ON_TIME') {
+      return 'PAID ON DUE DATE'
+    }
+    return (cycle.status || '').replace(/_/g, ' ')
   }
 
   // Circular gauge parameters
-  const safeMaxScore = maxScore > 0 ? maxScore : 1000
+  const safeMaxScore = maxScore > 0 ? maxScore : 900
   const scorePct = Math.min(100, Math.max(0, (score / safeMaxScore) * 100))
   const radius = 62
   const circumference = 2 * Math.PI * radius
@@ -180,50 +198,63 @@ export function ScoreBreakdownScreen() {
     {
       label: 'Payment Timeliness',
       value: `${Math.round(metrics?.ptPercentage || 0)}%`,
+      pts: breakdown ? `${breakdown.timeliness} / ${breakdown.maxTimeliness} pts` : null,
       icon: Clock,
-      desc: 'How often you pay on or before the due date.',
+      desc: 'Pays 200 pts when settled 7+ days early (+15 early-bird bonus) or 185 pts on due date.',
     },
     {
       label: 'Payment Consistency',
       value: `${metrics?.longestStreak || 0} ${(metrics?.longestStreak || 0) === 1 ? 'cycle' : 'cycles'}`,
+      pts: breakdown ? `${breakdown.streak} / ${breakdown.maxStreak} pts` : null,
       icon: Flame,
-      desc: 'Your longest continuous streak of on-time rent cycles.',
+      desc: 'Continuous streak of on-time rent cycles along the 6-year credibility curve.',
     },
     {
       label: 'Financial Discipline',
       value: `${Math.round(metrics?.discipline || 0)}%`,
+      pts: breakdown ? `${breakdown.discipline} / ${breakdown.maxDiscipline} pts` : null,
       icon: Target,
-      desc: 'The ratio of full payments vs partial payments.',
+      desc: 'Full 100 pts when 100% of rent is settled on or before the due date.',
     },
     {
-      label: 'Tenure',
+      label: 'Verified Tenure',
       value: `${metrics?.historyYears || 0} ${(metrics?.historyYears || 0) === 1 ? 'yr' : 'yrs'}`,
+      pts: breakdown ? `${breakdown.tenure} / ${breakdown.maxTenure} pts` : null,
       icon: History,
-      desc: 'Length of your verified rent payment history.',
+      desc: 'Total verified tenancy duration across Upward and GoodTenants.',
     },
     {
-      label: 'Savings Bonus',
+      label: 'Rent Vault Bonus',
       value: `+${metrics?.savingsBonus || 0} pts`,
+      pts: breakdown ? `${breakdown.savingsBonus} / ${breakdown.maxSavingsBonus} pts` : null,
       icon: TrendingUp,
-      desc: 'Bonus points awarded for your rent preparation savings.',
+      desc: 'Powered by your Rent Vault deposit cadence, milestone velocity, and advance discipline.',
       highlight: true,
     },
   ]
 
-  const renderImpact = (cycle: any) => {
+  const renderImpact = (cycle: ScoreCycle) => {
     if (cycle.excluded) {
       return (
         <span className="score-page__impact score-page__impact--neutral">
           <Info size={13} />
-          <span>No Impact</span>
+          <span>{cycle.source === 'SELF_REPORTED' ? 'Pending Verification' : 'No Impact Yet'}</span>
         </span>
       )
     }
-    if (cycle.status === 'PAID_ON_TIME') {
+    if (cycle.timelinessTier === 'PAID_EARLY' || cycle.timelinessTier === 'PAID_SLIGHTLY_EARLY') {
       return (
         <span className="score-page__impact score-page__impact--positive">
           <TrendingUp size={13} />
-          <span>Positive</span>
+          <span>Early Bonus ({cycle.timelinessPoints || 200}/200)</span>
+        </span>
+      )
+    }
+    if (cycle.status === 'PAID_ON_TIME' || cycle.isOnTime) {
+      return (
+        <span className="score-page__impact score-page__impact--positive">
+          <TrendingUp size={13} />
+          <span>On Time ({cycle.timelinessPoints || 185}/200)</span>
         </span>
       )
     }
@@ -407,7 +438,10 @@ export function ScoreBreakdownScreen() {
                     <div className="score-page__factor-icon">
                       <Icon size={18} />
                     </div>
-                    <span className="score-page__factor-value">{factor.value}</span>
+                    <div className="score-page__factor-right">
+                      <span className="score-page__factor-value">{factor.value}</span>
+                      {factor.pts && <span className="score-page__factor-pts">{factor.pts}</span>}
+                    </div>
                   </div>
                   <strong className="score-page__factor-title">{factor.label}</strong>
                   <p className="score-page__factor-desc">{factor.desc}</p>
@@ -416,6 +450,45 @@ export function ScoreBreakdownScreen() {
             })}
           </div>
         </section>
+
+        {/* Score Progression Timeline (V2 Audit Trail) */}
+        {scoreHistory.length > 0 && (
+          <section className="score-page__history-card">
+            <div className="score-page__history-head">
+              <div>
+                <h3>Score Progression</h3>
+                <p>How each verified rent payment and Rent Vault milestone moved your score.</p>
+              </div>
+              <span className="score-page__history-count">300 Base • 500 Starter</span>
+            </div>
+            <div className="score-page__cycle-list" style={{ display: 'flex' }}>
+              {scoreHistory.map((item) => (
+                <div key={item.id} className="score-page__cycle-item">
+                  <div className="score-page__cycle-top-row">
+                    <div className="score-page__cycle-date-block">
+                      <strong>{item.title}</strong>
+                      <span>{item.subtitle}</span>
+                    </div>
+                    <div className="score-page__cycle-amount-block">
+                      <span
+                        className={`score-page__impact ${
+                          item.delta >= 0
+                            ? 'score-page__impact--positive'
+                            : 'score-page__impact--negative'
+                        }`}
+                      >
+                        <TrendingUp size={13} />
+                        <span>
+                          {item.delta >= 0 ? `+${item.delta}` : item.delta} pts → {item.scoreAfter}
+                        </span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Cycle History Card */}
         <section className="score-page__history-card">
@@ -482,11 +555,13 @@ export function ScoreBreakdownScreen() {
                       <span
                         className="score-page__status-badge"
                         style={
-                          { '--status-color': getStatusColor(cycle.status) } as React.CSSProperties
+                          {
+                            '--status-color': getStatusColor(cycle.status, cycle.timelinessTier),
+                          } as React.CSSProperties
                         }
                       >
                         <span className="score-page__status-dot" />
-                        {getStatusLabel(cycle.status)}
+                        {getStatusLabel(cycle)}
                       </span>
                       {renderImpact(cycle)}
                     </div>
@@ -544,12 +619,12 @@ export function ScoreBreakdownScreen() {
                           className="score-page__status-badge"
                           style={
                             {
-                              '--status-color': getStatusColor(cycle.status),
+                              '--status-color': getStatusColor(cycle.status, cycle.timelinessTier),
                             } as React.CSSProperties
                           }
                         >
                           <span className="score-page__status-dot" />
-                          {getStatusLabel(cycle.status)}
+                          {getStatusLabel(cycle)}
                         </span>
                       </td>
                       <td>{renderImpact(cycle)}</td>

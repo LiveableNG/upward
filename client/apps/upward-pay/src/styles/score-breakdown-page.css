@@ -653,10 +653,32 @@
   background: rgba(255, 255, 255, 0.85);
 }
 
-.score-page__source-tag--past_record {
+.score-page__source-tag--past_record,
+.score-page__source-tag--goodtenants_history,
+.score-page__source-tag--pm_assignment {
   background: #eff6ff;
   color: #1d4ed8;
   border-color: #bfdbfe;
+}
+
+.score-page__source-tag--rent_vault {
+  background: #ecfdf5;
+  color: #047857;
+  border-color: #a7f3d0;
+}
+
+.score-page__factor-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.score-page__factor-pts {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--shell-muted, #8a8a8a);
+  letter-spacing: 0.02em;
 }
 
 .score-page__source-tag--payment_request {

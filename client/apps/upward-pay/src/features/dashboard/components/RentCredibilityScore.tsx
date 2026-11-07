@@ -13,12 +13,20 @@ export function RentCredibilityScore({ user }: RentCredibilityScoreProps) {
   const { data: scoreProfile, isLoading } = useScoreProfile()
 
   if (isLoading || !scoreProfile) {
-    return <div className="credibility-hub animate-pulse" style={{ height: '300px', background: 'var(--surface)', borderRadius: '24px' }}></div>
+    return (
+      <div
+        className="credibility-hub animate-pulse"
+        style={{ height: '300px', background: 'var(--surface)', borderRadius: '24px' }}
+      ></div>
+    )
   }
 
-  const { isScorable, score: credScore, rank, band, metrics } = scoreProfile.data
-  const isVerified = user.properties?.some((p: any) => p.isVerified) || false
-  const credPercentage = isScorable ? (credScore / 800) * 100 : (400 / 800) * 100
+  const { isScorable, score: credScore, maxScore = 900, rank, band, metrics } = scoreProfile.data
+  const isVerified = user.properties?.some((p: { isVerified?: boolean }) => p.isVerified) || false
+  const safeMax = maxScore > 0 ? maxScore : 900
+  const credPercentage = isScorable
+    ? Math.min(100, (credScore / safeMax) * 100)
+    : (500 / safeMax) * 100
   const streak = metrics.longestStreak
   const onTime = Math.round(metrics.ptPercentage)
   const profileCompletion = scoreProfile.data.profile.profileCompletion
@@ -33,7 +41,6 @@ export function RentCredibilityScore({ user }: RentCredibilityScoreProps) {
   }
 
   const isFaded = !isScorable
-  const profileSlug = scoreProfile.data.profile?.profileSlug
 
   return (
     <section className="credibility-hub">
@@ -42,10 +49,7 @@ export function RentCredibilityScore({ user }: RentCredibilityScoreProps) {
           <h2>Rent Credibility</h2>
           <p>Your verified reputation across the network.</p>
         </div>
-        <button 
-          className="share-btn" 
-          onClick={() => router.push(`/dashboard/request-records`)}
-        >
+        <button className="share-btn" onClick={() => router.push(`/dashboard/request-records`)}>
           <History size={16} />
           <span>Records</span>
         </button>
@@ -57,21 +61,30 @@ export function RentCredibilityScore({ user }: RentCredibilityScoreProps) {
             <div className="score-circle">
               <svg viewBox="0 0 100 100">
                 <circle className="score-circle__bg" cx="50" cy="50" r="45" />
-                <circle 
-                  className="score-circle__fill" 
-                  cx="50" cy="50" r="45" 
-                  style={{ 
+                <circle
+                  className="score-circle__fill"
+                  cx="50"
+                  cy="50"
+                  r="45"
+                  style={{
                     strokeDasharray: `${credPercentage * 2.82} 282`,
-                    stroke: getRankColor()
+                    stroke: getRankColor(),
                   }}
                 />
               </svg>
               <div className="score-content">
-                <span className="score-val" style={{ color: isVerified ? '' : 'var(--text-muted)' }}>{credScore}</span>
-                <span className="score-label">{isScorable ? 'UPWARD SCORE' : 'NOT SCORE-ABLE YET'}</span>
+                <span
+                  className="score-val"
+                  style={{ color: isVerified ? '' : 'var(--text-muted)' }}
+                >
+                  {credScore}
+                </span>
+                <span className="score-label">
+                  {isScorable ? 'UPWARD SCORE' : 'NOT SCORE-ABLE YET'}
+                </span>
               </div>
             </div>
-            
+
             <div className="rank-badge" style={{ borderColor: getRankColor() }}>
               <span className="rank-letter">{rank}</span>
               <span className="rank-tier">{band.toUpperCase()}</span>
@@ -80,21 +93,24 @@ export function RentCredibilityScore({ user }: RentCredibilityScoreProps) {
 
           <div className="quick-stats">
             <div className="q-stat">
-              <Flame size={20} className={(streak > 0 && isVerified) ? 'text--orange' : 'text--muted'} />
+              <Flame
+                size={20}
+                className={streak > 0 && isVerified ? 'text--orange' : 'text--muted'}
+              />
               <div className="q-stat__info">
                 <span className="q-val">{streak}</span>
                 <span className="q-lbl">STREAK</span>
               </div>
             </div>
             <div className="q-stat">
-              <ShieldCheck size={20} className={isVerified ? "text--clay" : "text--muted"} />
+              <ShieldCheck size={20} className={isVerified ? 'text--clay' : 'text--muted'} />
               <div className="q-stat__info">
                 <span className="q-val">{onTime}%</span>
                 <span className="q-lbl">ON-TIME</span>
               </div>
             </div>
             <div className="q-stat">
-              <Zap size={20} className={isVerified ? "text--green" : "text--muted"} />
+              <Zap size={20} className={isVerified ? 'text--green' : 'text--muted'} />
               <div className="q-stat__info">
                 <span className="q-val">{profileCompletion}%</span>
                 <span className="q-lbl">PROFILE</span>
@@ -112,7 +128,13 @@ export function RentCredibilityScore({ user }: RentCredibilityScoreProps) {
                 <span>{onTime}%</span>
               </div>
               <div className="insight-progress">
-                <div className="insight-progress__fill" style={{ width: `${onTime}%`, background: isVerified ? 'var(--clay)' : 'var(--text-muted)' }} />
+                <div
+                  className="insight-progress__fill"
+                  style={{
+                    width: `${onTime}%`,
+                    background: isVerified ? 'var(--clay)' : 'var(--text-muted)',
+                  }}
+                />
               </div>
             </div>
             <div className="insight-item">
@@ -121,17 +143,29 @@ export function RentCredibilityScore({ user }: RentCredibilityScoreProps) {
                 <span>{band.toUpperCase()}</span>
               </div>
               <div className="insight-progress">
-                <div className="insight-progress__fill" style={{ width: `${(credScore / 800) * 100}%`, background: getRankColor() }} />
+                <div
+                  className="insight-progress__fill"
+                  style={{
+                    width: `${Math.min(100, (credScore / safeMax) * 100)}%`,
+                    background: getRankColor(),
+                  }}
+                />
               </div>
             </div>
           </div>
 
           <div className="hub-actions">
-            <button className="hub-btn hub-btn--primary" onClick={() => router.push('/dashboard/pay-rent')}>
+            <button
+              className="hub-btn hub-btn--primary"
+              onClick={() => router.push('/dashboard/pay-rent')}
+            >
               <TrendingUp size={18} />
               <span>Boost Your Score</span>
             </button>
-            <button className="hub-btn hub-btn--outline" onClick={() => router.push('/dashboard/score-breakdown')}>
+            <button
+              className="hub-btn hub-btn--outline"
+              onClick={() => router.push('/dashboard/score-breakdown')}
+            >
               <FileText size={18} />
               <span>View Score Breakdown</span>
             </button>
@@ -251,16 +285,16 @@ export function RentCredibilityScore({ user }: RentCredibilityScoreProps) {
           align-items: center;
           position: relative;
           overflow: hidden;
-          box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
           transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-          border: 1px solid rgba(255,255,255,0.05);
+          border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         :global(.theme--light) .hub-main-card {
-           background: #ffffff;
-           color: var(--text);
-           border: 1px solid var(--border-solid);
-           box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+          background: #ffffff;
+          color: var(--text);
+          border: 1px solid var(--border-solid);
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03);
         }
 
         .hub-main-card.is-faded {
@@ -302,7 +336,7 @@ export function RentCredibilityScore({ user }: RentCredibilityScoreProps) {
 
         .score-circle__bg {
           fill: none;
-          stroke: rgba(255,255,255,0.05);
+          stroke: rgba(255, 255, 255, 0.05);
           stroke-width: 8;
         }
 
@@ -334,8 +368,12 @@ export function RentCredibilityScore({ user }: RentCredibilityScoreProps) {
           color: white;
         }
 
-        :global(.theme--light) .score-val { color: var(--text); }
-        .hub-main-card.is-faded .score-val { color: var(--text-muted) !important; }
+        :global(.theme--light) .score-val {
+          color: var(--text);
+        }
+        .hub-main-card.is-faded .score-val {
+          color: var(--text-muted) !important;
+        }
 
         .score-label {
           font-size: 0.65rem;
@@ -358,7 +396,7 @@ export function RentCredibilityScore({ user }: RentCredibilityScoreProps) {
           flex-direction: column;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+          box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
           z-index: 2;
         }
 
@@ -394,8 +432,16 @@ export function RentCredibilityScore({ user }: RentCredibilityScoreProps) {
           flex-direction: column;
         }
 
-        .q-val { font-size: 1.1rem; font-weight: 800; }
-        .q-lbl { font-size: 0.55rem; font-weight: 700; color: var(--text-muted); letter-spacing: 1px; }
+        .q-val {
+          font-size: 1.1rem;
+          font-weight: 800;
+        }
+        .q-lbl {
+          font-size: 0.55rem;
+          font-weight: 700;
+          color: var(--text-muted);
+          letter-spacing: 1px;
+        }
 
         .hub-details-card {
           background: var(--surface);
@@ -494,8 +540,12 @@ export function RentCredibilityScore({ user }: RentCredibilityScoreProps) {
           transform: translateY(-2px);
         }
 
-        .text--orange { color: #FF8C00; }
-        .text--green { color: var(--green); }
+        .text--orange {
+          color: #ff8c00;
+        }
+        .text--green {
+          color: var(--green);
+        }
       `}</style>
     </section>
   )

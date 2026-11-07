@@ -43,13 +43,14 @@ export class FulfillCredibilityRequestUseCase {
       throw new BadRequestException('At least one past payment record is required.')
     }
 
-    // Reuse ingestion logic
+    // Reuse ingestion logic with PM-verified flag
     const ingestionPayload = {
       propertyUuid: credibilityReq.propertyUuid,
       records: input.records,
+      verifiedByPm: true,
     }
 
-    await this.ingestPastRecords.execute(credibilityReq.user.uuid, ingestionPayload)
+    await this.ingestPastRecords.execute(credibilityReq.user.uuid, ingestionPayload, true)
 
     const updatedRequest = await this.prisma.upward_credibility_request.update({
       where: { uuid: requestUuid },
