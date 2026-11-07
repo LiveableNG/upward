@@ -106,6 +106,7 @@ export const DeliveryLocationBar: React.FC<DeliveryLocationBarProps> = ({
       state: zone.state,
       isDelivering: zone.isDelivering,
       pauseReason: zone.pauseReason,
+      deliveryFeeKobo: zone.deliveryFeeKobo,
       label: zone.name,
       isRentalDefault: false,
     }
@@ -125,6 +126,7 @@ export const DeliveryLocationBar: React.FC<DeliveryLocationBarProps> = ({
       state: resolution.state,
       isDelivering: resolution.isDelivering,
       pauseReason: resolution.pauseReason,
+      deliveryFeeKobo: resolution.deliveryFeeKobo,
       label: 'Your Rental Address',
       isRentalDefault: true,
     }
@@ -163,6 +165,8 @@ export const DeliveryLocationBar: React.FC<DeliveryLocationBarProps> = ({
                 padding: '2px 6px',
                 borderRadius: 'var(--radius-sm, 6px)',
                 marginLeft: '4px',
+                flexShrink: 0,
+                whiteSpace: 'nowrap',
               }}
             >
               Paused

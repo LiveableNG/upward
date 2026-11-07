@@ -38,6 +38,7 @@ interface CommerceCheckoutModalProps {
   offering: GoalOffering
   isOpen: boolean
   onClose: () => void
+  deliveryLocation?: UserDeliveryLocation
 }
 
 const checkoutSchema = z.object({
@@ -131,6 +132,7 @@ export function CommerceCheckoutModal({
   offering,
   isOpen,
   onClose,
+  deliveryLocation,
 }: CommerceCheckoutModalProps) {
   const router = useRouter()
   const { user } = useAuth()
@@ -143,7 +145,7 @@ export function CommerceCheckoutModal({
   // Configured delivery zones & user selected zone
   const [availableZones, setAvailableZones] = useState<DeliveryZoneItem[]>(PRESET_DELIVERY_ZONES)
   const [selectedLocation, setSelectedLocation] = useState<UserDeliveryLocation>(() =>
-    getStoredDeliveryLocation(),
+    deliveryLocation || getStoredDeliveryLocation(),
   )
 
   const createOrder = useCreateCommerceOrder()
@@ -152,6 +154,14 @@ export function CommerceCheckoutModal({
   useEffect(() => {
     setMounted(true)
   }, [])
+
+  // Sync selectedLocation whenever modal opens or deliveryLocation prop changes
+  useEffect(() => {
+    if (isOpen) {
+      const loc = deliveryLocation || getStoredDeliveryLocation()
+      setSelectedLocation(loc)
+    }
+  }, [isOpen, deliveryLocation])
 
   // Fetch available zones from API to ensure freshest data
   useEffect(() => {
@@ -169,6 +179,7 @@ export function CommerceCheckoutModal({
                 zoneName: matched.name,
                 isDelivering: matched.isDelivering,
                 pauseReason: matched.pauseReason,
+                deliveryFeeKobo: matched.deliveryFeeKobo,
               }
             }
             return prev
@@ -232,7 +243,11 @@ export function CommerceCheckoutModal({
   const unitPrice = offering.price ? Number(offering.price) : 0
   const itemsSubtotal = unitPrice * quantity
   const isService = offering.type === 'SERVICE'
-  const deliveryFee = 0
+  const deliveryFee = isService
+    ? 0
+    : selectedLocation?.deliveryFeeKobo
+      ? Number(BigInt(selectedLocation.deliveryFeeKobo) / BigInt(100))
+      : 0
   const grandTotal = itemsSubtotal + deliveryFee
 
   const offeringTitle = offering.title || offering.name || 'Commerce Offering'
@@ -652,10 +667,14 @@ export function CommerceCheckoutModal({
 
             <div className="checkout-sheet__ledger-row">
               <span className="checkout-sheet__ledger-label">
-                {isService ? 'Service Callout' : 'Standard Delivery'}
+                {isService ? 'Service Callout' : 'Delivery Fee'}
               </span>
-              <span className="checkout-sheet__ledger-val checkout-sheet__ledger-val--free">
-                Free
+              <span
+                className={`checkout-sheet__ledger-val ${
+                  deliveryFee === 0 ? 'checkout-sheet__ledger-val--free' : ''
+                }`}
+              >
+                {deliveryFee === 0 ? 'Free' : formatNgn(deliveryFee)}
               </span>
             </div>
 

@@ -1037,6 +1037,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
           offering={offering}
           isOpen={isCheckoutOpen}
           onClose={() => setIsCheckoutOpen(false)}
+          deliveryLocation={deliveryLocation}
         />
       )}
     </div>

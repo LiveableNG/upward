@@ -13,6 +13,10 @@ import {
   CreateOrderData,
 } from '../../../domains/commerce/commerce-order.repository'
 import {
+  COMMERCE_DELIVERY_ZONE_REPOSITORY,
+  CommerceDeliveryZoneRepository,
+} from '../../../domains/commerce/commerce-delivery-zone.repository'
+import {
   OFFERING_REPOSITORY,
   OfferingRepository,
 } from '../../../domains/goals/offering.repository'
@@ -41,6 +45,8 @@ export class CreateCommerceOrderUseCase {
     private readonly offeringRepo: OfferingRepository,
     @Inject(USER_REPOSITORY)
     private readonly userRepo: UserRepository,
+    @Inject(COMMERCE_DELIVERY_ZONE_REPOSITORY)
+    private readonly zoneRepo: CommerceDeliveryZoneRepository,
   ) {}
 
   async execute(userIdentifier: number | string, dto: CreateCommerceOrderDto): Promise<CreateCommerceOrderResponse> {
@@ -75,7 +81,21 @@ export class CreateCommerceOrderUseCase {
     // 2. Authoritative database fetch of offerings
     const priceableItems: PriceableItemInput[] = []
 
-    for (const item of dto.items) {
+    // Look up delivery zone if provided to resolve verified delivery fee and status
+    let zoneDeliveryFeeKobo = 0n
+    if (dto.deliveryZoneTag) {
+      const zone = await this.zoneRepo.findByTag(dto.deliveryZoneTag.trim().toUpperCase())
+      if (zone) {
+        if (!zone.isDelivering) {
+          throw new BadRequestException(
+            zone.pauseReason || `Delivery is temporarily suspended in ${zone.name}`,
+          )
+        }
+        zoneDeliveryFeeKobo = zone.deliveryFeeKobo
+      }
+    }
+
+    for (const [i, item] of dto.items.entries()) {
       const offering = item.offeringUuid
         ? await this.offeringRepo.findOfferingByUuid(item.offeringUuid)
         : item.offeringId
@@ -126,9 +146,14 @@ export class CreateCommerceOrderUseCase {
         throw new BadRequestException(deliveryValidation.reason)
       }
 
+      // Apply delivery fee to the first physical item
+      const itemDeliveryFee =
+        priceableOffering.type === 'SERVICE' || i > 0 ? 0n : zoneDeliveryFeeKobo
+
       priceableItems.push({
         offering: priceableOffering,
         quantity: item.quantity,
+        deliveryFeeKobo: itemDeliveryFee,
       })
     }
 

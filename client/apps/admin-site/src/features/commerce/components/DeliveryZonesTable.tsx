@@ -30,7 +30,7 @@ interface DeliveryZonesTableProps {
 
 function formatNgn(amountKobo: string | number | bigint): string {
   const kobo = typeof amountKobo === 'string' ? BigInt(amountKobo || '0') : BigInt(amountKobo)
-  const ngn = Number(kobo / 100n)
+  const ngn = Number(kobo / BigInt(100))
   if (ngn === 0) return 'Free Delivery'
   return new Intl.NumberFormat('en-NG', {
     style: 'currency',

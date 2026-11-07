@@ -91,7 +91,7 @@ export const DeliveryZoneModal: React.FC<DeliveryZoneModalProps> = ({
       setRegion(zone.region || '')
       setAreasCovered(zone.areasCovered || '')
       setIsDelivering(zone.isDelivering ?? true)
-      const feeNgn = zone.deliveryFeeKobo ? Number(BigInt(zone.deliveryFeeKobo) / 100n) : 0
+      const feeNgn = zone.deliveryFeeKobo ? Number(BigInt(zone.deliveryFeeKobo) / BigInt(100)) : 0
       setDeliveryFeeNgn(String(feeNgn))
       setEstimatedDeliveryDays(zone.estimatedDeliveryDays || '1 - 2 business days')
       setPauseReason(zone.pauseReason || '')

@@ -31,6 +31,7 @@ export interface UserDeliveryLocation {
   label: string
   isRentalDefault?: boolean
   pauseReason?: string | null
+  deliveryFeeKobo?: string | null
   specificAddress?: string
   landmark?: string
   driverNotes?: string
@@ -92,6 +93,7 @@ export function resolveDeliveryZone(
   state: string
   isDelivering: boolean
   pauseReason?: string | null
+  deliveryFeeKobo?: string | null
   isSupported: boolean
 } {
   // If no delivery zones have been set up in admin yet:
@@ -102,6 +104,7 @@ export function resolveDeliveryZone(
       state: 'N/A',
       isDelivering: false,
       pauseReason: 'We are working towards expanding our delivery coverage to other locations soon!',
+      deliveryFeeKobo: '0',
       isSupported: false,
     }
   }
@@ -114,6 +117,7 @@ export function resolveDeliveryZone(
       state: fallback.state,
       isDelivering: fallback.isDelivering,
       pauseReason: fallback.pauseReason,
+      deliveryFeeKobo: fallback.deliveryFeeKobo,
       isSupported: fallback.isDelivering,
     }
   }
@@ -133,6 +137,7 @@ export function resolveDeliveryZone(
         state: zone.state,
         isDelivering: zone.isDelivering,
         pauseReason: zone.pauseReason,
+        deliveryFeeKobo: zone.deliveryFeeKobo,
         isSupported: true,
       }
     }
@@ -153,6 +158,7 @@ export function resolveDeliveryZone(
             state: zone.state,
             isDelivering: zone.isDelivering,
             pauseReason: zone.pauseReason,
+            deliveryFeeKobo: zone.deliveryFeeKobo,
             isSupported: true,
           }
         }
@@ -178,6 +184,7 @@ export function resolveDeliveryZone(
       state: lagosIsland.state,
       isDelivering: lagosIsland.isDelivering,
       pauseReason: lagosIsland.pauseReason,
+      deliveryFeeKobo: lagosIsland.deliveryFeeKobo,
       isSupported: true,
     }
   }
@@ -200,6 +207,7 @@ export function resolveDeliveryZone(
       state: lagosMainland.state,
       isDelivering: lagosMainland.isDelivering,
       pauseReason: lagosMainland.pauseReason,
+      deliveryFeeKobo: lagosMainland.deliveryFeeKobo,
       isSupported: true,
     }
   }
@@ -219,6 +227,7 @@ export function resolveDeliveryZone(
       state: abuja.state,
       isDelivering: abuja.isDelivering,
       pauseReason: abuja.pauseReason,
+      deliveryFeeKobo: abuja.deliveryFeeKobo,
       isSupported: true,
     }
   }
@@ -235,6 +244,7 @@ export function resolveDeliveryZone(
       state: ph.state,
       isDelivering: ph.isDelivering,
       pauseReason: ph.pauseReason,
+      deliveryFeeKobo: ph.deliveryFeeKobo,
       isSupported: true,
     }
   }
@@ -246,6 +256,7 @@ export function resolveDeliveryZone(
     state: 'Unknown',
     isDelivering: false,
     pauseReason: 'We are working towards expanding our delivery coverage to other locations soon!',
+    deliveryFeeKobo: '0',
     isSupported: false,
   }
 }
@@ -346,6 +357,7 @@ export function getStoredDeliveryLocation(
           parsed.isDelivering = matched.isDelivering
           parsed.pauseReason = matched.pauseReason
           parsed.zoneName = matched.name
+          parsed.deliveryFeeKobo = matched.deliveryFeeKobo
         }
         return parsed
       }
@@ -362,6 +374,7 @@ export function getStoredDeliveryLocation(
       state: 'N/A',
       isDelivering: false,
       pauseReason: 'We are working towards expanding our delivery coverage to other locations soon!',
+      deliveryFeeKobo: '0',
       label: 'Coverage Pending',
       isRentalDefault: false,
     }
@@ -379,6 +392,7 @@ export function getStoredDeliveryLocation(
     state: resolution.state,
     isDelivering: resolution.isDelivering,
     pauseReason: resolution.pauseReason,
+    deliveryFeeKobo: zonePreset?.deliveryFeeKobo || resolution.deliveryFeeKobo || '0',
     label: zonePreset?.name || 'Your Rental Address',
     isRentalDefault: true,
   }
