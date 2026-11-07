@@ -27,6 +27,7 @@ import {
   Phone,
   PackageCheck,
   Star,
+  CreditCard,
 } from 'lucide-react'
 import { useToast } from '@/components/common/Toast'
 import {
@@ -34,7 +35,10 @@ import {
   useDownloadCommerceReceipt,
   useConfirmSubOrderReceipt,
   useCreateCommerceDispute,
+  useInitializeCommercePayment,
+  useVerifyCommercePayment,
 } from '../hooks/useCommerceOrders'
+import { openPaystackInline } from '../utils/paystackInline'
 import { BottomSheetModal } from '@/components/common/BottomSheetModal'
 import '../styles/goals.css'
 import type {
@@ -82,6 +86,8 @@ export function OrderTrackingScreen({ orderUuid }: { orderUuid: string }) {
   const downloadReceipt = useDownloadCommerceReceipt()
   const confirmReceipt = useConfirmSubOrderReceipt()
   const createDispute = useCreateCommerceDispute()
+  const initializePayment = useInitializeCommercePayment()
+  const verifyPayment = useVerifyCommercePayment()
 
   const [activeDisputeSubOrder, setActiveDisputeSubOrder] = useState<TenantSubOrderDetailDto | null>(null)
   const [subOrderToConfirm, setSubOrderToConfirm] = useState<TenantSubOrderDetailDto | null>(null)
@@ -89,6 +95,7 @@ export function OrderTrackingScreen({ orderUuid }: { orderUuid: string }) {
   const [feedback, setFeedback] = useState<string>('')
   const [hoveredRating, setHoveredRating] = useState<number | null>(null)
   const [isDownloading, setIsDownloading] = useState(false)
+  const [isPaying, setIsPaying] = useState(false)
 
   const {
     register,
@@ -191,6 +198,37 @@ export function OrderTrackingScreen({ orderUuid }: { orderUuid: string }) {
     }
   }
 
+  const handlePayNow = async () => {
+    if (!order) return
+    try {
+      setIsPaying(true)
+      const paymentInit = await initializePayment.mutateAsync(order.uuid)
+      if (paymentInit.accessCode) {
+        const grandTotal = Number(order.totalAmountKobo) / 100
+        const paidRef = await openPaystackInline(paymentInit.accessCode, grandTotal)
+        try {
+          await verifyPayment.mutateAsync({
+            orderUuid: order.uuid,
+            reference: paidRef || paymentInit.reference,
+          })
+        } catch (verifyErr) {
+          console.warn('Payment direct verification note:', verifyErr)
+        }
+        toast.success('Payment confirmed! Fulfilment has commenced.')
+      } else if (paymentInit.authorizationUrl) {
+        window.location.href = paymentInit.authorizationUrl
+      }
+    } catch (err: any) {
+      if (err?.message === 'Payment cancelled') {
+        toast.info('Payment cancelled. You can complete payment at any time.')
+      } else {
+        toast.error(err?.message || 'Could not launch payment gateway.')
+      }
+    } finally {
+      setIsPaying(false)
+    }
+  }
+
   return (
     <div className="order-tracking">
       {/* Header */}
@@ -209,7 +247,7 @@ export function OrderTrackingScreen({ orderUuid }: { orderUuid: string }) {
             Placed on {formatDateTime(order.createdAt)} · {formatKoboToNgn(order.totalAmountKobo)}
           </div>
         </div>
-        {order.paymentStatus === 'PAID' && (
+        {order.paymentStatus === 'PAID' ? (
           <button
             type="button"
             className="order-tracking__receipt-cta"
@@ -224,8 +262,60 @@ export function OrderTrackingScreen({ orderUuid }: { orderUuid: string }) {
             )}
             <span>Receipt</span>
           </button>
+        ) : (
+          <button
+            type="button"
+            className="order-tracking__header-pay-btn"
+            onClick={handlePayNow}
+            disabled={isPaying}
+          >
+            {isPaying ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <CreditCard size={14} />
+            )}
+            <span>Pay Now</span>
+          </button>
         )}
       </header>
+
+      {/* Unpaid Order Alert & Immediate Pay Action */}
+      {order.paymentStatus !== 'PAID' && (
+        <div className="order-tracking__unpaid-banner">
+          <div className="order-tracking__unpaid-icon">
+            <AlertTriangle size={20} color="#D97706" />
+          </div>
+          <div className="order-tracking__unpaid-content">
+            <div className="order-tracking__unpaid-head">
+              <strong className="order-tracking__unpaid-title">
+                Payment Pending · {formatKoboToNgn(order.totalAmountKobo)}
+              </strong>
+              <span className="order-tracking__unpaid-badge">Action Required</span>
+            </div>
+            <p className="order-tracking__unpaid-desc">
+              Your order has been placed, but payment is not complete. Pay now with Paystack so the merchant can begin preparation and dispatch.
+            </p>
+            <button
+              type="button"
+              className="order-tracking__unpaid-pay-btn"
+              onClick={handlePayNow}
+              disabled={isPaying}
+            >
+              {isPaying ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" />
+                  <span>Connecting to Paystack...</span>
+                </>
+              ) : (
+                <>
+                  <CreditCard size={15} />
+                  <span>Pay {formatKoboToNgn(order.totalAmountKobo)} Now</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Destination Card */}
       <div className="order-tracking__destination-card">

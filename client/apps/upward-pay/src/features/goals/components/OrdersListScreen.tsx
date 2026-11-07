@@ -16,6 +16,7 @@ import {
   Truck,
   Wrench,
   Loader2,
+  CreditCard,
 } from 'lucide-react'
 import {
   useTenantOrders,
@@ -47,7 +48,14 @@ function formatDate(dateStr: string): string {
   }
 }
 
-function getStatusBadge(status: CustomerFulfilmentStatus, isService: boolean) {
+function getStatusBadge(status: CustomerFulfilmentStatus, isService: boolean, paymentStatus?: string) {
+  if (paymentStatus && paymentStatus !== 'PAID') {
+    return {
+      label: 'Awaiting Payment',
+      className: 'orders-hub__badge--unpaid',
+    }
+  }
+
   switch (status) {
     case 'ORDER_CONFIRMED':
       return {
@@ -220,8 +228,9 @@ export function OrdersListScreen() {
             {displayedOrders.map((order) => {
               const itemsList = order.itemsPreview || []
               const isService = itemsList.some((i) => i.offeringType === 'SERVICE')
-              const badge = getStatusBadge(order.primaryStatus, isService)
+              const badge = getStatusBadge(order.primaryStatus, isService, order.paymentStatus)
               const isDownloading = downloadingUuid === order.uuid
+              const isUnpaid = order.paymentStatus !== 'PAID'
 
               return (
                 <div key={order.uuid} className="orders-hub__card">
@@ -268,7 +277,9 @@ export function OrdersListScreen() {
                   {/* Card Footer */}
                   <div className="orders-hub__card-footer">
                     <div className="orders-hub__total-wrap">
-                      <span className="orders-hub__total-label">Total Paid</span>
+                      <span className="orders-hub__total-label">
+                        {isUnpaid ? 'Total Due' : 'Total Paid'}
+                      </span>
                       <span className="orders-hub__total-value">
                         {formatKoboToNgn(order.totalAmountKobo)}
                       </span>
@@ -293,6 +304,19 @@ export function OrdersListScreen() {
                       )}
 
                       {(() => {
+                        if (isUnpaid) {
+                          return (
+                            <button
+                              type="button"
+                              className="orders-hub__track-btn orders-hub__track-btn--pay"
+                              onClick={() => router.push(`/dashboard/lifestyle/orders/${order.uuid}`)}
+                            >
+                              <CreditCard size={14} />
+                              <span>Pay Now</span>
+                            </button>
+                          )
+                        }
+
                         const isCompleted =
                           ['DELIVERED', 'SERVICE_COMPLETED', 'RECEIVED_CONFIRMED'].includes(order.primaryStatus) ||
                           ['CANCELLED', 'REFUNDED'].includes(order.status)

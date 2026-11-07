@@ -19,6 +19,8 @@ interface ActionCarouselProps {
   showBenefitsUpsell?: boolean
   benefitsEndsAt?: string | null
   activeOrder?: TenantOrderSummaryDto | null
+  activeOrders?: TenantOrderSummaryDto[]
+  unpaidOrder?: TenantOrderSummaryDto | null
 }
 
 type Urgency = 'critical' | 'pending' | 'neutral'
@@ -128,42 +130,76 @@ export function ActionCarousel({
   skin = 'default',
   showBenefitsUpsell = false,
   activeOrder,
+  activeOrders,
+  unpaidOrder,
 }: ActionCarouselProps) {
   const router = useRouter()
   const items: ActionItem[] = []
 
-  if (activeOrder) {
-    const isService = (activeOrder.itemsPreview || []).some((i) => i.offeringType === 'SERVICE')
-    const firstItem = (activeOrder.itemsPreview || [])[0]
+  const effectiveActiveOrders = activeOrders ?? (activeOrder ? [activeOrder] : [])
+
+  if (effectiveActiveOrders.length > 1) {
+    items.push({
+      type: 'live_order_multiple',
+      id: 'live-orders-multiple',
+      title: `${effectiveActiveOrders.length} Active Orders in Progress`,
+      meta: 'Multiple shipments and services underway · Track all updates',
+      actionLabel: 'View All Orders',
+      action: () => router.push('/dashboard/lifestyle/orders'),
+      urgency: 'pending',
+    })
+  } else if (effectiveActiveOrders.length === 1) {
+    const singleOrder = effectiveActiveOrders[0]
+    const isService = (singleOrder.itemsPreview || []).some((i) => i.offeringType === 'SERVICE')
+    const firstItem = (singleOrder.itemsPreview || [])[0]
     const statusLabel =
-      activeOrder.primaryStatus === 'OUT_FOR_DELIVERY'
+      singleOrder.primaryStatus === 'OUT_FOR_DELIVERY'
         ? 'Out for Delivery'
-        : activeOrder.primaryStatus === 'TECHNICIAN_EN_ROUTE'
+        : singleOrder.primaryStatus === 'TECHNICIAN_EN_ROUTE'
         ? 'Technician En Route'
-        : activeOrder.primaryStatus === 'DISPATCHED'
+        : singleOrder.primaryStatus === 'DISPATCHED'
         ? 'Dispatched to Carrier'
-        : activeOrder.primaryStatus === 'PROCESSING'
+        : singleOrder.primaryStatus === 'PROCESSING'
         ? 'Order in Preparation'
-        : activeOrder.primaryStatus === 'SERVICE_SCHEDULED'
+        : singleOrder.primaryStatus === 'SERVICE_SCHEDULED'
         ? 'Service Scheduled'
-        : activeOrder.primaryStatus === 'DISPUTED'
+        : singleOrder.primaryStatus === 'DISPUTED'
         ? 'Inquiry Logged'
         : isService
         ? 'Booking Confirmed'
         : 'Order Confirmed'
 
     const itemTitle = firstItem ? firstItem.title : 'Lifestyle Order'
-    const count = activeOrder.itemsCount ?? (activeOrder.itemsPreview?.length || 1)
+    const count = singleOrder.itemsCount ?? (singleOrder.itemsPreview?.length || 1)
     const countBadge = count > 1 ? ` (+${count - 1} more)` : ''
 
     items.push({
       type: 'live_order',
-      id: `live-order-${activeOrder.uuid}`,
-      title: `${statusLabel} · ${activeOrder.orderNumber}`,
+      id: `live-order-${singleOrder.uuid}`,
+      title: `${statusLabel} · ${singleOrder.orderNumber}`,
       meta: `${itemTitle}${countBadge} · Tracking in progress`,
       actionLabel: 'Track Live',
-      action: () => router.push(`/dashboard/lifestyle/orders/${activeOrder.uuid}`),
+      action: () => router.push(`/dashboard/lifestyle/orders/${singleOrder.uuid}`),
       urgency: 'pending',
+    })
+  }
+
+  if (unpaidOrder) {
+    const formattedAmt = new Intl.NumberFormat('en-NG', {
+      style: 'currency',
+      currency: 'NGN',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(Number(unpaidOrder.totalAmountKobo) / 100)
+
+    items.push({
+      type: 'unpaid_order',
+      id: `unpaid-order-${unpaidOrder.uuid}`,
+      title: `Payment Pending · ${unpaidOrder.orderNumber}`,
+      meta: `Complete payment of ${formattedAmt} to begin merchant fulfilment`,
+      actionLabel: 'Pay Now',
+      action: () => router.push(`/dashboard/lifestyle/orders/${unpaidOrder.uuid}`),
+      urgency: 'critical',
     })
   }
 
@@ -314,7 +350,7 @@ export function ActionCarousel({
       {items.map((item) => (
         <article
           key={item.id}
-          className={`activity-alerts__item activity-alerts__item--${item.urgency} ${item.type === 'live_order' ? 'activity-alerts__item--live-order' : ''}`}
+          className={`activity-alerts__item activity-alerts__item--${item.urgency} ${item.type.startsWith('live_order') ? 'activity-alerts__item--live-order' : ''} ${item.type === 'unpaid_order' ? 'activity-alerts__item--unpaid-order' : ''}`}
           onClick={item.action}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
@@ -327,10 +363,17 @@ export function ActionCarousel({
         >
           <div className="activity-alerts__body">
             <div className="activity-alerts__header-row">
-              {item.type === 'live_order' && (
+              {(item.type === 'live_order' || item.type === 'live_order_multiple') && (
                 <span
                   className="live-order-card__beacon live-order-card__beacon--pulse"
                   style={{ backgroundColor: '#059669', flexShrink: 0, display: 'inline-block' }}
+                  aria-hidden="true"
+                />
+              )}
+              {item.type === 'unpaid_order' && (
+                <span
+                  className="live-order-card__beacon"
+                  style={{ backgroundColor: '#D97706', flexShrink: 0, display: 'inline-block' }}
                   aria-hidden="true"
                 />
               )}

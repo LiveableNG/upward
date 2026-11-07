@@ -172,21 +172,54 @@ export function DashboardHome({
   const { bills: gtBills } = useAllPendingBills()
   const [isNavigatingToBreakdown, setIsNavigatingToBreakdown] = useState(false)
 
-  const { data: tenantOrdersData } = useTenantOrders({ take: 5 })
-  const activeOrder: TenantOrderSummaryDto | undefined = useMemo(() => {
+  const { data: tenantOrdersData } = useTenantOrders({ take: 10 })
+  const { activeOrders, unpaidOrder } = useMemo(() => {
     const orders = tenantOrdersData?.orders || []
-    return orders.find((ord) => {
+
+    const getStageWeight = (status: string) => {
+      switch (status) {
+        case 'OUT_FOR_DELIVERY':
+        case 'TECHNICIAN_EN_ROUTE':
+          return 100
+        case 'DISPATCHED':
+          return 80
+        case 'PROCESSING':
+        case 'SERVICE_SCHEDULED':
+          return 60
+        case 'ORDER_CONFIRMED':
+          return 40
+        default:
+          return 20
+      }
+    }
+
+    // 1. Paid active in-flight orders only, sorted by stage precedence
+    const paid = orders
+      .filter((ord) => {
+        if (ord.paymentStatus !== 'PAID') return false
+        if (['CANCELLED', 'REFUNDED'].includes(ord.status)) return false
+        return [
+          'ORDER_CONFIRMED',
+          'PROCESSING',
+          'DISPATCHED',
+          'OUT_FOR_DELIVERY',
+          'SERVICE_SCHEDULED',
+          'TECHNICIAN_EN_ROUTE',
+          'DISPUTED',
+        ].includes(ord.primaryStatus)
+      })
+      .sort((a, b) => getStageWeight(b.primaryStatus) - getStageWeight(a.primaryStatus))
+
+    // 2. Unpaid order awaiting payment
+    const unpaid = orders.find((ord) => {
       if (['CANCELLED', 'REFUNDED'].includes(ord.status)) return false
-      return [
-        'ORDER_CONFIRMED',
-        'PROCESSING',
-        'DISPATCHED',
-        'OUT_FOR_DELIVERY',
-        'SERVICE_SCHEDULED',
-        'TECHNICIAN_EN_ROUTE',
-        'DISPUTED',
-      ].includes(ord.primaryStatus)
+      return ord.paymentStatus !== 'PAID'
     })
+
+    return {
+      activeOrders: paid,
+      unpaidOrder: unpaid,
+    }
   }, [tenantOrdersData])
 
   const handleScoreClick = () => {
@@ -218,7 +251,8 @@ export function DashboardHome({
   const recent = completedPayments.slice(0, 3)
 
   const showActivityCenter =
-    Boolean(activeOrder) ||
+    activeOrders.length > 0 ||
+    Boolean(unpaidOrder) ||
     pendingPayments.length > 0 ||
     gtBills.length > 0 ||
     isNewUser ||
@@ -306,7 +340,8 @@ export function DashboardHome({
             isIdentityVerified={!verificationOn || isIdentityVerified}
             skin="proto"
             showBenefitsUpsell={!benefitsActive}
-            activeOrder={activeOrder}
+            activeOrders={activeOrders}
+            unpaidOrder={unpaidOrder}
           />
         </div>
       )}
