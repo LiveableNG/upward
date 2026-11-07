@@ -11,6 +11,10 @@ import {
   CommerceOrderRepository,
   CommerceVendorSuborder,
 } from '@domains/commerce/commerce-order.repository'
+import {
+  USER_REPOSITORY,
+  UserRepository,
+} from '@domains/users/user.repository'
 import { AdminFulfilmentTransitionAction } from '@application/commerce/dto/admin-commerce.dto'
 
 describe('Phase 6B.4: Admin-Managed Fulfilment APIs & Milestone Dispatch', () => {
@@ -20,6 +24,7 @@ describe('Phase 6B.4: Admin-Managed Fulfilment APIs & Milestone Dispatch', () =>
   let tenantConfirmReceiptUseCase: TenantConfirmSubOrderReceiptUseCase
   let tenantGetOrderDetailUseCase: GetTenantOrderDetailUseCase
   let mockOrderRepo: jest.Mocked<CommerceOrderRepository>
+  let mockUserRepo: Partial<jest.Mocked<UserRepository>>
 
   const mockUser = {
     id: 1,
@@ -222,6 +227,23 @@ describe('Phase 6B.4: Admin-Managed Fulfilment APIs & Milestone Dispatch', () =>
       releaseInventory: jest.fn(),
     }
 
+    mockUserRepo = {
+      findById: jest.fn().mockImplementation(async (id: number) => ({
+        id,
+        uuid: `user-uuid-${id}`,
+        email: `tenant-${id}@upward.ng`,
+        firstName: 'Amara',
+        lastName: 'Okafor',
+      } as any)),
+      findByUuid: jest.fn().mockImplementation(async (uuid: string) => ({
+        id: 1,
+        uuid,
+        email: 'tenant@upward.ng',
+        firstName: 'Amara',
+        lastName: 'Okafor',
+      } as any)),
+    }
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AdminGetCommerceOrdersUseCase,
@@ -232,6 +254,10 @@ describe('Phase 6B.4: Admin-Managed Fulfilment APIs & Milestone Dispatch', () =>
         {
           provide: COMMERCE_ORDER_REPOSITORY,
           useValue: mockOrderRepo,
+        },
+        {
+          provide: USER_REPOSITORY,
+          useValue: mockUserRepo,
         },
       ],
     }).compile()
@@ -297,17 +323,24 @@ describe('Phase 6B.4: Admin-Managed Fulfilment APIs & Milestone Dispatch', () =>
   })
 
   describe('Product Sub-Order Fulfilment Lifecycle', () => {
-    it('should reject dispatch if carrierName or trackingNumber is missing', async () => {
+    it('allows dispatch even when carrierName and trackingNumber are omitted', async () => {
       mockOrderRepo.findSubOrderByUuid.mockResolvedValue({
         ...mockProductSubOrder,
         order: mockMasterOrder,
       })
 
-      await expect(
-        adminUpdateFulfilmentUseCase.execute('suborder-prod-uuid', 'admin-uuid-1', {
-          action: AdminFulfilmentTransitionAction.DISPATCH,
-        }),
-      ).rejects.toThrow(BadRequestException)
+      mockOrderRepo.executeSubOrderFulfilmentTransition.mockResolvedValue({
+        ...mockProductSubOrder,
+        customerStatus: 'DISPATCHED',
+        operationalStatus: 'CARRIER_DISPATCHED',
+      })
+
+      const res = await adminUpdateFulfilmentUseCase.execute('suborder-prod-uuid', 'admin-uuid-1', {
+        action: AdminFulfilmentTransitionAction.DISPATCH,
+      })
+
+      expect(res.customerStatus).toBe('DISPATCHED')
+      expect(mockOrderRepo.executeSubOrderFulfilmentTransition).toHaveBeenCalled()
     })
 
     it('should reject dispatch on unpaid master order', async () => {

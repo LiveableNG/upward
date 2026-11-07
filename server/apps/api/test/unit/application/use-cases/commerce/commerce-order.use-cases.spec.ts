@@ -18,6 +18,10 @@ import {
   CommerceOrderRepository,
 } from '@domains/commerce/commerce-order.repository'
 import {
+  COMMERCE_DELIVERY_ZONE_REPOSITORY,
+  CommerceDeliveryZoneRepository,
+} from '@domains/commerce/commerce-delivery-zone.repository'
+import {
   OFFERING_REPOSITORY,
   Offering,
   OfferingRepository,
@@ -294,6 +298,7 @@ describe('Phase 6B.2: Commerce Order & Pricing Engine', () => {
     let mockOrderRepo: Partial<jest.Mocked<CommerceOrderRepository>>
     let mockGateway: Partial<jest.Mocked<IPaymentGateway>>
     let mockUserRepo: Partial<jest.Mocked<UserRepository>>
+    let mockDeliveryZoneRepo: Partial<jest.Mocked<CommerceDeliveryZoneRepository>>
 
     const sampleOffering: Offering = {
       id: 10,
@@ -365,6 +370,13 @@ describe('Phase 6B.2: Commerce Order & Pricing Engine', () => {
         } as any),
       }
 
+      mockDeliveryZoneRepo = {
+        findByTag: jest.fn().mockResolvedValue(null),
+        findAll: jest.fn().mockResolvedValue([]),
+        findById: jest.fn().mockResolvedValue(null),
+        findByUuid: jest.fn().mockResolvedValue(null),
+      }
+
       const module: TestingModule = await Test.createTestingModule({
         providers: [
           PreviewCommerceOrderUseCase,
@@ -378,6 +390,7 @@ describe('Phase 6B.2: Commerce Order & Pricing Engine', () => {
           { provide: COMMERCE_ORDER_REPOSITORY, useValue: mockOrderRepo },
           { provide: PAYMENT_GATEWAY, useValue: mockGateway },
           { provide: USER_REPOSITORY, useValue: mockUserRepo },
+          { provide: COMMERCE_DELIVERY_ZONE_REPOSITORY, useValue: mockDeliveryZoneRepo },
         ],
       }).compile()
 
