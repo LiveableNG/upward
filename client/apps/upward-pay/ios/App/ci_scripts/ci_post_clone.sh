@@ -26,9 +26,9 @@ cd "$REPO_ROOT"
 
 # Ensure Node.js is available on Xcode Cloud runner
 if ! command -v node >/dev/null 2>&1; then
-    echo "Node.js not found in PATH. Attempting Homebrew install..."
+    echo "Node.js not found in PATH. Attempting install..."
     if command -v brew >/dev/null 2>&1; then
-        brew install node || true
+        (brew install node@20 && brew link --overwrite --force node@20) || brew install node || true
     fi
 fi
 
