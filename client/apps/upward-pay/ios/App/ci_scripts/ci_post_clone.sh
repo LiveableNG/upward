@@ -80,10 +80,44 @@ echo "✅ NEXT_PUBLIC_API_URL is set: $NEXT_PUBLIC_API_URL"
 
 PAY_DIR="$REPO_ROOT/client/apps/upward-pay"
 
-# Run Capacitor sync for iOS
-echo "Syncing Capacitor iOS..."
+# Clear any stale or corrupted SwiftPM caches from previous runs
+echo "Cleaning SwiftPM caches..."
+rm -rf ~/Library/Caches/org.swift.swiftpm
+rm -rf ~/Library/Developer/Xcode/DerivedData
+
+# Build static web export
+echo "Building Next.js static export for upward-pay..."
 cd "$PAY_DIR"
-pnpm cap:sync || (NEXT_OUTPUT=export pnpm exec next build && pnpm exec cap sync ios)
+NEXT_OUTPUT=export pnpm exec next build
+
+# Copy web assets to iOS without triggering xcodebuild clean
+echo "Copying web assets to Capacitor iOS..."
+pnpm exec cap copy ios
+
+# Resilient package resolution with retries for binary targets
+echo "Resolving Swift Package dependencies (with retries for network resilience)..."
+cd "$PAY_DIR/ios/App"
+MAX_RETRIES=4
+attempt=1
+resolved=0
+
+while [ $attempt -le $MAX_RETRIES ]; do
+    echo "Attempt $attempt of $MAX_RETRIES: resolving Swift packages..."
+    if xcodebuild -resolvePackageDependencies -project App.xcodeproj; then
+        echo "✅ Swift package dependencies resolved successfully."
+        resolved=1
+        break
+    else
+        echo "⚠️ Attempt $attempt failed (network timeout). Retrying in 5s..."
+        sleep 5
+        attempt=$((attempt + 1))
+    fi
+done
+
+if [ $resolved -eq 0 ]; then
+    echo "❌ Failed to resolve Swift packages after $MAX_RETRIES attempts."
+    exit 1
+fi
 
 echo "=========================================="
 echo "  Xcode Cloud Setup Completed Successfully"
