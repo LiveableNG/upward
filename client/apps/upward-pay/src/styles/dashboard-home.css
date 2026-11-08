@@ -968,6 +968,9 @@
   width: 100%;
   text-align: left;
   font-family: inherit;
+  color: var(--shell-ink, #201a18);
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 .dash-home__activity-item + .dash-home__activity-item {
@@ -1005,6 +1008,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  color: var(--shell-ink, #201a18);
 }
 
 .dash-home__activity-item-meta {

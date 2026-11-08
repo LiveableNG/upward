@@ -3351,7 +3351,7 @@
 .orders-hub {
   max-width: 800px;
   margin: 0 auto;
-  padding: 16px 20px 80px;
+  padding: calc(var(--safe-top, 0px) + 16px) 20px 80px;
   width: 100%;
   min-height: 100vh;
   min-height: 100dvh;
@@ -3361,7 +3361,7 @@
 
 @media (max-width: 540px) {
   .orders-hub {
-    padding: 12px 12px 60px;
+    padding: calc(var(--safe-top, 0px) + 12px) 14px 60px;
   }
 }
 
@@ -3747,7 +3747,7 @@
 .order-tracking {
   max-width: 800px;
   margin: 0 auto;
-  padding: 16px 20px 80px;
+  padding: calc(var(--safe-top, 0px) + 16px) 20px 80px;
   width: 100%;
   min-height: 100vh;
   min-height: 100dvh;
@@ -3757,7 +3757,7 @@
 
 @media (max-width: 540px) {
   .order-tracking {
-    padding: 12px 12px 60px;
+    padding: calc(var(--safe-top, 0px) + 12px) 14px 60px;
   }
 }
 

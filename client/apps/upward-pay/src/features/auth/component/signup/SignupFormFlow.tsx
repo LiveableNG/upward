@@ -91,7 +91,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
   const [isInvited, setIsInvited] = useState(false)
   const [isWaitlist, setIsWaitlist] = useState(false)
   const [showExistsModal, setShowExistsModal] = useState(false)
-  const [step, setStep] = useState<'form' | 'otp'>('form')
+  const [step, setStep] = useState<'auth' | 'identity' | 'otp'>('auth')
   const [isRequestingOTP, setIsRequestingOTP] = useState(false)
   const [otpError, setOtpError] = useState<string | null>(null)
 
@@ -129,13 +129,23 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
     }
   }, [email, phone, identifierType])
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const isPasswordValid =
+    password.length >= 8 &&
+    /[A-Z]/.test(password) &&
+    /[0-9!@#$%^&*(),.?":{}|<> ]/.test(password)
+
+  const handleAuthContinue = (e: React.FormEvent) => {
     e.preventDefault()
     setLocalError('')
 
     if (identifierType === 'email') {
       if (!isValidEmail(email)) {
         setLocalError('Please enter a valid email address with a valid domain (e.g. name@example.com)')
+        return
+      }
+    } else {
+      if (phone.trim().length < 8) {
+        setLocalError('Please enter a valid phone number')
         return
       }
     }
@@ -155,8 +165,25 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
       return
     }
 
-    if (password !== confirmPassword) {
-      setLocalError('Passwords do not match')
+    if (!isPasswordValid) {
+      setLocalError('Password must be at least 8 characters and include uppercase, number or symbol.')
+      return
+    }
+
+    haptics.light()
+    setStep('identity')
+  }
+
+  const handleIdentitySubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLocalError('')
+
+    if (!firstName.trim()) {
+      setLocalError('Please enter your first name')
+      return
+    }
+    if (!lastName.trim()) {
+      setLocalError('Please enter your last name')
       return
     }
 
@@ -286,7 +313,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
     return (
       <div className="auth-shell auth-shell--signup">
         <div className="auth-shell__top">
-          <button className="auth-shell__back" onClick={() => setStep('form')} disabled={signupLoading}>
+          <button className="auth-shell__back" onClick={() => setStep('identity')} disabled={signupLoading}>
             <ChevronLeft size={20} />
           </button>
         </div>
@@ -304,10 +331,121 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
             email={identifierType === 'phone' ? (phone.startsWith('+') ? phone : `+234${phone.replace(/^0/, '')}`) : email}
             onVerify={handleVerifyOTP}
             onResend={handleResendOTP}
-            onChangeEmail={() => setStep('form')}
+            onChangeEmail={() => setStep('auth')}
             isLoading={signupLoading}
             error={otpError || signupError}
           />
+        </div>
+      </div>
+    )
+  }
+
+  if (step === 'identity') {
+    return (
+      <div className="auth-shell auth-shell--signup">
+        <div className="auth-shell__top">
+          <button className="auth-shell__back" onClick={() => setStep('auth')}>
+            <ChevronLeft size={20} />
+          </button>
+        </div>
+
+        {isNative ? (
+          <div className="auth-shell__brand">
+            <UpwardLogo size={28} color="var(--clay)" />
+          </div>
+        ) : (
+          <a href={process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'} className="auth-shell__brand">
+            <UpwardLogo size={28} color="var(--clay)" />
+          </a>
+        )}
+
+        <div className="auth-stage animate-pop">
+          <div className="auth-stage__header">
+            <span className="auth-form__step-badge">Step 2 of 2</span>
+            <h1 className="auth-stage__title">What&apos;s your name?</h1>
+            <p className="auth-stage__subtitle">Enter your name as it appears on your official ID.</p>
+          </div>
+
+          <form className="auth-form" onSubmit={handleIdentitySubmit}>
+            {(signupError || localError) && (
+              <div className="auth-form__error">{signupError || localError}</div>
+            )}
+
+            <div className="auth-form__row">
+              <div className="auth-form__field">
+                <label htmlFor="signup-firstname">First Name</label>
+                <div className="input-with-icon">
+                  <User size={17} />
+                  <input
+                    id="signup-firstname"
+                    type="text"
+                    placeholder="Sarah"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    autoFocus
+                    required
+                  />
+                </div>
+              </div>
+              <div className="auth-form__field">
+                <label htmlFor="signup-lastname">Last Name</label>
+                <div className="input-with-icon">
+                  <User size={17} />
+                  <input
+                    id="signup-lastname"
+                    type="text"
+                    placeholder="Johnson"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="auth-form__field" style={{ marginTop: '8px' }}>
+              <div className="auth-form__label-row">
+                <label>Where did you hear about us?</label>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, fontStyle: 'italic' }}>Optional</span>
+              </div>
+              <div className="auth-chips">
+                {HEAR_ABOUT_US_OPTIONS.map((opt) => {
+                  const shortLabel = opt.id === 'social_media' ? 'Social Media' : opt.id === 'google_search' ? 'Google Search' : opt.label.split(' (')[0]
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      className={`auth-chip ${hearAboutUs === opt.id ? 'auth-chip--selected' : ''}`}
+                      onClick={() => setHearAboutUs(hearAboutUs === opt.id ? '' : opt.id)}
+                    >
+                      {shortLabel}
+                    </button>
+                  )
+                })}
+              </div>
+              {hearAboutUs === 'other' && (
+                <div className="input-with-icon" style={{ marginTop: '10px' }}>
+                  <input
+                    type="text"
+                    placeholder="Please specify how you found us"
+                    value={hearAboutUsOther}
+                    onChange={(e) => setHearAboutUsOther(e.target.value)}
+                    style={{ paddingLeft: '14px' }}
+                  />
+                </div>
+              )}
+            </div>
+
+            <button
+              id="signup-submit"
+              className="btn btn--primary btn--full btn--pay auth-form__mt-8"
+              type="submit"
+              disabled={!firstName.trim() || !lastName.trim() || isRequestingOTP}
+            >
+              {isRequestingOTP ? 'Sending Code…' : 'Create account'}{' '}
+              <ArrowRight size={17} />
+            </button>
+          </form>
         </div>
       </div>
     )
@@ -331,10 +469,11 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
         </a>
       )}
 
-      <div className="auth-stage">
+      <div className="auth-stage animate-pop">
         <div className="auth-stage__header">
+          <span className="auth-form__step-badge">Step 1 of 2</span>
           <h1 className="auth-stage__title">Create your account</h1>
-          <p className="auth-stage__subtitle">Name, email, and password — takes under a minute.</p>
+          <p className="auth-stage__subtitle">Sign up in seconds to start managing your rent.</p>
         </div>
 
         <div className="auth-social-stack">
@@ -346,7 +485,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
           <span>OR</span>
         </div>
 
-        <form className="auth-form" onSubmit={handleSubmit}>
+        <form className="auth-form" onSubmit={handleAuthContinue}>
           {(signupError || localError) && (
             <div className="auth-form__error">{signupError || localError}</div>
           )}
@@ -365,7 +504,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
                 Sign up with {identifierType === 'email' ? 'Phone Number' : 'Email'}
               </button>
             </div>
-            
+
             {identifierType === 'email' ? (
               <div
                 className={
@@ -416,6 +555,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
                 </div>
               </div>
             )}
+
             {emailExists && !isInvited && !isWaitlist && (
               <div className="auth-field-hint auth-field-hint--error">
                 <AlertCircle size={12} /> This email is already registered.{' '}
@@ -444,37 +584,6 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
             )}
           </div>
 
-          <div className="auth-form__row">
-            <div className="auth-form__field">
-              <label htmlFor="signup-firstname">First Name</label>
-              <div className="input-with-icon">
-                <User size={17} />
-                <input
-                  id="signup-firstname"
-                  type="text"
-                  placeholder="Sarah"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-            <div className="auth-form__field">
-              <label htmlFor="signup-lastname">Last Name</label>
-              <div className="input-with-icon">
-                <User size={17} />
-                <input
-                  id="signup-lastname"
-                  type="text"
-                  placeholder="Johnson"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  required
-                />
-              </div>
-            </div>
-          </div>
-
           <div className="auth-form__field">
             <label htmlFor="signup-password">Create Password</label>
             <div className="input-with-icon">
@@ -491,6 +600,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
                 type="button"
                 className="password-toggle"
                 onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
@@ -500,142 +610,29 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
             )}
           </div>
 
-          <div className="auth-form__field">
-            <label htmlFor="confirm-password">Confirm Password</label>
-            <div
-              className={`input-with-icon${
-                confirmPassword.length > 0
-                  ? confirmPassword === password
-                    ? ' input-with-icon--match'
-                    : ' input-with-icon--error'
-                  : ''
-              }`}
-            >
-              <Lock size={17} />
-              <input
-                id="confirm-password"
-                type={showPassword ? 'text' : 'password'}
-                placeholder="Re-enter your password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-              />
-              {confirmPassword.length > 0 && confirmPassword === password && (
-                <CheckCircle2 size={17} className="match-icon" />
-              )}
-            </div>
-            {confirmPassword.length > 0 && confirmPassword !== password && (
-              <div className="auth-field-hint auth-field-hint--error">
-                <AlertCircle size={12} /> Passwords don't match
-              </div>
-            )}
-          </div>
-
-          <div className="auth-form__field">
-            <div className="auth-form__label-row">
-              <label htmlFor="signup-hear-about-us">Where did you hear about us?</label>
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, fontStyle: 'italic' }}>Optional</span>
-            </div>
-            <div className="input-with-icon" style={{ position: 'relative' }}>
-              <Compass size={17} />
-              <select
-                id="signup-hear-about-us"
-                value={hearAboutUs}
-                onChange={(e) => setHearAboutUs(e.target.value)}
-                style={{
-                  width: '100%',
-                  background: 'transparent',
-                  border: 'none',
-                  outline: 'none',
-                  fontFamily: 'inherit',
-                  fontSize: '13.5px',
-                  color: hearAboutUs ? 'var(--text)' : '#9a948c',
-                  appearance: 'none',
-                  WebkitAppearance: 'none',
-                  cursor: 'pointer',
-                  paddingRight: '28px',
-                }}
-              >
-                <option value="" disabled style={{ color: '#9a948c' }}>
-                  Select channel (optional)
-                </option>
-                {HEAR_ABOUT_US_OPTIONS.map((opt) => (
-                  <option key={opt.id} value={opt.id} style={{ color: '#1a1a1a' }}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown
-                size={16}
-                style={{
-                  position: 'absolute',
-                  right: '14px',
-                  pointerEvents: 'none',
-                  color: 'var(--text-muted)',
-                }}
-              />
-            </div>
-            {hearAboutUs === 'other' && (
-              <div className="input-with-icon" style={{ marginTop: '8px' }}>
-                <input
-                  type="text"
-                  placeholder="Please specify (optional)"
-                  value={hearAboutUsOther}
-                  onChange={(e) => setHearAboutUsOther(e.target.value)}
-                  style={{ paddingLeft: '14px' }}
-                />
-              </div>
-            )}
-          </div>
-
-          <div className="auth-form__field" style={{ marginTop: '16px' }}>
-            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer', fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-              <input
-                type="checkbox"
-                checked={termsAgreed}
-                onChange={(e) => setTermsAgreed(e.target.checked)}
-                required
-                style={{ accentColor: 'var(--clay)', marginTop: '2px', width: '15px', height: '15px', cursor: 'pointer' }}
-              />
-              <span>
-                I agree to the{' '}
-                <a href={`${process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}/legal/terms`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--clay)', fontWeight: 600 }}>
-                  Terms of Use
-                </a>{' '}
-                and{' '}
-                <a href={`${process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}/legal/privacy`} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--clay)', fontWeight: 600 }}>
-                  Privacy Policy
-                </a>
-              </span>
-            </label>
-          </div>
+          <p className="auth-stage__disclaimer">
+            By continuing, you agree to our{' '}
+            <a href={`${process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}/legal/terms`} target="_blank" rel="noopener noreferrer">
+              Terms of Use
+            </a>{' '}
+            and{' '}
+            <a href={`${process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}/legal/privacy`} target="_blank" rel="noopener noreferrer">
+              Privacy Policy
+            </a>.
+          </p>
 
           <button
-            id="signup-submit"
+            id="signup-auth-continue"
             className="btn btn--primary btn--full btn--pay auth-form__mt-8"
             type="submit"
             disabled={
-              (identifierType === 'email' ? !email : !phone) ||
-              signupLoading ||
-              isRequestingOTP ||
+              (identifierType === 'email' ? !isValidEmail(email) : phone.trim().length < 8) ||
+              !isPasswordValid ||
               isCheckingEmail ||
-              emailExists ||
-              !firstName ||
-              !lastName ||
-              !password ||
-              !(/.{8,}/.test(password) && /[A-Z]/.test(password) && /[0-9!@#$%^&*(),.?":{}|<> ]/.test(password)) ||
-              !confirmPassword ||
-              password !== confirmPassword ||
-              !termsAgreed
+              (emailExists && !isInvited && !isWaitlist)
             }
-
           >
-
-            {isRequestingOTP
-              ? 'Sending Code…'
-              : 'Create account'}{' '}
-
-            <ArrowRight size={17} />
+            Continue <ArrowRight size={17} />
           </button>
         </form>
 
@@ -664,8 +661,8 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
             </div>
           </div>
         )}
-
       </div>
     </div>
   )
+}
 }

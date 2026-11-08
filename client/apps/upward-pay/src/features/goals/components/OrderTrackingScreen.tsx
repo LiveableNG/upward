@@ -155,19 +155,31 @@ export function OrderTrackingScreen({ orderUuid: propOrderUuid }: { orderUuid?: 
 
   if (error || !order) {
     return (
-      <div className="order-tracking orders-hub__empty">
-        <AlertTriangle size={40} color="#D97706" />
-        <h2 className="orders-hub__empty-title">Order Not Found</h2>
-        <p className="orders-hub__empty-desc">
-          We could not locate this order or it belongs to a different session.
-        </p>
-        <button
-          type="button"
-          className="orders-hub__explore-btn"
-          onClick={() => router.push('/dashboard/lifestyle/orders')}
-        >
-          <span>Back to My Orders</span>
-        </button>
+      <div className="order-tracking">
+        <header className="order-tracking__header">
+          <button
+            type="button"
+            className="order-tracking__back-btn"
+            onClick={() => router.push('/dashboard/lifestyle/orders')}
+            aria-label="Back to orders"
+          >
+            <ArrowLeft size={16} />
+          </button>
+        </header>
+        <div className="orders-hub__empty">
+          <AlertTriangle size={40} color="#D97706" />
+          <h2 className="orders-hub__empty-title">Order Not Found</h2>
+          <p className="orders-hub__empty-desc">
+            We could not locate this order or it belongs to a different session.
+          </p>
+          <button
+            type="button"
+            className="orders-hub__explore-btn"
+            onClick={() => router.push('/dashboard/lifestyle/orders')}
+          >
+            <span>Back to My Orders</span>
+          </button>
+        </div>
       </div>
     )
   }

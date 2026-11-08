@@ -189,19 +189,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return <FallbackSuspense message="Setting up your rental details..." />
   }
 
+  const normalizedPath = (pathname || '').replace(/\/$/, '')
+  const ROOT_NAV_PATHS = new Set([
+    '/dashboard',
+    '/dashboard/pay-rent',
+    '/dashboard/transactions',
+    '/dashboard/me',
+    '/dashboard/my-home',
+  ])
+
+  const isRootTab = ROOT_NAV_PATHS.has(normalizedPath)
+
   const hideBottomNav =
+    !isRootTab ||
     !!showProfileBlocker ||
-    isRentalGated ||
-    !!pathname?.startsWith('/dashboard/setup') ||
-    !!isHomeRequestRoute ||
-    !!pathname?.startsWith('/dashboard/savings/deposit') ||
-    !!pathname?.startsWith('/dashboard/notifications') ||
-    !!pathname?.startsWith('/dashboard/goals') ||
-    !!pathname?.startsWith('/dashboard/lifestyle') ||
-    !!pathname?.startsWith('/dashboard/alliance') ||
-    !!pathname?.startsWith('/dashboard/kyc') ||
-    !!pathname?.startsWith('/dashboard/my-home/complaints') ||
-    !!pathname?.startsWith('/dashboard/my-home/visitors')
+    isRentalGated
 
   return (
     <div className={`dashboard-layout${showProfileBlocker || showTermsGate ? ' dashboard-layout--blocker' : ''}${hideBottomNav ? ' dashboard-layout--no-bottom-nav' : ''}`}>
