@@ -677,21 +677,12 @@
   transform: scale(0.995);
 }
 
-.dash-home__rent-due--overdue {
-  border-color: rgba(239, 68, 68, 0.3);
-  background: #fffbfb;
-}
-
 .dash-home__rent-due-label {
   font-size: 11px;
   letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--shell-muted, #a9a096);
   font-weight: 700;
-}
-
-.dash-home__rent-due-label--overdue {
-  color: var(--error, #dc2626);
 }
 
 .dash-home__rent-due-amount {
@@ -705,11 +696,6 @@
   font-size: 13px;
   color: var(--shell-ink-muted, #7a7268);
   margin-top: 3px;
-}
-
-.dash-home__rent-due-meta--overdue {
-  color: var(--error, #dc2626);
-  font-weight: 600;
 }
 
 .dash-home__rent-due-badge {
