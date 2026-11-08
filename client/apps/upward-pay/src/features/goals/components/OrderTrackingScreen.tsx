@@ -41,6 +41,7 @@ import {
 } from '../hooks/useCommerceOrders'
 import { openPaystackInline } from '../utils/paystackInline'
 import { BottomSheetModal } from '@/components/common/BottomSheetModal'
+import { haptics } from '@/lib/haptics'
 import '../styles/goals.css'
 import type {
   CustomerFulfilmentStatus,
@@ -80,10 +81,31 @@ const disputeSchema = z.object({
 
 type DisputeFormData = z.infer<typeof disputeSchema>
 
-export function OrderTrackingScreen({ orderUuid: propOrderUuid }: { orderUuid?: string }) {
+export function OrderTrackingScreen({
+  orderUuid: propOrderUuid,
+  onBack,
+}: {
+  orderUuid?: string
+  onBack?: () => void
+}) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const toast = useToast()
+
+  const handleBack = () => {
+    try {
+      haptics.light()
+    } catch (_) {}
+    if (typeof onBack === 'function') {
+      onBack()
+      return
+    }
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back()
+    } else {
+      router.push('/dashboard/lifestyle/orders')
+    }
+  }
 
   const orderUuid = React.useMemo(() => {
     if (propOrderUuid && propOrderUuid !== 'placeholder') {
@@ -139,7 +161,8 @@ export function OrderTrackingScreen({ orderUuid: propOrderUuid }: { orderUuid?: 
           <button
             type="button"
             className="order-tracking__back-btn"
-            onClick={() => router.push('/dashboard/lifestyle/orders')}
+            onClick={handleBack}
+            aria-label="Back"
           >
             <ArrowLeft size={16} />
           </button>
@@ -160,7 +183,7 @@ export function OrderTrackingScreen({ orderUuid: propOrderUuid }: { orderUuid?: 
           <button
             type="button"
             className="order-tracking__back-btn"
-            onClick={() => router.push('/dashboard/lifestyle/orders')}
+            onClick={handleBack}
             aria-label="Back to orders"
           >
             <ArrowLeft size={16} />
@@ -175,7 +198,7 @@ export function OrderTrackingScreen({ orderUuid: propOrderUuid }: { orderUuid?: 
           <button
             type="button"
             className="orders-hub__explore-btn"
-            onClick={() => router.push('/dashboard/lifestyle/orders')}
+            onClick={handleBack}
           >
             <span>Back to My Orders</span>
           </button>
@@ -270,7 +293,7 @@ export function OrderTrackingScreen({ orderUuid: propOrderUuid }: { orderUuid?: 
         <button
           type="button"
           className="order-tracking__back-btn"
-          onClick={() => router.push('/dashboard/lifestyle/orders')}
+          onClick={handleBack}
           aria-label="Back to orders"
         >
           <ArrowLeft size={16} />
