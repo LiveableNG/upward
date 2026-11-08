@@ -1,6 +1,8 @@
 import React, { Suspense } from 'react'
-import { OfferingDetailScreen } from '@/features/goals/components/OfferingDetailScreen'
-import FallbackSuspense from '@/components/FallbackSuspense'
+import {
+  OfferingDetailScreen,
+  OfferingDetailSkeleton,
+} from '@/features/goals/components/OfferingDetailScreen'
 
 export function generateStaticParams() {
   return [{ id: 'placeholder' }]
@@ -13,7 +15,7 @@ export default async function LifestyleOfferingDetailPage({
 }) {
   const { id } = await params
   return (
-    <Suspense fallback={<FallbackSuspense message="Loading details…" />}>
+    <Suspense fallback={<OfferingDetailSkeleton />}>
       <OfferingDetailScreen identifier={id} />
     </Suspense>
   )

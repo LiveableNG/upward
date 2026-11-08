@@ -388,6 +388,164 @@
   appearance: none;
 }
 
+.personal-field input::placeholder {
+  color: var(--shell-muted, #a9a096);
+  opacity: 1;
+}
+
+.personal-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.personal-input-wrap .personal-input-icon {
+  position: absolute;
+  left: 14px;
+  color: var(--shell-muted, #a9a096);
+  pointer-events: none;
+  transition: color 0.2s ease;
+  z-index: 1;
+}
+
+.personal-input-wrap input {
+  padding-left: 40px;
+}
+
+.personal-input-wrap:focus-within .personal-input-icon {
+  color: var(--clay, #c2501f);
+}
+
+.personal-date-picker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 48px;
+  border-radius: 12px;
+  border: 1.5px solid #ece4d9;
+  background: #fff;
+  padding: 0 14px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.15s ease;
+  user-select: none;
+}
+
+.personal-date-picker:hover {
+  border-color: #d8cec1;
+}
+
+.personal-date-picker:focus-within {
+  border-color: rgba(194, 80, 31, 0.45);
+  box-shadow: 0 0 0 3px rgba(194, 80, 31, 0.08);
+}
+
+.personal-date-picker--error {
+  border-color: #ef4444 !important;
+}
+
+.personal-date-picker__left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.personal-date-picker__icon {
+  color: var(--shell-muted, #a9a096);
+  flex-shrink: 0;
+  transition: color 0.2s ease;
+}
+
+.personal-date-picker:focus-within .personal-date-picker__icon,
+.personal-date-picker.has-value .personal-date-picker__icon {
+  color: var(--clay, #c2501f);
+}
+
+.personal-date-picker__text {
+  font-size: 14px;
+  color: #1a1714;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.personal-date-picker__text--placeholder {
+  color: var(--shell-muted, #a9a096);
+  font-weight: 400;
+}
+
+.personal-date-picker__right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.personal-date-picker__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #f7f3ed;
+  color: #7a7065;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.personal-date-picker:hover .personal-date-picker__badge {
+  background: #efe8de;
+  color: #4b433a;
+}
+
+.personal-date-picker__clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #f0e9df;
+  border: none;
+  color: #5c544b;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+  z-index: 3;
+  position: relative;
+  padding: 0;
+}
+
+.personal-date-picker__clear:hover {
+  background: #e2d7c9;
+  color: #1a1714;
+}
+
+.personal-date-picker__clear:active {
+  transform: scale(0.92);
+}
+
+.personal-date-picker__native {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 2;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+}
+
 .personal-field input[type="date"] {
   display: flex;
   align-items: center;
@@ -713,32 +871,19 @@
 }
 
 .banking-card-preview {
-  background: linear-gradient(135deg, #1C1917 0%, #2A2421 100%);
+  background: #FFFFFF;
+  border: 1.5px solid #ECE4D9;
   border-radius: 18px;
-  padding: 22px 20px 20px;
-  color: #FFFFFF;
-  box-shadow: 0 10px 25px -8px rgba(28, 25, 23, 0.25), 0 2px 6px -1px rgba(28, 25, 23, 0.1);
+  padding: 20px 18px;
+  box-shadow: 0 4px 16px -3px rgba(60, 40, 20, 0.05), 0 1px 3px rgba(60, 40, 20, 0.03);
   position: relative;
-  overflow: hidden;
-}
-
-.banking-card-preview::before {
-  content: "";
-  position: absolute;
-  top: -40px;
-  right: -40px;
-  width: 140px;
-  height: 140px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(217, 119, 87, 0.18) 0%, transparent 70%);
-  pointer-events: none;
 }
 
 .banking-card-preview__top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 22px;
+  margin-bottom: 20px;
 }
 
 .banking-card-preview__bank {
@@ -748,28 +893,28 @@
 }
 
 .banking-card-preview__icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.1);
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: var(--shell-tint, #fbede5);
+  color: var(--skin-primary, #c2501f);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #FAF5F0;
   flex-shrink: 0;
 }
 
 .banking-card-preview__bank-name {
   font-size: 15px;
-  font-weight: 700;
-  color: #FFFFFF;
+  font-weight: 800;
+  color: #1a1714;
   margin: 0;
   line-height: 1.25;
 }
 
 .banking-card-preview__tag {
-  font-size: 11px;
-  color: rgba(250, 245, 240, 0.65);
+  font-size: 11.5px;
+  color: var(--shell-muted, #a9a096);
   font-weight: 500;
   display: block;
   margin-top: 2px;
@@ -781,16 +926,20 @@
   gap: 5px;
   padding: 4px 10px;
   border-radius: 9999px;
-  background: rgba(34, 197, 94, 0.16);
-  border: 1px solid rgba(34, 197, 94, 0.35);
-  color: #4ade80;
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  color: #15803d;
   font-size: 11.5px;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.02em;
 }
 
 .banking-card-preview__middle {
-  margin-bottom: 20px;
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  background: #FAF8F5;
+  border-radius: 12px;
+  border: 1px solid #F0EAE1;
 }
 
 .banking-card-preview__num-label {
@@ -798,17 +947,17 @@
   font-size: 10.5px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: rgba(250, 245, 240, 0.55);
-  margin-bottom: 4px;
-  font-weight: 600;
+  color: var(--shell-muted, #a9a096);
+  margin-bottom: 3px;
+  font-weight: 700;
 }
 
 .banking-card-preview__number {
   font-family: ui-monospace, 'SF Mono', Menlo, Monaco, Consolas, monospace;
-  font-size: 20px;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  color: #FAF5F0;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #1a1714;
 }
 
 .banking-card-preview__bottom {
@@ -817,7 +966,7 @@
   justify-content: space-between;
   gap: 12px;
   padding-top: 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid #ECE5DC;
 }
 
 .banking-card-preview__name-label {
@@ -825,16 +974,16 @@
   font-size: 10.5px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: rgba(250, 245, 240, 0.55);
+  color: var(--shell-muted, #a9a096);
   margin-bottom: 3px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .banking-card-preview__name-value {
   font-size: 14px;
   font-weight: 700;
-  color: #FAF5F0;
-  letter-spacing: 0.02em;
+  color: #1a1714;
+  letter-spacing: 0.01em;
   display: block;
 }
 
@@ -844,22 +993,27 @@
   gap: 6px;
   padding: 8px 14px;
   border-radius: 9999px;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #FAF5F0;
+  background: #FAF8F5;
+  border: 1px solid #ECE4D9;
+  color: #5C544B;
   font-size: 12.5px;
-  font-weight: 600;
+  font-weight: 700;
   font-family: inherit;
   cursor: pointer;
   transition: transform 0.1s ease, background 0.15s ease;
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
   flex-shrink: 0;
   -webkit-appearance: none;
   appearance: none;
 }
 
+.banking-card-preview__change-btn:hover {
+  background: #F3EFEA;
+}
+
 .banking-card-preview__change-btn:active {
-  transform: scale(0.95);
-  background: rgba(255, 255, 255, 0.2);
+  transform: scale(0.96);
+  background: #EAE3D8;
 }
 
 .banking-account-card {

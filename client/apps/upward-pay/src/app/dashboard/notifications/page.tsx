@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, Bell, Calendar, Megaphone, Info, ArrowRight, UserCircle, Clock, Landmark } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
-import FallbackSuspense from '@/components/FallbackSuspense'
 import { formatCurrency } from '@/lib/utils'
 import { NotificationTabBar } from '@/features/notifications/components/NotificationTabBar'
 import {
@@ -22,6 +21,75 @@ const ICON_MAP: Record<string, React.ReactNode> = {
 }
 
 type TabType = NotificationTab
+
+function NotificationsSkeleton({ onBack }: { onBack: () => void }) {
+  return (
+    <div className="dashboard notifications-page dashboard--nav-offset">
+      <header className="page-header fixed-top-mobile">
+        <div className="header-content">
+          <div className="header-left">
+            <button className="back-btn" onClick={onBack} aria-label="Go back">
+              <ArrowLeft size={20} />
+            </button>
+            <h1 className="header-title">Notifications</h1>
+          </div>
+        </div>
+      </header>
+
+      <div className="notifications-content animate-pulse" style={{ padding: '16px 20px' }}>
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div
+            key={i}
+            style={{
+              display: 'flex',
+              gap: 14,
+              padding: '16px 0',
+              borderBottom: '1px solid #ECE5DC',
+            }}
+          >
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 12,
+                background: '#F0EAE1',
+                flexShrink: 0,
+              }}
+            />
+            <div style={{ flex: 1 }}>
+              <div
+                style={{
+                  width: '55%',
+                  height: 15,
+                  background: '#EAE3D9',
+                  borderRadius: 4,
+                  marginBottom: 8,
+                }}
+              />
+              <div
+                style={{
+                  width: '85%',
+                  height: 12,
+                  background: '#F0EAE1',
+                  borderRadius: 4,
+                  marginBottom: 6,
+                }}
+              />
+              <div
+                style={{
+                  width: '30%',
+                  height: 10,
+                  background: '#F5EFE8',
+                  borderRadius: 4,
+                }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 export default function NotificationsPage() {
   const router = useRouter()
@@ -140,7 +208,7 @@ export default function NotificationsPage() {
     return groups
   }, [filteredNotifications])
 
-  if (isNotifLoading) return <FallbackSuspense message="Loading notifications..." />
+  if (isNotifLoading) return <NotificationsSkeleton onBack={() => router.back()} />
 
   const handleMarkRead = (notif: any) => {
     if (!notif.isRead && !notif.isDynamic) {

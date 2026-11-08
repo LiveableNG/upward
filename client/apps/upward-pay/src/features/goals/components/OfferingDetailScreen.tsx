@@ -72,6 +72,35 @@ function getSafeExternalUrl(raw?: string | null): string | null {
   }
 }
 
+export function OfferingDetailSkeleton({ onBack }: { onBack?: () => void }) {
+  const handleBack = onBack || (() => {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      window.history.back()
+    }
+  })
+
+  return (
+    <div className="offering-detail">
+      <header className="offering-detail__header">
+        <button
+          type="button"
+          className="offering-detail__back-btn"
+          onClick={handleBack}
+          aria-label="Back"
+        >
+          <ArrowLeft size={16} />
+          <span>Back</span>
+        </button>
+      </header>
+      <div className="offering-detail__container animate-pulse">
+        <div className="offering-detail__skeleton-media" />
+        <div className="offering-detail__skeleton-block" />
+        <div className="offering-detail__skeleton-block" />
+      </div>
+    </div>
+  )
+}
+
 export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
   identifier: propIdentifier,
 }) => {
@@ -270,25 +299,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
   }, [isInquiryOpen])
 
   if (isLoading) {
-    return (
-      <div className="offering-detail">
-        <header className="offering-detail__header">
-          <button
-            type="button"
-            className="offering-detail__back-btn"
-            onClick={handleBack}
-          >
-            <ArrowLeft size={16} />
-            <span>Back</span>
-          </button>
-        </header>
-        <div className="offering-detail__container">
-          <div className="offering-detail__skeleton-media" />
-          <div className="offering-detail__skeleton-block" />
-          <div className="offering-detail__skeleton-block" />
-        </div>
-      </div>
-    )
+    return <OfferingDetailSkeleton onBack={handleBack} />
   }
 
   if ((isError && !offering) || !offering) {

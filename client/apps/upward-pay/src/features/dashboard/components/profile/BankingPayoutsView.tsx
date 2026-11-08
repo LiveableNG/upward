@@ -15,7 +15,7 @@ import {
 } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useToast } from '@/components/common/Toast'
-import { PayFlowPrimaryButton, PayPageShell } from '../payment/PayPageShell'
+import { PayPageShell } from '../payment/PayPageShell'
 import { formatCurrency } from '@/lib/utils'
 
 interface BankingPayoutsViewProps {
@@ -171,8 +171,9 @@ export function BankingPayoutsView({ onBack, initialEditing = false }: BankingPa
       className="pay-flow__header-action pay-flow__header-action--primary"
       onClick={handleSave}
       disabled={saving || !bankDetails.accountName}
+      aria-label="Save bank details"
     >
-      {saving ? '...' : 'Save'}
+      {saving ? <Loader2 size={15} className="animate-spin" /> : 'Save'}
     </button>
   ) : (
     <button
@@ -196,6 +197,7 @@ export function BankingPayoutsView({ onBack, initialEditing = false }: BankingPa
       showBack
       onBack={isEditing ? handleCancel : onBack}
       rightElement={headerAction}
+      hideNav
     >
       {pendingRefunds.length > 0 ? (
         <section className="banking-refund-card">
@@ -394,26 +396,6 @@ export function BankingPayoutsView({ onBack, initialEditing = false }: BankingPa
           </div>
         )}
       </section>
-
-      {isEditing ? (
-        <div className="personal-sticky-actions">
-          <button
-            type="button"
-            className="personal-sticky-actions__cancel"
-            onClick={handleCancel}
-            disabled={saving}
-          >
-            Cancel
-          </button>
-          <PayFlowPrimaryButton
-            onClick={handleSave}
-            disabled={saving || !bankDetails.accountName}
-            loading={saving}
-          >
-            Save changes
-          </PayFlowPrimaryButton>
-        </div>
-      ) : null}
     </PayPageShell>
   )
 }

@@ -176,9 +176,10 @@ export default function ReceiptTemplate({
                       className="receipt-pill-btn"
                       onClick={() => onShare?.()}
                       aria-label="Share receipt"
+                      title="Share receipt"
                     >
-                      <Share2 size={14} />
-                      <span>Share</span>
+                      <Share2 size={15} />
+                      <span className="receipt-pill-btn__label">Share</span>
                     </button>
                   )}
                   {onDownload && (
@@ -187,9 +188,10 @@ export default function ReceiptTemplate({
                       className="receipt-pill-btn receipt-pill-btn--primary"
                       onClick={() => onDownload?.()}
                       aria-label="Download receipt PDF"
+                      title="Download receipt PDF"
                     >
-                      <Download size={14} />
-                      <span>Download</span>
+                      <Download size={15} />
+                      <span className="receipt-pill-btn__label">Download</span>
                     </button>
                   )}
                   {!onShare && !onDownload && <div className="receipt-header__spacer" />}
@@ -387,6 +389,7 @@ export default function ReceiptTemplate({
           margin-bottom: 16px;
           min-height: 40px;
           position: relative;
+          gap: 12px;
         }
 
         .receipt-back-btn {
@@ -420,6 +423,9 @@ export default function ReceiptTemplate({
           text-align: center;
           flex: 1;
           letter-spacing: -0.01em;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .receipt-header__actions {
@@ -432,6 +438,7 @@ export default function ReceiptTemplate({
         .receipt-pill-btn {
           display: inline-flex;
           align-items: center;
+          justify-content: center;
           gap: 6px;
           background: #FFFFFF;
           border: 1px solid #ECE5DC;
@@ -445,6 +452,7 @@ export default function ReceiptTemplate({
           box-shadow: 0 1px 3px rgba(33, 28, 24, 0.04);
           -webkit-appearance: none;
           appearance: none;
+          white-space: nowrap;
         }
 
         .receipt-pill-btn:active {
@@ -713,6 +721,29 @@ export default function ReceiptTemplate({
           .receipt-overlay {
             padding: max(12px, env(safe-area-inset-top, 12px)) 12px max(32px, env(safe-area-inset-bottom, 24px));
           }
+          .receipt-header {
+            gap: 8px;
+            margin-bottom: 14px;
+          }
+          .receipt-header__title {
+            font-size: 15px;
+          }
+          .receipt-back-btn {
+            width: 38px;
+            height: 38px;
+          }
+          .receipt-pill-btn {
+            width: 38px;
+            height: 38px;
+            padding: 0;
+            border-radius: 50%;
+          }
+          .receipt-pill-btn .receipt-pill-btn__label {
+            display: none;
+          }
+          .receipt-header__spacer {
+            width: 38px;
+          }
           .hero {
             padding: 24px 18px 26px;
           }
@@ -867,6 +898,7 @@ export function ReceiptSkeleton({ onClose }: { onClose?: () => void }) {
           margin-bottom: 16px;
           min-height: 40px;
           position: relative;
+          gap: 12px;
         }
 
         .receipt-back-btn {
@@ -894,6 +926,9 @@ export function ReceiptSkeleton({ onClose }: { onClose?: () => void }) {
           text-align: center;
           flex: 1;
           letter-spacing: -0.01em;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .receipt-header__spacer {
@@ -1056,6 +1091,20 @@ export function ReceiptSkeleton({ onClose }: { onClose?: () => void }) {
         @media (max-width: 480px) {
           .receipt-overlay {
             padding: max(12px, env(safe-area-inset-top, 12px)) 12px max(32px, env(safe-area-inset-bottom, 24px));
+          }
+          .receipt-header {
+            gap: 8px;
+            margin-bottom: 14px;
+          }
+          .receipt-header__title {
+            font-size: 15px;
+          }
+          .receipt-back-btn {
+            width: 38px;
+            height: 38px;
+          }
+          .receipt-header__spacer {
+            width: 38px;
           }
           .hero--skeleton {
             padding: 24px 18px 26px;
