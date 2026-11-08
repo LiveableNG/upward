@@ -48,6 +48,7 @@ import {
 } from '../utils/deliveryLocation'
 import { DeliveryLocationBar } from './DeliveryLocationBar'
 import { CommerceCheckoutModal } from './CommerceCheckoutModal'
+import { getPublicWebUrl, copyTextToClipboard } from '@/lib/utils'
 import '../styles/goals.css'
 
 interface OfferingDetailScreenProps {
@@ -260,9 +261,10 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
     router.push('/dashboard/lifestyle')
   }
 
-  const handleShare = () => {
-    if (typeof window !== 'undefined' && navigator?.clipboard) {
-      navigator.clipboard.writeText(window.location.href)
+  const handleShare = async () => {
+    const shareUrl = getPublicWebUrl(`/dashboard/lifestyle/${identifier}`)
+    const success = await copyTextToClipboard(shareUrl)
+    if (success) {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     }
