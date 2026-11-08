@@ -77,12 +77,16 @@ export function getDueStatus(dueDateStr?: string | null): {
 
   if (diffDays < 0) {
     const daysOverdue = Math.abs(diffDays)
+    const overdueLabel =
+      daysOverdue === 1
+        ? `Overdue by 1 day · ${formattedDate}`
+        : daysOverdue > 60
+        ? `Overdue (${daysOverdue}d) · ${formattedDate}`
+        : `Overdue by ${daysOverdue} days · ${formattedDate}`
     return {
       isOverdue: true,
       isToday: false,
-      label: daysOverdue === 1
-        ? `Overdue by 1 day · ${formattedDate}`
-        : `Overdue by ${daysOverdue} days · ${formattedDate}`,
+      label: overdueLabel,
     }
   }
 

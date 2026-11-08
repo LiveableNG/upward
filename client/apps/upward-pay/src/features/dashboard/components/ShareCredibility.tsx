@@ -1,6 +1,8 @@
 import { Award, Check, Copy } from 'lucide-react'
 import { useState } from 'react'
 import { useToast } from '@/components/common/Toast'
+import { getPublicWebUrl, copyTextToClipboard } from '@/lib/utils'
+import { haptics } from '@/lib/haptics'
 
 interface ShareCredibilityProps {
   profileSlug?: string | null
@@ -11,26 +13,16 @@ export function ShareCredibility({ profileSlug }: ShareCredibilityProps) {
   const [copied, setCopied] = useState(false)
 
   const handleCopy = async () => {
+    void haptics.selection()
     const identifier = profileSlug || 'me'
-    const defaultWebUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : defaultWebUrl
-    const url = `${baseUrl}/profile/${identifier}`
+    const url = getPublicWebUrl(`/profile/${identifier}`)
 
-    try {
-      if (navigator?.clipboard?.writeText) {
-        await navigator.clipboard.writeText(url)
-      } else {
-        const textArea = document.createElement('textarea')
-        textArea.value = url
-        document.body.appendChild(textArea)
-        textArea.select()
-        document.execCommand('copy')
-        document.body.removeChild(textArea)
-      }
+    const copiedSuccess = await copyTextToClipboard(url)
+    if (copiedSuccess) {
       setCopied(true)
       success('Profile link copied to clipboard!')
       setTimeout(() => setCopied(false), 2500)
-    } catch {
+    } else {
       toastError('Failed to copy link')
     }
   }

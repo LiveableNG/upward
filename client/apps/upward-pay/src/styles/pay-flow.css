@@ -662,6 +662,8 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  width: 100%;
+  min-width: 0;
 }
 
 .pay-flow__line-item {
@@ -669,6 +671,9 @@
   gap: 8px;
   align-items: center;
   transition: opacity 0.2s ease;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .pay-flow__line-item--disabled {
@@ -722,13 +727,15 @@
 
 .pay-flow__line-item-row {
   flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
-  padding: 0 12px;
-  height: 52px;
+  padding: 0 10px;
+  height: 48px;
   background: #fff;
   border: 1.5px solid #ece4d9;
   border-radius: 12px;
+  box-sizing: border-box;
 }
 
 .pay-flow__line-item-row--primary {
@@ -746,31 +753,37 @@
 
 .pay-flow__line-item-label {
   flex: 1;
-  font-size: 13px;
+  min-width: 0;
+  width: 0;
+  font-size: 13.5px;
   font-weight: 600;
-  padding: 14px 0;
+  padding: 12px 0;
 }
 
 .pay-flow__line-item-divider {
-  height: 20px;
+  height: 18px;
   width: 1px;
   background: #ece4d9;
-  margin: 0 10px;
+  margin: 0 8px;
+  flex-shrink: 0;
 }
 
 .pay-flow__line-item-currency {
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 700;
   color: #a9a096;
-  margin-right: 4px;
+  margin-right: 2px;
+  flex-shrink: 0;
 }
 
 .pay-flow__line-item-amount {
-  width: 90px;
+  width: 80px;
+  min-width: 0;
   flex: none;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 700;
-  padding: 14px 0;
+  padding: 12px 0;
+  text-align: right;
 }
 
 .pay-flow__icon-btn {
@@ -787,7 +800,8 @@
   flex-shrink: 0;
   transition:
     background 0.15s ease,
-    color 0.15s ease;
+    color 0.15s ease,
+    border-color 0.15s ease;
 }
 
 .pay-flow__icon-btn:hover {
@@ -797,6 +811,15 @@
 
 .pay-flow__icon-btn--danger {
   color: #ef4444;
+  border-color: #fecaca;
+  background: #fff;
+}
+
+.pay-flow__icon-btn--danger:hover,
+.pay-flow__icon-btn--danger:active {
+  background: #fef2f2;
+  border-color: #ef4444;
+  color: #dc2626;
 }
 
 .pay-flow__total-box {
@@ -1726,6 +1749,8 @@
   border: 1.5px dashed #d9cfc2;
   border-radius: 14px;
   background: #fdfbf8;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .pay-flow__breakdown-panel-head {
@@ -2190,7 +2215,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
 }
 
 .pay-flow__invoice-detail-label {
@@ -2198,6 +2223,7 @@
   color: var(--text-muted, #8a8a8a);
   font-weight: 500;
   flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .pay-flow__invoice-detail-value {
@@ -2217,6 +2243,8 @@
   font-size: 11.5px;
   font-weight: 700;
   line-height: 1.2;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .pay-flow__due-pill--upcoming {

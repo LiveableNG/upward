@@ -25,6 +25,8 @@ import { AllianceInquiryModal } from '@/features/alliance/components/AllianceInq
 import { AllianceRatingModal } from '@/features/alliance/components/AllianceRatingModal';
 import { AllianceReferralBanner } from '@/features/alliance/components/AllianceReferralBanner';
 import { useAuth } from '@/features/auth/AuthContext';
+import { getPublicWebUrl, copyTextToClipboard } from '@/lib/utils';
+import { haptics } from '@/lib/haptics';
 
 export function DashboardAllianceDetailClient() {
   const params = useParams();
@@ -42,9 +44,11 @@ export function DashboardAllianceDetailClient() {
   const { data: listing, isLoading, isError, error } = useAllianceListingDetail(uuid);
   const { data: referralContext } = useAllianceReferral(refToken);
 
-  const handleShare = () => {
-    if (navigator?.clipboard && typeof window !== 'undefined') {
-      navigator.clipboard.writeText(window.location.href);
+  const handleShare = async () => {
+    void haptics.selection();
+    const shareUrl = getPublicWebUrl();
+    const success = await copyTextToClipboard(shareUrl);
+    if (success) {
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2000);
     }
