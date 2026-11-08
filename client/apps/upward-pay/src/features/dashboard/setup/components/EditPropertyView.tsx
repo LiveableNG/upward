@@ -52,8 +52,6 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
   const isManaged = isPmVerified || isExternalUnit
   const isRentTermsDisabled = isManaged || hasPaidOnUpward
 
-  const initialManual = (property as any)?.manualAccount || (property as any)?.pmManualAccount
-
   const [address, setAddress] = useState('')
   const [area, setArea] = useState('')
   const [subarea, setSubarea] = useState('')
@@ -144,17 +142,23 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
         isExternal: !!((property as any)?.company?.platformId || (property as any)?.isPlatformLinked),
         companyUuid: (property as any)?.company?.uuid,
         managerUuid: (property as any)?.manager?.uuid,
+        defaultSettlementAccount: (property as any)?.pmManualAccount || null,
       })
     } else {
       setPmDetails(null)
     }
 
-    if (initialManual?.accountNumber && initialManual?.bankCode) {
+    const activePayoutAccount =
+      hasLinkedPm && (property as any)?.pmManualAccount
+        ? (property as any).pmManualAccount
+        : (property as any)?.pmManualAccount || (property as any)?.manualAccount
+
+    if (activePayoutAccount?.accountNumber && (activePayoutAccount?.bankCode || activePayoutAccount?.bankName)) {
       setPaymentAccount({
-        accountNumber: initialManual.accountNumber,
-        bankCode: initialManual.bankCode,
-        accountName: initialManual.accountName || '',
-        bankName: initialManual.bankName || '',
+        accountNumber: activePayoutAccount.accountNumber,
+        bankCode: activePayoutAccount.bankCode || '',
+        accountName: activePayoutAccount.accountName || '',
+        bankName: activePayoutAccount.bankName || '',
       })
     } else if ((property as any)?.subaccount?.accountNumber) {
       const sub = (property as any).subaccount

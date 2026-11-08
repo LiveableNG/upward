@@ -71,9 +71,55 @@ function formatPropertyShort(address?: string): string {
   return address
 }
 
-function daysUntil(dateStr: string | Date): number {
-  const diff = new Date(dateStr).getTime() - Date.now()
-  return Math.ceil(diff / (1000 * 60 * 60 * 24))
+function getDueStatus(dateStr: string | Date | null | undefined) {
+  if (!dateStr) {
+    return { days: 0, isOverdue: false, isDueToday: false, daysLabel: 'DAYS' }
+  }
+
+  const target = new Date(dateStr)
+  if (isNaN(target.getTime())) {
+    return { days: 0, isOverdue: false, isDueToday: false, daysLabel: 'DAYS' }
+  }
+
+  const now = new Date()
+  const targetMidnight = new Date(target.getFullYear(), target.getMonth(), target.getDate()).getTime()
+  const nowMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+  const diffDays = Math.round((targetMidnight - nowMidnight) / (1000 * 60 * 60 * 24))
+
+  if (diffDays < 0) {
+    const overdueDays = Math.abs(diffDays)
+    return {
+      days: overdueDays,
+      isOverdue: true,
+      isDueToday: false,
+      daysLabel: overdueDays === 1 ? 'DAY OVERDUE' : 'DAYS OVERDUE',
+    }
+  }
+
+  if (diffDays === 0) {
+    const isPastTime = target.getTime() < now.getTime()
+    if (isPastTime) {
+      return {
+        days: 1,
+        isOverdue: true,
+        isDueToday: false,
+        daysLabel: 'DAY OVERDUE',
+      }
+    }
+    return {
+      days: 0,
+      isOverdue: false,
+      isDueToday: true,
+      daysLabel: 'TODAY',
+    }
+  }
+
+  return {
+    days: diffDays,
+    isOverdue: false,
+    isDueToday: false,
+    daysLabel: diffDays === 1 ? 'DAY' : 'DAYS',
+  }
 }
 
 function getRentDue(pendingPayments: PendingPayment[], user: UserProfile) {
@@ -82,9 +128,8 @@ function getRentDue(pendingPayments: PendingPayment[], user: UserProfile) {
     const dateStr = firstPending.due_date || firstPending.dueDate
     const remaining = firstPending.total_amount - (firstPending.amountPaid || 0)
     const amount = remaining > 0 ? remaining : firstPending.total_amount
-    const isOverdue = dateStr ? new Date(dateStr) < new Date() : false
-    const days = dateStr ? Math.abs(daysUntil(dateStr)) : 0
-    let label = isOverdue ? 'Overdue' : 'Rent Due'
+    const dueStatus = getDueStatus(dateStr)
+    let label = dueStatus.isOverdue ? 'Overdue' : 'Rent Due'
     let isRejected = false
     let isReviewing = false
 
@@ -102,21 +147,21 @@ function getRentDue(pendingPayments: PendingPayment[], user: UserProfile) {
       amount,
       currency: firstPending.currency || 'NGN',
       address: formatPropertyShort(firstPending.property_address),
-      days,
-      isOverdue,
+      days: dueStatus.days,
+      isOverdue: dueStatus.isOverdue,
+      isDueToday: dueStatus.isDueToday,
       isReviewing,
       isRejected,
       label,
-      daysLabel: isOverdue ? 'OVERDUE' : 'DAYS',
+      daysLabel: dueStatus.daysLabel,
       href: `/dashboard/pay-rent${firstPending.uuid ? `?paymentUuid=${firstPending.uuid}` : ''}`,
     }
   }
 
   const activeProps = (user.properties || []).filter((p) => !p.isPastTenancy && p.rentEndDate)
-  const upcoming = activeProps
+  const candidateProps = activeProps
     .map((prop) => {
-      const days = daysUntil(prop.rentEndDate!)
-      if (days < 0) return null
+      const dueStatus = getDueStatus(prop.rentEndDate!)
       const address = prop.location
         ? [prop.location.area, prop.location.state].filter(Boolean).join(', ')
         : prop.address
@@ -124,20 +169,20 @@ function getRentDue(pendingPayments: PendingPayment[], user: UserProfile) {
         amount: prop.rentAmount || 0,
         currency: 'NGN',
         address: formatPropertyShort(address),
-        days,
-        isOverdue: false,
+        days: dueStatus.days,
+        isOverdue: dueStatus.isOverdue,
+        isDueToday: dueStatus.isDueToday,
         isReviewing: false,
         isRejected: false,
-        label: 'Rent Due',
-        daysLabel: 'DAYS',
+        label: dueStatus.isOverdue ? 'Overdue' : 'Rent Due',
+        daysLabel: dueStatus.daysLabel,
         href: `/dashboard/pay-rent?propertyUuid=${prop.uuid}`,
-        sortKey: days,
+        sortKey: dueStatus.isOverdue ? -1000 - dueStatus.days : dueStatus.days,
       }
     })
-    .filter(Boolean)
-    .sort((a, b) => (a!.sortKey ?? 0) - (b!.sortKey ?? 0))[0]
+    .sort((a, b) => a.sortKey - b.sortKey)
 
-  return upcoming || null
+  return candidateProps[0] || null
 }
 
 export function DashboardHome({
@@ -420,7 +465,9 @@ export function DashboardHome({
             onClick={() => router.push(rentDue.href)}
           >
             <div>
-              <div className="dash-home__rent-due-label">{rentDue.label}</div>
+              <div className={`dash-home__rent-due-label ${rentDue.isOverdue ? 'dash-home__rent-due-label--overdue' : ''}`}>
+                {rentDue.label}
+              </div>
               <div className="dash-home__rent-due-amount">
                 {rentDue.amount > 0 ? formatCurrency(rentDue.amount, rentDue.currency) : '—'}
               </div>
@@ -429,9 +476,15 @@ export function DashboardHome({
                   <span style={{ color: 'var(--error)' }}>Upload new proof or pay online</span>
                 ) : rentDue.isReviewing ? (
                   <span style={{ color: 'var(--warning-text)' }}>Your document is being reviewed</span>
-                ) : rentDue.isOverdue
-                  ? `Overdue · ${rentDue.address}`
-                  : `Due in ${rentDue.days} days · ${rentDue.address}`}
+                ) : rentDue.isOverdue ? (
+                  <span className="dash-home__rent-due-meta--overdue">
+                    {rentDue.days} {rentDue.days === 1 ? 'day' : 'days'} overdue · {rentDue.address}
+                  </span>
+                ) : rentDue.isDueToday ? (
+                  `Due today · ${rentDue.address}`
+                ) : (
+                  `Due in ${rentDue.days} ${rentDue.days === 1 ? 'day' : 'days'} · ${rentDue.address}`
+                )}
               </div>
             </div>
             <div className={`dash-home__rent-due-badge ${rentDue.isOverdue || rentDue.isRejected ? 'dash-home__rent-due-badge--overdue' : rentDue.isReviewing ? 'dash-home__rent-due-badge--review' : ''}`}>
