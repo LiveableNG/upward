@@ -79,6 +79,12 @@ export function OfferingDetailSkeleton({ onBack }: { onBack?: () => void }) {
     }
   })
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+    }
+  }, [])
+
   return (
     <div className="offering-detail">
       <header className="offering-detail__header">
@@ -93,9 +99,16 @@ export function OfferingDetailSkeleton({ onBack }: { onBack?: () => void }) {
         </button>
       </header>
       <div className="offering-detail__container animate-pulse">
-        <div className="offering-detail__skeleton-media" />
-        <div className="offering-detail__skeleton-block" />
-        <div className="offering-detail__skeleton-block" />
+        <div className="offering-detail__layout">
+          <div className="offering-detail__main">
+            <div className="offering-detail__skeleton-media" />
+            <div className="offering-detail__skeleton-block" />
+            <div className="offering-detail__skeleton-block" />
+          </div>
+          <div className="offering-detail__aside">
+            <div className="offering-detail__skeleton-block" style={{ height: '240px' }} />
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -146,7 +159,10 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
 
   useEffect(() => {
     setMounted(true)
-  }, [])
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+    }
+  }, [identifier])
 
   const {
     data: detailOffering,
@@ -177,7 +193,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
   }, [cachedOfferings, identifier])
 
   const offering: GoalOffering | undefined = detailOffering || fallbackOffering
-  const isLoading = isDetailLoading && !offering
+  const isLoading = isDetailLoading || (!offering && !isError)
 
   const deliveryCheck = React.useMemo(() => {
     if (!offering) return { isDeliverable: true }
@@ -801,8 +817,10 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                       onClick={(clicked) => {
                         const nextId =
                           clicked.uuid || clicked.slug || String(clicked.id)
-                        router.push(`/dashboard/lifestyle?id=${encodeURIComponent(nextId)}`)
-                        window.scrollTo({ top: 0, behavior: 'smooth' })
+                        if (typeof window !== 'undefined') {
+                          window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+                        }
+                        router.push(`/dashboard/lifestyle?id=${encodeURIComponent(nextId)}`, { scroll: true })
                       }}
                     />
                   </div>

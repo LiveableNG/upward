@@ -2244,19 +2244,21 @@
 }
 
 .offering-detail__skeleton-media {
-  height: 240px;
+  height: 280px;
   border-radius: var(--radius-xl);
-  background: var(--surface);
+  background: var(--surface2, #f5f0e8);
+  border: 1px solid var(--border-solid, #ece4d9);
   margin-bottom: 16px;
-  animation: goalPulse 1.5s infinite;
+  animation: goalPulse 1.5s infinite ease-in-out;
 }
 
 .offering-detail__skeleton-block {
-  height: 120px;
+  height: 140px;
   border-radius: var(--radius-xl);
-  background: var(--surface);
+  background: var(--surface2, #f5f0e8);
+  border: 1px solid var(--border-solid, #ece4d9);
   margin-bottom: 16px;
-  animation: goalPulse 1.5s infinite;
+  animation: goalPulse 1.5s infinite ease-in-out;
 }
 
 /* ==========================================================================
