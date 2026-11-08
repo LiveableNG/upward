@@ -152,14 +152,36 @@ export class UnifiedCommunicationService {
           : `<p>${plainText}</p>`;
       } else {
         const templateDef = COMMUNICATION_TEMPLATES[payload.type];
-        const effectiveTitle = payload.title || rawContext.title;
+        let subjectTemplateToUse: string | undefined;
 
-        subject = effectiveTitle
-          ? this.interpolate(effectiveTitle, context)
-          : templateDef
-          ? this.interpolate(templateDef.subjectTemplate, context)
+        if (rawContext.subject) {
+          subjectTemplateToUse = rawContext.subject;
+        } else if (payload.type === 'AUTH_OTP') {
+          const authOtpSubjects: Record<string, string> = {
+            SIGNUP: '{{otp}} is your Upward verification code',
+            LOGIN: '{{otp}} is your Upward login code',
+            INVITE: '{{otp}} is your Upward invite verification code',
+            PAYMENT: '{{otp}} is your payment verification code',
+            WAITLIST: '{{otp}} is your waitlist verification code',
+            DELETE_ACCOUNT: '{{otp}} is your account deletion code',
+          };
+          subjectTemplateToUse =
+            (rawContext.context && authOtpSubjects[rawContext.context]) ||
+            templateDef?.subjectTemplate ||
+            'Your Upward Verification Code: {{otp}}';
+        } else if (payload.title) {
+          subjectTemplateToUse = payload.title;
+        } else if (templateDef?.subjectTemplate) {
+          subjectTemplateToUse = templateDef.subjectTemplate;
+        } else if (rawContext.title) {
+          subjectTemplateToUse = rawContext.title;
+        }
+
+        subject = subjectTemplateToUse
+          ? this.interpolate(subjectTemplateToUse, context)
           : payload.type.replace(/_/g, ' ');
 
+        const effectiveTitle = payload.title || rawContext.title;
         plainText = templateDef
           ? this.interpolate(templateDef.plainTextTemplate, context)
           : effectiveTitle || payload.type.replace(/_/g, ' ');

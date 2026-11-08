@@ -90,7 +90,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
   const [emailExists, setEmailExists] = useState(false)
   const [isInvited, setIsInvited] = useState(false)
   const [isWaitlist, setIsWaitlist] = useState(false)
-  const [showExistsModal, setShowExistsModal] = useState(false)
+  const [authProvider, setAuthProvider] = useState('email')
   const [step, setStep] = useState<'auth' | 'identity' | 'otp'>('auth')
   const [isRequestingOTP, setIsRequestingOTP] = useState(false)
   const [otpError, setOtpError] = useState<string | null>(null)
@@ -101,11 +101,17 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
     onSignupSuccess(email, password)
   })
 
+  const goToLogin = () => {
+    const identifier = identifierType === 'phone' ? (phone.startsWith('+') ? phone : `+234${phone.replace(/^0/, '')}`) : email
+    router.push(`/signup?mode=login&email=${encodeURIComponent(identifier)}`)
+  }
+
   // Debounced email/phone existence check
   useEffect(() => {
     setEmailExists(false)
     setIsInvited(false)
     setIsWaitlist(false)
+    setAuthProvider('email')
     const identifier = identifierType === 'phone' ? (phone.startsWith('+') ? phone : `+234${phone.replace(/^0/, '')}`) : email
 
     if (identifier && (identifierType === 'phone' ? identifier.length >= 10 : isValidEmail(identifier))) {
@@ -117,6 +123,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
           setEmailExists(res.exists)
           setIsInvited(res.isInvited ?? false)
           setIsWaitlist(res.isWaitlist ?? false)
+          setAuthProvider(res.authProvider ?? 'email')
         } catch (err) {
           console.error('Email check failed', err)
         } finally {
@@ -133,6 +140,15 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
     password.length >= 8 &&
     /[A-Z]/.test(password) &&
     /[0-9!@#$%^&*(),.?":{}|<> ]/.test(password)
+
+  // Guard against invited, waitlist, or already registered users proceeding to stage 2
+  useEffect(() => {
+    if (step === 'identity') {
+      if (isInvited || isWaitlist || emailExists || !isPasswordValid) {
+        setStep('auth')
+      }
+    }
+  }, [step, isInvited, isWaitlist, emailExists, isPasswordValid])
 
   const handleAuthContinue = (e: React.FormEvent) => {
     e.preventDefault()
@@ -151,7 +167,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
     }
 
     if (emailExists && !isInvited && !isWaitlist) {
-      setShowExistsModal(true)
+      goToLogin()
       return
     }
 
@@ -177,6 +193,11 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
   const handleIdentitySubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setLocalError('')
+
+    if (isInvited || isWaitlist || emailExists || !isPasswordValid) {
+      setStep('auth')
+      return
+    }
 
     if (!firstName.trim()) {
       setLocalError('Please enter your first name')
@@ -309,11 +330,19 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
     await requestOTP(identifier, effectiveContext, identifierType, channel || phoneChannel)
   }
 
+  const handleOtpBack = () => {
+    if (effectiveContext === 'INVITE' || effectiveContext === 'WAITLIST' || isInvited || isWaitlist) {
+      setStep('auth')
+    } else {
+      setStep('identity')
+    }
+  }
+
   if (step === 'otp') {
     return (
       <div className="auth-shell auth-shell--signup">
         <div className="auth-shell__top">
-          <button className="auth-shell__back" onClick={() => setStep('identity')} disabled={signupLoading}>
+          <button className="auth-shell__back" onClick={handleOtpBack} disabled={signupLoading}>
             <ChevronLeft size={20} />
           </button>
         </div>
@@ -341,6 +370,10 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
   }
 
   if (step === 'identity') {
+    if (isInvited || isWaitlist || emailExists || !isPasswordValid) {
+      return null
+    }
+
     return (
       <div className="auth-shell auth-shell--signup">
         <div className="auth-shell__top">
@@ -556,10 +589,19 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
               </div>
             )}
 
-            {emailExists && !isInvited && !isWaitlist && (
+            {emailExists && !isInvited && !isWaitlist && (authProvider === 'google' || authProvider === 'apple') && (
+              <div className="auth-field-hint auth-field-hint--accent">
+                <AlertCircle size={12} /> This account is registered with {authProvider === 'apple' ? 'Apple' : 'Google'}.{' '}
+                <button type="button" className="auth-field-hint__link" onClick={goToLogin}>
+                  Log in instead?
+                </button>
+              </div>
+            )}
+
+            {emailExists && !isInvited && !isWaitlist && authProvider !== 'google' && authProvider !== 'apple' && (
               <div className="auth-field-hint auth-field-hint--error">
-                <AlertCircle size={12} /> This email is already registered.{' '}
-                <button type="button" className="auth-field-hint__link" onClick={() => setShowExistsModal(true)}>
+                <AlertCircle size={12} /> {identifierType === 'email' ? 'This email is already registered.' : 'This phone number is already registered.'}{' '}
+                <button type="button" className="auth-field-hint__link" onClick={goToLogin}>
                   Log in instead?
                 </button>
               </div>
@@ -635,32 +677,6 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
             Continue <ArrowRight size={17} />
           </button>
         </form>
-
-        {showExistsModal && (
-          <div className="modal-overlay">
-            <div className="modal-content modal-content--auth animate-pop">
-              <div className="auth-stage__icon auth-stage__icon--center">
-                <AlertCircle size={32} />
-              </div>
-              <h3 className="modal-title">Account Found</h3>
-              <p>
-                An account with <strong>{email}</strong> already exists. Would you like to log in instead?
-              </p>
-              <div className="modal-actions">
-                <button
-                  type="button"
-                  className="btn btn--primary btn--full btn--pay"
-                  onClick={() => router.push(`/signup?mode=login&email=${encodeURIComponent(email)}`)}
-                >
-                  Log in to my account
-                </button>
-                <button type="button" className="auth-btn-ghost-link btn--full" onClick={() => setShowExistsModal(false)}>
-                  Use a different email
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   )

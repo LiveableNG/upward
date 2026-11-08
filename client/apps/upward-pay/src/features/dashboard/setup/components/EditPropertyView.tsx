@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -23,7 +23,7 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
 import { PayFlowPrimaryButton, PayPageShell } from '@/features/dashboard/components/payment/PayPageShell'
 import { PaymentAccountForm, isPaymentAccountResolved } from '@/features/dashboard/components/payment/PaymentAccountForm'
-import { toDateInputValue, validateRentDates, calculateRentEndDate, type LeaseDurationUnit } from '../rentalDates'
+import { toDateInputValue, validateRentDates, calculateRentEndDate, formatDisplayDate, type LeaseDurationUnit } from '../rentalDates'
 import { deleteProofOfPayment, uploadProofOfPayment } from '@/features/payments/services/paymentService'
 import { setupRentalListPath, useSetupMode } from '../setupPaths'
 import { PmSearchSelect } from './PmSearchSelect'
@@ -65,6 +65,7 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
   const [leaseUnit, setLeaseUnit] = useState<LeaseDurationUnit>('years')
   const [rentStartDate, setRentStartDate] = useState('')
   const [rentEndDate, setRentEndDate] = useState('')
+  const editStartDateInputRef = useRef<HTMLInputElement>(null)
 
   const [paymentAccount, setPaymentAccount] = useState({
     accountNumber: '',
@@ -637,57 +638,68 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
           <div className="setup-page__field-row">
             <div className="setup-page__field">
               <label style={{ fontSize: 13, fontWeight: 600, color: '#5c544b', marginBottom: 6, display: 'block' }}>Tenancy period start</label>
-              <input
-                disabled={isRentTermsDisabled}
-                className="setup-page__input"
-                type="date"
-                value={rentStartDate}
-                onChange={(e) => {
-                  const val = toDateInputValue(e.target.value)
-                  setRentStartDate(val)
-                  const newEnd = calculateRentEndDate(val, rentType, leaseDuration, leaseUnit)
-                  if (newEnd) setRentEndDate(newEnd)
+              <div
+                className={`setup-page__date-picker ${rentStartDate ? 'has-value' : ''}`}
+                style={isRentTermsDisabled ? { opacity: 0.7, pointerEvents: 'none', background: '#f8f5f0' } : undefined}
+                onClick={() => {
+                  if (isRentTermsDisabled) return
+                  try {
+                    editStartDateInputRef.current?.showPicker?.()
+                  } catch {
+                    editStartDateInputRef.current?.focus()
+                  }
                 }}
-              />
+              >
+                <div className="setup-page__date-picker__left">
+                  <Calendar size={16} className="setup-page__date-picker__icon" />
+                  <span
+                    className={`setup-page__date-picker__text ${
+                      !rentStartDate ? 'setup-page__date-picker__text--placeholder' : ''
+                    }`}
+                  >
+                    {rentStartDate ? formatDisplayDate(rentStartDate) : 'Select start date (DD/MM/YYYY)'}
+                  </span>
+                </div>
+                <div className="setup-page__date-picker__right">
+                  <span className="setup-page__date-picker__badge">
+                    <Calendar size={12} />
+                    <span>Pick</span>
+                  </span>
+                </div>
+                <input
+                  ref={editStartDateInputRef}
+                  disabled={isRentTermsDisabled}
+                  className="setup-page__date-picker__native"
+                  type="date"
+                  value={rentStartDate}
+                  onChange={(e) => {
+                    const val = toDateInputValue(e.target.value)
+                    setRentStartDate(val)
+                    const newEnd = calculateRentEndDate(val, rentType, leaseDuration, leaseUnit)
+                    if (newEnd) setRentEndDate(newEnd)
+                  }}
+                  aria-label="Tenancy period start"
+                />
+              </div>
             </div>
 
             <div className="setup-page__field">
               <label style={{ fontSize: 13, fontWeight: 600, color: '#5c544b', marginBottom: 6, display: 'block' }}>Next rent due date</label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  disabled
-                  readOnly
-                  className="setup-page__input"
-                  type="date"
-                  value={rentEndDate}
-                  style={{
-                    backgroundColor: '#f8f5f0',
-                    borderColor: '#e8e0d5',
-                    cursor: 'not-allowed',
-                    color: '#49423b',
-                    paddingRight: 80,
-                  }}
-                />
-                <div
-                  style={{
-                    position: 'absolute',
-                    right: 12,
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: '#7a7268',
-                    background: '#ede6db',
-                    padding: '3px 7px',
-                    borderRadius: 6,
-                    pointerEvents: 'none',
-                    userSelect: 'none',
-                  }}
-                >
-                  <Lock size={11} /> Auto
+              <div className="setup-page__date-display">
+                <div className="setup-page__date-picker__left">
+                  <Calendar size={16} className="setup-page__date-picker__icon" style={{ opacity: 0.6 }} />
+                  <span
+                    className={`setup-page__date-picker__text ${
+                      !rentEndDate ? 'setup-page__date-picker__text--placeholder' : ''
+                    }`}
+                  >
+                    {rentEndDate ? formatDisplayDate(rentEndDate) : 'Calculated automatically'}
+                  </span>
+                </div>
+                <div className="setup-page__date-picker__right">
+                  <span className="setup-page__date-display__badge">
+                    <Lock size={10} /> Auto
+                  </span>
                 </div>
               </div>
             </div>

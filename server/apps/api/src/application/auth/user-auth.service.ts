@@ -189,9 +189,14 @@ export class UserAuthService extends BaseAuthService {
     }
 
     if (existing) {
-      const isShadow = existing.passwordHash === PASS_PLACEHOLDERS.INVITED || 
+      const isSocial = existing.passwordHash === PASS_PLACEHOLDERS.SOCIAL || 
+                       existing.passwordHash === 'SOCIAL_AUTH' ||
+                       existing.authProvider === 'google' || 
+                       existing.authProvider === 'apple';
+      const isShadow = !isSocial && (
+                       existing.passwordHash === PASS_PLACEHOLDERS.INVITED || 
                        existing.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
-                       !!(existing.passwordHash && !existing.passwordHash.startsWith('$2'));
+                       !!(existing.passwordHash && !existing.passwordHash.startsWith('$2')));
 
       if (isShadow || !existing.passwordHash) {
         const passwordHash = await bcrypt.hash(dto.password, 10)
@@ -439,9 +444,15 @@ export class UserAuthService extends BaseAuthService {
       throw new UnauthorizedException('Invalid credentials')
     }
 
-    const isShadow = user.passwordHash === PASS_PLACEHOLDERS.INVITED || 
+    const isSocial = user.passwordHash === PASS_PLACEHOLDERS.SOCIAL || 
+                     user.passwordHash === 'SOCIAL_AUTH' ||
+                     user.authProvider === 'google' || 
+                     user.authProvider === 'apple';
+
+    const isShadow = !isSocial && (
+                     user.passwordHash === PASS_PLACEHOLDERS.INVITED || 
                      user.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
-                     !!(user.passwordHash && !user.passwordHash.startsWith('$2'));
+                     !!(user.passwordHash && !user.passwordHash.startsWith('$2')));
 
     if (isShadow) {
       throw new ForbiddenException({
@@ -451,7 +462,7 @@ export class UserAuthService extends BaseAuthService {
       })
     }
 
-    if (user.passwordHash === PASS_PLACEHOLDERS.SOCIAL || user.authProvider === 'google' || user.authProvider === 'apple') {
+    if (isSocial) {
       const providerLabel = user.authProvider === 'apple' ? 'Apple' : 'Google'
       throw new ForbiddenException({
         message: `This account uses ${providerLabel} sign-in. Please continue with ${providerLabel}.`,
@@ -1019,18 +1030,29 @@ export class UserAuthService extends BaseAuthService {
         return { 
           exists: true, 
           isWaitlist: true, 
+          uuid: waitlistEntry.uuid,
         }
       }
       return { exists: false }
     }
 
-    const isShadow = user.passwordHash === PASS_PLACEHOLDERS.INVITED || 
+    const isSocial = user.passwordHash === PASS_PLACEHOLDERS.SOCIAL || 
+                     user.passwordHash === 'SOCIAL_AUTH' ||
+                     user.authProvider === 'google' || 
+                     user.authProvider === 'apple';
+
+    const isShadow = !isSocial && (
+                     user.passwordHash === PASS_PLACEHOLDERS.INVITED || 
                      user.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
-                     !!(user.passwordHash && !user.passwordHash.startsWith('$2'));
-    const isSocial = user.passwordHash === PASS_PLACEHOLDERS.SOCIAL || user.authProvider === 'google' || user.authProvider === 'apple'
+                     !!(user.passwordHash && !user.passwordHash.startsWith('$2')));
+
+    const isWaitlist = isShadow && !!user.isFromWaitlist && !user.isFromInvite;
+    const isInvited = isShadow && !isWaitlist;
+
     return {
       exists: true,
-      isInvited: isShadow,
+      isInvited,
+      isWaitlist,
       hasPassword: !!user.passwordHash && user.passwordHash !== '' && !isShadow && !isSocial,
       authProvider: user.authProvider ?? 'email',
     }

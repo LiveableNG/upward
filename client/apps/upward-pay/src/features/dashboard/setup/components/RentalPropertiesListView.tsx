@@ -6,7 +6,6 @@ import { PayPageShell } from '@/features/dashboard/components/payment/PayPageShe
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { type UserProfile } from '@/features/auth/types'
 import { setupAddPropertyEditPath, setupEditPropertyPath, SETUP_PATHS } from '../setupPaths'
-import { ManualAccountModal } from '@/features/dashboard/components/payment/ManualAccountModal'
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
@@ -42,7 +41,6 @@ interface RentalPropertiesListViewProps {
 
 export function RentalPropertiesListView({ properties }: RentalPropertiesListViewProps) {
   const router = useRouter()
-  const [manualAccountModalProperty, setManualAccountModalProperty] = useState<{ id: number, name: string, initialData?: any } | null>(null)
 
   const { data: pendingPayments } = useQuery({
     queryKey: ['pendingPayments'],
@@ -232,32 +230,11 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
                           </div>
                         )}
                       </div>
-                    ) : (
-                      <>
-                        <button
-                          type="button"
-                          className="btn btn--secondary btn--sm"
-                          onClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            setManualAccountModalProperty({ 
-                              id: prop.id, 
-                              name: prop.location?.area || prop.address || 'Property',
-                              initialData: prop.manualAccount
-                            })
-                          }}
-                          onPointerDown={(e) => e.stopPropagation()}
-                          style={{ fontSize: 12, padding: '6px 12px', borderRadius: 8, position: 'relative', zIndex: 10 }}
-                        >
-                          {prop.manualAccount ? 'Edit Manual Transfer' : 'Setup Manual Transfer'}
-                        </button>
-                        {prop.manualAccount && (
-                          <div className="pay-flow__card-meta pay-flow__card-meta--muted" style={{ marginTop: 8 }}>
-                            Bank: {prop.manualAccount.bankName} - {prop.manualAccount.accountNumber}
-                          </div>
-                        )}
-                      </>
-                    )}
+                    ) : prop.manualAccount ? (
+                      <div className="pay-flow__card-meta pay-flow__card-meta--muted" style={{ marginTop: 8 }}>
+                        Bank: {prop.manualAccount.bankName} - {prop.manualAccount.accountNumber}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
                 <ChevronRight size={18} className="pay-flow__card-trailing" />
@@ -285,15 +262,6 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
           </button>
         </div>
       </section>
-
-      {manualAccountModalProperty && (
-        <ManualAccountModal
-          propertyId={manualAccountModalProperty.id}
-          propertyName={manualAccountModalProperty.name}
-          initialData={manualAccountModalProperty.initialData}
-          onClose={() => setManualAccountModalProperty(null)}
-        />
-      )}
     </PayPageShell>
   )
 }
