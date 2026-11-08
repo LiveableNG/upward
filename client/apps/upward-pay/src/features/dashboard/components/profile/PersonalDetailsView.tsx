@@ -1,10 +1,10 @@
 'use client'
 
 import React, { useState, useEffect, useMemo } from 'react'
-import { User, Pencil } from 'lucide-react'
+import { User, Pencil, Loader2 } from 'lucide-react'
 import { api } from '@/lib/api'
 import { useToast } from '@/components/common/Toast'
-import { PayFlowPrimaryButton, PayPageShell } from '../payment/PayPageShell'
+import { PayPageShell } from '../payment/PayPageShell'
 import { type UserProfile } from '../../types'
 
 interface PersonalDetailsViewProps {
@@ -118,8 +118,9 @@ export function PersonalDetailsView({
       className="pay-flow__header-action pay-flow__header-action--primary"
       onClick={handleSave}
       disabled={saving || hasValidationErrors}
+      aria-label="Save profile changes"
     >
-      {saving ? '...' : 'Save'}
+      {saving ? <Loader2 size={15} className="animate-spin" /> : 'Save'}
     </button>
   ) : (
     <button
@@ -138,6 +139,7 @@ export function PersonalDetailsView({
       showBack
       onBack={isEditing ? handleCancel : onBack}
       rightElement={headerAction}
+      hideNav
     >
       <section className="personal-card">
         <div className="personal-card__header">
@@ -322,26 +324,6 @@ export function PersonalDetailsView({
           </div>
         )}
       </section>
-
-      {isEditing ? (
-        <div className="personal-sticky-actions">
-          <button
-            type="button"
-            className="personal-sticky-actions__cancel"
-            onClick={handleCancel}
-            disabled={saving}
-          >
-            Cancel
-          </button>
-          <PayFlowPrimaryButton
-            onClick={handleSave}
-            disabled={saving || hasValidationErrors}
-            loading={saving}
-          >
-            Save Changes
-          </PayFlowPrimaryButton>
-        </div>
-      ) : null}
     </PayPageShell>
   )
 }

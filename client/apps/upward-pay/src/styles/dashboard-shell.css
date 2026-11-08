@@ -64,6 +64,38 @@
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* Automatically hide bottom nav bar whenever an inner view requests it via data-hide-bottom-nav, personal-card, or personal-sticky-actions */
+.dashboard-layout:has([data-hide-bottom-nav="true"]) .bottom-nav,
+.dashboard-layout:has([data-hide-bottom-nav="true"]) .fluid-dock-wrapper,
+.dashboard-layout:has(.personal-sticky-actions) .bottom-nav,
+.dashboard-layout:has(.personal-sticky-actions) .fluid-dock-wrapper,
+.dashboard-layout:has(.personal-card) .bottom-nav,
+.dashboard-layout:has(.personal-card) .fluid-dock-wrapper,
+.dashboard-layout:has(.banking-card-preview) .bottom-nav,
+.dashboard-layout:has(.banking-card-preview) .fluid-dock-wrapper,
+.dashboard-layout:has(.banking-empty) .bottom-nav,
+.dashboard-layout:has(.banking-empty) .fluid-dock-wrapper,
+.dashboard-layout:has(.banking-form) .bottom-nav,
+.dashboard-layout:has(.banking-form) .fluid-dock-wrapper {
+  display: none !important;
+}
+
+.dashboard-layout:has([data-hide-bottom-nav="true"]) .dashboard-layout__content,
+.dashboard-layout:has(.personal-sticky-actions) .dashboard-layout__content,
+.dashboard-layout:has(.personal-card) .dashboard-layout__content,
+.dashboard-layout:has(.banking-card-preview) .dashboard-layout__content,
+.dashboard-layout:has(.banking-form) .dashboard-layout__content {
+  padding-bottom: 0 !important;
+}
+
+.dashboard-layout:has([data-hide-bottom-nav="true"]) .dashboard--nav-offset,
+.dashboard-layout:has(.personal-sticky-actions) .dashboard--nav-offset,
+.dashboard-layout:has(.personal-card) .dashboard--nav-offset,
+.dashboard-layout:has(.banking-card-preview) .dashboard--nav-offset,
+.dashboard-layout:has(.banking-form) .dashboard--nav-offset {
+  padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+}
+
 .dashboard-layout--blocker .mobile-header-sticky {
   visibility: hidden;
 }
