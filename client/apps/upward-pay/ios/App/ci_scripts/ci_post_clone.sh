@@ -24,26 +24,41 @@ fi
 echo "Repository Root: $REPO_ROOT"
 cd "$REPO_ROOT"
 
-# Ensure Node.js is available on Xcode Cloud runner
+# Ensure Node.js is available and meets Capacitor 8 requirements (>=22.0.0)
+NEED_NODE_INSTALL=0
 if ! command -v node >/dev/null 2>&1; then
-    echo "Node.js not found in PATH. Attempting install..."
-    if command -v brew >/dev/null 2>&1; then
-        (brew install node@20 && brew link --overwrite --force node@20) || brew install node || true
+    NEED_NODE_INSTALL=1
+else
+    NODE_MAJOR=$(node -v | cut -d'.' -f1 | tr -d 'v')
+    if [ "$NODE_MAJOR" -lt 22 ]; then
+        echo "Found Node.js $(node -v), but Capacitor 8 requires >= 22.0.0. Upgrading..."
+        NEED_NODE_INSTALL=1
     fi
 fi
 
-# Fallback: Download portable Node.js binary if brew didn't install node
-if ! command -v node >/dev/null 2>&1; then
-    echo "Downloading standalone Node.js binary..."
-    NODE_VERSION="v20.18.0"
-    ARCH="$(uname -m)"
-    if [ "$ARCH" = "arm64" ]; then
-        NODE_DIST="node-${NODE_VERSION}-darwin-arm64"
-    else
-        NODE_DIST="node-${NODE_VERSION}-darwin-x64"
+if [ "$NEED_NODE_INSTALL" -eq 1 ]; then
+    echo "Installing Node.js 22..."
+    if command -v brew >/dev/null 2>&1; then
+        (brew install node@22 && brew link --overwrite --force node@22) || brew install node || true
     fi
-    curl -fsSL "https://nodejs.org/dist/${NODE_VERSION}/${NODE_DIST}.tar.gz" | tar -xz -C /tmp
-    export PATH="/tmp/${NODE_DIST}/bin:$PATH"
+
+    # Fallback: Download portable Node.js 22 binary if brew didn't supply Node >= 22
+    NODE_MAJOR=0
+    if command -v node >/dev/null 2>&1; then
+        NODE_MAJOR=$(node -v | cut -d'.' -f1 | tr -d 'v')
+    fi
+    if [ "$NODE_MAJOR" -lt 22 ]; then
+        echo "Downloading standalone Node.js 22 binary..."
+        NODE_VERSION="v22.14.0"
+        ARCH="$(uname -m)"
+        if [ "$ARCH" = "arm64" ]; then
+            NODE_DIST="node-${NODE_VERSION}-darwin-arm64"
+        else
+            NODE_DIST="node-${NODE_VERSION}-darwin-x64"
+        fi
+        curl -fsSL "https://nodejs.org/dist/${NODE_VERSION}/${NODE_DIST}.tar.gz" | tar -xz -C /tmp
+        export PATH="/tmp/${NODE_DIST}/bin:$PATH"
+    fi
 fi
 
 echo "Node version: $(node -v)"
