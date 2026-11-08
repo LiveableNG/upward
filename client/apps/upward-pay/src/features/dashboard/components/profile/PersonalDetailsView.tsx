@@ -29,6 +29,10 @@ export function PersonalDetailsView({
 
   const phoneRegex = useMemo(() => /^\+234\d{10}$/, [])
 
+  // Date of birth ceiling: prevents choosing future years/dates
+  const maxDobDate = useMemo(() => new Date().toISOString().split('T')[0], [])
+  const minDobDate = '1900-01-01'
+
   const validatePhone = (val: string) => {
     if (!val) return ''
     if (!phoneRegex.test(val)) return '+2348000000000'
@@ -146,16 +150,6 @@ export function PersonalDetailsView({
               <p className="personal-card__desc">Manage your core profile details.</p>
             </div>
           </div>
-          {!isEditing ? (
-            <button
-              type="button"
-              className="personal-card__edit-btn"
-              onClick={() => setIsEditing(true)}
-            >
-              <Pencil size={14} />
-              Edit Profile
-            </button>
-          ) : null}
         </div>
 
         {isEditing ? (
@@ -229,10 +223,26 @@ export function PersonalDetailsView({
               <input
                 id="dateOfBirth"
                 type="date"
-                max={new Date().toISOString().split('T')[0]}
+                min={minDobDate}
+                max={maxDobDate}
+                className={validationErrors.dateOfBirth ? 'personal-field__input--error' : ''}
                 value={formData.dateOfBirth || ''}
-                onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                onChange={(e) => {
+                  const val = e.target.value
+                  if (val && val > maxDobDate) {
+                    setValidationErrors((prev) => ({
+                      ...prev,
+                      dateOfBirth: 'Date of birth cannot be in the future',
+                    }))
+                  } else {
+                    setValidationErrors((prev) => ({ ...prev, dateOfBirth: '' }))
+                  }
+                  setFormData({ ...formData, dateOfBirth: val })
+                }}
               />
+              {validationErrors.dateOfBirth ? (
+                <span className="personal-field__error">{validationErrors.dateOfBirth}</span>
+              ) : null}
             </div>
 
             <div className="personal-field">

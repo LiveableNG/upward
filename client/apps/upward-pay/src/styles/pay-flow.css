@@ -20,7 +20,7 @@
 
 .pay-flow__header {
   flex: none;
-  padding: calc(var(--safe-top, 0px) + 6px) 24px 14px;
+  padding: max(16px, calc(env(safe-area-inset-top, 0px) + 8px)) 24px 14px;
 }
 
 .pay-flow__scroll {

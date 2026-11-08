@@ -238,7 +238,7 @@ export default function NotificationsPage() {
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
           border-bottom: 1px solid var(--shell-border, #f0e9df);
-          padding: 12px 20px 8px;
+          padding: calc(var(--safe-top, 0px) + 12px) 20px 8px;
         }
 
         .header-content {
@@ -276,7 +276,7 @@ export default function NotificationsPage() {
         .content-area {
           max-width: 720px;
           margin: 0 auto;
-          padding: 122px 16px 28px;
+          padding: calc(var(--safe-top, 0px) + 122px) 16px calc(var(--safe-bottom, 0px) + 28px);
         }
 
         .notification-group {
