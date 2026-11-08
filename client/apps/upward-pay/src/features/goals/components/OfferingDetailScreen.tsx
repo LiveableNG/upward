@@ -49,7 +49,6 @@ import {
 import { DeliveryLocationBar } from './DeliveryLocationBar'
 import { CommerceCheckoutModal } from './CommerceCheckoutModal'
 import { getPublicWebUrl, copyTextToClipboard } from '@/lib/utils'
-import { haptics } from '@/lib/haptics'
 import '../styles/goals.css'
 
 interface OfferingDetailScreenProps {
@@ -263,7 +262,6 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
   }
 
   const handleShare = async () => {
-    void haptics.selection()
     const shareUrl = getPublicWebUrl(`/dashboard/lifestyle/${identifier}`)
     const success = await copyTextToClipboard(shareUrl)
     if (success) {

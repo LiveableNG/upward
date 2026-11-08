@@ -22,7 +22,6 @@ import { PayPageShell } from '@/features/dashboard/components/payment/PayPageShe
 import { formatCurrency, getPublicWebUrl, copyTextToClipboard } from '@/lib/utils'
 import { useToast } from '@/components/common/Toast'
 import { Capacitor } from '@capacitor/core'
-import { haptics } from '@/lib/haptics'
 
 function ScoreBreakdownSkeleton() {
   return (
@@ -71,7 +70,6 @@ export function ScoreBreakdownScreen() {
       router.push('/dashboard/kyc')
       return
     }
-    void haptics.selection()
     const url = getPublicWebUrl(`/profile/${identifier}`)
 
     const copiedSuccess = await copyTextToClipboard(url)

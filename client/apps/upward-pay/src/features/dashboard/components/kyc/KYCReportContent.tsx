@@ -23,7 +23,6 @@ import { useToast } from '@/components/common/Toast'
 import { useScoreProfile, usePublicScoreProfile } from '../../services/scoreService'
 import { PublicProfileShell } from './PublicProfileShell'
 import { getPublicWebUrl, copyTextToClipboard } from '@/lib/utils'
-import { haptics } from '@/lib/haptics'
 
 interface KYCReportContentProps {
   isPublic?: boolean
@@ -75,7 +74,6 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
   const [copied, setCopied] = useState(false)
 
   const handleCopyLink = async () => {
-    void haptics.selection()
     const p = scoreProfile?.data?.profile
     const identifier = p?.profileSlug || p?.uuid
     if (!identifier) {

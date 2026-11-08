@@ -25,7 +25,6 @@ import { AllianceInquiryModal } from '@/features/alliance/components/AllianceInq
 import { AllianceRatingModal } from '@/features/alliance/components/AllianceRatingModal';
 import { AllianceReferralBanner } from '@/features/alliance/components/AllianceReferralBanner';
 import { getPublicWebUrl, copyTextToClipboard } from '@/lib/utils';
-import { haptics } from '@/lib/haptics';
 
 export function AllianceListingDetailClient() {
   const params = useParams();
@@ -43,7 +42,6 @@ export function AllianceListingDetailClient() {
   const { data: referralContext } = useAllianceReferral(refToken);
 
   const handleShare = async () => {
-    void haptics.selection();
     const shareUrl = getPublicWebUrl();
     const success = await copyTextToClipboard(shareUrl);
     if (success) {

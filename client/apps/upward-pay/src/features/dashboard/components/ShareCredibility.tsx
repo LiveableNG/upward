@@ -2,7 +2,6 @@ import { Award, Check, Copy } from 'lucide-react'
 import { useState } from 'react'
 import { useToast } from '@/components/common/Toast'
 import { getPublicWebUrl, copyTextToClipboard } from '@/lib/utils'
-import { haptics } from '@/lib/haptics'
 
 interface ShareCredibilityProps {
   profileSlug?: string | null
@@ -13,7 +12,6 @@ export function ShareCredibility({ profileSlug }: ShareCredibilityProps) {
   const [copied, setCopied] = useState(false)
 
   const handleCopy = async () => {
-    void haptics.selection()
     const identifier = profileSlug || 'me'
     const url = getPublicWebUrl(`/profile/${identifier}`)
 
