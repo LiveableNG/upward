@@ -752,3 +752,52 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
     </div>
   )
 }
+
+export function LifestyleDiscoverySkeleton() {
+  return (
+    <div className="lifestyle-discovery">
+      <header className="lifestyle-discovery__header">
+        <div className="lifestyle-discovery__header-left">
+          <div
+            style={{
+              width: 140,
+              height: 22,
+              background: '#EAE3D9',
+              borderRadius: 6,
+              marginBottom: 6,
+            }}
+          />
+          <div
+            style={{
+              width: 200,
+              height: 12,
+              background: '#F0EAE1',
+              borderRadius: 4,
+            }}
+          />
+        </div>
+      </header>
+
+      <div style={{ padding: '0 20px', marginTop: 14 }}>
+        <div
+          style={{
+            width: '100%',
+            height: 48,
+            background: '#FFFFFF',
+            border: '1.5px solid #ECE4D9',
+            borderRadius: 12,
+            marginBottom: 20,
+          }}
+        />
+        <div className="lifestyle-discovery__grid">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="offering-card offering-card--skeleton">
+              <div className="offering-card__media-skeleton" />
+              <div className="offering-card__body-skeleton" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}

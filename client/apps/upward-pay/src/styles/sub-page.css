@@ -388,6 +388,164 @@
   appearance: none;
 }
 
+.personal-field input::placeholder {
+  color: var(--shell-muted, #a9a096);
+  opacity: 1;
+}
+
+.personal-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.personal-input-wrap .personal-input-icon {
+  position: absolute;
+  left: 14px;
+  color: var(--shell-muted, #a9a096);
+  pointer-events: none;
+  transition: color 0.2s ease;
+  z-index: 1;
+}
+
+.personal-input-wrap input {
+  padding-left: 40px;
+}
+
+.personal-input-wrap:focus-within .personal-input-icon {
+  color: var(--clay, #c2501f);
+}
+
+.personal-date-picker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 48px;
+  border-radius: 12px;
+  border: 1.5px solid #ece4d9;
+  background: #fff;
+  padding: 0 14px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.15s ease;
+  user-select: none;
+}
+
+.personal-date-picker:hover {
+  border-color: #d8cec1;
+}
+
+.personal-date-picker:focus-within {
+  border-color: rgba(194, 80, 31, 0.45);
+  box-shadow: 0 0 0 3px rgba(194, 80, 31, 0.08);
+}
+
+.personal-date-picker--error {
+  border-color: #ef4444 !important;
+}
+
+.personal-date-picker__left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.personal-date-picker__icon {
+  color: var(--shell-muted, #a9a096);
+  flex-shrink: 0;
+  transition: color 0.2s ease;
+}
+
+.personal-date-picker:focus-within .personal-date-picker__icon,
+.personal-date-picker.has-value .personal-date-picker__icon {
+  color: var(--clay, #c2501f);
+}
+
+.personal-date-picker__text {
+  font-size: 14px;
+  color: #1a1714;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.personal-date-picker__text--placeholder {
+  color: var(--shell-muted, #a9a096);
+  font-weight: 400;
+}
+
+.personal-date-picker__right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.personal-date-picker__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #f7f3ed;
+  color: #7a7065;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.personal-date-picker:hover .personal-date-picker__badge {
+  background: #efe8de;
+  color: #4b433a;
+}
+
+.personal-date-picker__clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #f0e9df;
+  border: none;
+  color: #5c544b;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
+  z-index: 3;
+  position: relative;
+  padding: 0;
+}
+
+.personal-date-picker__clear:hover {
+  background: #e2d7c9;
+  color: #1a1714;
+}
+
+.personal-date-picker__clear:active {
+  transform: scale(0.92);
+}
+
+.personal-date-picker__native {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 2;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+}
+
 .personal-field input[type="date"] {
   display: flex;
   align-items: center;

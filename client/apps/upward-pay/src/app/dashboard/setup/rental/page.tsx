@@ -3,7 +3,7 @@
 import { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/features/auth/AuthContext'
-import FallbackSuspense from '@/components/FallbackSuspense'
+import { RentalDetailsSkeleton } from '@/features/dashboard/setup/components/RentalDetailsSkeleton'
 import { RentalFormView } from '@/features/dashboard/setup/components/RentalFormView'
 import { EditPropertyView } from '@/features/dashboard/setup/components/EditPropertyView'
 import { RentalPropertiesListView } from '@/features/dashboard/setup/components/RentalPropertiesListView'
@@ -33,7 +33,7 @@ function SetupRentalPageInner() {
 
 export default function SetupRentalPage() {
   return (
-    <Suspense fallback={<FallbackSuspense message="Loading rental details..." />}>
+    <Suspense fallback={<RentalDetailsSkeleton />}>
       <SetupRentalPageInner />
     </Suspense>
   )

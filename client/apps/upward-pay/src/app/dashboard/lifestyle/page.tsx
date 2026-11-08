@@ -2,8 +2,11 @@
 
 import React, { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { LifestyleDiscoveryScreen, OfferingDetailScreen } from '@/features/goals'
-import FallbackSuspense from '@/components/FallbackSuspense'
+import {
+  LifestyleDiscoveryScreen,
+  OfferingDetailScreen,
+  LifestyleDiscoverySkeleton,
+} from '@/features/goals'
 
 function LifestylePageContent() {
   const searchParams = useSearchParams()
@@ -18,7 +21,7 @@ function LifestylePageContent() {
 
 export default function LifestyleDiscoveryPage() {
   return (
-    <Suspense fallback={<FallbackSuspense message="Loading lifestyle perks…" />}>
+    <Suspense fallback={<LifestyleDiscoverySkeleton />}>
       <LifestylePageContent />
     </Suspense>
   )

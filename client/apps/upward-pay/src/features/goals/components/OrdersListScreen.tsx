@@ -112,6 +112,39 @@ function getStatusBadge(status: CustomerFulfilmentStatus, isService: boolean, pa
   }
 }
 
+export function OrdersListSkeleton({ onBack }: { onBack?: () => void }) {
+  const handleBack = onBack || (() => {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      window.history.back()
+    }
+  })
+
+  return (
+    <div className="orders-hub">
+      <header className="orders-hub__header">
+        <button
+          type="button"
+          className="orders-hub__back-btn"
+          onClick={handleBack}
+          aria-label="Back to lifestyle marketplace"
+        >
+          <ArrowLeft size={16} />
+          <span>Marketplace</span>
+        </button>
+        <div className="orders-hub__header-title">My Orders</div>
+      </header>
+
+      <div className="orders-hub__content">
+        <div className="orders-hub__loading">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="orders-hub__skeleton animate-pulse" />
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function OrdersListScreen() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<'ACTIVE' | 'PAST'>('ACTIVE')

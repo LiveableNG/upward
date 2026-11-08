@@ -2,8 +2,11 @@
 
 import React, { Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { OrdersListScreen, OrderTrackingScreen } from '@/features/goals'
-import FallbackSuspense from '@/components/FallbackSuspense'
+import {
+  OrdersListScreen,
+  OrderTrackingScreen,
+  OrdersListSkeleton,
+} from '@/features/goals'
 
 function LifestyleOrdersContent() {
   const searchParams = useSearchParams()
@@ -18,7 +21,7 @@ function LifestyleOrdersContent() {
 
 export default function LifestyleOrdersPage() {
   return (
-    <Suspense fallback={<FallbackSuspense message="Loading orders…" />}>
+    <Suspense fallback={<OrdersListSkeleton />}>
       <LifestyleOrdersContent />
     </Suspense>
   )
