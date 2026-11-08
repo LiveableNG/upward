@@ -50,12 +50,9 @@ export class SearchPmUseCase {
 
     const pmInclude = {
       settlementAccounts: {
-        where: { isPrimary: true },
         include: { manualAccount: true },
       },
-      manualAccounts: {
-        where: { isPrimary: true },
-      },
+      manualAccounts: true,
     };
 
     // 1. Search Internal Property Managers (upward_property_manager)
@@ -113,13 +110,23 @@ export class SearchPmUseCase {
         if (matchesName || matchesBusiness || matchesEmail || matchesPhone) {
           if (!seenUuids.has(pm.uuid)) {
             seenUuids.add(pm.uuid);
-            const primarySettlement = (pm as any).settlementAccounts?.[0]?.manualAccount || (pm as any).manualAccounts?.[0];
+            const pmSettlements = (pm as any).settlementAccounts || [];
+            const primarySettlementAcc = pmSettlements.find((a: any) => a.isPrimary) || pmSettlements[0];
+            const pmManuals = (pm as any).manualAccounts || [];
+            const primaryManual = pmManuals.find((a: any) => a.isPrimary) || pmManuals[0];
+            const primarySettlement = primarySettlementAcc?.manualAccount || primaryManual;
+
             const defaultSettlementAccount = primarySettlement ? {
               bankName: primarySettlement.bankName,
               accountNumber: primarySettlement.accountNumber,
               accountName: primarySettlement.accountName,
               bankCode: primarySettlement.bankCode || null,
-            } : null;
+            } : (pm.accountNumber && pm.bankName ? {
+              bankName: pm.bankName,
+              accountNumber: pm.accountNumber,
+              accountName: decryptedBusiness || `${decryptedFirst} ${decryptedLast}`.trim(),
+              bankCode: pm.bankCode || null,
+            } : null);
 
             results.push({
               id: pm.id,
@@ -155,12 +162,22 @@ export class SearchPmUseCase {
           { nameHash },
         ],
       },
+      include: {
+        settlementAccounts: {
+          include: { manualAccount: true },
+        },
+      },
       take: 10,
     });
 
     const allCompanies = await this.prisma.upward_company.findMany({
       where: {
         platformId: { not: null },
+      },
+      include: {
+        settlementAccounts: {
+          include: { manualAccount: true },
+        },
       },
       take: 100,
       orderBy: { createdAt: 'desc' },
@@ -192,6 +209,15 @@ export class SearchPmUseCase {
         if (matchesName || matchesEmail || matchesPhone) {
           if (!seenUuids.has(comp.uuid)) {
             seenUuids.add(comp.uuid);
+            const compSettlements = (comp as any).settlementAccounts || [];
+            const compPrimarySettlement = compSettlements.find((a: any) => a.isPrimary) || compSettlements[0];
+            const compDefaultAccount = compPrimarySettlement?.manualAccount ? {
+              bankName: compPrimarySettlement.manualAccount.bankName,
+              accountNumber: compPrimarySettlement.manualAccount.accountNumber,
+              accountName: compPrimarySettlement.manualAccount.accountName,
+              bankCode: compPrimarySettlement.manualAccount.bankCode || null,
+            } : null;
+
             results.push({
               id: comp.id,
               uuid: comp.uuid,
@@ -208,6 +234,7 @@ export class SearchPmUseCase {
               companyUuid: comp.uuid,
               companyName: decryptedName,
               companyEmail: decryptedEmail,
+              defaultSettlementAccount: compDefaultAccount,
             });
           }
         }
@@ -224,7 +251,13 @@ export class SearchPmUseCase {
         },
       },
       include: {
-        company: true,
+        company: {
+          include: {
+            settlementAccounts: {
+              include: { manualAccount: true },
+            },
+          },
+        },
       },
       take: 100,
       orderBy: { createdAt: 'desc' },
@@ -252,6 +285,15 @@ export class SearchPmUseCase {
         if (matchesName || matchesCompany || matchesEmail || matchesPhone) {
           if (!seenUuids.has(mgr.uuid)) {
             seenUuids.add(mgr.uuid);
+            const mgrCompSettlements = (mgr as any).company?.settlementAccounts || [];
+            const mgrPrimarySettlement = mgrCompSettlements.find((a: any) => a.isPrimary) || mgrCompSettlements[0];
+            const mgrDefaultAccount = mgrPrimarySettlement?.manualAccount ? {
+              bankName: mgrPrimarySettlement.manualAccount.bankName,
+              accountNumber: mgrPrimarySettlement.manualAccount.accountNumber,
+              accountName: mgrPrimarySettlement.manualAccount.accountName,
+              bankCode: mgrPrimarySettlement.manualAccount.bankCode || null,
+            } : null;
+
             results.push({
               id: mgr.id,
               uuid: mgr.uuid,
@@ -269,6 +311,7 @@ export class SearchPmUseCase {
               companyName: decryptedCompanyName,
               companyEmail: decryptedCompanyEmail,
               managerUuid: mgr.uuid,
+              defaultSettlementAccount: mgrDefaultAccount,
             });
           }
         }
