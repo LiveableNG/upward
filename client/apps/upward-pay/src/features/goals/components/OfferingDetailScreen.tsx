@@ -72,6 +72,20 @@ function getSafeExternalUrl(raw?: string | null): string | null {
   }
 }
 
+const useIsomorphicLayoutEffect =
+  typeof window !== 'undefined' ? React.useLayoutEffect : React.useEffect
+
+function instantScrollToTop() {
+  if (typeof window === 'undefined') return
+  const html = document.documentElement
+  const prev = html.style.scrollBehavior
+  html.style.scrollBehavior = 'auto'
+  window.scrollTo(0, 0)
+  html.scrollTop = 0
+  document.body.scrollTop = 0
+  html.style.scrollBehavior = prev
+}
+
 export function OfferingDetailSkeleton({ onBack }: { onBack?: () => void }) {
   const handleBack = onBack || (() => {
     if (typeof window !== 'undefined' && window.history.length > 1) {
@@ -79,10 +93,8 @@ export function OfferingDetailSkeleton({ onBack }: { onBack?: () => void }) {
     }
   })
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
-    }
+  useIsomorphicLayoutEffect(() => {
+    instantScrollToTop()
   }, [])
 
   return (
@@ -157,11 +169,9 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
     }
   }, [user])
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     setMounted(true)
-    if (typeof window !== 'undefined') {
-      window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
-    }
+    instantScrollToTop()
   }, [identifier])
 
   const {
@@ -817,10 +827,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                       onClick={(clicked) => {
                         const nextId =
                           clicked.uuid || clicked.slug || String(clicked.id)
-                        if (typeof window !== 'undefined') {
-                          window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
-                        }
-                        router.push(`/dashboard/lifestyle?id=${encodeURIComponent(nextId)}`, { scroll: true })
+                        router.push(`/dashboard/lifestyle?id=${encodeURIComponent(nextId)}`, { scroll: false })
                       }}
                     />
                   </div>

@@ -263,11 +263,8 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
   }, [offerings, userGoals, categories, selectedActiveGoalId, selectedType, searchQuery])
 
   const handleOfferingClick = (offering: GoalOffering) => {
-    if (typeof window !== 'undefined') {
-      window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
-    }
     const identifier = offering.uuid || offering.slug || String(offering.id)
-    router.push(`/dashboard/lifestyle?id=${encodeURIComponent(identifier)}`, { scroll: true })
+    router.push(`/dashboard/lifestyle?id=${encodeURIComponent(identifier)}`, { scroll: false })
   }
 
   const isLoading = isCategoriesLoading || isOfferingsLoading

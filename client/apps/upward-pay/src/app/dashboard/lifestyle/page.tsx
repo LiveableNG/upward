@@ -1,6 +1,6 @@
 'use client'
 
-import React, { Suspense, useEffect } from 'react'
+import React, { Suspense, useLayoutEffect, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
 import {
   LifestyleDiscoveryScreen,
@@ -9,13 +9,22 @@ import {
   LifestyleDiscoverySkeleton,
 } from '@/features/goals'
 
+const useIsomorphicLayoutEffect =
+  typeof window !== 'undefined' ? useLayoutEffect : useEffect
+
 function LifestylePageContent() {
   const searchParams = useSearchParams()
   const offeringId = searchParams.get('id') || searchParams.get('offering')
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     if (offeringId && typeof window !== 'undefined') {
-      window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+      const html = document.documentElement
+      const prev = html.style.scrollBehavior
+      html.style.scrollBehavior = 'auto'
+      window.scrollTo(0, 0)
+      html.scrollTop = 0
+      document.body.scrollTop = 0
+      html.style.scrollBehavior = prev
     }
   }, [offeringId])
 
