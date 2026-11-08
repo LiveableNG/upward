@@ -91,9 +91,14 @@ export class GetPublicPaymentDetailsUseCase {
     }
 
     let inviteToken = null
-    const isShadow = user.passwordHash === PASS_PLACEHOLDERS.INVITED || 
+    const isSocial = user.passwordHash === PASS_PLACEHOLDERS.SOCIAL || 
+                     user.passwordHash === 'SOCIAL_AUTH' ||
+                     user.authProvider === 'google' || 
+                     user.authProvider === 'apple';
+    const isShadow = !isSocial && (
+                     user.passwordHash === PASS_PLACEHOLDERS.INVITED || 
                      user.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
-                     !!(user.passwordHash && !user.passwordHash.startsWith('$2'));
+                     !!(user.passwordHash && !user.passwordHash.startsWith('$2')));
     
     if (isShadow) {
       const validToken = await this.tokenRepository.findByIdentifier(user.uuid, 'INVITE')
