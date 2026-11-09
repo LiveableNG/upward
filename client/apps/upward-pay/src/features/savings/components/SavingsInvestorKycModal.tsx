@@ -16,7 +16,6 @@ import {
   Landmark,
   Info,
   TrendingUp,
-  Gift,
   Calendar,
   Zap,
   Sparkles,
@@ -785,7 +784,7 @@ export function SavingsInvestorKycModal({
                     fontWeight: 700,
                   }}
                 >
-                  Target Rent Obligation
+                  Target Rent
                 </span>
                 <div
                   style={{
@@ -854,7 +853,7 @@ export function SavingsInvestorKycModal({
                       letterSpacing: '0.04em',
                     }}
                   >
-                    Monthly Savings Target
+                    Monthly Target
                   </span>
                   <div
                     style={{
@@ -901,9 +900,7 @@ export function SavingsInvestorKycModal({
                   lineHeight: 1.45,
                 }}
               >
-                Save <strong>{formatCurrency(monthlyTargetToFinishEarly, 'NGN')} monthly</strong> to
-                have your rent 100% saved by <strong>30 days before your due date</strong> (
-                {earlySettlementDateStr}).
+                Save monthly to finish <strong>30 days early</strong> ({earlySettlementDateStr}).
               </p>
             </div>
 
@@ -945,44 +942,7 @@ export function SavingsInvestorKycModal({
                   </span>
                 </div>
                 <p style={{ fontSize: '0.75rem', color: '#065f46', margin: '2px 0 0' }}>
-                  Daily compound interest backed by ARM Money Market Fund.
-                </p>
-              </div>
-            </div>
-
-            <div
-              style={{
-                padding: '12px 14px',
-                borderRadius: '10px',
-                background: 'var(--surface-sunken, #f8f6f3)',
-                border: '1px solid var(--border)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-              }}
-            >
-              <div
-                style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: '50%',
-                  background: 'var(--clay-faint)',
-                  color: 'var(--clay)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <Gift size={18} />
-              </div>
-              <div style={{ flex: 1 }}>
-                <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text)' }}>
-                  Save regularly and get cashback on your rent
-                </span>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '2px 0 0' }}>
-                  Tenants with consistent saving attitudes earn Upward cashback on their final rent
-                  settlement.
+                  Daily compound returns backed by ARM Money Market.
                 </p>
               </div>
             </div>
