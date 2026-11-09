@@ -45,12 +45,18 @@ function getOrdinalSuffix(n: number) {
   return n + (s[(v - 20) % 10] || s[v] || s[0])
 }
 
-function calculatePaystackFee(amount: number): number {
+function calculateDirectDebitFee(amount: number): number {
   if (!amount || amount <= 0) return 0
   const percentageFee = amount * 0.015
   const flatFee = amount >= 2500 ? 100 : 0
   const total = percentageFee + flatFee
   return Math.min(Math.round(total), 2000)
+}
+
+function calculateDvaFee(amount: number): number {
+  if (!amount || amount <= 0) return 0
+  // Paystack Dedicated Virtual Account pricing in Nigeria: 1% capped at ₦300
+  return Math.min(Math.round(amount * 0.01), 300)
 }
 
 const FUNDING_PRESETS = [50_000, 100_000, 250_000, 500_000]
@@ -244,7 +250,10 @@ export function SavingsInvestorKycModal({
     customFundAmount ??
     (monthlyTargetToFinishEarly > 0 ? monthlyTargetToFinishEarly.toLocaleString() : '100,000')
   const numericFundAmount = Number(fundAmount.replace(/,/g, '')) || 0
-  const paystackFee = calculatePaystackFee(numericFundAmount)
+  const paystackFee =
+    fundingOption === 'BANK_TRANSFER'
+      ? calculateDvaFee(numericFundAmount)
+      : calculateDirectDebitFee(numericFundAmount)
   const totalFundAmount = numericFundAmount + paystackFee
 
   const dvaToShow = createdDva ||
@@ -1143,7 +1152,8 @@ export function SavingsInvestorKycModal({
                   Amount: <strong>₦{numericFundAmount.toLocaleString()}</strong>
                 </span>
                 <span style={{ color: 'var(--text-secondary)' }}>
-                  Paystack fee: <strong>₦{paystackFee.toLocaleString()}</strong>
+                  Paystack fee {fundingOption === 'BANK_TRANSFER' ? '(1%, max ₦300)' : '(1.5% + ₦100, max ₦2k)'}:{' '}
+                  <strong>₦{paystackFee.toLocaleString()}</strong>
                 </span>
               </div>
               <span style={{ fontWeight: 700, color: 'var(--clay)' }}>
