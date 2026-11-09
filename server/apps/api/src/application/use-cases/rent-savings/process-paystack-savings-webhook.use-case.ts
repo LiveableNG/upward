@@ -188,23 +188,18 @@ export class ProcessPaystackSavingsWebhookUseCase {
       const balanceNum = Number(newBalanceKobo)
       const ratio = targetNum > 0 ? balanceNum / targetNum : 0
 
-      // Velocity Points (max 40): 25% = 10, 50% = 20, 75% = 30, 100% = 40
-      let velocityPoints = 0
-      if (ratio >= 1.0) velocityPoints = 40
-      else if (ratio >= 0.75) velocityPoints = 30
-      else if (ratio >= 0.5) velocityPoints = 20
-      else if (ratio >= 0.25) velocityPoints = 10
+      // Goal Points (max 50) based on target ratio
+      const goalPoints = Math.min(50, Math.round(ratio * 50))
 
-      // Add 5 cadence points for timely deposit (capped at 40)
+      // Add 10 points for regular timely saving (capped at 50)
       const currentCadence = currentScore?.cadencePoints ?? 0
-      const newCadence = Math.min(40, currentCadence + 5)
-      const loanDiscipline = currentScore?.loanDisciplinePoints ?? 20
-      const totalScore = Math.min(100, newCadence + velocityPoints + loanDiscipline)
+      const newCadence = Math.min(50, currentCadence + 10)
+      const totalScore = Math.min(100, newCadence + goalPoints)
 
       await this.rentVaultRepo.upsertSavingsScore(vaultId, userId, {
         cadencePoints: newCadence,
-        velocityPoints,
-        loanDisciplinePoints: loanDiscipline,
+        velocityPoints: goalPoints,
+        loanDisciplinePoints: 0,
         totalScore,
         historyLog: [
           ...(currentScore?.historyLog || []),

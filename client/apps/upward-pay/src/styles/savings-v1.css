@@ -739,6 +739,10 @@ select.rent-calculator__input:focus {
   text-align: center;
 }
 
+.vault-score-card__metrics--two {
+  grid-template-columns: repeat(2, 1fr);
+}
+
 .vault-score-card__metric-val {
   font-size: 1.125rem;
   font-weight: 700;

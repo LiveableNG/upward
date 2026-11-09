@@ -190,7 +190,7 @@ export function VaultSetupFlow({ initialConfig, onBack, onSuccess }: VaultSetupF
                       </span>
                     </div>
                     <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
-                      Pick your salary date or when money usually enters your account.
+                      Choose the day of the month that works best for you.
                     </span>
 
                     <div className="vault-setup__chip-row">
@@ -203,7 +203,7 @@ export function VaultSetupFlow({ initialConfig, onBack, onSuccess }: VaultSetupF
                           }`}
                           onClick={() => setPaydayOfMonth(day)}
                         >
-                          {day === 1 ? '1st of month' : `${day}th (Payday)`}
+                          {day === 1 ? '1st of month' : `${day}th of month`}
                         </button>
                       ))}
                     </div>

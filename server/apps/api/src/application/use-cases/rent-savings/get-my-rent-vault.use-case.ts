@@ -144,6 +144,13 @@ export class GetMyRentVaultUseCase {
     // Fetch savings score
     const score = await this.rentVaultRepo.findSavingsScoreByVaultId(vault.id)
 
+    // Readjusted scoring (without loan discipline): 50 pts Regular Saving + 50 pts Target Progress = 100 pts
+    const rawCadence = score?.cadencePoints ?? 0
+    const consistencyPoints = Math.min(50, Math.round((rawCadence / 40) * 50) || (currentBalanceKobo > 0n ? 15 : 10))
+    const goalRatio = targetAmountNum > 0 ? currentBalanceNum / targetAmountNum : 0
+    const goalPoints = Math.min(50, Math.round(goalRatio * 50))
+    const totalScore = Math.min(100, consistencyPoints + goalPoints)
+
     return {
       status: 'success',
       data: {
@@ -169,24 +176,14 @@ export class GetMyRentVaultUseCase {
               assignment_status: vault.dvaAssignmentStatus,
             }
           : null,
-        emergency_advance: {
-          has_active_loan: hasActiveLoan,
-          active_loan_details: activeAdvance
-            ? {
-                advance_id: activeAdvance.uuid,
-                borrowed_amount_kobo: Number(activeAdvance.borrowedAmountKobo),
-                total_repayable_kobo: Number(activeAdvance.totalRepayableKobo),
-                repayment_due_date: activeAdvance.repaymentDueDate.toISOString(),
-                status: activeAdvance.status,
-              }
-            : null,
-          max_borrowable_kobo: Number(maxBorrowableKobo),
-        },
+        emergency_advance: null,
         savings_score: {
-          total_score: score?.totalScore ?? 20,
-          cadence_points: score?.cadencePoints ?? 0,
-          velocity_points: score?.velocityPoints ?? 0,
-          loan_discipline_points: score?.loanDisciplinePoints ?? 20,
+          total_score: totalScore,
+          cadence_points: consistencyPoints,
+          velocity_points: goalPoints,
+          consistency_points: consistencyPoints,
+          goal_points: goalPoints,
+          loan_discipline_points: 0,
         },
         transactions: unifiedTransactions,
       },

@@ -148,9 +148,11 @@ export function RentCalculatorView({ onProceedToSetup, onOpenKycModal }: RentCal
       <div className="rent-savings__gated-content rent-savings__gated-content--blurred">
         <div className="vault-dashboard__hero">
           <div className="vault-dashboard__top-row">
-            <div className="vault-dashboard__lock-pill">
-              <Lock size={13} color="var(--clay)" />
-              <span>Target Rent Lock</span>
+            <div className="vault-arm-badge">
+              <ShieldCheck size={14} className="vault-arm-badge__icon" />
+              <span>
+                Powered by <strong>Asset &amp; Resource Management Holding Company (ARM)</strong>
+              </span>
             </div>
             <span className="vault-dashboard__countdown-pill">
               <Calendar size={12} />

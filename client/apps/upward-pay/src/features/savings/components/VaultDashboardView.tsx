@@ -8,8 +8,6 @@ import {
   ArrowRight,
   ArrowDownToLine,
   ArrowUpRight,
-  Landmark,
-  Sparkles,
   Copy,
   Check,
   FileText,
@@ -18,7 +16,6 @@ import {
 import { formatCurrency } from '@/lib/utils'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
-import { EmergencyAdvanceModal } from './EmergencyAdvanceModal'
 import { FairBreakoutModal } from './FairBreakoutModal'
 import { FundVaultModal } from './FundVaultModal'
 import type { VaultTransactionItem } from '../services/savingsService'
@@ -49,12 +46,14 @@ interface VaultDashboardViewProps {
       has_active_loan: boolean
       max_borrowable_kobo: number
       active_loan_details?: Record<string, unknown> | null
-    }
+    } | null
     savings_score: {
       total_score: number
-      cadence_points: number
-      velocity_points: number
-      loan_discipline_points: number
+      cadence_points?: number
+      velocity_points?: number
+      loan_discipline_points?: number
+      consistency_points?: number
+      goal_points?: number
     }
     transactions?: VaultTransactionItem[]
   }
@@ -63,7 +62,6 @@ interface VaultDashboardViewProps {
 
 export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboardViewProps) {
   const [showFundModal, setShowFundModal] = useState(false)
-  const [showAdvanceModal, setShowAdvanceModal] = useState(false)
   const [showBreakoutModal, setShowBreakoutModal] = useState(false)
   const [copiedAccount, setCopiedAccount] = useState(false)
 
@@ -96,7 +94,24 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
       ? Math.min(100, Math.round((currentBalanceNaira / targetAmountNaira) * 1000) / 10)
       : vault.target_completion_percentage
 
-  const isSettlementReady = vault.days_to_unlock <= 0 || vault.lock_status === 'SETTLEMENT_READY'
+  // Landlord settlement is ONLY available when rent due date is 30 days away or less
+  const canSettleLandlord = Boolean(onGoToSettlementHub && daysRemaining <= 30)
+
+  // Readjusted scoring (2 clear pillars totaling 100 pts without borrow/advance):
+  // 1. Regular Saving (up to 50 pts)
+  // 2. Target Progress (up to 50 pts)
+  const consistencyPoints =
+    vault.savings_score.consistency_points ??
+    Math.min(
+      50,
+      Math.round(((vault.savings_score.cadence_points ?? 0) / 40) * 50) ||
+        (currentBalanceNaira > 0 ? 15 : 10),
+    )
+  const goalPoints =
+    vault.savings_score.goal_points ??
+    Math.min(50, Math.round((targetCompletionPercentage / 100) * 50))
+  const totalScore = Math.min(100, consistencyPoints + goalPoints)
+
   const transactions = vault.transactions || []
 
   const handleCopyAccount = () => {
@@ -182,13 +197,13 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
             <span>Add Funds</span>
           </button>
 
-          {isSettlementReady && onGoToSettlementHub && (
+          {canSettleLandlord && (
             <button
               type="button"
               className="vault-btn-secondary"
               onClick={onGoToSettlementHub}
             >
-              <span>Settle Landlord &amp; Bonus</span>
+              <span>Pay Landlord</span>
               <ArrowRight size={16} />
             </button>
           )}
@@ -237,78 +252,28 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
         <div className="vault-score-card__header">
           <div className="vault-score-card__title">
             <ShieldCheck size={18} color="var(--clay)" />
-            <span>Savings Discipline</span>
+            <span>Savings Score</span>
           </div>
           <span className="vault-score-card__points-pill">
-            {vault.savings_score.total_score} / 100
+            {totalScore} / 100
           </span>
         </div>
 
-        <div className="vault-score-card__metrics">
+        <div className="vault-score-card__metrics vault-score-card__metrics--two">
           <div>
             <div className="vault-score-card__metric-val">
-              {vault.savings_score.cadence_points} / 40
+              {consistencyPoints} / 50
             </div>
-            <div className="vault-score-card__metric-label">Cadence</div>
+            <div className="vault-score-card__metric-label">Regular Saving</div>
           </div>
           <div>
             <div className="vault-score-card__metric-val">
-              {vault.savings_score.velocity_points} / 40
+              {goalPoints} / 50
             </div>
-            <div className="vault-score-card__metric-label">Milestone</div>
-          </div>
-          <div>
-            <div className="vault-score-card__metric-val">
-              {vault.savings_score.loan_discipline_points} / 20
-            </div>
-            <div className="vault-score-card__metric-label">Lock</div>
+            <div className="vault-score-card__metric-label">Target Progress</div>
           </div>
         </div>
       </div>
-
-      {(vault.emergency_advance || onGoToSettlementHub) && (
-        <div className="vault-services-list">
-          {vault.emergency_advance && (
-            <button
-              type="button"
-              className="vault-service-item"
-              onClick={() => setShowAdvanceModal(true)}
-            >
-              <div className="vault-service-item__icon">
-                <Sparkles size={18} />
-              </div>
-              <div className="vault-service-item__content">
-                <span className="vault-service-item__title">Borrow Emergency Cash</span>
-                <span className="vault-service-item__subtitle">
-                  {vault.emergency_advance.has_active_loan
-                    ? 'Active advance in progress'
-                    : `Up to ${formatCurrency(vault.emergency_advance.max_borrowable_kobo / 100, 'NGN')} (40%)`}
-                </span>
-              </div>
-              <ArrowRight size={16} className="vault-service-item__arrow" />
-            </button>
-          )}
-
-          {onGoToSettlementHub && (
-            <button
-              type="button"
-              className="vault-service-item"
-              onClick={() => onGoToSettlementHub()}
-            >
-              <div className="vault-service-item__icon">
-                <Landmark size={18} />
-              </div>
-              <div className="vault-service-item__content">
-                <span className="vault-service-item__title">Settle Rent to Landlord</span>
-                <span className="vault-service-item__subtitle">
-                  Direct NIP transfer + 1.5% on-time rent bonus
-                </span>
-              </div>
-              <ArrowRight size={16} className="vault-service-item__arrow" />
-            </button>
-          )}
-        </div>
-      )}
 
       <div className="vault-ledger">
         <div className="vault-ledger__header">
@@ -402,16 +367,6 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
         onClose={() => setShowFundModal(false)}
         dedicatedAccount={vault.dedicated_account}
       />
-
-      {showAdvanceModal && vault.emergency_advance && (
-        <EmergencyAdvanceModal
-          vaultId={vault.vault_id}
-          currentBalanceKobo={vault.current_balance_kobo}
-          maxBorrowableKobo={vault.emergency_advance.max_borrowable_kobo}
-          hasActiveLoan={vault.emergency_advance.has_active_loan}
-          onClose={() => setShowAdvanceModal(false)}
-        />
-      )}
 
       {showBreakoutModal && (
         <FairBreakoutModal

@@ -115,7 +115,7 @@ export interface RentVaultData {
     account_name: string
     assignment_status: string
   } | null
-  emergency_advance: {
+  emergency_advance?: {
     has_active_loan: boolean
     active_loan_details: {
       advance_id: string
@@ -125,12 +125,14 @@ export interface RentVaultData {
       status: string
     } | null
     max_borrowable_kobo: number
-  }
+  } | null
   savings_score: {
     total_score: number
-    cadence_points: number
-    velocity_points: number
-    loan_discipline_points: number
+    cadence_points?: number
+    velocity_points?: number
+    loan_discipline_points?: number
+    consistency_points?: number
+    goal_points?: number
   }
   transactions?: VaultTransactionItem[]
 }
