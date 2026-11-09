@@ -6,7 +6,6 @@ import {
   Loader2,
   ShieldCheck,
   AlertCircle,
-  Lock,
   PiggyBank,
 } from 'lucide-react'
 import { useRentVault } from '../hooks/useRentSavings'
@@ -248,16 +247,7 @@ export function RentSavingsMainView() {
                   ? 'Verification required to unlock savings activities'
                   : 'Consent required to start saving'
               }
-            >
-              <div className="rent-savings__gated-badge">
-                <Lock size={15} color="var(--clay)" />
-                <span>
-                  {!user?.isIdentityVerified
-                    ? 'Verification required to access and fund your vault'
-                    : 'Get cash back on your next rent when you save up for it regularly'}
-                </span>
-              </div>
-            </div>
+            />
           )}
         </div>
       )}
