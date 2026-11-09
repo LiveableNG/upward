@@ -1560,7 +1560,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 16px;
+  padding: 12px;
   cursor: pointer;
   background: rgba(255, 255, 255, 0.05);
   border-radius: var(--radius-lg, 16px);
@@ -1585,39 +1585,6 @@
     border-color 0.2s ease;
 }
 
-@media (max-width: 640px) {
-  .rent-savings__gated-overlay {
-    padding: 12px;
-  }
-
-  .rent-savings__gated-badge {
-    padding: 8px 14px;
-    font-size: 0.75rem;
-    text-align: center;
-    max-width: 90%;
-  }
-
-  .rent-savings__central-cta-box {
-    padding: 18px 14px;
-    max-width: 320px;
-    width: 95%;
-  }
-
-  .rent-savings__central-title {
-    font-size: 1rem;
-  }
-
-  .rent-savings__central-desc {
-    font-size: 0.75rem;
-    margin-bottom: 4px;
-  }
-
-  .rent-savings__central-btn {
-    padding: 10px 16px;
-    font-size: 0.8125rem;
-  }
-}
-
 .rent-savings__gated-overlay:hover .rent-savings__gated-badge {
   transform: translateY(-2px);
   box-shadow: 0 6px 24px rgba(217, 119, 87, 0.2);
@@ -1628,25 +1595,26 @@
 .rent-savings__central-cta-box {
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg, 16px);
-  padding: 24px 20px;
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.12);
+  border-radius: var(--radius-lg, 18px);
+  padding: 26px 22px;
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.14);
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  max-width: 360px;
-  width: 90%;
-  gap: 10px;
+  width: 100%;
+  max-width: 460px;
+  gap: 12px;
   box-sizing: border-box;
   animation: fadeIn 0.25s ease-out;
 }
 
 .rent-savings__central-title {
-  font-size: 1.0625rem;
+  font-size: 1.125rem;
   font-weight: 700;
   color: var(--text);
   margin: 0;
+  line-height: 1.35;
 }
 
 .rent-savings__central-desc {
@@ -1658,11 +1626,47 @@
 
 .rent-savings__central-btn {
   width: 100%;
-  padding: 12px 20px;
+  padding: 13px 20px;
   font-size: 0.875rem;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
+}
+
+@media (max-width: 640px) {
+  .rent-savings__gated-overlay {
+    padding: 8px;
+  }
+
+  .rent-savings__gated-badge {
+    padding: 8px 14px;
+    font-size: 0.75rem;
+    text-align: center;
+    max-width: 90%;
+  }
+
+  .rent-savings__central-cta-box {
+    padding: 22px 18px;
+    width: 100%;
+    max-width: 100%;
+    border-radius: var(--radius-lg, 16px);
+    gap: 10px;
+  }
+
+  .rent-savings__central-title {
+    font-size: 1.0625rem;
+  }
+
+  .rent-savings__central-desc {
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    margin-bottom: 4px;
+  }
+
+  .rent-savings__central-btn {
+    padding: 12px 18px;
+    font-size: 0.875rem;
+  }
 }
