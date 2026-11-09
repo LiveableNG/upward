@@ -1,53 +1,7 @@
 'use client'
 
-import { createContext, useContext, useEffect, useRef } from 'react'
-import {
-  createLDReactProvider,
-  useLDClient,
-  useStringVariation,
-  useInitializationStatus,
-  type LDContext,
-} from '@launchdarkly/react-sdk'
-import Observability from '@launchdarkly/observability'
-import SessionReplay from '@launchdarkly/session-replay'
-import { useAuth } from '@/features/auth/AuthContext'
-import { buildLdContext } from '../utils/launchDarklyContext'
-import { LaunchDarklyFlagProbe } from './LaunchDarklyFlagProbe'
-import {
-  CHECKOUT_VARIANT_FLAG,
-  CHECKOUT_VARIANTS,
-  type CheckoutVariant,
-} from '../constants/checkoutVariant'
-
-const clientSideId = process.env.NEXT_PUBLIC_LAUNCHDARKLY_CLIENT_SIDE_ID
-
-const bootstrapContext: LDContext = {
-  kind: 'user',
-  key: 'anonymous-bootstrap',
-  anonymous: true,
-}
-
-const LDProvider = clientSideId
-  ? createLDReactProvider(clientSideId, bootstrapContext, {
-      // Docs recommend a short timeout so app does not sit in initializing on network issues.
-      startOptions: {
-        timeout: 3,
-        ...({
-          plugins: [
-            new Observability({
-              networkRecording: {
-                enabled: true,
-                recordHeadersAndBody: true,
-              },
-            }),
-            new SessionReplay({
-              privacySetting: 'strict',
-            }),
-          ],
-        } as Record<string, unknown>),
-      },
-    })
-  : null
+import React, { createContext, useContext, useMemo } from 'react'
+import { CHECKOUT_VARIANTS, type CheckoutVariant } from '../constants/checkoutVariant'
 
 export interface CheckoutVariantState {
   variant: CheckoutVariant
@@ -55,7 +9,19 @@ export interface CheckoutVariantState {
   isBasicCheckout: boolean
   isReady: boolean
   isLaunchDarklyEnabled: boolean
-  ldClient?: any
+  ldClient?: {
+    track: (eventName: string, data?: Record<string, unknown>) => void
+    identify?: (context: unknown) => Promise<void>
+  }
+}
+
+const mockLdClient = {
+  track: (eventName: string, data?: Record<string, unknown>) => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[Experiment Track]', eventName, data)
+    }
+  },
+  identify: async () => {},
 }
 
 const DEFAULT_STATE: CheckoutVariantState = {
@@ -64,85 +30,41 @@ const DEFAULT_STATE: CheckoutVariantState = {
   isBasicCheckout: true,
   isReady: true,
   isLaunchDarklyEnabled: false,
-  ldClient: undefined,
+  ldClient: mockLdClient,
 }
 
 const CheckoutVariantContext = createContext<CheckoutVariantState>(DEFAULT_STATE)
 
-function normalizeVariant(value: string): CheckoutVariant {
-  return value === CHECKOUT_VARIANTS.PREMIUM
-    ? CHECKOUT_VARIANTS.PREMIUM
-    : CHECKOUT_VARIANTS.BASIC
-}
-
-function LaunchDarklyIdentify() {
-  const client = useLDClient()
-  const { user, loading: authLoading } = useAuth()
-  const identifiedKeyRef = useRef<string | null>(null)
-
-  useEffect(() => {
-    if (!client || authLoading) return
-
-    const context = buildLdContext(user)
-    const contextKey = context.key as string
-
-    if (identifiedKeyRef.current === contextKey) return
-    identifiedKeyRef.current = contextKey
-
-    void client.identify(context)
-  }, [client, user, authLoading])
-
-  return null
-}
-
-function CheckoutVariantBridge({ children }: { children: React.ReactNode }) {
-  const { loading: authLoading } = useAuth()
-  const initStatus = useInitializationStatus()
-  const rawVariant = useStringVariation(
-    CHECKOUT_VARIANT_FLAG,
-    CHECKOUT_VARIANTS.BASIC,
-  )
-  const ldClient = useLDClient()
-
-  const variant = normalizeVariant(rawVariant)
-  const isReady =
-    !authLoading &&
-    (initStatus.status === 'complete' ||
-      initStatus.status === 'failed' ||
-      initStatus.status === 'timeout')
-
-  const value: CheckoutVariantState = {
-    variant,
-    isPremiumCheckout: variant === CHECKOUT_VARIANTS.PREMIUM,
-    isBasicCheckout: variant === CHECKOUT_VARIANTS.BASIC,
-    isReady,
-    isLaunchDarklyEnabled: true,
-    ldClient,
-  }
-
-  return (
-    <CheckoutVariantContext.Provider value={value}>
-      {children}
-    </CheckoutVariantContext.Provider>
-  )
-}
-
 export function LaunchDarklyProvider({ children }: { children: React.ReactNode }) {
-  if (!LDProvider) {
-    return (
-      <CheckoutVariantContext.Provider value={DEFAULT_STATE}>
-        {children}
-      </CheckoutVariantContext.Provider>
-    )
-  }
+  const value = useMemo<CheckoutVariantState>(() => {
+    let variant: CheckoutVariant = CHECKOUT_VARIANTS.BASIC
 
-  return (
-    <LDProvider>
-      <LaunchDarklyIdentify />
-      <LaunchDarklyFlagProbe />
-      <CheckoutVariantBridge>{children}</CheckoutVariantBridge>
-    </LDProvider>
-  )
+    if (typeof window !== 'undefined') {
+      try {
+        const params = new URLSearchParams(window.location.search)
+        const qv = params.get('checkoutVariant')
+        if (qv === 'premium' || qv === CHECKOUT_VARIANTS.PREMIUM) {
+          variant = CHECKOUT_VARIANTS.PREMIUM
+        } else if (
+          process.env.NEXT_PUBLIC_CHECKOUT_EXPERIENCE === 'premium-checkout' ||
+          process.env.NEXT_PUBLIC_CHECKOUT_VARIANT === 'premium-checkout'
+        ) {
+          variant = CHECKOUT_VARIANTS.PREMIUM
+        }
+      } catch {}
+    }
+
+    return {
+      variant,
+      isPremiumCheckout: variant === CHECKOUT_VARIANTS.PREMIUM,
+      isBasicCheckout: variant === CHECKOUT_VARIANTS.BASIC,
+      isReady: true,
+      isLaunchDarklyEnabled: false,
+      ldClient: mockLdClient,
+    }
+  }, [])
+
+  return <CheckoutVariantContext.Provider value={value}>{children}</CheckoutVariantContext.Provider>
 }
 
 export function useCheckoutVariant(): CheckoutVariantState {

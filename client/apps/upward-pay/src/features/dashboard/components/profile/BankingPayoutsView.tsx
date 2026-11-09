@@ -1,10 +1,21 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { AlertCircle, Building2, CreditCard, Loader2, Pencil, User } from 'lucide-react'
+import {
+  AlertCircle,
+  Building2,
+  CheckCircle2,
+  CreditCard,
+  Landmark,
+  Loader2,
+  Pencil,
+  Plus,
+  ShieldCheck,
+  User,
+} from 'lucide-react'
 import { api } from '@/lib/api'
 import { useToast } from '@/components/common/Toast'
-import { PayFlowPrimaryButton, PayPageShell } from '../payment/PayPageShell'
+import { PayPageShell } from '../payment/PayPageShell'
 import { formatCurrency } from '@/lib/utils'
 
 interface BankingPayoutsViewProps {
@@ -160,8 +171,9 @@ export function BankingPayoutsView({ onBack, initialEditing = false }: BankingPa
       className="pay-flow__header-action pay-flow__header-action--primary"
       onClick={handleSave}
       disabled={saving || !bankDetails.accountName}
+      aria-label="Save bank details"
     >
-      {saving ? '...' : 'Save'}
+      {saving ? <Loader2 size={15} className="animate-spin" /> : 'Save'}
     </button>
   ) : (
     <button
@@ -185,6 +197,7 @@ export function BankingPayoutsView({ onBack, initialEditing = false }: BankingPa
       showBack
       onBack={isEditing ? handleCancel : onBack}
       rightElement={headerAction}
+      hideNav
     >
       {pendingRefunds.length > 0 ? (
         <section className="banking-refund-card">
@@ -218,7 +231,11 @@ export function BankingPayoutsView({ onBack, initialEditing = false }: BankingPa
             ))}
           </div>
           {!hasPayoutAccount && !isEditing ? (
-            <button type="button" className="pay-flow__cta banking-refund-card__cta" onClick={handleEditClick}>
+            <button
+              type="button"
+              className="pay-flow__cta banking-refund-card__cta"
+              onClick={handleEditClick}
+            >
               Add payout account
             </button>
           ) : null}
@@ -238,21 +255,15 @@ export function BankingPayoutsView({ onBack, initialEditing = false }: BankingPa
               </p>
             </div>
           </div>
-          {!isEditing ? (
-            <button type="button" className="personal-card__edit-btn" onClick={handleEditClick}>
-              <Pencil size={14} />
-              {hasPayoutAccount ? 'Edit details' : 'Add account'}
-            </button>
-          ) : null}
         </div>
 
         <div className="banking-notice">
-          <AlertCircle size={18} className="banking-notice__icon" />
+          <ShieldCheck size={20} className="banking-notice__icon" />
           <div>
-            <p className="banking-notice__title">Why we need this</p>
+            <p className="banking-notice__title">Secure Refund Protection</p>
             <p className="banking-notice__text">
-              These details are used for automated refunds. If a payment cannot be applied, funds
-              are returned to this account.
+              This account is used exclusively to deposit rent overpayments, deposit returns, and
+              transaction refunds. We will never debit funds from this account.
             </p>
           </div>
         </div>
@@ -260,7 +271,7 @@ export function BankingPayoutsView({ onBack, initialEditing = false }: BankingPa
         {isEditing ? (
           <div className="banking-form">
             <div className="personal-field">
-              <label htmlFor="bankCode">Bank</label>
+              <label htmlFor="bankCode">Select Bank</label>
               <select
                 id="bankCode"
                 value={bankDetails.bankCode || ''}
@@ -279,7 +290,7 @@ export function BankingPayoutsView({ onBack, initialEditing = false }: BankingPa
                   }
                 }}
               >
-                <option value="">Select a bank</option>
+                <option value="">Choose your bank...</option>
                 {banks.map((bank) => (
                   <option key={bank.code} value={bank.code}>
                     {bank.name}
@@ -289,13 +300,13 @@ export function BankingPayoutsView({ onBack, initialEditing = false }: BankingPa
             </div>
 
             <div className="personal-field">
-              <label htmlFor="accountNumber">Account number</label>
+              <label htmlFor="accountNumber">10-Digit Account Number</label>
               <input
                 id="accountNumber"
                 type="text"
                 inputMode="numeric"
                 maxLength={10}
-                placeholder="10 digits"
+                placeholder="e.g. 0123456789"
                 value={bankDetails.accountNumber || ''}
                 onChange={(e) => {
                   const accountNumber = e.target.value.replace(/\D/g, '').slice(0, 10)
@@ -309,88 +320,91 @@ export function BankingPayoutsView({ onBack, initialEditing = false }: BankingPa
             </div>
 
             <div className="personal-field">
-              <label>Account name</label>
-              <div className="banking-resolved-name">
+              <label>Account Name Verification</label>
+              <div
+                className={`banking-resolved-name${
+                  bankDetails.accountName ? ' banking-resolved-name--verified' : ''
+                }`}
+              >
                 {resolvingBank ? (
                   <span className="banking-resolved-name__loading">
                     <Loader2 size={14} className="banking-resolved-name__spin" />
-                    Resolving account name…
+                    Verifying account with bank…
                   </span>
                 ) : bankDetails.accountName ? (
-                  bankDetails.accountName
+                  <span className="banking-resolved-name__success">
+                    <CheckCircle2 size={16} />
+                    <span>{bankDetails.accountName}</span>
+                  </span>
                 ) : (
-                  <span className="personal-readonly-value--muted">Enter bank and account number</span>
+                  <span className="banking-resolved-name__placeholder">
+                    Enter bank and 10-digit account number to verify
+                  </span>
                 )}
               </div>
             </div>
           </div>
         ) : hasPayoutAccount ? (
-          <div className="banking-account-card">
-            <div className="banking-account-card__row">
-              <span className="banking-account-card__icon-wrap">
-                <Building2 size={16} />
-              </span>
-              <div>
-                <span className="banking-account-card__label">Bank</span>
-                <span className="banking-account-card__value">{bankDetails.bankName}</span>
+          <div className="banking-card-preview">
+            <div className="banking-card-preview__top">
+              <div className="banking-card-preview__bank">
+                <div className="banking-card-preview__icon">
+                  <Building2 size={18} />
+                </div>
+                <div>
+                  <h3 className="banking-card-preview__bank-name">{bankDetails.bankName}</h3>
+                  <span className="banking-card-preview__tag">Primary Payout Destination</span>
+                </div>
               </div>
+              <span className="banking-card-preview__badge">
+                <CheckCircle2 size={13} />
+                <span>Verified</span>
+              </span>
             </div>
-            <div className="banking-account-card__row">
-              <span className="banking-account-card__icon-wrap">
-                <CreditCard size={16} />
+
+            <div className="banking-card-preview__middle">
+              <span className="banking-card-preview__num-label">Account Number</span>
+              <span className="banking-card-preview__number">
+                {maskAccountNumber(bankDetails.accountNumber)}
               </span>
-              <div>
-                <span className="banking-account-card__label">Account number</span>
-                <span className="banking-account-card__value">
-                  {maskAccountNumber(bankDetails.accountNumber)}
-                </span>
-              </div>
             </div>
-            <div className="banking-account-card__row">
-              <span className="banking-account-card__icon-wrap">
-                <User size={16} />
-              </span>
+
+            <div className="banking-card-preview__bottom">
               <div>
-                <span className="banking-account-card__label">Account name</span>
-                <span className="banking-account-card__value">{bankDetails.accountName}</span>
+                <span className="banking-card-preview__name-label">Account Name</span>
+                <span className="banking-card-preview__name-value">{bankDetails.accountName}</span>
               </div>
+              <button
+                type="button"
+                className="banking-card-preview__change-btn"
+                onClick={handleEditClick}
+              >
+                <Pencil size={13} />
+                <span>Change Account</span>
+              </button>
             </div>
           </div>
         ) : (
           <div className="banking-empty">
             <div className="banking-empty__icon">
-              <CreditCard size={24} />
+              <Landmark size={26} />
             </div>
-            <h3 className="banking-empty__title">No payout account yet</h3>
+            <h3 className="banking-empty__title">No payout account linked</h3>
             <p className="banking-empty__text">
-              Add your bank details so refunds and overpayments can be sent back to you.
+              Link your Nigerian bank account to receive rent overpayments, deposit refunds, and
+              cashbacks safely and automatically.
             </p>
-            <button type="button" className="pay-flow__cta" onClick={handleEditClick}>
-              Add payout account
+            <button
+              type="button"
+              className="pay-flow__cta banking-empty__cta"
+              onClick={handleEditClick}
+            >
+              <Plus size={16} />
+              <span>Link Payout Account</span>
             </button>
           </div>
         )}
       </section>
-
-      {isEditing ? (
-        <div className="personal-sticky-actions">
-          <button
-            type="button"
-            className="personal-sticky-actions__cancel"
-            onClick={handleCancel}
-            disabled={saving}
-          >
-            Cancel
-          </button>
-          <PayFlowPrimaryButton
-            onClick={handleSave}
-            disabled={saving || !bankDetails.accountName}
-            loading={saving}
-          >
-            Save changes
-          </PayFlowPrimaryButton>
-        </div>
-      ) : null}
     </PayPageShell>
   )
 }

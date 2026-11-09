@@ -74,6 +74,8 @@ model upward_user {
   allianceSubjectRatings  upward_alliance_rating[]       @relation("AllianceSubjectUser")
   tenantNotes           upward_admin_tenant_note[]
   kycVerifications      upward_kyc_verification[]
+  userGoals             upward_user_goal[]
+  commerceOrders        upward_commerce_order[]
 
   @@index([email])
   @@index([createdAt])
@@ -197,7 +199,7 @@ model upward_admin_tenant_note {
   category   String        @default("PAID_OUTSIDE")
   note       String        @db.Text
   createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @default(now()) @updatedAt
+  updatedAt  DateTime      @updatedAt
 
   user       upward_user   @relation(fields: [userId], references: [id], onDelete: Cascade)
   admin      upward_admin? @relation(fields: [adminId], references: [id], onDelete: SetNull)
@@ -252,3 +254,4 @@ model upward_kyc_verification {
   @@index([status])
   @@index([armSyncStatus])
 }
+

@@ -75,7 +75,7 @@ export default function GlobalError({
         <p className="not-found-screen__description">
           {isOffline
             ? "We're having trouble reaching Upward Pay. Please check your internet connection and try again."
-            : 'An unexpected issue occurred while processing this request. Our team has been notified.'}
+            : 'An unexpected error occurred. Please try again, or return to the dashboard if the problem persists.'}
         </p>
 
         <div className="not-found-screen__actions">
@@ -98,6 +98,17 @@ export default function GlobalError({
             <span>Go to dashboard</span>
           </Link>
         </div>
+
+        <p className="not-found-screen__support">
+          Need help?{' '}
+          <Link
+            href="/dashboard/help"
+            className="not-found-screen__support-link"
+            onClick={() => haptics.light()}
+          >
+            Contact support
+          </Link>
+        </p>
       </main>
     </div>
   )

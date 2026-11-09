@@ -7,8 +7,8 @@
 .pay-alliance {
   display: flex;
   flex-direction: column;
-  gap: var(--space-6, 24px);
-  padding-bottom: 80px;
+  gap: var(--space-4, 16px);
+  padding: 12px var(--shell-px) calc(32px + var(--safe-bottom));
   width: 100%;
   max-width: 1200px;
   margin: 0 auto;
@@ -16,39 +16,134 @@
 
 /* Header Section */
 .pay-alliance__header {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2, 8px);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: color-mix(in srgb, var(--bg, #ffffff) 90%, transparent);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  padding: calc(var(--safe-top) + 12px) 0 12px;
+  margin: -12px calc(-1 * var(--shell-px)) 0;
+  padding-left: var(--shell-px);
+  padding-right: var(--shell-px);
 }
 
-.pay-alliance__badge {
+.pay-alliance__top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pay-alliance__top-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.pay-alliance__back-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  background: rgba(217, 119, 87, 0.1);
-  color: var(--clay, #d97757);
-  padding: 4px 12px;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
   border-radius: var(--radius-full, 9999px);
-  font-size: 12px;
-  font-weight: 700;
-  width: fit-content;
-  border: 1px solid rgba(217, 119, 87, 0.2);
+  background: var(--surface, #f7f7f7);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  color: var(--text, #0a0a0f);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    transform 100ms ease-out,
+    background 150ms ease;
+}
+
+.pay-alliance__back-btn:active {
+  transform: scale(0.94);
+  background: var(--surface2, #efefef);
 }
 
 .pay-alliance__title {
-  font-size: 1.75rem;
+  font-size: clamp(18px, 4vw, 22px);
   font-weight: 800;
   letter-spacing: -0.02em;
   color: var(--text, #0a0a0f);
   margin: 0;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 
 .pay-alliance__subtitle {
-  font-size: 0.95rem;
-  color: var(--text-secondary, #4a4642);
+  font-size: 12.5px;
+  color: var(--text-muted, #8a8a8a);
   margin: 0;
-  line-height: 1.5;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 300px;
+}
+
+@media (max-width: 480px) {
+  .pay-alliance__subtitle {
+    display: none;
+  }
+}
+
+.pay-alliance__nav-tabs {
+  display: inline-flex;
+  align-items: center;
+  background: var(--surface, #f7f7f7);
+  padding: 3px;
+  border-radius: var(--radius-full, 9999px);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.06));
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.pay-alliance__nav-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: var(--radius-full, 9999px);
+  font-size: 12.5px;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary, #4a4642);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.pay-alliance__nav-tab:active {
+  transform: scale(0.96);
+}
+
+.pay-alliance__nav-tab--active {
+  background: var(--dark, #0a0a0f);
+  color: #ffffff;
+}
+
+:root.theme--dark .pay-alliance__nav-tab--active {
+  background: var(--clay, #d97757);
+  color: #ffffff;
+}
+
+.pay-alliance__count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 9999px;
+  background: var(--clay, #d97757);
+  color: #ffffff;
+  font-size: 10.5px;
+  font-weight: 800;
 }
 
 /* ==========================================================================
@@ -58,9 +153,9 @@
 .pay-alliance-filters {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3, 12px);
-  background: #ffffff;
-  padding: 16px 20px;
+  gap: var(--space-3, 10px);
+  background: var(--bg, #ffffff);
+  padding: 12px 14px;
   border-radius: var(--radius-lg, 16px);
   border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
   box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.04));
@@ -288,7 +383,10 @@
   text-decoration: none;
   color: inherit;
   box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.04));
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease;
+  transition:
+    transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.25s ease;
 }
 
 .pay-alliance-card:hover {
@@ -1484,4 +1582,3 @@
   padding-top: 14px;
   border-top: 1px solid var(--border, rgba(0, 0, 0, 0.06));
 }
-

@@ -13,7 +13,6 @@ import {
   Search,
   Info,
   Smartphone,
-
   Mail,
   RefreshCcw,
   Laptop,
@@ -27,6 +26,7 @@ import {
   ChevronUp,
 } from 'lucide-react'
 import { Square, CheckSquare } from './Checkbox'
+import { LifestyleCommerceCard } from './LifestyleCommerceCard'
 import type { FlatMetrics, SignedUpRecord, InvitedRecord } from '../types'
 import * as XLSX from 'xlsx'
 import { showToast } from '@upward/client-core'
@@ -46,7 +46,6 @@ function formatDuration(sec: number | undefined): string {
   return `${s}s`
 }
 
-
 interface SparklineProps {
   data: number[]
   color: string
@@ -65,11 +64,7 @@ const Sparkline: React.FC<SparklineProps> = ({ data, color, height = 36 }) => {
     return `${x},${y}`
   })
 
-  const areaPoints = [
-    `0,${height}`,
-    ...points,
-    `${width},${height}`,
-  ]
+  const areaPoints = [`0,${height}`, ...points, `${width},${height}`]
 
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
@@ -79,10 +74,7 @@ const Sparkline: React.FC<SparklineProps> = ({ data, color, height = 36 }) => {
           <stop offset="100%" stopColor={color} stopOpacity="0.02" />
         </linearGradient>
       </defs>
-      <polygon
-        points={areaPoints.join(' ')}
-        fill={`url(#spark-${color.replace('#', '')})`}
-      />
+      <polygon points={areaPoints.join(' ')} fill={`url(#spark-${color.replace('#', '')})`} />
       <polyline
         points={points.join(' ')}
         fill="none"
@@ -94,7 +86,6 @@ const Sparkline: React.FC<SparklineProps> = ({ data, color, height = 36 }) => {
     </svg>
   )
 }
-
 
 // ───────────────────────────────────────────────────────────────
 // 30-Day Daily Traffic Trend Line Chart
@@ -109,7 +100,10 @@ const DailyTrendChart: React.FC<DailyTrendChartProps> = ({ trend }) => {
   const height = 150
   const width = 600
 
-  const maxViews = Math.max(...trend.map(d => Math.max(d.activeUsers, d.sessions, d.pageViews)), 10)
+  const maxViews = Math.max(
+    ...trend.map((d) => Math.max(d.activeUsers, d.sessions, d.pageViews)),
+    10,
+  )
   const totalPoints = trend.length
 
   const getSvgPoints = (key: 'activeUsers' | 'sessions' | 'pageViews') => {
@@ -134,34 +128,120 @@ const DailyTrendChart: React.FC<DailyTrendChartProps> = ({ trend }) => {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '20px', marginTop: '20px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px',
+        background: 'var(--bg)',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-md)',
+        padding: '20px',
+        marginTop: '20px',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '12px',
+        }}
+      >
         <div>
-          <h4 style={{ fontSize: '13px', fontWeight: 800, margin: 0, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>30-Day Traffic Trends</h4>
-          <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>Daily breakdown of visitors, sessions, and pageviews</p>
+          <h4
+            style={{
+              fontSize: '13px',
+              fontWeight: 800,
+              margin: 0,
+              color: 'var(--text)',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+            }}
+          >
+            30-Day Traffic Trends
+          </h4>
+          <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>
+            Daily breakdown of visitors, sessions, and pageviews
+          </p>
         </div>
-        
-        <div style={{ display: 'flex', gap: '16px', fontSize: '11px', fontWeight: 600, alignItems: 'center' }}>
+
+        <div
+          style={{
+            display: 'flex',
+            gap: '16px',
+            fontSize: '11px',
+            fontWeight: 600,
+            alignItems: 'center',
+          }}
+        >
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ width: '10px', height: '3px', background: '#3b82f6', borderRadius: '2px' }} /> Page Views
+            <span
+              style={{ width: '10px', height: '3px', background: '#3b82f6', borderRadius: '2px' }}
+            />{' '}
+            Page Views
             <InfoTooltip text="Total daily page views across all visitors, including repeat views." />
           </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ width: '10px', height: '3px', background: 'var(--success)', borderRadius: '2px' }} /> Sessions
+            <span
+              style={{
+                width: '10px',
+                height: '3px',
+                background: 'var(--success)',
+                borderRadius: '2px',
+              }}
+            />{' '}
+            Sessions
             <InfoTooltip text="Total daily visits initiated (expires after 30 minutes of inactivity)." />
           </span>
           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span style={{ width: '10px', height: '3px', background: 'var(--accent)', borderRadius: '2px' }} /> Active Users
+            <span
+              style={{
+                width: '10px',
+                height: '3px',
+                background: 'var(--accent)',
+                borderRadius: '2px',
+              }}
+            />{' '}
+            Active Users
             <InfoTooltip text="Total daily unique engaged visitors (each unique individual is counted once)." />
           </span>
         </div>
       </div>
 
       <div style={{ position: 'relative', width: '100%' }}>
-        <svg viewBox={`0 0 ${width} ${height}`} style={{ width: '100%', height: 'auto', overflow: 'visible' }}>
-          <line x1="0" y1={height - 10} x2={width} y2={height - 10} stroke="var(--border)" strokeWidth="1" strokeDasharray="4 4" />
-          <line x1="0" y1={height / 2} x2={width} y2={height / 2} stroke="var(--border)" strokeWidth="1" strokeDasharray="4 4" />
-          <line x1="0" y1="10" x2={width} y2="10" stroke="var(--border)" strokeWidth="1" strokeDasharray="4 4" />
+        <svg
+          viewBox={`0 0 ${width} ${height}`}
+          style={{ width: '100%', height: 'auto', overflow: 'visible' }}
+        >
+          <line
+            x1="0"
+            y1={height - 10}
+            x2={width}
+            y2={height - 10}
+            stroke="var(--border)"
+            strokeWidth="1"
+            strokeDasharray="4 4"
+          />
+          <line
+            x1="0"
+            y1={height / 2}
+            x2={width}
+            y2={height / 2}
+            stroke="var(--border)"
+            strokeWidth="1"
+            strokeDasharray="4 4"
+          />
+          <line
+            x1="0"
+            y1="10"
+            x2={width}
+            y2="10"
+            stroke="var(--border)"
+            strokeWidth="1"
+            strokeDasharray="4 4"
+          />
 
           <polygon
             points={`0,${height - 10} ${viewsPoints.join(' ')} ${width},${height - 10}`}
@@ -174,13 +254,44 @@ const DailyTrendChart: React.FC<DailyTrendChartProps> = ({ trend }) => {
             </linearGradient>
           </defs>
 
-          <polyline points={viewsPoints.join(' ')} fill="none" stroke="#3b82f6" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-          <polyline points={sessionsPoints.join(' ')} fill="none" stroke="var(--success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          <polyline points={usersPoints.join(' ')} fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          <polyline
+            points={viewsPoints.join(' ')}
+            fill="none"
+            stroke="#3b82f6"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <polyline
+            points={sessionsPoints.join(' ')}
+            fill="none"
+            stroke="var(--success)"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+          <polyline
+            points={usersPoints.join(' ')}
+            fill="none"
+            stroke="var(--accent)"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       </div>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          fontSize: '9px',
+          fontWeight: 700,
+          color: 'var(--text-muted)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+        }}
+      >
         <span>{formatDate(trend[0].date)}</span>
         <span>{formatDate(trend[Math.floor(trend.length / 2)].date)}</span>
         <span>{formatDate(trend[trend.length - 1].date)}</span>
@@ -188,7 +299,6 @@ const DailyTrendChart: React.FC<DailyTrendChartProps> = ({ trend }) => {
     </div>
   )
 }
-
 
 // ───────────────────────────────────────────────────────────────
 // User Conversion Funnel Widget
@@ -210,10 +320,33 @@ const ConversionFunnel: React.FC<ConversionFunnelProps> = ({ sessions, events })
   const maxVal = Math.max(sessions, 1)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '20px' }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '16px',
+        background: 'var(--bg)',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-md)',
+        padding: '20px',
+      }}
+    >
       <div>
-        <h4 style={{ fontSize: '13px', fontWeight: 800, margin: 0, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>User Conversion Funnel</h4>
-        <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>Drop-off diagnostic from initial visit to checkout completion</p>
+        <h4
+          style={{
+            fontSize: '13px',
+            fontWeight: 800,
+            margin: 0,
+            color: 'var(--text)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+          }}
+        >
+          User Conversion Funnel
+        </h4>
+        <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>
+          Drop-off diagnostic from initial visit to checkout completion
+        </p>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -225,27 +358,63 @@ const ConversionFunnel: React.FC<ConversionFunnelProps> = ({ sessions, events })
           return (
             <div key={step.label} style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
               <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    marginBottom: '4px',
+                  }}
+                >
                   <span>{step.label}</span>
-                  <span>{step.value.toLocaleString()} ({pct}%)</span>
+                  <span>
+                    {step.value.toLocaleString()} ({pct}%)
+                  </span>
                 </div>
-                <div style={{ height: '10px', background: 'var(--surface-hover)', borderRadius: '5px', overflow: 'hidden' }}>
-                  <div style={{ height: '100%', background: step.color, width: `${pct}%`, borderRadius: '5px' }} />
+                <div
+                  style={{
+                    height: '10px',
+                    background: 'var(--surface-hover)',
+                    borderRadius: '5px',
+                    overflow: 'hidden',
+                  }}
+                >
+                  <div
+                    style={{
+                      height: '100%',
+                      background: step.color,
+                      width: `${pct}%`,
+                      borderRadius: '5px',
+                    }}
+                  />
                 </div>
               </div>
 
               {idx > 0 && (
-                <div style={{
-                  width: '54px',
-                  textAlign: 'center',
-                  fontSize: '10px',
-                  fontWeight: 700,
-                  color: stepConv >= 70 ? 'var(--success)' : stepConv >= 40 ? '#f59e0b' : 'var(--accent)',
-                  background: stepConv >= 70 ? 'var(--success-faint)' : stepConv >= 40 ? 'rgba(245, 158, 11, 0.08)' : 'var(--accent-faint)',
-                  padding: '4px 6px',
-                  borderRadius: '6px',
-                  border: `1px solid ${stepConv >= 70 ? 'rgba(34, 197, 94, 0.15)' : stepConv >= 40 ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)'}`
-                }}>
+                <div
+                  style={{
+                    width: '54px',
+                    textAlign: 'center',
+                    fontSize: '10px',
+                    fontWeight: 700,
+                    color:
+                      stepConv >= 70
+                        ? 'var(--success)'
+                        : stepConv >= 40
+                          ? '#f59e0b'
+                          : 'var(--accent)',
+                    background:
+                      stepConv >= 70
+                        ? 'var(--success-faint)'
+                        : stepConv >= 40
+                          ? 'rgba(245, 158, 11, 0.08)'
+                          : 'var(--accent-faint)',
+                    padding: '4px 6px',
+                    borderRadius: '6px',
+                    border: `1px solid ${stepConv >= 70 ? 'rgba(34, 197, 94, 0.15)' : stepConv >= 40 ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)'}`,
+                  }}
+                >
                   {stepConv}% conv
                 </div>
               )}
@@ -257,7 +426,6 @@ const ConversionFunnel: React.FC<ConversionFunnelProps> = ({ sessions, events })
   )
 }
 
-
 // ───────────────────────────────────────────────────────────────
 // Geographic breakdown Card
 // ───────────────────────────────────────────────────────────────
@@ -268,14 +436,52 @@ interface TopCitiesCardProps {
 
 const TopCitiesCard: React.FC<TopCitiesCardProps> = ({ cities, total }) => {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '20px' }}>
+    <div
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '16px',
+        background: 'var(--bg)',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-md)',
+        padding: '20px',
+      }}
+    >
       <div>
-        <h4 style={{ fontSize: '13px', fontWeight: 800, margin: 0, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Geographic Distribution</h4>
-        <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>Top cities sending active users to the platform</p>
+        <h4
+          style={{
+            fontSize: '13px',
+            fontWeight: 800,
+            margin: 0,
+            color: 'var(--text)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+          }}
+        >
+          Geographic Distribution
+        </h4>
+        <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>
+          Top cities sending active users to the platform
+        </p>
       </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', justifyContent: 'center', flex: 1 }}>
-        {(!cities || cities.length === 0) ? (
-          <div style={{ color: 'var(--text-muted)', fontSize: '12px', textAlign: 'center', padding: '20px 0' }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '12px',
+          justifyContent: 'center',
+          flex: 1,
+        }}
+      >
+        {!cities || cities.length === 0 ? (
+          <div
+            style={{
+              color: 'var(--text-muted)',
+              fontSize: '12px',
+              textAlign: 'center',
+              padding: '20px 0',
+            }}
+          >
             No geographical data available
           </div>
         ) : (
@@ -283,11 +489,28 @@ const TopCitiesCard: React.FC<TopCitiesCardProps> = ({ cities, total }) => {
             const percentage = total ? Math.round((c.count / total) * 100) : 0
             return (
               <div key={c.city}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600 }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                  }}
+                >
                   <span>{c.city}</span>
-                  <span>{c.count} ({percentage}%)</span>
+                  <span>
+                    {c.count} ({percentage}%)
+                  </span>
                 </div>
-                <div style={{ height: '6px', background: 'var(--surface-hover)', borderRadius: '3px', overflow: 'hidden', marginTop: '6px' }}>
+                <div
+                  style={{
+                    height: '6px',
+                    background: 'var(--surface-hover)',
+                    borderRadius: '3px',
+                    overflow: 'hidden',
+                    marginTop: '6px',
+                  }}
+                >
                   <div
                     style={{
                       height: '100%',
@@ -305,10 +528,6 @@ const TopCitiesCard: React.FC<TopCitiesCardProps> = ({ cities, total }) => {
     </div>
   )
 }
-
-
-
-
 
 // ───────────────────────────────────────────────────────────────
 // Health KPI Card
@@ -397,16 +616,27 @@ interface HealthCardProps {
   label: string
   value: string | number
   sub?: React.ReactNode
-  subStrong?: string      // bolded sub-label for actual counts
-  tooltip?: string        // text shown in the info tooltip on hover
-  change?: number         // positive or negative %
+  subStrong?: string // bolded sub-label for actual counts
+  tooltip?: string // text shown in the info tooltip on hover
+  change?: number // positive or negative %
   sparkData?: number[]
   accentColor: string
   icon: React.ReactNode
   onClick?: () => void
 }
 
-const HealthCard: React.FC<HealthCardProps> = ({ label, value, sub, subStrong, tooltip, change, sparkData, accentColor, icon, onClick }) => {
+const HealthCard: React.FC<HealthCardProps> = ({
+  label,
+  value,
+  sub,
+  subStrong,
+  tooltip,
+  change,
+  sparkData,
+  accentColor,
+  icon,
+  onClick,
+}) => {
   const isPositive = change !== undefined ? change >= 0 : true
   return (
     <div
@@ -425,48 +655,73 @@ const HealthCard: React.FC<HealthCardProps> = ({ label, value, sub, subStrong, t
       }}
     >
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+        <span
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '5px',
+            fontSize: '11px',
+            fontWeight: 700,
+            color: 'var(--text-muted)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.06em',
+          }}
+        >
           {label}
           {tooltip && <InfoTooltip text={tooltip} />}
         </span>
-        <div style={{
-          width: '34px',
-          height: '34px',
-          borderRadius: '9px',
-          backgroundColor: `${accentColor}18`,
-          color: accentColor,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
+        <div
+          style={{
+            width: '34px',
+            height: '34px',
+            borderRadius: '9px',
+            backgroundColor: `${accentColor}18`,
+            color: accentColor,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
           {icon}
         </div>
       </div>
 
-      <div style={{ fontSize: '26px', fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.02em' }}>
+      <div
+        style={{
+          fontSize: '26px',
+          fontWeight: 800,
+          color: 'var(--text)',
+          letterSpacing: '-0.02em',
+        }}
+      >
         {value}
       </div>
 
       {(change !== undefined || sub || subStrong) && (
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           {change !== undefined && (
-            <span style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '3px',
-              fontSize: '12px',
-              fontWeight: 700,
-              color: isPositive ? 'var(--success)' : 'var(--danger)',
-              background: isPositive ? 'var(--success-faint)' : 'var(--danger-faint)',
-              borderRadius: '6px',
-              padding: '2px 7px',
-            }}>
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+                fontSize: '12px',
+                fontWeight: 700,
+                color: isPositive ? 'var(--success)' : 'var(--danger)',
+                background: isPositive ? 'var(--success-faint)' : 'var(--danger-faint)',
+                borderRadius: '6px',
+                padding: '2px 7px',
+              }}
+            >
               {isPositive ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
-              {change >= 0 ? '+' : ''}{change}%
+              {change >= 0 ? '+' : ''}
+              {change}%
             </span>
           )}
           {subStrong && (
-            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700 }}>{subStrong}</span>
+            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: 700 }}>
+              {subStrong}
+            </span>
           )}
           {sub && <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{sub}</div>}
         </div>
@@ -480,8 +735,6 @@ const HealthCard: React.FC<HealthCardProps> = ({ label, value, sub, subStrong, t
     </div>
   )
 }
-
-
 
 interface OverviewTabProps {
   metrics: FlatMetrics | null
@@ -512,7 +765,9 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
 }) => {
   const [subView, setSubView] = useState<'metrics' | 'paying'>('metrics')
   const [searchQuery, setSearchQuery] = useState('')
-  const [paymentTypeFilter, setPaymentTypeFilter] = useState<'all' | 'benefits' | 'fee' | 'benefits_and_fee' | 'rent_only'>('all')
+  const [paymentTypeFilter, setPaymentTypeFilter] = useState<
+    'all' | 'benefits' | 'fee' | 'benefits_and_fee' | 'rent_only'
+  >('all')
   const [filterBenefits, setFilterBenefits] = useState(false)
   const [filterFee, setFilterFee] = useState(false)
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set())
@@ -574,15 +829,13 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                 !lower.includes('caution') &&
                 !lower.includes('legal') &&
                 !lower.includes('agency') &&
-                (
-                  lower === 'processing fee' ||
+                (lower === 'processing fee' ||
                   lower === 'transaction fee' ||
                   lower.includes('upward') ||
                   lower.includes('processing fee') ||
                   lower.includes('transaction fee') ||
                   lower.includes('paystack') ||
-                  lower.includes('gateway fee')
-                )
+                  lower.includes('gateway fee'))
               ) {
                 if (!tx.fee && !tx.platformFee && !u.feePaid) {
                   fee += amt
@@ -666,8 +919,10 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
   const filteredPayingUsers = useMemo(() => {
     let result = payingUsers
 
-    const isBenefitsActive = filterBenefits || paymentTypeFilter === 'benefits' || paymentTypeFilter === 'benefits_and_fee'
-    const isFeeActive = filterFee || paymentTypeFilter === 'fee' || paymentTypeFilter === 'benefits_and_fee'
+    const isBenefitsActive =
+      filterBenefits || paymentTypeFilter === 'benefits' || paymentTypeFilter === 'benefits_and_fee'
+    const isFeeActive =
+      filterFee || paymentTypeFilter === 'fee' || paymentTypeFilter === 'benefits_and_fee'
 
     if (isBenefitsActive && isFeeActive) {
       result = result.filter((u) => u.benefitsPaid > 0 && u.feePaid > 0)
@@ -685,7 +940,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
         (u) =>
           u.name.toLowerCase().includes(q) ||
           u.email.toLowerCase().includes(q) ||
-          u.source.toLowerCase().includes(q)
+          u.source.toLowerCase().includes(q),
       )
     }
 
@@ -704,7 +959,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
     const workbook = XLSX.utils.book_new()
 
     const invitedSignedUpCount = invitedList.filter(
-      (i) => i.status === 'INVITED_SIGNED_UP' || i.status === 'SIGNED_UP_PAID'
+      (i) => i.status === 'INVITED_SIGNED_UP' || i.status === 'SIGNED_UP_PAID',
     ).length
     const invitedPendingCount = invitedList.filter((i) => i.status === 'INVITED_PENDING').length
     const convertedCount = metrics?.waitlistConverted ?? 0
@@ -715,7 +970,8 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
         Metric: 'Waitlist Entries',
         Value: metrics?.waitlistCount ?? 0,
         'Actual Detail': `${metrics?.waitlistCount ?? 0} total registrations`,
-        Description: 'Total number of people who joined the waitlist. Includes both pending and converted.',
+        Description:
+          'Total number of people who joined the waitlist. Includes both pending and converted.',
         Target: '—',
       },
       {
@@ -736,21 +992,26 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
         Metric: 'Invited Tenants (Total)',
         Value: metrics?.invitedCount ?? 0,
         'Actual Detail': `${invitedSignedUpCount} signed up · ${invitedPendingCount} still pending`,
-        Description: 'Tenants invited by property managers. Breakdown: signed-up vs still awaiting.',
+        Description:
+          'Tenants invited by property managers. Breakdown: signed-up vs still awaiting.',
         Target: '—',
       },
       {
         Metric: 'Conversion Rate',
-        Value: metrics ? `${((metrics.waitlistConverted / Math.max(metrics.waitlistCount, 1)) * 100).toFixed(1)}%` : '0%',
+        Value: metrics
+          ? `${((metrics.waitlistConverted / Math.max(metrics.waitlistCount, 1)) * 100).toFixed(1)}%`
+          : '0%',
         'Actual Detail': `${convertedCount} of ${metrics?.waitlistCount ?? 0} waitlist entries converted`,
-        Description: 'Formula: (Waitlist Converted ÷ Waitlist Total) × 100. Note: Signed Up count is higher as it includes direct sign-ups.',
+        Description:
+          'Formula: (Waitlist Converted ÷ Waitlist Total) × 100. Note: Signed Up count is higher as it includes direct sign-ups.',
         Target: '≥ 20%',
       },
       {
         Metric: 'Active Users (30-day)',
         Value: metrics?.activeCount ?? 0,
         'Actual Detail': `${metrics?.activeCount ?? 0} of ${metrics?.signedUpCount ?? 0} users active`,
-        Description: 'Registered tenants with at least one recorded app activity in the last 30 days.',
+        Description:
+          'Registered tenants with at least one recorded app activity in the last 30 days.',
         Target: '—',
       },
       {
@@ -788,11 +1049,31 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
 
     // Sheet 2: Invited Tenants Breakdown
     const invitedBreakdown = [
-      { Category: 'Total Invited', Count: metrics?.invitedCount ?? 0, Notes: 'All tenants ever invited by a PM' },
-      { Category: 'Signed Up (Onboarded)', Count: invitedSignedUpCount, Notes: 'Accepted invite and created account' },
-      { Category: 'Still Pending', Count: invitedPendingCount, Notes: 'Invitation sent but not accepted yet' },
-      { Category: 'Guest Paid', Count: invitedList.filter(i => i.status === 'GUEST_PAID').length, Notes: 'Made guest payment without full sign-up' },
-      { Category: 'Onboarded & Paid', Count: invitedList.filter(i => i.status === 'SIGNED_UP_PAID').length, Notes: 'Signed up and made at least one payment' },
+      {
+        Category: 'Total Invited',
+        Count: metrics?.invitedCount ?? 0,
+        Notes: 'All tenants ever invited by a PM',
+      },
+      {
+        Category: 'Signed Up (Onboarded)',
+        Count: invitedSignedUpCount,
+        Notes: 'Accepted invite and created account',
+      },
+      {
+        Category: 'Still Pending',
+        Count: invitedPendingCount,
+        Notes: 'Invitation sent but not accepted yet',
+      },
+      {
+        Category: 'Guest Paid',
+        Count: invitedList.filter((i) => i.status === 'GUEST_PAID').length,
+        Notes: 'Made guest payment without full sign-up',
+      },
+      {
+        Category: 'Onboarded & Paid',
+        Count: invitedList.filter((i) => i.status === 'SIGNED_UP_PAID').length,
+        Notes: 'Signed up and made at least one payment',
+      },
     ]
     const wsInvited = XLSX.utils.json_to_sheet(invitedBreakdown)
     XLSX.utils.book_append_sheet(workbook, wsInvited, 'Invited Tenants Breakdown')
@@ -828,16 +1109,21 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
     fitCols(wsInvited, invitedBreakdown)
     fitCols(wsPaying, payingUsersRows)
 
-    XLSX.writeFile(workbook, `Upward_Ecosystem_Overview_${new Date().toISOString().split('T')[0]}.xlsx`)
+    XLSX.writeFile(
+      workbook,
+      `Upward_Ecosystem_Overview_${new Date().toISOString().split('T')[0]}.xlsx`,
+    )
     showToast('Overview exported: 3 sheets — Summary, Invited Breakdown & Paying Tenants!')
   }
 
-  const revenueSpark = useMemo(() => seedSpark(metrics?.totalRentProcessed ?? 500000), [metrics?.totalRentProcessed])
-  const signupSpark = useMemo(() => seedSpark(metrics?.totalAccountsCreated ?? 30), [metrics?.totalAccountsCreated])
-
-
-
-
+  const revenueSpark = useMemo(
+    () => seedSpark(metrics?.totalRentProcessed ?? 500000),
+    [metrics?.totalRentProcessed],
+  )
+  const signupSpark = useMemo(
+    () => seedSpark(metrics?.totalAccountsCreated ?? 30),
+    [metrics?.totalAccountsCreated],
+  )
 
   if (!metrics) {
     return (
@@ -850,19 +1136,44 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-
       {/* ── Platform Health Grid ── */}
       <section>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            marginBottom: '16px',
+            flexWrap: 'wrap',
+            gap: '12px',
+          }}
+        >
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0', borderRadius: '10px', background: 'var(--surface-hover)', padding: '3px', border: '1px solid var(--border)', marginBottom: '8px', width: 'fit-content' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0',
+                borderRadius: '10px',
+                background: 'var(--surface-hover)',
+                padding: '3px',
+                border: '1px solid var(--border)',
+                marginBottom: '8px',
+                width: 'fit-content',
+              }}
+            >
               {(['metrics', 'paying'] as const).map((view) => (
                 <button
                   key={view}
                   onClick={() => setSubView(view)}
                   style={{
-                    padding: '5px 14px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, cursor: 'pointer',
-                    border: 'none', transition: 'all 0.15s ease',
+                    padding: '5px 14px',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    border: 'none',
+                    transition: 'all 0.15s ease',
                     background: subView === view ? 'var(--white)' : 'transparent',
                     color: subView === view ? 'var(--text)' : 'var(--text-muted)',
                     boxShadow: subView === view ? 'var(--shadow-sm)' : 'none',
@@ -886,7 +1197,15 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
             <button
               onClick={handleExportOverviewExcel}
               className="btn btn-secondary"
-              style={{ height: '32px', padding: '0 12px', gap: '6px', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+              style={{
+                height: '32px',
+                padding: '0 12px',
+                gap: '6px',
+                fontSize: '12px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+              }}
             >
               <Download size={13} /> Export Overview
             </button>
@@ -895,11 +1214,13 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
 
         {subView === 'metrics' ? (
           <>
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-              gap: '16px',
-            }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+                gap: '16px',
+              }}
+            >
               <HealthCard
                 label="Total Users"
                 value={metrics.totalUsersWithPassword.toLocaleString()}
@@ -923,10 +1244,28 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                 label="Platform Revenue"
                 value={formatNaira(metrics.feeRevenue + metrics.benefitsRevenue)}
                 sub={
-                  <div style={{ display: 'flex', gap: '8px', fontSize: '11px', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
-                    <span>Tx Fee: <strong style={{ color: 'var(--text)' }}>{formatNaira(metrics.feeRevenue)}</strong></span>
+                  <div
+                    style={{
+                      display: 'flex',
+                      gap: '8px',
+                      fontSize: '11px',
+                      color: 'var(--text-muted)',
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    <span>
+                      Tx Fee:{' '}
+                      <strong style={{ color: 'var(--text)' }}>
+                        {formatNaira(metrics.feeRevenue)}
+                      </strong>
+                    </span>
                     <span>•</span>
-                    <span>Benefits: <strong style={{ color: 'var(--text)' }}>{formatNaira(metrics.benefitsRevenue)}</strong></span>
+                    <span>
+                      Benefits:{' '}
+                      <strong style={{ color: 'var(--text)' }}>
+                        {formatNaira(metrics.benefitsRevenue)}
+                      </strong>
+                    </span>
                   </div>
                 }
                 accentColor="#10b981"
@@ -941,7 +1280,11 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
               />
               <HealthCard
                 label="Login Sessions (Timeframe)"
-                value={metrics.activitySessionsCount !== undefined ? metrics.activitySessionsCount.toLocaleString() : 'N/A'}
+                value={
+                  metrics.activitySessionsCount !== undefined
+                    ? metrics.activitySessionsCount.toLocaleString()
+                    : 'N/A'
+                }
                 sub="active sessions in timeframe"
                 accentColor="#e11d48"
                 icon={<Activity size={16} />}
@@ -949,49 +1292,137 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
               />
             </div>
 
+            {/* ── Lifestyle Goals & Commerce Hub ── */}
+            <LifestyleCommerceCard token={token} />
+
             {/* ── Where Did You Hear About Us Breakdown ── */}
             <div className="card" style={{ padding: '24px', marginTop: '24px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '20px',
+                }}
+              >
                 <div>
-                  <h3 style={{ margin: 0, fontWeight: 800, fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Globe size={18} style={{ color: 'var(--accent)' }} /> Signup Channel Attribution ("Where did you hear about us?")
+                  <h3
+                    style={{
+                      margin: 0,
+                      fontWeight: 800,
+                      fontSize: '18px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}
+                  >
+                    <Globe size={18} style={{ color: 'var(--accent)' }} /> Signup Channel
+                    Attribution ("Where did you hear about us?")
                   </h3>
                   <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
-                    Breakdown of customer acquisition sources selected during upward-pay account registration.
+                    Breakdown of customer acquisition sources selected during upward-pay account
+                    registration.
                   </p>
                 </div>
               </div>
 
               {metrics.hearAboutUsStats && Object.keys(metrics.hearAboutUsStats).length > 0 ? (
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                  gap: '16px',
-                }}>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                    gap: '16px',
+                  }}
+                >
                   {Object.entries(metrics.hearAboutUsStats)
                     .sort(([, a], [, b]) => b - a)
                     .map(([channel, count]) => {
-                      const totalSubmissions = Object.values(metrics.hearAboutUsStats!).reduce((sum, n) => sum + n, 0)
-                      const pct = totalSubmissions > 0 ? Math.round((count / totalSubmissions) * 100) : 0
+                      const totalSubmissions = Object.values(metrics.hearAboutUsStats!).reduce(
+                        (sum, n) => sum + n,
+                        0,
+                      )
+                      const pct =
+                        totalSubmissions > 0 ? Math.round((count / totalSubmissions) * 100) : 0
                       return (
-                        <div key={channel} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
-                          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text)', marginBottom: '8px', wordBreak: 'break-word' }}>
+                        <div
+                          key={channel}
+                          style={{
+                            background: 'var(--bg)',
+                            border: '1px solid var(--border)',
+                            borderRadius: 'var(--radius-md)',
+                            padding: '16px',
+                          }}
+                        >
+                          <div
+                            style={{
+                              fontSize: '12px',
+                              fontWeight: 700,
+                              color: 'var(--text)',
+                              marginBottom: '8px',
+                              wordBreak: 'break-word',
+                            }}
+                          >
                             {channel}
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '8px' }}>
-                            <span style={{ fontSize: '24px', fontWeight: 800, color: 'var(--accent)' }}>{count}</span>
-                            <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>({pct}%)</span>
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'baseline',
+                              gap: '8px',
+                              marginBottom: '8px',
+                            }}
+                          >
+                            <span
+                              style={{ fontSize: '24px', fontWeight: 800, color: 'var(--accent)' }}
+                            >
+                              {count}
+                            </span>
+                            <span
+                              style={{
+                                fontSize: '12px',
+                                fontWeight: 600,
+                                color: 'var(--text-muted)',
+                              }}
+                            >
+                              ({pct}%)
+                            </span>
                           </div>
-                          <div style={{ width: '100%', height: '6px', background: 'var(--surface-hover)', borderRadius: '3px', overflow: 'hidden' }}>
-                            <div style={{ height: '100%', background: 'var(--accent)', width: `${pct}%`, borderRadius: '3px' }} />
+                          <div
+                            style={{
+                              width: '100%',
+                              height: '6px',
+                              background: 'var(--surface-hover)',
+                              borderRadius: '3px',
+                              overflow: 'hidden',
+                            }}
+                          >
+                            <div
+                              style={{
+                                height: '100%',
+                                background: 'var(--accent)',
+                                width: `${pct}%`,
+                                borderRadius: '3px',
+                              }}
+                            />
                           </div>
                         </div>
                       )
                     })}
                 </div>
               ) : (
-                <div style={{ background: 'var(--bg)', border: '1px dashed var(--border)', borderRadius: 'var(--radius-md)', padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
-                  No signup channel selections recorded yet for this timeframe. (Channel attribution data is captured when users sign up via upward-pay).
+                <div
+                  style={{
+                    background: 'var(--bg)',
+                    border: '1px dashed var(--border)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '24px',
+                    textAlign: 'center',
+                    color: 'var(--text-muted)',
+                    fontSize: '13px',
+                  }}
+                >
+                  No signup channel selections recorded yet for this timeframe. (Channel attribution
+                  data is captured when users sign up via upward-pay).
                 </div>
               )}
             </div>
@@ -999,23 +1430,62 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
             {/* ── Email Campaigns & Open Performance ── */}
             {metrics.emailLogsSummary && (
               <div className="card" style={{ padding: '24px', marginTop: '24px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: showEmailPerformance ? '20px' : '0' }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: '12px',
+                    marginBottom: showEmailPerformance ? '20px' : '0',
+                  }}
+                >
                   <div>
-                    <h3 style={{ margin: 0, fontWeight: 800, fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <Mail size={18} style={{ color: 'var(--accent)' }} /> Email Campaigns & Open Performance
-                      <span style={{ fontSize: '11px', fontWeight: 600, background: 'var(--surface-hover)', padding: '2px 8px', borderRadius: '12px', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>
+                    <h3
+                      style={{
+                        margin: 0,
+                        fontWeight: 800,
+                        fontSize: '18px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                      }}
+                    >
+                      <Mail size={18} style={{ color: 'var(--accent)' }} /> Email Campaigns & Open
+                      Performance
+                      <span
+                        style={{
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          background: 'var(--surface-hover)',
+                          padding: '2px 8px',
+                          borderRadius: '12px',
+                          color: 'var(--text-muted)',
+                          border: '1px solid var(--border)',
+                        }}
+                      >
                         {metrics.emailLogsSummary.openRate}% Avg Open Rate
                       </span>
                     </h3>
                     <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
-                      Timeframe statistics for emails sent out, opened vs not opened, and open rates.
+                      Timeframe statistics for emails sent out, opened vs not opened, and open
+                      rates.
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setShowEmailPerformance((prev) => !prev)}
                     className="btn btn-secondary"
-                    style={{ height: '34px', padding: '0 14px', fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}
+                    style={{
+                      height: '34px',
+                      padding: '0 14px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      cursor: 'pointer',
+                    }}
                   >
                     {showEmailPerformance ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
                     {showEmailPerformance ? 'Hide Analytics' : 'Show Analytics'}
@@ -1024,50 +1494,250 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
 
                 {showEmailPerformance && (
                   <>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-                      <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
-                        <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>Total Sent</div>
-                        <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text)' }}>{metrics.emailLogsSummary.totalSent.toLocaleString()}</div>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                        gap: '16px',
+                        marginBottom: '24px',
+                      }}
+                    >
+                      <div
+                        style={{
+                          background: 'var(--bg)',
+                          border: '1px solid var(--border)',
+                          borderRadius: 'var(--radius-md)',
+                          padding: '16px',
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            color: 'var(--text-muted)',
+                            textTransform: 'uppercase',
+                            marginBottom: '4px',
+                          }}
+                        >
+                          Total Sent
+                        </div>
+                        <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text)' }}>
+                          {metrics.emailLogsSummary.totalSent.toLocaleString()}
+                        </div>
                       </div>
-                      <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
-                        <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--success)', textTransform: 'uppercase', marginBottom: '4px' }}>Total Opened</div>
-                        <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--success)' }}>{metrics.emailLogsSummary.totalOpened.toLocaleString()}</div>
+                      <div
+                        style={{
+                          background: 'var(--bg)',
+                          border: '1px solid var(--border)',
+                          borderRadius: 'var(--radius-md)',
+                          padding: '16px',
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            color: 'var(--success)',
+                            textTransform: 'uppercase',
+                            marginBottom: '4px',
+                          }}
+                        >
+                          Total Opened
+                        </div>
+                        <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--success)' }}>
+                          {metrics.emailLogsSummary.totalOpened.toLocaleString()}
+                        </div>
                       </div>
-                      <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
-                        <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '4px' }}>Not Opened</div>
-                        <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-muted)' }}>{metrics.emailLogsSummary.totalNotOpened.toLocaleString()}</div>
+                      <div
+                        style={{
+                          background: 'var(--bg)',
+                          border: '1px solid var(--border)',
+                          borderRadius: 'var(--radius-md)',
+                          padding: '16px',
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            color: 'var(--text-muted)',
+                            textTransform: 'uppercase',
+                            marginBottom: '4px',
+                          }}
+                        >
+                          Not Opened
+                        </div>
+                        <div
+                          style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-muted)' }}
+                        >
+                          {metrics.emailLogsSummary.totalNotOpened.toLocaleString()}
+                        </div>
                       </div>
-                      <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
-                        <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase', marginBottom: '4px' }}>Avg Open Rate</div>
-                        <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--accent)' }}>{metrics.emailLogsSummary.openRate}%</div>
+                      <div
+                        style={{
+                          background: 'var(--bg)',
+                          border: '1px solid var(--border)',
+                          borderRadius: 'var(--radius-md)',
+                          padding: '16px',
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            color: 'var(--accent)',
+                            textTransform: 'uppercase',
+                            marginBottom: '4px',
+                          }}
+                        >
+                          Avg Open Rate
+                        </div>
+                        <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--accent)' }}>
+                          {metrics.emailLogsSummary.openRate}%
+                        </div>
                       </div>
                     </div>
 
-                    <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
+                    <div
+                      style={{
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-md)',
+                        overflow: 'hidden',
+                      }}
+                    >
                       <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left' }}>
+                        <table
+                          style={{
+                            width: '100%',
+                            borderCollapse: 'collapse',
+                            fontSize: '13px',
+                            textAlign: 'left',
+                          }}
+                        >
                           <thead>
-                            <tr style={{ background: 'var(--surface-hover)', borderBottom: '1px solid var(--border)' }}>
-                              <th style={{ padding: '12px 16px', fontWeight: 700 }}>Email Subject</th>
-                              <th style={{ padding: '12px 16px', fontWeight: 700, width: '100px', textAlign: 'center' }}>Sent</th>
-                              <th style={{ padding: '12px 16px', fontWeight: 700, width: '100px', textAlign: 'center' }}>Opened</th>
-                              <th style={{ padding: '12px 16px', fontWeight: 700, width: '100px', textAlign: 'center' }}>Not Opened</th>
-                              <th style={{ padding: '12px 16px', fontWeight: 700, width: '150px', textAlign: 'center' }}>Open Rate</th>
+                            <tr
+                              style={{
+                                background: 'var(--surface-hover)',
+                                borderBottom: '1px solid var(--border)',
+                              }}
+                            >
+                              <th style={{ padding: '12px 16px', fontWeight: 700 }}>
+                                Email Subject
+                              </th>
+                              <th
+                                style={{
+                                  padding: '12px 16px',
+                                  fontWeight: 700,
+                                  width: '100px',
+                                  textAlign: 'center',
+                                }}
+                              >
+                                Sent
+                              </th>
+                              <th
+                                style={{
+                                  padding: '12px 16px',
+                                  fontWeight: 700,
+                                  width: '100px',
+                                  textAlign: 'center',
+                                }}
+                              >
+                                Opened
+                              </th>
+                              <th
+                                style={{
+                                  padding: '12px 16px',
+                                  fontWeight: 700,
+                                  width: '100px',
+                                  textAlign: 'center',
+                                }}
+                              >
+                                Not Opened
+                              </th>
+                              <th
+                                style={{
+                                  padding: '12px 16px',
+                                  fontWeight: 700,
+                                  width: '150px',
+                                  textAlign: 'center',
+                                }}
+                              >
+                                Open Rate
+                              </th>
                             </tr>
                           </thead>
                           <tbody>
                             {metrics.emailLogsSummary.bySubject.length > 0 ? (
                               metrics.emailLogsSummary.bySubject.map((item, idx) => (
-                                <tr key={idx} style={{ borderBottom: idx < metrics.emailLogsSummary!.bySubject.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                                  <td style={{ padding: '12px 16px', fontWeight: 600 }}>{item.subject}</td>
-                                  <td style={{ padding: '12px 16px', textAlign: 'center' }}>{item.sent}</td>
-                                  <td style={{ padding: '12px 16px', textAlign: 'center', color: 'var(--success)', fontWeight: 600 }}>{item.opened}</td>
-                                  <td style={{ padding: '12px 16px', textAlign: 'center', color: 'var(--text-muted)' }}>{item.notOpened}</td>
+                                <tr
+                                  key={idx}
+                                  style={{
+                                    borderBottom:
+                                      idx < metrics.emailLogsSummary!.bySubject.length - 1
+                                        ? '1px solid var(--border)'
+                                        : 'none',
+                                  }}
+                                >
+                                  <td style={{ padding: '12px 16px', fontWeight: 600 }}>
+                                    {item.subject}
+                                  </td>
+                                  <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                                    {item.sent}
+                                  </td>
+                                  <td
+                                    style={{
+                                      padding: '12px 16px',
+                                      textAlign: 'center',
+                                      color: 'var(--success)',
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    {item.opened}
+                                  </td>
+                                  <td
+                                    style={{
+                                      padding: '12px 16px',
+                                      textAlign: 'center',
+                                      color: 'var(--text-muted)',
+                                    }}
+                                  >
+                                    {item.notOpened}
+                                  </td>
                                   <td style={{ padding: '12px 16px' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
-                                      <span style={{ fontWeight: 700, minWidth: '36px', textAlign: 'right' }}>{item.openRate}%</span>
-                                      <div style={{ width: '60px', height: '6px', background: 'var(--surface-hover)', borderRadius: '3px', overflow: 'hidden' }}>
-                                        <div style={{ height: '100%', background: 'var(--accent)', width: `${item.openRate}%`, borderRadius: '3px' }} />
+                                    <div
+                                      style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        justifyContent: 'center',
+                                      }}
+                                    >
+                                      <span
+                                        style={{
+                                          fontWeight: 700,
+                                          minWidth: '36px',
+                                          textAlign: 'right',
+                                        }}
+                                      >
+                                        {item.openRate}%
+                                      </span>
+                                      <div
+                                        style={{
+                                          width: '60px',
+                                          height: '6px',
+                                          background: 'var(--surface-hover)',
+                                          borderRadius: '3px',
+                                          overflow: 'hidden',
+                                        }}
+                                      >
+                                        <div
+                                          style={{
+                                            height: '100%',
+                                            background: 'var(--accent)',
+                                            width: `${item.openRate}%`,
+                                            borderRadius: '3px',
+                                          }}
+                                        />
                                       </div>
                                     </div>
                                   </td>
@@ -1075,7 +1745,14 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                               ))
                             ) : (
                               <tr>
-                                <td colSpan={5} style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                                <td
+                                  colSpan={5}
+                                  style={{
+                                    padding: '24px',
+                                    textAlign: 'center',
+                                    color: 'var(--text-muted)',
+                                  }}
+                                >
                                   No email logs sent in this timeframe.
                                 </td>
                               </tr>
@@ -1090,7 +1767,16 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
             )}
 
             {/* ── Web Traffic & Engagement Section (GA4) ── */}
-            <div className="card" style={{ padding: '24px', marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+            <div
+              className="card"
+              style={{
+                padding: '24px',
+                marginTop: '24px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '24px',
+              }}
+            >
               <style>{`
                 @keyframes live-pulse {
                   0% { opacity: 0.4; transform: scale(0.9); }
@@ -1101,41 +1787,69 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                   animation: live-pulse 2s infinite ease-in-out;
                 }
               `}</style>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '16px',
+                }}
+              >
                 <div>
-                  <h3 style={{ margin: 0, fontWeight: 800, fontSize: '18px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <Activity size={18} style={{ color: 'var(--accent)' }} /> Website Traffic & Engagement
-                    {!loadingGaStats && gaStats?.status !== 'unavailable' && typeof gaStats?.realtimeActiveUsers === 'number' && (
-                      <span style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        color: '#22c55e',
-                        background: 'rgba(34, 197, 94, 0.08)',
-                        padding: '4px 10px',
-                        borderRadius: '12px',
-                        marginLeft: '8px',
-                        border: '1px solid rgba(34, 197, 94, 0.2)',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em'
-                      }}>
-                        <span className="live-pulse-dot" style={{
-                          width: '6px',
-                          height: '6px',
-                          background: '#22c55e',
-                          borderRadius: '50%'
-                        }} />
-                        {gaStats.realtimeActiveUsers} Live User{gaStats.realtimeActiveUsers !== 1 ? 's' : ''}
-                      </span>
-                    )}
+                  <h3
+                    style={{
+                      margin: 0,
+                      fontWeight: 800,
+                      fontSize: '18px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    <Activity size={18} style={{ color: 'var(--accent)' }} /> Website Traffic &
+                    Engagement
+                    {!loadingGaStats &&
+                      gaStats?.status !== 'unavailable' &&
+                      typeof gaStats?.realtimeActiveUsers === 'number' && (
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            color: '#22c55e',
+                            background: 'rgba(34, 197, 94, 0.08)',
+                            padding: '4px 10px',
+                            borderRadius: '12px',
+                            marginLeft: '8px',
+                            border: '1px solid rgba(34, 197, 94, 0.2)',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                          }}
+                        >
+                          <span
+                            className="live-pulse-dot"
+                            style={{
+                              width: '6px',
+                              height: '6px',
+                              background: '#22c55e',
+                              borderRadius: '50%',
+                            }}
+                          />
+                          {gaStats.realtimeActiveUsers} Live User
+                          {gaStats.realtimeActiveUsers !== 1 ? 's' : ''}
+                        </span>
+                      )}
                   </h3>
                   <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
-                    Real-time web analytics and conversion funnel insights powered by Google Analytics 4 (GA4).
+                    Real-time web analytics and conversion funnel insights powered by Google
+                    Analytics 4 (GA4).
                   </p>
                 </div>
-                
+
                 <button
                   type="button"
                   onClick={fetchGaStats}
@@ -1156,25 +1870,37 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
               </div>
 
               {!loadingGaStats && gaStats?.status === 'unavailable' ? (
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '48px 24px',
-                  background: 'var(--bg)',
-                  border: '1px dashed var(--border)',
-                  borderRadius: 'var(--radius-md)',
-                  textAlign: 'center',
-                  gap: '12px'
-                }}>
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '48px 24px',
+                    background: 'var(--bg)',
+                    border: '1px dashed var(--border)',
+                    borderRadius: 'var(--radius-md)',
+                    textAlign: 'center',
+                    gap: '12px',
+                  }}
+                >
                   <Info size={28} style={{ color: 'var(--text-muted)', opacity: 0.8 }} />
                   <div>
-                    <h4 style={{ margin: 0, fontWeight: 700, fontSize: '14px', color: 'var(--text)' }}>
+                    <h4
+                      style={{ margin: 0, fontWeight: 700, fontSize: '14px', color: 'var(--text)' }}
+                    >
                       Google Analytics is currently unavailable
                     </h4>
-                    <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--text-muted)', maxWidth: '480px' }}>
-                      {gaStats.reason || 'Failed to fetch live web traffic stats. Please check your internet connection or server configurations.'}
+                    <p
+                      style={{
+                        margin: '4px 0 0',
+                        fontSize: '12px',
+                        color: 'var(--text-muted)',
+                        maxWidth: '480px',
+                      }}
+                    >
+                      {gaStats.reason ||
+                        'Failed to fetch live web traffic stats. Please check your internet connection or server configurations.'}
                     </p>
                   </div>
                 </div>
@@ -1189,126 +1915,416 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                     }}
                   >
                     {/* Website Visitors */}
-                    <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <div
+                      style={{
+                        background: 'var(--bg)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '16px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '8px',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            color: 'var(--text-muted)',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                          }}
+                        >
                           Website Visitors (30d)
                           <InfoTooltip text="The number of unique individual visitors who engaged with the platform in the last 30 days." />
                         </span>
-                        <div style={{ color: 'var(--accent)', background: 'var(--accent-faint)', padding: '4px', borderRadius: '6px' }}>
+                        <div
+                          style={{
+                            color: 'var(--accent)',
+                            background: 'var(--accent-faint)',
+                            padding: '4px',
+                            borderRadius: '6px',
+                          }}
+                        >
                           <Users size={14} />
                         </div>
                       </div>
                       <div>
-                        <h4 style={{ fontSize: '24px', fontWeight: 800, margin: 0, color: 'var(--text)' }}>
+                        <h4
+                          style={{
+                            fontSize: '24px',
+                            fontWeight: 800,
+                            margin: 0,
+                            color: 'var(--text)',
+                          }}
+                        >
                           {loadingGaStats ? '...' : gaStats?.activeUsers?.toLocaleString() || 0}
                         </h4>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>
+                        <p
+                          style={{
+                            color: 'var(--text-muted)',
+                            fontSize: '11px',
+                            margin: '2px 0 0 0',
+                          }}
+                        >
                           Unique active visitors
                         </p>
                       </div>
                     </div>
 
                     {/* Visits / Sessions */}
-                    <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <div
+                      style={{
+                        background: 'var(--bg)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '16px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '8px',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            color: 'var(--text-muted)',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                          }}
+                        >
                           Visits / Sessions
                           <InfoTooltip text="The total number of individual visits initiated on the platform. A visit ends after 30 minutes of inactivity." />
                         </span>
-                        <div style={{ color: 'var(--success)', background: 'var(--success-faint)', padding: '4px', borderRadius: '6px' }}>
+                        <div
+                          style={{
+                            color: 'var(--success)',
+                            background: 'var(--success-faint)',
+                            padding: '4px',
+                            borderRadius: '6px',
+                          }}
+                        >
                           <Activity size={14} />
                         </div>
                       </div>
                       <div>
-                        <h4 style={{ fontSize: '24px', fontWeight: 800, margin: 0, color: 'var(--text)' }}>
+                        <h4
+                          style={{
+                            fontSize: '24px',
+                            fontWeight: 800,
+                            margin: 0,
+                            color: 'var(--text)',
+                          }}
+                        >
                           {loadingGaStats ? '...' : gaStats?.sessions?.toLocaleString() || 0}
                         </h4>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>
+                        <p
+                          style={{
+                            color: 'var(--text-muted)',
+                            fontSize: '11px',
+                            margin: '2px 0 0 0',
+                          }}
+                        >
                           Total sessions initiated
                         </p>
                       </div>
                     </div>
 
                     {/* Page Views */}
-                    <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <div
+                      style={{
+                        background: 'var(--bg)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '16px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '8px',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            color: 'var(--text-muted)',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                          }}
+                        >
                           Page Views
                           <InfoTooltip text="The total number of page views across the platform, including repeat page views by the same visitor." />
                         </span>
-                        <div style={{ color: '#3b82f6', background: 'rgba(59, 130, 246, 0.08)', padding: '4px', borderRadius: '6px' }}>
+                        <div
+                          style={{
+                            color: '#3b82f6',
+                            background: 'rgba(59, 130, 246, 0.08)',
+                            padding: '4px',
+                            borderRadius: '6px',
+                          }}
+                        >
                           <Eye size={14} />
                         </div>
                       </div>
                       <div>
-                        <h4 style={{ fontSize: '24px', fontWeight: 800, margin: 0, color: 'var(--text)' }}>
+                        <h4
+                          style={{
+                            fontSize: '24px',
+                            fontWeight: 800,
+                            margin: 0,
+                            color: 'var(--text)',
+                          }}
+                        >
                           {loadingGaStats ? '...' : gaStats?.pageViews?.toLocaleString() || 0}
                         </h4>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>
+                        <p
+                          style={{
+                            color: 'var(--text-muted)',
+                            fontSize: '11px',
+                            margin: '2px 0 0 0',
+                          }}
+                        >
                           Total routes viewed
                         </p>
                       </div>
                     </div>
 
                     {/* Pages per Visit */}
-                    <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <div
+                      style={{
+                        background: 'var(--bg)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '16px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '8px',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            color: 'var(--text-muted)',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                          }}
+                        >
                           Pages per Visit
                           <InfoTooltip text="The average number of screens or pages viewed during a single visit (Page Views divided by Visits)." />
                         </span>
-                        <div style={{ color: '#8b5cf6', background: 'rgba(139, 92, 246, 0.08)', padding: '4px', borderRadius: '6px' }}>
+                        <div
+                          style={{
+                            color: '#8b5cf6',
+                            background: 'rgba(139, 92, 246, 0.08)',
+                            padding: '4px',
+                            borderRadius: '6px',
+                          }}
+                        >
                           <Globe size={14} />
                         </div>
                       </div>
                       <div>
-                        <h4 style={{ fontSize: '24px', fontWeight: 800, margin: 0, color: 'var(--text)' }}>
-                          {loadingGaStats ? '...' : gaStats?.sessions ? (gaStats.pageViews / gaStats.sessions).toFixed(1) : '0.0'}
+                        <h4
+                          style={{
+                            fontSize: '24px',
+                            fontWeight: 800,
+                            margin: 0,
+                            color: 'var(--text)',
+                          }}
+                        >
+                          {loadingGaStats
+                            ? '...'
+                            : gaStats?.sessions
+                              ? (gaStats.pageViews / gaStats.sessions).toFixed(1)
+                              : '0.0'}
                         </h4>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>
+                        <p
+                          style={{
+                            color: 'var(--text-muted)',
+                            fontSize: '11px',
+                            margin: '2px 0 0 0',
+                          }}
+                        >
                           Average page depth
                         </p>
                       </div>
                     </div>
 
                     {/* Average Session Duration */}
-                    <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <div
+                      style={{
+                        background: 'var(--bg)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '16px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '8px',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            color: 'var(--text-muted)',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                          }}
+                        >
                           Avg Session Duration
                           <InfoTooltip text="The average amount of time visitors spent actively engaged on the site per visit." />
                         </span>
-                        <div style={{ color: '#f59e0b', background: 'rgba(245, 158, 11, 0.08)', padding: '4px', borderRadius: '6px' }}>
+                        <div
+                          style={{
+                            color: '#f59e0b',
+                            background: 'rgba(245, 158, 11, 0.08)',
+                            padding: '4px',
+                            borderRadius: '6px',
+                          }}
+                        >
                           <Clock size={14} />
                         </div>
                       </div>
                       <div>
-                        <h4 style={{ fontSize: '24px', fontWeight: 800, margin: 0, color: 'var(--text)' }}>
+                        <h4
+                          style={{
+                            fontSize: '24px',
+                            fontWeight: 800,
+                            margin: 0,
+                            color: 'var(--text)',
+                          }}
+                        >
                           {loadingGaStats ? '...' : formatDuration(gaStats?.averageSessionDuration)}
                         </h4>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>
+                        <p
+                          style={{
+                            color: 'var(--text-muted)',
+                            fontSize: '11px',
+                            margin: '2px 0 0 0',
+                          }}
+                        >
                           Time spent per session
                         </p>
                       </div>
                     </div>
 
                     {/* Bounce Rate */}
-                    <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <div
+                      style={{
+                        background: 'var(--bg)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '16px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '8px',
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            color: 'var(--text-muted)',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                          }}
+                        >
                           Bounce Rate
                           <InfoTooltip text="The percentage of visits where the user left the site after viewing only a single page without performing any further actions." />
                         </span>
-                        <div style={{ color: 'var(--warning)', background: 'var(--warning-faint)', padding: '4px', borderRadius: '6px' }}>
+                        <div
+                          style={{
+                            color: 'var(--warning)',
+                            background: 'var(--warning-faint)',
+                            padding: '4px',
+                            borderRadius: '6px',
+                          }}
+                        >
                           <TrendingDown size={14} />
                         </div>
                       </div>
                       <div>
-                        <h4 style={{ fontSize: '24px', fontWeight: 800, margin: 0, color: 'var(--text)' }}>
-                          {loadingGaStats ? '...' : (gaStats?.bounceRate ? `${(gaStats.bounceRate * 100).toFixed(1)}%` : '0.0%')}
+                        <h4
+                          style={{
+                            fontSize: '24px',
+                            fontWeight: 800,
+                            margin: 0,
+                            color: 'var(--text)',
+                          }}
+                        >
+                          {loadingGaStats
+                            ? '...'
+                            : gaStats?.bounceRate
+                              ? `${(gaStats.bounceRate * 100).toFixed(1)}%`
+                              : '0.0%'}
                         </h4>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>
+                        <p
+                          style={{
+                            color: 'var(--text-muted)',
+                            fontSize: '11px',
+                            margin: '2px 0 0 0',
+                          }}
+                        >
                           Single-page session rate
                         </p>
                       </div>
@@ -1330,45 +2346,101 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                     {/* Left Column: Devices & Traffic Sources */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                       {/* Visitor Devices */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '20px' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '16px',
+                          background: 'var(--bg)',
+                          border: '1px solid var(--border)',
+                          borderRadius: 'var(--radius-md)',
+                          padding: '20px',
+                        }}
+                      >
                         <div>
-                          <h4 style={{ fontSize: '13px', fontWeight: 800, margin: 0, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Visitor Devices</h4>
-                          <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>Traffic distribution by device category</p>
+                          <h4
+                            style={{
+                              fontSize: '13px',
+                              fontWeight: 800,
+                              margin: 0,
+                              color: 'var(--text)',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.05em',
+                            }}
+                          >
+                            Visitor Devices
+                          </h4>
+                          <p
+                            style={{
+                              color: 'var(--text-muted)',
+                              fontSize: '11px',
+                              margin: '2px 0 0 0',
+                            }}
+                          >
+                            Traffic distribution by device category
+                          </p>
                         </div>
                         {loadingGaStats ? (
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100px', color: 'var(--text-muted)', fontSize: '12px' }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              height: '100px',
+                              color: 'var(--text-muted)',
+                              fontSize: '12px',
+                            }}
+                          >
                             Loading device categories...
                           </div>
                         ) : (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', justifyContent: 'center', flex: 1 }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '16px',
+                              justifyContent: 'center',
+                              flex: 1,
+                            }}
+                          >
                             <div>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600 }}>
-                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Smartphone size={13} style={{ color: 'var(--accent)' }} /> Mobile Browser</span>
-                                <span>{gaStats?.devices?.mobile || 0} ({gaStats?.activeUsers ? Math.round(((gaStats.devices?.mobile || 0) / gaStats.activeUsers) * 100) : 0}%)</span>
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  fontSize: '12px',
+                                  fontWeight: 600,
+                                }}
+                              >
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <Smartphone size={13} style={{ color: 'var(--accent)' }} /> Mobile
+                                  Browser
+                                </span>
+                                <span>
+                                  {gaStats?.devices?.mobile || 0} (
+                                  {gaStats?.activeUsers
+                                    ? Math.round(
+                                        ((gaStats.devices?.mobile || 0) / gaStats.activeUsers) *
+                                          100,
+                                      )
+                                    : 0}
+                                  %)
+                                </span>
                               </div>
-                              <div style={{ height: '6px', background: 'var(--surface-hover)', borderRadius: '3px', overflow: 'hidden', marginTop: '6px' }}>
+                              <div
+                                style={{
+                                  height: '6px',
+                                  background: 'var(--surface-hover)',
+                                  borderRadius: '3px',
+                                  overflow: 'hidden',
+                                  marginTop: '6px',
+                                }}
+                              >
                                 <div
                                   style={{
                                     height: '100%',
                                     background: 'var(--accent)',
-                                    width: `${gaStats?.activeUsers ? (((gaStats.devices?.mobile || 0) / gaStats.activeUsers) * 100) : 0}%`,
-                                    borderRadius: '3px',
-                                  }}
-                                />
-                              </div>
-                            </div>
-                            
-                            <div>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600 }}>
-                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Laptop size={13} style={{ color: 'var(--success)' }} /> Desktop</span>
-                                <span>{gaStats?.devices?.desktop || 0} ({gaStats?.activeUsers ? Math.round(((gaStats.devices?.desktop || 0) / gaStats.activeUsers) * 100) : 0}%)</span>
-                              </div>
-                              <div style={{ height: '6px', background: 'var(--surface-hover)', borderRadius: '3px', overflow: 'hidden', marginTop: '6px' }}>
-                                <div
-                                  style={{
-                                    height: '100%',
-                                    background: 'var(--success)',
-                                    width: `${gaStats?.activeUsers ? (((gaStats.devices?.desktop || 0) / gaStats.activeUsers) * 100) : 0}%`,
+                                    width: `${gaStats?.activeUsers ? ((gaStats.devices?.mobile || 0) / gaStats.activeUsers) * 100 : 0}%`,
                                     borderRadius: '3px',
                                   }}
                                 />
@@ -1376,16 +2448,85 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                             </div>
 
                             <div>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600 }}>
-                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Tablet size={13} style={{ color: 'var(--warning)' }} /> Tablet</span>
-                                <span>{gaStats?.devices?.tablet || 0} ({gaStats?.activeUsers ? Math.round(((gaStats.devices?.tablet || 0) / gaStats.activeUsers) * 100) : 0}%)</span>
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  fontSize: '12px',
+                                  fontWeight: 600,
+                                }}
+                              >
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <Laptop size={13} style={{ color: 'var(--success)' }} /> Desktop
+                                </span>
+                                <span>
+                                  {gaStats?.devices?.desktop || 0} (
+                                  {gaStats?.activeUsers
+                                    ? Math.round(
+                                        ((gaStats.devices?.desktop || 0) / gaStats.activeUsers) *
+                                          100,
+                                      )
+                                    : 0}
+                                  %)
+                                </span>
                               </div>
-                              <div style={{ height: '6px', background: 'var(--surface-hover)', borderRadius: '3px', overflow: 'hidden', marginTop: '6px' }}>
+                              <div
+                                style={{
+                                  height: '6px',
+                                  background: 'var(--surface-hover)',
+                                  borderRadius: '3px',
+                                  overflow: 'hidden',
+                                  marginTop: '6px',
+                                }}
+                              >
+                                <div
+                                  style={{
+                                    height: '100%',
+                                    background: 'var(--success)',
+                                    width: `${gaStats?.activeUsers ? ((gaStats.devices?.desktop || 0) / gaStats.activeUsers) * 100 : 0}%`,
+                                    borderRadius: '3px',
+                                  }}
+                                />
+                              </div>
+                            </div>
+
+                            <div>
+                              <div
+                                style={{
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  fontSize: '12px',
+                                  fontWeight: 600,
+                                }}
+                              >
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <Tablet size={13} style={{ color: 'var(--warning)' }} /> Tablet
+                                </span>
+                                <span>
+                                  {gaStats?.devices?.tablet || 0} (
+                                  {gaStats?.activeUsers
+                                    ? Math.round(
+                                        ((gaStats.devices?.tablet || 0) / gaStats.activeUsers) *
+                                          100,
+                                      )
+                                    : 0}
+                                  %)
+                                </span>
+                              </div>
+                              <div
+                                style={{
+                                  height: '6px',
+                                  background: 'var(--surface-hover)',
+                                  borderRadius: '3px',
+                                  overflow: 'hidden',
+                                  marginTop: '6px',
+                                }}
+                              >
                                 <div
                                   style={{
                                     height: '100%',
                                     background: 'var(--warning)',
-                                    width: `${gaStats?.activeUsers ? (((gaStats.devices?.tablet || 0) / gaStats.activeUsers) * 100) : 0}%`,
+                                    width: `${gaStats?.activeUsers ? ((gaStats.devices?.tablet || 0) / gaStats.activeUsers) * 100 : 0}%`,
                                     borderRadius: '3px',
                                   }}
                                 />
@@ -1396,19 +2537,72 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                       </div>
 
                       {/* Traffic Sources */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '20px' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '16px',
+                          background: 'var(--bg)',
+                          border: '1px solid var(--border)',
+                          borderRadius: 'var(--radius-md)',
+                          padding: '20px',
+                        }}
+                      >
                         <div>
-                          <h4 style={{ fontSize: '13px', fontWeight: 800, margin: 0, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Traffic Acquisition</h4>
-                          <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>Traffic distribution by default channel group</p>
+                          <h4
+                            style={{
+                              fontSize: '13px',
+                              fontWeight: 800,
+                              margin: 0,
+                              color: 'var(--text)',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.05em',
+                            }}
+                          >
+                            Traffic Acquisition
+                          </h4>
+                          <p
+                            style={{
+                              color: 'var(--text-muted)',
+                              fontSize: '11px',
+                              margin: '2px 0 0 0',
+                            }}
+                          >
+                            Traffic distribution by default channel group
+                          </p>
                         </div>
                         {loadingGaStats ? (
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100px', color: 'var(--text-muted)', fontSize: '12px' }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              height: '100px',
+                              color: 'var(--text-muted)',
+                              fontSize: '12px',
+                            }}
+                          >
                             Loading traffic sources...
                           </div>
                         ) : (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', justifyContent: 'center', flex: 1 }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '16px',
+                              justifyContent: 'center',
+                              flex: 1,
+                            }}
+                          >
                             {Object.entries(gaStats?.trafficSources || {}).length === 0 ? (
-                              <div style={{ color: 'var(--text-muted)', fontSize: '12px', textAlign: 'center', padding: '20px 0' }}>
+                              <div
+                                style={{
+                                  color: 'var(--text-muted)',
+                                  fontSize: '12px',
+                                  textAlign: 'center',
+                                  padding: '20px 0',
+                                }}
+                              >
                                 No traffic source data available
                               </div>
                             ) : (
@@ -1416,31 +2610,63 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                                 .sort((a, b) => b[1] - a[1])
                                 .slice(0, 4)
                                 .map(([source, count]) => {
-                                  const percentage = gaStats?.activeUsers ? Math.round((count / gaStats.activeUsers) * 100) : 0;
-                                  let tooltipText = `Traffic classified as ${source} under Google Analytics default channel groupings.`;
-                                  const sLower = source.toLowerCase();
+                                  const percentage = gaStats?.activeUsers
+                                    ? Math.round((count / gaStats.activeUsers) * 100)
+                                    : 0
+                                  let tooltipText = `Traffic classified as ${source} under Google Analytics default channel groupings.`
+                                  const sLower = source.toLowerCase()
                                   if (sLower.includes('direct')) {
-                                    tooltipText = "Direct traffic. Users typed the URL directly, clicked a bookmark, or accessed the site via links in untracked apps (PDFs, WhatsApp, Slack, emails without UTM parameters).";
+                                    tooltipText =
+                                      'Direct traffic. Users typed the URL directly, clicked a bookmark, or accessed the site via links in untracked apps (PDFs, WhatsApp, Slack, emails without UTM parameters).'
                                   } else if (sLower.includes('organic social')) {
-                                    tooltipText = "Organic Social media traffic. Users clicked on links on social networks like Facebook, X/Twitter, Instagram, or LinkedIn without paid promotion.";
+                                    tooltipText =
+                                      'Organic Social media traffic. Users clicked on links on social networks like Facebook, X/Twitter, Instagram, or LinkedIn without paid promotion.'
                                   } else if (sLower.includes('organic search')) {
-                                    tooltipText = "Organic Search engine traffic. Users clicked on unpaid listings on search engines like Google, Bing, or Yahoo.";
+                                    tooltipText =
+                                      'Organic Search engine traffic. Users clicked on unpaid listings on search engines like Google, Bing, or Yahoo.'
                                   } else if (sLower.includes('referral')) {
-                                    tooltipText = "Referral traffic from external websites. Users clicked a link on another website that points to your site.";
+                                    tooltipText =
+                                      'Referral traffic from external websites. Users clicked a link on another website that points to your site.'
                                   } else if (sLower.includes('email')) {
-                                    tooltipText = "Email traffic. Traffic originating from email campaigns or email clients, typically tagged with UTM parameters.";
+                                    tooltipText =
+                                      'Email traffic. Traffic originating from email campaigns or email clients, typically tagged with UTM parameters.'
                                   }
 
                                   return (
                                     <div key={source}>
-                                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600, alignItems: 'center' }}>
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px', textTransform: 'capitalize' }}>
+                                      <div
+                                        style={{
+                                          display: 'flex',
+                                          justifyContent: 'space-between',
+                                          fontSize: '12px',
+                                          fontWeight: 600,
+                                          alignItems: 'center',
+                                        }}
+                                      >
+                                        <span
+                                          style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                            textTransform: 'capitalize',
+                                          }}
+                                        >
                                           {source}
                                           <InfoTooltip text={tooltipText} />
                                         </span>
-                                        <span>{count} ({percentage}%)</span>
+                                        <span>
+                                          {count} ({percentage}%)
+                                        </span>
                                       </div>
-                                      <div style={{ height: '6px', background: 'var(--surface-hover)', borderRadius: '3px', overflow: 'hidden', marginTop: '6px' }}>
+                                      <div
+                                        style={{
+                                          height: '6px',
+                                          background: 'var(--surface-hover)',
+                                          borderRadius: '3px',
+                                          overflow: 'hidden',
+                                          marginTop: '6px',
+                                        }}
+                                      >
                                         <div
                                           style={{
                                             height: '100%',
@@ -1451,7 +2677,7 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                                         />
                                       </div>
                                     </div>
-                                  );
+                                  )
                                 })
                             )}
                           </div>
@@ -1459,43 +2685,125 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                       </div>
 
                       {/* Top Referring Sites */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '20px' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '16px',
+                          background: 'var(--bg)',
+                          border: '1px solid var(--border)',
+                          borderRadius: 'var(--radius-md)',
+                          padding: '20px',
+                        }}
+                      >
                         <div>
-                          <h4 style={{ fontSize: '13px', fontWeight: 800, margin: 0, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Top Referring Sites</h4>
-                          <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>External websites sending traffic to your platform</p>
+                          <h4
+                            style={{
+                              fontSize: '13px',
+                              fontWeight: 800,
+                              margin: 0,
+                              color: 'var(--text)',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.05em',
+                            }}
+                          >
+                            Top Referring Sites
+                          </h4>
+                          <p
+                            style={{
+                              color: 'var(--text-muted)',
+                              fontSize: '11px',
+                              margin: '2px 0 0 0',
+                            }}
+                          >
+                            External websites sending traffic to your platform
+                          </p>
                         </div>
                         {loadingGaStats ? (
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100px', color: 'var(--text-muted)', fontSize: '12px' }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              height: '100px',
+                              color: 'var(--text-muted)',
+                              fontSize: '12px',
+                            }}
+                          >
                             Loading referrals...
                           </div>
                         ) : (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', justifyContent: 'center', flex: 1 }}>
-                            {(!gaStats?.topReferrals || gaStats.topReferrals.length === 0) ? (
-                              <div style={{ color: 'var(--text-muted)', fontSize: '12px', textAlign: 'center', padding: '20px 0' }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '12px',
+                              justifyContent: 'center',
+                              flex: 1,
+                            }}
+                          >
+                            {!gaStats?.topReferrals || gaStats.topReferrals.length === 0 ? (
+                              <div
+                                style={{
+                                  color: 'var(--text-muted)',
+                                  fontSize: '12px',
+                                  textAlign: 'center',
+                                  padding: '20px 0',
+                                }}
+                              >
                                 No referral traffic recorded
                               </div>
                             ) : (
-                              gaStats.topReferrals.slice(0, 5).map((ref: { source: string; count: number }) => {
-                                const percentage = gaStats?.activeUsers ? Math.round((ref.count / gaStats.activeUsers) * 100) : 0;
-                                return (
-                                  <div key={ref.source}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600 }}>
-                                      <span style={{ fontFamily: 'monospace', color: 'var(--text)', fontSize: '11px' }}>{ref.source}</span>
-                                      <span>{ref.count} ({percentage}%)</span>
-                                    </div>
-                                    <div style={{ height: '6px', background: 'var(--surface-hover)', borderRadius: '3px', overflow: 'hidden', marginTop: '6px' }}>
+                              gaStats.topReferrals
+                                .slice(0, 5)
+                                .map((ref: { source: string; count: number }) => {
+                                  const percentage = gaStats?.activeUsers
+                                    ? Math.round((ref.count / gaStats.activeUsers) * 100)
+                                    : 0
+                                  return (
+                                    <div key={ref.source}>
                                       <div
                                         style={{
-                                          height: '100%',
-                                          background: 'var(--success)',
-                                          width: `${percentage}%`,
-                                          borderRadius: '3px',
+                                          display: 'flex',
+                                          justifyContent: 'space-between',
+                                          fontSize: '12px',
+                                          fontWeight: 600,
                                         }}
-                                      />
+                                      >
+                                        <span
+                                          style={{
+                                            fontFamily: 'monospace',
+                                            color: 'var(--text)',
+                                            fontSize: '11px',
+                                          }}
+                                        >
+                                          {ref.source}
+                                        </span>
+                                        <span>
+                                          {ref.count} ({percentage}%)
+                                        </span>
+                                      </div>
+                                      <div
+                                        style={{
+                                          height: '6px',
+                                          background: 'var(--surface-hover)',
+                                          borderRadius: '3px',
+                                          overflow: 'hidden',
+                                          marginTop: '6px',
+                                        }}
+                                      >
+                                        <div
+                                          style={{
+                                            height: '100%',
+                                            background: 'var(--success)',
+                                            width: `${percentage}%`,
+                                            borderRadius: '3px',
+                                          }}
+                                        />
+                                      </div>
                                     </div>
-                                  </div>
-                                );
-                              })
+                                  )
+                                })
                             )}
                           </div>
                         )}
@@ -1503,96 +2811,176 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                     </div>
 
                     {/* Top Visited Pages & Funnel Drop-off Diagnostic */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '20px' }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '16px',
+                        background: 'var(--bg)',
+                        border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-md)',
+                        padding: '20px',
+                      }}
+                    >
                       <div>
-                        <h4 style={{ fontSize: '13px', fontWeight: 800, margin: 0, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Top Visited Pages & drop-off diagnosis</h4>
-                        <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>Monitor critical routes to diagnose onboarding drop-offs and traffic bottlenecks</p>
+                        <h4
+                          style={{
+                            fontSize: '13px',
+                            fontWeight: 800,
+                            margin: 0,
+                            color: 'var(--text)',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.05em',
+                          }}
+                        >
+                          Top Visited Pages & drop-off diagnosis
+                        </h4>
+                        <p
+                          style={{
+                            color: 'var(--text-muted)',
+                            fontSize: '11px',
+                            margin: '2px 0 0 0',
+                          }}
+                        >
+                          Monitor critical routes to diagnose onboarding drop-offs and traffic
+                          bottlenecks
+                        </p>
                       </div>
                       {loadingGaStats ? (
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100px', color: 'var(--text-muted)', fontSize: '12px' }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            height: '100px',
+                            color: 'var(--text-muted)',
+                            fontSize: '12px',
+                          }}
+                        >
                           Loading popular pages...
                         </div>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          {((gaStats?.topPages || []).slice(0, showAllPages ? 50 : 5)).map((page: any, idx: number) => {
-                            let pathLabel = '';
-                            let badgeColor = '';
-                            let badgeBg = '';
-                            
-                            if (page.path.includes('login')) {
-                              pathLabel = 'Login Gate';
-                              badgeColor = 'var(--success)';
-                              badgeBg = 'var(--success-faint)';
-                            } else if (page.path.includes('signup') || page.path.includes('register')) {
-                              pathLabel = 'Signup Funnel';
-                              badgeColor = '#8b5cf6';
-                              badgeBg = 'rgba(139, 92, 246, 0.08)';
-                            } else if (page.path.includes('onboarding')) {
-                              pathLabel = 'Onboarding Process';
-                              badgeColor = '#3b82f6';
-                              badgeBg = 'rgba(59, 130, 246, 0.08)';
-                            } else if (page.path.includes('payment') || page.path.includes('rent')) {
-                              pathLabel = 'Rent Checkout';
-                              badgeColor = 'var(--accent)';
-                              badgeBg = 'var(--accent-faint)';
-                            } else if (page.path.includes('/pm/dashboard')) {
-                              pathLabel = 'PM Dashboard';
-                              badgeColor = 'var(--accent)';
-                              badgeBg = 'var(--accent-faint)';
-                            } else if (page.path.includes('/pay/dashboard')) {
-                              pathLabel = 'Tenant Dashboard';
-                              badgeColor = '#3b82f6';
-                              badgeBg = 'rgba(59, 130, 246, 0.08)';
-                            } else if (page.path === '/dashboard') {
-                              pathLabel = 'Main Dashboard';
-                              badgeColor = 'var(--text-secondary)';
-                              badgeBg = 'var(--surface-hover)';
-                            } else if (page.path === '/') {
-                              pathLabel = 'Landing Page';
-                              badgeColor = 'var(--text-secondary)';
-                              badgeBg = 'var(--surface-hover)';
-                            }
+                          {(gaStats?.topPages || [])
+                            .slice(0, showAllPages ? 50 : 5)
+                            .map((page: any, idx: number) => {
+                              let pathLabel = ''
+                              let badgeColor = ''
+                              let badgeBg = ''
 
-                            return (
-                              <div
-                                key={page.path}
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                  padding: '10px 14px',
-                                  background: 'var(--white)',
-                                  border: '1px solid var(--border)',
-                                  borderRadius: '8px',
-                                  fontSize: '13px',
-                                }}
-                              >
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                                  <span style={{ fontWeight: 800, color: 'var(--accent)', minWidth: '16px' }}>#{idx + 1}</span>
-                                  <span style={{ fontFamily: 'monospace', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap', color: 'var(--text)', fontSize: '12px' }}>
-                                    {page.path}
-                                  </span>
-                                  {pathLabel && (
-                                    <span style={{
-                                      fontSize: '10px',
-                                      fontWeight: 700,
-                                      padding: '2px 8px',
-                                      borderRadius: '12px',
-                                      color: badgeColor,
-                                      background: badgeBg,
-                                      textTransform: 'uppercase',
-                                      whiteSpace: 'nowrap',
-                                    }}>
-                                      {pathLabel}
+                              if (page.path.includes('login')) {
+                                pathLabel = 'Login Gate'
+                                badgeColor = 'var(--success)'
+                                badgeBg = 'var(--success-faint)'
+                              } else if (
+                                page.path.includes('signup') ||
+                                page.path.includes('register')
+                              ) {
+                                pathLabel = 'Signup Funnel'
+                                badgeColor = '#8b5cf6'
+                                badgeBg = 'rgba(139, 92, 246, 0.08)'
+                              } else if (page.path.includes('onboarding')) {
+                                pathLabel = 'Onboarding Process'
+                                badgeColor = '#3b82f6'
+                                badgeBg = 'rgba(59, 130, 246, 0.08)'
+                              } else if (
+                                page.path.includes('payment') ||
+                                page.path.includes('rent')
+                              ) {
+                                pathLabel = 'Rent Checkout'
+                                badgeColor = 'var(--accent)'
+                                badgeBg = 'var(--accent-faint)'
+                              } else if (page.path.includes('/pm/dashboard')) {
+                                pathLabel = 'PM Dashboard'
+                                badgeColor = 'var(--accent)'
+                                badgeBg = 'var(--accent-faint)'
+                              } else if (page.path.includes('/pay/dashboard')) {
+                                pathLabel = 'Tenant Dashboard'
+                                badgeColor = '#3b82f6'
+                                badgeBg = 'rgba(59, 130, 246, 0.08)'
+                              } else if (page.path === '/dashboard') {
+                                pathLabel = 'Main Dashboard'
+                                badgeColor = 'var(--text-secondary)'
+                                badgeBg = 'var(--surface-hover)'
+                              } else if (page.path === '/') {
+                                pathLabel = 'Landing Page'
+                                badgeColor = 'var(--text-secondary)'
+                                badgeBg = 'var(--surface-hover)'
+                              }
+
+                              return (
+                                <div
+                                  key={page.path}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    padding: '10px 14px',
+                                    background: 'var(--white)',
+                                    border: '1px solid var(--border)',
+                                    borderRadius: '8px',
+                                    fontSize: '13px',
+                                  }}
+                                >
+                                  <div
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: '10px',
+                                      minWidth: 0,
+                                    }}
+                                  >
+                                    <span
+                                      style={{
+                                        fontWeight: 800,
+                                        color: 'var(--accent)',
+                                        minWidth: '16px',
+                                      }}
+                                    >
+                                      #{idx + 1}
                                     </span>
-                                  )}
+                                    <span
+                                      style={{
+                                        fontFamily: 'monospace',
+                                        textOverflow: 'ellipsis',
+                                        overflow: 'hidden',
+                                        whiteSpace: 'nowrap',
+                                        color: 'var(--text)',
+                                        fontSize: '12px',
+                                      }}
+                                    >
+                                      {page.path}
+                                    </span>
+                                    {pathLabel && (
+                                      <span
+                                        style={{
+                                          fontSize: '10px',
+                                          fontWeight: 700,
+                                          padding: '2px 8px',
+                                          borderRadius: '12px',
+                                          color: badgeColor,
+                                          background: badgeBg,
+                                          textTransform: 'uppercase',
+                                          whiteSpace: 'nowrap',
+                                        }}
+                                      >
+                                        {pathLabel}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <span
+                                    style={{
+                                      fontWeight: 700,
+                                      color: 'var(--text-secondary)',
+                                      flexShrink: 0,
+                                      fontSize: '12px',
+                                    }}
+                                  >
+                                    {page.views.toLocaleString()} views
+                                  </span>
                                 </div>
-                                <span style={{ fontWeight: 700, color: 'var(--text-secondary)', flexShrink: 0, fontSize: '12px' }}>
-                                  {page.views.toLocaleString()} views
-                                </span>
-                              </div>
-                            )
-                          })}
+                              )
+                            })}
 
                           {/* Toggle expand button */}
                           {(gaStats?.topPages || []).length > 5 && (
@@ -1609,7 +2997,9 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                                 width: 'fit-content',
                               }}
                             >
-                              {showAllPages ? 'View Less' : `View More (${(gaStats?.topPages || []).length - 5} pages)`}
+                              {showAllPages
+                                ? 'View Less'
+                                : `View More (${(gaStats?.topPages || []).length - 5} pages)`}
                             </button>
                           )}
                         </div>
@@ -1628,7 +3018,10 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                     className="grid-mobile-1"
                   >
                     {/* Left: User Conversion Funnel */}
-                    <ConversionFunnel sessions={gaStats?.sessions || 0} events={gaStats?.funnelEvents} />
+                    <ConversionFunnel
+                      sessions={gaStats?.sessions || 0}
+                      events={gaStats?.funnelEvents}
+                    />
 
                     {/* Right: Geographic Distribution & Detailed Sources */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -1636,43 +3029,125 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                       <TopCitiesCard cities={gaStats?.topCities} total={gaStats?.activeUsers} />
 
                       {/* Detailed Sources (Source / Medium) */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '20px' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '16px',
+                          background: 'var(--bg)',
+                          border: '1px solid var(--border)',
+                          borderRadius: 'var(--radius-md)',
+                          padding: '20px',
+                        }}
+                      >
                         <div>
-                          <h4 style={{ fontSize: '13px', fontWeight: 800, margin: 0, color: 'var(--text)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Source / Medium details</h4>
-                          <p style={{ color: 'var(--text-muted)', fontSize: '11px', margin: '2px 0 0 0' }}>Granular user acquisition channels</p>
+                          <h4
+                            style={{
+                              fontSize: '13px',
+                              fontWeight: 800,
+                              margin: 0,
+                              color: 'var(--text)',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.05em',
+                            }}
+                          >
+                            Source / Medium details
+                          </h4>
+                          <p
+                            style={{
+                              color: 'var(--text-muted)',
+                              fontSize: '11px',
+                              margin: '2px 0 0 0',
+                            }}
+                          >
+                            Granular user acquisition channels
+                          </p>
                         </div>
                         {loadingGaStats ? (
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100px', color: 'var(--text-muted)', fontSize: '12px' }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              height: '100px',
+                              color: 'var(--text-muted)',
+                              fontSize: '12px',
+                            }}
+                          >
                             Loading sources...
                           </div>
                         ) : (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', justifyContent: 'center', flex: 1 }}>
-                            {(!gaStats?.granularSources || gaStats.granularSources.length === 0) ? (
-                              <div style={{ color: 'var(--text-muted)', fontSize: '12px', textAlign: 'center', padding: '20px 0' }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '12px',
+                              justifyContent: 'center',
+                              flex: 1,
+                            }}
+                          >
+                            {!gaStats?.granularSources || gaStats.granularSources.length === 0 ? (
+                              <div
+                                style={{
+                                  color: 'var(--text-muted)',
+                                  fontSize: '12px',
+                                  textAlign: 'center',
+                                  padding: '20px 0',
+                                }}
+                              >
                                 No source details available
                               </div>
                             ) : (
-                              gaStats.granularSources.slice(0, 5).map((src: { sourceMedium: string; count: number }) => {
-                                const percentage = gaStats?.activeUsers ? Math.round((src.count / gaStats.activeUsers) * 100) : 0;
-                                return (
-                                  <div key={src.sourceMedium}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 600 }}>
-                                      <span style={{ fontFamily: 'monospace', color: 'var(--text)', fontSize: '11px' }}>{src.sourceMedium}</span>
-                                      <span>{src.count} ({percentage}%)</span>
-                                    </div>
-                                    <div style={{ height: '6px', background: 'var(--surface-hover)', borderRadius: '3px', overflow: 'hidden', marginTop: '6px' }}>
+                              gaStats.granularSources
+                                .slice(0, 5)
+                                .map((src: { sourceMedium: string; count: number }) => {
+                                  const percentage = gaStats?.activeUsers
+                                    ? Math.round((src.count / gaStats.activeUsers) * 100)
+                                    : 0
+                                  return (
+                                    <div key={src.sourceMedium}>
                                       <div
                                         style={{
-                                          height: '100%',
-                                          background: '#ef4444',
-                                          width: `${percentage}%`,
-                                          borderRadius: '3px',
+                                          display: 'flex',
+                                          justifyContent: 'space-between',
+                                          fontSize: '12px',
+                                          fontWeight: 600,
                                         }}
-                                      />
+                                      >
+                                        <span
+                                          style={{
+                                            fontFamily: 'monospace',
+                                            color: 'var(--text)',
+                                            fontSize: '11px',
+                                          }}
+                                        >
+                                          {src.sourceMedium}
+                                        </span>
+                                        <span>
+                                          {src.count} ({percentage}%)
+                                        </span>
+                                      </div>
+                                      <div
+                                        style={{
+                                          height: '6px',
+                                          background: 'var(--surface-hover)',
+                                          borderRadius: '3px',
+                                          overflow: 'hidden',
+                                          marginTop: '6px',
+                                        }}
+                                      >
+                                        <div
+                                          style={{
+                                            height: '100%',
+                                            background: '#ef4444',
+                                            width: `${percentage}%`,
+                                            borderRadius: '3px',
+                                          }}
+                                        />
+                                      </div>
                                     </div>
-                                  </div>
-                                );
-                              })
+                                  )
+                                })
                             )}
                           </div>
                         )}
@@ -1682,19 +3157,50 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                 </>
               )}
             </div>
-
-
           </>
         ) : (
           /* Paying Users Registry Table view */
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: '16px' }}>
             {/* Summary KPIs for Paying Users */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
-              <div className="card" style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '6px', borderLeft: '3px solid var(--success)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--success)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: '16px',
+              }}
+            >
+              <div
+                className="card"
+                style={{
+                  padding: '18px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px',
+                  borderLeft: '3px solid var(--success)',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    color: 'var(--success)',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.07em',
+                  }}
+                >
                   <Users size={14} /> Total Paying Users
                 </div>
-                <div style={{ fontSize: '26px', fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                <div
+                  style={{
+                    fontSize: '26px',
+                    fontWeight: 800,
+                    color: 'var(--text)',
+                    letterSpacing: '-0.01em',
+                  }}
+                >
                   {payingUsers.length}
                 </div>
                 <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
@@ -1702,11 +3208,38 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                 </div>
               </div>
 
-              <div className="card" style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '6px', borderLeft: '3px solid var(--accent)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent)', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+              <div
+                className="card"
+                style={{
+                  padding: '18px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px',
+                  borderLeft: '3px solid var(--accent)',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    color: 'var(--accent)',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.07em',
+                  }}
+                >
                   <CreditCard size={14} /> Total Paid Volume
                 </div>
-                <div style={{ fontSize: '26px', fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                <div
+                  style={{
+                    fontSize: '26px',
+                    fontWeight: 800,
+                    color: 'var(--text)',
+                    letterSpacing: '-0.01em',
+                  }}
+                >
                   ₦{totalPaidSum.toLocaleString()}
                 </div>
                 <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
@@ -1714,11 +3247,38 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                 </div>
               </div>
 
-              <div className="card" style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '6px', borderLeft: '3px solid #06b6d4' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#06b6d4', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+              <div
+                className="card"
+                style={{
+                  padding: '18px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px',
+                  borderLeft: '3px solid #06b6d4',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    color: '#06b6d4',
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.07em',
+                  }}
+                >
                   <Zap size={14} /> Paid Benefits Users
                 </div>
-                <div style={{ fontSize: '26px', fontWeight: 800, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+                <div
+                  style={{
+                    fontSize: '26px',
+                    fontWeight: 800,
+                    color: 'var(--text)',
+                    letterSpacing: '-0.01em',
+                  }}
+                >
                   {paidBenefitsCount}
                 </div>
                 <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
@@ -1728,10 +3288,37 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
             </div>
 
             {/* Search and Filters specifically for Paying Users list */}
-            <div className="card" style={{ padding: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-              <div style={{ display: 'flex', gap: '12px', flex: 1, minWidth: '320px', flexWrap: 'wrap' }}>
+            <div
+              className="card"
+              style={{
+                padding: '16px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: '16px',
+                flexWrap: 'wrap',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '12px',
+                  flex: 1,
+                  minWidth: '320px',
+                  flexWrap: 'wrap',
+                }}
+              >
                 <div style={{ position: 'relative', flex: 1, minWidth: '240px' }}>
-                  <Search size={14} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                  <Search
+                    size={14}
+                    style={{
+                      position: 'absolute',
+                      left: '12px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      color: 'var(--text-muted)',
+                    }}
+                  />
                   <input
                     type="text"
                     placeholder="Search paying users by name, email, or registration type..."
@@ -1762,7 +3349,9 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                       fontSize: '12px',
                       fontWeight: 600,
                       cursor: 'pointer',
-                      border: filterBenefits ? '1px solid var(--accent)' : '1px solid var(--border)',
+                      border: filterBenefits
+                        ? '1px solid var(--accent)'
+                        : '1px solid var(--border)',
                       backgroundColor: filterBenefits ? 'var(--accent-faint)' : 'var(--bg)',
                       color: filterBenefits ? 'var(--accent)' : 'var(--text-muted)',
                       transition: 'all 0.15s ease',
@@ -1853,17 +3442,19 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
 
             {/* Bulk Action Bar for Paying Users */}
             {selectedUserIds.size > 0 && (
-              <div style={{
-                background: 'var(--accent-faint)',
-                border: '1px solid var(--accent-muted)',
-                borderRadius: '10px',
-                padding: '10px 16px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                marginBottom: '8px',
-                fontSize: '13px',
-              }}>
+              <div
+                style={{
+                  background: 'var(--accent-faint)',
+                  border: '1px solid var(--accent-muted)',
+                  borderRadius: '10px',
+                  padding: '10px 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  marginBottom: '8px',
+                  fontSize: '13px',
+                }}
+              >
                 <strong style={{ color: 'var(--accent)' }}>{selectedUserIds.size} selected</strong>
                 <button
                   onClick={() => {
@@ -1876,7 +3467,12 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                       lastName: u.rawRecord?.lastName || u.name.split(' ').slice(1).join(' ') || '',
                       email: u.email,
                       phone: u.rawRecord?.phone || '',
-                      origin: u.source === 'Waitlist Converted' ? 'WAITLIST' : u.source === 'Invited Tenant' ? 'INVITED' : 'SELF_REGISTERED',
+                      origin:
+                        u.source === 'Waitlist Converted'
+                          ? 'WAITLIST'
+                          : u.source === 'Invited Tenant'
+                            ? 'INVITED'
+                            : 'SELF_REGISTERED',
                     }))
                     navigate('/emails', { state: { selectedUsers } })
                   }}
@@ -1900,7 +3496,15 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                 </button>
                 <button
                   onClick={() => setSelectedUserIds(new Set())}
-                  style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', padding: '4px' }}
+                  style={{
+                    marginLeft: 'auto',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--text-muted)',
+                    display: 'flex',
+                    padding: '4px',
+                  }}
                 >
                   <X size={16} />
                 </button>
@@ -1910,14 +3514,28 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
             {/* Paying Users Table */}
             <div className="card" style={{ overflow: 'hidden' }}>
               <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+                <table
+                  style={{
+                    width: '100%',
+                    borderCollapse: 'collapse',
+                    textAlign: 'left',
+                    fontSize: '13px',
+                  }}
+                >
                   <thead>
-                    <tr style={{ background: 'var(--surface-hover)', borderBottom: '1px solid var(--border)' }}>
+                    <tr
+                      style={{
+                        background: 'var(--surface-hover)',
+                        borderBottom: '1px solid var(--border)',
+                      }}
+                    >
                       <th style={{ padding: '12px 8px 12px 20px', width: '44px' }}>
                         <button
                           onClick={() => {
                             const visibleIds = filteredPayingUsers.map((u) => u.id)
-                            const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedUserIds.has(id))
+                            const allSelected =
+                              visibleIds.length > 0 &&
+                              visibleIds.every((id) => selectedUserIds.has(id))
                             if (allSelected) {
                               setSelectedUserIds((prev) => {
                                 const next = new Set(prev)
@@ -1932,22 +3550,89 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                               })
                             }
                           }}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: 'var(--text-muted)', padding: 0 }}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            color: 'var(--text-muted)',
+                            padding: 0,
+                          }}
                         >
-                          {filteredPayingUsers.length > 0 && filteredPayingUsers.every((u) => selectedUserIds.has(u.id)) ? (
+                          {filteredPayingUsers.length > 0 &&
+                          filteredPayingUsers.every((u) => selectedUserIds.has(u.id)) ? (
                             <CheckSquare size={17} color="var(--accent)" />
                           ) : (
                             <Square size={17} />
                           )}
                         </button>
                       </th>
-                      <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-secondary)' }}>Tenant Name</th>
-                      <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-secondary)' }}>Email Address</th>
-                      <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-secondary)' }}>Registration Type</th>
-                      <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-secondary)', textAlign: 'right' }}>Tx Fee</th>
-                      <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-secondary)', textAlign: 'right' }}>Benefits Paid</th>
-                      <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-secondary)', textAlign: 'right' }}>Total Paid</th>
-                      <th style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text-secondary)' }}>Last Paid</th>
+                      <th
+                        style={{
+                          padding: '12px 16px',
+                          fontWeight: 700,
+                          color: 'var(--text-secondary)',
+                        }}
+                      >
+                        Tenant Name
+                      </th>
+                      <th
+                        style={{
+                          padding: '12px 16px',
+                          fontWeight: 700,
+                          color: 'var(--text-secondary)',
+                        }}
+                      >
+                        Email Address
+                      </th>
+                      <th
+                        style={{
+                          padding: '12px 16px',
+                          fontWeight: 700,
+                          color: 'var(--text-secondary)',
+                        }}
+                      >
+                        Registration Type
+                      </th>
+                      <th
+                        style={{
+                          padding: '12px 16px',
+                          fontWeight: 700,
+                          color: 'var(--text-secondary)',
+                          textAlign: 'right',
+                        }}
+                      >
+                        Tx Fee
+                      </th>
+                      <th
+                        style={{
+                          padding: '12px 16px',
+                          fontWeight: 700,
+                          color: 'var(--text-secondary)',
+                          textAlign: 'right',
+                        }}
+                      >
+                        Benefits Paid
+                      </th>
+                      <th
+                        style={{
+                          padding: '12px 16px',
+                          fontWeight: 700,
+                          color: 'var(--text-secondary)',
+                          textAlign: 'right',
+                        }}
+                      >
+                        Total Paid
+                      </th>
+                      <th
+                        style={{
+                          padding: '12px 16px',
+                          fontWeight: 700,
+                          color: 'var(--text-secondary)',
+                        }}
+                      >
+                        Last Paid
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1956,8 +3641,13 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                         <tr
                           key={u.id}
                           style={{
-                            borderBottom: idx < filteredPayingUsers.length - 1 ? '1px solid var(--border)' : 'none',
-                            background: selectedUserIds.has(u.id) ? 'rgba(217,119,87,0.04)' : 'transparent',
+                            borderBottom:
+                              idx < filteredPayingUsers.length - 1
+                                ? '1px solid var(--border)'
+                                : 'none',
+                            background: selectedUserIds.has(u.id)
+                              ? 'rgba(217,119,87,0.04)'
+                              : 'transparent',
                             transition: 'background 0.15s',
                           }}
                         >
@@ -1971,7 +3661,14 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                                   return next
                                 })
                               }}
-                              style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', color: 'var(--text-muted)', padding: 0 }}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                color: 'var(--text-muted)',
+                                padding: 0,
+                              }}
                             >
                               {selectedUserIds.has(u.id) ? (
                                 <CheckSquare size={17} color="var(--accent)" />
@@ -1999,34 +3696,84 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                               {u.name}
                             </button>
                           </td>
-                          <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>{u.email}</td>
+                          <td style={{ padding: '12px 16px', color: 'var(--text-secondary)' }}>
+                            {u.email}
+                          </td>
                           <td style={{ padding: '12px 16px' }}>
-                            <span style={{
-                              fontSize: '11px',
-                              fontWeight: 700,
-                              padding: '2px 8px',
-                              borderRadius: '20px',
-                              background: u.source === 'Waitlist Converted' ? 'var(--success-faint)' : u.source === 'Self Signed Up' ? 'rgba(99,102,241,0.07)' : u.source === 'Invited Tenant' ? 'var(--accent-faint)' : 'rgba(245,158,11,0.07)',
-                              color: u.source === 'Waitlist Converted' ? 'var(--success)' : u.source === 'Self Signed Up' ? '#6366f1' : u.source === 'Invited Tenant' ? 'var(--accent)' : '#f59e0b',
-                            }}>
+                            <span
+                              style={{
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                padding: '2px 8px',
+                                borderRadius: '20px',
+                                background:
+                                  u.source === 'Waitlist Converted'
+                                    ? 'var(--success-faint)'
+                                    : u.source === 'Self Signed Up'
+                                      ? 'rgba(99,102,241,0.07)'
+                                      : u.source === 'Invited Tenant'
+                                        ? 'var(--accent-faint)'
+                                        : 'rgba(245,158,11,0.07)',
+                                color:
+                                  u.source === 'Waitlist Converted'
+                                    ? 'var(--success)'
+                                    : u.source === 'Self Signed Up'
+                                      ? '#6366f1'
+                                      : u.source === 'Invited Tenant'
+                                        ? 'var(--accent)'
+                                        : '#f59e0b',
+                              }}
+                            >
                               {u.source}
                             </span>
                           </td>
-                          <td style={{ padding: '12px 16px', fontWeight: 600, color: u.feePaid > 0 ? '#10b981' : 'var(--text-muted)', textAlign: 'right' }}>
+                          <td
+                            style={{
+                              padding: '12px 16px',
+                              fontWeight: 600,
+                              color: u.feePaid > 0 ? '#10b981' : 'var(--text-muted)',
+                              textAlign: 'right',
+                            }}
+                          >
                             {u.feePaid > 0 ? `₦${u.feePaid.toLocaleString()}` : '—'}
                           </td>
-                          <td style={{ padding: '12px 16px', fontWeight: 600, color: u.benefitsPaid > 0 ? 'var(--success)' : 'var(--text-muted)', textAlign: 'right' }}>
+                          <td
+                            style={{
+                              padding: '12px 16px',
+                              fontWeight: 600,
+                              color: u.benefitsPaid > 0 ? 'var(--success)' : 'var(--text-muted)',
+                              textAlign: 'right',
+                            }}
+                          >
                             {u.benefitsPaid > 0 ? `₦${u.benefitsPaid.toLocaleString()}` : '—'}
                           </td>
-                          <td style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text)', textAlign: 'right' }}>₦{u.totalPaid.toLocaleString()}</td>
+                          <td
+                            style={{
+                              padding: '12px 16px',
+                              fontWeight: 700,
+                              color: 'var(--text)',
+                              textAlign: 'right',
+                            }}
+                          >
+                            ₦{u.totalPaid.toLocaleString()}
+                          </td>
                           <td style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>
-                            {u.lastPaidAt ? new Date(u.lastPaidAt).toLocaleDateString() : new Date(u.createdAt).toLocaleDateString()}
+                            {u.lastPaidAt
+                              ? new Date(u.lastPaidAt).toLocaleDateString()
+                              : new Date(u.createdAt).toLocaleDateString()}
                           </td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={8} style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                        <td
+                          colSpan={8}
+                          style={{
+                            padding: '48px',
+                            textAlign: 'center',
+                            color: 'var(--text-muted)',
+                          }}
+                        >
                           No paying users match the search filter.
                         </td>
                       </tr>
@@ -2038,7 +3785,6 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
           </div>
         )}
       </section>
-
     </div>
   )
 }

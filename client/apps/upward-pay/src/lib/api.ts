@@ -10,6 +10,7 @@ import * as supportService from '@/features/support/services/supportService'
 import * as credibilityService from '@/features/dashboard/services/credibilityService'
 import * as locationService from '@/features/auth/services/locationService'
 import * as myHomeService from '@/features/my-home/services/myHomeService'
+import * as goalsService from '@/features/goals/services/goalsService'
 
 export const api = {
   // Auth & Profile
@@ -26,8 +27,7 @@ export const api = {
   resetPassword: (email: string, otp: string, newPass: string) =>
     authService.resetPassword({ email, otp, new: newPass }),
   verifyResetOtp: authService.verifyResetOtp,
-  checkSlug: (slug: string) =>
-    request<any>(`/user/auth/check-slug/${slug}`, { method: 'GET' }),
+  checkSlug: (slug: string) => request<any>(`/user/auth/check-slug/${slug}`, { method: 'GET' }),
 
   // Locations
   getCountries: locationService.getCountries,
@@ -83,6 +83,17 @@ export const api = {
   createSupportTicket: supportService.createSupportTicket,
   getMyTickets: supportService.getMyTickets,
 
+  // Goals & Lifestyle Commerce
+  getGoalCategories: goalsService.fetchGoalCategories,
+  getGoals: goalsService.fetchGoalsList,
+  getGoalDetail: goalsService.fetchGoalDetail,
+  getGoalOfferings: goalsService.fetchGoalOfferings,
+  getGoalOfferingDetail: goalsService.fetchGoalOfferingDetail,
+  getUserGoals: goalsService.fetchUserGoals,
+  setUserGoals: goalsService.setUserGoals,
+  updateUserGoal: goalsService.updateUserGoal,
+  removeUserGoal: goalsService.removeUserGoal,
+
   // Credibility Profile Records
   submitRequestRecords: credibilityService.submitRequestRecords,
   getCredibilityRequests: credibilityService.getCredibilityRequests,
@@ -103,20 +114,21 @@ export const api = {
   getHomeLastInspection: myHomeService.getLastInspectionResult,
 
   // Public (Leaving as raw for now)
-  getPublicProfile: (slug: string) =>
-    request<any>(`/public/profile/${slug}`, { method: 'GET' }),
+  getPublicProfile: (slug: string) => request<any>(`/public/profile/${slug}`, { method: 'GET' }),
 
   // Generic Helpers
   get: <T = any>(url: string) => request<T>(url, { method: 'GET' }),
   post: <T = any>(url: string, data: any) =>
     request<T>(url, {
       method: 'POST',
-      body: typeof FormData !== 'undefined' && data instanceof FormData ? data : JSON.stringify(data),
+      body:
+        typeof FormData !== 'undefined' && data instanceof FormData ? data : JSON.stringify(data),
     }),
   patch: <T = any>(url: string, data: any) =>
     request<T>(url, {
       method: 'PATCH',
-      body: typeof FormData !== 'undefined' && data instanceof FormData ? data : JSON.stringify(data),
+      body:
+        typeof FormData !== 'undefined' && data instanceof FormData ? data : JSON.stringify(data),
     }),
   getCredibilityPdf: () =>
     import('./api-client').then((m) => m.requestBlob('/user/credibility/pdf', { method: 'GET' })),

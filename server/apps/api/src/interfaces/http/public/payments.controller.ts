@@ -89,10 +89,7 @@ export class PaymentsController {
 
   @UseGuards(JwtAuthGuard)
   @Get('rent-deposit')
-  async getRentDepositSummary(
-    @Req() req: any,
-    @Query('propertyUuid') propertyUuid?: string,
-  ) {
+  async getRentDepositSummary(@Req() req: any, @Query('propertyUuid') propertyUuid?: string) {
     const data = await this.getRentDepositSummaryUc.execute(req.user.id, propertyUuid)
     return {
       data,
@@ -236,7 +233,6 @@ export class PaymentsController {
   async getPropertyBalance(@Param('propertyUuid') propertyUuid: string) {
     return this.getPropertyBalanceUc.execute(propertyUuid)
   }
-
 
   @UseGuards(JwtAuthGuard)
   @Get('landlords')
@@ -424,19 +420,23 @@ export class PaymentsController {
   @Sse('sse/:userUuid')
   sse(@Param('userUuid') userUuid: string): Observable<MessageEvent> {
     const sseObservable = new Observable<MessageEvent>((subscriber) => {
-      let userId: number | null = null;
-      this.userRepo.findByUuid(userUuid).then(user => {
-        if (user?.id != null) {
-          userId = user.id;
-        }
-      }).catch(err => {
-        console.error('[SSE] Error fetching user ID:', err);
-      });
+      let userId: number | null = null
+      this.userRepo
+        .findByUuid(userUuid)
+        .then((user) => {
+          if (user?.id != null) {
+            userId = user.id
+          }
+        })
+        .catch((err) => {
+          console.error('[SSE] Error fetching user ID:', err)
+        })
 
       const subSucceeded = this.eventBus.subscribe('payment.succeeded', (event: any) => {
-        const belongsToUser = event.data?.userId === userId || 
-                              event.data?.userUuid === userUuid || 
-                              String(event.data?.userId) === userUuid;
+        const belongsToUser =
+          event.data?.userId === userId ||
+          event.data?.userUuid === userUuid ||
+          String(event.data?.userId) === userUuid
         if (belongsToUser) {
           subscriber.next({
             data: {
@@ -445,13 +445,13 @@ export class PaymentsController {
               paymentRequestUuid: event.data.paymentRequestUuid,
               amount: event.data.amount,
               reference: event.data.reference,
-            }
-          } as MessageEvent);
+            },
+          } as MessageEvent)
         }
-      });
+      })
 
       const subRequestCreated = this.eventBus.subscribe('payment.request.created', (event: any) => {
-        const belongsToUser = event.userId === userId || String(event.userId) === userUuid;
+        const belongsToUser = event.userId === userId || String(event.userId) === userUuid
         if (belongsToUser) {
           subscriber.next({
             data: {
@@ -459,13 +459,13 @@ export class PaymentsController {
               paymentRequestId: event.id,
               paymentRequestUuid: event.uuid,
               amount: event.amount,
-            }
-          } as MessageEvent);
+            },
+          } as MessageEvent)
         }
-      });
+      })
 
       const subRequestUpdated = this.eventBus.subscribe('payment.request.updated', (event: any) => {
-        const belongsToUser = event.userId === userId || String(event.userId) === userUuid;
+        const belongsToUser = event.userId === userId || String(event.userId) === userUuid
         if (belongsToUser) {
           subscriber.next({
             data: {
@@ -473,23 +473,50 @@ export class PaymentsController {
               paymentRequestId: event.id,
               paymentRequestUuid: event.uuid,
               amount: event.amount,
-            }
-          } as MessageEvent);
+            },
+          } as MessageEvent)
         }
-      });
+      })
+
+      const subGoalsUpdated = this.eventBus.subscribe('user.goals.updated', (event: any) => {
+        const belongsToUser =
+          event?.userId === userId ||
+          event?.userUuid === userUuid ||
+          String(event?.userId) === userUuid
+        if (belongsToUser) {
+          subscriber.next({
+            data: {
+              type: 'user.goals.updated',
+              userId: event?.userId,
+              timestamp: Date.now(),
+            },
+          } as MessageEvent)
+        }
+      })
+
+      const subCatalogUpdated = this.eventBus.subscribe('goals.catalog.updated', (event: any) => {
+        subscriber.next({
+          data: {
+            type: 'goals.catalog.updated',
+            timestamp: Date.now(),
+          },
+        } as MessageEvent)
+      })
 
       return () => {
-        subSucceeded.unsubscribe();
-        subRequestCreated.unsubscribe();
-        subRequestUpdated.unsubscribe();
-      };
-    });
+        subSucceeded.unsubscribe()
+        subRequestCreated.unsubscribe()
+        subRequestUpdated.unsubscribe()
+        subGoalsUpdated.unsubscribe()
+        subCatalogUpdated.unsubscribe()
+      }
+    })
 
     const heartbeat = interval(15000).pipe(
-      map(() => ({ data: { type: 'heartbeat' } } as MessageEvent))
-    );
+      map(() => ({ data: { type: 'heartbeat' } }) as MessageEvent),
+    )
 
-    return merge(sseObservable, heartbeat);
+    return merge(sseObservable, heartbeat)
   }
 
   @Sse('sse/request/:requestUuid')
@@ -504,10 +531,10 @@ export class PaymentsController {
               paymentRequestUuid: event.data.paymentRequestUuid,
               amount: event.data.amount,
               reference: event.data.reference,
-            }
-          } as MessageEvent);
+            },
+          } as MessageEvent)
         }
-      });
+      })
 
       const subRequestUpdated = this.eventBus.subscribe('payment.request.updated', (event: any) => {
         if (event.uuid === requestUuid) {
@@ -517,21 +544,21 @@ export class PaymentsController {
               paymentRequestId: event.id,
               paymentRequestUuid: event.uuid,
               amount: event.amount,
-            }
-          } as MessageEvent);
+            },
+          } as MessageEvent)
         }
-      });
+      })
 
       return () => {
-        subSucceeded.unsubscribe();
-        subRequestUpdated.unsubscribe();
-      };
-    });
+        subSucceeded.unsubscribe()
+        subRequestUpdated.unsubscribe()
+      }
+    })
 
     const heartbeat = interval(15000).pipe(
-      map(() => ({ data: { type: 'heartbeat' } } as MessageEvent))
-    );
+      map(() => ({ data: { type: 'heartbeat' } }) as MessageEvent),
+    )
 
-    return merge(sseObservable, heartbeat);
+    return merge(sseObservable, heartbeat)
   }
 }

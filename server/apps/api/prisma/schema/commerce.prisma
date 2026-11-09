@@ -1,0 +1,378 @@
+enum CommerceOrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  COMPLETED
+  CANCELLED
+  PARTIALLY_REFUNDED
+  REFUNDED
+}
+
+enum CommercePaymentStatus {
+  UNPAID
+  INITIATED
+  PAID
+  FAILED
+  PARTIALLY_REFUNDED
+  REFUNDED
+  REVERSED
+}
+
+enum CustomerFulfilmentStatus {
+  ORDER_CONFIRMED
+  PROCESSING
+  DISPATCHED
+  OUT_FOR_DELIVERY
+  DELIVERED
+  SERVICE_SCHEDULED
+  TECHNICIAN_EN_ROUTE
+  SERVICE_COMPLETED
+  RECEIVED_CONFIRMED
+  DISPUTED
+  CANCELLED
+}
+
+enum AdminOperationalStatus {
+  AWAITING_VENDOR_CONFIRMATION
+  VENDOR_CONFIRMED
+  VENDOR_DECLINED
+  CARRIER_DISPATCHED
+  TECHNICIAN_ASSIGNED
+  DELIVERED_PENDING_INSPECTION
+  FULFILMENT_CLOSED
+  DISPUTE_LOGGED
+  CANCELLED_REFUNDED
+}
+
+enum VendorPayableStatus {
+  PENDING_FULFILMENT
+  IN_COOLING_PERIOD
+  ELIGIBLE_FOR_PAYOUT
+  PAYOUT_SUBMITTED
+  PAID_OUT
+  HELD_FOR_DISPUTE
+  VOIDED_REFUNDED
+}
+
+enum PayoutTransferStatus {
+  INITIATED
+  SUBMITTED
+  SUCCESSFUL
+  FAILED
+  REVERSED
+}
+
+enum RefundStatus {
+  REQUESTED
+  UNDER_REVIEW
+  APPROVED
+  PROCESSING
+  COMPLETED
+  REJECTED
+  FAILED
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_INVESTIGATION
+  RESOLVED_REFUND
+  RESOLVED_PAYOUT
+  SETTLED_COMPROMISE
+  CLOSED
+}
+
+model upward_commerce_order {
+  id                    Int                     @id @default(autoincrement())
+  uuid                  String                  @unique @default(uuid())
+  orderNumber           String                  @unique @db.VarChar(50)
+  userId                Int
+  status                CommerceOrderStatus     @default(PENDING)
+  paymentStatus         CommercePaymentStatus   @default(UNPAID)
+  
+  currency              String                  @default("NGN") @db.VarChar(10)
+  itemsSubtotalKobo     BigInt
+  deliveryFeeKobo       BigInt                  @default(0)
+  taxKobo               BigInt                  @default(0)
+  discountKobo          BigInt                  @default(0)
+  totalAmountKobo       BigInt
+  
+  idempotencyKey        String?                 @unique @db.VarChar(100)
+  paymentReference      String?                 @unique @db.VarChar(100)
+  paidAt                DateTime?
+  
+  // Destination Snapshot
+  recipientName         String                  @db.VarChar(150)
+  recipientPhone        String                  @db.VarChar(50)
+  deliveryAddress       String                  @db.Text
+  deliveryNotes         String?                 @db.Text
+  deliveryZoneTag       String?                 @db.VarChar(100)
+  
+  user                  upward_user             @relation(fields: [userId], references: [id], onDelete: Restrict)
+  subOrders             upward_commerce_vendor_suborder[]
+  paymentAttempts       upward_commerce_payment_attempt[]
+  auditLogs             upward_commerce_order_audit[]
+  
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+
+  @@index([userId, status])
+  @@index([orderNumber])
+  @@index([paymentReference])
+  @@index([idempotencyKey])
+}
+
+model upward_commerce_vendor_suborder {
+  id                    Int                      @id @default(autoincrement())
+  uuid                  String                   @unique @default(uuid())
+  orderId               Int
+  vendorId              Int
+  subOrderNumber        String                   @unique @db.VarChar(60)
+  
+  customerStatus        CustomerFulfilmentStatus @default(ORDER_CONFIRMED)
+  operationalStatus     AdminOperationalStatus   @default(AWAITING_VENDOR_CONFIRMATION)
+  
+  subtotalKobo          BigInt
+  deliveryFeeKobo       BigInt                   @default(0)
+  allocatedDiscountKobo BigInt                   @default(0)
+  platformFeeKobo       BigInt                   @default(0)
+  vendorPayoutKobo      BigInt
+  
+  carrierName           String?                  @db.VarChar(100)
+  trackingNumber        String?                  @db.VarChar(100)
+  trackingUrl           String?                  @db.VarChar(500)
+  serviceScheduledAt    DateTime?
+  serviceWindowNotes    String?                  @db.VarChar(200)
+  technicianName        String?                  @db.VarChar(100)
+  technicianPhone       String?                  @db.VarChar(50)
+  
+  adminOperationalNotes String?                  @db.Text
+  
+  deliveredAt           DateTime?
+  tenantConfirmedAt     DateTime?
+  coolingPeriodEndsAt   DateTime?
+  
+  order                 upward_commerce_order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  vendor                upward_commerce_vendor   @relation(fields: [vendorId], references: [id], onDelete: Restrict)
+  items                 upward_commerce_order_item[]
+  fulfilmentEvents      upward_commerce_fulfilment_event[]
+  disputes              upward_commerce_dispute[]
+  refunds               upward_commerce_refund[]
+  payableRecord         upward_commerce_vendor_payable?
+  
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+
+  @@index([orderId])
+  @@index([vendorId, customerStatus])
+  @@index([operationalStatus])
+}
+
+model upward_commerce_order_item {
+  id                    Int                      @id @default(autoincrement())
+  uuid                  String                   @unique @default(uuid())
+  subOrderId            Int
+  offeringId            Int?
+  
+  offeringType          OfferingType
+  quantity              Int                      @default(1)
+  unitPriceKobo         BigInt
+  totalPriceKobo        BigInt
+  
+  snapshotData          Json
+  
+  subOrder              upward_commerce_vendor_suborder @relation(fields: [subOrderId], references: [id], onDelete: Cascade)
+  offering              upward_offering?         @relation(fields: [offeringId], references: [id], onDelete: SetNull)
+
+  createdAt             DateTime                 @default(now())
+
+  @@index([subOrderId])
+  @@index([offeringId])
+}
+
+model upward_commerce_fulfilment_event {
+  id                    Int                      @id @default(autoincrement())
+  uuid                  String                   @unique @default(uuid())
+  subOrderId            Int
+  status                CustomerFulfilmentStatus
+  title                 String                   @db.VarChar(150)
+  description           String                   @db.Text
+  isCustomerVisible     Boolean                  @default(true)
+  
+  carrierName           String?                  @db.VarChar(100)
+  trackingNumber        String?                  @db.VarChar(100)
+  serviceDateTime       DateTime?
+  
+  actorType             String                   @db.VarChar(20)
+  actorId               String?                  @db.VarChar(100)
+  createdAt             DateTime                 @default(now())
+
+  subOrder              upward_commerce_vendor_suborder @relation(fields: [subOrderId], references: [id], onDelete: Cascade)
+
+  @@index([subOrderId, createdAt])
+}
+
+model upward_commerce_vendor_payable {
+  id                    Int                      @id @default(autoincrement())
+  uuid                  String                   @unique @default(uuid())
+  subOrderId            Int                      @unique
+  vendorId              Int
+  
+  status                VendorPayableStatus      @default(PENDING_FULFILMENT)
+  grossAmountKobo       BigInt
+  commissionKobo        BigInt
+  netPayableKobo        BigInt
+  
+  bankCode              String                   @db.VarChar(20)
+  accountNumber         String                   @db.VarChar(30)
+  accountName           String                   @db.VarChar(150)
+  
+  eligibleAt            DateTime?
+  paidAt                DateTime?
+  
+  subOrder              upward_commerce_vendor_suborder @relation(fields: [subOrderId], references: [id], onDelete: Restrict)
+  vendor                upward_commerce_vendor   @relation(fields: [vendorId], references: [id], onDelete: Restrict)
+  transferAttempts      upward_commerce_payout_transfer_attempt[]
+  
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+
+  @@index([vendorId, status])
+  @@index([status])
+}
+
+model upward_commerce_payout_transfer_attempt {
+  id                    Int                             @id @default(autoincrement())
+  uuid                  String                          @unique @default(uuid())
+  payableId             Int
+  transferReference     String                          @unique @db.VarChar(100)
+  paystackTransferCode  String?                         @db.VarChar(100)
+  status                PayoutTransferStatus            @default(INITIATED)
+  
+  makerAdminId          String                          @db.VarChar(100)
+  checkerAdminId        String?                         @db.VarChar(100)
+  gatewayResponse       String?                         @db.Text
+  
+  createdAt             DateTime                        @default(now())
+  updatedAt             DateTime                        @updatedAt
+
+  payable               upward_commerce_vendor_payable  @relation(fields: [payableId], references: [id], onDelete: Cascade)
+
+  @@index([payableId])
+}
+
+model upward_commerce_payment_attempt {
+  id                    Int                      @id @default(autoincrement())
+  uuid                  String                   @unique @default(uuid())
+  orderId               Int
+  reference             String                   @unique @db.VarChar(100)
+  amountKobo            BigInt
+  currency              String                   @default("NGN") @db.VarChar(10)
+  channel               String?                  @db.VarChar(50)
+  status                String                   @default("INITIATED")
+  gatewayResponse       String?                  @db.Text
+  ipAddress             String?                  @db.VarChar(50)
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+
+  order                 upward_commerce_order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([reference])
+  @@index([status])
+}
+
+model upward_commerce_dispute {
+  id                    Int                      @id @default(autoincrement())
+  uuid                  String                   @unique @default(uuid())
+  subOrderId            Int
+  userId                Int
+  status                DisputeStatus            @default(OPEN)
+  reason                String                   @db.VarChar(150)
+  explanation           String                   @db.Text
+  evidenceUrls          Json?
+  resolutionNotes       String?                  @db.Text
+  resolvedAt            DateTime?
+  resolvedBy            String?                  @db.VarChar(100)
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+
+  subOrder              upward_commerce_vendor_suborder @relation(fields: [subOrderId], references: [id], onDelete: Cascade)
+
+  @@index([subOrderId])
+  @@index([status])
+}
+
+model upward_commerce_refund {
+  id                    Int                      @id @default(autoincrement())
+  uuid                  String                   @unique @default(uuid())
+  subOrderId            Int
+  amountKobo            BigInt
+  reason                String                   @db.Text
+  status                RefundStatus             @default(REQUESTED)
+  requestedBy           String                   @db.VarChar(100)
+  approvedBy            String?                  @db.VarChar(100)
+  approvedAt            DateTime?
+  completedAt           DateTime?
+  
+  subOrder              upward_commerce_vendor_suborder @relation(fields: [subOrderId], references: [id], onDelete: Cascade)
+  attempts              upward_commerce_refund_attempt[]
+
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+
+  @@index([subOrderId])
+  @@index([status])
+}
+
+model upward_commerce_refund_attempt {
+  id                    Int                      @id @default(autoincrement())
+  uuid                  String                   @unique @default(uuid())
+  refundId              Int
+  gatewayReference      String                   @unique @db.VarChar(100)
+  paystackRefundId      String?                  @db.VarChar(100)
+  status                String                   @default("INITIATED")
+  gatewayResponse       String?                  @db.Text
+  createdAt             DateTime                 @default(now())
+
+  refund                upward_commerce_refund   @relation(fields: [refundId], references: [id], onDelete: Cascade)
+
+  @@index([refundId])
+}
+
+model upward_commerce_order_audit {
+  id                    Int                      @id @default(autoincrement())
+  uuid                  String                   @unique @default(uuid())
+  orderId               Int
+  event                 String                   @db.VarChar(100)
+  fromState             String?                  @db.VarChar(50)
+  toState               String                   @db.VarChar(50)
+  actorType             String                   @db.VarChar(20)
+  actorId               String?                  @db.VarChar(100)
+  details               Json?
+  createdAt             DateTime                 @default(now())
+
+  order                 upward_commerce_order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+}
+
+model upward_commerce_delivery_zone {
+  id                    Int                      @id @default(autoincrement())
+  uuid                  String                   @unique @default(uuid())
+  tag                   String                   @unique @db.VarChar(100)
+  name                  String                   @db.VarChar(150)
+  state                 String                   @db.VarChar(100)
+  region                String?                  @db.VarChar(150)
+  areasCovered          String?                  @db.Text
+  isDelivering          Boolean                  @default(true)
+  deliveryFeeKobo       BigInt                   @default(0)
+  estimatedDeliveryDays String?                  @db.VarChar(100)
+  pauseReason           String?                  @db.VarChar(255)
+  sortOrder             Int                      @default(0)
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+
+  @@index([state])
+  @@index([isDelivering])
+  @@index([sortOrder])
+}

@@ -145,29 +145,57 @@
 
 .setup-page__substeps {
   display: flex;
-  gap: 8px;
-  margin-bottom: 18px;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 16px;
+  width: 100%;
 }
 
 .setup-page__substep {
   flex: 1;
-  text-align: center;
-  font-size: 11.5px;
-  font-weight: 700;
-  color: #a9a096;
-  padding: 8px 10px;
-  border-radius: 99px;
+  min-width: 0;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #8c8275;
+  padding: 0 6px;
+  border-radius: 9999px;
   background: #f4eee5;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+}
+
+.setup-page__substep-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.setup-page__substep-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .setup-page__substep--active {
   color: var(--skin-primary, #c2501f);
-  background: #fbede5;
+  background: #fdf2ec;
+  border-color: rgba(194, 80, 31, 0.25);
+  font-weight: 700;
 }
 
+.setup-page__substep--complete,
 .setup-page__substep--done {
-  color: #1c7a52;
-  background: #f2f8f5;
+  color: #15803d;
+  background: #eef7f2;
+  border-color: #d1fae5;
 }
 
 .setup-page__fields {
@@ -250,6 +278,141 @@
 .setup-page__input:focus {
   outline: none;
   border-color: var(--skin-primary, #c2501f);
+}
+
+.setup-page__date-picker {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 52px;
+  border-radius: 12px;
+  border: 1.5px solid #ece4d9;
+  background: #fff;
+  padding: 0 14px;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.15s ease;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+.setup-page__date-picker:hover {
+  border-color: #d8cec1;
+}
+
+.setup-page__date-picker:focus-within {
+  border-color: var(--skin-primary, #c2501f);
+  box-shadow: 0 0 0 3px rgba(194, 80, 31, 0.08);
+}
+
+.setup-page__date-picker__left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.setup-page__date-picker__icon {
+  color: var(--shell-muted, #a9a096);
+  flex-shrink: 0;
+  transition: color 0.2s ease;
+}
+
+.setup-page__date-picker:focus-within .setup-page__date-picker__icon,
+.setup-page__date-picker.has-value .setup-page__date-picker__icon {
+  color: var(--skin-primary, #c2501f);
+}
+
+.setup-page__date-picker__text {
+  font-size: 14.5px;
+  color: #1a1714;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.setup-page__date-picker__text--placeholder {
+  color: #a9a096;
+  font-weight: 400;
+  font-size: 14px;
+}
+
+.setup-page__date-picker__right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-left: 8px;
+}
+
+.setup-page__date-picker__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: #f7f3ed;
+  color: #7a7065;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.setup-page__date-picker:hover .setup-page__date-picker__badge {
+  background: #efe8de;
+  color: #4b433a;
+}
+
+.setup-page__date-picker__native {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 2;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+}
+
+.setup-page__date-display {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 52px;
+  border-radius: 12px;
+  border: 1.5px solid #e8e0d5;
+  background: #f8f5f0;
+  padding: 0 14px;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+.setup-page__date-display__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #ece4d9;
+  color: #6e665d;
 }
 
 .setup-page__lookup-row {
@@ -580,6 +743,12 @@
   font-size: 13px;
   color: #8a5a3a;
   line-height: 1.5;
+}
+
+.setup-page__notice-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--clay, #c2501f);
 }
 
 .setup-page--phone .setup-page__promo {

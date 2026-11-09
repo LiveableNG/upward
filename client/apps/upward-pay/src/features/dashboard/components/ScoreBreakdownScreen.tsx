@@ -19,9 +19,8 @@ import {
   ArrowLeft,
 } from 'lucide-react'
 import { useScoreProfile, type ScoreCycle, type ScoreProperty } from '../services/scoreService'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, getPublicWebUrl, copyTextToClipboard } from '@/lib/utils'
 import { useToast } from '@/components/common/Toast'
-import { Capacitor } from '@capacitor/core'
 
 function ScoreBreakdownSkeleton() {
   return (
@@ -85,30 +84,14 @@ export function ScoreBreakdownScreen() {
       router.push('/dashboard/kyc')
       return
     }
-    const defaultWebUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'
-    const baseUrl = Capacitor.isNativePlatform()
-      ? defaultWebUrl
-      : typeof window !== 'undefined'
-        ? window.location.origin
-        : defaultWebUrl
+    const url = getPublicWebUrl(`/profile/${identifier}`)
 
-    const url = `${baseUrl}/profile/${identifier}`
-
-    try {
-      if (navigator?.clipboard?.writeText) {
-        await navigator.clipboard.writeText(url)
-      } else {
-        const textArea = document.createElement('textarea')
-        textArea.value = url
-        document.body.appendChild(textArea)
-        textArea.select()
-        document.execCommand('copy')
-        document.body.removeChild(textArea)
-      }
+    const copiedSuccess = await copyTextToClipboard(url)
+    if (copiedSuccess) {
       setCopied(true)
       success('Profile link copied to clipboard!')
       setTimeout(() => setCopied(false), 2500)
-    } catch {
+    } else {
       toastError('Failed to copy link')
     }
   }

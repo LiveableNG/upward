@@ -1,4 +1,12 @@
-import type { LDContext } from '@launchdarkly/react-sdk'
+export interface LDContext {
+  kind: string
+  key: string
+  anonymous?: boolean
+  email?: string
+  name?: string
+  custom?: Record<string, unknown>
+}
+
 import type { UserProfile } from '@/features/auth/types'
 
 export function buildLdContext(user: UserProfile | null): LDContext {

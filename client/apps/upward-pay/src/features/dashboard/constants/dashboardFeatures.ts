@@ -107,21 +107,12 @@ export const DASHBOARD_FEATURE_SECTIONS: DashboardFeatureSection[] = [
     label: 'Plan ahead',
     items: [
       {
-        id: 'save-for-home',
-        title: 'Save for Home',
-        description: 'Set goals toward your next home',
-        href: '/dashboard/save-for-home',
-        icon: Home,
-        tone: 'green',
-      },
-      {
         id: 'save-for-rent',
         title: 'Save for Rent',
-        description: 'Lock in rent with 14.5% compound yield',
+        description: 'Automated rent savings & compound yield lock',
         href: '/dashboard/savings',
         icon: PiggyBank,
         tone: 'violet',
-        comingSoon: false,
       },
     ],
   },

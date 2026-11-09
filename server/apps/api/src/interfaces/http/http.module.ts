@@ -48,6 +48,12 @@ import { PmHomeRequestController } from './controllers/pm-home-request.controlle
 import { WebhookAdminController } from './admin/webhook-admin.controller'
 import { PmVerificationAdminController } from './admin/pm-verification-admin.controller'
 import { PmAuthController } from './pm/pm-auth.controller'
+import { PublicGoalsController } from './public/public-goals.controller'
+import { UserGoalsController } from './user/user-goals.controller'
+import { AdminGoalsController } from './admin/admin-goals.controller'
+import { TenantCommerceController } from './user/tenant-commerce.controller'
+import { AdminCommerceController } from './admin/admin-commerce.controller'
+import { TenantCommerceSubOrderController } from './user/tenant-commerce-suborder.controller'
 import { PmEmployeeAuthController } from './pm/pm-employee-auth.controller'
 import { PmProfileController } from './pm/pm-profile.controller'
 import { PmEmailSettingController } from './pm/pm-email-setting.controller'
@@ -107,10 +113,10 @@ import { PublicAllianceMarketplaceController } from './public/public-alliance.co
 import { UserAllianceController } from './user/user-alliance.controller'
 import { PublicAppVersionController } from './public/public-app-version.controller'
 import { AdminAppVersionController } from './admin/admin-app-version.controller'
+import { PublicExperimentController } from './public/public-experiment.controller'
 import { RentCalculatorController } from './rent-savings/rent-calculator.controller'
 import { RentVaultController } from './rent-savings/rent-vault.controller'
 import { RentSavingsWebhookController } from './rent-savings/rent-savings-webhook.controller'
-import { PublicExperimentController } from './public/public-experiment.controller'
 
 import { SubscriptionModule } from '../../domains/subscription/subscription.module'
 import { NotificationsGateway } from '../websockets/notifications.gateway'
@@ -231,6 +237,12 @@ import { NotificationsGateway } from '../websockets/notifications.gateway'
     AdminAppVersionController,
     AdminExperimentController,
     PublicExperimentController,
+    PublicGoalsController,
+    UserGoalsController,
+    AdminGoalsController,
+    TenantCommerceController,
+    AdminCommerceController,
+    TenantCommerceSubOrderController,
   ],
 })
 export class HttpModule {}

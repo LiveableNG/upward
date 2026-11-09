@@ -10,21 +10,29 @@ describe('AbExperimentService', () => {
   const configPath = path.resolve(process.cwd(), 'ab-experiments-config.json')
 
   const cleanupConfig = () => {
-    try {
-      if (fs.existsSync(configPath)) {
+    if (fs.existsSync(configPath)) {
+      try {
         fs.unlinkSync(configPath)
+      } catch {
+        // ignore
       }
-    } catch {
-      // ignore
     }
   }
+
+  beforeAll(() => {
+    cleanupConfig()
+  })
+
+  afterAll(() => {
+    cleanupConfig()
+  })
 
   beforeEach(() => {
     cleanupConfig()
     service = new AbExperimentService()
   })
 
-  afterAll(() => {
+  afterEach(() => {
     cleanupConfig()
   })
 

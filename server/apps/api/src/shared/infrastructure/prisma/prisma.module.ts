@@ -52,6 +52,20 @@ import { PrismaAllianceListingTrackerRepository } from './repositories/prisma-al
 import { PrismaAllianceReferralRepository } from './repositories/prisma-alliance-referral.repository'
 import { PrismaAllianceCommissionRepository } from './repositories/prisma-alliance-commission.repository'
 import { PrismaAllianceRatingRepository } from './repositories/prisma-alliance-rating.repository'
+import { PrismaGoalRepository } from './repositories/prisma-goal.repository'
+import { PrismaOfferingRepository } from './repositories/prisma-offering.repository'
+import { PrismaCommerceVendorRepository } from './repositories/prisma-commerce-vendor.repository'
+import { PrismaCommerceOrderRepository } from './repositories/prisma-commerce-order.repository'
+import { PrismaVendorPayableRepository } from './repositories/prisma-vendor-payable.repository'
+import { PrismaCommerceRefundRepository } from './repositories/prisma-commerce-refund.repository'
+import { PrismaCommerceDeliveryZoneRepository } from './repositories/prisma-commerce-delivery-zone.repository'
+import { GOAL_REPOSITORY } from '../../../domains/goals/goal.repository'
+import { OFFERING_REPOSITORY } from '../../../domains/goals/offering.repository'
+import { VENDOR_REPOSITORY } from '../../../domains/goals/vendor.repository'
+import { COMMERCE_ORDER_REPOSITORY } from '../../../domains/commerce/commerce-order.repository'
+import { VENDOR_PAYABLE_REPOSITORY } from '../../../domains/commerce/vendor-payable.repository'
+import { COMMERCE_REFUND_REPOSITORY } from '../../../domains/commerce/commerce-refund.repository'
+import { COMMERCE_DELIVERY_ZONE_REPOSITORY } from '../../../domains/commerce/commerce-delivery-zone.repository'
 import {
   ALLIANCE_PROFILE_REPOSITORY,
   ALLIANCE_QUALIFICATION_REPOSITORY,
@@ -134,8 +148,6 @@ import { EMAIL_SEQUENCE_REPOSITORY } from '../../../domains/email-sequence/email
 import { WHATSAPP_SEQUENCE_REPOSITORY } from '../../../domains/whatsapp-sequence/whatsapp-sequence.repository.interface'
 import { BULK_IMPORT_JOB_REPOSITORY } from '../../../domains/pm/IBulkImportJobRepository'
 import { PrismaBulkImportJobRepository } from '../../../infrastructure/repositories/PrismaBulkImportJobRepository'
-
-import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 import { ConfigService } from '@nestjs/config'
 import { KYC_PROVIDER } from '../../../domains/kyc/kyc-provider.interface'
 import { KYC_REPOSITORY } from '../../../domains/kyc/kyc.repository'
@@ -157,6 +169,8 @@ import { ArmConnectInvestmentProvider } from '../../../infrastructure/providers/
 import { MockInvestmentProvider } from '../../../infrastructure/providers/asset-management/mock-investment.provider'
 import { AssetManagementProviderRegistry } from '../../../infrastructure/providers/asset-management/asset-management-provider.registry'
 
+import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
+
 @Global()
 @Module({
   providers: [
@@ -169,24 +183,6 @@ import { AssetManagementProviderRegistry } from '../../../infrastructure/provide
     {
       provide: USER_REPOSITORY,
       useClass: PrismaUserRepository,
-    },
-    {
-      provide: KYC_REPOSITORY,
-      useClass: PrismaKycRepository,
-    },
-    {
-      provide: KYC_PROVIDER,
-      useFactory: (configService: ConfigService) => {
-        const provider = (configService.get<string>('KYC_PROVIDER') || 'monnify').toLowerCase()
-        if (provider === 'prembly') {
-          return new PremblyKycProvider(configService)
-        }
-        if (provider === 'mock') {
-          return new MockKycProvider()
-        }
-        return new MonnifyKycProvider(configService)
-      },
-      inject: [ConfigService],
     },
     {
       provide: SAVED_LANDLORD_REPOSITORY,
@@ -412,6 +408,52 @@ import { AssetManagementProviderRegistry } from '../../../infrastructure/provide
       provide: APP_VERSION_REPOSITORY,
       useClass: PrismaAppVersionPolicyRepository,
     },
+    {
+      provide: GOAL_REPOSITORY,
+      useClass: PrismaGoalRepository,
+    },
+    {
+      provide: OFFERING_REPOSITORY,
+      useClass: PrismaOfferingRepository,
+    },
+    {
+      provide: VENDOR_REPOSITORY,
+      useClass: PrismaCommerceVendorRepository,
+    },
+    {
+      provide: COMMERCE_ORDER_REPOSITORY,
+      useClass: PrismaCommerceOrderRepository,
+    },
+    {
+      provide: VENDOR_PAYABLE_REPOSITORY,
+      useClass: PrismaVendorPayableRepository,
+    },
+    {
+      provide: COMMERCE_REFUND_REPOSITORY,
+      useClass: PrismaCommerceRefundRepository,
+    },
+    {
+      provide: COMMERCE_DELIVERY_ZONE_REPOSITORY,
+      useClass: PrismaCommerceDeliveryZoneRepository,
+    },
+    {
+      provide: KYC_REPOSITORY,
+      useClass: PrismaKycRepository,
+    },
+    {
+      provide: KYC_PROVIDER,
+      useFactory: (configService: ConfigService) => {
+        const provider = (configService.get<string>('KYC_PROVIDER') || 'monnify').toLowerCase()
+        if (provider === 'prembly') {
+          return new PremblyKycProvider(configService)
+        }
+        if (provider === 'mock') {
+          return new MockKycProvider()
+        }
+        return new MonnifyKycProvider(configService)
+      },
+      inject: [ConfigService],
+    },
     PrismaRentVaultRepository,
     PrismaRentAdvanceRepository,
     PrismaRentSettlementRepository,
@@ -439,6 +481,13 @@ import { AssetManagementProviderRegistry } from '../../../infrastructure/provide
   exports: [
     PrismaService,
     EncryptionService,
+    GOAL_REPOSITORY,
+    OFFERING_REPOSITORY,
+    VENDOR_REPOSITORY,
+    COMMERCE_ORDER_REPOSITORY,
+    VENDOR_PAYABLE_REPOSITORY,
+    COMMERCE_REFUND_REPOSITORY,
+    COMMERCE_DELIVERY_ZONE_REPOSITORY,
     APP_VERSION_REPOSITORY,
     SESSION_TRACKING_REPOSITORY,
     WAITLIST_REPOSITORY,

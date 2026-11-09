@@ -1,30 +1,30 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service';
-import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service';
+import { Injectable } from '@nestjs/common'
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
+import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 
 export interface PmSearchResult {
-  id?: number;
-  uuid: string;
-  name: string;
-  firstName: string;
-  lastName: string;
-  businessName?: string | null;
-  email: string;
-  phone?: string | null;
-  pmType?: string | null;
-  isVerified: boolean;
-  isExternal?: boolean;
-  platformId?: number | null;
-  companyUuid?: string | null;
-  companyName?: string | null;
-  companyEmail?: string | null;
-  managerUuid?: string | null;
+  id?: number
+  uuid: string
+  name: string
+  firstName: string
+  lastName: string
+  businessName?: string | null
+  email: string
+  phone?: string | null
+  pmType?: string | null
+  isVerified: boolean
+  isExternal?: boolean
+  platformId?: number | null
+  companyUuid?: string | null
+  companyName?: string | null
+  companyEmail?: string | null
+  managerUuid?: string | null
   defaultSettlementAccount?: {
-    bankName: string;
-    accountNumber: string;
-    accountName: string;
-    bankCode?: string | null;
-  } | null;
+    bankName: string
+    accountNumber: string
+    accountName: string
+    bankCode?: string | null
+  } | null
 }
 
 @Injectable()
@@ -35,42 +35,36 @@ export class SearchPmUseCase {
   ) {}
 
   async execute(query?: string): Promise<PmSearchResult[]> {
-    const trimmed = (query || '').trim().toLowerCase();
+    const trimmed = (query || '').trim().toLowerCase()
     if (!trimmed || trimmed.length < 2) {
-      return [];
+      return []
     }
 
-    const emailHash = this.encryption.hash(trimmed);
-    const phoneHash = this.encryption.hash(trimmed);
-    const nameHash = this.encryption.hash(trimmed);
-    const queryDigits = trimmed.replace(/\D/g, '');
+    const emailHash = this.encryption.hash(trimmed)
+    const phoneHash = this.encryption.hash(trimmed)
+    const nameHash = this.encryption.hash(trimmed)
+    const queryDigits = trimmed.replace(/\D/g, '')
 
-    const results: PmSearchResult[] = [];
-    const seenUuids = new Set<string>();
+    const results: PmSearchResult[] = []
+    const seenUuids = new Set<string>()
 
     const pmInclude = {
       settlementAccounts: {
-        where: { isPrimary: true },
         include: { manualAccount: true },
       },
-      manualAccounts: {
-        where: { isPrimary: true },
-      },
-    };
+      manualAccounts: true,
+    }
 
     // 1. Search Internal Property Managers (upward_property_manager)
     const directPmMatches = await this.prisma.upward_property_manager.findMany({
       where: {
-        OR: [
-          { emailHash },
-          { phoneHash },
-        ],
+        OR: [{ emailHash }, { phoneHash }],
         isBlocked: false,
         isManuallyBlocked: false,
       },
       include: pmInclude,
       take: 10,
-    });
+    })
 
     const allPms = await this.prisma.upward_property_manager.findMany({
       where: {
@@ -80,51 +74,75 @@ export class SearchPmUseCase {
       include: pmInclude,
       take: 200,
       orderBy: { createdAt: 'desc' },
-    });
+    })
 
-    const combinedPms = [...directPmMatches];
-    const seenPmIds = new Set<number>(directPmMatches.map((m) => m.id));
+    const combinedPms = [...directPmMatches]
+    const seenPmIds = new Set<number>(directPmMatches.map((m) => m.id))
 
     for (const pm of allPms) {
       if (!seenPmIds.has(pm.id)) {
-        combinedPms.push(pm);
-        seenPmIds.add(pm.id);
+        combinedPms.push(pm)
+        seenPmIds.add(pm.id)
       }
     }
 
     for (const pm of combinedPms) {
       try {
-        const decryptedFirst = pm.firstName ? this.encryption.decrypt(pm.firstName) : '';
-        const decryptedLast = pm.lastName ? this.encryption.decrypt(pm.lastName) : '';
-        const decryptedBusiness = pm.businessName ? this.encryption.decrypt(pm.businessName) : '';
-        const decryptedEmail = pm.email ? (this.encryption.decrypt(pm.email).includes('@') ? this.encryption.decrypt(pm.email) : pm.email) : '';
-        const decryptedPhone = pm.phone ? this.encryption.decrypt(pm.phone) : '';
+        const decryptedFirst = pm.firstName ? this.encryption.decrypt(pm.firstName) : ''
+        const decryptedLast = pm.lastName ? this.encryption.decrypt(pm.lastName) : ''
+        const decryptedBusiness = pm.businessName ? this.encryption.decrypt(pm.businessName) : ''
+        const decryptedEmail = pm.email
+          ? this.encryption.decrypt(pm.email).includes('@')
+            ? this.encryption.decrypt(pm.email)
+            : pm.email
+          : ''
+        const decryptedPhone = pm.phone ? this.encryption.decrypt(pm.phone) : ''
 
-        const fullName = `${decryptedFirst} ${decryptedLast}`.trim().toLowerCase();
-        const businessLower = decryptedBusiness.toLowerCase();
-        const emailLower = decryptedEmail.toLowerCase();
-        const phoneLower = decryptedPhone.replace(/\D/g, '');
+        const fullName = `${decryptedFirst} ${decryptedLast}`.trim().toLowerCase()
+        const businessLower = decryptedBusiness.toLowerCase()
+        const emailLower = decryptedEmail.toLowerCase()
+        const phoneLower = decryptedPhone.replace(/\D/g, '')
 
-        const matchesName = fullName.includes(trimmed) || `${decryptedLast} ${decryptedFirst}`.toLowerCase().includes(trimmed);
-        const matchesBusiness = businessLower.includes(trimmed);
-        const matchesEmail = emailLower.includes(trimmed);
-        const matchesPhone = queryDigits.length >= 3 && phoneLower.includes(queryDigits);
+        const matchesName =
+          fullName.includes(trimmed) ||
+          `${decryptedLast} ${decryptedFirst}`.toLowerCase().includes(trimmed)
+        const matchesBusiness = businessLower.includes(trimmed)
+        const matchesEmail = emailLower.includes(trimmed)
+        const matchesPhone = queryDigits.length >= 3 && phoneLower.includes(queryDigits)
 
         if (matchesName || matchesBusiness || matchesEmail || matchesPhone) {
           if (!seenUuids.has(pm.uuid)) {
-            seenUuids.add(pm.uuid);
-            const primarySettlement = (pm as any).settlementAccounts?.[0]?.manualAccount || (pm as any).manualAccounts?.[0];
-            const defaultSettlementAccount = primarySettlement ? {
-              bankName: primarySettlement.bankName,
-              accountNumber: primarySettlement.accountNumber,
-              accountName: primarySettlement.accountName,
-              bankCode: primarySettlement.bankCode || null,
-            } : null;
+            seenUuids.add(pm.uuid)
+            const pmSettlements = (pm as any).settlementAccounts || []
+            const primarySettlementAcc =
+              pmSettlements.find((a: any) => a.isPrimary) || pmSettlements[0]
+            const pmManuals = (pm as any).manualAccounts || []
+            const primaryManual = pmManuals.find((a: any) => a.isPrimary) || pmManuals[0]
+            const primarySettlement = primarySettlementAcc?.manualAccount || primaryManual
+
+            const defaultSettlementAccount = primarySettlement
+              ? {
+                  bankName: primarySettlement.bankName,
+                  accountNumber: primarySettlement.accountNumber,
+                  accountName: primarySettlement.accountName,
+                  bankCode: primarySettlement.bankCode || null,
+                }
+              : pm.accountNumber && pm.bankName
+                ? {
+                    bankName: pm.bankName,
+                    accountNumber: pm.accountNumber,
+                    accountName: decryptedBusiness || `${decryptedFirst} ${decryptedLast}`.trim(),
+                    bankCode: pm.bankCode || null,
+                  }
+                : null
 
             results.push({
               id: pm.id,
               uuid: pm.uuid,
-              name: `${decryptedFirst} ${decryptedLast}`.trim() || decryptedBusiness || 'Property Manager',
+              name:
+                `${decryptedFirst} ${decryptedLast}`.trim() ||
+                decryptedBusiness ||
+                'Property Manager',
               firstName: decryptedFirst,
               lastName: decryptedLast,
               businessName: decryptedBusiness || null,
@@ -134,14 +152,14 @@ export class SearchPmUseCase {
               isVerified: !!pm.isVerified,
               isExternal: false,
               defaultSettlementAccount,
-            });
+            })
           }
         }
 
-        if (results.length >= 8) break;
+        if (results.length >= 8) break
       } catch {
         // Skip records with decryption failures
-        continue;
+        continue
       }
     }
 
@@ -149,49 +167,67 @@ export class SearchPmUseCase {
     const directCompanyMatches = await this.prisma.upward_company.findMany({
       where: {
         platformId: { not: null },
-        OR: [
-          { emailHash },
-          { phoneHash },
-          { nameHash },
-        ],
+        OR: [{ emailHash }, { phoneHash }, { nameHash }],
+      },
+      include: {
+        settlementAccounts: {
+          include: { manualAccount: true },
+        },
       },
       take: 10,
-    });
+    })
 
     const allCompanies = await this.prisma.upward_company.findMany({
       where: {
         platformId: { not: null },
       },
+      include: {
+        settlementAccounts: {
+          include: { manualAccount: true },
+        },
+      },
       take: 100,
       orderBy: { createdAt: 'desc' },
-    });
+    })
 
-    const combinedCompanies = [...directCompanyMatches];
-    const seenCompanyIds = new Set<number>(directCompanyMatches.map((c) => c.id));
+    const combinedCompanies = [...directCompanyMatches]
+    const seenCompanyIds = new Set<number>(directCompanyMatches.map((c) => c.id))
     for (const c of allCompanies) {
       if (!seenCompanyIds.has(c.id)) {
-        combinedCompanies.push(c);
-        seenCompanyIds.add(c.id);
+        combinedCompanies.push(c)
+        seenCompanyIds.add(c.id)
       }
     }
 
     for (const comp of combinedCompanies) {
       try {
-        const decryptedName = comp.name ? this.encryption.decrypt(comp.name) : '';
-        const decryptedEmail = comp.email ? this.encryption.decrypt(comp.email) : '';
-        const decryptedPhone = comp.phone ? this.encryption.decrypt(comp.phone) : '';
+        const decryptedName = comp.name ? this.encryption.decrypt(comp.name) : ''
+        const decryptedEmail = comp.email ? this.encryption.decrypt(comp.email) : ''
+        const decryptedPhone = comp.phone ? this.encryption.decrypt(comp.phone) : ''
 
-        const nameLower = decryptedName.toLowerCase();
-        const emailLower = decryptedEmail.toLowerCase();
-        const phoneLower = decryptedPhone.replace(/\D/g, '');
+        const nameLower = decryptedName.toLowerCase()
+        const emailLower = decryptedEmail.toLowerCase()
+        const phoneLower = decryptedPhone.replace(/\D/g, '')
 
-        const matchesName = nameLower.includes(trimmed);
-        const matchesEmail = emailLower.includes(trimmed);
-        const matchesPhone = queryDigits.length >= 3 && phoneLower.includes(queryDigits);
+        const matchesName = nameLower.includes(trimmed)
+        const matchesEmail = emailLower.includes(trimmed)
+        const matchesPhone = queryDigits.length >= 3 && phoneLower.includes(queryDigits)
 
         if (matchesName || matchesEmail || matchesPhone) {
           if (!seenUuids.has(comp.uuid)) {
-            seenUuids.add(comp.uuid);
+            seenUuids.add(comp.uuid)
+            const compSettlements = (comp as any).settlementAccounts || []
+            const compPrimarySettlement =
+              compSettlements.find((a: any) => a.isPrimary) || compSettlements[0]
+            const compDefaultAccount = compPrimarySettlement?.manualAccount
+              ? {
+                  bankName: compPrimarySettlement.manualAccount.bankName,
+                  accountNumber: compPrimarySettlement.manualAccount.accountNumber,
+                  accountName: compPrimarySettlement.manualAccount.accountName,
+                  bankCode: compPrimarySettlement.manualAccount.bankCode || null,
+                }
+              : null
+
             results.push({
               id: comp.id,
               uuid: comp.uuid,
@@ -208,11 +244,12 @@ export class SearchPmUseCase {
               companyUuid: comp.uuid,
               companyName: decryptedName,
               companyEmail: decryptedEmail,
-            });
+              defaultSettlementAccount: compDefaultAccount,
+            })
           }
         }
       } catch {
-        continue;
+        continue
       }
     }
 
@@ -224,38 +261,65 @@ export class SearchPmUseCase {
         },
       },
       include: {
-        company: true,
+        company: {
+          include: {
+            settlementAccounts: {
+              include: { manualAccount: true },
+            },
+          },
+        },
       },
       take: 100,
       orderBy: { createdAt: 'desc' },
-    });
+    })
 
     for (const mgr of allManagers) {
       try {
-        const decryptedFirst = mgr.firstName ? this.encryption.decrypt(mgr.firstName) : '';
-        const decryptedLast = mgr.lastName ? this.encryption.decrypt(mgr.lastName) : '';
-        const decryptedEmail = mgr.email ? this.encryption.decrypt(mgr.email) : '';
-        const decryptedPhone = mgr.phone ? this.encryption.decrypt(mgr.phone) : '';
-        const decryptedCompanyName = mgr.company?.name ? this.encryption.decrypt(mgr.company.name) : '';
-        const decryptedCompanyEmail = mgr.company?.email ? this.encryption.decrypt(mgr.company.email) : '';
+        const decryptedFirst = mgr.firstName ? this.encryption.decrypt(mgr.firstName) : ''
+        const decryptedLast = mgr.lastName ? this.encryption.decrypt(mgr.lastName) : ''
+        const decryptedEmail = mgr.email ? this.encryption.decrypt(mgr.email) : ''
+        const decryptedPhone = mgr.phone ? this.encryption.decrypt(mgr.phone) : ''
+        const decryptedCompanyName = mgr.company?.name
+          ? this.encryption.decrypt(mgr.company.name)
+          : ''
+        const decryptedCompanyEmail = mgr.company?.email
+          ? this.encryption.decrypt(mgr.company.email)
+          : ''
 
-        const fullName = `${decryptedFirst} ${decryptedLast}`.trim().toLowerCase();
-        const companyLower = decryptedCompanyName.toLowerCase();
-        const emailLower = decryptedEmail.toLowerCase();
-        const phoneLower = decryptedPhone.replace(/\D/g, '');
+        const fullName = `${decryptedFirst} ${decryptedLast}`.trim().toLowerCase()
+        const companyLower = decryptedCompanyName.toLowerCase()
+        const emailLower = decryptedEmail.toLowerCase()
+        const phoneLower = decryptedPhone.replace(/\D/g, '')
 
-        const matchesName = fullName.includes(trimmed) || `${decryptedLast} ${decryptedFirst}`.toLowerCase().includes(trimmed);
-        const matchesCompany = companyLower.includes(trimmed);
-        const matchesEmail = emailLower.includes(trimmed);
-        const matchesPhone = queryDigits.length >= 3 && phoneLower.includes(queryDigits);
+        const matchesName =
+          fullName.includes(trimmed) ||
+          `${decryptedLast} ${decryptedFirst}`.toLowerCase().includes(trimmed)
+        const matchesCompany = companyLower.includes(trimmed)
+        const matchesEmail = emailLower.includes(trimmed)
+        const matchesPhone = queryDigits.length >= 3 && phoneLower.includes(queryDigits)
 
         if (matchesName || matchesCompany || matchesEmail || matchesPhone) {
           if (!seenUuids.has(mgr.uuid)) {
-            seenUuids.add(mgr.uuid);
+            seenUuids.add(mgr.uuid)
+            const mgrCompSettlements = (mgr as any).company?.settlementAccounts || []
+            const mgrPrimarySettlement =
+              mgrCompSettlements.find((a: any) => a.isPrimary) || mgrCompSettlements[0]
+            const mgrDefaultAccount = mgrPrimarySettlement?.manualAccount
+              ? {
+                  bankName: mgrPrimarySettlement.manualAccount.bankName,
+                  accountNumber: mgrPrimarySettlement.manualAccount.accountNumber,
+                  accountName: mgrPrimarySettlement.manualAccount.accountName,
+                  bankCode: mgrPrimarySettlement.manualAccount.bankCode || null,
+                }
+              : null
+
             results.push({
               id: mgr.id,
               uuid: mgr.uuid,
-              name: `${decryptedFirst} ${decryptedLast}`.trim() || decryptedCompanyName || 'Property Manager',
+              name:
+                `${decryptedFirst} ${decryptedLast}`.trim() ||
+                decryptedCompanyName ||
+                'Property Manager',
               firstName: decryptedFirst,
               lastName: decryptedLast,
               businessName: decryptedCompanyName || null,
@@ -269,14 +333,15 @@ export class SearchPmUseCase {
               companyName: decryptedCompanyName,
               companyEmail: decryptedCompanyEmail,
               managerUuid: mgr.uuid,
-            });
+              defaultSettlementAccount: mgrDefaultAccount,
+            })
           }
         }
       } catch {
-        continue;
+        continue
       }
     }
 
-    return results.slice(0, 15);
+    return results.slice(0, 15)
   }
 }
