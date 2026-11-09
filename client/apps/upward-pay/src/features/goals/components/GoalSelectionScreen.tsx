@@ -190,7 +190,7 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
           <p className="goal-selection__subtitle">
             {hasNoGoals
               ? 'Select your tenancy priorities and perks once available.'
-              : 'Choose any home or personal goals so we can tailor service packages and verified merchant perks for your tenancy.'}
+              : 'Pick the goals you care about most — from 24/7 power backup and fast Wi-Fi to home furnishing — and unlock exclusive member deals.'}
           </p>
         </div>
       </header>

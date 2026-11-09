@@ -95,9 +95,9 @@ export const LifestyleGoalsWidget: React.FC = () => {
         </div>
       ) : (
         <div style={{ marginBottom: 14 }}>
-          <h3 className="lifestyle-goals-widget__title">Save for Rent · 14.5% Returns</h3>
+          <h3 className="lifestyle-goals-widget__title">Save for Rent · Earn Daily Returns</h3>
           <p className="lifestyle-goals-widget__desc">
-            Save monthly towards your next rent payment and earn daily interest backed by ARM Money Market Fund.
+            Put money aside monthly towards your rent, earn daily returns, and get cash back when you pay on time.
           </p>
           <button
             type="button"

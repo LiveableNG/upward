@@ -8,34 +8,34 @@ import { AppleSignInButton } from '@/features/auth/components/AppleSignInButton'
 
 const BENEFITS = [
   {
-    icon: PiggyBank,
-    color: '#C2501F',
-    title: 'Save & Earn 14.5% on Rent',
-    desc: 'Automate your next rent with 14.5% p.a. compound yield, a dedicated savings account, and early-bird rent cashback.',
-  },
-  {
     icon: Target,
-    color: '#16a34a',
-    title: 'Lifestyle & Living Goals',
-    desc: 'Plan home upgrades, utilities, and personal milestones with curated packages and verified merchant perks.',
+    color: '#C2501F',
+    title: 'Achieve Your Living Goals',
+    desc: '24/7 power backup, fast Wi-Fi, dream furnishings, or personal milestones. Plan what matters to you and unlock exclusive member deals.',
   },
   {
-    icon: Building2,
-    color: '#6366f1',
-    title: 'Verified Home Marketplace',
-    desc: 'Explore vetted homes, Exclusive listings, and flexible rent financing through the Upward Alliance network.',
+    icon: PiggyBank,
+    color: '#16a34a',
+    title: 'Save for Rent Stress-Free',
+    desc: 'Never scramble on rent day again. Put money aside bit by bit, watch it grow with daily bonus returns, and earn cash back on your rent.',
   },
   {
     icon: TrendingUp,
     color: '#0ea5e9',
-    title: 'Build Rent Credit & Rewards',
-    desc: 'Every on-time rent payment boosts your Upward Score, unlocks rent discounts, and builds a verified Rent Passport.',
+    title: 'Build a Score Landlords Love',
+    desc: 'Every on-time payment boosts your Upward Score, unlocking cheaper rent deals, bigger perks, and prime apartments.',
+  },
+  {
+    icon: Building2,
+    color: '#6366f1',
+    title: 'Find Homes You’ll Love',
+    desc: 'Discover vetted, move-in-ready apartments with flexible payment plans designed around how you earn.',
   },
   {
     icon: Shield,
     color: '#d97706',
-    title: 'Seamless Rent Settlements',
-    desc: 'Settle landlords instantly with bank-grade security, automated receipts, and tamper-proof payment records.',
+    title: 'Pay Rent with Zero Stress',
+    desc: 'Instant transfers to any Nigerian bank account with official payment receipts sent straight to your landlord.',
   },
 ]
 
