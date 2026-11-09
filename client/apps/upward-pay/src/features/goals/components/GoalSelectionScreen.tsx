@@ -161,15 +161,11 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
                   {isSaving ? (
                     <>
                       <Loader2 size={14} className="loader" />
-                      <span>Saving</span>
+                      <span>Saving...</span>
                     </>
                   ) : (
                     <>
-                      <span>
-                        {selectedCount > 0
-                          ? `Save & Continue (${selectedCount})`
-                          : 'Continue'}
-                      </span>
+                      <span>{mode === 'onboarding' ? 'Continue' : selectedCount > 0 ? `Save (${selectedCount})` : 'Save'}</span>
                       <ArrowRight size={14} />
                     </>
                   )}
