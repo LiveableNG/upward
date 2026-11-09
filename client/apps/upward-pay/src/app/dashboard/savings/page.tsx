@@ -11,7 +11,6 @@ export default function SavingsDashboardPage() {
   return (
     <PayPageShell
       title="Rent Savings"
-      subtitle="Powered by Asset & Resource Management Holding Company (ARM)"
       showBack
       onBack={() => router.push('/dashboard')}
     >

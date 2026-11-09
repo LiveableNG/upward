@@ -432,19 +432,6 @@ select.rent-calculator__input:focus {
   gap: 8px;
 }
 
-.vault-dashboard__lock-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--surface);
-  color: var(--text-secondary);
-  border: 1px solid var(--border);
-  padding: 5px 12px;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
 .vault-dashboard__countdown-pill {
   font-size: 0.75rem;
   color: var(--clay);
@@ -654,12 +641,6 @@ select.rent-calculator__input:focus {
   .vault-dashboard__top-row {
     gap: 6px;
     align-items: center;
-  }
-
-  .vault-dashboard__lock-pill {
-    font-size: 0.6875rem;
-    padding: 3px 8px;
-    white-space: nowrap;
   }
 
   .vault-dashboard__countdown-pill {

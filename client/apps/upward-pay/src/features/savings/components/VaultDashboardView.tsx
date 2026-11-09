@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react'
 import {
-  Lock,
   TrendingUp,
   PlusCircle,
   ShieldCheck,
@@ -112,18 +111,13 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
     <div className="rent-savings">
       <div className="vault-dashboard__hero">
         <div className="vault-dashboard__top-row">
-          <div className="vault-dashboard__lock-pill">
-            <Lock size={13} color="var(--clay)" />
-            <span>{isSettlementReady ? 'Ready to Settle' : 'Target Rent Savings'}</span>
+          <div className="vault-arm-badge">
+            <ShieldCheck size={14} className="vault-arm-badge__icon" />
+            <span>
+              Powered by <strong>Asset &amp; Resource Management Holding Company (ARM)</strong>
+            </span>
           </div>
           <span className="vault-dashboard__countdown-pill">{daysRemaining} Days Left</span>
-        </div>
-
-        <div className="vault-arm-badge">
-          <ShieldCheck size={14} className="vault-arm-badge__icon" />
-          <span>
-            Powered by <strong>Asset &amp; Resource Management Holding Company (ARM)</strong>
-          </span>
         </div>
 
         <div className="vault-dashboard__amounts">
