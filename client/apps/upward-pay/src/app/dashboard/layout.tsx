@@ -112,6 +112,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (!loading && !isLoggedIn && !isPinLocked) {
       const redirectUrl = pathname ? `/login?redirect=${encodeURIComponent(pathname)}` : '/login'
       router.replace(redirectUrl)
+      const timer = setTimeout(() => {
+        if (typeof window !== 'undefined') {
+          window.location.href = redirectUrl
+        }
+      }, 1500)
+      return () => clearTimeout(timer)
     }
   }, [loading, isLoggedIn, isPinLocked, router, pathname])
 

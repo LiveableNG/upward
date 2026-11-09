@@ -142,8 +142,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (err: any) {
       console.warn('[Auth] refreshUser error:', err)
       const isAuthRejected = err?.status === 401 || err?.message === 'Session expired'
-      if (Capacitor.isNativePlatform() && !isAuthRejected && userRef.current) {
-        console.warn('[Auth] Retaining session on native platform during temporary network fluctuation.')
+      if (!isAuthRejected && userRef.current) {
+        console.warn('[Auth] Retaining session during temporary network fluctuation.')
       } else {
         setUser(null)
         userRef.current = null
@@ -153,6 +153,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (typeof window !== 'undefined') {
           localStorage.removeItem('upward_cached_user_profile')
         }
+        authLogout().catch(() => {})
       }
     } finally {
       setLoading(false)
@@ -168,14 +169,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const refreshToken = getRefreshToken()
 
       if (!token && !refreshToken) {
-        console.log('[Auth] No stored tokens found. Starting in logged-out state.')
-        setUser(null)
-        userRef.current = null
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('upward_cached_user_profile')
+        // Even if localStorage tokens are absent, check if an active HTTP-Only cookie session exists on web
+        try {
+          const profile = await getMe()
+          setUser(profile)
+          userRef.current = profile
+          sessionTracker.identify({ id: profile.id ? Number(profile.id) : undefined, email: profile.email, role: profile.role || 'TENANT' })
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('upward_cached_user_profile', JSON.stringify(profile))
+          }
+          setLoading(false)
+          return
+        } catch {
+          console.log('[Auth] No stored tokens found and no active cookie session. Starting in logged-out state.')
+          setUser(null)
+          userRef.current = null
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('upward_cached_user_profile')
+          }
+          setLoading(false)
+          return
         }
-        setLoading(false)
-        return
       }
 
       if (Capacitor.isNativePlatform()) {

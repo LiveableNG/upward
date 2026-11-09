@@ -61,8 +61,12 @@ export async function middleware(request: NextRequest) {
 
   if (isAuthPage && hasToken && !isExpired) {
     const searchParams = request.nextUrl.searchParams
-    const redirectPath = searchParams.get('redirect') || '/dashboard'
-    return NextResponse.redirect(new URL(redirectPath, baseUrl))
+    const redirectPath = searchParams.get('redirect')
+    // If there is an explicit redirect param from a protected route, do not bounce the user back into a loop.
+    // Only auto-redirect cleanly authenticated users who landed directly on bare /login or /signup.
+    if (!redirectPath || redirectPath === pathname) {
+      return NextResponse.redirect(new URL('/dashboard', baseUrl))
+    }
   }
 
   const isProtectedPage =
@@ -74,7 +78,11 @@ export async function middleware(request: NextRequest) {
   if (isProtectedPage && (!hasToken || isExpired)) {
     const url = new URL('/login', baseUrl)
     url.searchParams.set('redirect', pathname)
-    return NextResponse.redirect(url)
+    const response = NextResponse.redirect(url)
+    if (tokenCookie) {
+      response.cookies.delete('pay_access_token')
+    }
+    return response
   }
 
   return NextResponse.next()

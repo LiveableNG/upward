@@ -16,16 +16,34 @@ function LoginRedirectContent() {
 
   useEffect(() => {
     if (loading) return
+    const searchParams = new URLSearchParams(window.location.search)
+    const redirect = searchParams.get('redirect')
     if (isLoggedIn) {
-      const searchParams = new URLSearchParams(window.location.search)
-      const redirect = searchParams.get('redirect') || '/dashboard'
-      router.replace(redirect)
+      router.replace(redirect || '/dashboard')
     } else {
-      router.replace('/signup?mode=login')
+      const target = redirect
+        ? `/signup?mode=login&redirect=${encodeURIComponent(redirect)}`
+        : '/signup?mode=login'
+      router.replace(target)
     }
   }, [isLoggedIn, loading, router])
 
-  return <FallbackSuspense message="Loading…" />
+  // Safety escape hatch if auth loading hangs
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (typeof window !== 'undefined') {
+        const searchParams = new URLSearchParams(window.location.search)
+        const redirect = searchParams.get('redirect')
+        const target = redirect
+          ? `/signup?mode=login&redirect=${encodeURIComponent(redirect)}`
+          : '/signup?mode=login'
+        window.location.href = target
+      }
+    }, 2500)
+    return () => clearTimeout(timer)
+  }, [])
+
+  return <FallbackSuspense message="Redirecting..." />
 }
 
 export default function LoginPage() {
