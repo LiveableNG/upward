@@ -612,7 +612,8 @@ export function SavingsInvestorKycModal({
                 disabled={isLoading}
                 style={{ flex: 1 }}
               >
-                <ArrowLeft size={16} /> Back
+                <ArrowLeft size={16} />
+                <span>Back</span>
               </button>
               <button
                 type="button"
@@ -625,11 +626,13 @@ export function SavingsInvestorKycModal({
               >
                 {isLoading ? (
                   <>
-                    <Loader2 size={18} className="animate-spin" /> Verifying details...
+                    <Loader2 size={16} className="animate-spin" />
+                    <span>Verifying...</span>
                   </>
                 ) : (
                   <>
-                    <ShieldCheck size={16} /> Complete Verification
+                    <span>Continue</span>
+                    <ArrowRight size={16} />
                   </>
                 )}
               </button>

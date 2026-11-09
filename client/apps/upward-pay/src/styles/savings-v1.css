@@ -75,14 +75,15 @@
 
 .rent-calculator__input {
   width: 100%;
-  height: 48px;
+  height: 50px;
   background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md, 10px);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md, 12px);
   padding: 0 14px 0 32px;
   font-size: 0.9375rem;
   font-weight: 600;
   color: var(--text);
+  box-sizing: border-box;
   transition: all 0.2s ease;
 }
 
@@ -95,6 +96,23 @@
 
 .rent-calculator__input--no-prefix {
   padding-left: 14px;
+}
+
+select.rent-calculator__input {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-color: var(--surface);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%237a7268' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 14px 14px;
+  padding-right: 38px;
+  cursor: pointer;
+}
+
+select.rent-calculator__input:focus {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23c2501f' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }
 
 .rent-calculator__cadence-tabs {
@@ -1366,15 +1384,16 @@
 /* Buttons */
 .vault-btn-primary {
   width: 100%;
-  height: 48px;
-  background: var(--btn-primary-bg);
-  color: var(--btn-primary-text);
+  height: 52px;
+  background: var(--clay, #c2501f);
+  color: #ffffff;
   border: none;
-  border-radius: var(--radius-md, 10px);
-  font-size: 0.875rem;
-  font-weight: 600;
+  border-radius: var(--radius-md, 14px);
+  font-family: inherit;
+  font-size: 0.9375rem;
+  font-weight: 700;
   cursor: pointer;
-  box-shadow: var(--btn-primary-shadow);
+  box-shadow: 0 10px 24px -10px rgba(194, 80, 31, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1383,25 +1402,29 @@
 }
 
 .vault-btn-primary:hover:not(:disabled) {
-  background: var(--btn-primary-hover);
-  box-shadow: var(--btn-primary-shadow-hover);
+  background: var(--clay-hover, #a8410f);
+  box-shadow: 0 14px 28px -8px rgba(194, 80, 31, 0.65);
 }
 
 .vault-btn-primary:disabled {
-  opacity: 0.6;
+  background: var(--clay, #c2501f);
+  opacity: 0.45;
+  box-shadow: none;
   cursor: not-allowed;
 }
 
 .vault-btn-secondary {
   width: 100%;
-  height: 48px;
-  background: transparent;
-  color: var(--text-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md, 10px);
-  font-size: 0.875rem;
-  font-weight: 600;
+  height: 52px;
+  background: var(--surface, #ffffff);
+  color: var(--text);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md, 14px);
+  font-family: inherit;
+  font-size: 0.9375rem;
+  font-weight: 700;
   cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1409,8 +1432,14 @@
   transition: all 0.15s ease;
 }
 
-.vault-btn-secondary:hover {
-  background: var(--surface);
+.vault-btn-secondary:hover:not(:disabled) {
+  background: var(--surface2, #f5f2ed);
+  border-color: var(--border-hover, #dfd7cc);
+}
+
+.vault-btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .vault-btn-destructive {
