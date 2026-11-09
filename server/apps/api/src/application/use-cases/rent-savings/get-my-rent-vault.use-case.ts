@@ -134,17 +134,14 @@ export class GetMyRentVaultUseCase {
         ? Math.min(100, Math.round((currentBalanceNum / targetAmountNum) * 1000) / 10)
         : 0
 
-    // Check active loan
     const activeAdvance = await this.rentAdvanceRepo.findActiveByVaultId(vault.id)
     const hasActiveLoan = !!activeAdvance && activeAdvance.status === 'ACTIVE'
     const maxBorrowableKobo = hasActiveLoan
       ? 0n
       : RentSavingsCalculatorEngine.calculateMaxAdvanceBorrowable(currentBalanceKobo)
 
-    // Fetch savings score
     const score = await this.rentVaultRepo.findSavingsScoreByVaultId(vault.id)
 
-    // Readjusted scoring (without loan discipline): 50 pts Regular Saving + 50 pts Target Progress = 100 pts
     const rawCadence = score?.cadencePoints ?? 0
     const consistencyPoints = Math.min(50, Math.round((rawCadence / 40) * 50) || (currentBalanceKobo > 0n ? 15 : 10))
     const goalRatio = targetAmountNum > 0 ? currentBalanceNum / targetAmountNum : 0

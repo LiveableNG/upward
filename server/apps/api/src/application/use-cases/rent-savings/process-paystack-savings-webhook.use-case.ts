@@ -80,20 +80,17 @@ export class ProcessPaystackSavingsWebhookUseCase {
       return { status: 'ignored', message: 'Amount is zero or negative' }
     }
 
-    // Idempotency check: verify reference has not already been processed
     const existingTx = await this.rentVaultRepo.findTransactionByReference(reference)
     if (existingTx) {
       this.logger.warn(`Duplicate webhook reference ignored: ${reference}`)
       return { status: 'already_processed', reference }
     }
 
-    // Resolve target vault
     let vault = null
     if (metadata?.vault_id) {
       vault = await this.rentVaultRepo.findByUuid(String(metadata.vault_id))
     }
 
-    // Fallback: match by DVA dedicated nuban
     if (!vault && payload.data.dedicated_account) {
       const dvaAcc = (payload.data.dedicated_account as any)?.account_number
       if (dvaAcc) {
@@ -111,7 +108,6 @@ export class ProcessPaystackSavingsWebhookUseCase {
     const currentBalance = vault.currentPrincipalKobo + vault.accruedYieldKobo
     const newBalance = currentBalance + amountKobo
 
-    // Create immutable double-entry ledger transaction
     await this.rentVaultRepo.createTransaction({
       vaultId: vault.id,
       userId: vault.userId,
@@ -129,13 +125,11 @@ export class ProcessPaystackSavingsWebhookUseCase {
       },
     })
 
-    // Increment vault principal balance
     await this.rentVaultRepo.incrementBalances(vault.id, amountKobo, 0n)
     this.logger.log(
       `Successfully credited vault ${vault.uuid} with ₦${Number(amountKobo) / 100} (ref: ${reference})`,
     )
 
-    // Dispatch automated mutual fund investment sweep to active asset manager (ARM Connect)
     if (vault.investmentProvider) {
       try {
         const provider = this.providerRegistry.getProvider(vault.investmentProvider)
@@ -160,7 +154,6 @@ export class ProcessPaystackSavingsWebhookUseCase {
       }
     }
 
-    // Update Upward Savings Score milestones & cadence points
     await this.updateSavingsScoreOnDeposit(
       vault.id,
       vault.userId,
@@ -188,10 +181,7 @@ export class ProcessPaystackSavingsWebhookUseCase {
       const balanceNum = Number(newBalanceKobo)
       const ratio = targetNum > 0 ? balanceNum / targetNum : 0
 
-      // Goal Points (max 50) based on target ratio
       const goalPoints = Math.min(50, Math.round(ratio * 50))
-
-      // Add 10 points for regular timely saving (capped at 50)
       const currentCadence = currentScore?.cadencePoints ?? 0
       const newCadence = Math.min(50, currentCadence + 10)
       const totalScore = Math.min(100, newCadence + goalPoints)

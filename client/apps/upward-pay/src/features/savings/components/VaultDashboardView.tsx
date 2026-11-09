@@ -92,12 +92,8 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
       ? Math.min(100, Math.round((currentBalanceNaira / targetAmountNaira) * 1000) / 10)
       : vault.target_completion_percentage
 
-  // Landlord settlement is ONLY available when rent due date is 30 days away or less
   const canSettleLandlord = Boolean(onGoToSettlementHub && daysRemaining <= 30)
 
-  // Readjusted scoring (2 clear pillars totaling 100 pts without borrow/advance):
-  // 1. Regular Saving (up to 50 pts)
-  // 2. Target Progress (up to 50 pts)
   const consistencyPoints =
     vault.savings_score.consistency_points ??
     Math.min(
