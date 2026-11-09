@@ -221,7 +221,7 @@ export function SavingsInvestorKycModal({
   const [copiedDetails, setCopiedDetails] = useState(false)
   const [fundingOption, setFundingOption] = useState<'DIRECT_DEBIT' | 'BANK_TRANSFER'>('DIRECT_DEBIT')
   const [customFundAmount, setCustomFundAmount] = useState<string | null>(null)
-  const [debitDay, setDebitDay] = useState(25)
+  const [debitDay, setDebitDay] = useState(1)
 
   const [formError, setFormError] = useState<string | null>(null)
 
@@ -1152,8 +1152,7 @@ export function SavingsInvestorKycModal({
                   Amount: <strong>₦{numericFundAmount.toLocaleString()}</strong>
                 </span>
                 <span style={{ color: 'var(--text-secondary)' }}>
-                  Paystack fee {fundingOption === 'BANK_TRANSFER' ? '(1%, max ₦300)' : '(1.5% + ₦100, max ₦2k)'}:{' '}
-                  <strong>₦{paystackFee.toLocaleString()}</strong>
+                  Processing fee: <strong>₦{paystackFee.toLocaleString()}</strong>
                 </span>
               </div>
               <span style={{ fontWeight: 700, color: 'var(--clay)' }}>
@@ -1180,10 +1179,9 @@ export function SavingsInvestorKycModal({
                     {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => (
                       <option key={d} value={d}>
                         {getOrdinalSuffix(d)} of every month
-                        {d === 25 ? ' (Salary Day • Recommended)' : ''}
                       </option>
                     ))}
-                    <option value={0}>Last day of every month (28th–31st)</option>
+                    <option value={0}>Last day of every month</option>
                   </select>
                 </div>
 

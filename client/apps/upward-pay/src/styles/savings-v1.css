@@ -90,7 +90,7 @@
 .rent-calculator__input:focus {
   outline: none;
   border-color: var(--clay);
-  background: var(--bg);
+  background-color: var(--bg);
   box-shadow: 0 0 0 3px var(--clay-glow);
 }
 
@@ -104,15 +104,19 @@ select.rent-calculator__input {
   -moz-appearance: none;
   background-color: var(--surface);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%237a7268' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 14px center;
-  background-size: 14px 14px;
+  background-repeat: no-repeat !important;
+  background-position: right 14px center !important;
+  background-size: 14px 14px !important;
   padding-right: 38px;
   cursor: pointer;
 }
 
 select.rent-calculator__input:focus {
+  background-color: var(--bg) !important;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23c2501f' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat !important;
+  background-position: right 14px center !important;
+  background-size: 14px 14px !important;
 }
 
 .rent-calculator__cadence-tabs {
