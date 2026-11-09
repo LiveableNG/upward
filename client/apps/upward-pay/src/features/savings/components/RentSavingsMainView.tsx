@@ -165,7 +165,7 @@ export function RentSavingsMainView() {
   }
 
   return (
-    <div>
+    <div className="rent-savings-view" style={{ width: '100%' }}>
       {renderKycBanner()}
 
       {!isVaultActive && (

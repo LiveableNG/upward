@@ -30,6 +30,18 @@
   padding: 0 24px;
 }
 
+@media (max-width: 640px) {
+  .pay-flow__header {
+    padding-left: var(--shell-px, 16px);
+    padding-right: var(--shell-px, 16px);
+  }
+
+  .pay-flow__scroll {
+    padding-left: var(--shell-px, 16px);
+    padding-right: var(--shell-px, 16px);
+  }
+}
+
 .pay-flow__inner {
   padding-bottom: 20px;
 }
