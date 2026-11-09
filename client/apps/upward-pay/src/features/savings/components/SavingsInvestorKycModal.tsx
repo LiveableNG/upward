@@ -465,7 +465,7 @@ export function SavingsInvestorKycModal({
                 />
               </div>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Statutory banking &amp; anti-fraud verification question
+                Security question to protect your identity and account
               </span>
             </div>
 
@@ -484,7 +484,7 @@ export function SavingsInvestorKycModal({
             >
               <Lock size={14} color="var(--clay)" style={{ flexShrink: 0 }} />
               <span>
-                Encrypted with AES-256 and NDPR compliance. Verified via Prembly in real time.
+                Your details are securely encrypted and verified in real time.
               </span>
             </div>
 
@@ -629,7 +629,7 @@ export function SavingsInvestorKycModal({
                   </>
                 ) : (
                   <>
-                    <ShieldCheck size={16} /> Complete &amp; Verify KYC
+                    <ShieldCheck size={16} /> Complete Verification
                   </>
                 )}
               </button>
