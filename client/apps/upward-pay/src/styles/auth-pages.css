@@ -1237,16 +1237,35 @@
   justify-content: center;
   text-align: center;
   padding: var(--space-8) var(--space-4);
+  width: 100%;
+  max-width: 360px;
+  margin: 0 auto;
+  overflow: hidden;
+  user-select: none;
+}
+
+.benefit-carousel__slider {
+  width: 100%;
+  overflow: hidden;
+  touch-action: pan-y pinch-zoom;
 }
 
 .benefit-carousel__track {
-  animation: fadeIn 0.45s ease-out;
+  display: flex;
+  width: 100%;
+  transition: transform 0.48s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.benefit-carousel__slide {
+  flex: 0 0 100%;
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--space-4);
-  max-width: 320px;
-  margin: 0 auto;
+  padding: 0 var(--space-2);
+  box-sizing: border-box;
 }
 
 .benefit-carousel__icon-ring {
