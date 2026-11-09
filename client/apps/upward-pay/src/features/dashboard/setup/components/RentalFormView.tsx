@@ -1133,44 +1133,44 @@ export function RentalFormView() {
               <div
                 style={{
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
+                  flexDirection: 'column',
                   gap: 12,
                   padding: '14px 16px',
                   borderRadius: 14,
-                  background: '#fcfaf7',
-                  border: '1px solid #eae2d7',
+                  background: 'var(--shell-tint, #fcfaf7)',
+                  border: '1px solid var(--border, #eae2d7)',
                   marginBottom: 20,
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <Sparkles size={20} color="var(--skin-primary, #c2501f)" style={{ flexShrink: 0 }} />
-                  <div>
-                    <strong style={{ display: 'block', fontSize: 13.5, color: '#1a1714', fontWeight: 700 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <Sparkles size={18} color="var(--skin-primary, #c2501f)" style={{ flexShrink: 0, marginTop: 2 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <strong style={{ display: 'block', fontSize: 13.5, color: 'var(--text, #1a1714)', fontWeight: 700 }}>
                       Landlord details are optional
                     </strong>
-                    <p style={{ margin: '2px 0 0', fontSize: 12, color: '#7a7268', lineHeight: 1.45 }}>
+                    <p style={{ margin: '3px 0 0', fontSize: 12.5, color: 'var(--text-muted, #7a7268)', lineHeight: 1.45 }}>
                       You can skip this step now and add landlord details anytime from your dashboard.
                     </p>
                   </div>
                 </div>
+
                 <button
                   type="button"
                   onClick={handleManagerSkip}
                   style={{
-                    flexShrink: 0,
-                    padding: '7px 13px',
-                    borderRadius: 8,
+                    width: '100%',
+                    padding: '9px 14px',
+                    borderRadius: 9,
                     background: '#fff',
-                    border: '1px solid #d1c7b8',
+                    border: '1.5px solid #d1c7b8',
                     color: '#1a1714',
-                    fontSize: 12.5,
-                    fontWeight: 700,
+                    fontSize: 13,
+                    fontWeight: 600,
                     cursor: 'pointer',
-                    whiteSpace: 'nowrap',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: 5,
+                    justifyContent: 'center',
+                    gap: 6,
                     transition: 'all 0.15s ease',
                   }}
                   onMouseEnter={(e) => {
@@ -1182,7 +1182,8 @@ export function RentalFormView() {
                     e.currentTarget.style.color = '#1a1714'
                   }}
                 >
-                  Skip for now <ArrowRight size={13} />
+                  <span>Skip landlord details for now</span>
+                  <ArrowRight size={14} />
                 </button>
               </div>
             ) : (
