@@ -26,6 +26,7 @@ import { ShareCredibility } from './ShareCredibility'
 import { UpcomingFeaturesWidget } from './UpcomingFeaturesWidget'
 import { ExclusiveHomesBrowseLink } from './exclusive-homes/ExclusiveHomesPromo'
 import { isSavingsWalletEnabled } from '../utils/savingsWallet'
+import { isProfileSetupComplete, hasRentalInfo, hasContactDetails } from '../utils/profileCompletion'
 import { RentDepositCard } from './RentDepositCard'
 import {
   LifestyleGoalsWidget,
@@ -205,6 +206,36 @@ export function DashboardHome({
 
   return (
     <div className="dash-home">
+      {!isProfileSetupComplete(user) && (
+        <button
+          type="button"
+          className="dash-home__benefits-card"
+          style={{ background: 'var(--shell-tint)', borderColor: 'var(--border)' }}
+          onClick={() => {
+            if (typeof window !== 'undefined' && user?.uuid) {
+              sessionStorage.removeItem(`upward_profile_setup_skipped_${user.uuid}`)
+              localStorage.removeItem(`upward_profile_setup_skipped_${user.uuid}`)
+              window.location.reload()
+            }
+          }}
+        >
+          <span className="dash-home__benefits-card-icon" style={{ background: 'var(--clay-faint)', color: 'var(--clay)' }}>
+            <Target size={18} />
+          </span>
+          <span className="dash-home__benefits-card-body">
+            <span className="dash-home__benefits-card-title">Complete your profile setup</span>
+            <span className="dash-home__benefits-card-desc">
+              {!hasRentalInfo(user)
+                ? 'Add rental details to activate your rent payment passport'
+                : !hasContactDetails(user)
+                  ? 'Add phone and date of birth to complete verification'
+                  : 'Set your lifestyle goals to personalize your rewards'}
+              {' · Resume setup'}
+            </span>
+          </span>
+          <ChevronRight size={18} className="dash-home__benefits-card-chevron" />
+        </button>
+      )}
       {/* <RentDepositCard /> */}
       <button
         type="button"

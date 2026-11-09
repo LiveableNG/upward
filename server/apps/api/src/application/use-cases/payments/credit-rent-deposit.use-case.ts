@@ -100,9 +100,9 @@ export class CreditRentDepositUseCase {
         data: {
           userId,
           title: 'Rent Deposit Received',
-          message: `${currency} ${amount.toLocaleString()} has been added to your Rent Deposit Balance. Updated balance: ${currency} ${balanceAfter.toLocaleString()}.`,
+          message: `${currency} ${amount.toLocaleString()} has been added to your Rent Savings & Deposit Balance. Updated balance: ${currency} ${balanceAfter.toLocaleString()}.`,
           type: 'PAYMENT',
-          url: '/dashboard/deposit-balance',
+          url: '/dashboard/savings',
         },
       })
     } catch (notifErr: any) {
@@ -140,7 +140,7 @@ export class CreditRentDepositUseCase {
         }
 
         const baseUrl = (process.env.FRONTEND_URL || 'https://upward.goodtenants.io').split(',')[0]!.trim()
-        const depositLink = `${baseUrl}/dashboard/deposit-balance`
+        const depositLink = `${baseUrl}/dashboard/savings`
         const commType = source === 'OVERPAYMENT_EXCESS' ? 'RENT_OVERPAYMENT_RECEIVED' : 'RENT_DEPOSIT_CREDITED'
 
         await this.unifiedCommService.processCommunication({

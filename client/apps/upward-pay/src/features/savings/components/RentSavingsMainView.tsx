@@ -1,7 +1,13 @@
 'use client'
 
 import React, { useState } from 'react'
-import { ArrowLeft, Loader2, ShieldCheck, AlertCircle, Lock, Sparkles } from 'lucide-react'
+import {
+  ArrowLeft,
+  Loader2,
+  ShieldCheck,
+  AlertCircle,
+  PiggyBank,
+} from 'lucide-react'
 import { useRentVault } from '../hooks/useRentSavings'
 import { useAuth } from '@/features/auth/AuthContext'
 import { SavingsInvestorKycModal } from './SavingsInvestorKycModal'
@@ -25,6 +31,11 @@ export function RentSavingsMainView() {
 
   const [viewMode, setViewMode] = useState<'DASHBOARD' | 'SETTLEMENT'>('DASHBOARD')
   const [showKycModal, setShowKycModal] = useState<boolean>(false)
+
+  const activeProperty = (user?.properties || []).find(
+    (p: { isPastTenancy?: boolean; rentAmount?: number; rentEndDate?: string }) =>
+      !p.isPastTenancy && p.rentAmount,
+  )
 
   if (isLoading) {
     return (
@@ -78,8 +89,9 @@ export function RentSavingsMainView() {
   )
   const shouldBlurActivities = (isKycRequired || !hasConsented) && Boolean(isVaultActive)
 
+  // Only render top banners when the vault is already active (to avoid duplicate headers/buttons before starting)
   const renderKycBanner = () => {
-    if (!user) return null
+    if (!user || !isVaultActive) return null
 
     if (!user.isIdentityVerified) {
       return (
@@ -89,12 +101,11 @@ export function RentSavingsMainView() {
           </div>
           <div className="savings-kyc-banner__content">
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span className="savings-kyc-banner__title">Investor Verification Required</span>
+              <span className="savings-kyc-banner__title">Identity Verification Required</span>
               <span className="savings-kyc-banner__partner">powered by ARM</span>
             </div>
             <span className="savings-kyc-banner__desc">
-              Complete your one-time regulatory KYC to enable your 14.5% p.a. daily compound yield
-              and dedicated funding account.
+              Verify your identity to unlock rent savings and start earning daily compound returns.
             </span>
           </div>
           <button
@@ -112,7 +123,7 @@ export function RentSavingsMainView() {
       return (
         <div className="savings-kyc-banner">
           <div className="savings-kyc-banner__icon">
-            <Sparkles size={20} color="var(--clay)" />
+            <PiggyBank size={20} color="var(--clay)" />
           </div>
           <div className="savings-kyc-banner__content">
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -134,26 +145,11 @@ export function RentSavingsMainView() {
       )
     }
 
-    return (
-      <div className="savings-kyc-banner savings-kyc-banner--verified">
-        <div className="savings-kyc-banner__icon">
-          <ShieldCheck size={18} color="#10b981" />
-        </div>
-        <div className="savings-kyc-banner__content">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span className="savings-kyc-banner__title">Savings Active &amp; Verified</span>
-            <span className="savings-kyc-banner__partner">powered by ARM</span>
-          </div>
-          <span className="savings-kyc-banner__desc">
-            Your rent savings grow daily with 14.5% annual returns.
-          </span>
-        </div>
-      </div>
-    )
+    return null
   }
 
   return (
-    <div>
+    <div className="rent-savings-view" style={{ width: '100%' }}>
       {renderKycBanner()}
 
       {!isVaultActive && (
@@ -173,6 +169,7 @@ export function RentSavingsMainView() {
                 setSimulationConfig(config)
                 setStep('SETUP')
               }}
+              onOpenKycModal={() => setShowKycModal(true)}
             />
           )}
         </>
@@ -235,16 +232,7 @@ export function RentSavingsMainView() {
                   ? 'Verification required to unlock savings activities'
                   : 'Consent required to start saving'
               }
-            >
-              <div className="rent-savings__gated-badge">
-                <Lock size={15} color="var(--clay)" />
-                <span>
-                  {!user?.isIdentityVerified
-                    ? 'Verification required to access and fund your vault'
-                    : 'Get cash back on your next rent when you save up for it regularly'}
-                </span>
-              </div>
-            </div>
+            />
           )}
         </div>
       )}
@@ -254,7 +242,18 @@ export function RentSavingsMainView() {
         onClose={() => setShowKycModal(false)}
         onSuccess={async () => {
           await refreshUser()
-          refetch()
+          await refetch()
+          const targetKobo = (activeProperty?.rentAmount || 2_400_000) * 100
+          const dueDate = activeProperty?.rentEndDate
+            ? activeProperty.rentEndDate.split('T')[0]
+            : new Date(Date.now() + 343 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+          setSimulationConfig({
+            targetAmountKobo: targetKobo,
+            contractualDueDate: dueDate,
+            cadence: 'MONTHLY',
+            periodicDepositKobo: Math.round(targetKobo / 11),
+          })
+          setStep('SETUP')
         }}
       />
     </div>

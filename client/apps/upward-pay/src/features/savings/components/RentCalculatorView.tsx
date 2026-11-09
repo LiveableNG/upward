@@ -1,7 +1,14 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Calendar, AlertCircle, ArrowRight, Sparkles, Home } from 'lucide-react'
+import {
+  Lock,
+  Calendar,
+  TrendingUp,
+  Gift,
+  ArrowRight,
+  ShieldCheck,
+} from 'lucide-react'
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from '@/lib/utils'
 import { useSimulateRentSavings } from '../hooks/useRentSavings'
 import { useAuth } from '@/features/auth/AuthContext'
@@ -13,281 +20,282 @@ interface RentCalculatorViewProps {
     cadence: 'DAILY' | 'WEEKLY' | 'MONTHLY'
     periodicDepositKobo: number
   }) => void
+  onOpenKycModal?: () => void
 }
 
-export function RentCalculatorView({ onProceedToSetup }: RentCalculatorViewProps) {
+export function RentCalculatorView({ onProceedToSetup, onOpenKycModal }: RentCalculatorViewProps) {
   const { user } = useAuth()
+  const isKycVerified = Boolean(user?.isIdentityVerified)
+
+  // Single source of truth: Settings active rental property
   const activeProperty = (user?.properties || []).find(
-    (p: { isPastTenancy?: boolean; rentAmount?: number; rentEndDate?: string }) =>
-      !p.isPastTenancy && p.rentAmount,
+    (p: {
+      id?: number | string
+      isPastTenancy?: boolean
+      rentAmount?: number
+      rentEndDate?: string
+      title?: string
+      address?: string
+    }) => !p.isPastTenancy && p.rentAmount,
   )
 
   const [targetAmountRaw, setTargetAmountRaw] = useState<string>(() =>
-    activeProperty?.rentAmount ? formatCurrencyInput(activeProperty.rentAmount) : '',
+    activeProperty?.rentAmount ? formatCurrencyInput(activeProperty.rentAmount) : '2,400,000',
   )
-  const [contractualDueDate, setContractualDueDate] = useState<string>(() =>
-    activeProperty?.rentEndDate ? activeProperty.rentEndDate.split('T')[0] : '',
-  )
-  const [minDate] = useState(() => {
-    const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
-    return tomorrow.toISOString().split('T')[0]
+  const [nowTimestamp] = useState(() => Date.now())
+  const [contractualDueDate, setContractualDueDate] = useState<string>(() => {
+    if (activeProperty?.rentEndDate) {
+      return activeProperty.rentEndDate.split('T')[0]
+    }
+    const defaultDate = new Date(Date.now() + 343 * 24 * 60 * 60 * 1000)
+    return defaultDate.toISOString().split('T')[0]
   })
-  const [initialDepositNaira] = useState<number>(0)
-  const [cadence, setCadence] = useState<'DAILY' | 'WEEKLY' | 'MONTHLY'>('MONTHLY')
-  const [monthlyIncomeRaw, setMonthlyIncomeRaw] = useState<string>('')
 
   const [prevPropertyId, setPrevPropertyId] = useState<number | string | undefined>(
     activeProperty?.id,
   )
   if (activeProperty?.id !== prevPropertyId) {
     setPrevPropertyId(activeProperty?.id)
-    if (activeProperty?.rentAmount && !targetAmountRaw) {
+    if (activeProperty?.rentAmount) {
       setTargetAmountRaw(formatCurrencyInput(activeProperty.rentAmount))
     }
-    if (activeProperty?.rentEndDate && !contractualDueDate) {
+    if (activeProperty?.rentEndDate) {
       setContractualDueDate(activeProperty.rentEndDate.split('T')[0])
     }
   }
 
-  const targetAmountNaira = parseCurrencyInput(targetAmountRaw) || 0
-  const monthlyIncomeNaira = parseCurrencyInput(monthlyIncomeRaw) || 0
+  const targetAmountNaira = parseCurrencyInput(targetAmountRaw) || 2_400_000
 
   const simulateMutation = useSimulateRentSavings()
-
-  const handleTargetAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const num = parseCurrencyInput(e.target.value)
-    setTargetAmountRaw(num ? formatCurrencyInput(num) : '')
-  }
-
-  const handleMonthlyIncomeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const num = parseCurrencyInput(e.target.value)
-    setMonthlyIncomeRaw(num ? formatCurrencyInput(num) : '')
-  }
-
   const mutateSimulate = simulateMutation.mutate
 
+  // Always simulate on MONTHLY cadence (no confusing daily/weekly tabs)
   useEffect(() => {
     if (!targetAmountNaira || !contractualDueDate) return
 
     mutateSimulate({
       target_amount_kobo: Math.round(targetAmountNaira * 100),
       contractual_due_date: contractualDueDate,
-      initial_deposit_kobo: Math.round(initialDepositNaira * 100),
-      cadence,
-      monthly_income_kobo: monthlyIncomeNaira ? Math.round(monthlyIncomeNaira * 100) : undefined,
+      initial_deposit_kobo: 0,
+      cadence: 'MONTHLY',
     })
-  }, [
-    targetAmountNaira,
-    contractualDueDate,
-    initialDepositNaira,
-    cadence,
-    monthlyIncomeNaira,
-    mutateSimulate,
-  ])
+
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(
+          'upward_savings_rent_plan',
+          JSON.stringify({ rentAmount: targetAmountNaira, dueDate: contractualDueDate }),
+        )
+        const rawDraft = localStorage.getItem('upward_setup_draft')
+        if (rawDraft) {
+          const parsedDraft = JSON.parse(rawDraft)
+          if (parsedDraft?.formData) {
+            parsedDraft.formData.rentAmount = targetAmountNaira.toLocaleString()
+            parsedDraft.formData.rentEndDate = contractualDueDate
+            parsedDraft.formData.rentStartDate = new Date(
+              new Date(contractualDueDate).getTime() - 365 * 24 * 60 * 60 * 1000,
+            )
+              .toISOString()
+              .split('T')[0]
+            localStorage.setItem('upward_setup_draft', JSON.stringify(parsedDraft))
+          }
+        }
+      } catch {}
+    }
+  }, [targetAmountNaira, contractualDueDate, mutateSimulate])
 
   const simData = simulateMutation.data
-  const periodicDepositNaira = simData ? simData.periodic_deposit_kobo / 100 : 0
-  const projectedYieldNaira = simData ? simData.projected_yield_kobo / 100 : 0
-  const daysRemaining = simData ? simData.days_remaining : 0
+  const periodicDepositNaira = simData
+    ? simData.periodic_deposit_kobo / 100
+    : Math.round(targetAmountNaira / 11)
+  const projectedYieldNaira = simData
+    ? simData.projected_yield_kobo / 100
+    : Math.round(targetAmountNaira * 0.145 * (343 / 365) * 0.5)
+  const daysRemaining = simData
+    ? simData.days_remaining
+    : Math.max(
+        0,
+        Math.ceil(
+          (new Date(contractualDueDate).getTime() - nowTimestamp) / (1000 * 60 * 60 * 24),
+        ),
+      )
+
+  const formattedDueDate = contractualDueDate
+    ? new Date(contractualDueDate).toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      })
+    : 'Rent Day'
+
+  const handleStartSaving = () => {
+    if (!isKycVerified && onOpenKycModal) {
+      onOpenKycModal()
+      return
+    }
+
+    onProceedToSetup({
+      targetAmountKobo: Math.round(targetAmountNaira * 100),
+      contractualDueDate,
+      cadence: 'MONTHLY',
+      periodicDepositKobo: Math.round(periodicDepositNaira * 100),
+    })
+  }
 
   return (
-    <div className="rent-calculator">
-      <div className="rent-calculator__card">
-        <h1 className="rent-calculator__title">Rent Savings & Lock Calculator</h1>
-        <p className="rent-calculator__subtitle">
-          Calculate your exact runway, earn 14.5% annual compound yield, and lock in your rent peace
-          of mind.
-        </p>
+    <div className="rent-savings__gated-container">
+      {/* Blurred Simulation Card */}
+      <div className="rent-savings__gated-content rent-savings__gated-content--blurred">
+        <div className="vault-dashboard__hero">
+          <div className="vault-dashboard__top-row">
+            <div className="vault-arm-badge">
+              <ShieldCheck size={14} className="vault-arm-badge__icon" />
+              <span>
+                Powered by <strong>Asset &amp; Resource Management Holding Company (ARM)</strong>
+              </span>
+            </div>
+            <span className="vault-dashboard__countdown-pill">
+              <Calendar size={12} />
+              <span>{daysRemaining || 343} Days to Rent Day</span>
+            </span>
+          </div>
 
-        {activeProperty && (
+          <div className="vault-dashboard__amounts">
+            <span className="vault-dashboard__balance-caption">
+              Target Rent to Pay Early
+            </span>
+            <span className="vault-dashboard__current-balance">
+              {formatCurrency(targetAmountNaira, 'NGN')}
+            </span>
+            <span className="vault-dashboard__target-label">
+              Due on {formattedDueDate} • Payable 30 days early
+            </span>
+          </div>
+
+          {/* Clean 2-column breakdown: Monthly Savings & ARM Earnings */}
+          <div className="vault-dashboard__breakdown-grid">
+            <div className="vault-dashboard__breakdown-item">
+              <span className="vault-dashboard__breakdown-label">Save Each Month</span>
+              <span className="vault-dashboard__breakdown-val">
+                {formatCurrency(periodicDepositNaira, 'NGN')}/mo
+              </span>
+            </div>
+            <div className="vault-dashboard__breakdown-item">
+              <span className="vault-dashboard__breakdown-label">Returns from ARM (14.5% p.a.)</span>
+              <span className="vault-dashboard__breakdown-val vault-dashboard__breakdown-val--yield">
+                +{formatCurrency(projectedYieldNaira, 'NGN')}
+              </span>
+            </div>
+          </div>
+
+          {/* Cashback reward note */}
           <div
             style={{
-              padding: '12px 14px',
-              borderRadius: '10px',
-              background: 'var(--surface-sunken, #f8f6f3)',
-              border: '1px solid var(--border)',
               display: 'flex',
               alignItems: 'center',
-              gap: 12,
-              marginBottom: 16,
+              gap: 10,
+              padding: '10px 14px',
+              borderRadius: '10px',
+              background: 'rgba(217, 119, 87, 0.06)',
+              border: '1px solid rgba(217, 119, 87, 0.15)',
+              fontSize: '0.75rem',
+              color: 'var(--text-secondary)',
             }}
           >
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: '8px',
-                background: 'var(--clay-faint)',
-                color: 'var(--clay)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <Home size={18} />
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text)' }}>
-                  {(activeProperty as any)?.title || activeProperty.address || 'Linked Property'}
-                </span>
-                <span
-                  style={{
-                    fontSize: '0.6875rem',
-                    fontWeight: 700,
-                    padding: '2px 6px',
-                    borderRadius: 4,
-                    background: 'rgba(16, 185, 129, 0.1)',
-                    color: '#10b981',
-                  }}
-                >
-                  Settings Sourced
-                </span>
-              </div>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '2px 0 0' }}>
-                Rental obligation automatically pre-filled from your settings.
-              </p>
-            </div>
+            <Gift size={16} color="var(--clay)" style={{ flexShrink: 0 }} />
+            <span>
+              <strong>Rent Cashback:</strong> Save regularly every month and receive cash back directly on rent day.
+            </span>
           </div>
-        )}
+        </div>
 
-        <form className="rent-calculator__form" onSubmit={(e) => e.preventDefault()}>
-          <div className="rent-calculator__field">
-            <label className="rent-calculator__label" htmlFor="calc-target">
-              Target Rent + Service Charge
-            </label>
-            <div className="rent-calculator__input-wrapper">
-              <span className="rent-calculator__input-prefix">₦</span>
+        {/* Minimal input prompt only if settings has no rental info */}
+        {!activeProperty && (
+          <div
+            style={{
+              marginTop: 12,
+              padding: 12,
+              borderRadius: 10,
+              background: 'var(--surface)',
+              border: '1px solid var(--border)',
+              display: 'flex',
+              gap: 10,
+              flexWrap: 'wrap',
+            }}
+          >
+            <div style={{ flex: 1, minWidth: 140 }}>
+              <label style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>
+                Target Rent (₦)
+              </label>
               <input
-                id="calc-target"
                 type="text"
-                inputMode="numeric"
                 className="rent-calculator__input"
                 value={targetAmountRaw}
-                onChange={handleTargetAmountChange}
-                placeholder="e.g. 2,400,000"
-                required
+                onChange={(e) => {
+                  const num = parseCurrencyInput(e.target.value)
+                  setTargetAmountRaw(num ? formatCurrencyInput(num) : '')
+                }}
+                style={{ height: 38, fontSize: '0.8125rem' }}
               />
             </div>
-          </div>
-
-          <div className="rent-calculator__field">
-            <label className="rent-calculator__label" htmlFor="calc-due-date">
-              Exact Lease Expiration Date
-            </label>
-            <div className="rent-calculator__input-wrapper">
+            <div style={{ flex: 1, minWidth: 140 }}>
+              <label style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>
+                Rent Due Date
+              </label>
               <input
-                id="calc-due-date"
                 type="date"
                 className="rent-calculator__input rent-calculator__input--no-prefix"
                 value={contractualDueDate}
                 onChange={(e) => setContractualDueDate(e.target.value)}
-                min={minDate}
-                required
+                style={{ height: 38, fontSize: '0.8125rem' }}
               />
             </div>
-          </div>
-
-          <div className="rent-calculator__field">
-            <label className="rent-calculator__label">Savings Cadence</label>
-            <div className="rent-calculator__cadence-tabs">
-              {(['DAILY', 'WEEKLY', 'MONTHLY'] as const).map((tab) => (
-                <button
-                  key={tab}
-                  type="button"
-                  className={`rent-calculator__cadence-btn ${
-                    cadence === tab ? 'rent-calculator__cadence-btn--active' : ''
-                  }`}
-                  onClick={() => setCadence(tab)}
-                >
-                  {tab === 'DAILY' ? 'Daily' : tab === 'WEEKLY' ? 'Weekly' : 'Monthly'}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="rent-calculator__field">
-            <label className="rent-calculator__label" htmlFor="calc-income">
-              Declared Monthly Take-Home Pay (Affordability Check)
-            </label>
-            <div className="rent-calculator__input-wrapper">
-              <span className="rent-calculator__input-prefix">₦</span>
-              <input
-                id="calc-income"
-                type="text"
-                inputMode="numeric"
-                className="rent-calculator__input"
-                value={monthlyIncomeRaw}
-                onChange={handleMonthlyIncomeChange}
-                placeholder="e.g. 800,000 (Optional)"
-              />
-            </div>
-          </div>
-        </form>
-      </div>
-
-      <div className="rent-calculator__results">
-        <div className="rent-calculator__results-head">
-          <span className="rent-calculator__days-badge">
-            <Calendar size={13} />
-            {daysRemaining} Days to Rent Day
-          </span>
-          <span className="rent-calculator__days-badge">
-            <Sparkles size={13} />
-            14.5% p.a. Net Yield
-          </span>
-        </div>
-
-        <div>
-          <div className="rent-calculator__deposit-figure">
-            {formatCurrency(periodicDepositNaira, 'NGN')}
-          </div>
-          <span className="rent-calculator__deposit-cadence">
-            Required deposit per {cadence.toLowerCase().replace('ly', '')}
-          </span>
-        </div>
-
-        <div className="rent-calculator__grid">
-          <div className="rent-calculator__grid-item">
-            <span className="rent-calculator__grid-label">Total Contribution</span>
-            <span className="rent-calculator__grid-val">
-              {formatCurrency(simData ? simData.total_tenant_contribution_kobo / 100 : 0, 'NGN')}
-            </span>
-          </div>
-          <div className="rent-calculator__grid-item">
-            <span className="rent-calculator__grid-label">Projected Yield</span>
-            <span className="rent-calculator__grid-val rent-calculator__grid-val--highlight">
-              +{formatCurrency(projectedYieldNaira, 'NGN')}
-            </span>
-          </div>
-        </div>
-
-        {(simData?.affordability?.isOverThreshold || simData?.affordability?.is_over_threshold) && (
-          <div className="rent-calculator__affordability">
-            <AlertCircle size={18} style={{ flexShrink: 0 }} />
-            <span>
-              {simData.affordability.advisoryMessage || simData.affordability.advisory_message}
-            </span>
           </div>
         )}
+      </div>
 
-        <button
-          type="button"
-          className="vault-btn-primary"
-          disabled={!targetAmountNaira || !contractualDueDate || targetAmountNaira < 10000}
-          onClick={() =>
-            onProceedToSetup({
-              targetAmountKobo: Math.round(targetAmountNaira * 100),
-              contractualDueDate,
-              cadence,
-              periodicDepositKobo: Math.round(periodicDepositNaira * 100),
-            })
-          }
-        >
-          Setup My Rent Vault
-          <ArrowRight size={18} />
-        </button>
+      {/* Centralized Action CTA on Top of Blurred Simulation Card */}
+      <div
+        className="rent-savings__gated-overlay"
+        onClick={handleStartSaving}
+        role="button"
+        tabIndex={0}
+        aria-label="Start Saving Today"
+      >
+        <div className="rent-savings__central-cta-box" onClick={(e) => e.stopPropagation()}>
+          <div className="vault-setup__badge">
+            <TrendingUp size={12} color="var(--clay)" />
+            <span>Powered by ARM</span>
+          </div>
+
+          <h3 className="rent-savings__central-title">
+            {isKycVerified ? 'Your Rent Savings Plan is Ready' : 'Complete Verification to Save'}
+          </h3>
+
+          <p className="rent-savings__central-desc">
+            {isKycVerified
+              ? 'Save monthly to pay your rent early, earn 14.5% annual returns, and get cash back on rent day.'
+              : 'Verify your identity once to start saving toward rent and earn daily compound returns.'}
+          </p>
+
+          <button
+            type="button"
+            className="vault-btn-primary rent-savings__central-btn"
+            onClick={handleStartSaving}
+          >
+            {isKycVerified ? (
+              <>
+                <span>Start Saving Today</span>
+                <ArrowRight size={18} />
+              </>
+            ) : (
+              <>
+                <ShieldCheck size={18} />
+                <span>Verify Now</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   )

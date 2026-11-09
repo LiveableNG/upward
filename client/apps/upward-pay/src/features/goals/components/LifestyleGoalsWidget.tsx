@@ -23,14 +23,14 @@ export const LifestyleGoalsWidget: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="lifestyle-goals-widget animate-pulse">
-        <div
-          style={{
-            height: '72px',
-            background: 'var(--surface2)',
-            borderRadius: 'var(--radius-md)',
-          }}
-        />
+      <div className="lifestyle-goals-widget" style={{ opacity: 0.6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div style={{ width: 80, height: 16, background: 'var(--surface2)', borderRadius: 4 }} className="animate-pulse" />
+          <div style={{ width: 64, height: 14, background: 'var(--surface2)', borderRadius: 4 }} className="animate-pulse" />
+        </div>
+        <div style={{ width: '55%', height: 16, background: 'var(--surface2)', borderRadius: 4, marginBottom: 8 }} className="animate-pulse" />
+        <div style={{ width: '85%', height: 12, background: 'var(--surface2)', borderRadius: 4, marginBottom: 14 }} className="animate-pulse" />
+        <div style={{ width: '100%', height: 36, background: 'var(--surface2)', borderRadius: 8 }} className="animate-pulse" />
       </div>
     )
   }
@@ -85,7 +85,7 @@ export const LifestyleGoalsWidget: React.FC = () => {
 
           <div className="lifestyle-goals-widget__vault-meta">
             <span className="lifestyle-goals-widget__vault-yield">
-              +{formatCurrency(accruedYieldNaira, 'NGN')} yield accrued
+              +{formatCurrency(accruedYieldNaira, 'NGN')} returns accrued
             </span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
               <Clock size={11} />
@@ -95,9 +95,9 @@ export const LifestyleGoalsWidget: React.FC = () => {
         </div>
       ) : (
         <div style={{ marginBottom: 14 }}>
-          <h3 className="lifestyle-goals-widget__title">Save for Rent · 14.5% Yield</h3>
+          <h3 className="lifestyle-goals-widget__title">Save for Rent · Earn Daily Returns</h3>
           <p className="lifestyle-goals-widget__desc">
-            Lock monthly or weekly contributions toward your next rent payment and earn daily compound yield.
+            Put money aside monthly towards your rent, earn daily returns, and get cash back when you pay on time.
           </p>
           <button
             type="button"

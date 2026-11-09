@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Check,
@@ -45,22 +45,24 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
   const { data: userGoals = [] } = useUserGoals()
   const setGoalsMutation = useSetUserGoals()
 
-  const [selectedGoalIds, setSelectedGoalIds] = useState<Set<number>>(new Set())
-  const [hasInitialized, setHasInitialized] = useState(false)
+  const [userSelectedIds, setUserSelectedIds] = useState<Set<number> | null>(null)
 
-  useEffect(() => {
-    if (!hasInitialized && userGoals.length > 0) {
-      const activeIds = userGoals
-        .filter((ug) => ug.status === 'ACTIVE')
-        .map((ug) => ug.goalId)
-      setSelectedGoalIds(new Set(activeIds))
-      setHasInitialized(true)
+  // Derive selection: if user hasn't modified it yet, use active goals from backend;
+  // otherwise, preserve the user's current manual modifications.
+  const selectedGoalIds = useMemo(() => {
+    if (userSelectedIds !== null) {
+      return userSelectedIds
     }
-  }, [userGoals, hasInitialized])
+    const activeIds = userGoals
+      .filter((ug) => ug.status === 'ACTIVE')
+      .map((ug) => ug.goalId)
+    return new Set(activeIds)
+  }, [userSelectedIds, userGoals])
 
   const toggleGoal = (goalId: number) => {
-    setSelectedGoalIds((prev) => {
-      const next = new Set(prev)
+    setUserSelectedIds((prev) => {
+      const current = prev !== null ? prev : selectedGoalIds
+      const next = new Set(current)
       if (next.has(goalId)) {
         next.delete(goalId)
       } else {
@@ -85,8 +87,13 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
       } else {
         router.push('/dashboard/lifestyle')
       }
-    } catch (err: any) {
-      toastError(err?.message || 'Failed to save goals. Please try again.')
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : (err as { message?: string })?.message ||
+            'Failed to save goals. Please try again.'
+      toastError(message)
     }
   }
 
@@ -161,15 +168,11 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
                   {isSaving ? (
                     <>
                       <Loader2 size={14} className="loader" />
-                      <span>Saving</span>
+                      <span>Saving...</span>
                     </>
                   ) : (
                     <>
-                      <span>
-                        {selectedCount > 0
-                          ? `Save & Continue (${selectedCount})`
-                          : 'Continue'}
-                      </span>
+                      <span>{mode === 'onboarding' ? 'Continue' : selectedCount > 0 ? `Save (${selectedCount})` : 'Save'}</span>
                       <ArrowRight size={14} />
                     </>
                   )}
@@ -190,7 +193,7 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
           <p className="goal-selection__subtitle">
             {hasNoGoals
               ? 'Select your tenancy priorities and perks once available.'
-              : 'Choose any home or personal goals so we can tailor service packages and verified merchant perks for your tenancy.'}
+              : 'Pick the goals you care about most — from 24/7 power backup and fast Wi-Fi to home furnishing — and unlock exclusive member deals.'}
           </p>
         </div>
       </header>

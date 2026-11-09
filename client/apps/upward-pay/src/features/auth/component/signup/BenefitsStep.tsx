@@ -1,35 +1,41 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { TrendingUp, Gift, Shield, CheckCircle2, UserPlus, LogIn } from 'lucide-react'
+import { TrendingUp, Shield, PiggyBank, Target, Building2, UserPlus, LogIn } from 'lucide-react'
 import { UpwardLogo } from '@/components/PoweredByUpward'
 import { GoogleSignInButton } from '@/features/auth/components/GoogleSignInButton'
 import { AppleSignInButton } from '@/features/auth/components/AppleSignInButton'
 
 const BENEFITS = [
   {
-    icon: Gift,
+    icon: PiggyBank,
     color: '#C2501F',
-    title: 'Earn Rewards',
-    desc: 'Every on-time payment earns Upward points redeemable for rent discounts and exclusive perks.',
+    title: 'Save for Rent Stress-Free',
+    desc: 'Save at your own pace, earn daily returns, and get cash back on rent day.',
   },
   {
-    icon: TrendingUp,
-    color: '#22c55e',
-    title: 'Build Your Credit',
-    desc: 'Monthly rent payments are reported to credit bureaus — boosting your financial score effortlessly.',
+    icon: Target,
+    color: '#16a34a',
+    title: 'Achieve Your Living Goals',
+    desc: '24/7 power backup, fast Wi-Fi, dream furnishings, or personal milestones. Plan what matters to you and unlock exclusive member deals.',
   },
   {
     icon: Shield,
-    color: '#6366f1',
-    title: 'Verified Tenancy',
-    desc: 'Get a tamper-proof digital record of your tenancy history — trusted by future landlords instantly.',
+    color: '#d97706',
+    title: 'Pay Rent with Zero Stress',
+    desc: 'Instant transfers to any Nigerian bank account with official payment receipts sent straight to your landlord.',
   },
   {
-    icon: CheckCircle2,
+    icon: TrendingUp,
     color: '#0ea5e9',
-    title: 'Secure Payments',
-    desc: 'Bank-grade encryption on every transaction. Your money and data stay protected, always.',
+    title: 'Build a Score Landlords Love',
+    desc: 'Every on-time payment boosts your Upward Score, unlocking cheaper rent deals, bigger perks, and prime apartments.',
+  },
+  {
+    icon: Building2,
+    color: '#6366f1',
+    title: 'Find Homes You’ll Love',
+    desc: 'Discover vetted, move-in-ready apartments with flexible payment plans designed around how you earn.',
   },
 ]
 
@@ -40,19 +46,69 @@ interface BenefitsStepProps {
 
 export function BenefitsStep({ onSignup, onLogin }: BenefitsStepProps) {
   const [active, setActive] = useState(0)
+  const [dragOffset, setDragOffset] = useState(0)
+  const [isDragging, setIsDragging] = useState(false)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const touchStartXRef = useRef<number | null>(null)
+  const currentDragRef = useRef(0)
 
-  useEffect(() => {
+  const startTimer = () => {
+    if (timerRef.current) clearInterval(timerRef.current)
     timerRef.current = setInterval(() => {
       setActive((a) => (a + 1) % BENEFITS.length)
-    }, 3800)
+    }, 4000)
+  }
+
+  useEffect(() => {
+    startTimer()
     return () => {
       if (timerRef.current) clearInterval(timerRef.current)
     }
   }, [])
 
-  const slide = BENEFITS[active]
-  const Icon = slide.icon
+  const goToSlide = (index: number) => {
+    setActive(index)
+    startTimer()
+  }
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartXRef.current = e.touches[0].clientX
+    currentDragRef.current = 0
+    setIsDragging(true)
+    if (timerRef.current) clearInterval(timerRef.current)
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (touchStartXRef.current === null) return
+    const currentX = e.touches[0].clientX
+    const diff = currentX - touchStartXRef.current
+    currentDragRef.current = diff
+    setDragOffset(diff)
+  }
+
+  const handleTouchEnd = () => {
+    const diff = currentDragRef.current
+    const threshold = 40
+    setIsDragging(false)
+    setDragOffset(0)
+    touchStartXRef.current = null
+
+    if (diff > threshold) {
+      goToSlide((active - 1 + BENEFITS.length) % BENEFITS.length)
+    } else if (diff < -threshold) {
+      goToSlide((active + 1) % BENEFITS.length)
+    } else {
+      startTimer()
+    }
+  }
+
+  const trackTransform = isDragging
+    ? `translateX(calc(-${active * 100}% + ${dragOffset}px))`
+    : `translateX(-${active * 100}%)`
+
+  const trackTransition = isDragging
+    ? 'none'
+    : 'transform 0.65s cubic-bezier(0.16, 1, 0.3, 1)'
 
   return (
     <div className="auth-shell auth-shell--welcome">
@@ -60,28 +116,52 @@ export function BenefitsStep({ onSignup, onLogin }: BenefitsStepProps) {
         <UpwardLogo size={36} color="var(--clay)" />
       </a>
 
-      <div className="benefit-carousel">
-        <div className="benefit-carousel__track" key={active}>
+      <div
+        className="benefit-carousel"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
+        <div className="benefit-carousel__slider">
           <div
-            className="benefit-carousel__icon-ring"
-            style={{ '--accent': slide.color } as React.CSSProperties}
+            className="benefit-carousel__track"
+            style={{
+              transform: trackTransform,
+              transition: trackTransition,
+            }}
           >
-            <Icon size={30} color={slide.color} strokeWidth={2} />
+            {BENEFITS.map((item, idx) => {
+              const ItemIcon = item.icon
+              const isActive = idx === active
+              return (
+                <div
+                  key={item.title}
+                  className={`benefit-carousel__slide ${isActive ? 'is-active' : ''}`}
+                  aria-hidden={!isActive}
+                >
+                  <div
+                    className="benefit-carousel__icon-ring"
+                    style={{ '--accent': item.color } as React.CSSProperties}
+                  >
+                    <ItemIcon size={30} color={item.color} strokeWidth={2} />
+                  </div>
+                  <h2 className="benefit-carousel__title">{item.title}</h2>
+                  <p className="benefit-carousel__desc">{item.desc}</p>
+                </div>
+              )
+            })}
           </div>
-          <h2 className="benefit-carousel__title">{slide.title}</h2>
-          <p className="benefit-carousel__desc">{slide.desc}</p>
         </div>
 
-        <div className="benefit-carousel__dots">
+        <div className="benefit-carousel__dots" role="tablist" aria-label="Feature slides">
           {BENEFITS.map((_, i) => (
             <button
               key={i}
               type="button"
+              role="tab"
+              aria-selected={i === active}
               className={`benefit-carousel__dot ${i === active ? 'is-active' : ''}`}
-              onClick={() => {
-                setActive(i)
-                if (timerRef.current) clearInterval(timerRef.current)
-              }}
+              onClick={() => goToSlide(i)}
               aria-label={`Slide ${i + 1}`}
             />
           ))}

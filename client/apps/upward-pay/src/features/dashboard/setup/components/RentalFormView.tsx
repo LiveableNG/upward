@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import {
   ArrowRight,
   CheckCircle2,
@@ -85,12 +85,100 @@ export function RentalFormView() {
 
   const handleDeferSetup = () => {
     if (typeof window !== 'undefined' && user?.uuid) {
-      localStorage.setItem(`upward_profile_setup_skipped_${user.uuid}`, 'true')
+      sessionStorage.setItem(`upward_profile_setup_skipped_${user.uuid}`, 'true')
+      localStorage.removeItem(`upward_profile_setup_skipped_${user.uuid}`)
     }
     trackDeferral('rental_form_footer', { formStep })
     toast.info("Your draft is saved. You can resume rental setup anytime from your dashboard.")
     router.push(SETUP_PATHS.dashboard)
   }
+
+  // Prefill rental details from savings onboarding or previous savings plan
+  const { data: prefillData } = useQuery({
+    queryKey: ['rental-setup-prefill', user?.uuid],
+    queryFn: () => api.getSavingsOnboardingPrefill(),
+    enabled: !isEdit && (!draft.formData.rentAmount || !draft.formData.address),
+    staleTime: 60_000,
+  })
+
+  useEffect(() => {
+    if (isEdit) return
+
+    let savingsPlan: { rentAmount?: number | string; dueDate?: string; address?: string } | null = null
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('upward_savings_rent_plan')
+        if (raw) savingsPlan = JSON.parse(raw)
+      } catch {}
+    }
+
+    const patch: Partial<typeof draft.formData> = {}
+    let needsUpdate = false
+
+    // 1. Rent Amount prefill from savings
+    if (!draft.formData.rentAmount || draft.formData.rentAmount === '0') {
+      const candidateAmount =
+        savingsPlan?.rentAmount ||
+        prefillData?.property?.rent_amount ||
+        prefillData?.target_rent
+      if (candidateAmount) {
+        patch.rentAmount = Number(candidateAmount).toLocaleString()
+        needsUpdate = true
+      }
+    }
+
+    // 2. Tenancy Due Date & Start Date prefill from savings
+    if (!draft.formData.rentEndDate) {
+      const candidateEndDate =
+        savingsPlan?.dueDate ||
+        prefillData?.property?.rent_end_date ||
+        prefillData?.rent_due_date
+      if (candidateEndDate) {
+        const cleanEndDate = candidateEndDate.split('T')[0]
+        patch.rentEndDate = cleanEndDate
+        const computedStart = new Date(
+          new Date(cleanEndDate).getTime() - 365 * 24 * 60 * 60 * 1000,
+        )
+          .toISOString()
+          .split('T')[0]
+        patch.rentStartDate = computedStart
+        needsUpdate = true
+      }
+    }
+
+    // 3. Location / Address prefill
+    if (!draft.formData.address) {
+      const candidateAddress =
+        savingsPlan?.address ||
+        prefillData?.property?.address ||
+        prefillData?.next_of_kin_address ||
+        prefillData?.kyc_address
+      if (candidateAddress) {
+        patch.address = candidateAddress
+        needsUpdate = true
+
+        const parts = candidateAddress.split(',').map((s: string) => s.trim())
+        if (parts.length >= 2 && !draft.formData.area) {
+          patch.area = parts[0]
+        }
+        const stateCandidate = parts.find((p: string) =>
+          (STATES.NG || []).some((s: string) => s.toLowerCase() === p.toLowerCase()),
+        )
+        if (stateCandidate) {
+          patch.state = stateCandidate
+        }
+      }
+    }
+
+    if (needsUpdate) {
+      updateDraft({
+        formData: {
+          ...draft.formData,
+          ...patch,
+        },
+      })
+    }
+  }, [isEdit, prefillData, draft.formData, updateDraft])
 
   // Auto-calculate end date whenever tenancy parameters change
   useEffect(() => {
@@ -340,7 +428,22 @@ export function RentalFormView() {
       try {
         const uploadData = new FormData()
         uploadData.append('file', selected)
-        const uploadRes: any = await api.post('/user/pm-connection/onboarding-proof/upload', uploadData)
+        interface UploadProofResponse {
+          data?: {
+            url?: string
+            fileName?: string
+            fileType?: string
+            fileSize?: number
+          }
+          url?: string
+          fileName?: string
+          fileType?: string
+          fileSize?: number
+        }
+        const uploadRes = await api.post<UploadProofResponse>(
+          '/user/pm-connection/onboarding-proof/upload',
+          uploadData,
+        )
         const proofData = uploadRes?.data || uploadRes
         if (proofData?.url) {
           updateDraft({
@@ -457,6 +560,27 @@ export function RentalFormView() {
         {/* STEP 1: LOCATION */}
         {formStep === 'location' && (
           <>
+            {draft.formData.rentAmount && draft.formData.rentAmount !== '0' && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '10px 14px',
+                  borderRadius: 10,
+                  background: 'var(--shell-tint, #f9f8f6)',
+                  border: '1px solid var(--border)',
+                  marginBottom: 16,
+                  fontSize: '0.8125rem',
+                  color: 'var(--text-secondary, #666)',
+                }}
+              >
+                <Sparkles size={16} color="var(--clay)" style={{ flexShrink: 0 }} />
+                <span>
+                  Rent target of <strong>₦{draft.formData.rentAmount}</strong> is synced from your savings setup. Enter your property location to complete your setup.
+                </span>
+              </div>
+            )}
             <div className="setup-page__field">
               <label>Property address</label>
               <input
@@ -1009,44 +1133,44 @@ export function RentalFormView() {
               <div
                 style={{
                   display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
+                  flexDirection: 'column',
                   gap: 12,
                   padding: '14px 16px',
                   borderRadius: 14,
-                  background: '#fcfaf7',
-                  border: '1px solid #eae2d7',
+                  background: 'var(--shell-tint, #fcfaf7)',
+                  border: '1px solid var(--border, #eae2d7)',
                   marginBottom: 20,
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <Sparkles size={20} color="var(--skin-primary, #c2501f)" style={{ flexShrink: 0 }} />
-                  <div>
-                    <strong style={{ display: 'block', fontSize: 13.5, color: '#1a1714', fontWeight: 700 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <Sparkles size={18} color="var(--skin-primary, #c2501f)" style={{ flexShrink: 0, marginTop: 2 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <strong style={{ display: 'block', fontSize: 13.5, color: 'var(--text, #1a1714)', fontWeight: 700 }}>
                       Landlord details are optional
                     </strong>
-                    <p style={{ margin: '2px 0 0', fontSize: 12, color: '#7a7268', lineHeight: 1.45 }}>
+                    <p style={{ margin: '3px 0 0', fontSize: 12.5, color: 'var(--text-muted, #7a7268)', lineHeight: 1.45 }}>
                       You can skip this step now and add landlord details anytime from your dashboard.
                     </p>
                   </div>
                 </div>
+
                 <button
                   type="button"
                   onClick={handleManagerSkip}
                   style={{
-                    flexShrink: 0,
-                    padding: '7px 13px',
-                    borderRadius: 8,
+                    width: '100%',
+                    padding: '9px 14px',
+                    borderRadius: 9,
                     background: '#fff',
-                    border: '1px solid #d1c7b8',
+                    border: '1.5px solid #d1c7b8',
                     color: '#1a1714',
-                    fontSize: 12.5,
-                    fontWeight: 700,
+                    fontSize: 13,
+                    fontWeight: 600,
                     cursor: 'pointer',
-                    whiteSpace: 'nowrap',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: 5,
+                    justifyContent: 'center',
+                    gap: 6,
                     transition: 'all 0.15s ease',
                   }}
                   onMouseEnter={(e) => {
@@ -1058,7 +1182,8 @@ export function RentalFormView() {
                     e.currentTarget.style.color = '#1a1714'
                   }}
                 >
-                  Skip for now <ArrowRight size={13} />
+                  <span>Skip landlord details for now</span>
+                  <ArrowRight size={14} />
                 </button>
               </div>
             ) : (

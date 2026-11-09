@@ -55,29 +55,40 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     setMounted(true)
-  }, [])
+    if (typeof window !== 'undefined' && user?.uuid) {
+      // Clean up legacy permanent localStorage skip key so incomplete users can complete profile setup
+      localStorage.removeItem(`upward_profile_setup_skipped_${user.uuid}`)
+    }
+  }, [user?.uuid])
 
-  const { data: userGoals = [] } = useUserGoals({ enabled: !!user?.uuid })
-  const { data: goalCategories = [] } = useGoalCategories()
+  const {
+    data: userGoals = [],
+    isLoading: isUserGoalsLoading,
+  } = useUserGoals({ enabled: !!user?.uuid })
+  const {
+    data: goalCategories = [],
+    isLoading: isGoalCategoriesLoading,
+  } = useGoalCategories()
   const hasGoals = userGoals.filter((g) => g.status === 'ACTIVE').length > 0
   const totalGoalsCount = goalCategories.reduce((acc, cat) => acc + (cat.goals?.length || 0), 0)
   const goalsAvailable = totalGoalsCount > 0
+  const isGoalsReady = !isGoalCategoriesLoading && (!user?.uuid || !isUserGoalsLoading)
 
   const { variant, isRequired, isLoading: isExperimentLoading } = useRentalExperiment()
   const { isGated: isRentalGated, notifyGated } = useRentalGate()
   const hasRental = hasRentalInfo(user)
 
-  // Stale local storage skip state must NOT override the required variant
+  // Session-scoped skip state: skipping setup only applies for the active session
   const isSkippedInStorage =
     typeof window !== 'undefined' && user?.uuid
-      ? localStorage.getItem(`upward_profile_setup_skipped_${user.uuid}`) === 'true'
+      ? sessionStorage.getItem(`upward_profile_setup_skipped_${user.uuid}`) === 'true'
       : false
 
   const isDismissed = isRequired ? false : (blockerDismissed || isSkippedInStorage)
 
   const handleSkipBlocker = () => {
     if (typeof window !== 'undefined' && user?.uuid) {
-      localStorage.setItem(`upward_profile_setup_skipped_${user.uuid}`, 'true')
+      sessionStorage.setItem(`upward_profile_setup_skipped_${user.uuid}`, 'true')
     }
     setBlockerDismissed(true)
   }
@@ -101,6 +112,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (!loading && !isLoggedIn && !isPinLocked) {
       const redirectUrl = pathname ? `/login?redirect=${encodeURIComponent(pathname)}` : '/login'
       router.replace(redirectUrl)
+      const timer = setTimeout(() => {
+        if (typeof window !== 'undefined') {
+          window.location.href = redirectUrl
+        }
+      }, 1500)
+      return () => clearTimeout(timer)
     }
   }, [loading, isLoggedIn, isPinLocked, router, pathname])
 
@@ -120,19 +137,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isSignupDevice = !!signupDeviceKey && (isFreshSignup || readStorageFlag('local', signupDeviceKey))
   const hasAutoOpenedThisSession = !!autoOpenSessionKey && readStorageFlag('session', autoOpenSessionKey)
 
-  // On the signup device, open the rental form directly once per session instead of showing the blocker
-  const shouldAutoOpenRental =
-    isRentalGated && !showTermsGate && !isExemptRoute && isSignupDevice && !hasAutoOpenedThisSession
+  // Do not force-redirect away from dashboard on fresh signup so user sees the setup blocker welcome screen
+  const shouldAutoOpenRental = false
 
   useEffect(() => {
     if (loading || !user?.uuid || !isRentalGated || showTermsGate || isExemptRoute) return
-
-    if (shouldAutoOpenRental) {
-      writeStorageFlag('local', signupDeviceKey)
-      writeStorageFlag('session', autoOpenSessionKey)
-      router.replace(getStandaloneRentalPath())
-      return
-    }
 
     if (!isDashboardHome) {
       notifyGated()
@@ -144,9 +153,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     isRentalGated,
     showTermsGate,
     isExemptRoute,
-    shouldAutoOpenRental,
-    signupDeviceKey,
-    autoOpenSessionKey,
     isDashboardHome,
     notifyGated,
     router,
@@ -154,18 +160,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const isSetupComplete = isProfileSetupComplete(user, {
     hasGoals,
-    goalsAvailable,
+    goalsAvailable: true,
   })
 
   const showProfileBlocker =
     mounted &&
+    !loading &&
     !showTermsGate &&
     !!user &&
     !isExperimentLoading &&
     !shouldAutoOpenRental &&
-    (isRequired
-      ? isRentalGated && !isExemptRoute
-      : isDashboardHome && !isSetupComplete && !isDismissed)
+    ((isRequired && isRentalGated && !isExemptRoute) ||
+      (isDashboardHome && !isSetupComplete && !isDismissed))
 
   useEffect(() => {
     if (!loading && isLoggedIn && user && !showProfileBlocker && !showTermsGate) {

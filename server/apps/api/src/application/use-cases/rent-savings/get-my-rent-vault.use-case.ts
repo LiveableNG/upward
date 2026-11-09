@@ -1,4 +1,4 @@
-import { Injectable, Inject, NotFoundException } from '@nestjs/common'
+import { Injectable, Inject, NotFoundException, Optional } from '@nestjs/common'
 import {
   IRentVaultRepository,
   RENT_VAULT_REPOSITORY,
@@ -8,6 +8,7 @@ import {
   RENT_ADVANCE_REPOSITORY,
 } from '../../../domains/rent-savings/rent-advance.repository'
 import { RentSavingsCalculatorEngine } from '../../../domains/rent-savings/rent-savings-calculator.engine'
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 
 @Injectable()
 export class GetMyRentVaultUseCase {
@@ -16,6 +17,8 @@ export class GetMyRentVaultUseCase {
     private readonly rentVaultRepo: IRentVaultRepository,
     @Inject(RENT_ADVANCE_REPOSITORY)
     private readonly rentAdvanceRepo: IRentAdvanceRepository,
+    @Optional()
+    private readonly prisma?: PrismaService,
   ) {}
 
   async execute(userId: number) {
@@ -41,7 +44,88 @@ export class GetMyRentVaultUseCase {
       await this.rentVaultRepo.update(vault.id, { lockStatus: 'SETTLEMENT_READY' })
     }
 
-    const currentBalanceKobo = vault.currentPrincipalKobo + vault.accruedYieldKobo
+    // Consolidate Rent Deposit Balance & Transactions into Rent Vault view
+    let depositBalanceKobo = 0n
+    let depositTransactions: any[] = []
+    if (this.prisma) {
+      try {
+        const depositBalances = await this.prisma.upward_rent_deposit_balance.findMany({
+          where: { userId },
+        })
+        const totalDepositNaira = depositBalances.reduce((sum, b) => sum + (b.balance || 0), 0)
+        depositBalanceKobo = BigInt(Math.round(totalDepositNaira * 100))
+
+        depositTransactions = await this.prisma.upward_rent_deposit_transaction.findMany({
+          where: { userId },
+          orderBy: { createdAt: 'desc' },
+          take: 30,
+        })
+      } catch {
+        // Non-blocking fallback
+      }
+    }
+
+    let vaultTransactions: any[] = []
+    if (typeof this.rentVaultRepo.findTransactionsByVaultId === 'function') {
+      try {
+        vaultTransactions = (await this.rentVaultRepo.findTransactionsByVaultId(vault.id, 30)) || []
+      } catch {
+        vaultTransactions = []
+      }
+    }
+
+    const unifiedTransactions = [
+      ...vaultTransactions.map((tx: any) => ({
+        id: `vault_${tx.id}`,
+        uuid: tx.uuid,
+        type: tx.type,
+        direction: ['SETTLEMENT_DISBURSEMENT', 'BREAKOUT_PAYOUT', 'PENALTY_DEDUCTION'].includes(tx.type)
+          ? 'DEBIT'
+          : 'CREDIT',
+        amount_kobo: Number(tx.amountKobo),
+        source_label:
+          tx.type === 'DEPOSIT'
+            ? 'Rent Vault Deposit'
+            : tx.type === 'YIELD_ACCRUAL'
+              ? 'Daily Compound Yield (14.5% p.a.)'
+              : tx.type === 'SETTLEMENT_DISBURSEMENT'
+                ? 'Landlord Rent Settlement'
+                : tx.type === 'CASHBACK'
+                  ? 'Early-Bird Rent Cashback'
+                  : tx.type === 'BREAKOUT_PAYOUT'
+                    ? 'Early Withdrawal'
+                    : 'Savings Activity',
+        narration: tx.narration || 'Rent Savings Transaction',
+        reference: tx.reference,
+        receipt_url:
+          tx.type === 'SETTLEMENT_DISBURSEMENT'
+            ? `/api/v1/rent-vaults/${vault.uuid}/receipt.pdf`
+            : null,
+        created_at: tx.createdAt ? new Date(tx.createdAt).toISOString() : now.toISOString(),
+      })),
+      ...depositTransactions.map((tx: any) => ({
+        id: `dep_${tx.id}`,
+        uuid: tx.uuid,
+        type: tx.type === 'DEBIT' ? 'DEPOSIT_APPLIED' : 'DEPOSIT_CREDIT',
+        direction: tx.type === 'DEBIT' ? 'DEBIT' : 'CREDIT',
+        amount_kobo: Math.round((tx.amount || 0) * 100),
+        source_label:
+          tx.source === 'DVA_INFLOW'
+            ? 'Virtual Account Top-Up'
+            : tx.source === 'OVERPAYMENT_EXCESS'
+              ? 'Invoice Settlement Excess'
+              : tx.source === 'PR_APPLICATION'
+                ? 'Applied to Rent Invoice'
+                : 'Rent Deposit Credit',
+        narration: tx.narration || 'Rent Deposit Transaction',
+        reference: tx.reference,
+        receipt_url: tx.receiptUrl || `/api/v1/payments/rent-deposit/receipt/${tx.uuid}`,
+        created_at: tx.createdAt ? new Date(tx.createdAt).toISOString() : now.toISOString(),
+      })),
+    ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+
+    const combinedPrincipalKobo = vault.currentPrincipalKobo + depositBalanceKobo
+    const currentBalanceKobo = combinedPrincipalKobo + vault.accruedYieldKobo
     const targetAmountNum = Number(vault.targetAmountKobo)
     const currentBalanceNum = Number(currentBalanceKobo)
 
@@ -50,15 +134,19 @@ export class GetMyRentVaultUseCase {
         ? Math.min(100, Math.round((currentBalanceNum / targetAmountNum) * 1000) / 10)
         : 0
 
-    // Check active loan
     const activeAdvance = await this.rentAdvanceRepo.findActiveByVaultId(vault.id)
     const hasActiveLoan = !!activeAdvance && activeAdvance.status === 'ACTIVE'
     const maxBorrowableKobo = hasActiveLoan
       ? 0n
       : RentSavingsCalculatorEngine.calculateMaxAdvanceBorrowable(currentBalanceKobo)
 
-    // Fetch savings score
     const score = await this.rentVaultRepo.findSavingsScoreByVaultId(vault.id)
+
+    const rawCadence = score?.cadencePoints ?? 0
+    const consistencyPoints = Math.min(50, Math.round((rawCadence / 40) * 50) || (currentBalanceKobo > 0n ? 15 : 10))
+    const goalRatio = targetAmountNum > 0 ? currentBalanceNum / targetAmountNum : 0
+    const goalPoints = Math.min(50, Math.round(goalRatio * 50))
+    const totalScore = Math.min(100, consistencyPoints + goalPoints)
 
     return {
       status: 'success',
@@ -66,7 +154,9 @@ export class GetMyRentVaultUseCase {
         vault_id: vault.uuid,
         lock_status: currentLockStatus,
         current_balance_kobo: Number(currentBalanceKobo),
-        principal_kobo: Number(vault.currentPrincipalKobo),
+        principal_kobo: Number(combinedPrincipalKobo),
+        vault_principal_kobo: Number(vault.currentPrincipalKobo),
+        deposit_balance_kobo: Number(depositBalanceKobo),
         accrued_yield_kobo: Number(vault.accruedYieldKobo),
         daily_yield_rate: RentSavingsCalculatorEngine.DAILY_RATE,
         days_to_unlock: daysToUnlock,
@@ -83,25 +173,16 @@ export class GetMyRentVaultUseCase {
               assignment_status: vault.dvaAssignmentStatus,
             }
           : null,
-        emergency_advance: {
-          has_active_loan: hasActiveLoan,
-          active_loan_details: activeAdvance
-            ? {
-                advance_id: activeAdvance.uuid,
-                borrowed_amount_kobo: Number(activeAdvance.borrowedAmountKobo),
-                total_repayable_kobo: Number(activeAdvance.totalRepayableKobo),
-                repayment_due_date: activeAdvance.repaymentDueDate.toISOString(),
-                status: activeAdvance.status,
-              }
-            : null,
-          max_borrowable_kobo: Number(maxBorrowableKobo),
-        },
+        emergency_advance: null,
         savings_score: {
-          total_score: score?.totalScore ?? 20,
-          cadence_points: score?.cadencePoints ?? 0,
-          velocity_points: score?.velocityPoints ?? 0,
-          loan_discipline_points: score?.loanDisciplinePoints ?? 20,
+          total_score: totalScore,
+          cadence_points: consistencyPoints,
+          velocity_points: goalPoints,
+          consistency_points: consistencyPoints,
+          goal_points: goalPoints,
+          loan_discipline_points: 0,
         },
+        transactions: unifiedTransactions,
       },
     }
   }

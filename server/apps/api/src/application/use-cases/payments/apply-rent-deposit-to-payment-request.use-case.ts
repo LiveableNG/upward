@@ -87,11 +87,27 @@ export class ApplyRentDepositToPaymentRequestUseCase {
       pr.userPropertyId,
     )
 
-    if (!depositBalance || depositBalance.balance <= 0) {
-      throw new BadRequestException('You do not have an available Rent Deposit Balance for this property')
+    const activeVault = this.prisma.upward_rent_vault
+      ? await this.prisma.upward_rent_vault.findFirst({
+          where: {
+            userId: effectiveUserId,
+            lockStatus: { notIn: ['SETTLED', 'BROKEN_OUT'] },
+          },
+          orderBy: { createdAt: 'desc' },
+        })
+      : null
+
+    const depositAvailableNaira = depositBalance?.balance || 0
+    const vaultAvailableKobo = activeVault
+      ? BigInt(activeVault.currentPrincipalKobo || 0) + BigInt(activeVault.accruedYieldKobo || 0)
+      : 0n
+    const vaultAvailableNaira = Number(vaultAvailableKobo) / 100
+    const currentBalance = depositAvailableNaira + vaultAvailableNaira
+
+    if (currentBalance <= 0) {
+      throw new BadRequestException('You do not have an available Rent Savings or Deposit Balance for this property')
     }
 
-    const currentBalance = depositBalance.balance
     if (amountToApply > currentBalance) {
       throw new BadRequestException(
         `Amount to apply (₦${amountToApply.toLocaleString()}) exceeds available balance (₦${currentBalance.toLocaleString()})`
@@ -118,31 +134,72 @@ export class ApplyRentDepositToPaymentRequestUseCase {
     }
 
     const transactionResult = await this.prisma.$transaction(async (txClient: any) => {
-      const balanceBefore = depositBalance.balance
-      const balanceAfter = balanceBefore - amountToApply
+      const fromDepositNaira = Math.min(depositAvailableNaira, amountToApply)
+      const fromVaultNaira = Math.max(0, amountToApply - fromDepositNaira)
+      const balanceBefore = currentBalance
+      const balanceAfter = Math.max(0, balanceBefore - amountToApply)
 
       const reference = `RD_DEBIT_${pr.uuid.slice(0, 8)}_${Date.now()}`
 
-      // 1. Record deposit debit transaction
-      const depositTx = await this.depositRepo.createTransaction(
-        {
-          depositBalanceId: depositBalance.id,
-          userId: effectiveUserId,
-          userPropertyId: pr.userPropertyId!,
-          paymentRequestId: pr.id,
-          type: 'DEBIT',
-          amount: amountToApply,
-          balanceBefore,
-          balanceAfter,
-          source: 'PR_APPLICATION',
-          status: 'SUCCESS',
-          reference,
-          narration: narration || `Applied to Rent Payment Request (${pr.description || pr.uuid.slice(0, 8)})`,
-        },
-        txClient,
-      )
+      // 1a. Deduct from Rent Deposit Balance if applicable
+      let depositTx: any = null
+      if (fromDepositNaira > 0 && depositBalance) {
+        const depAfter = Math.max(0, depositBalance.balance - fromDepositNaira)
+        depositTx = await this.depositRepo.createTransaction(
+          {
+            depositBalanceId: depositBalance.id,
+            userId: effectiveUserId,
+            userPropertyId: pr.userPropertyId!,
+            paymentRequestId: pr.id,
+            type: 'DEBIT',
+            amount: fromDepositNaira,
+            balanceBefore: depositBalance.balance,
+            balanceAfter: depAfter,
+            source: 'PR_APPLICATION',
+            status: 'SUCCESS',
+            reference,
+            narration: narration || `Applied to Rent Payment Request (${pr.description || pr.uuid.slice(0, 8)})`,
+          },
+          txClient,
+        )
+        await this.depositRepo.updateBalance(depositBalance.id, depAfter, txClient)
+      }
 
-      await this.depositRepo.updateBalance(depositBalance.id, balanceAfter, txClient)
+      // 1b. Deduct from active Rent Savings Vault if applicable
+      if (fromVaultNaira > 0 && activeVault) {
+        const deductKobo = BigInt(Math.round(fromVaultNaira * 100))
+        const curPrincipal = BigInt(activeVault.currentPrincipalKobo || 0)
+        const curYield = BigInt(activeVault.accruedYieldKobo || 0)
+        const principalDeduct = deductKobo <= curPrincipal ? deductKobo : curPrincipal
+        const yieldDeduct = deductKobo > curPrincipal ? Math.min( Number(curYield), Number(deductKobo - curPrincipal) ) : 0
+        const newPrincipal = curPrincipal - principalDeduct
+        const newYield = curYield - BigInt(yieldDeduct)
+        const newVaultTotal = newPrincipal + newYield
+
+        await txClient.upward_rent_vault.update({
+          where: { id: activeVault.id },
+          data: {
+            currentPrincipalKobo: newPrincipal,
+            accruedYieldKobo: newYield,
+            ...(newVaultTotal <= 0n ? { lockStatus: 'SETTLED' } : {}),
+          },
+        })
+
+        await txClient.upward_rent_vault_transaction.create({
+          data: {
+            vaultId: activeVault.id,
+            userId: effectiveUserId,
+            type: 'SETTLEMENT_DISBURSEMENT',
+            amountKobo: deductKobo,
+            principalDeltaKobo: -principalDeduct,
+            yieldDeltaKobo: -BigInt(yieldDeduct),
+            balanceAfterKobo: newVaultTotal,
+            reference: `${reference}_VAULT`,
+            channel: 'NIP_TRANSFER',
+            narration: narration || `Applied Rent Savings to Invoice (${pr.description || pr.uuid.slice(0, 8)})`,
+          },
+        })
+      }
 
       // 2. Update line items
       let rentPortion = 0

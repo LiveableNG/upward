@@ -76,7 +76,7 @@ export default function SettingsPage() {
       title="Settings"
       subtitle="Security, notifications, and account preferences."
       showBack
-      onBack={() => router.push('/dashboard/me')}
+      onBack={() => router.push('/dashboard')}
     >
       <section className="settings-page__section profile-page__section">
         <h3 className="profile-page__section-label">Security &amp; notifications</h3>

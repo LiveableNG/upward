@@ -2,6 +2,23 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import * as savingsService from '../services/savingsService'
 
 export const RENT_VAULT_QUERY_KEY = ['rent-vault', 'me']
+export const RENT_VAULT_PREFILL_QUERY_KEY = ['rent-vault', 'prefill']
+
+export function useSavingsOnboardingPrefill(enabled = true) {
+  return useQuery({
+    queryKey: RENT_VAULT_PREFILL_QUERY_KEY,
+    queryFn: async () => {
+      try {
+        return await savingsService.getSavingsOnboardingPrefill()
+      } catch {
+        return null
+      }
+    },
+    enabled,
+    staleTime: 1000 * 60 * 5,
+    retry: false,
+  })
+}
 
 export function useRentVault() {
   return useQuery({

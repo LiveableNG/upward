@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import {
-  Sparkles,
+  PiggyBank,
   Wallet,
   Check,
   ChevronDown,
@@ -243,17 +243,18 @@ export function RentDepositApplicationCard({
       <div className="rent-deposit-card__header">
         <div className="rent-deposit-card__info">
           <div className="rent-deposit-card__icon-box">
-            <Sparkles size={20} className="rent-deposit-card__sparkle" />
+            <PiggyBank size={20} className="rent-deposit-card__sparkle" />
           </div>
           <div>
             <div className="rent-deposit-card__title-row">
-              <span className="rent-deposit-card__title">Rent Deposit Balance</span>
+              <span className="rent-deposit-card__title">Rent Savings &amp; Deposit Balance</span>
               <span className="rent-deposit-card__badge">
                 {formatCurrency(depositBalance, currency)} Available
               </span>
             </div>
             <p className="rent-deposit-card__subtitle">
-              Apply stored deposits and overpayment credits to reduce or settle this invoice.
+              Apply your consolidated rent savings and deposit credits to reduce or settle this
+              invoice.
             </p>
           </div>
         </div>
@@ -405,13 +406,13 @@ export function RentDepositApplicationCard({
               {isSettling ? (
                 <>
                   <Loader2 size={16} className="animate-spin" />
-                  <span>Settling invoice with deposit...</span>
+                  <span>Settling invoice with savings...</span>
                 </>
               ) : (
                 <>
-                  <Sparkles size={16} />
+                  <Wallet size={16} />
                   <span>
-                    Settle Full Invoice with Deposit ({formatCurrency(appliedAmount, currency)})
+                    Settle Full Invoice with Savings ({formatCurrency(appliedAmount, currency)})
                   </span>
                   <ArrowRight size={16} />
                 </>
@@ -441,13 +442,13 @@ export function RentDepositApplicationCard({
                   {isSettling ? (
                     <>
                       <Loader2 size={15} className="animate-spin" />
-                      <span>Applying deposit to line items...</span>
+                      <span>Applying savings to line items...</span>
                     </>
                   ) : (
                     <>
-                      <Sparkles size={15} />
+                      <Wallet size={15} />
                       <span>
-                        Apply {formatCurrency(appliedAmount, currency)} from deposit now (pay remainder later)
+                        Apply {formatCurrency(appliedAmount, currency)} from savings now (pay remainder later)
                       </span>
                       <ArrowRight size={15} />
                     </>

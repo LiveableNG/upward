@@ -110,7 +110,9 @@ export function DashboardHeader({
             <div className="dashboard__greeting-block">
               <span className="dashboard__greeting-eyebrow">Hey,</span>
               <div className="dashboard__greeting">
-                <span className="dashboard__greeting-name">{firstName}</span>
+                <span className="dashboard__greeting-name" suppressHydrationWarning>
+                  {firstName}
+                </span>
               </div>
               <div className="dashboard__email" onClick={() => router.push('/dashboard/me')}>
                 View Profile

@@ -79,6 +79,6 @@ export function getSetupEntryPath(
   if (!hasRentalInfo(user)) return SETUP_PATHS.rental
   if (!hasContactDetails(user)) return SETUP_PATHS.phone
   if (needsIdentityVerification(user)) return getIdentityVerificationPath()
-  if (options?.goalsAvailable && !options.hasGoals) return '/dashboard/lifestyle?goals=open'
+  if (options?.goalsAvailable && !options.hasGoals) return SETUP_PATHS.goals
   return SETUP_PATHS.rental
 }

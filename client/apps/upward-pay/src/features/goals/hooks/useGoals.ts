@@ -39,8 +39,15 @@ import type {
 export function useGoalCategories(): UseQueryResult<GoalCategory[], Error> {
   return useQuery({
     queryKey: ['goal-categories'],
-    queryFn: fetchGoalCategories,
+    queryFn: async () => {
+      try {
+        return await fetchGoalCategories()
+      } catch {
+        return []
+      }
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 1,
   })
 }
 
@@ -111,11 +118,16 @@ export function useUserGoals(options: { enabled?: boolean } = {}) {
   const query = useQuery({
     queryKey: ['user-goals', userKey],
     queryFn: async () => {
-      const data = await fetchUserGoals()
-      return data
+      try {
+        const data = await fetchUserGoals()
+        return data || []
+      } catch {
+        return []
+      }
     },
     enabled: isEnabled,
     staleTime: 30 * 1000, // 30 seconds
+    retry: 1,
     initialData: () => {
       const cached = getCachedUserGoals(user?.id)
       return cached ?? undefined

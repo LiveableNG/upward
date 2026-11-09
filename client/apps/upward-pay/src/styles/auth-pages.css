@@ -1237,16 +1237,48 @@
   justify-content: center;
   text-align: center;
   padding: var(--space-8) var(--space-4);
+  width: 100%;
+  max-width: 360px;
+  margin: 0 auto;
+  overflow: hidden;
+  user-select: none;
+}
+
+.benefit-carousel__slider {
+  width: 100%;
+  overflow: hidden;
+  touch-action: pan-y;
+  cursor: grab;
+}
+
+.benefit-carousel__slider:active {
+  cursor: grabbing;
 }
 
 .benefit-carousel__track {
-  animation: fadeIn 0.45s ease-out;
+  display: flex;
+  width: 100%;
+  will-change: transform;
+}
+
+.benefit-carousel__slide {
+  flex: 0 0 100%;
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: var(--space-4);
-  max-width: 320px;
-  margin: 0 auto;
+  padding: 0 var(--space-3);
+  box-sizing: border-box;
+  opacity: 0.3;
+  transform: scale(0.92);
+  transition: opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1), transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
+}
+
+.benefit-carousel__slide.is-active {
+  opacity: 1;
+  transform: scale(1);
 }
 
 .benefit-carousel__icon-ring {
@@ -1260,6 +1292,15 @@
   justify-content: center;
   margin-bottom: var(--space-2);
   box-shadow: 0 8px 24px color-mix(in srgb, var(--accent, var(--clay)) 16%, transparent);
+  transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.benefit-carousel__slide.is-active .benefit-carousel__icon-ring {
+  transform: scale(1);
+}
+
+.benefit-carousel__slide:not(.is-active) .benefit-carousel__icon-ring {
+  transform: scale(0.88);
 }
 
 .benefit-carousel__title {
@@ -1275,6 +1316,7 @@
   line-height: 1.55;
   color: var(--auth-muted, var(--text-secondary));
   max-width: 286px;
+  margin: 0 auto;
 }
 
 .benefit-carousel__dots {
@@ -1291,7 +1333,7 @@
   background: #E2D9CC;
   border: none;
   cursor: pointer;
-  transition: all 0.3s;
+  transition: width 0.4s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.4s ease, opacity 0.3s ease;
   padding: 0;
   -webkit-tap-highlight-color: transparent;
 }

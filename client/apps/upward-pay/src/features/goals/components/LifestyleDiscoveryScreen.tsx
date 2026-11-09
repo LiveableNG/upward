@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState, useMemo, useEffect } from 'react'
-import { createPortal } from 'react-dom'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   ArrowLeft,
@@ -44,6 +43,9 @@ import { OfferingCard } from './OfferingCard'
 import {
   getGoalTitle,
   getCategoryTitle,
+  type GoalCategory,
+  type UserGoal,
+  type Goal,
   type GoalOffering,
   type OfferingType,
 } from '../types/goals.types'
@@ -100,6 +102,10 @@ export function getGoalIconComponent(iconName?: string | null, slug?: string) {
   return Target
 }
 
+const EMPTY_CATEGORIES: GoalCategory[] = []
+const EMPTY_OFFERINGS: GoalOffering[] = []
+const EMPTY_USER_GOALS: UserGoal[] = []
+
 export const LifestyleDiscoveryScreen: React.FC = () => {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -107,20 +113,20 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
 
   // Queries
   const {
-    data: categories = [],
+    data: categories = EMPTY_CATEGORIES,
     isLoading: isCategoriesLoading,
     error: categoriesError,
     refetch: refetchCategories,
   } = useGoalCategories()
 
   const {
-    data: offerings = [],
+    data: offerings = EMPTY_OFFERINGS,
     isLoading: isOfferingsLoading,
     error: offeringsError,
     refetch: refetchOfferings,
   } = usePublicOfferings()
 
-  const { data: userGoals = [], isLoading: isUserGoalsLoading } = useUserGoals()
+  const { data: userGoals = EMPTY_USER_GOALS, isLoading: isUserGoalsLoading } = useUserGoals()
   const setGoalsMutation = useSetUserGoals()
   const { data: tenantOrdersData } = useTenantOrders({ take: 20 })
 
@@ -133,29 +139,46 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
   }, [tenantOrdersData])
 
   const { user } = useAuth()
+  const userAddress = user?.properties?.[0]?.address
   const [deliveryLocation, setDeliveryLocation] = useState<UserDeliveryLocation>(() =>
-    getStoredDeliveryLocation(user?.properties?.[0]?.address),
+    getStoredDeliveryLocation(userAddress),
   )
-
-  useEffect(() => {
-    if (user?.properties?.[0]?.address) {
-      setDeliveryLocation(getStoredDeliveryLocation(user.properties[0].address))
+  const [prevUserAddress, setPrevUserAddress] = useState(userAddress)
+  if (userAddress !== prevUserAddress) {
+    setPrevUserAddress(userAddress)
+    if (userAddress) {
+      setDeliveryLocation(getStoredDeliveryLocation(userAddress))
     }
-  }, [user])
+  }
 
   // Filter & Search State
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedType, setSelectedType] = useState<OfferingType | 'ALL'>('ALL')
-  const [selectedActiveGoalId, setSelectedActiveGoalId] = useState<number | 'ALL'>('ALL')
 
-  // Inline Goal Sheet State
-  const [mounted, setMounted] = useState(false)
-  const [isGoalSheetOpen, setIsGoalSheetOpen] = useState(false)
-  const [draftGoalIds, setDraftGoalIds] = useState<Set<number>>(new Set())
+  const isQueryGoalsOpen = searchParams?.get('goals') === 'open'
+  const queryGoalId = searchParams?.get('goalId')
+  const parsedQueryGoalId = queryGoalId ? Number(queryGoalId) : null
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  const [isGoalSheetOpen, setIsGoalSheetOpen] = useState(() => isQueryGoalsOpen)
+  const [selectedActiveGoalId, setSelectedActiveGoalId] = useState<number | 'ALL'>(() =>
+    parsedQueryGoalId && !isNaN(parsedQueryGoalId) ? parsedQueryGoalId : 'ALL',
+  )
+
+  const [prevQueryGoalsOpen, setPrevQueryGoalsOpen] = useState(isQueryGoalsOpen)
+  if (isQueryGoalsOpen !== prevQueryGoalsOpen) {
+    setPrevQueryGoalsOpen(isQueryGoalsOpen)
+    if (isQueryGoalsOpen) {
+      setIsGoalSheetOpen(true)
+    }
+  }
+
+  const [prevQueryGoalId, setPrevQueryGoalId] = useState(queryGoalId)
+  if (queryGoalId !== prevQueryGoalId) {
+    setPrevQueryGoalId(queryGoalId)
+    if (parsedQueryGoalId && !isNaN(parsedQueryGoalId)) {
+      setSelectedActiveGoalId(parsedQueryGoalId)
+    }
+  }
 
   // Active user goals
   const activeUserGoals = useMemo(
@@ -170,20 +193,6 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
   const hasNoGoals = !isCategoriesLoading && totalGoalsCount === 0
   // Note: Alliance marketplace integration paused; keep UI code intact below for future enablement
   const showAllianceBanner = false
-
-  // Open goal sheet automatically if ?goals=open is present, or select goal if ?goalId is provided
-  useEffect(() => {
-    if (searchParams?.get('goals') === 'open') {
-      setIsGoalSheetOpen(true)
-    }
-    const queryGoalId = searchParams?.get('goalId')
-    if (queryGoalId) {
-      const parsed = Number(queryGoalId)
-      if (!isNaN(parsed)) {
-        setSelectedActiveGoalId(parsed)
-      }
-    }
-  }, [searchParams])
 
   // Lock body scroll when goal sheet is open
   useEffect(() => {
@@ -200,13 +209,32 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
     }
   }, [isGoalSheetOpen])
 
-  // Sync draftGoalIds when opening the goal sheet or when userGoals load
-  useEffect(() => {
+  // Sync draftGoalIds during render when active goals change
+  const activeGoalIdsKey = useMemo(
+    () =>
+      userGoals
+        .filter((ug) => ug.status === 'ACTIVE')
+        .map((ug) => ug.goalId)
+        .sort((a, b) => a - b)
+        .join(','),
+    [userGoals],
+  )
+
+  const [draftGoalIds, setDraftGoalIds] = useState<Set<number>>(() => {
+    const activeIds = userGoals
+      .filter((ug) => ug.status === 'ACTIVE')
+      .map((ug) => ug.goalId)
+    return new Set(activeIds)
+  })
+
+  const [prevActiveGoalIdsKey, setPrevActiveGoalIdsKey] = useState(activeGoalIdsKey)
+  if (activeGoalIdsKey !== prevActiveGoalIdsKey) {
+    setPrevActiveGoalIdsKey(activeGoalIdsKey)
     const activeIds = userGoals
       .filter((ug) => ug.status === 'ACTIVE')
       .map((ug) => ug.goalId)
     setDraftGoalIds(new Set(activeIds))
-  }, [userGoals])
+  }
 
   const openGoalSheet = () => {
     const activeIds = userGoals
@@ -247,8 +275,9 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
       }
       success('Lifestyle preferences updated')
       closeGoalSheet()
-    } catch (err: any) {
-      toastError(err?.message || 'Unable to update goals right now.')
+    } catch (err: unknown) {
+      const error = err as { message?: string }
+      toastError(error?.message || 'Unable to update goals right now.')
     }
   }
 
@@ -706,7 +735,7 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
                 <div key={cat.id} className="goal-sheet__group">
                   <h3 className="goal-sheet__group-title">{catTitle}</h3>
                   <div className="goal-sheet__list">
-                    {goals.map((goal) => {
+                    {(goals as Goal[]).map((goal: Goal) => {
                       const isSelected = draftGoalIds.has(goal.id)
                       const gTitle =
                         getGoalTitle(goal) ||

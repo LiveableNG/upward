@@ -11,6 +11,7 @@ import * as credibilityService from '@/features/dashboard/services/credibilitySe
 import * as locationService from '@/features/auth/services/locationService'
 import * as myHomeService from '@/features/my-home/services/myHomeService'
 import * as goalsService from '@/features/goals/services/goalsService'
+import * as savingsService from '@/features/savings/services/savingsService'
 
 export const api = {
   // Auth & Profile
@@ -79,6 +80,7 @@ export const api = {
   getSavingsGoals: financeService.getSavingsGoals,
   createSavingsGoal: financeService.createSavingsGoal,
   updateSavingsGoal: financeService.updateSavingsGoal,
+  getSavingsOnboardingPrefill: savingsService.getSavingsOnboardingPrefill,
 
   // Support Tickets
   createSupportTicket: supportService.createSupportTicket,
