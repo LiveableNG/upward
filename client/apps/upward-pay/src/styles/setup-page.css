@@ -262,7 +262,7 @@
   max-width: 100%;
 }
 
-.setup-page__input[type='date'] {
+.setup-page__input[type="date"] {
   appearance: none;
   -webkit-appearance: none;
   min-width: 0;
@@ -270,7 +270,7 @@
   box-sizing: border-box;
 }
 
-.setup-page__input[type='date']::-webkit-date-and-time-value {
+.setup-page__input[type="date"]::-webkit-date-and-time-value {
   text-align: left;
   min-height: 1.25em;
 }
@@ -292,10 +292,7 @@
   background: #fff;
   padding: 0 14px;
   cursor: pointer;
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease,
-    background 0.15s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.15s ease;
   user-select: none;
   box-sizing: border-box;
 }
@@ -362,9 +359,7 @@
   border-radius: 6px;
   background: #f7f3ed;
   color: #7a7065;
-  transition:
-    background 0.15s ease,
-    color 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .setup-page__date-picker:hover .setup-page__date-picker__badge {
@@ -1014,3 +1009,4 @@
 .setup-page__search-again-btn:hover {
   background: #fbede5;
 }
+

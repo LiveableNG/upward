@@ -1,3 +1,4 @@
+
 .requests-page {
   animation: fadeIn 0.5s ease forwards;
   padding: var(--space-8) 0;
@@ -6,13 +7,8 @@
 }
 
 @keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
 
 .animate-pulse {
@@ -257,15 +253,7 @@
 }
 
 .public-fulfillment__brand-name {
-  font-family: var(
-    --font-main,
-    'Inter',
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    sans-serif
-  );
+  font-family: var(--font-main, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
   font-size: 20px;
   font-weight: 700;
   color: var(--text);
@@ -651,9 +639,7 @@
   border-radius: var(--radius-lg);
   padding: var(--space-6);
   box-shadow: var(--shadow-sm);
-  transition:
-    border-color 0.2s,
-    box-shadow 0.2s;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .record-entry-card:focus-within {
@@ -1008,9 +994,7 @@
   border-radius: var(--radius-lg);
   padding: var(--space-10) var(--space-8);
   text-align: center;
-  box-shadow:
-    0 4px 24px rgba(0, 0, 0, 0.03),
-    0 1px 3px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.02);
   max-width: 520px;
   margin: var(--space-8) auto 0;
 }
@@ -1179,12 +1163,8 @@
 }
 
 @keyframes skeletonPulse {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 /* Mobile Media Queries */
@@ -1270,3 +1250,4 @@
     justify-content: center;
   }
 }
+

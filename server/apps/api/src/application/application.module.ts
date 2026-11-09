@@ -526,10 +526,7 @@ import { SettlePropertyBalanceUseCase } from './use-cases/payments/settle-proper
 import { HandlePaymentOverpaymentUseCase } from './use-cases/payments/handle-overpayment.use-case'
 import { GetRentDepositSummaryUseCase } from './use-cases/payments/get-rent-deposit-summary.use-case'
 import { ApplyRentDepositToPaymentRequestUseCase } from './use-cases/payments/apply-rent-deposit-to-payment-request.use-case'
-import {
-  CreditRentDepositUseCase,
-  RecordRentDepositUseCase,
-} from './use-cases/payments/credit-rent-deposit.use-case'
+import { CreditRentDepositUseCase, RecordRentDepositUseCase } from './use-cases/payments/credit-rent-deposit.use-case'
 import { GenerateRentDepositReceiptPdfUseCase } from './use-cases/payments/generate-rent-deposit-receipt-pdf.use-case'
 import { ProcessHourlySettlementsUseCase } from './use-cases/payments/settlement-cron.use-case'
 import {

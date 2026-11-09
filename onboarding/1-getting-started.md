@@ -96,11 +96,11 @@ To run a specific app, use `pnpm --filter [package-name] dev`:
 
 | Component / App         | Command                                | URL / Entrypoint               |
 | :---------------------- | :------------------------------------- | :----------------------------- |
-| **NestJS Backend**      | `pnpm --filter @upward/api dev`        | `http://localhost:4500/api/v1` |
-| **Web (Landing)**       | `pnpm --filter @upward/web dev`        | `http://localhost:4501`        |
-| **Upward Pay (Tenant)** | `pnpm --filter upward-pay dev`         | `http://localhost:4502`        |
-| **Upward PM (Manager)** | `pnpm --filter upward-pm dev`          | `http://localhost:4503`        |
-| **Admin Site (Vite)**   | `pnpm --filter @upward/admin-site dev` | `http://localhost:4504`        |
+| **NestJS Backend**      | `pnpm --filter @upward/api dev`        | `http://localhost:4000/api/v1` |
+| **Web (Landing)**       | `pnpm --filter @upward/web dev`        | `http://localhost:3000`        |
+| **Upward Pay (Tenant)** | `pnpm --filter upward-pay dev`         | `http://localhost:3001`        |
+| **Upward PM (Manager)** | `pnpm --filter upward-pm dev`          | `http://localhost:3002`        |
+| **Admin Site (Vite)**   | `pnpm --filter @upward/admin-site dev` | `http://localhost:3003`        |
 
 ---
 
@@ -130,4 +130,3 @@ The tenant payment application (`upward-pay`) is wrapped with **Capacitor** to r
 
 - Read [2-environment-variables.md](./2-environment-variables.md) to populate your credentials.
 - Review [3-architecture-guidelines.md](./3-architecture-guidelines.md) to understand clean architecture, Use Case execution patterns, and our premium styling system.
-- Check [KYC Test Credentials (BVN & NIN)](../README.md#10-kyc--identity-verification-test-credentials-sandbox) when testing identity verification or savings onboarding.

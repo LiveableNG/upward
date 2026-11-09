@@ -7,10 +7,7 @@ import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from '@/lib/u
 import { api } from '@/lib/api'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
-import {
-  SetupPageShell,
-  SetupPrimaryButton,
-} from '@/features/dashboard/setup/components/SetupPageShell'
+import { SetupPageShell, SetupPrimaryButton } from '@/features/dashboard/setup/components/SetupPageShell'
 import { useQueryClient } from '@tanstack/react-query'
 import { sessionTracker } from '@/lib/sessionTracker'
 
@@ -21,36 +18,20 @@ function openPaystack(accessCode: string, amount: number) {
 
     const launch = () => {
       try {
-        sessionTracker.trackEvent(
-          'INITIATE_PAYSTACK',
-          { accessCode, amount, flow: 'DEPOSIT' },
-          'DEPOSIT_POPUP',
-        )
+        sessionTracker.trackEvent('INITIATE_PAYSTACK', { accessCode, amount, flow: 'DEPOSIT' }, 'DEPOSIT_POPUP')
         const popup = new (window as any).PaystackPop()
         popup.resumeTransaction(accessCode, {
           onSuccess: (transaction: any) => {
-            sessionTracker.trackEvent(
-              'PAYMENT_SUCCESS',
-              { reference: transaction.reference, amount, flow: 'DEPOSIT' },
-              'DEPOSIT_COMPLETE',
-            )
+            sessionTracker.trackEvent('PAYMENT_SUCCESS', { reference: transaction.reference, amount, flow: 'DEPOSIT' }, 'DEPOSIT_COMPLETE')
             resolve(transaction.reference)
           },
           onCancel: () => {
-            sessionTracker.trackEvent(
-              'PAYSTACK_CLOSED_UNPAID',
-              { accessCode, amount, flow: 'DEPOSIT' },
-              'DEPOSIT_CANCELLED',
-            )
+            sessionTracker.trackEvent('PAYSTACK_CLOSED_UNPAID', { accessCode, amount, flow: 'DEPOSIT' }, 'DEPOSIT_CANCELLED')
             reject(new Error('Payment cancelled'))
           },
         })
       } catch (err: any) {
-        sessionTracker.trackEvent(
-          'PAYMENT_ERROR',
-          { error: err?.message, flow: 'DEPOSIT' },
-          'DEPOSIT_ERROR',
-        )
+        sessionTracker.trackEvent('PAYMENT_ERROR', { error: err?.message, flow: 'DEPOSIT' }, 'DEPOSIT_ERROR')
         reject(err)
       }
     }
@@ -62,11 +43,7 @@ function openPaystack(accessCode: string, amount: number) {
       script.async = true
       script.onload = launch
       script.onerror = () => {
-        sessionTracker.trackEvent(
-          'PAYMENT_ERROR',
-          { error: 'Failed to load Paystack script', flow: 'DEPOSIT' },
-          'DEPOSIT_ERROR',
-        )
+        sessionTracker.trackEvent('PAYMENT_ERROR', { error: 'Failed to load Paystack script', flow: 'DEPOSIT' }, 'DEPOSIT_ERROR')
         reject(new Error('Failed to load Paystack'))
       }
       document.body.appendChild(script)
@@ -145,12 +122,7 @@ export function DepositFlow() {
         </div>
         <div className="deposit-presets">
           {[5000, 10000, 20000, 50000].map((p) => (
-            <button
-              key={p}
-              type="button"
-              className="deposit-preset-btn"
-              onClick={() => setAmount(p)}
-            >
+            <button key={p} type="button" className="deposit-preset-btn" onClick={() => setAmount(p)}>
               +{formatCurrency(p, 'NGN')}
             </button>
           ))}

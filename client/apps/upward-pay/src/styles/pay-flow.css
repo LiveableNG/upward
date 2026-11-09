@@ -1476,6 +1476,7 @@
   background: var(--clay-faint, #f5eae3);
 }
 
+
 @keyframes pay-flow-spin {
   to {
     transform: rotate(360deg);
@@ -2008,9 +2009,7 @@
   border: 1.5px dashed #d9cfc2;
   border-radius: 16px;
   background: #fdfbf8;
-  transition:
-    border-color 0.15s ease,
-    background 0.15s ease;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 
 .pay-flow__proof-dropzone:hover {

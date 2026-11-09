@@ -55,9 +55,7 @@
   color: var(--text, #0a0a0f);
   cursor: pointer;
   flex-shrink: 0;
-  transition:
-    transform 100ms ease-out,
-    background 150ms ease;
+  transition: transform 100ms ease-out, background 150ms ease;
 }
 
 .pay-alliance__back-btn:active {
@@ -383,10 +381,7 @@
   text-decoration: none;
   color: inherit;
   box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.04));
-  transition:
-    transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-    box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
-    border-color 0.25s ease;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease;
 }
 
 .pay-alliance-card:hover {
@@ -1582,3 +1577,4 @@
   padding-top: 14px;
   border-top: 1px solid var(--border, rgba(0, 0, 0, 0.06));
 }
+

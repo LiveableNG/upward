@@ -110,7 +110,9 @@ import {
   DVA_ACCOUNT_REPOSITORY,
   BENEFITS_SUBSCRIPTION_REPOSITORY,
 } from '../../../domains/payments/payment.repository'
-import { RENT_DEPOSIT_BALANCE_REPOSITORY } from '../../../domains/payments/rent-deposit.repository'
+import {
+  RENT_DEPOSIT_BALANCE_REPOSITORY,
+} from '../../../domains/payments/rent-deposit.repository'
 import { PrismaRentDepositBalanceRepository } from './repositories/prisma-rent-deposit-balance.repository'
 import {
   COMPANY_REPOSITORY,
@@ -131,13 +133,7 @@ import { VERIFICATION_TOKEN_REPOSITORY } from '../../../domains/auth/verificatio
 import { PROPERTY_MANAGER_REPOSITORY } from '../../../domains/pm/property-manager.repository'
 import { PM_LETTERHEAD_REPOSITORY } from '../../../domains/pm/pm-letterhead.repository'
 import { PM_SIGNATURE_REPOSITORY } from '../../../domains/pm/pm-signature.repository'
-import {
-  PM_PROPERTY_REPOSITORY,
-  PM_UNIT_REPOSITORY,
-  PM_TENANT_REPOSITORY,
-  PM_PAYMENT_REQUEST_REPOSITORY,
-  PM_DOCUMENT_REPOSITORY,
-} from '../../../domains/pm/IPropertyRepository'
+import { PM_PROPERTY_REPOSITORY, PM_UNIT_REPOSITORY, PM_TENANT_REPOSITORY, PM_PAYMENT_REQUEST_REPOSITORY, PM_DOCUMENT_REPOSITORY } from '../../../domains/pm/IPropertyRepository'
 import { SPLIT_PROFILE_REPOSITORY } from '../../../domains/pm/ISplitProfileRepository'
 import { PM_APPROVAL_REQUEST_REPOSITORY } from '../../../domains/pm/IApprovalRequestRepository'
 import { PrismaPmApprovalRequestRepository } from './repositories/prisma-pm-approval-request.repository'

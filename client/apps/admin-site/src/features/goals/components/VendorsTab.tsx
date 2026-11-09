@@ -12,11 +12,7 @@ import {
   Phone,
   Globe,
 } from 'lucide-react'
-import {
-  DataTable,
-  type ColumnDef,
-  type ActionItem,
-} from '../../../components/common/table/DataTable'
+import { DataTable, type ColumnDef, type ActionItem } from '../../../components/common/table/DataTable'
 import type { CommerceVendor } from '../types'
 
 interface VendorsTabProps {
@@ -96,27 +92,13 @@ export const VendorsTab: React.FC<VendorsTabProps> = ({
       render: (vendor) => (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '12px' }}>
           {vendor.email && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                color: 'var(--text-secondary)',
-              }}
-            >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)' }}>
               <Mail size={12} color="var(--text-muted)" />
               <span>{vendor.email}</span>
             </div>
           )}
           {vendor.phone && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                color: 'var(--text-secondary)',
-              }}
-            >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-secondary)' }}>
               <Phone size={12} color="var(--text-muted)" />
               <span>{vendor.phone}</span>
             </div>
@@ -125,9 +107,7 @@ export const VendorsTab: React.FC<VendorsTabProps> = ({
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Globe size={12} color="var(--text-muted)" />
               <a
-                href={
-                  vendor.website.startsWith('http') ? vendor.website : `https://${vendor.website}`
-                }
+                href={vendor.website.startsWith('http') ? vendor.website : `https://${vendor.website}`}
                 target="_blank"
                 rel="noreferrer"
                 style={{ color: 'var(--accent)', textDecoration: 'underline' }}
@@ -237,9 +217,7 @@ export const VendorsTab: React.FC<VendorsTabProps> = ({
           flexWrap: 'wrap',
         }}
       >
-        <div
-          style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', flex: 1 }}
-        >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', flex: 1 }}>
           <div style={{ position: 'relative', width: '280px', maxWidth: '100%' }}>
             <Search
               size={16}

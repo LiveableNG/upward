@@ -126,9 +126,7 @@ export function ProfileSetupBlocker({ user, score, maxScore, onSkip }: ProfileSe
   const quickActions: QuickAction[] = [
     { label: 'Pay Rent', icon: CreditCard, href: '/dashboard/pay-rent' },
     { label: 'Save for Rent', icon: PiggyBank, href: '/dashboard/savings' },
-    ...(showGoalsStep
-      ? [{ label: 'Living Goals', icon: Target, href: '/dashboard/lifestyle' }]
-      : []),
+    ...(showGoalsStep ? [{ label: 'Living Goals', icon: Target, href: '/dashboard/lifestyle' }] : []),
   ]
 
   const title = isGated ? 'Add your rental details' : `Welcome, ${firstName}`
@@ -224,10 +222,7 @@ export function ProfileSetupBlocker({ user, score, maxScore, onSkip }: ProfileSe
             })}
           </ul>
 
-          <section
-            className="setup-gate__actions"
-            aria-label={isGated ? 'Locked features' : 'Quick actions'}
-          >
+          <section className="setup-gate__actions" aria-label={isGated ? 'Locked features' : 'Quick actions'}>
             <h2 className="setup-gate__section-label">
               {isGated ? 'Unlocks after setup' : 'Quick actions'}
             </h2>
@@ -272,11 +267,7 @@ export function ProfileSetupBlocker({ user, score, maxScore, onSkip }: ProfileSe
       </div>
 
       <footer className="setup-gate__footer">
-        <button
-          type="button"
-          className="setup-gate__cta"
-          onClick={() => router.push(nextStep.href)}
-        >
+        <button type="button" className="setup-gate__cta" onClick={() => router.push(nextStep.href)}>
           <span>{isGated ? 'Add rental details' : 'Continue setup'}</span>
           <ArrowRight size={18} aria-hidden="true" />
         </button>

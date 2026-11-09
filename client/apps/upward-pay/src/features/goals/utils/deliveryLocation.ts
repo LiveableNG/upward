@@ -63,8 +63,7 @@ export const PRESET_DELIVERY_ZONES: DeliveryZoneItem[] = [
     name: 'Abuja Metro (Maitama / Wuse II / Asokoro)',
     state: 'FCT Abuja',
     region: 'Metropolis',
-    areasCovered:
-      'Maitama, Asokoro, Wuse 2, Central Business District, Garki, Jabi, Gwarinpa, Guzape',
+    areasCovered: 'Maitama, Asokoro, Wuse 2, Central Business District, Garki, Jabi, Gwarinpa, Guzape',
     isDelivering: true,
     estimatedDeliveryDays: '2 - 3 business days',
     sortOrder: 3,
@@ -104,8 +103,7 @@ export function resolveDeliveryZone(
       zoneName: 'No Coverage Configured',
       state: 'N/A',
       isDelivering: false,
-      pauseReason:
-        'We are working towards expanding our delivery coverage to other locations soon!',
+      pauseReason: 'We are working towards expanding our delivery coverage to other locations soon!',
       deliveryFeeKobo: '0',
       isSupported: false,
     }
@@ -179,8 +177,7 @@ export function resolveDeliveryZone(
     normalized.includes('oniru') ||
     normalized.includes('banana island')
   ) {
-    const lagosIsland =
-      configuredZones.find((z) => z.tag === 'LAGOS_ISLAND') || PRESET_DELIVERY_ZONES[0]
+    const lagosIsland = configuredZones.find((z) => z.tag === 'LAGOS_ISLAND') || PRESET_DELIVERY_ZONES[0]
     return {
       zoneTag: lagosIsland.tag,
       zoneName: lagosIsland.name,
@@ -203,8 +200,7 @@ export function resolveDeliveryZone(
     normalized.includes('ilupeju') ||
     normalized.includes('festac')
   ) {
-    const lagosMainland =
-      configuredZones.find((z) => z.tag === 'LAGOS_MAINLAND') || PRESET_DELIVERY_ZONES[1]
+    const lagosMainland = configuredZones.find((z) => z.tag === 'LAGOS_MAINLAND') || PRESET_DELIVERY_ZONES[1]
     return {
       zoneTag: lagosMainland.tag,
       zoneName: lagosMainland.name,
@@ -272,10 +268,7 @@ export function formatShortLocation(location: UserDeliveryLocation): string {
   if (location.label && location.label !== location.address) {
     return location.label
   }
-  const parts = location.address
-    .split(',')
-    .map((p) => p.trim())
-    .filter(Boolean)
+  const parts = location.address.split(',').map((p) => p.trim()).filter(Boolean)
   if (parts.length >= 2) {
     return `${parts[0]}, ${parts[1]}`
   }
@@ -380,8 +373,7 @@ export function getStoredDeliveryLocation(
       zoneName: 'No Coverage Configured',
       state: 'N/A',
       isDelivering: false,
-      pauseReason:
-        'We are working towards expanding our delivery coverage to other locations soon!',
+      pauseReason: 'We are working towards expanding our delivery coverage to other locations soon!',
       deliveryFeeKobo: '0',
       label: 'Coverage Pending',
       isRentalDefault: false,

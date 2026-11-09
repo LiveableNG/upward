@@ -35,10 +35,9 @@ export class TenantConfirmSubOrderReceiptUseCase {
     subOrderUuid: string,
     input?: ConfirmSubOrderReceiptInputDto,
   ): Promise<ConfirmSubOrderReceiptResultDto> {
-    const user =
-      typeof userIdentifier === 'number'
-        ? await this.userRepo.findById(userIdentifier)
-        : await this.userRepo.findByUuid(userIdentifier)
+    const user = typeof userIdentifier === 'number'
+      ? await this.userRepo.findById(userIdentifier)
+      : await this.userRepo.findByUuid(userIdentifier)
     if (!user?.id) {
       throw new NotFoundException(`Vendor sub-order '${subOrderUuid}' not found`)
     }
@@ -123,10 +122,7 @@ export class TenantConfirmSubOrderReceiptUseCase {
       this.thankYouEmailUseCase
         .execute(order.id!, subOrder.id!)
         .catch((err) =>
-          this.logger.error(
-            `Failed to dispatch thank-you email on receipt confirmation for order #${order.id}`,
-            err,
-          ),
+          this.logger.error(`Failed to dispatch thank-you email on receipt confirmation for order #${order.id}`, err),
         )
     }
 

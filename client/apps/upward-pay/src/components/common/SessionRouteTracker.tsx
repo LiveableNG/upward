@@ -10,8 +10,7 @@ function InnerTracker() {
 
   useEffect(() => {
     if (!pathname) return
-    const screenName =
-      pathname === '/' ? 'HOME' : pathname.replace(/^\//, '').replace(/\//g, '_').toUpperCase()
+    const screenName = pathname === '/' ? 'HOME' : pathname.replace(/^\//, '').replace(/\//g, '_').toUpperCase()
     sessionTracker.trackScreen(screenName, {
       path: pathname,
       search: searchParams?.toString() || undefined,

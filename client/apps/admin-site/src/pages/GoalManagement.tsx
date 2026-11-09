@@ -400,9 +400,7 @@ export default function GoalManagement({ token }: GoalManagementProps) {
           }
 
           if (savedOffering && linkedGoalIds !== undefined) {
-            const currentLinked = (savedOffering.goalLinks || editingOffering?.goalLinks || []).map(
-              (gl) => gl.goalId,
-            )
+            const currentLinked = (savedOffering.goalLinks || editingOffering?.goalLinks || []).map((gl) => gl.goalId)
             const toAdd = linkedGoalIds.filter((id) => !currentLinked.includes(id))
             const toRemove = currentLinked.filter((id) => !linkedGoalIds.includes(id))
 

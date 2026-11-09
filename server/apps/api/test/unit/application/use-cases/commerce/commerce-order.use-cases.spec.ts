@@ -26,8 +26,14 @@ import {
   Offering,
   OfferingRepository,
 } from '@domains/goals/offering.repository'
-import { PAYMENT_GATEWAY, IPaymentGateway } from '@domains/payments/payment.repository'
-import { USER_REPOSITORY, UserRepository } from '@domains/users/user.repository'
+import {
+  PAYMENT_GATEWAY,
+  IPaymentGateway,
+} from '@domains/payments/payment.repository'
+import {
+  USER_REPOSITORY,
+  UserRepository,
+} from '@domains/users/user.repository'
 import { ConflictException, NotFoundException, BadRequestException } from '@nestjs/common'
 
 describe('Phase 6B.2: Commerce Order & Pricing Engine', () => {
@@ -111,7 +117,7 @@ describe('Phase 6B.2: Commerce Order & Pricing Engine', () => {
     it('decomposes multi-vendor cart into separate vendor sub-orders', () => {
       const items: PriceableItemInput[] = [
         { offering: productA, quantity: 1, deliveryFeeKobo: 250000n }, // Vendor 1: 1,500,000 kobo + 250,000 delivery
-        { offering: serviceB, quantity: 1, deliveryFeeKobo: 0n }, // Vendor 2: 4,500,000 kobo
+        { offering: serviceB, quantity: 1, deliveryFeeKobo: 0n },      // Vendor 2: 4,500,000 kobo
       ]
 
       const result = CommercePricingEngine.calculateOrderPricing({ items })
@@ -391,18 +397,10 @@ describe('Phase 6B.2: Commerce Order & Pricing Engine', () => {
       previewUseCase = module.get<PreviewCommerceOrderUseCase>(PreviewCommerceOrderUseCase)
       createUseCase = module.get<CreateCommerceOrderUseCase>(CreateCommerceOrderUseCase)
       getTenantOrdersUseCase = module.get<GetTenantOrdersUseCase>(GetTenantOrdersUseCase)
-      getTenantOrderDetailUseCase = module.get<GetTenantOrderDetailUseCase>(
-        GetTenantOrderDetailUseCase,
-      )
-      cancelExpiredUseCase = module.get<CancelExpiredCommerceOrdersUseCase>(
-        CancelExpiredCommerceOrdersUseCase,
-      )
-      initializePaymentUseCase = module.get<InitializeCommercePaymentUseCase>(
-        InitializeCommercePaymentUseCase,
-      )
-      confirmPaymentUseCase = module.get<ConfirmCommercePaymentUseCase>(
-        ConfirmCommercePaymentUseCase,
-      )
+      getTenantOrderDetailUseCase = module.get<GetTenantOrderDetailUseCase>(GetTenantOrderDetailUseCase)
+      cancelExpiredUseCase = module.get<CancelExpiredCommerceOrdersUseCase>(CancelExpiredCommerceOrdersUseCase)
+      initializePaymentUseCase = module.get<InitializeCommercePaymentUseCase>(InitializeCommercePaymentUseCase)
+      confirmPaymentUseCase = module.get<ConfirmCommercePaymentUseCase>(ConfirmCommercePaymentUseCase)
     })
 
     it('previewCommerceOrderUseCase returns price breakdown without persisting an order or mutating stock', async () => {
@@ -559,8 +557,7 @@ describe('Phase 6B.2: Commerce Order & Pricing Engine', () => {
       ;(mockOrderRepo.findOrderByIdempotencyKey as jest.Mock).mockResolvedValue(existingOrder)
 
       await expect(
-        createUseCase.execute(99, {
-          // User 99 tries to use user 88's key
+        createUseCase.execute(99, { // User 99 tries to use user 88's key
           recipientName: 'Chidi Mokeme',
           recipientPhone: '+2348099999999',
           deliveryAddress: '15 Admiralty Way, Lekki Phase 1, Lagos',
@@ -592,9 +589,9 @@ describe('Phase 6B.2: Commerce Order & Pricing Engine', () => {
       ;(mockOrderRepo.findOrderByUuid as jest.Mock).mockResolvedValue(tenantBOrder)
 
       // User 100 attempts to read User 200's order
-      await expect(getTenantOrderDetailUseCase.execute(100, 'tenant-b-order-uuid')).rejects.toThrow(
-        NotFoundException,
-      )
+      await expect(
+        getTenantOrderDetailUseCase.execute(100, 'tenant-b-order-uuid'),
+      ).rejects.toThrow(NotFoundException)
     })
 
     it('data leakage guardrail: tenant detail response excludes internal notes, commissions, and payables', async () => {
@@ -789,9 +786,7 @@ describe('Phase 6B.2: Commerce Order & Pricing Engine', () => {
             }),
           }),
         )
-        expect(
-          (mockGateway.initializeTransaction as jest.Mock).mock.calls[0][0].subaccount,
-        ).toBeUndefined()
+        expect((mockGateway.initializeTransaction as jest.Mock).mock.calls[0][0].subaccount).toBeUndefined()
       })
 
       it('initializePaymentUseCase rejects payment initialization for cancelled or already paid orders', async () => {

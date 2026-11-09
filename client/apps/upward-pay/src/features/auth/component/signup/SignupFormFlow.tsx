@@ -24,12 +24,7 @@ import { OTPInput } from '@/components/common/OTPInput'
 import { useAuth } from '@/features/auth/AuthContext'
 import { haptics } from '@/lib/haptics'
 import { useQueryClient } from '@tanstack/react-query'
-import {
-  checkEmail,
-  requestOTP,
-  verifyOTP,
-  loginWithOTP,
-} from '@/features/auth/services/authService'
+import { checkEmail, requestOTP, verifyOTP, loginWithOTP } from '@/features/auth/services/authService'
 import { setAccessToken, setRefreshToken } from '@/lib/auth-token'
 import { setCookie } from '@/lib/cookie-utils'
 import { PasswordStrengthMeter } from './PasswordStrengthMeter'
@@ -43,11 +38,7 @@ interface SignupFormFlowProps {
   initialEmail?: string
 }
 
-export function SignupFormFlow({
-  onBackToWelcome,
-  onSignupSuccess,
-  initialEmail = '',
-}: SignupFormFlowProps) {
+export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail = '' }: SignupFormFlowProps) {
   const router = useRouter()
   const { login: setAuthUser } = useAuth()
   const queryClient = useQueryClient()
@@ -87,9 +78,7 @@ export function SignupFormFlow({
     }
   }, [initialEmail])
 
-  const [effectiveContext, setEffectiveContext] = useState<
-    'SIGNUP' | 'LOGIN' | 'INVITE' | 'WAITLIST'
-  >('SIGNUP')
+  const [effectiveContext, setEffectiveContext] = useState<'SIGNUP' | 'LOGIN' | 'INVITE' | 'WAITLIST'>('SIGNUP')
 
   const [isNative, setIsNative] = useState(false)
 
@@ -108,21 +97,12 @@ export function SignupFormFlow({
 
   const emailCheckTimeout = useRef<NodeJS.Timeout | null>(null)
 
-  const {
-    signup,
-    loading: signupLoading,
-    error: signupError,
-  } = useSignup('', () => {
+  const { signup, loading: signupLoading, error: signupError } = useSignup('', () => {
     onSignupSuccess(email, password)
   })
 
   const goToLogin = () => {
-    const identifier =
-      identifierType === 'phone'
-        ? phone.startsWith('+')
-          ? phone
-          : `+234${phone.replace(/^0/, '')}`
-        : email
+    const identifier = identifierType === 'phone' ? (phone.startsWith('+') ? phone : `+234${phone.replace(/^0/, '')}`) : email
     router.push(`/signup?mode=login&email=${encodeURIComponent(identifier)}`)
   }
 
@@ -132,17 +112,9 @@ export function SignupFormFlow({
     setIsInvited(false)
     setIsWaitlist(false)
     setAuthProvider('email')
-    const identifier =
-      identifierType === 'phone'
-        ? phone.startsWith('+')
-          ? phone
-          : `+234${phone.replace(/^0/, '')}`
-        : email
+    const identifier = identifierType === 'phone' ? (phone.startsWith('+') ? phone : `+234${phone.replace(/^0/, '')}`) : email
 
-    if (
-      identifier &&
-      (identifierType === 'phone' ? identifier.length >= 10 : isValidEmail(identifier))
-    ) {
+    if (identifier && (identifierType === 'phone' ? identifier.length >= 10 : isValidEmail(identifier))) {
       if (emailCheckTimeout.current) clearTimeout(emailCheckTimeout.current)
       emailCheckTimeout.current = setTimeout(async () => {
         setIsCheckingEmail(true)
@@ -165,7 +137,9 @@ export function SignupFormFlow({
   }, [email, phone, identifierType])
 
   const isPasswordValid =
-    password.length >= 8 && /[A-Z]/.test(password) && /[0-9!@#$%^&*(),.?":{}|<> ]/.test(password)
+    password.length >= 8 &&
+    /[A-Z]/.test(password) &&
+    /[0-9!@#$%^&*(),.?":{}|<> ]/.test(password)
 
   // Guard against invited, waitlist, or already registered users proceeding to stage 2
   useEffect(() => {
@@ -182,9 +156,7 @@ export function SignupFormFlow({
 
     if (identifierType === 'email') {
       if (!isValidEmail(email)) {
-        setLocalError(
-          'Please enter a valid email address with a valid domain (e.g. name@example.com)',
-        )
+        setLocalError('Please enter a valid email address with a valid domain (e.g. name@example.com)')
         return
       }
     } else {
@@ -210,9 +182,7 @@ export function SignupFormFlow({
     }
 
     if (!isPasswordValid) {
-      setLocalError(
-        'Password must be at least 8 characters and include uppercase, number or symbol.',
-      )
+      setLocalError('Password must be at least 8 characters and include uppercase, number or symbol.')
       return
     }
 
@@ -238,12 +208,7 @@ export function SignupFormFlow({
       return
     }
 
-    const identifier =
-      identifierType === 'phone'
-        ? phone.startsWith('+')
-          ? phone
-          : `+234${phone.replace(/^0/, '')}`
-        : email
+    const identifier = identifierType === 'phone' ? (phone.startsWith('+') ? phone : `+234${phone.replace(/^0/, '')}`) : email
 
     setIsRequestingOTP(true)
     try {
@@ -259,17 +224,10 @@ export function SignupFormFlow({
 
   const handleInviteProceed = async () => {
     if (identifierType === 'email' && !isValidEmail(email)) {
-      setLocalError(
-        'Please enter a valid email address with a valid domain (e.g. name@example.com)',
-      )
+      setLocalError('Please enter a valid email address with a valid domain (e.g. name@example.com)')
       return
     }
-    const identifier =
-      identifierType === 'phone'
-        ? phone.startsWith('+')
-          ? phone
-          : `+234${phone.replace(/^0/, '')}`
-        : email
+    const identifier = identifierType === 'phone' ? (phone.startsWith('+') ? phone : `+234${phone.replace(/^0/, '')}`) : email
     setIsRequestingOTP(true)
     try {
       const res: any = await requestOTP(identifier, 'INVITE', identifierType, phoneChannel)
@@ -282,19 +240,13 @@ export function SignupFormFlow({
     }
   }
 
+
   const handleWaitlistProceed = async () => {
     if (identifierType === 'email' && !isValidEmail(email)) {
-      setLocalError(
-        'Please enter a valid email address with a valid domain (e.g. name@example.com)',
-      )
+      setLocalError('Please enter a valid email address with a valid domain (e.g. name@example.com)')
       return
     }
-    const identifier =
-      identifierType === 'phone'
-        ? phone.startsWith('+')
-          ? phone
-          : `+234${phone.replace(/^0/, '')}`
-        : email
+    const identifier = identifierType === 'phone' ? (phone.startsWith('+') ? phone : `+234${phone.replace(/^0/, '')}`) : email
     setIsRequestingOTP(true)
     try {
       const res: any = await requestOTP(identifier, 'WAITLIST', identifierType, phoneChannel)
@@ -309,12 +261,7 @@ export function SignupFormFlow({
 
   const handleVerifyOTP = async (otp: string) => {
     setOtpError(null)
-    const identifier =
-      identifierType === 'phone'
-        ? phone.startsWith('+')
-          ? phone
-          : `+234${phone.replace(/^0/, '')}`
-        : email
+    const identifier = identifierType === 'phone' ? (phone.startsWith('+') ? phone : `+234${phone.replace(/^0/, '')}`) : email
 
     try {
       if (effectiveContext === 'LOGIN') {
@@ -359,31 +306,15 @@ export function SignupFormFlow({
           haptics.error()
           setOtpError('Invite verification failed. Please try again.')
         } else {
-          const hearAboutUsValue =
-            hearAboutUs === 'other'
-              ? hearAboutUsOther.trim()
-                ? `Other: ${hearAboutUsOther.trim()}`
-                : 'Other'
-              : HEAR_ABOUT_US_OPTIONS.find((o) => o.id === hearAboutUs)?.label || hearAboutUs
+          const hearAboutUsValue = hearAboutUs === 'other'
+            ? (hearAboutUsOther.trim() ? `Other: ${hearAboutUsOther.trim()}` : 'Other')
+            : (HEAR_ABOUT_US_OPTIONS.find(o => o.id === hearAboutUs)?.label || hearAboutUs)
 
           if (identifierType === 'phone') {
             const generatedEmail = `${identifier.replace('+', '')}@upward.com`
-            signup({
-              email: generatedEmail,
-              password,
-              firstName,
-              lastName,
-              phone: identifier,
-              hearAboutUs: hearAboutUsValue || undefined,
-            })
+            signup({ email: generatedEmail, password, firstName, lastName, phone: identifier, hearAboutUs: hearAboutUsValue || undefined })
           } else {
-            signup({
-              email,
-              password,
-              firstName,
-              lastName,
-              hearAboutUs: hearAboutUsValue || undefined,
-            })
+            signup({ email, password, firstName, lastName, hearAboutUs: hearAboutUsValue || undefined })
           }
         }
       }
@@ -395,22 +326,12 @@ export function SignupFormFlow({
 
   const handleResendOTP = async (channel?: 'SMS' | 'WHATSAPP') => {
     haptics.light()
-    const identifier =
-      identifierType === 'phone'
-        ? phone.startsWith('+')
-          ? phone
-          : `+234${phone.replace(/^0/, '')}`
-        : email
+    const identifier = identifierType === 'phone' ? (phone.startsWith('+') ? phone : `+234${phone.replace(/^0/, '')}`) : email
     await requestOTP(identifier, effectiveContext, identifierType, channel || phoneChannel)
   }
 
   const handleOtpBack = () => {
-    if (
-      effectiveContext === 'INVITE' ||
-      effectiveContext === 'WAITLIST' ||
-      isInvited ||
-      isWaitlist
-    ) {
+    if (effectiveContext === 'INVITE' || effectiveContext === 'WAITLIST' || isInvited || isWaitlist) {
       setStep('auth')
     } else {
       setStep('identity')
@@ -430,22 +351,13 @@ export function SignupFormFlow({
             <UpwardLogo size={28} color="var(--clay)" />
           </div>
         ) : (
-          <a
-            href={process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}
-            className="auth-shell__brand"
-          >
+          <a href={process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'} className="auth-shell__brand">
             <UpwardLogo size={28} color="var(--clay)" />
           </a>
         )}
         <div className="auth-stage">
           <OTPInput
-            email={
-              identifierType === 'phone'
-                ? phone.startsWith('+')
-                  ? phone
-                  : `+234${phone.replace(/^0/, '')}`
-                : email
-            }
+            email={identifierType === 'phone' ? (phone.startsWith('+') ? phone : `+234${phone.replace(/^0/, '')}`) : email}
             onVerify={handleVerifyOTP}
             onResend={handleResendOTP}
             onChangeEmail={() => setStep('auth')}
@@ -475,10 +387,7 @@ export function SignupFormFlow({
             <UpwardLogo size={28} color="var(--clay)" />
           </div>
         ) : (
-          <a
-            href={process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}
-            className="auth-shell__brand"
-          >
+          <a href={process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'} className="auth-shell__brand">
             <UpwardLogo size={28} color="var(--clay)" />
           </a>
         )}
@@ -487,9 +396,7 @@ export function SignupFormFlow({
           <div className="auth-stage__header">
             <span className="auth-form__step-badge">Step 2 of 2</span>
             <h1 className="auth-stage__title">What&apos;s your name?</h1>
-            <p className="auth-stage__subtitle">
-              Enter your name as it appears on your official ID.
-            </p>
+            <p className="auth-stage__subtitle">Enter your name as it appears on your official ID.</p>
           </div>
 
           <form className="auth-form" onSubmit={handleIdentitySubmit}>
@@ -532,25 +439,11 @@ export function SignupFormFlow({
             <div className="auth-form__field" style={{ marginTop: '8px' }}>
               <div className="auth-form__label-row">
                 <label>Where did you hear about us?</label>
-                <span
-                  style={{
-                    fontSize: '11px',
-                    color: 'var(--text-muted)',
-                    fontWeight: 500,
-                    fontStyle: 'italic',
-                  }}
-                >
-                  Optional
-                </span>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, fontStyle: 'italic' }}>Optional</span>
               </div>
               <div className="auth-chips">
                 {HEAR_ABOUT_US_OPTIONS.map((opt) => {
-                  const shortLabel =
-                    opt.id === 'social_media'
-                      ? 'Social Media'
-                      : opt.id === 'google_search'
-                        ? 'Google Search'
-                        : opt.label.split(' (')[0]
+                  const shortLabel = opt.id === 'social_media' ? 'Social Media' : opt.id === 'google_search' ? 'Google Search' : opt.label.split(' (')[0]
                   return (
                     <button
                       key={opt.id}
@@ -582,7 +475,8 @@ export function SignupFormFlow({
               type="submit"
               disabled={!firstName.trim() || !lastName.trim() || isRequestingOTP}
             >
-              {isRequestingOTP ? 'Sending Code…' : 'Create account'} <ArrowRight size={17} />
+              {isRequestingOTP ? 'Sending Code…' : 'Create account'}{' '}
+              <ArrowRight size={17} />
             </button>
           </form>
         </div>
@@ -603,10 +497,7 @@ export function SignupFormFlow({
           <UpwardLogo size={28} color="var(--clay)" />
         </div>
       ) : (
-        <a
-          href={process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}
-          className="auth-shell__brand"
-        >
+        <a href={process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'} className="auth-shell__brand">
           <UpwardLogo size={28} color="var(--clay)" />
         </a>
       )}
@@ -634,9 +525,7 @@ export function SignupFormFlow({
 
           <div className="auth-form__field">
             <div className="auth-form__label-row">
-              <label htmlFor="signup-identifier">
-                {identifierType === 'email' ? 'Email Address' : 'Phone Number'}
-              </label>
+              <label htmlFor="signup-identifier">{identifierType === 'email' ? 'Email Address' : 'Phone Number'}</label>
               <button
                 type="button"
                 className="auth-form__link auth-form__link--quiet"
@@ -673,143 +562,55 @@ export function SignupFormFlow({
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <div
-                  className="input-wrapper"
-                  style={{
-                    position: 'relative',
-                    display: 'flex',
-                    alignItems: 'center',
-                    border:
-                      emailExists && !isInvited && !isWaitlist
-                        ? '1px solid #ff4b4b'
-                        : '1px solid #e2e2e2',
-                    borderRadius: '14px',
-                    padding: '0 16px',
-                    background: '#fff',
-                    transition: 'border-color 0.2s',
-                    height: '46px',
-                  }}
+                <div 
+                  className="input-wrapper" 
+                  style={{ position: 'relative', display: 'flex', alignItems: 'center', border: emailExists && !isInvited && !isWaitlist ? '1px solid #ff4b4b' : '1px solid #e2e2e2', borderRadius: '14px', padding: '0 16px', background: '#fff', transition: 'border-color 0.2s', height: '46px' }}
                 >
-                  <span
-                    className="country-code"
-                    style={{
-                      fontFamily: 'Plus Jakarta Sans',
-                      fontSize: '13.5px',
-                      color: '#7a7268',
-                      borderRight: '1px solid #eee',
-                      paddingRight: '8px',
-                      marginRight: '8px',
-                    }}
-                  >
-                    +234
-                  </span>
-                  <input
-                    type="tel"
+                  <span className="country-code" style={{ fontFamily: 'Plus Jakarta Sans', fontSize: '13.5px', color: '#7a7268', borderRight: '1px solid #eee', paddingRight: '8px', marginRight: '8px' }}>+234</span>
+                  <input 
+                    type="tel" 
                     inputMode="numeric"
-                    placeholder="800 000 0000"
-                    style={{
-                      border: 'none',
-                      outline: 'none',
-                      height: '100%',
-                      width: '100%',
-                      fontFamily: 'Plus Jakarta Sans',
-                      fontSize: '13.5px',
-                      background: 'transparent',
-                    }}
+                    placeholder="800 000 0000" 
+                    style={{ border: 'none', outline: 'none', height: '100%', width: '100%', fontFamily: 'Plus Jakarta Sans', fontSize: '13.5px', background: 'transparent' }}
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     required={identifierType === 'phone'}
                   />
-                  {isCheckingEmail && (
-                    <Loader2
-                      className="input-spinner animate-spin"
-                      size={16}
-                      style={{ position: 'absolute', right: '16px' }}
-                    />
-                  )}
+                  {isCheckingEmail && <Loader2 className="input-spinner animate-spin" size={16} style={{ position: 'absolute', right: '16px' }} />}
                 </div>
-                <div
-                  style={{ display: 'flex', gap: '16px', marginTop: '12px', paddingLeft: '4px' }}
-                >
-                  <label
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      fontSize: '13px',
-                      cursor: 'pointer',
-                      color: 'var(--text)',
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="phoneChannelSignup"
-                      checked={phoneChannel === 'SMS'}
-                      onChange={() => setPhoneChannel('SMS')}
-                      style={{ accentColor: 'var(--clay)' }}
-                    />{' '}
-                    SMS
+                <div style={{ display: 'flex', gap: '16px', marginTop: '12px', paddingLeft: '4px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', color: 'var(--text)' }}>
+                    <input type="radio" name="phoneChannelSignup" checked={phoneChannel === 'SMS'} onChange={() => setPhoneChannel('SMS')} style={{ accentColor: 'var(--clay)' }} /> SMS
                   </label>
-                  <label
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      fontSize: '13px',
-                      cursor: 'pointer',
-                      color: 'var(--text)',
-                    }}
-                  >
-                    <input
-                      type="radio"
-                      name="phoneChannelSignup"
-                      checked={phoneChannel === 'WHATSAPP'}
-                      onChange={() => setPhoneChannel('WHATSAPP')}
-                      style={{ accentColor: 'var(--clay)' }}
-                    />{' '}
-                    WhatsApp
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', color: 'var(--text)' }}>
+                    <input type="radio" name="phoneChannelSignup" checked={phoneChannel === 'WHATSAPP'} onChange={() => setPhoneChannel('WHATSAPP')} style={{ accentColor: 'var(--clay)' }} /> WhatsApp
                   </label>
                 </div>
               </div>
             )}
 
-            {emailExists &&
-              !isInvited &&
-              !isWaitlist &&
-              (authProvider === 'google' || authProvider === 'apple') && (
-                <div className="auth-field-hint auth-field-hint--accent">
-                  <AlertCircle size={12} /> This account is registered with{' '}
-                  {authProvider === 'apple' ? 'Apple' : 'Google'}.{' '}
-                  <button type="button" className="auth-field-hint__link" onClick={goToLogin}>
-                    Log in instead?
-                  </button>
-                </div>
-              )}
+            {emailExists && !isInvited && !isWaitlist && (authProvider === 'google' || authProvider === 'apple') && (
+              <div className="auth-field-hint auth-field-hint--accent">
+                <AlertCircle size={12} /> This account is registered with {authProvider === 'apple' ? 'Apple' : 'Google'}.{' '}
+                <button type="button" className="auth-field-hint__link" onClick={goToLogin}>
+                  Log in instead?
+                </button>
+              </div>
+            )}
 
-            {emailExists &&
-              !isInvited &&
-              !isWaitlist &&
-              authProvider !== 'google' &&
-              authProvider !== 'apple' && (
-                <div className="auth-field-hint auth-field-hint--error">
-                  <AlertCircle size={12} />{' '}
-                  {identifierType === 'email'
-                    ? 'This email is already registered.'
-                    : 'This phone number is already registered.'}{' '}
-                  <button type="button" className="auth-field-hint__link" onClick={goToLogin}>
-                    Log in instead?
-                  </button>
-                </div>
-              )}
+            {emailExists && !isInvited && !isWaitlist && authProvider !== 'google' && authProvider !== 'apple' && (
+              <div className="auth-field-hint auth-field-hint--error">
+                <AlertCircle size={12} /> {identifierType === 'email' ? 'This email is already registered.' : 'This phone number is already registered.'}{' '}
+                <button type="button" className="auth-field-hint__link" onClick={goToLogin}>
+                  Log in instead?
+                </button>
+              </div>
+            )}
 
             {emailExists && isInvited && (
               <div className="auth-field-hint auth-field-hint--accent">
                 <AlertCircle size={12} /> Your manager already invited you —{' '}
-                <button
-                  type="button"
-                  className="auth-field-hint__link"
-                  onClick={handleInviteProceed}
-                >
+                <button type="button" className="auth-field-hint__link" onClick={handleInviteProceed}>
                   Complete setup to claim your property
                 </button>
               </div>
@@ -818,11 +619,7 @@ export function SignupFormFlow({
             {emailExists && isWaitlist && (
               <div className="auth-field-hint auth-field-hint--accent">
                 <Sparkles size={12} /> You have priority access!{' '}
-                <button
-                  type="button"
-                  className="auth-field-hint__link"
-                  onClick={handleWaitlistProceed}
-                >
+                <button type="button" className="auth-field-hint__link" onClick={handleWaitlistProceed}>
                   Claim your account
                 </button>
               </div>
@@ -850,27 +647,20 @@ export function SignupFormFlow({
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
-            {password.length > 0 && <PasswordStrengthMeter password={password} />}
+            {password.length > 0 && (
+              <PasswordStrengthMeter password={password} />
+            )}
           </div>
 
           <p className="auth-stage__disclaimer">
             By continuing, you agree to our{' '}
-            <a
-              href={`${process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}/legal/terms`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <a href={`${process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}/legal/terms`} target="_blank" rel="noopener noreferrer">
               Terms of Use
             </a>{' '}
             and{' '}
-            <a
-              href={`${process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}/legal/privacy`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <a href={`${process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}/legal/privacy`} target="_blank" rel="noopener noreferrer">
               Privacy Policy
-            </a>
-            .
+            </a>.
           </p>
 
           <button

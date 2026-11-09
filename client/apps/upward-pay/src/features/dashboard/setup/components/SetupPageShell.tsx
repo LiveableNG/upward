@@ -49,12 +49,7 @@ export function SetupPageShell({
       <header className="setup-page__header">
         <div className="setup-page__header-inner">
           <div className="setup-page__header-row">
-            <button
-              type="button"
-              className="setup-page__back"
-              onClick={handleBack}
-              aria-label="Go back"
-            >
+            <button type="button" className="setup-page__back" onClick={handleBack} aria-label="Go back">
               <ArrowLeft size={15} />
             </button>
             {title && <h1 className="setup-page__header-title">{title}</h1>}
@@ -132,13 +127,7 @@ export function SetupPrimaryButton({
   }
 
   return (
-    <button
-      type={type}
-      form={form}
-      className="setup-page__cta"
-      onClick={handleClick}
-      disabled={disabled}
-    >
+    <button type={type} form={form} className="setup-page__cta" onClick={handleClick} disabled={disabled}>
       {children}
     </button>
   )

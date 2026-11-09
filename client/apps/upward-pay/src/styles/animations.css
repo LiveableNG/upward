@@ -14,8 +14,7 @@
 }
 
 @keyframes textZoomOut {
-  0%,
-  100% {
+  0%, 100% {
     transform: scale(1);
   }
   50% {
@@ -24,8 +23,7 @@
 }
 
 @keyframes textZoomOutSubtle {
-  0%,
-  100% {
+  0%, 100% {
     transform: scale(1);
     opacity: 1;
   }
@@ -563,3 +561,4 @@ button:active:not(:disabled),
   flex-direction: column;
   gap: 6px;
 }
+

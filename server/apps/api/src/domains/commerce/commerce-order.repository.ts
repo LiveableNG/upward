@@ -227,12 +227,7 @@ export interface CommerceOrderRepository {
   findSubOrderById(id: number): Promise<CommerceVendorSuborder | null>
   findSubOrdersByVendorId(
     vendorId: number,
-    options?: {
-      customerStatus?: CustomerFulfilmentStatus
-      operationalStatus?: AdminOperationalStatus
-      skip?: number
-      take?: number
-    },
+    options?: { customerStatus?: CustomerFulfilmentStatus; operationalStatus?: AdminOperationalStatus; skip?: number; take?: number },
   ): Promise<{ items: CommerceVendorSuborder[]; total: number }>
   updateSubOrderStatus(
     subOrderId: number,
@@ -301,22 +296,10 @@ export interface CommerceOrderRepository {
   }): Promise<CommerceVendorSuborder>
   recordPaymentAttempt(
     orderId: number,
-    attempt: {
-      reference: string
-      amountKobo: bigint
-      currency?: string
-      channel?: string
-      status?: string
-      ipAddress?: string
-      gatewayResponse?: string
-    },
+    attempt: { reference: string; amountKobo: bigint; currency?: string; channel?: string; status?: string; ipAddress?: string; gatewayResponse?: string },
   ): Promise<CommercePaymentAttempt>
   findPaymentAttemptByReference(reference: string): Promise<CommercePaymentAttempt | null>
-  updatePaymentAttemptStatus(
-    reference: string,
-    status: string,
-    gatewayResponse?: string,
-  ): Promise<CommercePaymentAttempt>
+  updatePaymentAttemptStatus(reference: string, status: string, gatewayResponse?: string): Promise<CommercePaymentAttempt>
   findActivePaymentAttempt(orderId: number): Promise<CommercePaymentAttempt | null>
   confirmOrderPayment(params: {
     orderId: number
@@ -326,14 +309,7 @@ export interface CommerceOrderRepository {
   }): Promise<CommerceOrder>
   recordAuditLog(
     orderId: number,
-    audit: {
-      event: string
-      fromState?: string
-      toState: string
-      actorType: string
-      actorId?: string
-      details?: Record<string, any>
-    },
+    audit: { event: string; fromState?: string; toState: string; actorType: string; actorId?: string; details?: Record<string, any> },
   ): Promise<CommerceOrderAudit>
   releaseInventory(orderId: number, reason?: string): Promise<void>
 }

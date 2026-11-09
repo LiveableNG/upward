@@ -130,7 +130,7 @@ export function RentCalculatorView({ onProceedToSetup }: RentCalculatorViewProps
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text)' }}>
-                  {activeProperty.title || 'Linked Property'}
+                  {(activeProperty as any)?.title || activeProperty.address || 'Linked Property'}
                 </span>
                 <span
                   style={{

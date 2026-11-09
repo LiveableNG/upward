@@ -121,10 +121,7 @@
   font-weight: 700;
   color: #7a7268;
   cursor: pointer;
-  transition:
-    background 0.15s ease,
-    color 0.15s ease,
-    box-shadow 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .help-page__tab--active {
@@ -432,10 +429,7 @@
   background: #fff;
   padding: 0 14px;
   cursor: pointer;
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease,
-    background 0.15s ease;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.15s ease;
   user-select: none;
 }
 
@@ -504,9 +498,7 @@
   border-radius: 6px;
   background: #f7f3ed;
   color: #7a7065;
-  transition:
-    background 0.15s ease,
-    color 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 
 .personal-date-picker:hover .personal-date-picker__badge {
@@ -525,10 +517,7 @@
   border: none;
   color: #5c544b;
   cursor: pointer;
-  transition:
-    background 0.15s ease,
-    color 0.15s ease,
-    transform 0.1s ease;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.1s ease;
   z-index: 3;
   position: relative;
   padding: 0;
@@ -557,7 +546,7 @@
   margin: 0;
 }
 
-.personal-field input[type='date'] {
+.personal-field input[type="date"] {
   display: flex;
   align-items: center;
   width: 100%;
@@ -570,7 +559,7 @@
   text-align: left;
 }
 
-.personal-field input[type='date']::-webkit-date-and-time-value {
+.personal-field input[type="date"]::-webkit-date-and-time-value {
   text-align: left;
   line-height: 48px;
   height: 48px;
@@ -797,8 +786,8 @@
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  background: #faf8f5;
-  border: 1px solid #ece5dc;
+  background: #FAF8F5;
+  border: 1px solid #ECE5DC;
   border-radius: 14px;
   padding: 14px 16px;
   margin-bottom: 20px;
@@ -844,8 +833,8 @@
 }
 
 .banking-resolved-name--verified {
-  background: #f0fdf4;
-  border-color: #86efac;
+  background: #F0FDF4;
+  border-color: #86EFAC;
 }
 
 .banking-resolved-name__success {
@@ -857,7 +846,7 @@
 }
 
 .banking-resolved-name__placeholder {
-  color: #9ca3af;
+  color: #9CA3AF;
   font-weight: 500;
   font-size: 13px;
 }
@@ -882,13 +871,11 @@
 }
 
 .banking-card-preview {
-  background: #ffffff;
-  border: 1.5px solid #ece4d9;
+  background: #FFFFFF;
+  border: 1.5px solid #ECE4D9;
   border-radius: 18px;
   padding: 20px 18px;
-  box-shadow:
-    0 4px 16px -3px rgba(60, 40, 20, 0.05),
-    0 1px 3px rgba(60, 40, 20, 0.03);
+  box-shadow: 0 4px 16px -3px rgba(60, 40, 20, 0.05), 0 1px 3px rgba(60, 40, 20, 0.03);
   position: relative;
 }
 
@@ -950,9 +937,9 @@
 .banking-card-preview__middle {
   margin-bottom: 18px;
   padding: 12px 14px;
-  background: #faf8f5;
+  background: #FAF8F5;
   border-radius: 12px;
-  border: 1px solid #f0eae1;
+  border: 1px solid #F0EAE1;
 }
 
 .banking-card-preview__num-label {
@@ -979,7 +966,7 @@
   justify-content: space-between;
   gap: 12px;
   padding-top: 14px;
-  border-top: 1px solid #ece5dc;
+  border-top: 1px solid #ECE5DC;
 }
 
 .banking-card-preview__name-label {
@@ -1006,16 +993,14 @@
   gap: 6px;
   padding: 8px 14px;
   border-radius: 9999px;
-  background: #faf8f5;
-  border: 1px solid #ece4d9;
-  color: #5c544b;
+  background: #FAF8F5;
+  border: 1px solid #ECE4D9;
+  color: #5C544B;
   font-size: 12.5px;
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;
-  transition:
-    transform 0.1s ease,
-    background 0.15s ease;
+  transition: transform 0.1s ease, background 0.15s ease;
   box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
   flex-shrink: 0;
   -webkit-appearance: none;
@@ -1023,12 +1008,12 @@
 }
 
 .banking-card-preview__change-btn:hover {
-  background: #f3efea;
+  background: #F3EFEA;
 }
 
 .banking-card-preview__change-btn:active {
   transform: scale(0.96);
-  background: #eae3d8;
+  background: #EAE3D8;
 }
 
 .banking-account-card {

@@ -5,7 +5,10 @@ import {
   CommerceOrderRepository,
 } from '../../../domains/commerce/commerce-order.repository'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
-import { GetTenantOrdersFilterDto, TenantOrderSummaryDto } from '../dto/tenant-commerce-order.dto'
+import {
+  GetTenantOrdersFilterDto,
+  TenantOrderSummaryDto,
+} from '../dto/tenant-commerce-order.dto'
 
 export interface GetTenantOrdersResponse {
   items: TenantOrderSummaryDto[]
@@ -72,7 +75,10 @@ export class GetTenantOrdersUseCase {
         for (const it of sub.items) {
           allItems.push({
             title: it.snapshotData?.title || 'Lifestyle Item',
-            thumbnailUrl: it.snapshotData?.media?.[0]?.url || it.snapshotData?.thumbnailUrl || null,
+            thumbnailUrl:
+              it.snapshotData?.media?.[0]?.url ||
+              it.snapshotData?.thumbnailUrl ||
+              null,
             offeringType: it.offeringType || 'PRODUCT',
             quantity: it.quantity || 1,
           })
@@ -86,7 +92,9 @@ export class GetTenantOrdersUseCase {
       if (statuses.some((s) => s === 'DISPUTED')) {
         primaryStatus = 'DISPUTED'
       } else if (
-        statuses.every((s) => ['DELIVERED', 'SERVICE_COMPLETED', 'RECEIVED_CONFIRMED'].includes(s))
+        statuses.every((s) =>
+          ['DELIVERED', 'SERVICE_COMPLETED', 'RECEIVED_CONFIRMED'].includes(s),
+        )
       ) {
         primaryStatus = statuses[0]
       } else {

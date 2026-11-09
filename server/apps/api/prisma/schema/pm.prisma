@@ -82,7 +82,6 @@ model upward_property_manager {
   allianceSubjectRatings  upward_alliance_rating[]             @relation("AllianceSubjectPm")
 
   @@index([email])
-  @@index([invitedByUserId])
 }
 
 model upward_pm_letterhead {

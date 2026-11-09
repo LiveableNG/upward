@@ -1,6 +1,11 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
-import { ShoppingBag, Search, RefreshCw, Plus } from 'lucide-react'
+import {
+  ShoppingBag,
+  Search,
+  RefreshCw,
+  Plus,
+} from 'lucide-react'
 import { useCommerceAdmin } from '../features/commerce/hooks/useCommerceAdmin'
 import { CommerceOrdersTable } from '../features/commerce/components/CommerceOrdersTable'
 import { CommerceDisputesTable } from '../features/commerce/components/CommerceDisputesTable'
@@ -169,7 +174,9 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
         )
       }
       if (fulfilmentStatusFilter === 'DELIVERED') {
-        return subOrders.some((s) => ['DELIVERED', 'SERVICE_COMPLETED'].includes(s.customerStatus))
+        return subOrders.some((s) =>
+          ['DELIVERED', 'SERVICE_COMPLETED'].includes(s.customerStatus),
+        )
       }
       return subOrders.some((s) => s.customerStatus === fulfilmentStatusFilter)
     })
@@ -290,8 +297,7 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
               Commerce & Lifestyle Workspace
             </h1>
             <p style={{ margin: '3px 0 0', fontSize: 13, color: 'var(--text-muted)' }}>
-              Unified operations desk for goals catalog, multi-vendor merchandise, fulfilment
-              logistics & customer disputes.
+              Unified operations desk for goals catalog, multi-vendor merchandise, fulfilment logistics & customer disputes.
             </p>
           </div>
         </div>
@@ -306,13 +312,7 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
                 setEditingGoal(null)
                 setGoalModalOpen(true)
               }}
-              style={{
-                height: 36,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                fontSize: 13,
-              }}
+              style={{ height: 36, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13 }}
             >
               <Plus size={15} />
               <span>New Goal</span>
@@ -326,13 +326,7 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
                 setEditingCategory(null)
                 setCategoryModalOpen(true)
               }}
-              style={{
-                height: 36,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                fontSize: 13,
-              }}
+              style={{ height: 36, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13 }}
             >
               <Plus size={15} />
               <span>New Category</span>
@@ -346,13 +340,7 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
                 setEditingOffering(null)
                 setOfferingModalOpen(true)
               }}
-              style={{
-                height: 36,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                fontSize: 13,
-              }}
+              style={{ height: 36, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13 }}
             >
               <Plus size={15} />
               <span>New Offering</span>
@@ -366,13 +354,7 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
                 setEditingVendor(null)
                 setVendorModalOpen(true)
               }}
-              style={{
-                height: 36,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                fontSize: 13,
-              }}
+              style={{ height: 36, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13 }}
             >
               <Plus size={15} />
               <span>New Vendor</span>
@@ -588,13 +570,7 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
             <select
               value={paymentStatusFilter}
               onChange={(e) => setPaymentStatusFilter(e.target.value)}
-              style={{
-                padding: '9px 14px',
-                borderRadius: 8,
-                border: '1px solid #ddd',
-                fontSize: 13,
-                backgroundColor: '#fff',
-              }}
+              style={{ padding: '9px 14px', borderRadius: 8, border: '1px solid #ddd', fontSize: 13, backgroundColor: '#fff' }}
             >
               <option value="PAID">Paid Orders (Actionable)</option>
               <option value="ALL">All Orders (Including Abandoned)</option>
@@ -604,13 +580,7 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
             <select
               value={fulfilmentStatusFilter}
               onChange={(e) => setFulfilmentStatusFilter(e.target.value)}
-              style={{
-                padding: '9px 14px',
-                borderRadius: 8,
-                border: '1px solid #ddd',
-                fontSize: 13,
-                backgroundColor: '#fff',
-              }}
+              style={{ padding: '9px 14px', borderRadius: 8, border: '1px solid #ddd', fontSize: 13, backgroundColor: '#fff' }}
             >
               <option value="ALL">All Fulfilment Stages</option>
               <option value="ORDER_CONFIRMED">Awaiting Confirmation</option>

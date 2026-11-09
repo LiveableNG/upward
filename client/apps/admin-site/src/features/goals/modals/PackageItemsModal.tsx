@@ -11,12 +11,7 @@ interface PackageItemsModalProps {
   allOfferings: Offering[]
   onSubmit: (
     packageId: number,
-    items: Array<{
-      componentId: number
-      quantity: number
-      isOptional?: boolean
-      overridePrice?: number
-    }>,
+    items: Array<{ componentId: number; quantity: number; isOptional?: boolean; overridePrice?: number }>,
   ) => Promise<unknown>
 }
 
@@ -102,10 +97,7 @@ export const PackageItemsModal: React.FC<PackageItemsModalProps> = ({
       icon={<Boxes size={20} />}
       maxWidth="620px"
     >
-      <form
-        onSubmit={handleSubmit}
-        style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
-      >
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text)' }}>
             Bundled Components ({items.length})
@@ -136,15 +128,7 @@ export const PackageItemsModal: React.FC<PackageItemsModalProps> = ({
             No components added to this package bundle yet. Click "Add Component" above.
           </div>
         ) : (
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '10px',
-              maxHeight: '360px',
-              overflowY: 'auto',
-            }}
-          >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '360px', overflowY: 'auto' }}>
             {items.map((item, idx) => (
               <div
                 key={idx}
@@ -159,15 +143,7 @@ export const PackageItemsModal: React.FC<PackageItemsModalProps> = ({
                 }}
               >
                 <div style={{ flex: 2 }}>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      color: 'var(--text-muted)',
-                      marginBottom: '4px',
-                    }}
-                  >
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px' }}>
                     Component
                   </label>
                   <select
@@ -185,15 +161,7 @@ export const PackageItemsModal: React.FC<PackageItemsModalProps> = ({
                 </div>
 
                 <div style={{ width: '80px' }}>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      color: 'var(--text-muted)',
-                      marginBottom: '4px',
-                    }}
-                  >
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px' }}>
                     Qty
                   </label>
                   <input
@@ -207,15 +175,7 @@ export const PackageItemsModal: React.FC<PackageItemsModalProps> = ({
                 </div>
 
                 <div style={{ width: '120px' }}>
-                  <label
-                    style={{
-                      display: 'block',
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      color: 'var(--text-muted)',
-                      marginBottom: '4px',
-                    }}
-                  >
+                  <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px' }}>
                     Override Price
                   </label>
                   <input
@@ -266,12 +226,7 @@ export const PackageItemsModal: React.FC<PackageItemsModalProps> = ({
             borderTop: '1px solid var(--border)',
           }}
         >
-          <button
-            type="button"
-            onClick={onClose}
-            className="btn btn-secondary"
-            disabled={submitting}
-          >
+          <button type="button" onClick={onClose} className="btn btn-secondary" disabled={submitting}>
             Cancel
           </button>
           <button type="submit" className="btn btn-primary" disabled={submitting}>

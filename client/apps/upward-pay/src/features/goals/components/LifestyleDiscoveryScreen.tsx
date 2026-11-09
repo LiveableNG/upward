@@ -48,7 +48,10 @@ import {
   type OfferingType,
 } from '../types/goals.types'
 import { useAuth } from '@/features/auth/AuthContext'
-import { type UserDeliveryLocation, getStoredDeliveryLocation } from '../utils/deliveryLocation'
+import {
+  type UserDeliveryLocation,
+  getStoredDeliveryLocation,
+} from '../utils/deliveryLocation'
 import { DeliveryLocationBar } from './DeliveryLocationBar'
 import { BottomSheetModal } from '@/components/common/BottomSheetModal'
 import { useToast } from '@/components/common/Toast'
@@ -199,12 +202,16 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
 
   // Sync draftGoalIds when opening the goal sheet or when userGoals load
   useEffect(() => {
-    const activeIds = userGoals.filter((ug) => ug.status === 'ACTIVE').map((ug) => ug.goalId)
+    const activeIds = userGoals
+      .filter((ug) => ug.status === 'ACTIVE')
+      .map((ug) => ug.goalId)
     setDraftGoalIds(new Set(activeIds))
   }, [userGoals])
 
   const openGoalSheet = () => {
-    const activeIds = userGoals.filter((ug) => ug.status === 'ACTIVE').map((ug) => ug.goalId)
+    const activeIds = userGoals
+      .filter((ug) => ug.status === 'ACTIVE')
+      .map((ug) => ug.goalId)
     setDraftGoalIds(new Set(activeIds))
     setIsGoalSheetOpen(true)
   }
@@ -232,7 +239,10 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
     try {
       const goalIds = Array.from(draftGoalIds)
       await setGoalsMutation.mutateAsync({ goalIds })
-      if (selectedActiveGoalId !== 'ALL' && !draftGoalIds.has(selectedActiveGoalId)) {
+      if (
+        selectedActiveGoalId !== 'ALL' &&
+        !draftGoalIds.has(selectedActiveGoalId)
+      ) {
         setSelectedActiveGoalId('ALL')
       }
       success('Lifestyle preferences updated')
@@ -245,7 +255,8 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
   // Personalized & filtered offerings
   const displayItems = useMemo<RecommendedOfferingItem[]>(() => {
     return getRecommendedOfferings(offerings, userGoals, categories, {
-      activeGoalId: selectedActiveGoalId === 'ALL' ? undefined : selectedActiveGoalId,
+      activeGoalId:
+        selectedActiveGoalId === 'ALL' ? undefined : selectedActiveGoalId,
       typeFilter: selectedType,
       searchQuery,
     })
@@ -293,7 +304,9 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
               <Package size={14} />
               <span>Orders</span>
               {activeOrdersCount > 0 && (
-                <span className="lifestyle-discovery__goals-badge">{activeOrdersCount}</span>
+                <span className="lifestyle-discovery__goals-badge">
+                  {activeOrdersCount}
+                </span>
               )}
             </button>
 
@@ -307,13 +320,13 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
             >
               <SlidersHorizontal size={14} />
               <span className="lifestyle-discovery__goals-text">
-                {!hasSelectedGoals && (
-                  <span className="lifestyle-discovery__goals-prefix">Set </span>
-                )}
+                {!hasSelectedGoals && <span className="lifestyle-discovery__goals-prefix">Set </span>}
                 Goals
               </span>
               {hasSelectedGoals && (
-                <span className="lifestyle-discovery__goals-badge">{activeUserGoals.length}</span>
+                <span className="lifestyle-discovery__goals-badge">
+                  {activeUserGoals.length}
+                </span>
               )}
             </button>
           </div>
@@ -355,7 +368,9 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
               <button
                 type="button"
                 className={`lifestyle-discovery__type-chip ${
-                  selectedType === 'ALL' ? 'lifestyle-discovery__type-chip--active' : ''
+                  selectedType === 'ALL'
+                    ? 'lifestyle-discovery__type-chip--active'
+                    : ''
                 }`}
                 onClick={() => setSelectedType('ALL')}
               >
@@ -364,7 +379,9 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
               <button
                 type="button"
                 className={`lifestyle-discovery__type-chip ${
-                  selectedType === 'PACKAGE' ? 'lifestyle-discovery__type-chip--active' : ''
+                  selectedType === 'PACKAGE'
+                    ? 'lifestyle-discovery__type-chip--active'
+                    : ''
                 }`}
                 onClick={() => setSelectedType('PACKAGE')}
               >
@@ -374,7 +391,9 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
               <button
                 type="button"
                 className={`lifestyle-discovery__type-chip ${
-                  selectedType === 'BUNDLE' ? 'lifestyle-discovery__type-chip--active' : ''
+                  selectedType === 'BUNDLE'
+                    ? 'lifestyle-discovery__type-chip--active'
+                    : ''
                 }`}
                 onClick={() => setSelectedType('BUNDLE')}
               >
@@ -384,7 +403,9 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
               <button
                 type="button"
                 className={`lifestyle-discovery__type-chip ${
-                  selectedType === 'SERVICE' ? 'lifestyle-discovery__type-chip--active' : ''
+                  selectedType === 'SERVICE'
+                    ? 'lifestyle-discovery__type-chip--active'
+                    : ''
                 }`}
                 onClick={() => setSelectedType('SERVICE')}
               >
@@ -394,7 +415,9 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
               <button
                 type="button"
                 className={`lifestyle-discovery__type-chip ${
-                  selectedType === 'PRODUCT' ? 'lifestyle-discovery__type-chip--active' : ''
+                  selectedType === 'PRODUCT'
+                    ? 'lifestyle-discovery__type-chip--active'
+                    : ''
                 }`}
                 onClick={() => setSelectedType('PRODUCT')}
               >
@@ -417,7 +440,9 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
                   <button
                     type="button"
                     className={`lifestyle-discovery__goal-pill ${
-                      selectedActiveGoalId === 'ALL' ? 'lifestyle-discovery__goal-pill--active' : ''
+                      selectedActiveGoalId === 'ALL'
+                        ? 'lifestyle-discovery__goal-pill--active'
+                        : ''
                     }`}
                     onClick={() => setSelectedActiveGoalId('ALL')}
                   >
@@ -453,7 +478,9 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
               <div className="lifestyle-discovery__nudge-bar">
                 <div className="lifestyle-discovery__nudge-text">
                   <Target size={15} className="lifestyle-discovery__nudge-icon" />
-                  <span>Select your home & lifestyle goals to tailor recommendations.</span>
+                  <span>
+                    Select your home & lifestyle goals to tailor recommendations.
+                  </span>
                 </div>
                 <button
                   type="button"
@@ -498,7 +525,8 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
           <h2 className="lifestyle-discovery__section-title">
             {selectedActiveGoalId !== 'ALL'
               ? getGoalTitle(
-                  activeUserGoals.find((g) => g.goalId === selectedActiveGoalId)?.goal,
+                  activeUserGoals.find((g) => g.goalId === selectedActiveGoalId)
+                    ?.goal,
                 ) || 'Recommended for You'
               : hasSelectedGoals
                 ? 'Curated for You'
@@ -506,7 +534,8 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
           </h2>
           {!isLoading && (
             <span className="lifestyle-discovery__count-badge">
-              {displayItems.length} {displayItems.length === 1 ? 'item' : 'items'}
+              {displayItems.length}{' '}
+              {displayItems.length === 1 ? 'item' : 'items'}
             </span>
           )}
         </div>
@@ -527,7 +556,9 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
         {(offeringsError || categoriesError) && !isLoading && (
           <div className="lifestyle-discovery__error-card">
             <AlertCircle size={24} className="lifestyle-discovery__error-icon" />
-            <p className="lifestyle-discovery__error-msg">Unable to load items right now.</p>
+            <p className="lifestyle-discovery__error-msg">
+              Unable to load items right now.
+            </p>
             <button
               type="button"
               className="lifestyle-discovery__retry-btn"
@@ -543,52 +574,56 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
         )}
 
         {/* Empty State */}
-        {!isLoading && !offeringsError && !categoriesError && displayItems.length === 0 && (
-          <div className="lifestyle-discovery__empty-state">
-            {hasNoGoals && offerings.length === 0 ? (
-              <>
-                <Target
-                  size={32}
-                  color="var(--text-muted)"
-                  className="lifestyle-discovery__empty-icon"
-                />
-                <h3 className="lifestyle-discovery__empty-title">Lifestyle perks coming soon</h3>
-                <p className="lifestyle-discovery__empty-desc">
-                  Verified merchant packages, moving discounts, and home essentials are not yet
-                  active for your property. Check back once available.
-                </p>
-                <button
-                  type="button"
-                  className="lifestyle-discovery__empty-btn"
-                  onClick={() => router.push('/dashboard')}
-                >
-                  Return to dashboard
-                </button>
-              </>
-            ) : (
-              <>
-                <ShoppingBag size={30} className="lifestyle-discovery__empty-icon" />
-                <h3 className="lifestyle-discovery__empty-title">No matching items found</h3>
-                <p className="lifestyle-discovery__empty-desc">
-                  Try clearing your search or switching categories.
-                </p>
-                {(searchQuery || selectedType !== 'ALL' || selectedActiveGoalId !== 'ALL') && (
+        {!isLoading &&
+          !offeringsError &&
+          !categoriesError &&
+          displayItems.length === 0 && (
+            <div className="lifestyle-discovery__empty-state">
+              {hasNoGoals && offerings.length === 0 ? (
+                <>
+                  <Target size={32} color="var(--text-muted)" className="lifestyle-discovery__empty-icon" />
+                  <h3 className="lifestyle-discovery__empty-title">
+                    Lifestyle perks coming soon
+                  </h3>
+                  <p className="lifestyle-discovery__empty-desc">
+                    Verified merchant packages, moving discounts, and home essentials are not yet active for your property. Check back once available.
+                  </p>
                   <button
                     type="button"
                     className="lifestyle-discovery__empty-btn"
-                    onClick={() => {
-                      setSearchQuery('')
-                      setSelectedType('ALL')
-                      setSelectedActiveGoalId('ALL')
-                    }}
+                    onClick={() => router.push('/dashboard')}
                   >
-                    Reset Filters
+                    Return to dashboard
                   </button>
-                )}
-              </>
-            )}
-          </div>
-        )}
+                </>
+              ) : (
+                <>
+                  <ShoppingBag size={30} className="lifestyle-discovery__empty-icon" />
+                  <h3 className="lifestyle-discovery__empty-title">
+                    No matching items found
+                  </h3>
+                  <p className="lifestyle-discovery__empty-desc">
+                    Try clearing your search or switching categories.
+                  </p>
+                  {(searchQuery ||
+                    selectedType !== 'ALL' ||
+                    selectedActiveGoalId !== 'ALL') && (
+                    <button
+                      type="button"
+                      className="lifestyle-discovery__empty-btn"
+                      onClick={() => {
+                        setSearchQuery('')
+                        setSelectedType('ALL')
+                        setSelectedActiveGoalId('ALL')
+                      }}
+                    >
+                      Reset Filters
+                    </button>
+                  )}
+                </>
+              )}
+            </div>
+          )}
 
         {/* Offerings Grid */}
         {!isLoading && displayItems.length > 0 && (
@@ -647,10 +682,11 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
                 color="var(--text-muted)"
                 className="lifestyle-discovery__empty-icon"
               />
-              <h3 className="lifestyle-discovery__empty-title">No lifestyle goals available</h3>
+              <h3 className="lifestyle-discovery__empty-title">
+                No lifestyle goals available
+              </h3>
               <p className="lifestyle-discovery__empty-desc">
-                Priority packages have not been activated for your tenancy yet. Once configured, you
-                can select them here.
+                Priority packages have not been activated for your tenancy yet. Once configured, you can select them here.
               </p>
               <button
                 type="button"
@@ -672,19 +708,27 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
                   <div className="goal-sheet__list">
                     {goals.map((goal) => {
                       const isSelected = draftGoalIds.has(goal.id)
-                      const gTitle = getGoalTitle(goal) || goal.tagline || 'Lifestyle Goal'
+                      const gTitle =
+                        getGoalTitle(goal) ||
+                        goal.tagline ||
+                        'Lifestyle Goal'
                       const gDesc = goal.tagline || goal.description
-                      const IconComp = getGoalIconComponent(goal.iconName, goal.slug || cat.slug)
+                      const IconComp = getGoalIconComponent(
+                        goal.iconName,
+                        goal.slug || cat.slug,
+                      )
 
                       return (
                         <button
                           key={goal.id}
                           type="button"
-                          className={`goal-card ${isSelected ? 'goal-card--selected' : ''}`}
+                          className={`goal-card ${
+                            isSelected ? 'goal-card--selected' : ''
+                          }`}
                           onClick={() => toggleDraftGoal(goal.id)}
                         >
                           <div className="goal-card__icon-box">
-                            <IconComp size={18} />
+                           <IconComp size={18} />
                           </div>
                           <div className="goal-card__body">
                             <div className="goal-card__name">{gTitle}</div>

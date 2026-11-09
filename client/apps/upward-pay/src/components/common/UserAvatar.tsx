@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 
 interface UserAvatarProps {
   src?: string | null
@@ -19,26 +19,14 @@ function getInitials(name?: string): string {
 
 export function UserAvatar({ src, alt, color, size = 40, className = '' }: UserAvatarProps) {
   const [error, setError] = useState(false)
-  const [mounted, setMounted] = useState(false)
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  const hasImage = mounted && src && src.trim() !== '' && !error
+  const hasImage = src && src.trim() !== '' && !error
 
   if (hasImage) {
     return (
       <div
         className={`user-avatar ${className}`}
-        style={{
-          width: size,
-          height: size,
-          borderRadius: '50%',
-          overflow: 'hidden',
-          flexShrink: 0,
-        }}
-        suppressHydrationWarning
+        style={{ width: size, height: size, borderRadius: '50%', overflow: 'hidden', flexShrink: 0 }}
       >
         <img
           src={src as string}
@@ -50,9 +38,7 @@ export function UserAvatar({ src, alt, color, size = 40, className = '' }: UserA
     )
   }
 
-  // To avoid SSR hydration mismatch between unauthenticated server render and hydrated client state
-  const displayAlt = mounted ? alt || 'User avatar' : 'User avatar'
-  const initials = mounted && alt ? getInitials(alt) : ''
+  const initials = getInitials(alt)
   const fontSize = Math.max(11, Math.round(size * 0.36))
 
   return (
@@ -74,10 +60,9 @@ export function UserAvatar({ src, alt, color, size = 40, className = '' }: UserA
         letterSpacing: '-0.02em',
         lineHeight: 1,
       }}
-      aria-label={displayAlt}
-      suppressHydrationWarning
+      aria-label={alt || 'User avatar'}
     >
-      <span suppressHydrationWarning>{initials}</span>
+      {initials}
     </div>
   )
 }

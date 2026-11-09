@@ -109,14 +109,9 @@ export const GoalModal: React.FC<GoalModalProps> = ({
       icon={<Target size={20} />}
       maxWidth="560px"
     >
-      <form
-        onSubmit={handleSubmit}
-        style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
-      >
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <div>
-          <label
-            style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}
-          >
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
             Category *
           </label>
           <select
@@ -134,9 +129,7 @@ export const GoalModal: React.FC<GoalModalProps> = ({
         </div>
 
         <div>
-          <label
-            style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}
-          >
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
             Goal Title *
           </label>
           <input
@@ -150,9 +143,7 @@ export const GoalModal: React.FC<GoalModalProps> = ({
         </div>
 
         <div>
-          <label
-            style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}
-          >
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
             Slug *
           </label>
           <input
@@ -166,9 +157,7 @@ export const GoalModal: React.FC<GoalModalProps> = ({
         </div>
 
         <div>
-          <label
-            style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}
-          >
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
             Subtitle / Catchphrase
           </label>
           <input
@@ -181,9 +170,7 @@ export const GoalModal: React.FC<GoalModalProps> = ({
         </div>
 
         <div>
-          <label
-            style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}
-          >
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
             Description
           </label>
           <textarea
@@ -197,9 +184,7 @@ export const GoalModal: React.FC<GoalModalProps> = ({
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           <div>
-            <label
-              style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}
-            >
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
               Icon (Emoji or Identifier)
             </label>
             <input
@@ -212,9 +197,7 @@ export const GoalModal: React.FC<GoalModalProps> = ({
           </div>
 
           <div>
-            <label
-              style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}
-            >
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
               Display Order
             </label>
             <input
@@ -227,9 +210,7 @@ export const GoalModal: React.FC<GoalModalProps> = ({
         </div>
 
         <div>
-          <label
-            style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}
-          >
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
             Cover Image URL
           </label>
           <input
@@ -242,9 +223,7 @@ export const GoalModal: React.FC<GoalModalProps> = ({
         </div>
 
         <div>
-          <label
-            style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}
-          >
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
             Tags (comma-separated)
           </label>
           <input
@@ -265,10 +244,7 @@ export const GoalModal: React.FC<GoalModalProps> = ({
               onChange={(e) => setIsPublished(e.target.checked)}
               style={{ width: '16px', height: '16px', accentColor: 'var(--accent)' }}
             />
-            <label
-              htmlFor="goal-published"
-              style={{ fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
-            >
+            <label htmlFor="goal-published" style={{ fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
               Published
             </label>
           </div>
@@ -281,10 +257,7 @@ export const GoalModal: React.FC<GoalModalProps> = ({
               onChange={(e) => setIsFeatured(e.target.checked)}
               style={{ width: '16px', height: '16px', accentColor: 'var(--accent)' }}
             />
-            <label
-              htmlFor="goal-featured"
-              style={{ fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
-            >
+            <label htmlFor="goal-featured" style={{ fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
               Featured on Tenant Home
             </label>
           </div>
@@ -300,12 +273,7 @@ export const GoalModal: React.FC<GoalModalProps> = ({
             borderTop: '1px solid var(--border)',
           }}
         >
-          <button
-            type="button"
-            onClick={onClose}
-            className="btn btn-secondary"
-            disabled={submitting}
-          >
+          <button type="button" onClick={onClose} className="btn btn-secondary" disabled={submitting}>
             Cancel
           </button>
           <button type="submit" className="btn btn-primary" disabled={submitting}>

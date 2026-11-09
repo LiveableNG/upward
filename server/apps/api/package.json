@@ -11,12 +11,11 @@
     "test": "jest --testPathIgnorePatterns=integration --passWithNoTests",
     "test:integration": "jest --config jest-integration.json --runInBand --passWithNoTests",
     "prisma:generate": "prisma generate --schema=prisma/schema",
-    "prisma:check": "prisma migrate diff --from-schema-datasource prisma/schema --to-schema-datamodel prisma/schema --exit-code",
     "postinstall": "prisma generate --schema=prisma/schema",
     "db:seed": "prisma db seed --schema=prisma/schema"
   },
   "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx prisma/seed-admin.ts"
   },
   "jest": {
     "moduleFileExtensions": [
@@ -111,3 +110,4 @@
     "typescript": "^5.7.3"
   }
 }
+

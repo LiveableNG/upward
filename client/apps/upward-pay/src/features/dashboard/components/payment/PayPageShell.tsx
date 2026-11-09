@@ -89,7 +89,12 @@ export function PayFlowPrimaryButton({
   loading?: boolean
 }) {
   return (
-    <button type={type} className="pay-flow__cta" onClick={onClick} disabled={disabled || loading}>
+    <button
+      type={type}
+      className="pay-flow__cta"
+      onClick={onClick}
+      disabled={disabled || loading}
+    >
       {loading && <span className="pay-flow__cta-spinner" aria-hidden />}
       {children}
     </button>

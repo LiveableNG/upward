@@ -15,15 +15,16 @@ import { Suspense } from 'react'
 import { useHasMyHome } from '@/features/my-home/hooks/useMyHome'
 
 interface DashboardHeaderProps {
+
   firstName?: string
   notifCount?: number
   profilePic?: string
 }
 
-export function DashboardHeader({
-  firstName: propFirstName,
-  notifCount: propNotifCount,
-  profilePic: propProfilePic,
+export function DashboardHeader({ 
+  firstName: propFirstName, 
+  notifCount: propNotifCount, 
+  profilePic: propProfilePic 
 }: DashboardHeaderProps) {
   const router = useRouter()
   const pathname = usePathname()
@@ -53,9 +54,9 @@ export function DashboardHeader({
 
   const pendingCount = dashboardData?.length || 0
   const unreadNotifs = notifData?.unreadCount || 0
-
+  
   const totalUnread = unreadNotifs
-
+  
   const [hasSeenNotifs, setHasSeenNotifs] = useState(true)
   const [lastTotal, setLastTotal] = useState(0)
 
@@ -66,12 +67,12 @@ export function DashboardHeader({
 
     if (storedTotal) setLastTotal(parseInt(storedTotal, 10))
     if (storedSeen) setHasSeenNotifs(storedSeen === 'true')
-    else setHasSeenNotifs(false)
+    else setHasSeenNotifs(false) 
   }, [user])
 
   useEffect(() => {
     if (!user) return
-
+    
     if (totalUnread > lastTotal) {
       setHasSeenNotifs(false)
       localStorage.setItem(`notif_has_seen_${user.id}`, 'false')
@@ -99,9 +100,7 @@ export function DashboardHeader({
 
   return (
     <>
-      <header
-        className={`dashboard__header ${isDesktop ? 'dashboard__header--desktop' : 'dashboard__header--mobile'}`}
-      >
+      <header className={`dashboard__header ${isDesktop ? 'dashboard__header--desktop' : 'dashboard__header--mobile'}`}>
         <div className="dashboard__header-inner">
           {/* Mobile User Block (Hidden on desktop) */}
           <div className="dashboard__header-left dashboard__header-left--user">
@@ -111,9 +110,7 @@ export function DashboardHeader({
             <div className="dashboard__greeting-block">
               <span className="dashboard__greeting-eyebrow">Hey,</span>
               <div className="dashboard__greeting">
-                <span className="dashboard__greeting-name" suppressHydrationWarning>
-                  {firstName}
-                </span>
+                <span className="dashboard__greeting-name">{firstName}</span>
               </div>
               <div className="dashboard__email" onClick={() => router.push('/dashboard/me')}>
                 View Profile
@@ -144,53 +141,25 @@ export function DashboardHeader({
               const isPayRentRoute =
                 pathname === '/dashboard/pay-rent' || !!pathname?.startsWith('/dashboard/pay-rent/')
               const isTransactionsRoute =
-                pathname === '/dashboard/transactions' ||
-                !!pathname?.startsWith('/dashboard/transactions/')
+                pathname === '/dashboard/transactions' || !!pathname?.startsWith('/dashboard/transactions/')
               const isProfileRoute =
                 pathname === '/dashboard/me' || !!pathname?.startsWith('/dashboard/me/')
-              const showMarketplace = process.env.NEXT_PUBLIC_ENABLE_MARKETPLACE === 'true'
+              const showMarketplace =
+                process.env.NEXT_PUBLIC_ENABLE_MARKETPLACE === 'true'
               return (
                 <>
                   {!isDashboardHome ? (
-                    <Link href="/dashboard" className={isActive('/dashboard') ? 'active' : ''}>
-                      Home
-                    </Link>
+                    <Link href="/dashboard" className={isActive('/dashboard') ? 'active' : ''}>Home</Link>
                   ) : null}
-                  {hasMyHome &&
-                  !isMyHomeRoute &&
-                  !isPayRentRoute &&
-                  !isTransactionsRoute &&
-                  !isProfileRoute ? (
-                    <Link
-                      href="/dashboard/my-home"
-                      className={isActive('/dashboard/my-home') ? 'active' : ''}
-                    >
-                      My Home
-                    </Link>
+                  {hasMyHome && !isMyHomeRoute && !isPayRentRoute && !isTransactionsRoute && !isProfileRoute ? (
+                    <Link href="/dashboard/my-home" className={isActive('/dashboard/my-home') ? 'active' : ''}>My Home</Link>
                   ) : null}
-                  <Link
-                    href="/dashboard/pay-rent"
-                    className={isActive('/dashboard/pay-rent') ? 'active' : ''}
-                  >
-                    Pay Rent
-                  </Link>
+                  <Link href="/dashboard/pay-rent" className={isActive('/dashboard/pay-rent') ? 'active' : ''}>Pay Rent</Link>
                   {showMarketplace && (
-                    <Link
-                      href="/dashboard/alliance"
-                      className={isActive('/dashboard/alliance') ? 'active' : ''}
-                    >
-                      Marketplace
-                    </Link>
+                    <Link href="/dashboard/alliance" className={isActive('/dashboard/alliance') ? 'active' : ''}>Marketplace</Link>
                   )}
-                  <Link
-                    href="/dashboard/transactions"
-                    className={isActive('/dashboard/transactions') ? 'active' : ''}
-                  >
-                    Transactions
-                  </Link>
-                  <Link href="/dashboard/me" className={isActive('/dashboard/me') ? 'active' : ''}>
-                    Profile
-                  </Link>
+                  <Link href="/dashboard/transactions" className={isActive('/dashboard/transactions') ? 'active' : ''}>Transactions</Link>
+                  <Link href="/dashboard/me" className={isActive('/dashboard/me') ? 'active' : ''}>Profile</Link>
                 </>
               )
             })()}
@@ -206,11 +175,7 @@ export function DashboardHeader({
                 <UserAvatar src={profilePic} alt={firstName} size={40} />
               </div>
             )}
-            <button
-              className="dashboard__icon-btn"
-              onClick={() => router.push('/dashboard/settings')}
-              title="Settings"
-            >
+            <button className="dashboard__icon-btn" onClick={() => router.push('/dashboard/settings')} title="Settings">
               <Settings size={18} />
             </button>
             <button
@@ -224,7 +189,7 @@ export function DashboardHeader({
           </div>
         </div>
       </header>
-
+      
       <Suspense fallback={null}>
         <NotificationPanel isOpen={isNotifOpen} onClose={() => setIsNotifOpen(false)} />
       </Suspense>

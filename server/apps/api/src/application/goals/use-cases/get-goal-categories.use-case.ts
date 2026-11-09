@@ -13,10 +13,7 @@ export class GetGoalCategoriesUseCase {
     private readonly goalRepo: GoalRepository,
   ) {}
 
-  async execute(options?: {
-    status?: GoalPublishStatus
-    includeGoals?: boolean
-  }): Promise<GoalCategory[]> {
+  async execute(options?: { status?: GoalPublishStatus; includeGoals?: boolean }): Promise<GoalCategory[]> {
     const status = options?.status ?? 'PUBLISHED'
     return this.goalRepo.findCategories({
       status: status as GoalPublishStatus,
@@ -24,3 +21,4 @@ export class GetGoalCategoriesUseCase {
     })
   }
 }
+

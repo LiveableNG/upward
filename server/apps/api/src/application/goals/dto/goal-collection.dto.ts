@@ -1,13 +1,4 @@
-import {
-  IsBoolean,
-  IsEnum,
-  IsInt,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  MaxLength,
-  Min,
-} from 'class-validator'
+import { IsBoolean, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, MaxLength, Min } from 'class-validator'
 import { GoalPublishStatus } from '../../../domains/goals/goal.repository'
 
 export class CreateGoalCollectionDto {

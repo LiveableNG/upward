@@ -29,7 +29,11 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { BottomSheetModal } from '@/components/common/BottomSheetModal'
 import { useGoalOfferingDetail, usePublicOfferings } from '../hooks/useGoals'
 import { useCreateCommerceInquiry } from '../hooks/useCommerceOrders'
-import { getGoalTitle, isVendorVerified, type GoalOffering } from '../types/goals.types'
+import {
+  getGoalTitle,
+  isVendorVerified,
+  type GoalOffering,
+} from '../types/goals.types'
 import {
   OfferingCard,
   formatOfferingPrice,
@@ -56,7 +60,9 @@ function getSafeExternalUrl(raw?: string | null): string | null {
   const trimmed = raw.trim()
   if (!trimmed) return null
   try {
-    const withProtocol = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
+    const withProtocol = /^https?:\/\//i.test(trimmed)
+      ? trimmed
+      : `https://${trimmed}`
     const parsed = new URL(withProtocol)
     if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
       return parsed.toString()
@@ -82,13 +88,11 @@ function instantScrollToTop() {
 }
 
 export function OfferingDetailSkeleton({ onBack }: { onBack?: () => void }) {
-  const handleBack =
-    onBack ||
-    (() => {
-      if (typeof window !== 'undefined' && window.history.length > 1) {
-        window.history.back()
-      }
-    })
+  const handleBack = onBack || (() => {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      window.history.back()
+    }
+  })
 
   useIsomorphicLayoutEffect(() => {
     instantScrollToTop()
@@ -178,7 +182,8 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
     refetch,
   } = useGoalOfferingDetail(identifier)
 
-  const { data: cachedOfferings = [], isLoading: isOfferingsLoading } = usePublicOfferings()
+  const { data: cachedOfferings = [], isLoading: isOfferingsLoading } =
+    usePublicOfferings()
 
   const carouselRef = React.useRef<HTMLDivElement>(null)
 
@@ -191,7 +196,10 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
 
   const fallbackOffering = React.useMemo(() => {
     return cachedOfferings.find(
-      (o) => o.uuid === identifier || o.slug === identifier || String(o.id) === identifier,
+      (o) =>
+        o.uuid === identifier ||
+        o.slug === identifier ||
+        String(o.id) === identifier,
     )
   }, [cachedOfferings, identifier])
 
@@ -231,8 +239,12 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
       let score = 0
       if (item.type === offering.type) score += 3
       const sharesGoal =
-        item.goalLinks?.some((gl) => offering.goalLinks?.some((og) => og.goalId === gl.goalId)) ||
-        item.goals?.some((g) => offering.goals?.some((og) => og.goalId === g.goalId))
+        item.goalLinks?.some((gl) =>
+          offering.goalLinks?.some((og) => og.goalId === gl.goalId),
+        ) ||
+        item.goals?.some((g) =>
+          offering.goals?.some((og) => og.goalId === g.goalId),
+        )
       if (sharesGoal) score += 4
       if (item.vendor?.id && offering.vendor?.id && item.vendor.id === offering.vendor.id) {
         score += 1
@@ -281,10 +293,14 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
       const handleKeyDown = (e: KeyboardEvent) => {
         if (e.key === 'Escape') setIsLightboxOpen(false)
         if (e.key === 'ArrowRight' && images.length > 1) {
-          setSelectedImageIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0))
+          setSelectedImageIndex((prev) =>
+            prev < images.length - 1 ? prev + 1 : 0,
+          )
         }
         if (e.key === 'ArrowLeft' && images.length > 1) {
-          setSelectedImageIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1))
+          setSelectedImageIndex((prev) =>
+            prev > 0 ? prev - 1 : images.length - 1,
+          )
         }
       }
       window.addEventListener('keydown', handleKeyDown)
@@ -318,7 +334,11 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
     return (
       <div className="offering-detail">
         <header className="offering-detail__header">
-          <button type="button" className="offering-detail__back-btn" onClick={handleBack}>
+          <button
+            type="button"
+            className="offering-detail__back-btn"
+            onClick={handleBack}
+          >
             <ArrowLeft size={16} />
             <span>Back to Lifestyle</span>
           </button>
@@ -326,7 +346,9 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
         <div className="offering-detail__container">
           <div className="lifestyle-discovery__error-card">
             <AlertCircle size={28} className="lifestyle-discovery__error-icon" />
-            <h2 className="lifestyle-discovery__empty-title">Item Unavailable</h2>
+            <h2 className="lifestyle-discovery__empty-title">
+              Item Unavailable
+            </h2>
             <p className="lifestyle-discovery__empty-desc">
               This item could not be loaded or is no longer available.
             </p>
@@ -338,7 +360,11 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
               >
                 Try Again
               </button>
-              <button type="button" className="lifestyle-discovery__empty-btn" onClick={handleBack}>
+              <button
+                type="button"
+                className="lifestyle-discovery__empty-btn"
+                onClick={handleBack}
+              >
                 Back to Explore
               </button>
             </div>
@@ -352,11 +378,14 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
   const title = offering.title || offering.name || 'Untitled Item'
 
   const activeImage = images[selectedImageIndex] || null
-  const showActiveImage = Boolean(activeImage) && !failedImages[selectedImageIndex]
+  const showActiveImage =
+    Boolean(activeImage) && !failedImages[selectedImageIndex]
 
   const packageItems = offering.packageItems || []
   const rawGoalLinks = offering.goalLinks || offering.goals || []
-  const linkedGoals = rawGoalLinks.map((g) => getGoalTitle(g.goal)).filter(Boolean)
+  const linkedGoals = rawGoalLinks
+    .map((g) => getGoalTitle(g.goal))
+    .filter(Boolean)
 
   const vendor = offering.vendor
   const vendorVerified = isVendorVerified(vendor)
@@ -365,25 +394,38 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
   const vendorWebsite = getSafeExternalUrl(vendor?.website)
 
   const compareAtPrice =
-    offering.compareAtPrice ?? (offering.pricingModel === 'FIXED' ? offering.maxPrice : null)
+    offering.compareAtPrice ??
+    (offering.pricingModel === 'FIXED' ? offering.maxPrice : null)
   const hasDiscount =
-    compareAtPrice != null && offering.price != null && compareAtPrice > offering.price
+    compareAtPrice != null &&
+    offering.price != null &&
+    compareAtPrice > offering.price
   const discountPercent = hasDiscount
     ? Math.round(((compareAtPrice! - offering.price!) / compareAtPrice!) * 100)
     : 0
-  const savingsAmount = hasDiscount ? compareAtPrice! - offering.price! : 0
+  const savingsAmount = hasDiscount
+    ? compareAtPrice! - offering.price!
+    : 0
 
   return (
     <div className="offering-detail">
       {/* Sticky Navigation Bar */}
       <header className="offering-detail__header">
         <div className="offering-detail__header-inner">
-          <button type="button" className="offering-detail__back-btn" onClick={handleBack}>
+          <button
+            type="button"
+            className="offering-detail__back-btn"
+            onClick={handleBack}
+          >
             <ArrowLeft size={16} />
             <span>Lifestyle & Perks</span>
           </button>
 
-          <button type="button" className="offering-detail__share-btn" onClick={handleShare}>
+          <button
+            type="button"
+            className="offering-detail__share-btn"
+            onClick={handleShare}
+          >
             {copied ? <Check size={15} /> : <Share2 size={15} />}
             <span>{copied ? 'Copied' : 'Share'}</span>
           </button>
@@ -460,7 +502,9 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                       key={idx}
                       type="button"
                       className={`offering-detail__thumb ${
-                        selectedImageIndex === idx ? 'offering-detail__thumb--active' : ''
+                        selectedImageIndex === idx
+                          ? 'offering-detail__thumb--active'
+                          : ''
                       }`}
                       onClick={() => setSelectedImageIndex(idx)}
                     >
@@ -469,7 +513,9 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                         <img
                           src={img}
                           alt={`${title} thumbnail ${idx + 1}`}
-                          onError={() => setFailedImages((prev) => ({ ...prev, [idx]: true }))}
+                          onError={() =>
+                            setFailedImages((prev) => ({ ...prev, [idx]: true }))
+                          }
                         />
                       ) : (
                         <TypeIcon size={16} />
@@ -523,13 +569,17 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
               {offering.description && (
                 <div className="offering-detail__description-block">
                   <h2 className="offering-detail__section-label">Overview</h2>
-                  <p className="offering-detail__description">{offering.description}</p>
+                  <p className="offering-detail__description">
+                    {offering.description}
+                  </p>
                 </div>
               )}
 
               {linkedGoals.length > 0 && (
                 <div className="offering-detail__goals-block">
-                  <span className="offering-detail__section-label">Relevant Goals</span>
+                  <span className="offering-detail__section-label">
+                    Relevant Goals
+                  </span>
                   <div className="offering-detail__goal-chips">
                     {linkedGoals.map((goalName, idx) => (
                       <span key={idx} className="offering-detail__goal-chip">
@@ -551,22 +601,37 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                 <div className="offering-detail__package-list">
                   {packageItems.map((pkgItem, idx) => {
                     const comp = pkgItem.component || pkgItem.itemOffering
-                    const itemTitle = comp?.title || comp?.name || `Component ${idx + 1}`
+                    const itemTitle =
+                      comp?.title || comp?.name || `Component ${idx + 1}`
                     return (
-                      <div key={pkgItem.id || idx} className="offering-detail__package-row">
+                      <div
+                        key={pkgItem.id || idx}
+                        className="offering-detail__package-row"
+                      >
                         <div className="offering-detail__package-left">
-                          <CheckCircle2 size={16} className="offering-detail__package-icon" />
+                          <CheckCircle2
+                            size={16}
+                            className="offering-detail__package-icon"
+                          />
                           <div>
-                            <div className="offering-detail__package-name">{itemTitle}</div>
+                            <div className="offering-detail__package-name">
+                              {itemTitle}
+                            </div>
                             {comp?.subtitle && (
-                              <div className="offering-detail__package-sub">{comp.subtitle}</div>
+                              <div className="offering-detail__package-sub">
+                                {comp.subtitle}
+                              </div>
                             )}
                           </div>
                         </div>
                         <div className="offering-detail__package-right">
-                          <span className="offering-detail__package-qty">×{pkgItem.quantity}</span>
+                          <span className="offering-detail__package-qty">
+                            ×{pkgItem.quantity}
+                          </span>
                           {pkgItem.isOptional && (
-                            <span className="offering-detail__package-opt">Optional</span>
+                            <span className="offering-detail__package-opt">
+                              Optional
+                            </span>
                           )}
                         </div>
                       </div>
@@ -580,7 +645,9 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
           {/* Right / Merchant & Action Column */}
           <aside className="offering-detail__aside">
             <section className="offering-detail__card offering-detail__vendor-card">
-              <h2 className="offering-detail__section-label">Merchant & Fulfillment</h2>
+              <h2 className="offering-detail__section-label">
+                Merchant & Fulfillment
+              </h2>
 
               {vendor ? (
                 <div className="offering-detail__vendor-header">
@@ -589,7 +656,9 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                   </div>
                   <div className="offering-detail__vendor-info">
                     <div className="offering-detail__vendor-name-row">
-                      <span className="offering-detail__vendor-name">{vendor.name}</span>
+                      <span className="offering-detail__vendor-name">
+                        {vendor.name}
+                      </span>
                       {vendorVerified && (
                         <ShieldCheck
                           size={15}
@@ -673,7 +742,11 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                     className="offering-detail__primary-cta"
                     onClick={() => setIsCheckoutOpen(true)}
                   >
-                    <span>{offering.type === 'SERVICE' ? 'Book Service' : 'Order Now'}</span>
+                    <span>
+                      {offering.type === 'SERVICE'
+                        ? 'Book Service'
+                        : 'Order Now'}
+                    </span>
                   </button>
                 ) : (
                   <button
@@ -707,7 +780,9 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
           <section className="offering-detail__similar-section">
             <div className="offering-detail__similar-header-row">
               <div>
-                <h2 className="offering-detail__similar-title">Similar Products & Packages</h2>
+                <h2 className="offering-detail__similar-title">
+                  Similar Products & Packages
+                </h2>
                 <p className="offering-detail__similar-desc">
                   Curated alternatives and bundles tailored for your living space
                 </p>
@@ -736,29 +811,30 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
             </div>
 
             <div className="offering-detail__carousel-track" ref={carouselRef}>
-              {isOfferingsLoading && similarItems.length === 0
-                ? [1, 2, 3].map((n) => (
-                    <div key={n} className="offering-detail__carousel-item">
-                      <div className="offering-card offering-card--skeleton">
-                        <div className="offering-card__media-skeleton" />
-                        <div className="offering-card__body-skeleton" />
-                      </div>
+              {isOfferingsLoading && similarItems.length === 0 ? (
+                [1, 2, 3].map((n) => (
+                  <div key={n} className="offering-detail__carousel-item">
+                    <div className="offering-card offering-card--skeleton">
+                      <div className="offering-card__media-skeleton" />
+                      <div className="offering-card__body-skeleton" />
                     </div>
-                  ))
-                : similarItems.map((item) => (
-                    <div key={item.id} className="offering-detail__carousel-item">
-                      <OfferingCard
-                        item={{ offering: item, isGoalMatch: true }}
-                        userLocation={deliveryLocation}
-                        onClick={(clicked) => {
-                          const nextId = clicked.uuid || clicked.slug || String(clicked.id)
-                          router.push(`/dashboard/lifestyle?id=${encodeURIComponent(nextId)}`, {
-                            scroll: false,
-                          })
-                        }}
-                      />
-                    </div>
-                  ))}
+                  </div>
+                ))
+              ) : (
+                similarItems.map((item) => (
+                  <div key={item.id} className="offering-detail__carousel-item">
+                    <OfferingCard
+                      item={{ offering: item, isGoalMatch: true }}
+                      userLocation={deliveryLocation}
+                      onClick={(clicked) => {
+                        const nextId =
+                          clicked.uuid || clicked.slug || String(clicked.id)
+                        router.push(`/dashboard/lifestyle?id=${encodeURIComponent(nextId)}`, { scroll: false })
+                      }}
+                    />
+                  </div>
+                ))
+              )}
             </div>
           </section>
         )}
@@ -778,7 +854,10 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
           >
             <div className="offering-lightbox__backdrop" />
 
-            <header className="offering-lightbox__header" onClick={(e) => e.stopPropagation()}>
+            <header
+              className="offering-lightbox__header"
+              onClick={(e) => e.stopPropagation()}
+            >
               <div className="offering-lightbox__info">
                 <span className="offering-lightbox__title">{title}</span>
                 {images.length > 1 && (
@@ -798,14 +877,19 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
               </button>
             </header>
 
-            <div className="offering-lightbox__body" onClick={() => setIsLightboxOpen(false)}>
+            <div
+              className="offering-lightbox__body"
+              onClick={() => setIsLightboxOpen(false)}
+            >
               {images.length > 1 && (
                 <button
                   type="button"
                   className="offering-lightbox__arrow offering-lightbox__arrow--prev"
                   onClick={(e) => {
                     e.stopPropagation()
-                    setSelectedImageIndex((prev) => (prev > 0 ? prev - 1 : images.length - 1))
+                    setSelectedImageIndex((prev) =>
+                      prev > 0 ? prev - 1 : images.length - 1,
+                    )
                   }}
                   aria-label="Previous image"
                 >
@@ -813,10 +897,17 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                 </button>
               )}
 
-              <div className="offering-lightbox__content" onClick={(e) => e.stopPropagation()}>
+              <div
+                className="offering-lightbox__content"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <div className="offering-lightbox__scrollable">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={activeImage!} alt={title} className="offering-lightbox__full-img" />
+                  <img
+                    src={activeImage!}
+                    alt={title}
+                    className="offering-lightbox__full-img"
+                  />
                 </div>
                 <div className="offering-lightbox__hint">
                   <span>Pan or scroll to view whole photo</span>
@@ -831,7 +922,9 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                   className="offering-lightbox__arrow offering-lightbox__arrow--next"
                   onClick={(e) => {
                     e.stopPropagation()
-                    setSelectedImageIndex((prev) => (prev < images.length - 1 ? prev + 1 : 0))
+                    setSelectedImageIndex((prev) =>
+                      prev < images.length - 1 ? prev + 1 : 0,
+                    )
                   }}
                   aria-label="Next image"
                 >
@@ -856,10 +949,12 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
             <div className="inquiry-sheet__success-icon">
               <Check size={24} strokeWidth={2.5} />
             </div>
-            <h4 className="inquiry-sheet__success-title">Inquiry Received</h4>
+            <h4 className="inquiry-sheet__success-title">
+              Inquiry Received
+            </h4>
             <p className="inquiry-sheet__success-desc">
-              We’ve logged your request with the Upward Support team and sent a confirmation email.
-              We will update you via email and app notification.
+              We’ve logged your request with the Upward Support team and sent
+              a confirmation email. We will update you via email and app notification.
             </p>
             <button
               type="button"
@@ -871,7 +966,10 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSubmitInquiry} className="inquiry-form">
+          <form
+            onSubmit={handleSubmitInquiry}
+            className="inquiry-form"
+          >
             {createInquiryMutation.isError && (
               <div
                 style={{
@@ -924,8 +1022,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
             <div className="inquiry-form__notice">
               <ShieldCheck size={16} className="inquiry-form__notice-icon" />
               <span>
-                Upward coordinates directly with the merchant partner and replies to your registered
-                account email.
+                Upward coordinates directly with the merchant partner and replies to your registered account email.
               </span>
             </div>
 
@@ -940,7 +1037,9 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
               <button
                 type="submit"
                 className="inquiry-form__btn inquiry-form__btn--submit"
-                disabled={!inquiryMessage.trim() || createInquiryMutation.isPending}
+                disabled={
+                  !inquiryMessage.trim() || createInquiryMutation.isPending
+                }
               >
                 {createInquiryMutation.isPending ? (
                   <span>Sending...</span>

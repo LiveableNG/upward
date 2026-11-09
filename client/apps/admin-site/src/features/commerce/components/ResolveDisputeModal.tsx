@@ -16,21 +16,32 @@ interface ResolveDisputeModalProps {
   ) => Promise<any>
 }
 
-export function ResolveDisputeModal({ dispute, onClose, onResolve }: ResolveDisputeModalProps) {
+export function ResolveDisputeModal({
+  dispute,
+  onClose,
+  onResolve,
+}: ResolveDisputeModalProps) {
   const isInquiry =
     dispute.reason.startsWith('[Inquiry]') ||
     Boolean(dispute.subOrder?.subOrderNumber?.startsWith('INQ-'))
-  const isAlreadyResolved = dispute.status.startsWith('RESOLVED') || dispute.status === 'CLOSED'
+  const isAlreadyResolved =
+    dispute.status.startsWith('RESOLVED') || dispute.status === 'CLOSED'
 
   const [isEditingReply, setIsEditingReply] = useState(!dispute.resolutionNotes)
 
   const [resolutionStatus, setResolutionStatus] = useState<DisputeStatus>(
-    isAlreadyResolved ? dispute.status : isInquiry ? 'CLOSED' : 'RESOLVED_REFUND',
+    isAlreadyResolved
+      ? dispute.status
+      : isInquiry
+        ? 'CLOSED'
+        : 'RESOLVED_REFUND',
   )
   const [resolutionNotes, setResolutionNotes] = useState(dispute.resolutionNotes || '')
   const [refundAmountKobo, setRefundAmountKobo] = useState(
     dispute.subOrder
-      ? String(BigInt(dispute.subOrder.subtotalKobo) + BigInt(dispute.subOrder.deliveryFeeKobo))
+      ? String(
+          BigInt(dispute.subOrder.subtotalKobo) + BigInt(dispute.subOrder.deliveryFeeKobo),
+        )
       : '0',
   )
   const [submitting, setSubmitting] = useState(false)
@@ -59,7 +70,9 @@ export function ResolveDisputeModal({ dispute, onClose, onResolve }: ResolveDisp
   }
 
   const subOrderRef = dispute.subOrder?.subOrderNumber || `REF-${dispute.subOrderId}`
-  const tenantName = dispute.subOrder?.order?.recipientName || 'Customer'
+  const tenantName =
+    dispute.subOrder?.order?.recipientName ||
+    'Customer'
 
   return (
     <Modal
@@ -97,15 +110,7 @@ export function ResolveDisputeModal({ dispute, onClose, onResolve }: ResolveDisp
             gap: 8,
           }}
         >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: 6,
-            }}
-          >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span
                 style={{
@@ -120,27 +125,12 @@ export function ResolveDisputeModal({ dispute, onClose, onResolve }: ResolveDisp
               >
                 {isInquiry ? 'INQUIRY' : 'DISPUTE'}
               </span>
-              <span
-                style={{
-                  fontSize: 13,
-                  fontWeight: 700,
-                  fontFamily: 'monospace',
-                  color: 'var(--text)',
-                }}
-              >
+              <span style={{ fontSize: 13, fontWeight: 700, fontFamily: 'monospace', color: 'var(--text)' }}>
                 {subOrderRef}
               </span>
             </div>
 
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 5,
-                fontSize: 12,
-                color: 'var(--text-muted)',
-              }}
-            >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--text-muted)' }}>
               <User size={13} />
               <span>{tenantName}</span>
             </div>
@@ -192,26 +182,10 @@ export function ResolveDisputeModal({ dispute, onClose, onResolve }: ResolveDisp
             </div>
 
             <div>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: '#065f46',
-                  textTransform: 'uppercase',
-                  marginBottom: 2,
-                }}
-              >
+              <div style={{ fontSize: 11, fontWeight: 700, color: '#065f46', textTransform: 'uppercase', marginBottom: 2 }}>
                 Resolution Notes / Reply
               </div>
-              <p
-                style={{
-                  margin: 0,
-                  fontSize: 13,
-                  color: '#064e3b',
-                  lineHeight: 1.5,
-                  whiteSpace: 'pre-wrap',
-                }}
-              >
+              <p style={{ margin: 0, fontSize: 13, color: '#064e3b', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
                 {dispute.resolutionNotes || 'No notes recorded.'}
               </p>
             </div>
@@ -237,20 +211,9 @@ export function ResolveDisputeModal({ dispute, onClose, onResolve }: ResolveDisp
           </div>
         ) : (
           /* Form for pending or editing inquiry / dispute */
-          <form
-            onSubmit={handleSubmit}
-            style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
-          >
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div>
-              <label
-                style={{
-                  display: 'block',
-                  fontSize: 12.5,
-                  fontWeight: 700,
-                  marginBottom: 6,
-                  color: 'var(--text)',
-                }}
-              >
+              <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, marginBottom: 6, color: 'var(--text)' }}>
                 Resolution Action
               </label>
               <select
@@ -274,12 +237,8 @@ export function ResolveDisputeModal({ dispute, onClose, onResolve }: ResolveDisp
                   </>
                 ) : (
                   <>
-                    <option value="RESOLVED_REFUND">
-                      Resolve in Customer Favor (Approve Refund)
-                    </option>
-                    <option value="RESOLVED_PAYOUT">
-                      Resolve in Partner Favor (Release Payout)
-                    </option>
+                    <option value="RESOLVED_REFUND">Resolve in Customer Favor (Approve Refund)</option>
+                    <option value="RESOLVED_PAYOUT">Resolve in Partner Favor (Release Payout)</option>
                     <option value="SETTLED_COMPROMISE">Settled via Mutual Compromise</option>
                     <option value="CLOSED">Administrative Closure</option>
                   </>
@@ -289,15 +248,7 @@ export function ResolveDisputeModal({ dispute, onClose, onResolve }: ResolveDisp
 
             {resolutionStatus === 'RESOLVED_REFUND' && (
               <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: 12.5,
-                    fontWeight: 700,
-                    marginBottom: 6,
-                    color: 'var(--text)',
-                  }}
-                >
+                <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, marginBottom: 6, color: 'var(--text)' }}>
                   Refund Amount (Kobo)
                 </label>
                 <input
@@ -314,28 +265,14 @@ export function ResolveDisputeModal({ dispute, onClose, onResolve }: ResolveDisp
                     color: 'var(--text)',
                   }}
                 />
-                <span
-                  style={{
-                    fontSize: 11,
-                    color: 'var(--text-muted)',
-                    marginTop: 4,
-                    display: 'block',
-                  }}
-                >
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4, display: 'block' }}>
                   Amount in Kobo (100 Kobo = ₦1).
                 </span>
               </div>
             )}
 
             <div>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginBottom: 6,
-                }}
-              >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                 <label style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text)' }}>
                   {isInquiry ? 'Reply Message & Notes' : 'Official Resolution Notes'} *
                 </label>
@@ -406,13 +343,7 @@ export function ResolveDisputeModal({ dispute, onClose, onResolve }: ResolveDisp
                 ) : (
                   <>
                     <Send size={14} />
-                    <span>
-                      {isAlreadyResolved
-                        ? 'Update Reply & Save'
-                        : isInquiry
-                          ? 'Send Reply & Resolve'
-                          : 'Submit Resolution'}
-                    </span>
+                    <span>{isAlreadyResolved ? 'Update Reply & Save' : isInquiry ? 'Send Reply & Resolve' : 'Submit Resolution'}</span>
                   </>
                 )}
               </button>
