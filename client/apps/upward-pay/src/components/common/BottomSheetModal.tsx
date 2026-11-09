@@ -53,6 +53,8 @@ export function BottomSheetModal({
   closeOnEscape = true,
 }: BottomSheetModalProps) {
   const [mounted, setMounted] = useState(false)
+  const [keyboardOffset, setKeyboardOffset] = useState(0)
+  const [availableHeight, setAvailableHeight] = useState<number | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -89,6 +91,101 @@ export function BottomSheetModal({
     }
   }, [isOpen])
 
+  // Virtual keyboard avoidance for mobile / Capacitor WebViews
+  useEffect(() => {
+    if (!isOpen || typeof window === 'undefined') return
+
+    const updateKeyboardPosition = () => {
+      // Only apply on mobile viewport where bottom sheet mode is used
+      if (window.innerWidth >= 640) {
+        setKeyboardOffset(0)
+        setAvailableHeight(null)
+        return
+      }
+
+      const vv = window.visualViewport
+      if (!vv) return
+
+      const layoutHeight = window.innerHeight
+      const visibleHeight = vv.height
+      const offsetTop = vv.offsetTop || 0
+
+      // Compute how much the bottom of the layout viewport is occluded by the soft keyboard
+      const rawOffset = layoutHeight - (visibleHeight + offsetTop)
+
+      // Use a threshold (e.g. 60px) to distinguish a soft keyboard from mobile browser address bar animations
+      if (rawOffset > 60) {
+        const offset = Math.round(rawOffset)
+        setKeyboardOffset(offset)
+        // Constrain max height so the panel never exceeds the visible viewport above the keyboard
+        setAvailableHeight(Math.max(160, Math.round(visibleHeight - 16)))
+      } else {
+        setKeyboardOffset(0)
+        setAvailableHeight(null)
+      }
+    }
+
+    updateKeyboardPosition()
+
+    const vv = window.visualViewport
+    if (vv) {
+      vv.addEventListener('resize', updateKeyboardPosition)
+      vv.addEventListener('scroll', updateKeyboardPosition)
+    }
+    window.addEventListener('resize', updateKeyboardPosition)
+
+    // Capacitor Native Keyboard plugin integration (if present)
+    let cleanupCapacitor: (() => void) | undefined
+    try {
+      const cap = (window as unknown as {
+        Capacitor?: {
+          Plugins?: {
+            Keyboard?: {
+              addListener: (
+                evt: string,
+                cb: (info: { keyboardHeight?: number }) => void
+              ) => Promise<{ remove: () => void }>
+            }
+          }
+        }
+      }).Capacitor
+      const CapKeyboard = cap?.Plugins?.Keyboard
+      if (CapKeyboard && typeof CapKeyboard.addListener === 'function') {
+        const showPromise = CapKeyboard.addListener(
+          'keyboardWillShow',
+          (info: { keyboardHeight?: number }) => {
+            if (info?.keyboardHeight && info.keyboardHeight > 60) {
+              setKeyboardOffset(Math.round(info.keyboardHeight))
+              const vvCurrent = window.visualViewport
+              const vh = vvCurrent ? vvCurrent.height : window.innerHeight - info.keyboardHeight
+              setAvailableHeight(Math.max(160, Math.round(vh - 16)))
+            }
+          }
+        )
+        const hidePromise = CapKeyboard.addListener('keyboardWillHide', () => {
+          setKeyboardOffset(0)
+          setAvailableHeight(null)
+        })
+
+        cleanupCapacitor = () => {
+          showPromise?.then?.((h) => h?.remove?.())
+          hidePromise?.then?.((h) => h?.remove?.())
+        }
+      }
+    } catch {
+      // Ignore if Capacitor is not present
+    }
+
+    return () => {
+      if (vv) {
+        vv.removeEventListener('resize', updateKeyboardPosition)
+        vv.removeEventListener('scroll', updateKeyboardPosition)
+      }
+      window.removeEventListener('resize', updateKeyboardPosition)
+      cleanupCapacitor?.()
+    }
+  }, [isOpen])
+
   useEffect(() => {
     if (!isOpen || !closeOnEscape) return
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -105,6 +202,19 @@ export function BottomSheetModal({
   }
 
   const maxWidthStyle = { maxWidth: resolveMaxWidth(maxWidth) }
+  const isKeyboardOpen = keyboardOffset > 0
+
+  const panelDynamicStyle: React.CSSProperties = {
+    ...maxWidthStyle,
+    ...(isKeyboardOpen
+      ? {
+          transform: `translateY(-${keyboardOffset}px)`,
+          maxHeight: availableHeight ? `${availableHeight}px` : undefined,
+          paddingBottom: 0,
+          animation: 'none',
+        }
+      : undefined),
+  }
 
   return createPortal(
     <div
@@ -123,13 +233,23 @@ export function BottomSheetModal({
     >
       <div
         className={`sheet-modal__panel ${panelClassName}`.trim()}
-        style={maxWidthStyle}
+        style={panelDynamicStyle}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-label={typeof title === 'string' ? title : undefined}
       >
-        {showHandle && <div className="sheet-modal__handle" aria-hidden="true" />}
+        {showHandle && (
+          <div
+            className="sheet-modal__handle"
+            aria-hidden="true"
+            onClick={() => {
+              if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+                document.activeElement.blur()
+              }
+            }}
+          />
+        )}
 
         {(title || subtitle || showClose || headerActions || icon) && (
           <div className="sheet-modal__header">

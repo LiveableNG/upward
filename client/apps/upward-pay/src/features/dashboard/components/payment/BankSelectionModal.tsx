@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Search, Landmark, AlertCircle } from 'lucide-react'
+import { Search, Landmark, AlertCircle, X } from 'lucide-react'
 import { BottomSheetModal } from '@/components/common/BottomSheetModal'
 
 interface Bank {
@@ -51,6 +51,16 @@ export function BankSelectionModal({
             autoFocus
             className="bank-select__input"
           />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              className="bank-select__clear"
+              aria-label="Clear search"
+            >
+              <X size={15} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -86,7 +96,15 @@ export function BankSelectionModal({
               <button
                 key={`${bank.code}-${index}`}
                 type="button"
-                onClick={() => onSelect(bank)}
+                onMouseDown={(e) => {
+                  e.preventDefault()
+                }}
+                onClick={() => {
+                  if (typeof document !== 'undefined' && document.activeElement instanceof HTMLElement) {
+                    document.activeElement.blur()
+                  }
+                  onSelect(bank)
+                }}
                 className="bank-select__option"
               >
                 <div className="bank-select__option-icon">
@@ -106,8 +124,8 @@ export function BankSelectionModal({
           padding: 0 !important;
           display: flex;
           flex-direction: column;
-          max-height: calc(85vh - 70px);
-          max-height: calc(85dvh - 70px);
+          flex: 1;
+          min-height: 0;
           overflow: hidden !important;
         }
 
@@ -155,11 +173,30 @@ export function BankSelectionModal({
           color: var(--text-muted, #7a7268);
         }
 
+        .bank-select__clear {
+          background: transparent;
+          border: none;
+          color: var(--text-muted, #7a7268);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 4px;
+          cursor: pointer;
+          border-radius: 50%;
+          transition: color 0.15s ease;
+          flex-shrink: 0;
+        }
+
+        .bank-select__clear:hover {
+          color: var(--text, #1a1714);
+        }
+
         .bank-select__list {
-          padding: 6px 12px calc(var(--safe-bottom, 0px) + 24px);
+          padding: 6px 12px 16px;
           overflow-y: auto;
           -webkit-overflow-scrolling: touch;
           flex: 1;
+          min-height: 0;
         }
 
         .bank-select__options {
