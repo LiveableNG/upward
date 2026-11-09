@@ -19,6 +19,7 @@ import {
   Gift,
   Calendar,
   Zap,
+  Sparkles,
 } from 'lucide-react'
 import {
   useOnboardSavingsInvestor,
@@ -195,6 +196,7 @@ export function SavingsInvestorKycModal({
     account_name: string
   } | null>(null)
   const [copiedAccount, setCopiedAccount] = useState(false)
+  const [copiedDetails, setCopiedDetails] = useState(false)
 
   const [formError, setFormError] = useState<string | null>(null)
 
@@ -347,14 +349,14 @@ export function SavingsInvestorKycModal({
             <div>
               <span className="vault-modal-title" style={{ fontSize: '1.0625rem' }}>
                 {step === 4
-                  ? 'Your Rent Savings Account'
+                  ? 'Rent Account Ready'
                   : step === 3
                     ? 'Rent Savings Plan'
                     : 'Identity Verification'}
               </span>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>
                 {step === 4
-                  ? 'Transfer to your rent account anytime'
+                  ? 'Transfer anytime to start saving'
                   : step === 3
                     ? 'Based on your verified rental details'
                     : 'Required by CBN & SEC • backed by ARM'}
@@ -938,42 +940,29 @@ export function SavingsInvestorKycModal({
         )}
 
         {step === 4 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div
               style={{
-                width: 48,
-                height: 48,
-                borderRadius: '50%',
-                background: 'rgba(16, 185, 129, 0.1)',
-                color: '#10b981',
-                display: 'flex',
+                display: 'inline-flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                margin: '0 auto',
+                gap: 6,
+                padding: '4px 12px',
+                borderRadius: '999px',
+                background: 'rgba(16, 185, 129, 0.08)',
+                border: '1px solid rgba(16, 185, 129, 0.2)',
+                color: '#059669',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                alignSelf: 'center',
               }}
             >
-              <CheckCircle2 size={28} />
-            </div>
-
-            <div style={{ textAlign: 'center' }}>
-              <h3
-                style={{
-                  fontSize: '1.1875rem',
-                  fontWeight: 700,
-                  margin: '0 0 6px',
-                  color: 'var(--text)',
-                }}
-              >
-                Verification Successful &amp; Rent Account Ready
-              </h3>
-              <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', margin: 0 }}>
-                Your personal Wema Bank account for rent savings is active.
-              </p>
+              <CheckCircle2 size={14} />
+              <span>Verification Complete</span>
             </div>
 
             <div className="vault-dva-card">
               <div className="vault-dva-card__header">
-                <span className="vault-dva-card__title">Your Personal Rent Account</span>
+                <span className="vault-dva-card__title">Personal Rent Account</span>
                 <span className="vault-dva-card__badge">
                   <Zap size={11} /> Instant Credit
                 </span>
@@ -991,7 +980,7 @@ export function SavingsInvestorKycModal({
                   onClick={() => {
                     navigator.clipboard.writeText(dvaToShow.account_number)
                     setCopiedAccount(true)
-                    toastSuccess('Account number copied to clipboard!')
+                    toastSuccess('Account number copied!')
                     setTimeout(() => setCopiedAccount(false), 2000)
                   }}
                   title="Copy Account Number"
@@ -1026,8 +1015,8 @@ export function SavingsInvestorKycModal({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 10,
-                padding: '10px 14px',
+                gap: 8,
+                padding: '9px 12px',
                 borderRadius: '8px',
                 background: 'var(--surface)',
                 border: '1px solid var(--border)',
@@ -1035,14 +1024,11 @@ export function SavingsInvestorKycModal({
                 color: 'var(--text-secondary)',
               }}
             >
-              <Info size={16} color="var(--clay)" style={{ flexShrink: 0 }} />
-              <span>
-                Send money to this account anytime from your bank app or USSD. Your savings enter
-                immediately and start growing with 14.5% annual interest.
-              </span>
+              <Sparkles size={14} color="var(--clay)" style={{ flexShrink: 0 }} />
+              <span>Transfer from any bank app. Earns 14.5% daily interest.</span>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
               <button
                 type="button"
                 className="vault-btn-primary"
@@ -1051,7 +1037,7 @@ export function SavingsInvestorKycModal({
                   onClose()
                 }}
               >
-                <span>Setup Direct Debit &amp; Start Saving</span>
+                <span>Start Saving</span>
                 <ArrowRight size={16} />
               </button>
               <button
@@ -1061,11 +1047,22 @@ export function SavingsInvestorKycModal({
                   navigator.clipboard.writeText(
                     `Account Number: ${dvaToShow.account_number}\nBank: ${dvaToShow.bank_name || 'Wema Bank'}\nAccount Name: ${dvaToShow.account_name}`,
                   )
-                  toastSuccess('Account details copied to clipboard!')
+                  setCopiedDetails(true)
+                  toastSuccess('Account details copied!')
+                  setTimeout(() => setCopiedDetails(false), 2000)
                 }}
               >
-                <Copy size={15} />
-                <span>Copy Account Details</span>
+                {copiedDetails ? (
+                  <>
+                    <Check size={14} />
+                    <span>Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy size={14} />
+                    <span>Copy All Details</span>
+                  </>
+                )}
               </button>
             </div>
           </div>
