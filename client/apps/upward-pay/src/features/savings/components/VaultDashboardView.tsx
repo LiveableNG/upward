@@ -119,29 +119,30 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
           <span className="vault-dashboard__countdown-pill">{daysRemaining} Days Left</span>
         </div>
 
+        <div className="vault-arm-badge">
+          <ShieldCheck size={14} className="vault-arm-badge__icon" />
+          <span>
+            Powered by <strong>Asset &amp; Resource Management Holding Company (ARM)</strong>
+          </span>
+        </div>
+
         <div className="vault-dashboard__amounts">
           <span className="vault-dashboard__balance-caption">Total Savings</span>
           <span className="vault-dashboard__current-balance">
             {formatCurrency(currentBalanceNaira, 'NGN')}
           </span>
-          <span className="vault-dashboard__target-label">
-            Target: {formatCurrency(targetAmountNaira, 'NGN')} due on{' '}
-            {targetDueDate
-              ? new Date(targetDueDate).toLocaleDateString('en-GB', {
-                  day: 'numeric',
-                  month: 'short',
-                  year: 'numeric',
-                })
-              : 'Rent Day'}
-          </span>
-        </div>
-
-        <div className="vault-dashboard__gauge-wrapper">
-          <div className="vault-dashboard__gauge-header">
-            <span>Target Progress</span>
-            <span style={{ fontWeight: 700, color: 'var(--clay)' }}>
-              {targetCompletionPercentage}%
+          <div className="vault-dashboard__target-row">
+            <span className="vault-dashboard__target-label">
+              Target: {formatCurrency(targetAmountNaira, 'NGN')} due on{' '}
+              {targetDueDate
+                ? new Date(targetDueDate).toLocaleDateString('en-GB', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                  })
+                : 'Rent Day'}
             </span>
+            <span className="vault-dashboard__target-pct">{targetCompletionPercentage}%</span>
           </div>
           <div className="vault-dashboard__progress-bar">
             <div

@@ -455,6 +455,30 @@ select.rent-calculator__input:focus {
   font-weight: 700;
 }
 
+.vault-arm-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full, 999px);
+  padding: 5px 12px;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  align-self: flex-start;
+  line-height: 1.35;
+}
+
+.vault-arm-badge strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.vault-arm-badge__icon {
+  flex-shrink: 0;
+  color: var(--success, #22c55e);
+}
+
 .vault-dashboard__gauge-wrapper {
   display: flex;
   flex-direction: column;
@@ -475,10 +499,11 @@ select.rent-calculator__input:focus {
 
 .vault-dashboard__progress-bar {
   width: 100%;
-  height: 10px;
+  height: 8px;
   background: var(--surface2, #ede6dd);
   border-radius: 999px;
   overflow: hidden;
+  margin-top: 6px;
 }
 
 .vault-dashboard__progress-fill {
@@ -509,9 +534,24 @@ select.rent-calculator__input:focus {
   color: var(--text);
 }
 
+.vault-dashboard__target-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
 .vault-dashboard__target-label {
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   color: var(--text-muted);
+}
+
+.vault-dashboard__target-pct {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--clay);
+  flex-shrink: 0;
 }
 
 .vault-dashboard__breakdown-grid {
@@ -626,6 +666,12 @@ select.rent-calculator__input:focus {
     font-size: 0.6875rem;
     padding: 3px 8px;
     white-space: nowrap;
+  }
+
+  .vault-arm-badge {
+    font-size: 0.6875rem;
+    padding: 4px 10px;
+    gap: 5px;
   }
 
   .vault-dashboard__interest-card {
