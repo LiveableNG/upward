@@ -13,7 +13,20 @@ function checkNameMatch(userFirst: string, userLast: string, bvnFirst: string, b
   const bl = cleanName(bvnLast)
 
   // Match first to first and last to last, OR first to last and last to first (in case of swap)
-  return (uf === bf && ul === bl) || (uf === bl && ul === bf)
+  if ((uf === bf && ul === bl) || (uf === bl && ul === bf)) return true
+
+  const provFull = `${bf} ${bl}`
+  if (
+    (process.env.NODE_ENV === 'development' ||
+      process.env.APP_ENV === 'staging' ||
+      process.env.ALLOW_KYC_TEST_NAMES === 'true') &&
+    provFull.includes('ronald') &&
+    provFull.includes('ekom')
+  ) {
+    return true
+  }
+
+  return false
 }
 
 function parseDate(dateStr: string | null | undefined): Date | null {
@@ -121,21 +134,16 @@ export class VerifyBvnUseCase {
       const bvnLast = bvnData.lastName || ''
       const bvnDob = bvnData.dateOfBirth || ''
 
-      const isTestEnvironment =
-        process.env.NODE_ENV !== 'production' ||
-        process.env.APP_ENV === 'staging' ||
-        bvn === '22222222222' ||
-        bvn.startsWith('222222') ||
-        bvn === '12345678901' ||
-        (bvnFirst.toUpperCase() === 'RONALD' && bvnLast.toUpperCase() === 'EKOM')
-
       const nameMatched = checkNameMatch(user.firstName, user.lastName, bvnFirst, bvnLast)
-      const dobMatched = datesMatch(user.dateOfBirth, bvnDob)
+      const isDevSandboxPersona =
+        (process.env.NODE_ENV === 'development' ||
+          process.env.APP_ENV === 'staging' ||
+          process.env.ALLOW_KYC_TEST_NAMES === 'true') &&
+        bvnFirst.toUpperCase() === 'RONALD' &&
+        bvnLast.toUpperCase() === 'EKOM'
+      const dobMatched = datesMatch(user.dateOfBirth, bvnDob) || isDevSandboxPersona
 
-      const effectiveNameMatched = nameMatched || isTestEnvironment
-      const effectiveDobMatched = dobMatched || isTestEnvironment
-
-      if (!effectiveNameMatched || !effectiveDobMatched) {
+      if (!nameMatched || !dobMatched) {
         this.logger.warn(
           `BVN details mismatch for user ID: ${user.id}. ` +
           `User: ${user.firstName} ${user.lastName} (${user.dateOfBirth}). ` +
