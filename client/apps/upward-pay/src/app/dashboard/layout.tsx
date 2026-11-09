@@ -55,7 +55,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     setMounted(true)
-  }, [])
+    if (typeof window !== 'undefined' && user?.uuid) {
+      // Clean up legacy permanent localStorage skip key so incomplete users can complete profile setup
+      localStorage.removeItem(`upward_profile_setup_skipped_${user.uuid}`)
+    }
+  }, [user?.uuid])
 
   const {
     data: userGoals = [],
@@ -74,17 +78,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { isGated: isRentalGated, notifyGated } = useRentalGate()
   const hasRental = hasRentalInfo(user)
 
-  // Stale local storage skip state must NOT override the required variant
+  // Session-scoped skip state: skipping setup only applies for the active session
   const isSkippedInStorage =
     typeof window !== 'undefined' && user?.uuid
-      ? localStorage.getItem(`upward_profile_setup_skipped_${user.uuid}`) === 'true'
+      ? sessionStorage.getItem(`upward_profile_setup_skipped_${user.uuid}`) === 'true'
       : false
 
   const isDismissed = isRequired ? false : (blockerDismissed || isSkippedInStorage)
 
   const handleSkipBlocker = () => {
     if (typeof window !== 'undefined' && user?.uuid) {
-      localStorage.setItem(`upward_profile_setup_skipped_${user.uuid}`, 'true')
+      sessionStorage.setItem(`upward_profile_setup_skipped_${user.uuid}`, 'true')
     }
     setBlockerDismissed(true)
   }
@@ -127,19 +131,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isSignupDevice = !!signupDeviceKey && (isFreshSignup || readStorageFlag('local', signupDeviceKey))
   const hasAutoOpenedThisSession = !!autoOpenSessionKey && readStorageFlag('session', autoOpenSessionKey)
 
-  // On the signup device, open the rental form directly once per session instead of showing the blocker
-  const shouldAutoOpenRental =
-    isRentalGated && !showTermsGate && !isExemptRoute && isSignupDevice && !hasAutoOpenedThisSession
+  // Do not force-redirect away from dashboard on fresh signup so user sees the setup blocker welcome screen
+  const shouldAutoOpenRental = false
 
   useEffect(() => {
     if (loading || !user?.uuid || !isRentalGated || showTermsGate || isExemptRoute) return
-
-    if (shouldAutoOpenRental) {
-      writeStorageFlag('local', signupDeviceKey)
-      writeStorageFlag('session', autoOpenSessionKey)
-      router.replace(getStandaloneRentalPath())
-      return
-    }
 
     if (!isDashboardHome) {
       notifyGated()
@@ -151,9 +147,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     isRentalGated,
     showTermsGate,
     isExemptRoute,
-    shouldAutoOpenRental,
-    signupDeviceKey,
-    autoOpenSessionKey,
     isDashboardHome,
     notifyGated,
     router,
@@ -161,7 +154,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const isSetupComplete = isProfileSetupComplete(user, {
     hasGoals,
-    goalsAvailable,
+    goalsAvailable: true,
   })
 
   const showProfileBlocker =
@@ -170,7 +163,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     !showTermsGate &&
     !!user &&
     !isExperimentLoading &&
-    isGoalsReady &&
     !shouldAutoOpenRental &&
     ((isRequired && isRentalGated && !isExemptRoute) ||
       (isDashboardHome && !isSetupComplete && !isDismissed))

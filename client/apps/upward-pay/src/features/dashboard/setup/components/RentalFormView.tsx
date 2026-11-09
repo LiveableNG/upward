@@ -85,7 +85,8 @@ export function RentalFormView() {
 
   const handleDeferSetup = () => {
     if (typeof window !== 'undefined' && user?.uuid) {
-      localStorage.setItem(`upward_profile_setup_skipped_${user.uuid}`, 'true')
+      sessionStorage.setItem(`upward_profile_setup_skipped_${user.uuid}`, 'true')
+      localStorage.removeItem(`upward_profile_setup_skipped_${user.uuid}`)
     }
     trackDeferral('rental_form_footer', { formStep })
     toast.info("Your draft is saved. You can resume rental setup anytime from your dashboard.")
@@ -559,6 +560,27 @@ export function RentalFormView() {
         {/* STEP 1: LOCATION */}
         {formStep === 'location' && (
           <>
+            {draft.formData.rentAmount && draft.formData.rentAmount !== '0' && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '10px 14px',
+                  borderRadius: 10,
+                  background: 'var(--shell-tint, #f9f8f6)',
+                  border: '1px solid var(--border)',
+                  marginBottom: 16,
+                  fontSize: '0.8125rem',
+                  color: 'var(--text-secondary, #666)',
+                }}
+              >
+                <Sparkles size={16} color="var(--clay)" style={{ flexShrink: 0 }} />
+                <span>
+                  Rent target of <strong>₦{draft.formData.rentAmount}</strong> is synced from your savings setup. Enter your property location to complete your setup.
+                </span>
+              </div>
+            )}
             <div className="setup-page__field">
               <label>Property address</label>
               <input

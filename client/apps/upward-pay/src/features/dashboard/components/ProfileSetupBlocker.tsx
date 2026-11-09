@@ -70,11 +70,9 @@ export function ProfileSetupBlocker({ user, score, maxScore, onSkip }: ProfileSe
 
   const firstName = user.firstName || 'there'
   const rentalDone = hasRentalInfo(user)
-  const showIdentityStep = (user.verificationOn ?? true) && !isGated
+  const showIdentityStep = Boolean(user.verificationOn) && !isGated
   const { data: userGoals = [] } = useUserGoals()
-  const { data: categories = [] } = useGoalCategories()
-  const totalGoalsAvailable = categories.reduce((acc, cat) => acc + (cat.goals?.length || 0), 0)
-  const showGoalsStep = totalGoalsAvailable > 0
+  const showGoalsStep = true
   const goalsDone = userGoals.filter((g) => g.status === 'ACTIVE').length > 0
 
   const steps: SetupStep[] = [
@@ -162,12 +160,10 @@ export function ProfileSetupBlocker({ user, score, maxScore, onSkip }: ProfileSe
               <span className="setup-gate__hero-icon" aria-hidden="true">
                 <Home size={22} strokeWidth={2.2} />
               </span>
-              {score !== undefined && (
-                <span className="setup-gate__score-chip">
-                  <strong>{score}</strong>
-                  {maxScore ? <span>/ {maxScore}</span> : null}
-                </span>
-              )}
+              <span className="setup-gate__score-chip">
+                <strong>{score ?? 500}</strong>
+                <span>/ {maxScore ?? 900}</span>
+              </span>
             </div>
             <h1 id="setup-gate-title" className="setup-gate__title">
               {title}

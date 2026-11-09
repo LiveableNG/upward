@@ -10,7 +10,8 @@ export default function SetupGoalsPage() {
 
   const handleSkip = () => {
     if (typeof window !== 'undefined' && user?.uuid) {
-      localStorage.setItem(`upward_profile_setup_skipped_${user.uuid}`, 'true')
+      sessionStorage.setItem(`upward_profile_setup_skipped_${user.uuid}`, 'true')
+      localStorage.removeItem(`upward_profile_setup_skipped_${user.uuid}`)
     }
     router.push('/dashboard')
   }
