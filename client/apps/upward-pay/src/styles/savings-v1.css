@@ -273,6 +273,120 @@
   margin-top: var(--space-4, 16px);
 }
 
+.vault-setup__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: rgba(217, 119, 87, 0.12);
+  color: var(--clay);
+  width: fit-content;
+}
+
+.vault-setup__badge--alt {
+  background: var(--surface2, #e5e7eb);
+  color: var(--text-secondary);
+}
+
+.vault-setup__config-box {
+  margin-top: 14px;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md, 10px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.vault-setup__source-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+@media (max-width: 480px) {
+  .vault-setup__source-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.vault-setup__source-card {
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md, 10px);
+  padding: 12px;
+  background: var(--bg);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.vault-setup__source-card--active {
+  border-color: var(--clay);
+  background: var(--clay-faint);
+  box-shadow: 0 0 0 1px var(--clay);
+}
+
+.vault-setup__source-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.vault-setup__source-title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.vault-setup__source-sub {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+}
+
+.vault-setup__chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.vault-setup__chip {
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.vault-setup__chip--active {
+  background: var(--clay);
+  border-color: var(--clay);
+  color: #ffffff;
+}
+
+.vault-setup__summary-note {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  padding: 8px 10px;
+  background: rgba(217, 119, 87, 0.06);
+  border-left: 3px solid var(--clay);
+  border-radius: 4px;
+}
+
 /* ==========================================================================
    Screen 3: Vault Dashboard (Active Target Savings View — Jakob's Law)
    ========================================================================== */
@@ -453,15 +567,19 @@
 
   .vault-dashboard__top-row {
     gap: 6px;
+    align-items: center;
   }
 
   .vault-dashboard__lock-pill {
     font-size: 0.6875rem;
     padding: 3px 8px;
+    white-space: nowrap;
   }
 
   .vault-dashboard__countdown-pill {
-    font-size: 0.75rem;
+    font-size: 0.6875rem;
+    padding: 3px 8px;
+    white-space: nowrap;
   }
 
   .vault-dashboard__interest-card {
@@ -623,17 +741,18 @@
   }
 
   .vault-modal-card {
-    padding: 20px 18px calc(24px + env(safe-area-inset-bottom, 12px));
-    gap: 16px;
+    padding: 16px 16px calc(24px + env(safe-area-inset-bottom, 12px));
+    gap: 14px;
     max-width: 100%;
-    max-height: 90dvh;
-    border-radius: 24px 24px 0 0;
+    max-height: 92dvh;
+    border-radius: 20px 20px 0 0;
     border-bottom: none;
     width: 100%;
     box-sizing: border-box;
     margin: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
 
   .vault-modal-card::before {
@@ -646,6 +765,18 @@
     margin: -6px auto 2px;
     flex-shrink: 0;
   }
+}
+
+.vault-modal-sticky-actions {
+  position: sticky;
+  bottom: -16px;
+  background: var(--bg);
+  padding: 12px 0 4px;
+  border-top: 1px solid var(--border);
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 /* Paystack Account Resolution Badges */
@@ -970,6 +1101,11 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: sticky;
+  top: -4px;
+  background: var(--bg);
+  z-index: 5;
+  padding-bottom: 4px;
 }
 
 .vault-modal-title {
@@ -1371,6 +1507,32 @@
   letter-spacing: 0.5px;
 }
 
+@media (max-width: 640px) {
+  .savings-kyc-banner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .savings-kyc-banner__icon {
+    align-self: flex-start;
+  }
+
+  .savings-kyc-banner__content {
+    width: 100%;
+  }
+
+  .savings-kyc-banner__btn {
+    width: 100%;
+    padding: 10px 16px;
+    font-size: 0.8125rem;
+    text-align: center;
+    justify-content: center;
+    border-radius: var(--radius-md, 8px);
+  }
+}
+
 /* Gated & Blurred Activities Container (when KYC is pending) */
 .rent-savings__gated-container {
   position: relative;
@@ -1397,8 +1559,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  padding-top: 52px;
+  justify-content: center;
+  padding: 16px;
   cursor: pointer;
   background: rgba(255, 255, 255, 0.05);
   border-radius: var(--radius-lg, 16px);
@@ -1423,9 +1585,84 @@
     border-color 0.2s ease;
 }
 
+@media (max-width: 640px) {
+  .rent-savings__gated-overlay {
+    padding: 12px;
+  }
+
+  .rent-savings__gated-badge {
+    padding: 8px 14px;
+    font-size: 0.75rem;
+    text-align: center;
+    max-width: 90%;
+  }
+
+  .rent-savings__central-cta-box {
+    padding: 18px 14px;
+    max-width: 320px;
+    width: 95%;
+  }
+
+  .rent-savings__central-title {
+    font-size: 1rem;
+  }
+
+  .rent-savings__central-desc {
+    font-size: 0.75rem;
+    margin-bottom: 4px;
+  }
+
+  .rent-savings__central-btn {
+    padding: 10px 16px;
+    font-size: 0.8125rem;
+  }
+}
+
 .rent-savings__gated-overlay:hover .rent-savings__gated-badge {
   transform: translateY(-2px);
   box-shadow: 0 6px 24px rgba(217, 119, 87, 0.2);
   border-color: var(--clay);
   color: var(--clay);
+}
+
+.rent-savings__central-cta-box {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 16px);
+  padding: 24px 20px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 360px;
+  width: 90%;
+  gap: 10px;
+  box-sizing: border-box;
+  animation: fadeIn 0.25s ease-out;
+}
+
+.rent-savings__central-title {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+}
+
+.rent-savings__central-desc {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+  margin: 0 0 6px;
+}
+
+.rent-savings__central-btn {
+  width: 100%;
+  padding: 12px 20px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }

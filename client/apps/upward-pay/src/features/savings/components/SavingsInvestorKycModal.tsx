@@ -89,7 +89,20 @@ export function SavingsInvestorKycModal({
   const [bvn, setBvn] = useState('')
   const [mothersMaidenName, setMothersMaidenName] = useState('')
 
-  const [occupation, setOccupation] = useState('')
+  const [occupation, setOccupation] = useState(() => {
+    if (typeof window !== 'undefined' && user?.uuid) {
+      try {
+        const savedPolicy = window.localStorage.getItem(`rent_support_policy_${user.uuid}`)
+        if (savedPolicy) {
+          const parsed = JSON.parse(savedPolicy) as { occupation?: string }
+          if (parsed.occupation) return parsed.occupation
+        }
+      } catch {
+        // Ignore storage read errors
+      }
+    }
+    return ''
+  })
   const [sourceOfFunds, setSourceOfFunds] = useState<
     'Salary' | 'Business' | 'Savings' | 'Investment'
   >('Salary')
@@ -99,68 +112,30 @@ export function SavingsInvestorKycModal({
 
   const [manualRentTarget, setManualRentTarget] = useState<number>(0)
   const [manualDueDate, setManualDueDate] = useState<string>('')
-  const [hasAppliedPrefill, setHasAppliedPrefill] = useState(false)
 
-  useEffect(() => {
-    if (!isOpen || hasAppliedPrefill) return
-
-    let applied = false
-    if (prefill) {
-      if (prefill.bvn && !bvn) setBvn(prefill.bvn)
-      if (prefill.mothers_maiden_name && !mothersMaidenName) {
-        setMothersMaidenName(prefill.mothers_maiden_name)
-      }
-      if (prefill.occupation && !occupation) setOccupation(prefill.occupation)
-      if (prefill.source_of_funds) setSourceOfFunds(prefill.source_of_funds)
-      if (prefill.next_of_kin_name && !nextOfKinName) setNextOfKinName(prefill.next_of_kin_name)
-      if (prefill.next_of_kin_relationship) {
-        setNextOfKinRelationship(prefill.next_of_kin_relationship)
-      }
-      if (prefill.next_of_kin_phone && !nextOfKinPhone) {
-        setNextOfKinPhone(prefill.next_of_kin_phone)
-      }
-      if (prefill.property?.rent_amount && !manualRentTarget) {
-        setManualRentTarget(prefill.property.rent_amount)
-      }
-      if (prefill.property?.rent_end_date && !manualDueDate) {
-        setManualDueDate(prefill.property.rent_end_date.split('T')[0])
-      }
-      applied = true
+  const [prevPrefill, setPrevPrefill] = useState<typeof prefill | null>(null)
+  if (prefill && prefill !== prevPrefill && isOpen) {
+    setPrevPrefill(prefill)
+    if (prefill.bvn && !bvn) setBvn(prefill.bvn)
+    if (prefill.mothers_maiden_name && !mothersMaidenName) {
+      setMothersMaidenName(prefill.mothers_maiden_name)
     }
-
-    if (typeof window !== 'undefined' && user?.uuid) {
-      try {
-        const savedPolicy = window.localStorage.getItem(`rent_support_policy_${user.uuid}`)
-        if (savedPolicy) {
-          const parsed = JSON.parse(savedPolicy) as {
-            occupation?: string
-            employerName?: string
-          }
-          if (parsed.occupation && !occupation && !prefill?.occupation) {
-            setOccupation(parsed.occupation)
-          }
-        }
-      } catch {
-        // Ignore storage read errors
-      }
+    if (prefill.occupation && !occupation) setOccupation(prefill.occupation)
+    if (prefill.source_of_funds) setSourceOfFunds(prefill.source_of_funds)
+    if (prefill.next_of_kin_name && !nextOfKinName) setNextOfKinName(prefill.next_of_kin_name)
+    if (prefill.next_of_kin_relationship) {
+      setNextOfKinRelationship(prefill.next_of_kin_relationship)
     }
-
-    if (applied) {
-      setHasAppliedPrefill(true)
+    if (prefill.next_of_kin_phone && !nextOfKinPhone) {
+      setNextOfKinPhone(prefill.next_of_kin_phone)
     }
-  }, [
-    isOpen,
-    hasAppliedPrefill,
-    prefill,
-    user?.uuid,
-    bvn,
-    mothersMaidenName,
-    occupation,
-    nextOfKinName,
-    nextOfKinPhone,
-    manualRentTarget,
-    manualDueDate,
-  ])
+    if (prefill.property?.rent_amount && !manualRentTarget) {
+      setManualRentTarget(prefill.property.rent_amount)
+    }
+    if (prefill.property?.rent_end_date && !manualDueDate) {
+      setManualDueDate(prefill.property.rent_end_date.split('T')[0])
+    }
+  }
 
   const [createdDva, setCreatedDva] = useState<{
     bank_name: string
@@ -935,13 +910,13 @@ export function SavingsInvestorKycModal({
                 Verification Successful &amp; Rent Account Ready
               </h3>
               <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', margin: 0 }}>
-                Your personal Wema Bank account for rent savings has been created.
+                Your personal Wema Bank account for rent savings is active.
               </p>
             </div>
 
             <div className="vault-dva-card">
               <div className="vault-dva-card__header">
-                <span className="vault-dva-card__title">Your Rent Savings Account</span>
+                <span className="vault-dva-card__title">Your Personal Rent Account</span>
                 <span className="vault-dva-card__badge">
                   <Zap size={11} /> Instant Credit
                 </span>
@@ -1010,17 +985,32 @@ export function SavingsInvestorKycModal({
               </span>
             </div>
 
-            <button
-              type="button"
-              className="vault-btn-primary"
-              onClick={() => {
-                onSuccess()
-                onClose()
-              }}
-              style={{ marginTop: 4 }}
-            >
-              Go to My Rent Savings <ArrowRight size={16} />
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
+              <button
+                type="button"
+                className="vault-btn-primary"
+                onClick={() => {
+                  onSuccess()
+                  onClose()
+                }}
+              >
+                <span>Setup Direct Debit &amp; Start Saving</span>
+                <ArrowRight size={16} />
+              </button>
+              <button
+                type="button"
+                className="vault-btn-secondary"
+                onClick={() => {
+                  navigator.clipboard.writeText(
+                    `Account Number: ${dvaToShow.account_number}\nBank: ${dvaToShow.bank_name || 'Wema Bank'}\nAccount Name: ${dvaToShow.account_name}`,
+                  )
+                  toastSuccess('Account details copied to clipboard!')
+                }}
+              >
+                <Copy size={15} />
+                <span>Copy Account Details</span>
+              </button>
+            </div>
           </div>
         )}
       </div>

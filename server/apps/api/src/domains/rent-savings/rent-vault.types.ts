@@ -1,6 +1,6 @@
 export type CadenceType = 'DAILY' | 'WEEKLY' | 'MONTHLY'
 export type LockStatusType = 'LOCKED' | 'SETTLEMENT_READY' | 'SETTLED' | 'BROKEN_OUT'
-export type FundingMethodType = 'DVA' | 'CARD_TOKEN'
+export type FundingMethodType = 'DVA' | 'CARD_TOKEN' | 'DIRECT_DEBIT'
 export type AdvanceStatusType = 'ACTIVE' | 'REPAID' | 'DEFAULTED' | 'OFFSET_AT_SETTLEMENT'
 export type SettlementStatusType = 'PAID' | 'DISBURSED_PENDING_PM_APPROVAL' | 'FAILED'
 

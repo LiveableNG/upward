@@ -12,7 +12,7 @@ export interface CreateVaultPayload {
   target_amount_kobo: number
   contractual_due_date: string
   cadence: 'DAILY' | 'WEEKLY' | 'MONTHLY'
-  preferred_funding_method: 'DVA' | 'CARD_TOKEN'
+  preferred_funding_method: 'DVA' | 'CARD_TOKEN' | 'DIRECT_DEBIT'
   payday_day_of_month?: number
   card_authorization_code?: string
 }

@@ -10,6 +10,7 @@ import {
   ArrowDownToLine,
   ArrowUpRight,
   Landmark,
+  Sparkles,
   Copy,
   Check,
   FileText,
@@ -18,6 +19,7 @@ import {
 import { formatCurrency } from '@/lib/utils'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
+import { EmergencyAdvanceModal } from './EmergencyAdvanceModal'
 import { FairBreakoutModal } from './FairBreakoutModal'
 import { FundVaultModal } from './FundVaultModal'
 import type { VaultTransactionItem } from '../services/savingsService'
@@ -62,6 +64,7 @@ interface VaultDashboardViewProps {
 
 export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboardViewProps) {
   const [showFundModal, setShowFundModal] = useState(false)
+  const [showAdvanceModal, setShowAdvanceModal] = useState(false)
   const [showBreakoutModal, setShowBreakoutModal] = useState(false)
   const [copiedAccount, setCopiedAccount] = useState(false)
 
@@ -209,7 +212,7 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
       {vault.dedicated_account?.account_number && (
         <div className="vault-dva-card">
           <div className="vault-dva-card__header">
-            <span className="vault-dva-card__title">Dedicated Rent Savings Account</span>
+            <span className="vault-dva-card__title">Your Personal Rent Account</span>
             <span className="vault-dva-card__badge">
               {vault.dedicated_account.bank_name || 'Wema Bank'}
             </span>
@@ -289,6 +292,24 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
               : 'Direct bank transfer'}
           </span>
         </button>
+
+        {vault.emergency_advance && (
+          <button
+            type="button"
+            className="vault-action-btn"
+            onClick={() => setShowAdvanceModal(true)}
+          >
+            <div className="vault-action-btn__icon">
+              <Sparkles size={18} />
+            </div>
+            <span className="vault-action-btn__title">Borrow Emergency Cash</span>
+            <span className="vault-action-btn__subtitle">
+              {vault.emergency_advance.has_active_loan
+                ? 'Active advance in progress'
+                : `Up to ${formatCurrency(vault.emergency_advance.max_borrowable_kobo / 100, 'NGN')} (40%)`}
+            </span>
+          </button>
+        )}
 
         <button
           type="button"
@@ -395,6 +416,16 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
         onClose={() => setShowFundModal(false)}
         dedicatedAccount={vault.dedicated_account}
       />
+
+      {showAdvanceModal && vault.emergency_advance && (
+        <EmergencyAdvanceModal
+          vaultId={vault.vault_id}
+          currentBalanceKobo={vault.current_balance_kobo}
+          maxBorrowableKobo={vault.emergency_advance.max_borrowable_kobo}
+          hasActiveLoan={vault.emergency_advance.has_active_loan}
+          onClose={() => setShowAdvanceModal(false)}
+        />
+      )}
 
       {showBreakoutModal && (
         <FairBreakoutModal

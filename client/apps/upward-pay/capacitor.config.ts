@@ -5,13 +5,17 @@ const config: CapacitorConfig = {
   appName: 'Upward Pay',
   webDir: 'out',
   server: {
+    ...(process.env.CAP_SERVER_URL
+      ? { url: process.env.CAP_SERVER_URL, cleartext: true }
+      : {}),
     androidScheme: 'http',
     hostname: 'localhost',
     allowNavigation: [
       '*.goodtenants.io',
       'goodtenants.io',
       '*.vercel.app',
-      'vercel.app'
+      'vercel.app',
+      'localhost'
     ]
   },
   plugins: {

@@ -8,17 +8,9 @@ import {
   AlertCircle,
   Lock,
   PiggyBank,
-  Copy,
-  Check,
-  Receipt,
-  FileText,
 } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
 import { useRentVault } from '../hooks/useRentSavings'
 import { useAuth } from '@/features/auth/AuthContext'
-import { api } from '@/lib/api'
-import { formatCurrency } from '@/lib/utils'
-import { useToast } from '@/components/common/Toast'
 import { SavingsInvestorKycModal } from './SavingsInvestorKycModal'
 import { RentCalculatorView } from './RentCalculatorView'
 import { VaultSetupFlow } from './VaultSetupFlow'
@@ -40,14 +32,11 @@ export function RentSavingsMainView() {
 
   const [viewMode, setViewMode] = useState<'DASHBOARD' | 'SETTLEMENT'>('DASHBOARD')
   const [showKycModal, setShowKycModal] = useState<boolean>(false)
-  const [copiedDepositAccount, setCopiedDepositAccount] = useState<boolean>(false)
-  const { success: toastSuccess } = useToast()
 
-  const { data: depositSummary } = useQuery({
-    queryKey: ['rent-deposit-summary'],
-    queryFn: () => api.getRentDepositSummary(),
-    staleTime: 30_000,
-  })
+  const activeProperty = (user?.properties || []).find(
+    (p: { isPastTenancy?: boolean; rentAmount?: number; rentEndDate?: string }) =>
+      !p.isPastTenancy && p.rentAmount,
+  )
 
   if (isLoading) {
     return (
@@ -101,8 +90,9 @@ export function RentSavingsMainView() {
   )
   const shouldBlurActivities = (isKycRequired || !hasConsented) && Boolean(isVaultActive)
 
+  // Only render top banners when the vault is already active (to avoid duplicate headers/buttons before starting)
   const renderKycBanner = () => {
-    if (!user) return null
+    if (!user || !isVaultActive) return null
 
     if (!user.isIdentityVerified) {
       return (
@@ -112,12 +102,11 @@ export function RentSavingsMainView() {
           </div>
           <div className="savings-kyc-banner__content">
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span className="savings-kyc-banner__title">Investor Verification Required</span>
+              <span className="savings-kyc-banner__title">Identity Verification Required</span>
               <span className="savings-kyc-banner__partner">powered by ARM</span>
             </div>
             <span className="savings-kyc-banner__desc">
-              Complete your one-time regulatory KYC to enable your 14.5% p.a. daily compound yield
-              and dedicated funding account.
+              Verify your identity to unlock rent savings and start earning daily compound returns.
             </span>
           </div>
           <button
@@ -181,138 +170,6 @@ export function RentSavingsMainView() {
 
       {!isVaultActive && (
         <>
-          {depositSummary &&
-            ((depositSummary.availableBalance || 0) > 0 ||
-              depositSummary.property?.dva?.accountNumber ||
-              (depositSummary.history && depositSummary.history.length > 0)) && (
-              <div className="vault-dashboard__hero" style={{ marginBottom: 16 }}>
-                <div className="vault-dashboard__top-row">
-                  <div className="vault-dashboard__lock-pill">
-                    <PiggyBank size={13} color="var(--clay)" />
-                    <span>Rent Deposit Balance</span>
-                  </div>
-                  <span className="vault-dashboard__countdown-pill">Ready for Rent Lock</span>
-                </div>
-
-                <div className="vault-dashboard__amounts">
-                  <span className="vault-dashboard__balance-caption">
-                    Available Rent Deposit Credit
-                  </span>
-                  <span className="vault-dashboard__current-balance">
-                    {formatCurrency(depositSummary.availableBalance || 0, 'NGN')}
-                  </span>
-                  <span className="vault-dashboard__target-label">
-                    Automatically consolidated when you activate your Target Rent Vault below.
-                  </span>
-                </div>
-
-                {depositSummary.property?.dva?.accountNumber && (
-                  <div className="vault-dva-card">
-                    <div className="vault-dva-card__header">
-                      <span className="vault-dva-card__title">Dedicated Rent Account</span>
-                      <span className="vault-dva-card__badge">
-                        {depositSummary.property.dva.bankName || 'Wema Bank'}
-                      </span>
-                    </div>
-                    <div className="vault-dva-card__number-row">
-                      <div className="vault-dva-card__number-block">
-                        <span className="vault-dva-card__number-label">
-                          {depositSummary.property.dva.accountName || 'Upward Rent Account'}
-                        </span>
-                        <span className="vault-dva-card__number">
-                          {depositSummary.property.dva.accountNumber}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        className={`vault-dva-card__copy-btn ${
-                          copiedDepositAccount ? 'vault-dva-card__copy-btn--copied' : ''
-                        }`}
-                        onClick={() => {
-                          navigator.clipboard.writeText(
-                            depositSummary.property!.dva!.accountNumber,
-                          )
-                          setCopiedDepositAccount(true)
-                          toastSuccess('Account number copied!')
-                          setTimeout(() => setCopiedDepositAccount(false), 2000)
-                        }}
-                      >
-                        {copiedDepositAccount ? (
-                          <>
-                            <Check size={14} /> Copied
-                          </>
-                        ) : (
-                          <>
-                            <Copy size={14} /> Copy
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {depositSummary.history && depositSummary.history.length > 0 && (
-                  <div className="vault-ledger" style={{ padding: 14 }}>
-                    <div className="vault-ledger__header">
-                      <div className="vault-ledger__title">
-                        <Receipt size={16} color="var(--clay)" />
-                        <span>Recent Rent Deposit Activity</span>
-                      </div>
-                    </div>
-                    <div className="vault-ledger__list">
-                      {depositSummary.history.slice(0, 5).map(
-                        (tx: {
-                          uuid: string
-                          status?: string
-                          type?: string
-                          narration?: string
-                          sourceLabel?: string
-                          createdAt: string
-                          amount: number
-                        }) => {
-                          const isCredit = tx.status === 'AVAILABLE' || tx.type === 'CREDIT'
-                          return (
-                            <div key={tx.uuid} className="vault-ledger__row">
-                              <div className="vault-ledger__meta">
-                                <span className="vault-ledger__label">
-                                  {tx.narration || tx.sourceLabel}
-                                </span>
-                                <span className="vault-ledger__sub">
-                                  {new Date(tx.createdAt).toLocaleDateString('en-GB', {
-                                    day: 'numeric',
-                                    month: 'short',
-                                    year: 'numeric',
-                                  })}
-                                </span>
-                              </div>
-                              <div className="vault-ledger__right">
-                                <span
-                                  className={`vault-ledger__amount ${
-                                    isCredit
-                                      ? 'vault-ledger__amount--credit'
-                                      : 'vault-ledger__amount--debit'
-                                  }`}
-                                >
-                                  {isCredit ? '+' : '-'}
-                                  {formatCurrency(tx.amount, 'NGN')}
-                                </span>
-                                <a
-                                  href={`/dashboard/receipt/deposit/${tx.uuid}`}
-                                  className="vault-ledger__receipt-link"
-                                >
-                                  <FileText size={11} /> Receipt
-                                </a>
-                              </div>
-                            </div>
-                          )
-                        },
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
           {step === 'SETUP' && simulationConfig ? (
             <VaultSetupFlow
               initialConfig={simulationConfig}
@@ -328,6 +185,7 @@ export function RentSavingsMainView() {
                 setSimulationConfig(config)
                 setStep('SETUP')
               }}
+              onOpenKycModal={() => setShowKycModal(true)}
             />
           )}
         </>
@@ -409,7 +267,18 @@ export function RentSavingsMainView() {
         onClose={() => setShowKycModal(false)}
         onSuccess={async () => {
           await refreshUser()
-          refetch()
+          await refetch()
+          const targetKobo = (activeProperty?.rentAmount || 2_400_000) * 100
+          const dueDate = activeProperty?.rentEndDate
+            ? activeProperty.rentEndDate.split('T')[0]
+            : new Date(Date.now() + 343 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+          setSimulationConfig({
+            targetAmountKobo: targetKobo,
+            contractualDueDate: dueDate,
+            cadence: 'MONTHLY',
+            periodicDepositKobo: Math.round(targetKobo / 11),
+          })
+          setStep('SETUP')
         }}
       />
     </div>

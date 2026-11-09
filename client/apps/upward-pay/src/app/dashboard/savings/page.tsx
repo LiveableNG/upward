@@ -11,7 +11,7 @@ export default function SavingsDashboardPage() {
   return (
     <PayPageShell
       title="Rent Savings & Lock"
-      subtitle="Earn 14.5% p.a. compound yield toward your next rent payment"
+      subtitle="Save towards your next rent and earn 14.5% returns every year"
       showBack
       onBack={() => router.push('/dashboard')}
     >

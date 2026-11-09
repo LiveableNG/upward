@@ -33,7 +33,7 @@ export class CreateRentVaultDto {
   cadence!: CadenceType
 
   @IsNotEmpty()
-  @IsIn(['DVA', 'CARD_TOKEN'])
+  @IsIn(['DVA', 'CARD_TOKEN', 'DIRECT_DEBIT'])
   preferred_funding_method!: FundingMethodType
 
   @IsOptional()
@@ -123,7 +123,7 @@ export class CreateRentVaultUseCase {
     let dvaAccountNumber: string | null = existingDvaRecord?.dvaAccountNumber || null
     let dvaAssignmentStatus = existingDvaRecord?.dvaAssignmentStatus || 'PENDING'
 
-    if (!dvaAccountNumber && dto.preferred_funding_method === 'DVA') {
+    if (!dvaAccountNumber) {
       dvaBankName = 'Wema Bank'
       const randomAcc = '02' + Math.floor(10000000 + Math.random() * 90000000).toString()
       dvaAccountNumber = randomAcc
