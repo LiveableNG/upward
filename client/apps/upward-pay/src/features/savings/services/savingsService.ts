@@ -153,6 +153,9 @@ export interface SavingsOnboardingPrefillData {
   settlement_account_number: string
   settlement_account_name: string
   settlement_bank_name: string
+  kyc_address?: string | null
+  target_rent?: number | null
+  rent_due_date?: string | null
   property: {
     uuid: string
     name: string

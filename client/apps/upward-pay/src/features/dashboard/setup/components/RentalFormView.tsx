@@ -119,7 +119,7 @@ export function RentalFormView() {
       const candidateAmount =
         savingsPlan?.rentAmount ||
         prefillData?.property?.rent_amount ||
-        (prefillData as any)?.target_rent
+        prefillData?.target_rent
       if (candidateAmount) {
         patch.rentAmount = Number(candidateAmount).toLocaleString()
         needsUpdate = true
@@ -131,7 +131,7 @@ export function RentalFormView() {
       const candidateEndDate =
         savingsPlan?.dueDate ||
         prefillData?.property?.rent_end_date ||
-        (prefillData as any)?.rent_due_date
+        prefillData?.rent_due_date
       if (candidateEndDate) {
         const cleanEndDate = candidateEndDate.split('T')[0]
         patch.rentEndDate = cleanEndDate
@@ -151,7 +151,7 @@ export function RentalFormView() {
         savingsPlan?.address ||
         prefillData?.property?.address ||
         prefillData?.next_of_kin_address ||
-        (prefillData as any)?.kyc_address
+        prefillData?.kyc_address
       if (candidateAddress) {
         patch.address = candidateAddress
         needsUpdate = true
@@ -427,7 +427,22 @@ export function RentalFormView() {
       try {
         const uploadData = new FormData()
         uploadData.append('file', selected)
-        const uploadRes: any = await api.post('/user/pm-connection/onboarding-proof/upload', uploadData)
+        interface UploadProofResponse {
+          data?: {
+            url?: string
+            fileName?: string
+            fileType?: string
+            fileSize?: number
+          }
+          url?: string
+          fileName?: string
+          fileType?: string
+          fileSize?: number
+        }
+        const uploadRes = await api.post<UploadProofResponse>(
+          '/user/pm-connection/onboarding-proof/upload',
+          uploadData,
+        )
         const proofData = uploadRes?.data || uploadRes
         if (proofData?.url) {
           updateDraft({
