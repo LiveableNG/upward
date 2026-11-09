@@ -224,8 +224,6 @@ export function SavingsInvestorKycModal({
   const simulateMutation = useSimulateVaultDeposit()
   const { success: toastSuccess, error: toastError } = useToast()
 
-  if (!isOpen) return null
-
   const targetRent = activeProperty?.rentAmount || manualRentTarget || 2400000
   const targetDueDate = activeProperty?.rentEndDate || manualDueDate || '2027-10-15'
   const runwayDays = Math.max(
@@ -286,8 +284,9 @@ export function SavingsInvestorKycModal({
         amountKobo: Math.round(numericFundAmount * 100),
       })
 
+      const dayLabel = debitDay === 0 ? 'last day' : getOrdinalSuffix(debitDay)
       toastSuccess(
-        `Direct debit scheduled! ₦${totalFundAmount.toLocaleString()} will auto-save on the ${getOrdinalSuffix(debitDay)} of each month.`,
+        `Direct debit scheduled! ₦${totalFundAmount.toLocaleString()} will auto-save on the ${dayLabel} of each month.`,
       )
       onSuccess()
       onClose()
@@ -1211,12 +1210,13 @@ export function SavingsInvestorKycModal({
                     onChange={(e) => setDebitDay(Number(e.target.value))}
                     style={{ height: 42, fontSize: '0.8125rem' }}
                   >
-                    {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                    {Array.from({ length: 28 }, (_, i) => i + 1).map((d) => (
                       <option key={d} value={d}>
                         {getOrdinalSuffix(d)} of every month
                         {d === 25 ? ' (Salary Day • Recommended)' : ''}
                       </option>
                     ))}
+                    <option value={0}>Last day of every month (28th–31st)</option>
                   </select>
                 </div>
 
@@ -1235,7 +1235,7 @@ export function SavingsInvestorKycModal({
                 >
                   <Sparkles size={14} color="var(--clay)" style={{ flexShrink: 0 }} />
                   <span>
-                    Debited on the {getOrdinalSuffix(debitDay)} monthly. Earns 14.5% daily interest.
+                    Debited on the {debitDay === 0 ? 'last day' : getOrdinalSuffix(debitDay)} monthly. Earns 14.5% daily interest.
                   </span>
                 </div>
 
