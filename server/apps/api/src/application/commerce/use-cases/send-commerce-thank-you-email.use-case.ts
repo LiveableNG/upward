@@ -3,10 +3,7 @@ import {
   COMMERCE_ORDER_REPOSITORY,
   CommerceOrderRepository,
 } from '../../../domains/commerce/commerce-order.repository'
-import {
-  USER_REPOSITORY,
-  UserRepository,
-} from '../../../domains/users/user.repository'
+import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 import { EmailService } from '../../../shared/infrastructure/email/email.service'
 import { NotificationService } from '../../../shared/infrastructure/common/notification.service'
@@ -64,7 +61,9 @@ export class SendCommerceThankYouEmailUseCase {
       },
     })
     if (auditExisting) {
-      this.logger.debug(`Thank-you email already sent previously for order #${orderId} (${order.orderNumber})`)
+      this.logger.debug(
+        `Thank-you email already sent previously for order #${orderId} (${order.orderNumber})`,
+      )
       return { emailSent: false, notificationSent: false, alreadySent: true }
     }
 
@@ -100,7 +99,10 @@ export class SendCommerceThankYouEmailUseCase {
       })
       notificationSent = true
     } catch (err) {
-      this.logger.error(`Failed to dispatch completion in-app notification for order #${orderId}`, err)
+      this.logger.error(
+        `Failed to dispatch completion in-app notification for order #${orderId}`,
+        err,
+      )
     }
 
     // 4. Dispatch Branded Thank You Email
@@ -114,15 +116,16 @@ export class SendCommerceThankYouEmailUseCase {
         ;(order.subOrders || []).forEach((sub) => {
           ;(sub.items || []).forEach((item) => {
             const snap = (item.snapshotData as any) || {}
-            itemsSummary.push(
-              `${item.quantity}x ${snap.title || `Offering #${item.offeringId}`}`,
-            )
+            itemsSummary.push(`${item.quantity}x ${snap.title || `Offering #${item.offeringId}`}`)
           })
         })
 
-        const itemsListHtml = itemsSummary.length > 0
-          ? itemsSummary.map((it) => `<li style="margin-bottom: 6px; color: #1E1B18;">${it}</li>`).join('')
-          : '<li style="color: #1E1B18;">Lifestyle Order Package</li>'
+        const itemsListHtml =
+          itemsSummary.length > 0
+            ? itemsSummary
+                .map((it) => `<li style="margin-bottom: 6px; color: #1E1B18;">${it}</li>`)
+                .join('')
+            : '<li style="color: #1E1B18;">Lifestyle Order Package</li>'
 
         const html = `
           <div style="background-color: #F6F4EE; padding: 40px 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.5; color: #1E1B18;">

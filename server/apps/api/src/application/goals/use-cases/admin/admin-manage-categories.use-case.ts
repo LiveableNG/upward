@@ -4,10 +4,7 @@ import {
   GoalCategory,
   GoalRepository,
 } from '../../../../domains/goals/goal.repository'
-import {
-  CreateGoalCategoryDto,
-  UpdateGoalCategoryDto,
-} from '../../dto/goal-category.dto'
+import { CreateGoalCategoryDto, UpdateGoalCategoryDto } from '../../dto/goal-category.dto'
 
 @Injectable()
 export class AdminManageCategoriesUseCase {
@@ -29,7 +26,9 @@ export class AdminManageCategoriesUseCase {
   async create(dto: CreateGoalCategoryDto): Promise<any> {
     const title = dto.title || dto.name || 'Untitled Category'
     const iconName = dto.iconName || dto.icon || 'Target'
-    const status = dto.status || (dto.isPublished !== undefined ? (dto.isPublished ? 'PUBLISHED' : 'DRAFT') : undefined)
+    const status =
+      dto.status ||
+      (dto.isPublished !== undefined ? (dto.isPublished ? 'PUBLISHED' : 'DRAFT') : undefined)
     const cat: any = await this.goalRepo.createCategory({
       ...dto,
       title,

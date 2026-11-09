@@ -307,7 +307,9 @@
   font-family: inherit;
   color: var(--text);
   cursor: pointer;
-  transition: transform 100ms ease-out, background 120ms ease-out;
+  transition:
+    transform 100ms ease-out,
+    background 120ms ease-out;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -402,7 +404,9 @@
   letter-spacing: -0.01em;
   cursor: pointer;
   box-shadow: 0 12px 24px -14px rgba(var(--clay-rgb, 194, 80, 31), 0.7);
-  transition: transform 100ms ease-out, background 150ms ease;
+  transition:
+    transform 100ms ease-out,
+    background 150ms ease;
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -428,7 +432,9 @@
   color: var(--text-muted);
   cursor: pointer;
   border-radius: 10px;
-  transition: color 120ms ease, background 120ms ease;
+  transition:
+    color 120ms ease,
+    background 120ms ease;
 }
 
 .setup-gate__text-btn:active {

@@ -22,10 +22,7 @@ export const PauseZoneModal: React.FC<PauseZoneModalProps> = ({
 
   useEffect(() => {
     if (zone) {
-      setReason(
-        zone.pauseReason ||
-          'Delivery temporarily suspended due to operational conditions.',
-      )
+      setReason(zone.pauseReason || 'Delivery temporarily suspended due to operational conditions.')
     } else {
       setReason('')
     }
@@ -86,13 +83,20 @@ export const PauseZoneModal: React.FC<PauseZoneModalProps> = ({
               boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
             }}
           >
-            {submitting ? <Loader2 size={16} className="animate-spin" /> : <PauseCircle size={16} />}
+            {submitting ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <PauseCircle size={16} />
+            )}
             Pause Deliveries
           </button>
         </div>
       }
     >
-      <form onSubmit={handleConfirm} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <form
+        onSubmit={handleConfirm}
+        style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
+      >
         {error && (
           <div
             style={{

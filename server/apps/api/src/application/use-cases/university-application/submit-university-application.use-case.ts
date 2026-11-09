@@ -52,9 +52,11 @@ export class SubmitUniversityApplicationUseCase {
     private readonly trafficRepo: IUniversityTrafficRepository,
   ) {}
 
-  async execute(command: SubmitUniversityApplicationCommand): Promise<SubmitUniversityApplicationResult> {
+  async execute(
+    command: SubmitUniversityApplicationCommand,
+  ): Promise<SubmitUniversityApplicationResult> {
     const existing = await this.applicationRepo.findByEmail(command.email.trim().toLowerCase())
-    
+
     let application: UniversityApplication
     let isAlreadyPaid = false
     let isExisting = false
@@ -62,13 +64,15 @@ export class SubmitUniversityApplicationUseCase {
     if (existing) {
       isExisting = true
       const existingProps = existing.toObject()
-      
+
       // If user already paid, preserve PAID fee status and existing ID
       if (existingProps.feeStatus === 'PAID') {
         isAlreadyPaid = true
       }
 
-      const newFeeStatus = isAlreadyPaid ? 'PAID' : ((command.feeStatus as any) || existingProps.feeStatus || 'PENDING')
+      const newFeeStatus = isAlreadyPaid
+        ? 'PAID'
+        : (command.feeStatus as any) || existingProps.feeStatus || 'PENDING'
       const newPaymentRef = command.paymentRef || existingProps.paymentRef || null
 
       const trackNote = command.track ? `[Track: ${command.track}]` : ''
@@ -113,7 +117,9 @@ export class SubmitUniversityApplicationUseCase {
         ageBracket: command.ageBracket,
         occupation: command.occupation,
         track: command.track,
-        experienceLevel: command.experienceLevel ?? (command.track ? `[${command.track}] Stage 1 Completed` : 'Stage 1 Completed'),
+        experienceLevel:
+          command.experienceLevel ??
+          (command.track ? `[${command.track}] Stage 1 Completed` : 'Stage 1 Completed'),
         goals: command.goals ?? (command.track ? `Track: ${command.track}` : undefined),
         commitment: command.commitment ?? 'Pending (Stage 1 Completed)',
         why: command.why ?? 'Pending (Stage 1 Completed)',
@@ -136,7 +142,9 @@ export class SubmitUniversityApplicationUseCase {
     const isNewAttribution = !existing || !existing.toObject().sourceIdentifier
     if (command.sourceIdentifier && isNewAttribution) {
       this.trafficRepo.incrementConversion(command.sourceIdentifier).catch((err: any) => {
-        this.logger.warn(`Failed to increment traffic conversion for ${command.sourceIdentifier}: ${err?.message || err}`)
+        this.logger.warn(
+          `Failed to increment traffic conversion for ${command.sourceIdentifier}: ${err?.message || err}`,
+        )
       })
     }
 
@@ -147,7 +155,7 @@ export class SubmitUniversityApplicationUseCase {
       try {
         const firstName = command.name.trim().split(' ')[0] || 'there'
         const isPaidNow = saved.feeStatus === 'PAID'
-        
+
         let contentHtml = ''
         let subjectText = ''
         let buttonText = ''
@@ -187,7 +195,9 @@ export class SubmitUniversityApplicationUseCase {
 
         const html = buildGlobalLayoutHtml({
           role: 'TENANT',
-          title: isPaidNow ? 'Application & Fee Payment Received' : 'Complete Your Application Payment',
+          title: isPaidNow
+            ? 'Application & Fee Payment Received'
+            : 'Complete Your Application Payment',
           contentHtml,
           logoText: 'UPWARD',
           logoSub: 'ACADEMY',

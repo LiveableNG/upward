@@ -7,12 +7,7 @@ export type VendorPayableStatus =
   | 'HELD_FOR_DISPUTE'
   | 'VOIDED_REFUNDED'
 
-export type PayoutTransferStatus =
-  | 'INITIATED'
-  | 'SUBMITTED'
-  | 'SUCCESSFUL'
-  | 'FAILED'
-  | 'REVERSED'
+export type PayoutTransferStatus = 'INITIATED' | 'SUBMITTED' | 'SUCCESSFUL' | 'FAILED' | 'REVERSED'
 
 export interface PayoutTransferAttempt {
   id?: number

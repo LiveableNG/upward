@@ -11,7 +11,11 @@ import {
   Truck,
   Star,
 } from 'lucide-react'
-import { DataTable, type ColumnDef, type ActionItem } from '../../../components/common/table/DataTable'
+import {
+  DataTable,
+  type ColumnDef,
+  type ActionItem,
+} from '../../../components/common/table/DataTable'
 import type { Offering, CommerceVendor, OfferingType } from '../types'
 
 interface OfferingsTabProps {
@@ -108,7 +112,15 @@ export const OfferingsTab: React.FC<OfferingsTabProps> = ({
               <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                 /{offering.slug}
                 {offering.isDeliverable && (
-                  <span style={{ marginLeft: '6px', color: '#10b981', display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
+                  <span
+                    style={{
+                      marginLeft: '6px',
+                      color: '#10b981',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '2px',
+                    }}
+                  >
                     <Truck size={11} /> Deliverable
                   </span>
                 )}
@@ -127,11 +139,27 @@ export const OfferingsTab: React.FC<OfferingsTabProps> = ({
           PRODUCT: { label: 'Product', bg: 'rgba(99, 102, 241, 0.1)', color: '#6366f1' },
           SERVICE: { label: 'Service', bg: 'rgba(245, 158, 11, 0.1)', color: '#d97706' },
           SERVICE_INDIVIDUAL: { label: 'Service', bg: 'rgba(245, 158, 11, 0.1)', color: '#d97706' },
-          PACKAGE: { label: 'Bundle Package', bg: 'rgba(217, 119, 87, 0.1)', color: 'var(--accent)' },
-          BUNDLE: { label: 'Bundle Package', bg: 'rgba(217, 119, 87, 0.1)', color: 'var(--accent)' },
-          SERVICE_PACKAGE: { label: 'Bundle Package', bg: 'rgba(217, 119, 87, 0.1)', color: 'var(--accent)' },
+          PACKAGE: {
+            label: 'Bundle Package',
+            bg: 'rgba(217, 119, 87, 0.1)',
+            color: 'var(--accent)',
+          },
+          BUNDLE: {
+            label: 'Bundle Package',
+            bg: 'rgba(217, 119, 87, 0.1)',
+            color: 'var(--accent)',
+          },
+          SERVICE_PACKAGE: {
+            label: 'Bundle Package',
+            bg: 'rgba(217, 119, 87, 0.1)',
+            color: 'var(--accent)',
+          },
         }
-        const conf = typeConfig[offering.type] || { label: offering.type, bg: 'var(--surface-hover)', color: 'var(--text)' }
+        const conf = typeConfig[offering.type] || {
+          label: offering.type,
+          bg: 'var(--surface-hover)',
+          color: 'var(--text)',
+        }
         return (
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <span
@@ -175,7 +203,13 @@ export const OfferingsTab: React.FC<OfferingsTabProps> = ({
             {formatPrice(offering.price, offering.currency)}
           </div>
           {offering.compareAtPrice && offering.compareAtPrice > offering.price && (
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', textDecoration: 'line-through' }}>
+            <div
+              style={{
+                fontSize: '11px',
+                color: 'var(--text-muted)',
+                textDecoration: 'line-through',
+              }}
+            >
               {formatPrice(offering.compareAtPrice, offering.currency)}
             </div>
           )}
@@ -186,7 +220,9 @@ export const OfferingsTab: React.FC<OfferingsTabProps> = ({
       key: 'vendor',
       label: 'Merchant / Vendor',
       render: (offering) => (
-        <span style={{ fontSize: '13px', color: offering.vendor ? 'var(--text)' : 'var(--text-muted)' }}>
+        <span
+          style={{ fontSize: '13px', color: offering.vendor ? 'var(--text)' : 'var(--text-muted)' }}
+        >
           {offering.vendor?.name || 'Direct / Platform'}
         </span>
       ),
@@ -244,7 +280,9 @@ export const OfferingsTab: React.FC<OfferingsTabProps> = ({
             borderRadius: '20px',
             fontSize: '12px',
             fontWeight: 600,
-            background: offering.isPublished ? 'rgba(16, 185, 129, 0.1)' : 'rgba(100, 116, 139, 0.1)',
+            background: offering.isPublished
+              ? 'rgba(16, 185, 129, 0.1)'
+              : 'rgba(100, 116, 139, 0.1)',
             color: offering.isPublished ? '#10b981' : '#64748b',
             border: 'none',
             cursor: 'pointer',
@@ -297,7 +335,9 @@ export const OfferingsTab: React.FC<OfferingsTabProps> = ({
           flexWrap: 'wrap',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', flex: 1 }}>
+        <div
+          style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', flex: 1 }}
+        >
           <div style={{ position: 'relative', width: '280px', maxWidth: '100%' }}>
             <Search
               size={16}
@@ -322,7 +362,9 @@ export const OfferingsTab: React.FC<OfferingsTabProps> = ({
           <select
             className="input"
             value={typeFilter ?? ''}
-            onChange={(e) => onTypeFilterChange(e.target.value ? (e.target.value as OfferingType) : undefined)}
+            onChange={(e) =>
+              onTypeFilterChange(e.target.value ? (e.target.value as OfferingType) : undefined)
+            }
             style={{ width: '170px', height: '40px' }}
           >
             <option value="">All Offering Types</option>
@@ -334,7 +376,9 @@ export const OfferingsTab: React.FC<OfferingsTabProps> = ({
           <select
             className="input"
             value={vendorFilter ?? ''}
-            onChange={(e) => onVendorFilterChange(e.target.value ? Number(e.target.value) : undefined)}
+            onChange={(e) =>
+              onVendorFilterChange(e.target.value ? Number(e.target.value) : undefined)
+            }
             style={{ width: '170px', height: '40px' }}
           >
             <option value="">All Vendors</option>

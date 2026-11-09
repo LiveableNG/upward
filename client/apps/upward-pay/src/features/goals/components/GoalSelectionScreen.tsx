@@ -2,19 +2,8 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  Check,
-  ChevronLeft,
-  Loader2,
-  AlertCircle,
-  ArrowRight,
-  Target,
-} from 'lucide-react'
-import {
-  useGoalCategories,
-  useUserGoals,
-  useSetUserGoals,
-} from '../hooks/useGoals'
+import { Check, ChevronLeft, Loader2, AlertCircle, ArrowRight, Target } from 'lucide-react'
+import { useGoalCategories, useUserGoals, useSetUserGoals } from '../hooks/useGoals'
 import { getGoalTitle, getCategoryTitle } from '../types/goals.types'
 import { getGoalIconComponent } from './LifestyleDiscoveryScreen'
 import { useToast } from '@/components/common/Toast'
@@ -50,9 +39,7 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
 
   useEffect(() => {
     if (!hasInitialized && userGoals.length > 0) {
-      const activeIds = userGoals
-        .filter((ug) => ug.status === 'ACTIVE')
-        .map((ug) => ug.goalId)
+      const activeIds = userGoals.filter((ug) => ug.status === 'ACTIVE').map((ug) => ug.goalId)
       setSelectedGoalIds(new Set(activeIds))
       setHasInitialized(true)
     }
@@ -110,10 +97,7 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
 
   const isSaving = setGoalsMutation.isPending
   const selectedCount = selectedGoalIds.size
-  const totalGoalsCount = categories.reduce(
-    (acc, cat) => acc + (cat.goals?.length || 0),
-    0,
-  )
+  const totalGoalsCount = categories.reduce((acc, cat) => acc + (cat.goals?.length || 0), 0)
   const hasNoGoals = !isCategoriesLoading && !isError && totalGoalsCount === 0
 
   return (
@@ -166,9 +150,7 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
                   ) : (
                     <>
                       <span>
-                        {selectedCount > 0
-                          ? `Save & Continue (${selectedCount})`
-                          : 'Continue'}
+                        {selectedCount > 0 ? `Save & Continue (${selectedCount})` : 'Continue'}
                       </span>
                       <ArrowRight size={14} />
                     </>
@@ -207,14 +189,8 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
 
         {isError && (
           <div className="lifestyle-discovery__error-card">
-            <AlertCircle
-              size={28}
-              color="var(--error)"
-              style={{ marginBottom: '10px' }}
-            />
-            <h3 className="lifestyle-discovery__empty-title">
-              Unable to load goals
-            </h3>
+            <AlertCircle size={28} color="var(--error)" style={{ marginBottom: '10px' }} />
+            <h3 className="lifestyle-discovery__empty-title">Unable to load goals</h3>
             <p className="lifestyle-discovery__empty-desc">
               Please check your connection and try again.
             </p>
@@ -230,18 +206,17 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
 
         {hasNoGoals && (
           <div className="lifestyle-discovery__empty-state">
-            <Target size={32} color="var(--text-muted)" className="lifestyle-discovery__empty-icon" />
-            <h2 className="lifestyle-discovery__empty-title">
-              No lifestyle goals available yet
-            </h2>
+            <Target
+              size={32}
+              color="var(--text-muted)"
+              className="lifestyle-discovery__empty-icon"
+            />
+            <h2 className="lifestyle-discovery__empty-title">No lifestyle goals available yet</h2>
             <p className="lifestyle-discovery__empty-desc">
-              Goals and priority packages have not been configured for your property yet. You can proceed to your dashboard in the meantime.
+              Goals and priority packages have not been configured for your property yet. You can
+              proceed to your dashboard in the meantime.
             </p>
-            <button
-              type="button"
-              className="goal-selection__btn-primary"
-              onClick={handleSkip}
-            >
+            <button type="button" className="goal-selection__btn-primary" onClick={handleSkip}>
               <span>Go to dashboard</span>
               <ArrowRight size={14} />
             </button>
@@ -263,12 +238,8 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
                 <div className="goal-selection__grid">
                   {goals.map((goal) => {
                     const isSelected = selectedGoalIds.has(goal.id)
-                    const IconComponent = getGoalIconComponent(
-                      goal.iconName,
-                      goal.slug || cat.slug,
-                    )
-                    const goalTitle =
-                      getGoalTitle(goal) || goal.tagline || 'Lifestyle Goal'
+                    const IconComponent = getGoalIconComponent(goal.iconName, goal.slug || cat.slug)
+                    const goalTitle = getGoalTitle(goal) || goal.tagline || 'Lifestyle Goal'
                     const goalDesc = goal.tagline || goal.description
 
                     return (
@@ -277,9 +248,7 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
                         type="button"
                         role="checkbox"
                         aria-checked={isSelected}
-                        className={`goal-card ${
-                          isSelected ? 'goal-card--selected' : ''
-                        }`}
+                        className={`goal-card ${isSelected ? 'goal-card--selected' : ''}`}
                         onClick={() => toggleGoal(goal.id)}
                       >
                         <div className="goal-card__icon-box">

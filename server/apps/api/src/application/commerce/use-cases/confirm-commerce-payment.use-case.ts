@@ -1,10 +1,4 @@
-import {
-  BadRequestException,
-  Inject,
-  Injectable,
-  Logger,
-  Optional,
-} from '@nestjs/common'
+import { BadRequestException, Inject, Injectable, Logger, Optional } from '@nestjs/common'
 import {
   COMMERCE_ORDER_REPOSITORY,
   CommerceOrderRepository,
@@ -65,7 +59,9 @@ export class ConfirmCommercePaymentUseCase {
 
     // 2. Idempotency Check: if order is already CONFIRMED and PAID, return safely without duplicate transitions
     if (order.status === 'CONFIRMED' && order.paymentStatus === 'PAID') {
-      this.logger.log(`Order ${order.orderNumber} is already confirmed and paid. Idempotent success returned.`)
+      this.logger.log(
+        `Order ${order.orderNumber} is already confirmed and paid. Idempotent success returned.`,
+      )
       return {
         success: true,
         message: 'Order payment already confirmed and processed',
@@ -97,7 +93,8 @@ export class ConfirmCommercePaymentUseCase {
       })
       return {
         success: false,
-        reason: 'Order was cancelled prior to payment receipt. Marked for manual administrative review.',
+        reason:
+          'Order was cancelled prior to payment receipt. Marked for manual administrative review.',
         orderNumber: order.orderNumber,
       }
     }
@@ -134,8 +131,14 @@ export class ConfirmCommercePaymentUseCase {
     // 6. Verify currency
     const expectedCurrency = (attempt.currency || order.currency || 'NGN').toUpperCase()
     if (data.currency && data.currency.toUpperCase() !== expectedCurrency) {
-      this.logger.error(`Currency mismatch for reference ${reference}: expected ${expectedCurrency}, got ${data.currency}`)
-      await this.orderRepo.updatePaymentAttemptStatus(reference, 'CURRENCY_MISMATCH', `Expected ${expectedCurrency}`)
+      this.logger.error(
+        `Currency mismatch for reference ${reference}: expected ${expectedCurrency}, got ${data.currency}`,
+      )
+      await this.orderRepo.updatePaymentAttemptStatus(
+        reference,
+        'CURRENCY_MISMATCH',
+        `Expected ${expectedCurrency}`,
+      )
       throw new BadRequestException('Payment currency mismatch')
     }
 

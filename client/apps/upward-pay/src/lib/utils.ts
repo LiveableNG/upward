@@ -29,7 +29,7 @@ export function parseCurrencyInput(value: string): number | null {
 
 export function formatDate(date: string | number | Date | undefined | null): string {
   if (!date) return 'N/A'
-  
+
   let d: Date
   // Handle numeric strings (timestamps)
   if (typeof date === 'string' && /^\d+$/.test(date)) {
@@ -39,7 +39,7 @@ export function formatDate(date: string | number | Date | undefined | null): str
   }
 
   if (isNaN(d.getTime())) return 'Invalid Date'
-  
+
   return d.toLocaleDateString('en-NG', {
     year: 'numeric',
     month: 'long',
@@ -94,9 +94,7 @@ export function groupTransactionsByMonth<T extends { paid_at?: string }>(
   })
 
   Object.values(groups).forEach((items) => {
-    items.sort(
-      (a, b) => new Date(b.paid_at!).getTime() - new Date(a.paid_at!).getTime(),
-    )
+    items.sort((a, b) => new Date(b.paid_at!).getTime() - new Date(a.paid_at!).getTime())
   })
 
   return groups
@@ -115,12 +113,12 @@ export function generateId(prefix = ''): string {
 }
 
 export function calculateCombinedFee(netAmount: number): number {
-  if (netAmount <= 0) return 0;
-  return 2000;
+  if (netAmount <= 0) return 0
+  return 2000
 }
 export function getNetAmountFromTotal(total: number): number {
-  if (total <= 2000) return 0;
-  return total - 2000;
+  if (total <= 2000) return 0
+  return total - 2000
 }
 
 export const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
@@ -133,8 +131,10 @@ export function isValidEmail(email: string | null | undefined): boolean {
 }
 
 export function getPublicWebUrl(path?: string): string {
-  const configuredWebUrl = (process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io').replace(/\/$/, '')
-  
+  const configuredWebUrl = (
+    process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'
+  ).replace(/\/$/, '')
+
   let base = configuredWebUrl
   if (typeof window !== 'undefined') {
     const isCapacitor =
@@ -143,16 +143,21 @@ export function getPublicWebUrl(path?: string): string {
       window.location.protocol === 'ionic:' ||
       (window.location.hostname === 'localhost' && window.location.port === '')
 
-    if (!isCapacitor && window.location.origin && !window.location.origin.includes('localhost:80')) {
+    if (
+      !isCapacitor &&
+      window.location.origin &&
+      !window.location.origin.includes('localhost:80')
+    ) {
       base = window.location.origin
     }
   }
 
-  const resolvedPath = path !== undefined 
-    ? path 
-    : typeof window !== 'undefined' 
-      ? `${window.location.pathname}${window.location.search}` 
-      : ''
+  const resolvedPath =
+    path !== undefined
+      ? path
+      : typeof window !== 'undefined'
+        ? `${window.location.pathname}${window.location.search}`
+        : ''
 
   const cleanPath = resolvedPath.startsWith('/') ? resolvedPath : `/${resolvedPath}`
   return `${base}${cleanPath}`
@@ -188,4 +193,3 @@ export async function copyTextToClipboard(text: string): Promise<boolean> {
     return false
   }
 }
-

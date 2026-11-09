@@ -63,20 +63,33 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
 
             const activeRequest = Array.isArray(pendingPayments)
               ? pendingPayments.find(
-                  (p: any) =>
-                    p.userPropertyId === prop.id || p.userPropertyUuid === prop.uuid,
+                  (p: any) => p.userPropertyId === prop.id || p.userPropertyUuid === prop.uuid,
                 )
               : null
 
             const pAny = prop as any
-            const isPartial = pAny.amountRemaining && pAny.amountRemaining > 0 && pAny.amountPaid && pAny.amountPaid > 0
-            const totalRent = prop.rentAmount || (pAny.amountPaid ? pAny.amountPaid + (pAny.amountRemaining || 0) : 0)
+            const isPartial =
+              pAny.amountRemaining &&
+              pAny.amountRemaining > 0 &&
+              pAny.amountPaid &&
+              pAny.amountPaid > 0
+            const totalRent =
+              prop.rentAmount ||
+              (pAny.amountPaid ? pAny.amountPaid + (pAny.amountRemaining || 0) : 0)
             const amountPaid = pAny.amountPaid || activeRequest?.amountPaid || 0
-            const pctPaid = totalRent > 0 ? Math.min(100, Math.round((amountPaid / totalRent) * 100)) : 0
+            const pctPaid =
+              totalRent > 0 ? Math.min(100, Math.round((amountPaid / totalRent) * 100)) : 0
 
-            const rawRemaining = activeRequest?.remainingBalance ?? pAny.amountRemaining ?? (totalRent > 0 ? Math.max(0, totalRent - amountPaid) : 0)
+            const rawRemaining =
+              activeRequest?.remainingBalance ??
+              pAny.amountRemaining ??
+              (totalRent > 0 ? Math.max(0, totalRent - amountPaid) : 0)
             const remainingAmount = Math.max(0, rawRemaining)
-            const showRenewalCard = remainingAmount > 0 && pctPaid < 100 && activeRequest?.status !== 'PAID' && (isPartial || (activeRequest && activeRequest.status !== 'PAID'))
+            const showRenewalCard =
+              remainingAmount > 0 &&
+              pctPaid < 100 &&
+              activeRequest?.status !== 'PAID' &&
+              (isPartial || (activeRequest && activeRequest.status !== 'PAID'))
 
             return (
               <div
@@ -99,7 +112,10 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
                   }
                 }}
               >
-                <div className="pay-flow__card-icon pay-flow__card-icon--home" style={{ marginTop: 2 }}>
+                <div
+                  className="pay-flow__card-icon pay-flow__card-icon--home"
+                  style={{ marginTop: 2 }}
+                >
                   <Home size={20} />
                 </div>
                 <div className="pay-flow__card-body">
@@ -108,14 +124,21 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
                     {prop.isVerified ? (
                       <span className="pay-flow__badge">
                         <span className="pay-flow__badge-dot" />
-                        {prop.isPlatformLinked || prop.platformId || prop.company?.platformId ? 'Verified by External Platform' : 'Verified by Upward PM'}
+                        {prop.isPlatformLinked || prop.platformId || prop.company?.platformId
+                          ? 'Verified by External Platform'
+                          : 'Verified by Upward PM'}
                       </span>
-                    ) : (prop.isPlatformLinked || prop.platformId || prop.company?.platformId) ? (
+                    ) : prop.isPlatformLinked || prop.platformId || prop.company?.platformId ? (
                       <span className="pay-flow__badge pay-flow__badge--pending">
                         <span className="pay-flow__badge-dot pay-flow__badge-dot--pending" />
                         Pending External Verification
                       </span>
-                    ) : (pAny.pmId || pAny.pm || pAny.managerId || pAny.manager || prop.managerName || prop.companyName) ? (
+                    ) : pAny.pmId ||
+                      pAny.pm ||
+                      pAny.managerId ||
+                      pAny.manager ||
+                      prop.managerName ||
+                      prop.companyName ? (
                       <span className="pay-flow__badge pay-flow__badge--pending">
                         <span className="pay-flow__badge-dot pay-flow__badge-dot--pending" />
                         Pending PM Verification
@@ -125,13 +148,12 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
                   <div className="pay-flow__card-meta">{address}</div>
                   <div className="pay-flow__card-meta pay-flow__card-meta--muted">
                     {manager}
-                    {prop.rentAmount
-                      ? ` · ${formatCurrency(prop.rentAmount, 'NGN')}/yr`
-                      : ''}
+                    {prop.rentAmount ? ` · ${formatCurrency(prop.rentAmount, 'NGN')}/yr` : ''}
                   </div>
                   {prop.rentStartDate && prop.rentEndDate ? (
                     <div className="pay-flow__card-meta pay-flow__card-meta--muted">
-                      Tenancy Period: {formatDate(prop.rentStartDate)} - {formatDate(prop.rentEndDate)}
+                      Tenancy Period: {formatDate(prop.rentStartDate)} -{' '}
+                      {formatDate(prop.rentEndDate)}
                     </div>
                   ) : prop.rentEndDate ? (
                     <div className="pay-flow__card-meta pay-flow__card-meta--muted">
@@ -250,38 +272,122 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
                         }}
                       >
                         <span style={{ whiteSpace: 'nowrap' }}>
-                          Paid <strong style={{ color: '#1a1714', fontWeight: 600 }}>{formatCurrency(amountPaid)}</strong>
+                          Paid{' '}
+                          <strong style={{ color: '#1a1714', fontWeight: 600 }}>
+                            {formatCurrency(amountPaid)}
+                          </strong>
                         </span>
                         <span style={{ whiteSpace: 'nowrap' }}>
-                          <strong style={{ color: '#1a1714', fontWeight: 600 }}>{formatCurrency(remainingAmount)}</strong>{' '}
+                          <strong style={{ color: '#1a1714', fontWeight: 600 }}>
+                            {formatCurrency(remainingAmount)}
+                          </strong>{' '}
                           {amountPaid > 0 ? 'left' : 'due'}
                         </span>
                       </div>
                     </div>
                   )}
                   <div style={{ marginTop: 8 }}>
-                    {prop.pmManualAccount || (prop.isVerified && (prop.isManaged || prop.isPlatformLinked || prop.companyName) && prop.manualAccount) ? (
-                      <div className="pay-flow__card-meta pay-flow__card-meta--muted" style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--forest)' }}>
-                        <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--forest)', flexShrink: 0 }} />
+                    {prop.pmManualAccount ||
+                    (prop.isVerified &&
+                      (prop.isManaged || prop.isPlatformLinked || prop.companyName) &&
+                      prop.manualAccount) ? (
+                      <div
+                        className="pay-flow__card-meta pay-flow__card-meta--muted"
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          color: 'var(--forest)',
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: 6,
+                            height: 6,
+                            borderRadius: '50%',
+                            background: 'var(--forest)',
+                            flexShrink: 0,
+                          }}
+                        />
                         <span>
-                          Bank: {(prop.pmManualAccount || prop.manualAccount)?.bankName || 'Bank'} · {(prop.pmManualAccount || prop.manualAccount)?.accountNumber}
+                          Bank: {(prop.pmManualAccount || prop.manualAccount)?.bankName || 'Bank'} ·{' '}
+                          {(prop.pmManualAccount || prop.manualAccount)?.accountNumber}
                         </span>
                       </div>
-                    ) : (prop.isPlatformLinked || pAny.pmId || pAny.pm || pAny.managerId || pAny.manager || prop.managerName || prop.companyName || prop.isManaged) ? (
+                    ) : prop.isPlatformLinked ||
+                      pAny.pmId ||
+                      pAny.pm ||
+                      pAny.managerId ||
+                      pAny.manager ||
+                      prop.managerName ||
+                      prop.companyName ||
+                      prop.isManaged ? (
                       <div>
                         {prop.manualAccount ? (
-                          <div className="pay-flow__card-meta pay-flow__card-meta--muted" style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#92400e' }}>
-                            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b', flexShrink: 0 }} />
-                            <span>Bank: {prop.manualAccount.bankName || 'Bank'} · {prop.manualAccount.accountNumber} {prop.isVerified ? '' : '(Pending PM Confirmation)'}</span>
+                          <div
+                            className="pay-flow__card-meta pay-flow__card-meta--muted"
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              color: '#92400e',
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: 6,
+                                height: 6,
+                                borderRadius: '50%',
+                                background: '#f59e0b',
+                                flexShrink: 0,
+                              }}
+                            />
+                            <span>
+                              Bank: {prop.manualAccount.bankName || 'Bank'} ·{' '}
+                              {prop.manualAccount.accountNumber}{' '}
+                              {prop.isVerified ? '' : '(Pending PM Confirmation)'}
+                            </span>
                           </div>
                         ) : prop.isVerified ? (
-                          <div className="pay-flow__card-meta pay-flow__card-meta--muted" style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--error)' }}>
-                            <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--error)', flexShrink: 0 }} />
+                          <div
+                            className="pay-flow__card-meta pay-flow__card-meta--muted"
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              color: 'var(--error)',
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: 6,
+                                height: 6,
+                                borderRadius: '50%',
+                                background: 'var(--error)',
+                                flexShrink: 0,
+                              }}
+                            />
                             PM hasn&apos;t configured bank details for this property
                           </div>
                         ) : (
-                          <div className="pay-flow__card-meta pay-flow__card-meta--muted" style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#7a7268' }}>
-                            <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#d97706', flexShrink: 0 }} />
+                          <div
+                            className="pay-flow__card-meta pay-flow__card-meta--muted"
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              color: '#7a7268',
+                            }}
+                          >
+                            <div
+                              style={{
+                                width: 6,
+                                height: 6,
+                                borderRadius: '50%',
+                                background: '#d97706',
+                                flexShrink: 0,
+                              }}
+                            />
                             Linked to Property Manager (Pending Confirmation)
                           </div>
                         )}

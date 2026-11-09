@@ -16,7 +16,10 @@ export class PrismaGoalRepository implements GoalRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   // Categories
-  async findCategories(filter?: { status?: GoalPublishStatus; includeGoals?: boolean }): Promise<GoalCategory[]> {
+  async findCategories(filter?: {
+    status?: GoalPublishStatus
+    includeGoals?: boolean
+  }): Promise<GoalCategory[]> {
     const where: any = {}
     if (filter?.status) {
       where.status = filter.status
@@ -329,9 +332,7 @@ export class PrismaGoalRepository implements GoalRepository {
       const existingGoalIds = new Set(existing.map((e) => e.goalId))
 
       // Identify goals to remove (unselected)
-      const toRemove = existing
-        .map((e) => e.goalId)
-        .filter((id) => !targetSet.has(id))
+      const toRemove = existing.map((e) => e.goalId).filter((id) => !targetSet.has(id))
 
       if (toRemove.length > 0) {
         await tx.upward_user_goal.deleteMany({
@@ -512,7 +513,11 @@ export class PrismaGoalRepository implements GoalRepository {
     return created as GoalOfferingLink
   }
 
-  async unlinkOfferingFromGoal(goalId: number, offeringId: number, collectionId?: number | null): Promise<void> {
+  async unlinkOfferingFromGoal(
+    goalId: number,
+    offeringId: number,
+    collectionId?: number | null,
+  ): Promise<void> {
     await this.prisma.upward_goal_offering.deleteMany({
       where: {
         goalId,
@@ -563,4 +568,3 @@ export class PrismaGoalRepository implements GoalRepository {
     }
   }
 }
-

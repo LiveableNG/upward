@@ -27,8 +27,7 @@ export const api = {
   resetPassword: (email: string, otp: string, newPass: string) =>
     authService.resetPassword({ email, otp, new: newPass }),
   verifyResetOtp: authService.verifyResetOtp,
-  checkSlug: (slug: string) =>
-    request<any>(`/user/auth/check-slug/${slug}`, { method: 'GET' }),
+  checkSlug: (slug: string) => request<any>(`/user/auth/check-slug/${slug}`, { method: 'GET' }),
 
   // Locations
   getCountries: locationService.getCountries,
@@ -115,20 +114,21 @@ export const api = {
   getHomeLastInspection: myHomeService.getLastInspectionResult,
 
   // Public (Leaving as raw for now)
-  getPublicProfile: (slug: string) =>
-    request<any>(`/public/profile/${slug}`, { method: 'GET' }),
+  getPublicProfile: (slug: string) => request<any>(`/public/profile/${slug}`, { method: 'GET' }),
 
   // Generic Helpers
   get: <T = any>(url: string) => request<T>(url, { method: 'GET' }),
   post: <T = any>(url: string, data: any) =>
     request<T>(url, {
       method: 'POST',
-      body: typeof FormData !== 'undefined' && data instanceof FormData ? data : JSON.stringify(data),
+      body:
+        typeof FormData !== 'undefined' && data instanceof FormData ? data : JSON.stringify(data),
     }),
   patch: <T = any>(url: string, data: any) =>
     request<T>(url, {
       method: 'PATCH',
-      body: typeof FormData !== 'undefined' && data instanceof FormData ? data : JSON.stringify(data),
+      body:
+        typeof FormData !== 'undefined' && data instanceof FormData ? data : JSON.stringify(data),
     }),
   getCredibilityPdf: () =>
     import('./api-client').then((m) => m.requestBlob('/user/credibility/pdf', { method: 'GET' })),

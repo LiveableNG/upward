@@ -30,7 +30,10 @@ function sanitizeToastMessage(message: string, type: ToastType): string {
     return type === 'error' ? 'An unexpected error occurred. Please try again.' : ''
   }
 
-  let cleaned = message.replace(/https?:\/\/[^\s)]+/gi, '').replace(/\s{2,}/g, ' ').trim()
+  let cleaned = message
+    .replace(/https?:\/\/[^\s)]+/gi, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
 
   if (/timed out/i.test(cleaned)) {
     return 'Request timed out. Please check your internet connection and try again.'

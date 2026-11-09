@@ -68,8 +68,10 @@ export function useGoalManagement(token?: string) {
         queryParams.set('skip', String((page - 1) * GOALS_PAGE_SIZE))
         queryParams.set('take', String(GOALS_PAGE_SIZE))
         if (goalsSearch.trim()) queryParams.set('search', goalsSearch.trim())
-        if (goalsCategoryFilter !== undefined) queryParams.set('categoryId', String(goalsCategoryFilter))
-        if (goalsPublishedFilter !== undefined) queryParams.set('isPublished', String(goalsPublishedFilter))
+        if (goalsCategoryFilter !== undefined)
+          queryParams.set('categoryId', String(goalsCategoryFilter))
+        if (goalsPublishedFilter !== undefined)
+          queryParams.set('isPublished', String(goalsPublishedFilter))
 
         const res = await apiService.get(`/admin/goals/list?${queryParams.toString()}`, token)
         if (res && res.data) {
@@ -93,9 +95,13 @@ export function useGoalManagement(token?: string) {
   const [offeringsTotal, setOfferingsTotal] = useState(0)
   const [offeringsPage, setOfferingsPage] = useState(1)
   const [offeringsSearch, setOfferingsSearch] = useState('')
-  const [offeringsTypeFilter, setOfferingsTypeFilter] = useState<OfferingType | undefined>(undefined)
+  const [offeringsTypeFilter, setOfferingsTypeFilter] = useState<OfferingType | undefined>(
+    undefined,
+  )
   const [offeringsVendorFilter, setOfferingsVendorFilter] = useState<number | undefined>(undefined)
-  const [offeringsPublishedFilter, setOfferingsPublishedFilter] = useState<boolean | undefined>(undefined)
+  const [offeringsPublishedFilter, setOfferingsPublishedFilter] = useState<boolean | undefined>(
+    undefined,
+  )
   const [loadingOfferings, setLoadingOfferings] = useState(false)
   const OFFERINGS_PAGE_SIZE = 20
 
@@ -108,8 +114,10 @@ export function useGoalManagement(token?: string) {
         queryParams.set('take', String(OFFERINGS_PAGE_SIZE))
         if (offeringsSearch.trim()) queryParams.set('search', offeringsSearch.trim())
         if (offeringsTypeFilter) queryParams.set('type', offeringsTypeFilter)
-        if (offeringsVendorFilter !== undefined) queryParams.set('vendorId', String(offeringsVendorFilter))
-        if (offeringsPublishedFilter !== undefined) queryParams.set('isPublished', String(offeringsPublishedFilter))
+        if (offeringsVendorFilter !== undefined)
+          queryParams.set('vendorId', String(offeringsVendorFilter))
+        if (offeringsPublishedFilter !== undefined)
+          queryParams.set('isPublished', String(offeringsPublishedFilter))
 
         const res = await apiService.get(`/admin/goals/offerings?${queryParams.toString()}`, token)
         if (res && res.data) {
@@ -125,7 +133,14 @@ export function useGoalManagement(token?: string) {
         setLoadingOfferings(false)
       }
     },
-    [token, offeringsPage, offeringsSearch, offeringsTypeFilter, offeringsVendorFilter, offeringsPublishedFilter],
+    [
+      token,
+      offeringsPage,
+      offeringsSearch,
+      offeringsTypeFilter,
+      offeringsVendorFilter,
+      offeringsPublishedFilter,
+    ],
   )
 
   // 5. Vendors
@@ -139,7 +154,8 @@ export function useGoalManagement(token?: string) {
     try {
       const queryParams = new URLSearchParams()
       if (vendorsSearch.trim()) queryParams.set('search', vendorsSearch.trim())
-      if (vendorsActiveFilter !== undefined) queryParams.set('isActive', String(vendorsActiveFilter))
+      if (vendorsActiveFilter !== undefined)
+        queryParams.set('isActive', String(vendorsActiveFilter))
 
       const res = await apiService.get(`/admin/goals/vendors?${queryParams.toString()}`, token)
       if (res && res.data) {
@@ -306,7 +322,11 @@ export function useGoalManagement(token?: string) {
     }
   }
 
-  const unlinkOfferingFromGoal = async (goalId: number, offeringId: number, collectionId?: number) => {
+  const unlinkOfferingFromGoal = async (
+    goalId: number,
+    offeringId: number,
+    collectionId?: number,
+  ) => {
     try {
       const query = collectionId ? `?collectionId=${collectionId}` : ''
       await apiService.delete(`/admin/goals/${goalId}/offerings/${offeringId}${query}`, token)
@@ -365,10 +385,19 @@ export function useGoalManagement(token?: string) {
 
   const setPackageItems = async (
     packageId: number,
-    items: Array<{ componentId: number; quantity: number; isOptional?: boolean; overridePrice?: number }>,
+    items: Array<{
+      componentId: number
+      quantity: number
+      isOptional?: boolean
+      overridePrice?: number
+    }>,
   ) => {
     try {
-      const res = await apiService.put(`/admin/goals/offerings/${packageId}/package-items`, { items }, token)
+      const res = await apiService.put(
+        `/admin/goals/offerings/${packageId}/package-items`,
+        { items },
+        token,
+      )
       showToast('Package items updated')
       fetchOfferings(offeringsPage)
       return res.data

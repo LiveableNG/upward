@@ -1,11 +1,5 @@
 import React from 'react'
-import {
-  BarChart3,
-  Target,
-  FolderTree,
-  Package,
-  Store,
-} from 'lucide-react'
+import { BarChart3, Target, FolderTree, Package, Store } from 'lucide-react'
 import type { GoalTab } from '../types'
 
 interface GoalTabNavProps {

@@ -50,7 +50,9 @@ describe('Phase 1: Location Exclusivity & Delivery Coverage Engine', () => {
     })
 
     it('defaults unknown or unspecified addresses to OTHER', () => {
-      expect(DeliveryZoneResolver.resolveZoneFromAddress('Port Harcourt, Rivers State')).toBe('OTHER')
+      expect(DeliveryZoneResolver.resolveZoneFromAddress('Port Harcourt, Rivers State')).toBe(
+        'OTHER',
+      )
       expect(DeliveryZoneResolver.resolveZoneFromAddress('Ibadan, Oyo State')).toBe('OTHER')
     })
   })

@@ -1,18 +1,9 @@
-import {
-  BadRequestException,
-  Inject,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common'
+import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import {
   COMMERCE_REFUND_REPOSITORY,
   CommerceRefundRepository,
 } from '../../../../domains/commerce/commerce-refund.repository'
-import {
-  USER_REPOSITORY,
-  UserRepository,
-} from '../../../../domains/users/user.repository'
+import { USER_REPOSITORY, UserRepository } from '../../../../domains/users/user.repository'
 import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service'
 import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service'
 import { EmailService } from '../../../../shared/infrastructure/email/email.service'
@@ -158,9 +149,7 @@ export class AdminResolveCommerceDisputeUseCase {
 
       if (tenantEmail && !tenantEmail.endsWith('@upward.com')) {
         const isRefund = dto.resolutionStatus === 'RESOLVED_REFUND'
-        const titleText = isRefund
-          ? 'Complaint Resolved — Refund Approved'
-          : 'Complaint Resolved'
+        const titleText = isRefund ? 'Complaint Resolved — Refund Approved' : 'Complaint Resolved'
         const badgeColor = isRefund ? '#065F46' : '#B65B37'
         const badgeBg = isRefund ? '#EBF8F2' : '#F7ECE7'
 

@@ -72,13 +72,33 @@ export interface OfferingRepository {
   }): Promise<{ items: Offering[]; total: number }>
   findOfferingById(id: number): Promise<Offering | null>
   findOfferingByUuid(uuid: string): Promise<Offering | null>
-  createOffering(data: Partial<Offering>, media?: Array<Partial<OfferingMedia>>, packageItems?: Array<{ componentId: number; quantity: number; isOptional?: boolean; overridePrice?: number }>): Promise<Offering>
-  updateOffering(id: number, data: Partial<Offering>, media?: Array<Partial<OfferingMedia>>): Promise<Offering>
+  createOffering(
+    data: Partial<Offering>,
+    media?: Array<Partial<OfferingMedia>>,
+    packageItems?: Array<{
+      componentId: number
+      quantity: number
+      isOptional?: boolean
+      overridePrice?: number
+    }>,
+  ): Promise<Offering>
+  updateOffering(
+    id: number,
+    data: Partial<Offering>,
+    media?: Array<Partial<OfferingMedia>>,
+  ): Promise<Offering>
   deleteOffering(id: number): Promise<void>
   addMedia(offeringId: number, media: Partial<OfferingMedia>): Promise<OfferingMedia>
   removeMedia(mediaId: number): Promise<void>
-  setPackageItems(packageId: number, items: Array<{ componentId: number; quantity: number; isOptional?: boolean; overridePrice?: number }>): Promise<PackageItem[]>
+  setPackageItems(
+    packageId: number,
+    items: Array<{
+      componentId: number
+      quantity: number
+      isOptional?: boolean
+      overridePrice?: number
+    }>,
+  ): Promise<PackageItem[]>
 }
 
 export const OFFERING_REPOSITORY = Symbol('OFFERING_REPOSITORY')
-

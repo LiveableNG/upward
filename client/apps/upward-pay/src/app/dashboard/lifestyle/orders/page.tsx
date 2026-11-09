@@ -2,11 +2,7 @@
 
 import React, { Suspense, useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import {
-  OrdersListScreen,
-  OrderTrackingScreen,
-  OrdersListSkeleton,
-} from '@/features/goals'
+import { OrdersListScreen, OrderTrackingScreen, OrdersListSkeleton } from '@/features/goals'
 
 function LifestyleOrdersContent() {
   const router = useRouter()
@@ -45,4 +41,3 @@ export default function LifestyleOrdersPage() {
     </Suspense>
   )
 }
-

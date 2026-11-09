@@ -22,10 +22,25 @@ import { api } from '@/lib/api'
 import { COUNTRIES, STATES } from '@/lib/location-data'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
-import { PayFlowPrimaryButton, PayPageShell } from '@/features/dashboard/components/payment/PayPageShell'
-import { PaymentAccountForm, isPaymentAccountResolved } from '@/features/dashboard/components/payment/PaymentAccountForm'
-import { toDateInputValue, validateRentDates, calculateRentEndDate, formatDisplayDate, type LeaseDurationUnit } from '../rentalDates'
-import { deleteProofOfPayment, uploadProofOfPayment } from '@/features/payments/services/paymentService'
+import {
+  PayFlowPrimaryButton,
+  PayPageShell,
+} from '@/features/dashboard/components/payment/PayPageShell'
+import {
+  PaymentAccountForm,
+  isPaymentAccountResolved,
+} from '@/features/dashboard/components/payment/PaymentAccountForm'
+import {
+  toDateInputValue,
+  validateRentDates,
+  calculateRentEndDate,
+  formatDisplayDate,
+  type LeaseDurationUnit,
+} from '../rentalDates'
+import {
+  deleteProofOfPayment,
+  uploadProofOfPayment,
+} from '@/features/payments/services/paymentService'
 import { setupRentalListPath, useSetupMode } from '../setupPaths'
 import { PmSearchSelect } from './PmSearchSelect'
 
@@ -41,13 +56,23 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
 
   const property = (user?.properties || []).find((p) => p.uuid === propertyUuid)
 
-  const isPmVerified = !!(property?.isVerified && ((property as any)?.isManaged || (property as any)?.pmId || (property as any)?.pmUnitId))
-  const isExternalUnit = !!(((property as any)?.externalUnitId || property?.isPlatformLinked || (property as any)?.pmUnitId) && property?.isVerified)
-  
-  const onlinePayments = ((property as any)?.platformRentPayments || []).filter(
-    (p: any) => p.method !== 'INITIAL_ONBOARDING' && p.status === 'SUCCESS'
+  const isPmVerified = !!(
+    property?.isVerified &&
+    ((property as any)?.isManaged || (property as any)?.pmId || (property as any)?.pmUnitId)
   )
-  const hasPaidOnUpward = ((property as any)?.amountPaid || 0) > ((property as any)?.initialAmountPaid || 0) || onlinePayments.length > 0
+  const isExternalUnit = !!(
+    ((property as any)?.externalUnitId ||
+      property?.isPlatformLinked ||
+      (property as any)?.pmUnitId) &&
+    property?.isVerified
+  )
+
+  const onlinePayments = ((property as any)?.platformRentPayments || []).filter(
+    (p: any) => p.method !== 'INITIAL_ONBOARDING' && p.status === 'SUCCESS',
+  )
+  const hasPaidOnUpward =
+    ((property as any)?.amountPaid || 0) > ((property as any)?.initialAmountPaid || 0) ||
+    onlinePayments.length > 0
 
   const isManaged = isPmVerified || isExternalUnit
   const isRentTermsDisabled = isManaged || hasPaidOnUpward
@@ -128,7 +153,14 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
         ? `${(property as any).manager.firstName} ${(property as any).manager.lastName || ''}`.trim()
         : '')
     const cmpName = (property as any)?.companyName || (property as any)?.company?.name || ''
-    const hasLinkedPm = !!((property as any)?.pmId || (property as any)?.pm || (property as any)?.company?.uuid || (property as any)?.manager?.uuid || isPmVerified || isExternalUnit)
+    const hasLinkedPm = !!(
+      (property as any)?.pmId ||
+      (property as any)?.pm ||
+      (property as any)?.company?.uuid ||
+      (property as any)?.manager?.uuid ||
+      isPmVerified ||
+      isExternalUnit
+    )
 
     setPmEmail(mgrEmail)
     setPmName(mgrName)
@@ -139,7 +171,9 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
         id: (property as any)?.pm?.id || (property as any)?.pmId,
         name: mgrName || cmpName || 'Property Manager',
         businessName: cmpName || mgrName,
-        isExternal: !!((property as any)?.company?.platformId || (property as any)?.isPlatformLinked),
+        isExternal: !!(
+          (property as any)?.company?.platformId || (property as any)?.isPlatformLinked
+        ),
         companyUuid: (property as any)?.company?.uuid,
         managerUuid: (property as any)?.manager?.uuid,
         defaultSettlementAccount: (property as any)?.pmManualAccount || null,
@@ -153,7 +187,10 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
         ? (property as any).pmManualAccount
         : (property as any)?.pmManualAccount || (property as any)?.manualAccount
 
-    if (activePayoutAccount?.accountNumber && (activePayoutAccount?.bankCode || activePayoutAccount?.bankName)) {
+    if (
+      activePayoutAccount?.accountNumber &&
+      (activePayoutAccount?.bankCode || activePayoutAccount?.bankName)
+    ) {
       setPaymentAccount({
         accountNumber: activePayoutAccount.accountNumber,
         bankCode: activePayoutAccount.bankCode || '',
@@ -183,12 +220,7 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
   // Auto-calculate end date whenever tenancy parameters change
   useEffect(() => {
     if (rentStartDate && isHydrated) {
-      const computed = calculateRentEndDate(
-        rentStartDate,
-        rentType,
-        leaseDuration,
-        leaseUnit
-      )
+      const computed = calculateRentEndDate(rentStartDate, rentType, leaseDuration, leaseUnit)
       if (computed) {
         setRentEndDate(computed)
       }
@@ -373,9 +405,7 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
       onBack={() => router.push(returnTo || setupRentalListPath())}
       footer={
         isManaged ? (
-          <PayFlowPrimaryButton
-            onClick={() => router.push('/dashboard/help')}
-          >
+          <PayFlowPrimaryButton onClick={() => router.push('/dashboard/help')}>
             Contact support to update
           </PayFlowPrimaryButton>
         ) : (
@@ -389,7 +419,10 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
         )
       }
     >
-      <div className="setup-page__edit-grid" style={{ display: 'grid', gap: 20, width: '100%', boxSizing: 'border-box' }}>
+      <div
+        className="setup-page__edit-grid"
+        style={{ display: 'grid', gap: 20, width: '100%', boxSizing: 'border-box' }}
+      >
         {/* Managed Notice Banner */}
         {isManaged && (
           <div
@@ -407,7 +440,9 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
               boxSizing: 'border-box',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flex: 1, minWidth: 240 }}>
+            <div
+              style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flex: 1, minWidth: 240 }}
+            >
               <Lock size={20} style={{ flexShrink: 0, marginTop: 2 }} />
               <div>
                 <strong style={{ display: 'block', fontSize: 14, marginBottom: 2 }}>
@@ -416,7 +451,8 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
                     : `Verified by Upward PM (${managerLabel})`}
                 </strong>
                 <span style={{ fontSize: 13, lineHeight: 1.45, opacity: 0.9 }}>
-                  Tenancy dates, rent amounts, and payout accounts are locked because this property is verified or has active rent payments.
+                  Tenancy dates, rent amounts, and payout accounts are locked because this property
+                  is verified or has active rent payments.
                 </span>
               </div>
             </div>
@@ -442,57 +478,64 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
         )}
 
         {/* Pending Verification Notice Banner */}
-        {!isManaged && !property?.isVerified && (property?.isPlatformLinked || (property as any)?.company?.platformId) && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              padding: '14px 16px',
-              borderRadius: 14,
-              background: '#fffbeb',
-              border: '1px solid #fef3c7',
-              color: '#92400e',
-              boxSizing: 'border-box',
-            }}
-          >
-            <AlertCircle size={20} color="#b45309" style={{ flexShrink: 0 }} />
-            <div>
-              <strong style={{ display: 'block', fontSize: 13.5, marginBottom: 2 }}>
-                Pending Confirmation from External Platform ({managerLabel})
-              </strong>
-              <span style={{ fontSize: 12.5, lineHeight: 1.45, opacity: 0.9 }}>
-                Your connection request has been sent to your external platform manager. You can update your rental details below anytime until they confirm your tenancy.
-              </span>
+        {!isManaged &&
+          !property?.isVerified &&
+          (property?.isPlatformLinked || (property as any)?.company?.platformId) && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                padding: '14px 16px',
+                borderRadius: 14,
+                background: '#fffbeb',
+                border: '1px solid #fef3c7',
+                color: '#92400e',
+                boxSizing: 'border-box',
+              }}
+            >
+              <AlertCircle size={20} color="#b45309" style={{ flexShrink: 0 }} />
+              <div>
+                <strong style={{ display: 'block', fontSize: 13.5, marginBottom: 2 }}>
+                  Pending Confirmation from External Platform ({managerLabel})
+                </strong>
+                <span style={{ fontSize: 12.5, lineHeight: 1.45, opacity: 0.9 }}>
+                  Your connection request has been sent to your external platform manager. You can
+                  update your rental details below anytime until they confirm your tenancy.
+                </span>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {!isManaged && !property?.isVerified && ((property as any)?.pmId || (property as any)?.pm) && !(property?.isPlatformLinked || (property as any)?.company?.platformId) && (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-              padding: '14px 16px',
-              borderRadius: 14,
-              background: '#fffbeb',
-              border: '1px solid #fef3c7',
-              color: '#92400e',
-              boxSizing: 'border-box',
-            }}
-          >
-            <AlertCircle size={20} color="#b45309" style={{ flexShrink: 0 }} />
-            <div>
-              <strong style={{ display: 'block', fontSize: 13.5, marginBottom: 2 }}>
-                Pending Confirmation from Property Manager ({managerLabel})
-              </strong>
-              <span style={{ fontSize: 12.5, lineHeight: 1.45, opacity: 0.9 }}>
-                Your property manager has not confirmed this connection yet. You can update your rental details below anytime.
-              </span>
+        {!isManaged &&
+          !property?.isVerified &&
+          ((property as any)?.pmId || (property as any)?.pm) &&
+          !(property?.isPlatformLinked || (property as any)?.company?.platformId) && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                padding: '14px 16px',
+                borderRadius: 14,
+                background: '#fffbeb',
+                border: '1px solid #fef3c7',
+                color: '#92400e',
+                boxSizing: 'border-box',
+              }}
+            >
+              <AlertCircle size={20} color="#b45309" style={{ flexShrink: 0 }} />
+              <div>
+                <strong style={{ display: 'block', fontSize: 13.5, marginBottom: 2 }}>
+                  Pending Confirmation from Property Manager ({managerLabel})
+                </strong>
+                <span style={{ fontSize: 12.5, lineHeight: 1.45, opacity: 0.9 }}>
+                  Your property manager has not confirmed this connection yet. You can update your
+                  rental details below anytime.
+                </span>
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
         {/* Apple WWDC Fluid Segmented Tab Control */}
         <div
@@ -529,7 +572,10 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
               gap: 6,
             }}
           >
-            <Home size={15} color={activeTab === 'property' ? 'var(--skin-primary, #c2501f)' : '#7a7268'} />
+            <Home
+              size={15}
+              color={activeTab === 'property' ? 'var(--skin-primary, #c2501f)' : '#7a7268'}
+            />
             <span>Property & Terms</span>
           </button>
           <button
@@ -554,7 +600,10 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
               gap: 6,
             }}
           >
-            <CreditCard size={15} color={activeTab === 'payout' ? 'var(--skin-primary, #c2501f)' : '#7a7268'} />
+            <CreditCard
+              size={15}
+              color={activeTab === 'payout' ? 'var(--skin-primary, #c2501f)' : '#7a7268'}
+            />
             <span>Landlord & Payout</span>
           </button>
         </div>
@@ -563,14 +612,43 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
         {activeTab === 'property' && (
           <>
             {/* Section 1: Location & Address */}
-            <div className="setup-page__card" style={{ background: '#fff', borderRadius: 16, padding: 18, border: '1px solid #eae2d7', boxSizing: 'border-box', overflow: 'hidden' }}>
-              <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div
+              className="setup-page__card"
+              style={{
+                background: '#fff',
+                borderRadius: 16,
+                padding: 18,
+                border: '1px solid #eae2d7',
+                boxSizing: 'border-box',
+                overflow: 'hidden',
+              }}
+            >
+              <h3
+                style={{
+                  fontSize: 16,
+                  fontWeight: 700,
+                  margin: '0 0 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
                 <MapPin size={18} color="var(--skin-primary, #c2501f)" />
                 Location & Address
               </h3>
 
               <div className="setup-page__field" style={{ marginBottom: 14 }}>
-                <label style={{ fontSize: 13, fontWeight: 600, color: '#5c544b', marginBottom: 6, display: 'block' }}>Street address</label>
+                <label
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: '#5c544b',
+                    marginBottom: 6,
+                    display: 'block',
+                  }}
+                >
+                  Street address
+                </label>
                 <input
                   disabled={isManaged}
                   className="setup-page__input"
@@ -583,7 +661,17 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
 
               <div className="setup-page__field-row" style={{ marginBottom: 14 }}>
                 <div className="setup-page__field">
-                  <label style={{ fontSize: 13, fontWeight: 600, color: '#5c544b', marginBottom: 6, display: 'block' }}>Area</label>
+                  <label
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: '#5c544b',
+                      marginBottom: 6,
+                      display: 'block',
+                    }}
+                  >
+                    Area
+                  </label>
                   <input
                     disabled={isManaged}
                     className="setup-page__input"
@@ -594,7 +682,17 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
                   />
                 </div>
                 <div className="setup-page__field">
-                  <label style={{ fontSize: 13, fontWeight: 600, color: '#5c544b', marginBottom: 6, display: 'block' }}>State</label>
+                  <label
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: '#5c544b',
+                      marginBottom: 6,
+                      display: 'block',
+                    }}
+                  >
+                    State
+                  </label>
                   <select
                     disabled={isManaged}
                     className="setup-page__input"
@@ -611,7 +709,17 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
               </div>
 
               <div className="setup-page__field">
-                <label style={{ fontSize: 13, fontWeight: 600, color: '#5c544b', marginBottom: 6, display: 'block' }}>Country</label>
+                <label
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: '#5c544b',
+                    marginBottom: 6,
+                    display: 'block',
+                  }}
+                >
+                  Country
+                </label>
                 <select
                   disabled={isManaged}
                   className="setup-page__input"
@@ -631,15 +739,44 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
             </div>
 
             {/* Section 2: Tenancy & Rent Schedule */}
-            <div className="setup-page__card" style={{ background: '#fff', borderRadius: 16, padding: 18, border: '1px solid #eae2d7', boxSizing: 'border-box', overflow: 'hidden' }}>
-              <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div
+              className="setup-page__card"
+              style={{
+                background: '#fff',
+                borderRadius: 16,
+                padding: 18,
+                border: '1px solid #eae2d7',
+                boxSizing: 'border-box',
+                overflow: 'hidden',
+              }}
+            >
+              <h3
+                style={{
+                  fontSize: 16,
+                  fontWeight: 700,
+                  margin: '0 0 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
                 <Calendar size={18} color="var(--skin-primary, #c2501f)" />
                 Tenancy Terms
               </h3>
 
               <div className="setup-page__field-row" style={{ marginBottom: 14 }}>
                 <div className="setup-page__field">
-                  <label style={{ fontSize: 13, fontWeight: 600, color: '#5c544b', marginBottom: 6, display: 'block' }}>Rent cycle</label>
+                  <label
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: '#5c544b',
+                      marginBottom: 6,
+                      display: 'block',
+                    }}
+                  >
+                    Rent cycle
+                  </label>
                   <select
                     disabled={isRentTermsDisabled}
                     className="setup-page__input"
@@ -647,7 +784,12 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
                     onChange={(e) => {
                       const newType = e.target.value
                       setRentType(newType)
-                      const newEnd = calculateRentEndDate(rentStartDate, newType, leaseDuration, leaseUnit)
+                      const newEnd = calculateRentEndDate(
+                        rentStartDate,
+                        newType,
+                        leaseDuration,
+                        leaseUnit,
+                      )
                       if (newEnd) setRentEndDate(newEnd)
                     }}
                   >
@@ -659,7 +801,17 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
 
                 {rentType === 'Lease' && (
                   <div className="setup-page__field">
-                    <label style={{ fontSize: 13, fontWeight: 600, color: '#5c544b', marginBottom: 6, display: 'block' }}>Lease duration</label>
+                    <label
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: '#5c544b',
+                        marginBottom: 6,
+                        display: 'block',
+                      }}
+                    >
+                      Lease duration
+                    </label>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: 8 }}>
                       <input
                         disabled={isRentTermsDisabled}
@@ -671,7 +823,12 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
                         onChange={(e) => {
                           const newDur = e.target.value
                           setLeaseDuration(newDur)
-                          const newEnd = calculateRentEndDate(rentStartDate, 'Lease', newDur, leaseUnit)
+                          const newEnd = calculateRentEndDate(
+                            rentStartDate,
+                            'Lease',
+                            newDur,
+                            leaseUnit,
+                          )
                           if (newEnd) setRentEndDate(newEnd)
                         }}
                       />
@@ -682,7 +839,12 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
                         onChange={(e) => {
                           const newUnit = e.target.value as LeaseDurationUnit
                           setLeaseUnit(newUnit)
-                          const newEnd = calculateRentEndDate(rentStartDate, 'Lease', leaseDuration, newUnit)
+                          const newEnd = calculateRentEndDate(
+                            rentStartDate,
+                            'Lease',
+                            leaseDuration,
+                            newUnit,
+                          )
                           if (newEnd) setRentEndDate(newEnd)
                         }}
                       >
@@ -696,8 +858,21 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
                 )}
 
                 <div className="setup-page__field">
-                  <label style={{ fontSize: 13, fontWeight: 600, color: '#5c544b', marginBottom: 6, display: 'block' }}>
-                    {rentType === 'Monthly' ? 'Monthly' : rentType === 'Lease' ? 'Total Lease' : 'Yearly'} rent amount
+                  <label
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: '#5c544b',
+                      marginBottom: 6,
+                      display: 'block',
+                    }}
+                  >
+                    {rentType === 'Monthly'
+                      ? 'Monthly'
+                      : rentType === 'Lease'
+                        ? 'Total Lease'
+                        : 'Yearly'}{' '}
+                    rent amount
                   </label>
                   <div className="setup-page__input-row">
                     <span>₦</span>
@@ -717,10 +892,24 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
 
               <div className="setup-page__field-row">
                 <div className="setup-page__field">
-                  <label style={{ fontSize: 13, fontWeight: 600, color: '#5c544b', marginBottom: 6, display: 'block' }}>Tenancy period start</label>
+                  <label
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: '#5c544b',
+                      marginBottom: 6,
+                      display: 'block',
+                    }}
+                  >
+                    Tenancy period start
+                  </label>
                   <div
                     className={`setup-page__date-picker ${rentStartDate ? 'has-value' : ''}`}
-                    style={isRentTermsDisabled ? { opacity: 0.7, pointerEvents: 'none', background: '#f8f5f0' } : undefined}
+                    style={
+                      isRentTermsDisabled
+                        ? { opacity: 0.7, pointerEvents: 'none', background: '#f8f5f0' }
+                        : undefined
+                    }
                     onClick={() => {
                       if (isRentTermsDisabled) return
                       try {
@@ -737,7 +926,9 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
                           !rentStartDate ? 'setup-page__date-picker__text--placeholder' : ''
                         }`}
                       >
-                        {rentStartDate ? formatDisplayDate(rentStartDate) : 'Select start date (DD/MM/YYYY)'}
+                        {rentStartDate
+                          ? formatDisplayDate(rentStartDate)
+                          : 'Select start date (DD/MM/YYYY)'}
                       </span>
                     </div>
                     <div className="setup-page__date-picker__right">
@@ -764,10 +955,24 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
                 </div>
 
                 <div className="setup-page__field">
-                  <label style={{ fontSize: 13, fontWeight: 600, color: '#5c544b', marginBottom: 6, display: 'block' }}>Next rent due date</label>
+                  <label
+                    style={{
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: '#5c544b',
+                      marginBottom: 6,
+                      display: 'block',
+                    }}
+                  >
+                    Next rent due date
+                  </label>
                   <div className="setup-page__date-display">
                     <div className="setup-page__date-picker__left">
-                      <Calendar size={16} className="setup-page__date-picker__icon" style={{ opacity: 0.6 }} />
+                      <Calendar
+                        size={16}
+                        className="setup-page__date-picker__icon"
+                        style={{ opacity: 0.6 }}
+                      />
                       <span
                         className={`setup-page__date-picker__text ${
                           !rentEndDate ? 'setup-page__date-picker__text--placeholder' : ''
@@ -792,8 +997,27 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
         {activeTab === 'payout' && (
           <>
             {/* Section 1: Landlord / Property Manager Contact (FIRST) */}
-            <div className="setup-page__card" style={{ background: '#fff', borderRadius: 16, padding: 18, border: '1px solid #eae2d7', boxSizing: 'border-box', overflow: 'hidden' }}>
-              <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div
+              className="setup-page__card"
+              style={{
+                background: '#fff',
+                borderRadius: 16,
+                padding: 18,
+                border: '1px solid #eae2d7',
+                boxSizing: 'border-box',
+                overflow: 'hidden',
+              }}
+            >
+              <h3
+                style={{
+                  fontSize: 16,
+                  fontWeight: 700,
+                  margin: '0 0 6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
                 <Building2 size={18} color="var(--skin-primary, #c2501f)" />
                 Landlord or Property Manager
               </h3>
@@ -838,8 +1062,27 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
             </div>
 
             {/* Section 2: Landlord Bank Account (Directly below manager) */}
-            <div className="setup-page__card" style={{ background: '#fff', borderRadius: 16, padding: 18, border: '1px solid #eae2d7', boxSizing: 'border-box', overflow: 'hidden' }}>
-              <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div
+              className="setup-page__card"
+              style={{
+                background: '#fff',
+                borderRadius: 16,
+                padding: 18,
+                border: '1px solid #eae2d7',
+                boxSizing: 'border-box',
+                overflow: 'hidden',
+              }}
+            >
+              <h3
+                style={{
+                  fontSize: 16,
+                  fontWeight: 700,
+                  margin: '0 0 16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                }}
+              >
                 <CreditCard size={18} color="var(--skin-primary, #c2501f)" />
                 Landlord Payment Account
               </h3>

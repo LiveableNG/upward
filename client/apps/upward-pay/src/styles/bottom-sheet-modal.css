@@ -153,7 +153,9 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 150ms ease, transform 100ms ease;
+  transition:
+    background 150ms ease,
+    transform 100ms ease;
   flex-shrink: 0;
 }
 

@@ -78,7 +78,14 @@ describe('Goals Domain Use Cases', () => {
   describe('GetGoalCategoriesUseCase', () => {
     it('returns published categories by default', async () => {
       const mockCategories = [
-        { uuid: 'cat-1', slug: 'home-living', title: 'Home & Living', sortOrder: 0, status: 'PUBLISHED' as const, iconName: 'Home' },
+        {
+          uuid: 'cat-1',
+          slug: 'home-living',
+          title: 'Home & Living',
+          sortOrder: 0,
+          status: 'PUBLISHED' as const,
+          iconName: 'Home',
+        },
       ]
       mockGoalRepo.findCategories!.mockResolvedValue(mockCategories)
 
@@ -97,7 +104,15 @@ describe('Goals Domain Use Cases', () => {
     it('queries published goals with default pagination', async () => {
       const mockResult = {
         items: [
-          { uuid: 'goal-1', categoryId: 1, slug: 'redecorate-space', title: 'Redecorate my space', sortOrder: 0, status: 'PUBLISHED' as const, isFeatured: true },
+          {
+            uuid: 'goal-1',
+            categoryId: 1,
+            slug: 'redecorate-space',
+            title: 'Redecorate my space',
+            sortOrder: 0,
+            status: 'PUBLISHED' as const,
+            isFeatured: true,
+          },
         ],
         total: 1,
       }
@@ -136,7 +151,9 @@ describe('Goals Domain Use Cases', () => {
       const result = await useCase.execute('upgrade-workspace')
 
       expect(result).toEqual(mockGoal)
-      expect(mockGoalRepo.findGoalBySlug).toHaveBeenCalledWith('upgrade-workspace', { includeDetails: true })
+      expect(mockGoalRepo.findGoalBySlug).toHaveBeenCalledWith('upgrade-workspace', {
+        includeDetails: true,
+      })
     })
 
     it('throws NotFoundException if goal does not exist', async () => {
@@ -198,7 +215,10 @@ describe('Goals Domain Use Cases', () => {
 
       expect(result.progressPct).toBe(100)
       expect(result.status).toBe('COMPLETED')
-      expect(mockGoalRepo.updateUserGoal).toHaveBeenCalledWith(5, { progressPct: 100, status: 'COMPLETED' })
+      expect(mockGoalRepo.updateUserGoal).toHaveBeenCalledWith(5, {
+        progressPct: 100,
+        status: 'COMPLETED',
+      })
     })
 
     it('throws NotFoundException if user goal does not exist', async () => {

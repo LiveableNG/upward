@@ -9,8 +9,7 @@ import {
   LifestyleDiscoverySkeleton,
 } from '@/features/goals'
 
-const useIsomorphicLayoutEffect =
-  typeof window !== 'undefined' ? useLayoutEffect : useEffect
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect
 
 function LifestylePageContent() {
   const searchParams = useSearchParams()
@@ -46,4 +45,3 @@ export default function LifestyleDiscoveryPage() {
     </Suspense>
   )
 }
-

@@ -159,7 +159,9 @@ export const DeliveryZonesTable: React.FC<DeliveryZonesTableProps> = ({
               width: '34px',
               height: '34px',
               borderRadius: '8px',
-              background: zone.isDelivering ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)',
+              background: zone.isDelivering
+                ? 'rgba(16, 185, 129, 0.12)'
+                : 'rgba(239, 68, 68, 0.12)',
               color: zone.isDelivering ? '#059669' : '#DC2626',
               display: 'flex',
               alignItems: 'center',
@@ -332,13 +334,22 @@ export const DeliveryZonesTable: React.FC<DeliveryZonesTableProps> = ({
       render: (zone) => {
         const isToggling = togglingUuid === zone.uuid
         return (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+              gap: '8px',
+            }}
+          >
             <button
               type="button"
               className="btn"
               onClick={() => handleToggle(zone)}
               disabled={isToggling}
-              title={zone.isDelivering ? 'Pause delivery to this zone' : 'Resume delivery to this zone'}
+              title={
+                zone.isDelivering ? 'Pause delivery to this zone' : 'Resume delivery to this zone'
+              }
               style={{
                 padding: '6px 10px',
                 borderRadius: '6px',

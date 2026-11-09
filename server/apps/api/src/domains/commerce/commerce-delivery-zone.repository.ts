@@ -47,7 +47,11 @@ export interface CommerceDeliveryZoneRepository {
   findByTag(tag: string): Promise<CommerceDeliveryZone | null>
   create(input: CreateDeliveryZoneInput): Promise<CommerceDeliveryZone>
   update(uuid: string, input: UpdateDeliveryZoneInput): Promise<CommerceDeliveryZone>
-  toggleDelivering(uuid: string, isDelivering: boolean, pauseReason?: string | null): Promise<CommerceDeliveryZone>
+  toggleDelivering(
+    uuid: string,
+    isDelivering: boolean,
+    pauseReason?: string | null,
+  ): Promise<CommerceDeliveryZone>
   delete(uuid: string): Promise<void>
 }
 

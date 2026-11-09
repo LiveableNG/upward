@@ -2,11 +2,7 @@
 
 import React from 'react'
 import { UpwardLogo } from '../../../../components/PoweredByUpward'
-import {
-  Download,
-  ArrowLeft,
-  Share2,
-} from 'lucide-react'
+import { Download, ArrowLeft, Share2 } from 'lucide-react'
 
 export interface ReceiptData {
   uuid: string
@@ -61,7 +57,10 @@ function formatHeroDate(dateStr: string): string {
 function parseHex(hex: string) {
   let clean = hex.replace('#', '').trim()
   if (clean.length === 3) {
-    clean = clean.split('').map((c) => c + c).join('')
+    clean = clean
+      .split('')
+      .map((c) => c + c)
+      .join('')
   }
   if (clean.length !== 6) {
     return { r: 182, g: 91, b: 55 }
@@ -158,105 +157,93 @@ export default function ReceiptTemplate({
 
       <div className="receipt-overlay">
         <div className="receipt-wrapper">
-              {/* Top Actions Bar (No Print) */}
-              <header className="receipt-header no-print">
+          {/* Top Actions Bar (No Print) */}
+          <header className="receipt-header no-print">
+            <button
+              type="button"
+              className="receipt-back-btn"
+              onClick={onClose}
+              aria-label="Go back"
+            >
+              <ArrowLeft size={18} />
+            </button>
+            <h1 className="receipt-header__title">Payment Receipt</h1>
+            <div className="receipt-header__actions">
+              {onShare && (
                 <button
                   type="button"
-                  className="receipt-back-btn"
-                  onClick={onClose}
-                  aria-label="Go back"
+                  className="receipt-pill-btn"
+                  onClick={() => onShare?.()}
+                  aria-label="Share receipt"
+                  title="Share receipt"
                 >
-                  <ArrowLeft size={18} />
+                  <Share2 size={15} />
+                  <span className="receipt-pill-btn__label">Share</span>
                 </button>
-                <h1 className="receipt-header__title">Payment Receipt</h1>
-                <div className="receipt-header__actions">
-                  {onShare && (
-                    <button
-                      type="button"
-                      className="receipt-pill-btn"
-                      onClick={() => onShare?.()}
-                      aria-label="Share receipt"
-                      title="Share receipt"
-                    >
-                      <Share2 size={15} />
-                      <span className="receipt-pill-btn__label">Share</span>
-                    </button>
-                  )}
-                  {onDownload && (
-                    <button
-                      type="button"
-                      className="receipt-pill-btn receipt-pill-btn--primary"
-                      onClick={() => onDownload?.()}
-                      aria-label="Download receipt PDF"
-                      title="Download receipt PDF"
-                    >
-                      <Download size={15} />
-                      <span className="receipt-pill-btn__label">Download</span>
-                    </button>
-                  )}
-                  {!onShare && !onDownload && <div className="receipt-header__spacer" />}
-                </div>
-              </header>
+              )}
+              {onDownload && (
+                <button
+                  type="button"
+                  className="receipt-pill-btn receipt-pill-btn--primary"
+                  onClick={() => onDownload?.()}
+                  aria-label="Download receipt PDF"
+                  title="Download receipt PDF"
+                >
+                  <Download size={15} />
+                  <span className="receipt-pill-btn__label">Download</span>
+                </button>
+              )}
+              {!onShare && !onDownload && <div className="receipt-header__spacer" />}
+            </div>
+          </header>
 
-              {/* Printable Card Area */}
-              <div id="receipt-printable" className="receipt" style={themeStyles}>
-                {/* Hero Section */}
-                <div className="hero">
-                  <div className="brand">
-                    {receipt.companyLogo ? (
-                      <img
-                        src={receipt.companyLogo}
-                        alt={receipt.companyName || 'Brand'}
-                        className="brand-logo"
-                      />
-                    ) : (receipt.companyName || 'Upward').toUpperCase() === 'UPWARD' ? (
-                      <UpwardLogo size={22} color="#FBF3EE" className="brand-svg" />
-                    ) : null}
-                    <span className="brand-name">{receipt.companyName || 'Upward'}</span>
-                  </div>
+          {/* Printable Card Area */}
+          <div id="receipt-printable" className="receipt" style={themeStyles}>
+            {/* Hero Section */}
+            <div className="hero">
+              <div className="brand">
+                {receipt.companyLogo ? (
+                  <img
+                    src={receipt.companyLogo}
+                    alt={receipt.companyName || 'Brand'}
+                    className="brand-logo"
+                  />
+                ) : (receipt.companyName || 'Upward').toUpperCase() === 'UPWARD' ? (
+                  <UpwardLogo size={22} color="#FBF3EE" className="brand-svg" />
+                ) : null}
+                <span className="brand-name">{receipt.companyName || 'Upward'}</span>
+              </div>
 
-                  <div className="hero-label">Amount received</div>
-                  <div className="hero-amount">
-                    {formatMoney(receipt.amount, receipt.currency)}
-                  </div>
+              <div className="hero-label">Amount received</div>
+              <div className="hero-amount">{formatMoney(receipt.amount, receipt.currency)}</div>
 
-                  <div className="hero-foot">
-                    <span className="status-pill">
-                      {isPartial ? 'Partial payment' : 'Paid in full'}
-                    </span>
-                    <span className="hero-time">
-                      {formatHeroDate(receipt.paidAt)}
-                    </span>
-                  </div>
-                </div>
+              <div className="hero-foot">
+                <span className="status-pill">
+                  {isPartial ? 'Partial payment' : 'Paid in full'}
+                </span>
+                <span className="hero-time">{formatHeroDate(receipt.paidAt)}</span>
+              </div>
+            </div>
 
-                {/* 2x2 Inset Summary Stats */}
-                <div className="stats">
-                  <div className="stat">
-                    <div className="stat-label">{statCardLabel}</div>
-                    <div className="stat-value">
-                      {formatMoney(totalRent, receipt.currency)}
-                    </div>
-                  </div>
-                  <div className="stat">
-                    <div className="stat-label">Paid so far</div>
-                    <div className="stat-value">
-                      {formatMoney(totalPaid, receipt.currency)}
-                    </div>
-                  </div>
-                  <div className="stat highlight">
-                    <div className="stat-label">This payment</div>
-                    <div className="stat-value">
-                      {formatMoney(receipt.amount, receipt.currency)}
-                    </div>
-                  </div>
-                  <div className="stat">
-                    <div className="stat-label">Balance remaining</div>
-                    <div className="stat-value">
-                      {formatMoney(balanceRemaining, receipt.currency)}
-                    </div>
-                  </div>
-                </div>
+            {/* 2x2 Inset Summary Stats */}
+            <div className="stats">
+              <div className="stat">
+                <div className="stat-label">{statCardLabel}</div>
+                <div className="stat-value">{formatMoney(totalRent, receipt.currency)}</div>
+              </div>
+              <div className="stat">
+                <div className="stat-label">Paid so far</div>
+                <div className="stat-value">{formatMoney(totalPaid, receipt.currency)}</div>
+              </div>
+              <div className="stat highlight">
+                <div className="stat-label">This payment</div>
+                <div className="stat-value">{formatMoney(receipt.amount, receipt.currency)}</div>
+              </div>
+              <div className="stat">
+                <div className="stat-label">Balance remaining</div>
+                <div className="stat-value">{formatMoney(balanceRemaining, receipt.currency)}</div>
+              </div>
+            </div>
 
             {/* Payment Breakdown Section */}
             <section className="receipt-section">
@@ -311,23 +298,17 @@ export default function ReceiptTemplate({
 
                 <div>
                   <div className="detail-label">Recipient / Landlord</div>
-                  <div className="detail-value">
-                    {receipt.companyName || 'Landlord'}
-                  </div>
+                  <div className="detail-value">{receipt.companyName || 'Landlord'}</div>
                 </div>
 
                 <div>
                   <div className="detail-label">Payment channel</div>
-                  <div className="detail-value">
-                    {receipt.channel || 'Paystack'}
-                  </div>
+                  <div className="detail-value">{receipt.channel || 'Paystack'}</div>
                 </div>
 
                 <div className="full">
                   <div className="detail-label">Reference</div>
-                  <div className="detail-value mono">
-                    {receipt.paystackReference}
-                  </div>
+                  <div className="detail-value mono">{receipt.paystackReference}</div>
                 </div>
               </div>
             </section>
@@ -350,27 +331,34 @@ export default function ReceiptTemplate({
 
       <style jsx>{`
         :global(:root) {
-          --paper: #FFFFFF;
-          --ink: #211C18;
-          --ink-muted: #7A7268;
-          --ink-faint: #B8B0A5;
-          --clay: #B65B37;
-          --clay-deep: #8C4327;
-          --clay-tint: #F3E4DC;
-          --line: #ECE5DC;
-          --stripe: #FAF8F5;
+          --paper: #ffffff;
+          --ink: #211c18;
+          --ink-muted: #7a7268;
+          --ink-faint: #b8b0a5;
+          --clay: #b65b37;
+          --clay-deep: #8c4327;
+          --clay-tint: #f3e4dc;
+          --line: #ece5dc;
+          --stripe: #faf8f5;
           --shadow: rgba(33, 28, 24, 0.08);
         }
 
         .receipt-overlay {
-          background: var(--shell-page-bg, #FAF9F5);
+          background: var(--shell-page-bg, #faf9f5);
           min-height: 100vh;
           min-height: 100dvh;
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-family:
+            'Inter',
+            -apple-system,
+            BlinkMacSystemFont,
+            'Segoe UI',
+            Roboto,
+            sans-serif;
           color: var(--ink);
           display: flex;
           justify-content: center;
-          padding: max(16px, env(safe-area-inset-top, 16px)) 16px max(40px, env(safe-area-inset-bottom, 24px));
+          padding: max(16px, env(safe-area-inset-top, 16px)) 16px
+            max(40px, env(safe-area-inset-bottom, 24px));
         }
 
         .receipt-wrapper {
@@ -399,11 +387,13 @@ export default function ReceiptTemplate({
           width: 40px;
           height: 40px;
           border-radius: 50%;
-          background: #FFFFFF;
-          border: 1px solid #ECE5DC;
+          background: #ffffff;
+          border: 1px solid #ece5dc;
           color: var(--ink);
           cursor: pointer;
-          transition: transform 0.1s ease, background 0.15s ease;
+          transition:
+            transform 0.1s ease,
+            background 0.15s ease;
           box-shadow: 0 1px 3px rgba(33, 28, 24, 0.04);
           flex-shrink: 0;
           -webkit-appearance: none;
@@ -412,7 +402,7 @@ export default function ReceiptTemplate({
 
         .receipt-back-btn:active {
           transform: scale(0.94);
-          background: #F3EFEA;
+          background: #f3efea;
         }
 
         .receipt-header__title {
@@ -440,15 +430,17 @@ export default function ReceiptTemplate({
           align-items: center;
           justify-content: center;
           gap: 6px;
-          background: #FFFFFF;
-          border: 1px solid #ECE5DC;
+          background: #ffffff;
+          border: 1px solid #ece5dc;
           color: var(--ink);
           padding: 8px 14px;
           border-radius: 9999px;
           font-size: 13px;
           font-weight: 500;
           cursor: pointer;
-          transition: transform 0.1s ease, background 0.15s ease;
+          transition:
+            transform 0.1s ease,
+            background 0.15s ease;
           box-shadow: 0 1px 3px rgba(33, 28, 24, 0.04);
           -webkit-appearance: none;
           appearance: none;
@@ -457,12 +449,12 @@ export default function ReceiptTemplate({
 
         .receipt-pill-btn:active {
           transform: scale(0.96);
-          background: #F3EFEA;
+          background: #f3efea;
         }
 
         .receipt-pill-btn--primary {
           background: var(--clay);
-          color: #FFFFFF;
+          color: #ffffff;
           border-color: var(--clay);
           box-shadow: 0 2px 8px rgba(182, 91, 55, 0.25);
         }
@@ -478,17 +470,19 @@ export default function ReceiptTemplate({
 
         .receipt {
           width: 100%;
-          background: #FFFFFF;
-          border: 1px solid #ECE5DC;
+          background: #ffffff;
+          border: 1px solid #ece5dc;
           border-radius: 22px;
           overflow: hidden;
-          box-shadow: 0 10px 30px -10px rgba(33, 28, 24, 0.08), 0 2px 6px -1px rgba(33, 28, 24, 0.03);
+          box-shadow:
+            0 10px 30px -10px rgba(33, 28, 24, 0.08),
+            0 2px 6px -1px rgba(33, 28, 24, 0.03);
         }
 
         .hero {
           padding: 30px 24px 32px;
           background: linear-gradient(155deg, var(--clay) 0%, var(--clay-deep) 100%);
-          color: #FBF3EE;
+          color: #fbf3ee;
           position: relative;
         }
 
@@ -535,7 +529,7 @@ export default function ReceiptTemplate({
           font-weight: 500;
           line-height: 1.1;
           letter-spacing: -0.01em;
-          color: #FFFFFF;
+          color: #ffffff;
           word-break: break-word;
         }
 
@@ -557,7 +551,7 @@ export default function ReceiptTemplate({
           border: 1px solid rgba(255, 255, 255, 0.28);
           font-size: 12.5px;
           font-weight: 500;
-          color: #FFFFFF;
+          color: #ffffff;
           backdrop-filter: blur(4px);
         }
 
@@ -571,15 +565,15 @@ export default function ReceiptTemplate({
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 1px;
-          background: #ECE5DC;
+          background: #ece5dc;
           margin: 20px 24px 0;
-          border: 1px solid #ECE5DC;
+          border: 1px solid #ece5dc;
           border-radius: 14px;
           overflow: hidden;
         }
 
         .stat {
-          background: #FAF8F5;
+          background: #faf8f5;
           padding: 14px 16px;
         }
 
@@ -631,7 +625,7 @@ export default function ReceiptTemplate({
         td {
           padding: 10px 0;
           vertical-align: middle;
-          border-bottom: 1px solid #F3EFEA;
+          border-bottom: 1px solid #f3efea;
         }
 
         td:first-child {
@@ -719,7 +713,8 @@ export default function ReceiptTemplate({
 
         @media (max-width: 480px) {
           .receipt-overlay {
-            padding: max(12px, env(safe-area-inset-top, 12px)) 12px max(32px, env(safe-area-inset-bottom, 24px));
+            padding: max(12px, env(safe-area-inset-top, 12px)) 12px
+              max(32px, env(safe-area-inset-bottom, 24px));
           }
           .receipt-header {
             gap: 8px;
@@ -873,13 +868,20 @@ export function ReceiptSkeleton({ onClose }: { onClose?: () => void }) {
 
       <style jsx>{`
         .receipt-overlay {
-          background: var(--shell-page-bg, #FAF9F5);
+          background: var(--shell-page-bg, #faf9f5);
           min-height: 100vh;
           min-height: 100dvh;
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-family:
+            'Inter',
+            -apple-system,
+            BlinkMacSystemFont,
+            'Segoe UI',
+            Roboto,
+            sans-serif;
           display: flex;
           justify-content: center;
-          padding: max(16px, env(safe-area-inset-top, 16px)) 16px max(40px, env(safe-area-inset-bottom, 24px));
+          padding: max(16px, env(safe-area-inset-top, 16px)) 16px
+            max(40px, env(safe-area-inset-bottom, 24px));
         }
 
         .receipt-wrapper {
@@ -908,9 +910,9 @@ export function ReceiptSkeleton({ onClose }: { onClose?: () => void }) {
           width: 40px;
           height: 40px;
           border-radius: 50%;
-          background: #FFFFFF;
-          border: 1px solid #ECE5DC;
-          color: #211C18;
+          background: #ffffff;
+          border: 1px solid #ece5dc;
+          color: #211c18;
           cursor: pointer;
           box-shadow: 0 1px 3px rgba(33, 28, 24, 0.04);
           flex-shrink: 0;
@@ -921,7 +923,7 @@ export function ReceiptSkeleton({ onClose }: { onClose?: () => void }) {
         .receipt-header__title {
           font-size: 16px;
           font-weight: 600;
-          color: #211C18;
+          color: #211c18;
           margin: 0;
           text-align: center;
           flex: 1;
@@ -937,11 +939,13 @@ export function ReceiptSkeleton({ onClose }: { onClose?: () => void }) {
 
         .receipt {
           width: 100%;
-          background: #FFFFFF;
-          border: 1px solid #ECE5DC;
+          background: #ffffff;
+          border: 1px solid #ece5dc;
           border-radius: 22px;
           overflow: hidden;
-          box-shadow: 0 10px 30px -10px rgba(33, 28, 24, 0.08), 0 2px 6px -1px rgba(33, 28, 24, 0.03);
+          box-shadow:
+            0 10px 30px -10px rgba(33, 28, 24, 0.08),
+            0 2px 6px -1px rgba(33, 28, 24, 0.03);
         }
 
         .hero--skeleton {
@@ -956,9 +960,15 @@ export function ReceiptSkeleton({ onClose }: { onClose?: () => void }) {
         }
 
         @keyframes sk-shimmer {
-          0% { opacity: 0.5; }
-          50% { opacity: 0.95; }
-          100% { opacity: 0.5; }
+          0% {
+            opacity: 0.5;
+          }
+          50% {
+            opacity: 0.95;
+          }
+          100% {
+            opacity: 0.5;
+          }
         }
 
         .sk-box--brand {
@@ -1001,27 +1011,27 @@ export function ReceiptSkeleton({ onClose }: { onClose?: () => void }) {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 1px;
-          background: #ECE5DC;
+          background: #ece5dc;
           margin: 20px 24px 0;
-          border: 1px solid #ECE5DC;
+          border: 1px solid #ece5dc;
           border-radius: 14px;
           overflow: hidden;
         }
 
         .stat {
-          background: #FAF8F5;
+          background: #faf8f5;
           padding: 14px 16px;
         }
 
         .sk-box--stat-label {
-          background: #E8E2D9;
+          background: #e8e2d9;
           width: 60px;
           height: 11px;
           margin-bottom: 8px;
         }
 
         .sk-box--stat-val {
-          background: #D8D0C5;
+          background: #d8d0c5;
           width: 100px;
           height: 16px;
         }
@@ -1031,14 +1041,14 @@ export function ReceiptSkeleton({ onClose }: { onClose?: () => void }) {
         }
 
         .sk-box--sec-title {
-          background: #E8E2D9;
+          background: #e8e2d9;
           width: 130px;
           height: 14px;
           margin-bottom: 16px;
         }
 
         .sk-box--line {
-          background: #F0EAE1;
+          background: #f0eae1;
           width: 100%;
           height: 16px;
           margin-bottom: 12px;
@@ -1055,14 +1065,14 @@ export function ReceiptSkeleton({ onClose }: { onClose?: () => void }) {
         }
 
         .sk-box--detail-label {
-          background: #E8E2D9;
+          background: #e8e2d9;
           width: 70px;
           height: 11px;
           margin-bottom: 6px;
         }
 
         .sk-box--detail-val {
-          background: #F0EAE1;
+          background: #f0eae1;
           width: 120px;
           height: 14px;
         }
@@ -1070,27 +1080,28 @@ export function ReceiptSkeleton({ onClose }: { onClose?: () => void }) {
         .receipt-footer {
           margin-top: 24px;
           padding: 20px 24px 24px;
-          border-top: 1px solid #ECE5DC;
+          border-top: 1px solid #ece5dc;
           display: flex;
           justify-content: space-between;
           align-items: center;
         }
 
         .sk-box--foot-note {
-          background: #E8E2D9;
+          background: #e8e2d9;
           width: 140px;
           height: 12px;
         }
 
         .sk-box--foot-mark {
-          background: #E8E2D9;
+          background: #e8e2d9;
           width: 60px;
           height: 12px;
         }
 
         @media (max-width: 480px) {
           .receipt-overlay {
-            padding: max(12px, env(safe-area-inset-top, 12px)) 12px max(32px, env(safe-area-inset-bottom, 24px));
+            padding: max(12px, env(safe-area-inset-top, 12px)) 12px
+              max(32px, env(safe-area-inset-bottom, 24px));
           }
           .receipt-header {
             gap: 8px;

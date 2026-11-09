@@ -23,11 +23,7 @@ import {
   CreateGoalCategoryDto,
   UpdateGoalCategoryDto,
 } from '../../../application/goals/dto/goal-category.dto'
-import {
-  CreateGoalDto,
-  GoalQueryDto,
-  UpdateGoalDto,
-} from '../../../application/goals/dto/goal.dto'
+import { CreateGoalDto, GoalQueryDto, UpdateGoalDto } from '../../../application/goals/dto/goal.dto'
 import {
   CreateGoalCollectionDto,
   LinkOfferingDto,
@@ -39,10 +35,7 @@ import {
   PackageItemInputDto,
   UpdateOfferingDto,
 } from '../../../application/goals/dto/offering.dto'
-import {
-  CreateVendorDto,
-  UpdateVendorDto,
-} from '../../../application/goals/dto/vendor.dto'
+import { CreateVendorDto, UpdateVendorDto } from '../../../application/goals/dto/vendor.dto'
 
 @Controller('admin/goals')
 @UseGuards(AdminJwtAuthGuard)
@@ -225,10 +218,7 @@ export class AdminGoalsController {
 
   @Put('offerings/:id/package-items')
   @HttpCode(HttpStatus.OK)
-  async setPackageItems(
-    @Param('id') id: string,
-    @Body('items') items: PackageItemInputDto[],
-  ) {
+  async setPackageItems(@Param('id') id: string, @Body('items') items: PackageItemInputDto[]) {
     const mappedItems = (items || []).map((item) => ({
       componentId: item.componentId,
       quantity: item.quantity ?? 1,

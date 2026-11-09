@@ -100,11 +100,12 @@ export const OfferingDetailModal: React.FC<OfferingDetailModalProps> = ({
 
   const TypeIcon = getTypeIcon(offering.type)
   const title = offering.title || offering.name || 'Untitled Item'
-  const images = offering.media && offering.media.length > 0
-    ? offering.media.map((m) => m.mediaUrl)
-    : offering.imageUrl
-    ? [offering.imageUrl]
-    : []
+  const images =
+    offering.media && offering.media.length > 0
+      ? offering.media.map((m) => m.mediaUrl)
+      : offering.imageUrl
+        ? [offering.imageUrl]
+        : []
 
   const activeImage = images[selectedImageIndex] || null
   const packageItems = offering.packageItems || []
@@ -118,14 +119,13 @@ export const OfferingDetailModal: React.FC<OfferingDetailModalProps> = ({
       aria-labelledby="offering-modal-title"
       onClick={onClose}
     >
-      <div
-        className="offering-modal__container"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="offering-modal__container" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="offering-modal__header">
           <div className="offering-modal__header-badges">
-            <span className={`offering-card__type-badge offering-card__type-badge--${offering.type.toLowerCase()}`}>
+            <span
+              className={`offering-card__type-badge offering-card__type-badge--${offering.type.toLowerCase()}`}
+            >
               <TypeIcon size={13} strokeWidth={2.4} />
               <span>{offering.type}</span>
             </span>
@@ -152,11 +152,7 @@ export const OfferingDetailModal: React.FC<OfferingDetailModalProps> = ({
             <div className="offering-modal__main-image-wrap">
               {activeImage ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={activeImage}
-                  alt={title}
-                  className="offering-modal__main-image"
-                />
+                <img src={activeImage} alt={title} className="offering-modal__main-image" />
               ) : (
                 <div className="offering-modal__placeholder-image">
                   <TypeIcon size={54} strokeWidth={1.5} />
@@ -189,9 +185,7 @@ export const OfferingDetailModal: React.FC<OfferingDetailModalProps> = ({
               {title}
             </h2>
 
-            {offering.subtitle && (
-              <p className="offering-modal__subtitle">{offering.subtitle}</p>
-            )}
+            {offering.subtitle && <p className="offering-modal__subtitle">{offering.subtitle}</p>}
 
             <div className="offering-modal__pricing-box">
               <div>
@@ -218,7 +212,9 @@ export const OfferingDetailModal: React.FC<OfferingDetailModalProps> = ({
           {/* Package / Bundle Items breakdown */}
           {packageItems.length > 0 && (
             <div className="offering-modal__section">
-              <h3 className="offering-modal__section-heading">Package Components ({packageItems.length})</h3>
+              <h3 className="offering-modal__section-heading">
+                Package Components ({packageItems.length})
+              </h3>
               <div className="offering-modal__package-items">
                 {packageItems.map((pkgItem, idx) => {
                   const comp = pkgItem.component || pkgItem.itemOffering
@@ -299,14 +295,9 @@ export const OfferingDetailModal: React.FC<OfferingDetailModalProps> = ({
                   </div>
                   <div>
                     <div className="offering-modal__vendor-title-row">
-                      <span className="offering-modal__vendor-name">
-                        {offering.vendor.name}
-                      </span>
+                      <span className="offering-modal__vendor-name">{offering.vendor.name}</span>
                       {offering.vendor.isVerified && (
-                        <ShieldCheck
-                          size={15}
-                          className="offering-modal__vendor-verified"
-                        />
+                        <ShieldCheck size={15} className="offering-modal__vendor-verified" />
                       )}
                     </div>
                     <span className="offering-modal__vendor-view-link">
@@ -338,7 +329,8 @@ export const OfferingDetailModal: React.FC<OfferingDetailModalProps> = ({
           <div className="offering-modal__notice">
             <Info size={16} className="offering-modal__notice-icon" />
             <p className="offering-modal__notice-text">
-              Direct ordering and booking for lifestyle products and services will be enabled in an upcoming release. In the meantime, you can connect directly with verified merchants.
+              Direct ordering and booking for lifestyle products and services will be enabled in an
+              upcoming release. In the meantime, you can connect directly with verified merchants.
             </p>
           </div>
         </div>
@@ -354,11 +346,7 @@ export const OfferingDetailModal: React.FC<OfferingDetailModalProps> = ({
               Contact Verified Merchant
             </button>
           )}
-          <button
-            type="button"
-            className="offering-modal__dismiss-btn"
-            onClick={onClose}
-          >
+          <button type="button" className="offering-modal__dismiss-btn" onClick={onClose}>
             Close
           </button>
         </div>

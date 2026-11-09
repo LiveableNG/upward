@@ -13,18 +13,20 @@
   border-radius: 9999px;
   padding: 4px 6px;
   z-index: 1000;
-  
+
   /* Frosted Warm Milk Glass - Harmonious with Upward #FAF9F5 */
   background: rgba(255, 255, 255, 0.88);
   -webkit-backdrop-filter: blur(24px) saturate(190%);
   backdrop-filter: blur(24px) saturate(190%);
   border: 1.5px solid rgba(235, 228, 218, 0.9);
-  box-shadow: 
+  box-shadow:
     0 12px 32px -4px rgba(60, 42, 28, 0.1),
     0 2px 8px rgba(60, 42, 28, 0.04),
     inset 0 1px 1px 0 rgba(255, 255, 255, 0.95);
-  
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+
+  transition:
+    transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.2s ease;
   user-select: none;
   -webkit-user-select: none;
 }
@@ -56,15 +58,17 @@
   border-radius: 9999px;
   pointer-events: none;
   z-index: 1;
-  
+
   /* Spring motion */
-  transition: transform 300ms cubic-bezier(0.18, 0.9, 0.25, 1), width 260ms cubic-bezier(0.18, 0.9, 0.25, 1);
+  transition:
+    transform 300ms cubic-bezier(0.18, 0.9, 0.25, 1),
+    width 260ms cubic-bezier(0.18, 0.9, 0.25, 1);
   will-change: transform, width;
 
   /* Crisp Elevated White Pill matching Upward card surfaces */
-  background: #FFFFFF;
+  background: #ffffff;
   border: 1px solid rgba(230, 220, 208, 0.9);
-  box-shadow: 
+  box-shadow:
     0 3px 10px -1px rgba(60, 42, 28, 0.08),
     0 1px 3px rgba(60, 42, 28, 0.04),
     inset 0 1px 1px 0 rgba(255, 255, 255, 1);
@@ -74,7 +78,7 @@
 .bottom-nav__liquid-lens--dragging {
   transition: none !important;
   transform-origin: center;
-  box-shadow: 
+  box-shadow:
     0 6px 18px -1px rgba(60, 42, 28, 0.14),
     0 2px 6px rgba(60, 42, 28, 0.06),
     inset 0 1px 1px 0 rgba(255, 255, 255, 1);
@@ -99,18 +103,20 @@
   gap: 3px;
   padding: 6px 0;
   text-decoration: none;
-  color: var(--text-muted, #8F857A);
+  color: var(--text-muted, #8f857a);
   position: relative;
   z-index: 2;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
-  transition: transform 120ms cubic-bezier(0.2, 0.9, 0.3, 1), color 150ms ease;
+  transition:
+    transform 120ms cubic-bezier(0.2, 0.9, 0.3, 1),
+    color 150ms ease;
 }
 
 /* Active and Hover tab states: Upward Clay */
 .bottom-nav--fluid-dock .bottom-nav__item--active,
 .bottom-nav--fluid-dock .bottom-nav__item--hovered {
-  color: var(--clay, #B65B37);
+  color: var(--clay, #b65b37);
 }
 
 .bottom-nav--fluid-dock .bottom-nav__icon-pill {
@@ -129,15 +135,17 @@
   align-items: center;
   justify-content: center;
   line-height: 0;
-  color: var(--text-muted, #8F857A);
-  transition: transform 150ms cubic-bezier(0.2, 0.9, 0.3, 1), color 150ms ease;
+  color: var(--text-muted, #8f857a);
+  transition:
+    transform 150ms cubic-bezier(0.2, 0.9, 0.3, 1),
+    color 150ms ease;
 }
 
 /* Item pop when hovered / active under the lens */
 .bottom-nav--fluid-dock .bottom-nav__item--active .bottom-nav__icon,
 .bottom-nav--fluid-dock .bottom-nav__item--hovered .bottom-nav__icon {
   transform: scale(1.06);
-  color: var(--clay, #B65B37);
+  color: var(--clay, #b65b37);
 }
 
 .bottom-nav--fluid-dock .bottom-nav__label {
@@ -145,13 +153,15 @@
   font-weight: 500;
   letter-spacing: -0.01em;
   line-height: 1;
-  color: var(--text-muted, #8F857A);
-  transition: color 150ms ease, font-weight 150ms ease;
+  color: var(--text-muted, #8f857a);
+  transition:
+    color 150ms ease,
+    font-weight 150ms ease;
 }
 
 .bottom-nav--fluid-dock .bottom-nav__item--active .bottom-nav__label,
 .bottom-nav--fluid-dock .bottom-nav__item--hovered .bottom-nav__label {
-  color: var(--clay, #B65B37);
+  color: var(--clay, #b65b37);
   font-weight: 700;
 }
 

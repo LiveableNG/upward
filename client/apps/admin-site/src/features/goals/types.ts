@@ -1,6 +1,12 @@
 export type GoalTab = 'OVERVIEW' | 'GOALS' | 'CATEGORIES' | 'OFFERINGS' | 'VENDORS'
 
-export type OfferingType = 'PRODUCT' | 'SERVICE' | 'PACKAGE' | 'BUNDLE' | 'SERVICE_INDIVIDUAL' | 'SERVICE_PACKAGE'
+export type OfferingType =
+  | 'PRODUCT'
+  | 'SERVICE'
+  | 'PACKAGE'
+  | 'BUNDLE'
+  | 'SERVICE_INDIVIDUAL'
+  | 'SERVICE_PACKAGE'
 
 export interface GoalCategory {
   id: number

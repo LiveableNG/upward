@@ -48,7 +48,11 @@ function formatDate(dateStr: string): string {
   }
 }
 
-function getStatusBadge(status: CustomerFulfilmentStatus, isService: boolean, paymentStatus?: string) {
+function getStatusBadge(
+  status: CustomerFulfilmentStatus,
+  isService: boolean,
+  paymentStatus?: string,
+) {
   if (paymentStatus && paymentStatus !== 'PAID') {
     return {
       label: 'Awaiting Payment',
@@ -113,11 +117,13 @@ function getStatusBadge(status: CustomerFulfilmentStatus, isService: boolean, pa
 }
 
 export function OrdersListSkeleton({ onBack }: { onBack?: () => void }) {
-  const handleBack = onBack || (() => {
-    if (typeof window !== 'undefined' && window.history.length > 1) {
-      window.history.back()
-    }
-  })
+  const handleBack =
+    onBack ||
+    (() => {
+      if (typeof window !== 'undefined' && window.history.length > 1) {
+        window.history.back()
+      }
+    })
 
   return (
     <div className="orders-hub">
@@ -194,7 +200,9 @@ export function OrdersListScreen() {
         </button>
         <div className="orders-hub__header-text">
           <h1 className="orders-hub__title">My Orders & Fulfillment</h1>
-          <p className="orders-hub__subtitle">Track live delivery progress, view timeline updates and download official receipts</p>
+          <p className="orders-hub__subtitle">
+            Track live delivery progress, view timeline updates and download official receipts
+          </p>
         </div>
       </header>
 
@@ -274,9 +282,7 @@ export function OrdersListScreen() {
                       <span className="orders-hub__dot">·</span>
                       <span className="orders-hub__date">{formatDate(order.createdAt)}</span>
                     </div>
-                    <span className={`orders-hub__badge ${badge.className}`}>
-                      {badge.label}
-                    </span>
+                    <span className={`orders-hub__badge ${badge.className}`}>{badge.label}</span>
                   </div>
 
                   {/* Card Items Preview */}
@@ -342,7 +348,9 @@ export function OrdersListScreen() {
                             <button
                               type="button"
                               className="orders-hub__track-btn orders-hub__track-btn--pay"
-                              onClick={() => router.push(`/dashboard/lifestyle/orders?uuid=${order.uuid}`)}
+                              onClick={() =>
+                                router.push(`/dashboard/lifestyle/orders?uuid=${order.uuid}`)
+                              }
                             >
                               <CreditCard size={14} />
                               <span>Pay Now</span>
@@ -351,14 +359,17 @@ export function OrdersListScreen() {
                         }
 
                         const isCompleted =
-                          ['DELIVERED', 'SERVICE_COMPLETED', 'RECEIVED_CONFIRMED'].includes(order.primaryStatus) ||
-                          ['CANCELLED', 'REFUNDED'].includes(order.status)
+                          ['DELIVERED', 'SERVICE_COMPLETED', 'RECEIVED_CONFIRMED'].includes(
+                            order.primaryStatus,
+                          ) || ['CANCELLED', 'REFUNDED'].includes(order.status)
 
                         return (
                           <button
                             type="button"
                             className={`orders-hub__track-btn ${isCompleted ? 'orders-hub__track-btn--completed' : ''}`}
-                            onClick={() => router.push(`/dashboard/lifestyle/orders?uuid=${order.uuid}`)}
+                            onClick={() =>
+                              router.push(`/dashboard/lifestyle/orders?uuid=${order.uuid}`)
+                            }
                           >
                             <span>{isCompleted ? 'View Details' : 'Track Live'}</span>
                             <ChevronRight size={14} />

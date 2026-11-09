@@ -65,7 +65,8 @@ export const GoalManagementHeader: React.FC<GoalManagementHeaderProps> = ({
             </span>
           </div>
           <p style={{ color: 'var(--text-muted)', fontSize: '14px', margin: '4px 0 0 0' }}>
-            Configure lifestyle goals, product bundles, artisan packages, and verified commerce vendors
+            Configure lifestyle goals, product bundles, artisan packages, and verified commerce
+            vendors
           </p>
         </div>
       </div>

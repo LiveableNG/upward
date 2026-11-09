@@ -4,11 +4,7 @@ import {
   Offering,
   OfferingRepository,
 } from '../../../../domains/goals/offering.repository'
-import {
-  CreateOfferingDto,
-  OfferingQueryDto,
-  UpdateOfferingDto,
-} from '../../dto/offering.dto'
+import { CreateOfferingDto, OfferingQueryDto, UpdateOfferingDto } from '../../dto/offering.dto'
 
 @Injectable()
 export class AdminManageOfferingsUseCase {
@@ -36,7 +32,15 @@ export class AdminManageOfferingsUseCase {
   }
 
   async create(dto: CreateOfferingDto): Promise<Offering> {
-    const { media, packageItems, slug, compareAtPrice, isDeliverable, isPublished, ...offeringData } = dto
+    const {
+      media,
+      packageItems,
+      slug,
+      compareAtPrice,
+      isDeliverable,
+      isPublished,
+      ...offeringData
+    } = dto
     let cleanType = offeringData.type as string
     if (cleanType === 'SERVICE_INDIVIDUAL') cleanType = 'SERVICE'
     if (cleanType === 'SERVICE_PACKAGE') cleanType = 'PACKAGE'
@@ -48,12 +52,14 @@ export class AdminManageOfferingsUseCase {
       overridePrice: p.overridePrice,
     }))
 
-    const mappedMedia = media?.map((m) => ({
-      mediaUrl: m.mediaUrl || m.url || '',
-      mimeType: m.mimeType || 'image/jpeg',
-      sortOrder: m.sortOrder ?? 0,
-      isPrimary: m.isPrimary ?? m.isCover ?? false,
-    })).filter((m) => Boolean(m.mediaUrl))
+    const mappedMedia = media
+      ?.map((m) => ({
+        mediaUrl: m.mediaUrl || m.url || '',
+        mimeType: m.mimeType || 'image/jpeg',
+        sortOrder: m.sortOrder ?? 0,
+        isPrimary: m.isPrimary ?? m.isCover ?? false,
+      }))
+      .filter((m) => Boolean(m.mediaUrl))
 
     const maxPrice = offeringData.maxPrice !== undefined ? offeringData.maxPrice : compareAtPrice
 
@@ -61,11 +67,17 @@ export class AdminManageOfferingsUseCase {
       ...offeringData,
       maxPrice: maxPrice !== undefined ? maxPrice : undefined,
       type: cleanType as any,
-      status: offeringData.status || (isPublished !== undefined ? (isPublished ? 'PUBLISHED' : 'DRAFT') : undefined),
+      status:
+        offeringData.status ||
+        (isPublished !== undefined ? (isPublished ? 'PUBLISHED' : 'DRAFT') : undefined),
       deliveryAvailable: offeringData.deliveryAvailable ?? isDeliverable ?? true,
     }
 
-    const created: any = await this.offeringRepo.createOffering(cleanData, mappedMedia, mappedPackageItems)
+    const created: any = await this.offeringRepo.createOffering(
+      cleanData,
+      mappedMedia,
+      mappedPackageItems,
+    )
     return {
       ...created,
       compareAtPrice: created.maxPrice ?? created.compareAtPrice,
@@ -117,7 +129,12 @@ export class AdminManageOfferingsUseCase {
 
   async setPackageItems(
     packageId: number,
-    items: Array<{ componentId: number; quantity: number; isOptional?: boolean; overridePrice?: number }>,
+    items: Array<{
+      componentId: number
+      quantity: number
+      isOptional?: boolean
+      overridePrice?: number
+    }>,
   ) {
     return this.offeringRepo.setPackageItems(packageId, items)
   }

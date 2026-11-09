@@ -65,8 +65,18 @@ export const DeleteGoalItemModal: React.FC<DeleteGoalItemModalProps> = ({
         </p>
 
         {target.type === 'CATEGORY' && (
-          <p style={{ fontSize: '12px', color: 'var(--danger)', margin: 0, background: 'var(--danger-faint)', padding: '10px', borderRadius: '8px' }}>
-            Note: Any goals currently inside this category must be deleted or moved before this category can be removed.
+          <p
+            style={{
+              fontSize: '12px',
+              color: 'var(--danger)',
+              margin: 0,
+              background: 'var(--danger-faint)',
+              padding: '10px',
+              borderRadius: '8px',
+            }}
+          >
+            Note: Any goals currently inside this category must be deleted or moved before this
+            category can be removed.
           </p>
         )}
 

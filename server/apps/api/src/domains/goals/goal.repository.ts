@@ -92,7 +92,10 @@ export interface GoalOfferingLink {
 
 export interface GoalRepository {
   // Categories
-  findCategories(filter?: { status?: GoalPublishStatus; includeGoals?: boolean }): Promise<GoalCategory[]>
+  findCategories(filter?: {
+    status?: GoalPublishStatus
+    includeGoals?: boolean
+  }): Promise<GoalCategory[]>
   findCategoryBySlug(slug: string): Promise<GoalCategory | null>
   findCategoryByUuid(uuid: string): Promise<GoalCategory | null>
   createCategory(data: Partial<GoalCategory>): Promise<GoalCategory>
@@ -140,7 +143,11 @@ export interface GoalRepository {
     curatorNote?: string | null
     sortOrder?: number
   }): Promise<GoalOfferingLink>
-  unlinkOfferingFromGoal(goalId: number, offeringId: number, collectionId?: number | null): Promise<void>
+  unlinkOfferingFromGoal(
+    goalId: number,
+    offeringId: number,
+    collectionId?: number | null,
+  ): Promise<void>
 
   // Analytics Overview
   getGoalsOverview(): Promise<{
@@ -152,4 +159,3 @@ export interface GoalRepository {
 }
 
 export const GOAL_REPOSITORY = Symbol('GOAL_REPOSITORY')
-

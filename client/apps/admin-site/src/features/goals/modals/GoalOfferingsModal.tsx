@@ -160,7 +160,14 @@ export const GoalOfferingsModal: React.FC<GoalOfferingsModalProps> = ({
             border: '1px solid var(--border)',
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '12px',
+            }}
+          >
             <div>
               <h4 style={{ fontSize: '14px', fontWeight: 700, margin: 0, color: 'var(--text)' }}>
                 Goal Collections ({collections.length})
@@ -181,7 +188,10 @@ export const GoalOfferingsModal: React.FC<GoalOfferingsModalProps> = ({
           </div>
 
           {showAddCollection && (
-            <form onSubmit={handleCreateCollection} style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+            <form
+              onSubmit={handleCreateCollection}
+              style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}
+            >
               <input
                 type="text"
                 className="input"
@@ -192,7 +202,11 @@ export const GoalOfferingsModal: React.FC<GoalOfferingsModalProps> = ({
                 autoFocus
                 required
               />
-              <button type="submit" className="btn btn-primary" style={{ height: '36px', fontSize: '13px', whiteSpace: 'nowrap' }}>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                style={{ height: '36px', fontSize: '13px', whiteSpace: 'nowrap' }}
+              >
                 Create
               </button>
             </form>
@@ -223,7 +237,13 @@ export const GoalOfferingsModal: React.FC<GoalOfferingsModalProps> = ({
                   <button
                     type="button"
                     onClick={() => handleDeleteCollection(col.id)}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '2px' }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      color: 'var(--text-muted)',
+                      padding: '2px',
+                    }}
                     title="Delete collection"
                   >
                     <Trash2 size={12} />
@@ -251,15 +271,32 @@ export const GoalOfferingsModal: React.FC<GoalOfferingsModalProps> = ({
             Link An Offering to this Goal
           </h4>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr auto', gap: '10px', alignItems: 'flex-end' }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '2fr 1fr auto',
+              gap: '10px',
+              alignItems: 'flex-end',
+            }}
+          >
             <div>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px' }}>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: 'var(--text-muted)',
+                  marginBottom: '4px',
+                }}
+              >
                 Select Offering *
               </label>
               <select
                 className="input"
                 value={selectedOfferingId}
-                onChange={(e) => setSelectedOfferingId(e.target.value ? Number(e.target.value) : '')}
+                onChange={(e) =>
+                  setSelectedOfferingId(e.target.value ? Number(e.target.value) : '')
+                }
                 style={{ height: '38px', fontSize: '13px' }}
                 required
               >
@@ -273,13 +310,23 @@ export const GoalOfferingsModal: React.FC<GoalOfferingsModalProps> = ({
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '4px' }}>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  color: 'var(--text-muted)',
+                  marginBottom: '4px',
+                }}
+              >
                 Collection (Optional)
               </label>
               <select
                 className="input"
                 value={selectedCollectionId}
-                onChange={(e) => setSelectedCollectionId(e.target.value ? Number(e.target.value) : '')}
+                onChange={(e) =>
+                  setSelectedCollectionId(e.target.value ? Number(e.target.value) : '')
+                }
                 style={{ height: '38px', fontSize: '13px' }}
               >
                 <option value="">General (No collection)</option>
@@ -310,7 +357,10 @@ export const GoalOfferingsModal: React.FC<GoalOfferingsModalProps> = ({
               onChange={(e) => setLinkIsFeatured(e.target.checked)}
               style={{ width: '15px', height: '15px', accentColor: 'var(--accent)' }}
             />
-            <label htmlFor="link-featured" style={{ fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>
+            <label
+              htmlFor="link-featured"
+              style={{ fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}
+            >
               Highlight as Featured Recommendation for this goal
             </label>
           </div>
@@ -318,7 +368,14 @@ export const GoalOfferingsModal: React.FC<GoalOfferingsModalProps> = ({
 
         {/* Section 3: Currently Linked Offerings List */}
         <div>
-          <h4 style={{ fontSize: '14px', fontWeight: 700, margin: '0 0 10px 0', color: 'var(--text)' }}>
+          <h4
+            style={{
+              fontSize: '14px',
+              fontWeight: 700,
+              margin: '0 0 10px 0',
+              color: 'var(--text)',
+            }}
+          >
             Currently Linked Offerings ({linkedOfferings.length})
           </h4>
 
@@ -337,7 +394,15 @@ export const GoalOfferingsModal: React.FC<GoalOfferingsModalProps> = ({
               No offerings linked to this goal yet. Select an offering above to connect it.
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '280px', overflowY: 'auto' }}>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px',
+                maxHeight: '280px',
+                overflowY: 'auto',
+              }}
+            >
               {linkedOfferings.map((link) => {
                 const off = link.offering
                 return (
@@ -396,7 +461,14 @@ export const GoalOfferingsModal: React.FC<GoalOfferingsModalProps> = ({
           )}
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: '16px', borderTop: '1px solid var(--border)' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'flex-end',
+            paddingTop: '16px',
+            borderTop: '1px solid var(--border)',
+          }}
+        >
           <button type="button" onClick={onClose} className="btn btn-secondary">
             Done
           </button>

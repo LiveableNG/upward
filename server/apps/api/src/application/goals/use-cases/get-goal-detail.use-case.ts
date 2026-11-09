@@ -1,9 +1,5 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common'
-import {
-  GOAL_REPOSITORY,
-  Goal,
-  GoalRepository,
-} from '../../../domains/goals/goal.repository'
+import { GOAL_REPOSITORY, Goal, GoalRepository } from '../../../domains/goals/goal.repository'
 
 @Injectable()
 export class GetGoalDetailUseCase {
@@ -29,4 +25,3 @@ export class GetGoalDetailUseCase {
     return goal
   }
 }
-

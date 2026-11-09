@@ -21,20 +21,27 @@ function getPathInfo() {
   // Check lifestyle and orders routes in Capacitor
   if (pathname.includes('/dashboard/lifestyle/orders')) {
     const sp = new URLSearchParams(search)
-    const uuid = sp.get('uuid') || pathname.split('/dashboard/lifestyle/orders/')[1]?.split(/[?#]/)[0]
+    const uuid =
+      sp.get('uuid') || pathname.split('/dashboard/lifestyle/orders/')[1]?.split(/[?#]/)[0]
     if (uuid && uuid !== 'placeholder') {
       return { token: uuid, type: 'lifestyle-order' as const }
     }
   }
   if (pathname.includes('/dashboard/lifestyle')) {
     const sp = new URLSearchParams(search)
-    const id = sp.get('id') || sp.get('offering') || pathname.split('/dashboard/lifestyle/')[1]?.split(/[?#]/)[0]
+    const id =
+      sp.get('id') ||
+      sp.get('offering') ||
+      pathname.split('/dashboard/lifestyle/')[1]?.split(/[?#]/)[0]
     if (id && id !== 'placeholder') {
       return { token: id, type: 'lifestyle-detail' as const }
     }
   }
 
-  const routes: { prefix: string; type: 'pay' | 'invite' | 'waitlist' | 'welcome' | 'fill-record' }[] = [
+  const routes: {
+    prefix: string
+    type: 'pay' | 'invite' | 'waitlist' | 'welcome' | 'fill-record'
+  }[] = [
     { prefix: '/pay/', type: 'pay' },
     { prefix: '/invite/', type: 'invite' },
     { prefix: '/waitlist/', type: 'waitlist' },
@@ -100,7 +107,14 @@ function LandingPageContent() {
     if (authLoading) return
 
     // If on a subpath or token route, skip redirecting
-    if (finalToken || isPayRoute || isWaitlistRoute || isInviteRoute || isWelcomeRoute || isFillRecordRoute) {
+    if (
+      finalToken ||
+      isPayRoute ||
+      isWaitlistRoute ||
+      isInviteRoute ||
+      isWelcomeRoute ||
+      isFillRecordRoute
+    ) {
       setFetchingInvitation(false)
       return
     }
@@ -113,30 +127,32 @@ function LandingPageContent() {
     const handleRedirect = async () => {
       if (Capacitor.isNativePlatform()) {
         const launchUrl = await App.getLaunchUrl()
-        const isDeepLink = !!(launchUrl?.url && (
-          launchUrl.url.includes('/pay/') ||
-          launchUrl.url.includes('pay/') ||
-          launchUrl.url.includes('/invite/') ||
-          launchUrl.url.includes('invite/') ||
-          launchUrl.url.includes('/waitlist/') ||
-          launchUrl.url.includes('waitlist/') ||
-          launchUrl.url.includes('/welcome/') ||
-          launchUrl.url.includes('welcome/') ||
-          launchUrl.url.includes('/fill-record/') ||
-          launchUrl.url.includes('fill-record/')
-        )) || (typeof window !== 'undefined' && (
-          window.location.pathname.includes('/pay/') ||
-          window.location.pathname.includes('/invite/') ||
-          window.location.pathname.includes('/waitlist/') ||
-          window.location.pathname.includes('/welcome/') ||
-          window.location.pathname.includes('/fill-record/')
-        ))
+        const isDeepLink =
+          !!(
+            launchUrl?.url &&
+            (launchUrl.url.includes('/pay/') ||
+              launchUrl.url.includes('pay/') ||
+              launchUrl.url.includes('/invite/') ||
+              launchUrl.url.includes('invite/') ||
+              launchUrl.url.includes('/waitlist/') ||
+              launchUrl.url.includes('waitlist/') ||
+              launchUrl.url.includes('/welcome/') ||
+              launchUrl.url.includes('welcome/') ||
+              launchUrl.url.includes('/fill-record/') ||
+              launchUrl.url.includes('fill-record/'))
+          ) ||
+          (typeof window !== 'undefined' &&
+            (window.location.pathname.includes('/pay/') ||
+              window.location.pathname.includes('/invite/') ||
+              window.location.pathname.includes('/waitlist/') ||
+              window.location.pathname.includes('/welcome/') ||
+              window.location.pathname.includes('/fill-record/')))
 
         if (isDeepLink) {
           console.log('[Landing] Deep link or subpath detected, skipping auto-redirect')
           return
         }
-        
+
         if (finalToken || email) {
           console.log('[Landing] Token/Email detected, skipping auto-redirect.')
           return
@@ -153,7 +169,19 @@ function LandingPageContent() {
     }
 
     handleRedirect()
-  }, [finalToken, email, router, isLoggedIn, authLoading, searchParams, isPayRoute, isWaitlistRoute, isInviteRoute, isWelcomeRoute, isFillRecordRoute])
+  }, [
+    finalToken,
+    email,
+    router,
+    isLoggedIn,
+    authLoading,
+    searchParams,
+    isPayRoute,
+    isWaitlistRoute,
+    isInviteRoute,
+    isWelcomeRoute,
+    isFillRecordRoute,
+  ])
 
   // Direct renders for routes that don't need auth session checks
   if (isPayRoute && finalToken) {
@@ -186,7 +214,15 @@ function LandingPageContent() {
     return <LogoSplash />
   }
 
-  if (!finalToken && !email && !isPayRoute && !isWaitlistRoute && !isInviteRoute && !isWelcomeRoute && !isFillRecordRoute) {
+  if (
+    !finalToken &&
+    !email &&
+    !isPayRoute &&
+    !isWaitlistRoute &&
+    !isInviteRoute &&
+    !isWelcomeRoute &&
+    !isFillRecordRoute
+  ) {
     return <LogoSplash />
   }
 }

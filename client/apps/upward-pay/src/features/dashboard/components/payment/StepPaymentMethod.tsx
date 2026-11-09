@@ -31,18 +31,15 @@ export function StepPaymentMethod({
         Paying <strong>{formatCurrency(amount)}</strong> — choose how you&apos;d like to pay.
       </p>
 
-      <button
-        type="button"
-        className="pay-flow__method-card"
-        onClick={onPayOnline}
-        disabled={busy}
-      >
+      <button type="button" className="pay-flow__method-card" onClick={onPayOnline} disabled={busy}>
         <div className="pay-flow__method-card-icon pay-flow__method-card-icon--online">
           <CreditCard size={22} />
         </div>
         <div className="pay-flow__method-card-body">
           <p className="pay-flow__method-card-title">Pay online</p>
-          <p className="pay-flow__method-card-desc">Instant payment through Upward · Immediate confirmation</p>
+          <p className="pay-flow__method-card-desc">
+            Instant payment through Upward · Immediate confirmation
+          </p>
         </div>
       </button>
 

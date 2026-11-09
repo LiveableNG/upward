@@ -32,9 +32,13 @@ export function useTenantOrderDetail(uuid: string, enabled = true) {
       const data = query.state.data
       if (!data) return false
       const hasActiveSubOrder = data.subOrders.some((s) =>
-        ['ORDER_CONFIRMED', 'PROCESSING', 'DISPATCHED', 'OUT_FOR_DELIVERY', 'TECHNICIAN_EN_ROUTE'].includes(
-          s.customerStatus,
-        ),
+        [
+          'ORDER_CONFIRMED',
+          'PROCESSING',
+          'DISPATCHED',
+          'OUT_FOR_DELIVERY',
+          'TECHNICIAN_EN_ROUTE',
+        ].includes(s.customerStatus),
       )
       return hasActiveSubOrder ? 10000 : false
     },

@@ -86,10 +86,14 @@ export function StepConfirm({
           <div className="pay-flow__balance-top">
             <div>
               <div className="pay-flow__balance-label">Total Rent</div>
-              <div className="pay-flow__balance-value">{formatCurrency(propertyBalance.totalOwed)}</div>
+              <div className="pay-flow__balance-value">
+                {formatCurrency(propertyBalance.totalOwed)}
+              </div>
             </div>
             <div className="pay-flow__text-right">
-              <div className="pay-flow__balance-label pay-flow__balance-label--accent">Remaining</div>
+              <div className="pay-flow__balance-label pay-flow__balance-label--accent">
+                Remaining
+              </div>
               <div className="pay-flow__balance-value pay-flow__balance-value--accent">
                 {formatCurrency(propertyBalance.remainingBalance)}
               </div>
@@ -98,12 +102,16 @@ export function StepConfirm({
           <div className="pay-flow__balance-grid">
             <div>
               <div className="pay-flow__balance-grid-label">Amount Paid</div>
-              <div className="pay-flow__balance-grid-value">{formatCurrency(propertyBalance.amountPaid)}</div>
+              <div className="pay-flow__balance-grid-value">
+                {formatCurrency(propertyBalance.amountPaid)}
+              </div>
             </div>
             <div className="pay-flow__balance-grid-right">
               <div className="pay-flow__balance-grid-label">Next Due Date</div>
               <div className="pay-flow__balance-grid-value">
-                {propertyBalance.dueDate ? new Date(propertyBalance.dueDate).toLocaleDateString() : 'N/A'}
+                {propertyBalance.dueDate
+                  ? new Date(propertyBalance.dueDate).toLocaleDateString()
+                  : 'N/A'}
               </div>
             </div>
           </div>
@@ -119,11 +127,16 @@ export function StepConfirm({
           <div className="pay-flow__overpay-row">
             <span className="pay-flow__overpay-label">
               Future Credit (Overpayment)
-              <span className="pay-flow__overpay-info" title="This excess will be tracked and visible in your transactions for future use.">
+              <span
+                className="pay-flow__overpay-info"
+                title="This excess will be tracked and visible in your transactions for future use."
+              >
                 <Info size={14} />
               </span>
             </span>
-            <span className="pay-flow__overpay-value pay-flow__overpay-value--accent">{formatCurrency(excess)}</span>
+            <span className="pay-flow__overpay-value pay-flow__overpay-value--accent">
+              {formatCurrency(excess)}
+            </span>
           </div>
         </div>
       )}
@@ -152,7 +165,11 @@ export function StepConfirm({
       </div>
 
       <p className="pay-flow__secure">
-        <ShieldCheck size={14} style={{ display: 'inline-block', verticalAlign: '-2px', marginRight: 5 }} aria-hidden />
+        <ShieldCheck
+          size={14}
+          style={{ display: 'inline-block', verticalAlign: '-2px', marginRight: 5 }}
+          aria-hidden
+        />
         Secured by Upward
       </p>
     </div>

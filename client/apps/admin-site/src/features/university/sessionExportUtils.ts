@@ -54,7 +54,9 @@ export function parseSessionAndTrack(data: {
       sessionString = sessionMatch[1].trim()
     } else if (/Online\s*\(Zoom|Physical|In-Person/i.test(interestRaw)) {
       // Find candidate session string if embedded
-      const m = interestRaw.match(/(?:Online\s*\([^\)]+\)|[A-Za-z\s/]+\s*\(Physical[^\)]*\))[^-]*-[^\n,\]]+/i)
+      const m = interestRaw.match(
+        /(?:Online\s*\([^\)]+\)|[A-Za-z\s/]+\s*\(Physical[^\)]*\))[^-]*-[^\n,\]]+/i,
+      )
       if (m) sessionString = m[0].trim()
     }
   }
@@ -64,7 +66,9 @@ export function parseSessionAndTrack(data: {
   let sessionDay = 'N/A'
   let sessionVenue = 'N/A'
   let sessionDateTime = 'N/A'
-  let sessionBadgeText = isDropOff ? 'Stage 1 Drop-off (No Session)' : 'Waitlist Only (No Session RSVP)'
+  let sessionBadgeText = isDropOff
+    ? 'Stage 1 Drop-off (No Session)'
+    : 'Waitlist Only (No Session RSVP)'
 
   if (
     sessionString &&
@@ -101,7 +105,10 @@ export function parseSessionAndTrack(data: {
       if (!cleanDateTime || cleanDateTime.toLowerCase() === 'online') {
         const timeMatch = sessionString.match(/(\d{1,2}:\d{2}\s*(?:am|pm)[^)]*)/i)
         if (timeMatch) {
-          cleanDateTime = timeMatch[1].replace(/^[-\s]+/, '').replace(/\s*\([^)]*\)$/, '').trim()
+          cleanDateTime = timeMatch[1]
+            .replace(/^[-\s]+/, '')
+            .replace(/\s*\([^)]*\)$/, '')
+            .trim()
         } else {
           const parts = sessionString.split('-')
           const lastPart = parts[parts.length - 1].replace(/[()]/g, '').trim()
@@ -155,7 +162,10 @@ export function parseSessionAndTrack(data: {
         if (!cleanDateTime) {
           const timeMatch = sessionString.match(/(\d{1,2}:\d{2}\s*(?:am|pm)[^)]*)/i)
           if (timeMatch) {
-            cleanDateTime = timeMatch[1].replace(/^[-\s]+/, '').replace(/\s*\([^)]*\)$/, '').trim()
+            cleanDateTime = timeMatch[1]
+              .replace(/^[-\s]+/, '')
+              .replace(/\s*\([^)]*\)$/, '')
+              .trim()
           } else {
             const parts = sessionString.split('-')
             const lastPart = parts[parts.length - 1].replace(/[()]/g, '').trim()
@@ -177,7 +187,11 @@ export function parseSessionAndTrack(data: {
     .replace(/\[Track\s*[12][^\]]*\]/gi, '')
     .trim()
 
-  if (!cleanNotes || cleanNotes === 'Info Session Attendee' || cleanNotes.startsWith('Drop-off Stage 1')) {
+  if (
+    !cleanNotes ||
+    cleanNotes === 'Info Session Attendee' ||
+    cleanNotes.startsWith('Drop-off Stage 1')
+  ) {
     cleanNotes = isDropOff ? 'Drop-off at Step 1 (Contact Info only)' : 'Info Session Attendee'
   }
 
@@ -205,7 +219,7 @@ export function matchesSessionFilter(
     track?: string | null
     experienceLevel?: string | null
   },
-  filter: string
+  filter: string,
 ): boolean {
   if (!filter || filter === 'ALL') return true
 
@@ -239,8 +253,13 @@ export function matchesSessionFilter(
  * Filter matcher for Track selection
  */
 export function matchesTrackFilter(
-  data: { interest?: string | null; sessionTime?: string | null; track?: string | null; experienceLevel?: string | null },
-  filter: string
+  data: {
+    interest?: string | null
+    sessionTime?: string | null
+    track?: string | null
+    experienceLevel?: string | null
+  },
+  filter: string,
 ): boolean {
   if (!filter || filter === 'ALL') return true
 
@@ -248,16 +267,19 @@ export function matchesTrackFilter(
   return parsed.trackCode === filter
 }
 
-
 /**
  * Helper to build a styled Excel spreadsheet (XML/HTML) with brand styling,
  * generous cell padding, colored headers, and forced text format for phone numbers.
  */
-function buildStyledExcelHtml(sheetTitle: string, headers: string[], rows: Array<Array<{ val: string; isPhone?: boolean }>>): string {
+function buildStyledExcelHtml(
+  sheetTitle: string,
+  headers: string[],
+  rows: Array<Array<{ val: string; isPhone?: boolean }>>,
+): string {
   const headerHtml = headers
     .map(
       (h) =>
-        `<th style="background-color: #8A4A2A; color: #ffffff; font-weight: bold; font-size: 11pt; padding: 12px 14px; text-align: left; border: 1px solid #703c21; white-space: nowrap;">${h}</th>`
+        `<th style="background-color: #8A4A2A; color: #ffffff; font-weight: bold; font-size: 11pt; padding: 12px 14px; text-align: left; border: 1px solid #703c21; white-space: nowrap;">${h}</th>`,
     )
     .join('')
 
@@ -402,7 +424,7 @@ export function exportEarlyAccessToCsv(records: EarlyAccessRecord[], filename?: 
  */
 export function exportApplicationsToCsv(
   applications: UniversityApplicationRecord[],
-  filename?: string
+  filename?: string,
 ): void {
   if (!applications || applications.length === 0) {
     showToast('No applications to export', true)

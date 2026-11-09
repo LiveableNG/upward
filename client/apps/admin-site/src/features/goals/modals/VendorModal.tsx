@@ -11,12 +11,7 @@ interface VendorModalProps {
   onSubmit: (data: Record<string, unknown>) => Promise<void>
 }
 
-export const VendorModal: React.FC<VendorModalProps> = ({
-  isOpen,
-  onClose,
-  vendor,
-  onSubmit,
-}) => {
+export const VendorModal: React.FC<VendorModalProps> = ({ isOpen, onClose, vendor, onSubmit }) => {
   const isEditing = Boolean(vendor)
   const [name, setName] = useState('')
   const [slug, setSlug] = useState('')
@@ -114,10 +109,15 @@ export const VendorModal: React.FC<VendorModalProps> = ({
       icon={<Store size={20} />}
       maxWidth="580px"
     >
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <form
+        onSubmit={handleSubmit}
+        style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
+      >
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
+            <label
+              style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}
+            >
               Vendor / Brand Name *
             </label>
             <input
@@ -131,7 +131,9 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
+            <label
+              style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}
+            >
               Slug *
             </label>
             <input
@@ -146,7 +148,9 @@ export const VendorModal: React.FC<VendorModalProps> = ({
         </div>
 
         <div>
-          <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
+          <label
+            style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}
+          >
             Registered Legal Name
           </label>
           <input
@@ -160,7 +164,9 @@ export const VendorModal: React.FC<VendorModalProps> = ({
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
+            <label
+              style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}
+            >
               Contact Email
             </label>
             <input
@@ -173,7 +179,9 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
+            <label
+              style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}
+            >
               Phone Number
             </label>
             <input
@@ -188,7 +196,9 @@ export const VendorModal: React.FC<VendorModalProps> = ({
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
+            <label
+              style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}
+            >
               Website
             </label>
             <input
@@ -201,7 +211,9 @@ export const VendorModal: React.FC<VendorModalProps> = ({
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
+            <label
+              style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}
+            >
               Logo URL
             </label>
             <input
@@ -223,12 +235,21 @@ export const VendorModal: React.FC<VendorModalProps> = ({
             border: '1px solid var(--border)',
           }}
         >
-          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '8px' }}>
+          <div
+            style={{
+              fontSize: '12px',
+              fontWeight: 700,
+              color: 'var(--text-muted)',
+              marginBottom: '8px',
+            }}
+          >
             SETTLEMENT ACCOUNT DETAILS
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, marginBottom: '4px' }}>
+              <label
+                style={{ display: 'block', fontSize: '11px', fontWeight: 600, marginBottom: '4px' }}
+              >
                 Bank Name
               </label>
               <input
@@ -241,7 +262,9 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, marginBottom: '4px' }}>
+              <label
+                style={{ display: 'block', fontSize: '11px', fontWeight: 600, marginBottom: '4px' }}
+              >
                 Account Number
               </label>
               <input
@@ -255,7 +278,9 @@ export const VendorModal: React.FC<VendorModalProps> = ({
             </div>
           </div>
           <div style={{ marginTop: '8px' }}>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, marginBottom: '4px' }}>
+            <label
+              style={{ display: 'block', fontSize: '11px', fontWeight: 600, marginBottom: '4px' }}
+            >
               Account Name
             </label>
             <input
@@ -278,7 +303,10 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               onChange={(e) => setIsVerified(e.target.checked)}
               style={{ width: '16px', height: '16px', accentColor: '#10b981' }}
             />
-            <label htmlFor="vendor-verified" style={{ fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+            <label
+              htmlFor="vendor-verified"
+              style={{ fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
+            >
               Verified Partner (Badge & Instant Checkout)
             </label>
           </div>
@@ -291,7 +319,10 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               onChange={(e) => setIsActive(e.target.checked)}
               style={{ width: '16px', height: '16px', accentColor: 'var(--accent)' }}
             />
-            <label htmlFor="vendor-active" style={{ fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
+            <label
+              htmlFor="vendor-active"
+              style={{ fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
+            >
               Active in Platform
             </label>
           </div>
@@ -307,7 +338,12 @@ export const VendorModal: React.FC<VendorModalProps> = ({
             borderTop: '1px solid var(--border)',
           }}
         >
-          <button type="button" onClick={onClose} className="btn btn-secondary" disabled={submitting}>
+          <button
+            type="button"
+            onClick={onClose}
+            className="btn btn-secondary"
+            disabled={submitting}
+          >
             Cancel
           </button>
           <button type="submit" className="btn btn-primary" disabled={submitting}>

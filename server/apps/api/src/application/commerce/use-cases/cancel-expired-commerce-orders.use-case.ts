@@ -14,7 +14,10 @@ export class CancelExpiredCommerceOrdersUseCase {
   /**
    * Releases stock for orders that were placed but never paid within the expiration window.
    */
-  async execute(orderId: number, reason = 'Payment window expired without completion'): Promise<void> {
+  async execute(
+    orderId: number,
+    reason = 'Payment window expired without completion',
+  ): Promise<void> {
     const order = await this.orderRepo.findOrderById(orderId)
     if (!order) return
 

@@ -75,15 +75,10 @@ export async function fetchGoalOfferings(
   }
 }
 
-export async function fetchGoalOfferingDetail(
-  identifier: string | number,
-): Promise<GoalOffering> {
-  const res = await request<{ data: GoalOffering }>(
-    `/public/goals/offerings/${identifier}`,
-    {
-      method: 'GET',
-    },
-  )
+export async function fetchGoalOfferingDetail(identifier: string | number): Promise<GoalOffering> {
+  const res = await request<{ data: GoalOffering }>(`/public/goals/offerings/${identifier}`, {
+    method: 'GET',
+  })
   return res.data
 }
 
@@ -105,29 +100,20 @@ export async function setUserGoals(data: SetUserGoalsData): Promise<UserGoal[]> 
   return res.data || []
 }
 
-export async function updateUserGoal(
-  goalId: number,
-  data: UpdateUserGoalData,
-): Promise<UserGoal> {
-  const res = await request<{ data: UserGoal; message: string }>(
-    `/user/goals/${goalId}`,
-    {
-      method: 'PATCH',
-      body: JSON.stringify(data),
-    },
-  )
+export async function updateUserGoal(goalId: number, data: UpdateUserGoalData): Promise<UserGoal> {
+  const res = await request<{ data: UserGoal; message: string }>(`/user/goals/${goalId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  })
   return res.data
 }
 
 export async function removeUserGoal(
   goalId: number,
 ): Promise<{ success: boolean; message: string }> {
-  const res = await request<{ success: boolean; message: string }>(
-    `/user/goals/${goalId}`,
-    {
-      method: 'DELETE',
-    },
-  )
+  const res = await request<{ success: boolean; message: string }>(`/user/goals/${goalId}`, {
+    method: 'DELETE',
+  })
   return res
 }
 

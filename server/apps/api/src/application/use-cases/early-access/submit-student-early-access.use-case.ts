@@ -71,7 +71,9 @@ export class SubmitStudentEarlyAccessUseCase {
 
     if (command.sourceIdentifier) {
       this.trafficRepo.incrementConversion(command.sourceIdentifier).catch((err: any) => {
-        this.logger.warn(`Failed to increment early access conversion for ${command.sourceIdentifier}: ${err?.message || err}`)
+        this.logger.warn(
+          `Failed to increment early access conversion for ${command.sourceIdentifier}: ${err?.message || err}`,
+        )
       })
     }
 
@@ -115,7 +117,7 @@ export class SubmitStudentEarlyAccessUseCase {
       const isInfoSession = Boolean(
         command.sessionTime &&
         command.sessionTime !== "I don't need an info session" &&
-        command.sessionTime.trim().length > 0
+        command.sessionTime.trim().length > 0,
       )
 
       const adminSubject = isInfoSession
@@ -157,10 +159,7 @@ export class SubmitStudentEarlyAccessUseCase {
           </table>
         </div>
       `
-      await this.emailService.sendSystemAlertToAdmins(
-        adminSubject,
-        adminMessage,
-      )
+      await this.emailService.sendSystemAlertToAdmins(adminSubject, adminMessage)
     } catch (err) {
       this.logger.error('Failed to send student early access admin system alert', err)
     }

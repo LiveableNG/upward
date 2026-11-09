@@ -134,7 +134,9 @@ export class CommercePricingEngine {
     } = params
 
     if (!items || items.length === 0) {
-      throw new Error('ORDER_PRICING_EMPTY_ITEMS: At least one item is required for pricing calculation')
+      throw new Error(
+        'ORDER_PRICING_EMPTY_ITEMS: At least one item is required for pricing calculation',
+      )
     }
 
     // 1. Validate each offering and build line item pricing
@@ -142,31 +144,45 @@ export class CommercePricingEngine {
 
     for (const { offering, quantity, deliveryFeeKobo = 0n } of items) {
       if (!quantity || quantity <= 0 || !Number.isInteger(quantity)) {
-        throw new Error(`ORDER_PRICING_INVALID_QUANTITY: Invalid quantity ${quantity} for offering "${offering.title}"`)
+        throw new Error(
+          `ORDER_PRICING_INVALID_QUANTITY: Invalid quantity ${quantity} for offering "${offering.title}"`,
+        )
       }
 
       if (offering.status !== 'PUBLISHED') {
-        throw new Error(`ORDER_PRICING_OFFERING_UNPUBLISHED: Offering "${offering.title}" is not published`)
+        throw new Error(
+          `ORDER_PRICING_OFFERING_UNPUBLISHED: Offering "${offering.title}" is not published`,
+        )
       }
 
       if (!offering.inStock) {
-        throw new Error(`ORDER_PRICING_OFFERING_OUT_OF_STOCK: Offering "${offering.title}" is currently out of stock`)
+        throw new Error(
+          `ORDER_PRICING_OFFERING_OUT_OF_STOCK: Offering "${offering.title}" is currently out of stock`,
+        )
       }
 
       if (offering.pricingModel === 'QUOTE_REQUIRED') {
-        throw new Error(`ORDER_PRICING_QUOTE_REQUIRED: Offering "${offering.title}" requires a custom quote and cannot be checked out directly`)
+        throw new Error(
+          `ORDER_PRICING_QUOTE_REQUIRED: Offering "${offering.title}" requires a custom quote and cannot be checked out directly`,
+        )
       }
 
       if (offering.price === null || offering.price === undefined || offering.price <= 0) {
-        throw new Error(`ORDER_PRICING_INVALID_PRICE: Offering "${offering.title}" has an invalid price configuration`)
+        throw new Error(
+          `ORDER_PRICING_INVALID_PRICE: Offering "${offering.title}" has an invalid price configuration`,
+        )
       }
 
       if (!offering.vendorId || !offering.vendor) {
-        throw new Error(`ORDER_PRICING_NO_VENDOR: Offering "${offering.title}" is not linked to a valid vendor`)
+        throw new Error(
+          `ORDER_PRICING_NO_VENDOR: Offering "${offering.title}" is not linked to a valid vendor`,
+        )
       }
 
       if (!offering.vendor.isActive) {
-        throw new Error(`ORDER_PRICING_INACTIVE_VENDOR: Vendor "${offering.vendor.name}" is currently inactive`)
+        throw new Error(
+          `ORDER_PRICING_INACTIVE_VENDOR: Vendor "${offering.vendor.name}" is currently inactive`,
+        )
       }
 
       // Single-vendor package enforcement
@@ -207,13 +223,14 @@ export class CommercePricingEngine {
           logoUrl: offering.vendor.logoUrl ?? null,
           rating: offering.vendor.rating,
         },
-        packageItemsSnapshot: offering.packageItems?.map((pi) => ({
-          componentId: pi.componentId,
-          componentUuid: pi.componentUuid,
-          componentTitle: pi.componentTitle,
-          quantity: pi.quantity,
-          overridePrice: pi.overridePrice ?? null,
-        })) ?? [],
+        packageItemsSnapshot:
+          offering.packageItems?.map((pi) => ({
+            componentId: pi.componentId,
+            componentUuid: pi.componentUuid,
+            componentTitle: pi.componentTitle,
+            quantity: pi.quantity,
+            overridePrice: pi.overridePrice ?? null,
+          })) ?? [],
       }
 
       const calculatedItem: CalculatedSubOrderItem = {
@@ -303,7 +320,9 @@ export class CommercePricingEngine {
       // Verification of invariant: sum(allocated) === effectiveTotalDiscountKobo
       const verifySum = subOrders.reduce((acc, sub) => acc + sub.allocatedDiscountKobo, 0n)
       if (verifySum !== effectiveTotalDiscountKobo) {
-        throw new Error(`ORDER_PRICING_RECONCILIATION_FAILED: Allocated discount (${verifySum}) does not match total discount (${effectiveTotalDiscountKobo})`)
+        throw new Error(
+          `ORDER_PRICING_RECONCILIATION_FAILED: Allocated discount (${verifySum}) does not match total discount (${effectiveTotalDiscountKobo})`,
+        )
       }
     } else {
       for (const sub of subOrders) {

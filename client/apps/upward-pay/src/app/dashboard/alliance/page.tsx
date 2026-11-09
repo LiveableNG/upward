@@ -1,7 +1,7 @@
-'use client';
+'use client'
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Building2,
   AlertCircle,
@@ -10,40 +10,40 @@ import {
   Compass,
   Briefcase,
   ArrowLeft,
-} from 'lucide-react';
+} from 'lucide-react'
 import {
   useAllianceMarketplace,
   useUserAllianceJourneys,
-} from '@/features/alliance/hooks/useAllianceMarketplace';
-import { AllianceListingCard } from '@/features/alliance/components/AllianceListingCard';
-import { AllianceFilterBar } from '@/features/alliance/components/AllianceFilterBar';
-import { UserAllianceJourneysList } from '@/features/alliance/components/UserAllianceJourneysList';
-import type { PublicAllianceMarketplaceQuery } from '@/features/alliance/types/alliance.types';
+} from '@/features/alliance/hooks/useAllianceMarketplace'
+import { AllianceListingCard } from '@/features/alliance/components/AllianceListingCard'
+import { AllianceFilterBar } from '@/features/alliance/components/AllianceFilterBar'
+import { UserAllianceJourneysList } from '@/features/alliance/components/UserAllianceJourneysList'
+import type { PublicAllianceMarketplaceQuery } from '@/features/alliance/types/alliance.types'
 
 export default function DashboardAlliancePage() {
-  const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'explore' | 'journeys'>('explore');
+  const router = useRouter()
+  const [activeTab, setActiveTab] = useState<'explore' | 'journeys'>('explore')
 
   const [query, setQuery] = useState<PublicAllianceMarketplaceQuery>({
     page: 1,
     limit: 12,
     sortBy: 'newest',
-  });
+  })
 
-  const { data, isLoading, isError, error, refetch } = useAllianceMarketplace(query);
-  const { data: journeys } = useUserAllianceJourneys();
+  const { data, isLoading, isError, error, refetch } = useAllianceMarketplace(query)
+  const { data: journeys } = useUserAllianceJourneys()
 
   const handleQueryChange = (updated: Partial<PublicAllianceMarketplaceQuery>) => {
-    setQuery((prev) => ({ ...prev, ...updated }));
-  };
+    setQuery((prev) => ({ ...prev, ...updated }))
+  }
 
   const handleResetFilters = () => {
-    setQuery({ page: 1, limit: 12, sortBy: 'newest' });
-  };
+    setQuery({ page: 1, limit: 12, sortBy: 'newest' })
+  }
 
-  const items = data?.data || [];
-  const meta = data?.meta || { page: 1, limit: 12, total: 0, totalPages: 1 };
-  const journeyCount = (journeys || []).length;
+  const items = data?.data || []
+  const meta = data?.meta || { page: 1, limit: 12, total: 0, totalPages: 1 }
+  const journeyCount = (journeys || []).length
 
   return (
     <div className="pay-alliance">
@@ -141,7 +141,10 @@ export default function DashboardAlliancePage() {
           {/* Error State */}
           {isError && !isLoading && (
             <div className="pay-alliance-empty" style={{ borderColor: '#fca5a5' }}>
-              <div className="pay-alliance-empty__icon" style={{ background: '#fee2e2', color: '#dc2626' }}>
+              <div
+                className="pay-alliance-empty__icon"
+                style={{ background: '#fee2e2', color: '#dc2626' }}
+              >
                 <AlertCircle size={28} />
               </div>
               <h3 className="pay-alliance-empty__title" style={{ color: '#991b1b' }}>
@@ -225,5 +228,5 @@ export default function DashboardAlliancePage() {
         </>
       )}
     </div>
-  );
+  )
 }

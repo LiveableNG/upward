@@ -4,15 +4,25 @@ import React from 'react'
 import { ChevronDown } from 'lucide-react'
 
 interface DatePickerProps {
-  value: string           // ISO: 'YYYY-MM-DD' or ''
+  value: string // ISO: 'YYYY-MM-DD' or ''
   onChange: (iso: string) => void
   id?: string
   required?: boolean
 }
 
 const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ]
 
 function daysInMonth(month: number, year: number) {
@@ -25,9 +35,10 @@ export function DatePicker({ value, onChange, id, required }: DatePickerProps) {
   const [localMonth, setLocalMonth] = React.useState('')
   const [localDay, setLocalDay] = React.useState('')
 
-  const localIso = (localYear && localMonth && localDay)
-    ? `${localYear}-${localMonth.padStart(2, '0')}-${localDay.padStart(2, '0')}`
-    : ''
+  const localIso =
+    localYear && localMonth && localDay
+      ? `${localYear}-${localMonth.padStart(2, '0')}-${localDay.padStart(2, '0')}`
+      : ''
 
   React.useEffect(() => {
     if (value !== localIso) {
@@ -41,7 +52,7 @@ export function DatePicker({ value, onChange, id, required }: DatePickerProps) {
 
   const currentYear = new Date().getFullYear()
   const minYear = currentYear - 100
-  const maxYear = currentYear - 10  // must be at least 10
+  const maxYear = currentYear - 10 // must be at least 10
 
   const numDays = daysInMonth(Number(localMonth), Number(localYear))
   const days = Array.from({ length: numDays }, (_, i) => i + 1)
@@ -92,13 +103,17 @@ export function DatePicker({ value, onChange, id, required }: DatePickerProps) {
           <select
             className={`dob-select ${localDay ? 'has-value' : ''}`}
             value={localDay}
-            onChange={e => handleDay(e.target.value)}
+            onChange={(e) => handleDay(e.target.value)}
             required={required}
             aria-label="Day"
           >
-            <option value="" disabled>Day</option>
-            {days.map(d => (
-              <option key={d} value={d}>{d}</option>
+            <option value="" disabled>
+              Day
+            </option>
+            {days.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
             ))}
           </select>
           <span className="dob-select__chevron" aria-hidden="true">
@@ -113,13 +128,17 @@ export function DatePicker({ value, onChange, id, required }: DatePickerProps) {
           <select
             className={`dob-select ${localMonth ? 'has-value' : ''}`}
             value={localMonth}
-            onChange={e => handleMonth(e.target.value)}
+            onChange={(e) => handleMonth(e.target.value)}
             required={required}
             aria-label="Month"
           >
-            <option value="" disabled>Month</option>
-            {months.map(m => (
-              <option key={m.value} value={m.value}>{m.label}</option>
+            <option value="" disabled>
+              Month
+            </option>
+            {months.map((m) => (
+              <option key={m.value} value={m.value}>
+                {m.label}
+              </option>
             ))}
           </select>
           <span className="dob-select__chevron" aria-hidden="true">
@@ -134,13 +153,17 @@ export function DatePicker({ value, onChange, id, required }: DatePickerProps) {
           <select
             className={`dob-select ${localYear ? 'has-value' : ''}`}
             value={localYear}
-            onChange={e => handleYear(e.target.value)}
+            onChange={(e) => handleYear(e.target.value)}
             required={required}
             aria-label="Year"
           >
-            <option value="" disabled>Year</option>
-            {years.map(y => (
-              <option key={y} value={y}>{y}</option>
+            <option value="" disabled>
+              Year
+            </option>
+            {years.map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
             ))}
           </select>
           <span className="dob-select__chevron" aria-hidden="true">
@@ -193,7 +216,10 @@ export function DatePicker({ value, onChange, id, required }: DatePickerProps) {
           -moz-appearance: none;
           cursor: pointer;
           outline: none;
-          transition: border-color 0.2s, box-shadow 0.2s, color 0.2s;
+          transition:
+            border-color 0.2s,
+            box-shadow 0.2s,
+            color 0.2s;
           text-overflow: ellipsis;
           white-space: nowrap;
           overflow: hidden;

@@ -27,7 +27,15 @@ export function useCommerceAdmin(token?: string) {
   const [loadingDeliveryZones, setLoadingDeliveryZones] = useState(false)
 
   const fetchOrders = useCallback(
-    async (filter: { status?: string; paymentStatus?: string; search?: string; skip?: number; take?: number } = {}) => {
+    async (
+      filter: {
+        status?: string
+        paymentStatus?: string
+        search?: string
+        skip?: number
+        take?: number
+      } = {},
+    ) => {
       setLoadingOrders(true)
       try {
         const params = new URLSearchParams()
@@ -86,7 +94,11 @@ export function useCommerceAdmin(token?: string) {
       },
     ) => {
       try {
-        const res = await apiService.patch(`/admin/commerce/sub-orders/${subOrderUuid}/fulfilment`, payload, token)
+        const res = await apiService.patch(
+          `/admin/commerce/sub-orders/${subOrderUuid}/fulfilment`,
+          payload,
+          token,
+        )
         showToast('Sub-order milestone updated successfully')
         return res?.data
       } catch (err: any) {
@@ -131,7 +143,11 @@ export function useCommerceAdmin(token?: string) {
       },
     ) => {
       try {
-        const res = await apiService.post(`/admin/commerce/disputes/${disputeUuid}/resolve`, payload, token)
+        const res = await apiService.post(
+          `/admin/commerce/disputes/${disputeUuid}/resolve`,
+          payload,
+          token,
+        )
         showToast('Dispute resolved successfully')
         return res?.data
       } catch (err: any) {
@@ -201,7 +217,11 @@ export function useCommerceAdmin(token?: string) {
     ) => {
       try {
         const { tag: _t, ...cleanPayload } = payload
-        const res = await apiService.patch(`/admin/commerce/delivery-zones/${uuid}`, cleanPayload, token)
+        const res = await apiService.patch(
+          `/admin/commerce/delivery-zones/${uuid}`,
+          cleanPayload,
+          token,
+        )
         showToast('Delivery zone updated')
         await fetchDeliveryZones()
         return res?.data?.zone

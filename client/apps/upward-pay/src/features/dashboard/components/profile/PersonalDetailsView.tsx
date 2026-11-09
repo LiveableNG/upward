@@ -108,7 +108,11 @@ export function PersonalDetailsView({
     }
 
     if (user.email?.endsWith('@upward.com')) {
-      if (!formData.email || formData.email.trim() === '' || formData.email.endsWith('@upward.com')) {
+      if (
+        !formData.email ||
+        formData.email.trim() === '' ||
+        formData.email.endsWith('@upward.com')
+      ) {
         toastError('Please enter a valid email address to complete your profile.')
         return
       }
@@ -416,9 +420,7 @@ export function PersonalDetailsView({
             <div className="personal-readonly-row">
               <span className="personal-readonly-label">Gender</span>
               <span className="personal-readonly-value">
-                {formData.gender || (
-                  <span className="personal-readonly-value--muted">Not set</span>
-                )}
+                {formData.gender || <span className="personal-readonly-value--muted">Not set</span>}
               </span>
             </div>
           </div>

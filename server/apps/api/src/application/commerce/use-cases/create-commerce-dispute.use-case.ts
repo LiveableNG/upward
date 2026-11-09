@@ -1,10 +1,4 @@
-import {
-  BadRequestException,
-  Inject,
-  Injectable,
-  Logger,
-  NotFoundException,
-} from '@nestjs/common'
+import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import {
   COMMERCE_ORDER_REPOSITORY,
   CommerceOrderRepository,
@@ -13,10 +7,7 @@ import {
   COMMERCE_REFUND_REPOSITORY,
   CommerceRefundRepository,
 } from '../../../domains/commerce/commerce-refund.repository'
-import {
-  USER_REPOSITORY,
-  UserRepository,
-} from '../../../domains/users/user.repository'
+import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 import { EmailService } from '../../../shared/infrastructure/email/email.service'
 import { NotificationService } from '../../../shared/infrastructure/common/notification.service'
@@ -39,9 +30,10 @@ export class CreateCommerceDisputeUseCase {
   ) {}
 
   async execute(userIdentifier: number | string, dto: CreateCommerceDisputeDto) {
-    const user = typeof userIdentifier === 'number'
-      ? await this.userRepo.findById(userIdentifier)
-      : await this.userRepo.findByUuid(userIdentifier)
+    const user =
+      typeof userIdentifier === 'number'
+        ? await this.userRepo.findById(userIdentifier)
+        : await this.userRepo.findByUuid(userIdentifier)
     if (!user?.id) {
       throw new NotFoundException('User not found')
     }
@@ -123,7 +115,10 @@ export class CreateCommerceDisputeUseCase {
         })
       }
     } catch (err) {
-      this.logger.error(`Failed to send dispute confirmation email for dispute ${dispute.uuid}`, err)
+      this.logger.error(
+        `Failed to send dispute confirmation email for dispute ${dispute.uuid}`,
+        err,
+      )
     }
 
     return {

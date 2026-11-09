@@ -11,7 +11,11 @@ import {
   Star,
   Layers,
 } from 'lucide-react'
-import { DataTable, type ColumnDef, type ActionItem } from '../../../components/common/table/DataTable'
+import {
+  DataTable,
+  type ColumnDef,
+  type ActionItem,
+} from '../../../components/common/table/DataTable'
 import type { Goal, GoalCategory } from '../types'
 
 interface GoalsTabProps {
@@ -241,7 +245,9 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
           flexWrap: 'wrap',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', flex: 1 }}>
+        <div
+          style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', flex: 1 }}
+        >
           {/* Search Input */}
           <div style={{ position: 'relative', width: '280px', maxWidth: '100%' }}>
             <Search
@@ -268,7 +274,9 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
           <select
             className="input"
             value={categoryFilter ?? ''}
-            onChange={(e) => onCategoryFilterChange(e.target.value ? Number(e.target.value) : undefined)}
+            onChange={(e) =>
+              onCategoryFilterChange(e.target.value ? Number(e.target.value) : undefined)
+            }
             style={{ width: '180px', height: '40px' }}
           >
             <option value="">All Categories</option>

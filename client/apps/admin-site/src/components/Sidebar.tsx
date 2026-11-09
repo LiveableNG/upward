@@ -144,15 +144,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
     list.push({
       id: 'lifestyle-commerce',
       title: 'Commerce',
-      items: [
-        { name: 'Commerce & Lifestyle', path: '/commerce', icon: ShoppingBag },
-      ],
+      items: [{ name: 'Commerce & Lifestyle', path: '/commerce', icon: ShoppingBag }],
     })
 
     // 5. Growth & Marketing
-    const growthItems: NavItem[] = [
-      { name: 'Email Composer', path: '/emails', icon: Mail },
-    ]
+    const growthItems: NavItem[] = [{ name: 'Email Composer', path: '/emails', icon: Mail }]
     if (showSandboxTools) {
       growthItems.push({ name: 'Waitlist Campaigns', path: '/campaigns', icon: CalendarClock })
     }
@@ -277,7 +273,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
     >
       <nav className="sidebar__nav">
         {isCommerceWorkspace && (
-          <div style={{ marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid var(--border)' }}>
+          <div
+            style={{ marginBottom: 8, paddingBottom: 8, borderBottom: '1px solid var(--border)' }}
+          >
             <Link
               to="/dashboard"
               className="sidebar__link"
@@ -308,7 +306,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
                   onClick={() => toggleSection(section.id)}
                   className="sidebar__section-toggle"
                   aria-expanded={!isSectionCollapsed}
-                  title={isSectionCollapsed ? `Expand ${section.title}` : `Collapse ${section.title}`}
+                  title={
+                    isSectionCollapsed ? `Expand ${section.title}` : `Collapse ${section.title}`
+                  }
                 >
                   <span className="sidebar__section-title">
                     {section.title}
@@ -344,8 +344,12 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
                           item.path === '/'
                             ? location.pathname === '/' || location.pathname === '/dashboard'
                             : item.path === '/commerce'
-                              ? location.pathname === '/commerce' || location.pathname === '/commerce/' || location.pathname === '/commerce/overview'
-                              : isActive || location.pathname === item.path || location.pathname.startsWith(item.path + '/')
+                              ? location.pathname === '/commerce' ||
+                                location.pathname === '/commerce/' ||
+                                location.pathname === '/commerce/overview'
+                              : isActive ||
+                                location.pathname === item.path ||
+                                location.pathname.startsWith(item.path + '/')
                         return effectiveActive
                           ? `sidebar__link sidebar__link--active ${!isExpanded ? 'sidebar__link--collapsed' : ''}`
                           : `sidebar__link ${!isExpanded ? 'sidebar__link--collapsed' : ''}`

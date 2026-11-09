@@ -1,9 +1,11 @@
-import { Inject, Injectable, Optional, BadRequestException, UnauthorizedException } from '@nestjs/common'
 import {
-  GOAL_REPOSITORY,
-  GoalRepository,
-  UserGoal,
-} from '../../../domains/goals/goal.repository'
+  Inject,
+  Injectable,
+  Optional,
+  BadRequestException,
+  UnauthorizedException,
+} from '@nestjs/common'
+import { GOAL_REPOSITORY, GoalRepository, UserGoal } from '../../../domains/goals/goal.repository'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 
 @Injectable()
@@ -34,4 +36,3 @@ export class SetUserGoalsUseCase {
     return this.goalRepo.setUserGoals(resolvedUserId, goalIds)
   }
 }
-

@@ -1,9 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common'
-import {
-  GOAL_REPOSITORY,
-  Goal,
-  GoalRepository,
-} from '../../../domains/goals/goal.repository'
+import { GOAL_REPOSITORY, Goal, GoalRepository } from '../../../domains/goals/goal.repository'
 import { GoalQueryDto } from '../dto/goal.dto'
 
 @Injectable()
@@ -26,4 +22,3 @@ export class GetGoalsUseCase {
     })
   }
 }
-

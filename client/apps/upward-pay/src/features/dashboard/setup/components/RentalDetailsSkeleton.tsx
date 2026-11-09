@@ -4,11 +4,13 @@ import React from 'react'
 import { PayPageShell } from '@/features/dashboard/components/payment/PayPageShell'
 
 export function RentalDetailsSkeleton({ onBack }: { onBack?: () => void }) {
-  const handleBack = onBack || (() => {
-    if (typeof window !== 'undefined' && window.history.length > 1) {
-      window.history.back()
-    }
-  })
+  const handleBack =
+    onBack ||
+    (() => {
+      if (typeof window !== 'undefined' && window.history.length > 1) {
+        window.history.back()
+      }
+    })
 
   return (
     <PayPageShell

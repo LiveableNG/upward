@@ -231,7 +231,11 @@ export function BankingPayoutsView({ onBack, initialEditing = false }: BankingPa
             ))}
           </div>
           {!hasPayoutAccount && !isEditing ? (
-            <button type="button" className="pay-flow__cta banking-refund-card__cta" onClick={handleEditClick}>
+            <button
+              type="button"
+              className="pay-flow__cta banking-refund-card__cta"
+              onClick={handleEditClick}
+            >
               Add payout account
             </button>
           ) : null}
@@ -387,9 +391,14 @@ export function BankingPayoutsView({ onBack, initialEditing = false }: BankingPa
             </div>
             <h3 className="banking-empty__title">No payout account linked</h3>
             <p className="banking-empty__text">
-              Link your Nigerian bank account to receive rent overpayments, deposit refunds, and cashbacks safely and automatically.
+              Link your Nigerian bank account to receive rent overpayments, deposit refunds, and
+              cashbacks safely and automatically.
             </p>
-            <button type="button" className="pay-flow__cta banking-empty__cta" onClick={handleEditClick}>
+            <button
+              type="button"
+              className="pay-flow__cta banking-empty__cta"
+              onClick={handleEditClick}
+            >
               <Plus size={16} />
               <span>Link Payout Account</span>
             </button>

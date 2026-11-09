@@ -13,12 +13,17 @@ export async function getPendingPaymentsParsed() {
   const pending = await api.getPendingPayments()
   return (pending || []).map((p: any) => {
     const lineItemsSum = (p.lineItemRecords || []).reduce((sum: number, item: any) => {
-      const isFee = item.name === 'Processing Fee' || item.id === -2 || item.name === 'Transaction Fee' || item.id === -3 || item.name === 'Upward Benefits'
+      const isFee =
+        item.name === 'Processing Fee' ||
+        item.id === -2 ||
+        item.name === 'Transaction Fee' ||
+        item.id === -3 ||
+        item.name === 'Upward Benefits'
       if (isFee) return sum
       return sum + Number(item.totalAmount || item.amount || 0)
     }, 0)
 
-    const fullTotal = lineItemsSum > 0 ? lineItemsSum : (p.total_amount || p.amount || 0)
+    const fullTotal = lineItemsSum > 0 ? lineItemsSum : p.total_amount || p.amount || 0
 
     return {
       uuid: p.uuid,

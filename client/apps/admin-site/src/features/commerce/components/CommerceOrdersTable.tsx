@@ -140,7 +140,9 @@ export function CommerceOrdersTable({
   loading,
   onUpdateSubOrder,
 }: CommerceOrdersTableProps) {
-  const [activeSubOrderForEdit, setActiveSubOrderForEdit] = useState<AdminCommerceSubOrder | null>(null)
+  const [activeSubOrderForEdit, setActiveSubOrderForEdit] = useState<AdminCommerceSubOrder | null>(
+    null,
+  )
   const [expandedOrderUuids, setExpandedOrderUuids] = useState<Record<string, boolean>>({})
 
   const toggleExpand = (orderUuid: string) => {
@@ -168,22 +170,76 @@ export function CommerceOrdersTable({
                   borderBottom: '2px solid var(--border)',
                 }}
               >
-                <th style={{ padding: '12px 16px', fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', width: '160px' }}>
+                <th
+                  style={{
+                    padding: '12px 16px',
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    color: 'var(--text-muted)',
+                    textTransform: 'uppercase',
+                    width: '160px',
+                  }}
+                >
                   Order # & Date
                 </th>
-                <th style={{ padding: '12px 16px', fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                <th
+                  style={{
+                    padding: '12px 16px',
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    color: 'var(--text-muted)',
+                    textTransform: 'uppercase',
+                  }}
+                >
                   Customer & Delivery
                 </th>
-                <th style={{ padding: '12px 16px', fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', width: '180px' }}>
+                <th
+                  style={{
+                    padding: '12px 16px',
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    color: 'var(--text-muted)',
+                    textTransform: 'uppercase',
+                    width: '180px',
+                  }}
+                >
                   Shipments / Vendors
                 </th>
-                <th style={{ padding: '12px 16px', fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', width: '140px' }}>
+                <th
+                  style={{
+                    padding: '12px 16px',
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    color: 'var(--text-muted)',
+                    textTransform: 'uppercase',
+                    width: '140px',
+                  }}
+                >
                   Total Amount
                 </th>
-                <th style={{ padding: '12px 16px', fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', width: '150px' }}>
+                <th
+                  style={{
+                    padding: '12px 16px',
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    color: 'var(--text-muted)',
+                    textTransform: 'uppercase',
+                    width: '150px',
+                  }}
+                >
                   Payment & Status
                 </th>
-                <th style={{ padding: '12px 16px', fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', textAlign: 'right', width: '150px' }}>
+                <th
+                  style={{
+                    padding: '12px 16px',
+                    fontSize: 11.5,
+                    fontWeight: 700,
+                    color: 'var(--text-muted)',
+                    textTransform: 'uppercase',
+                    textAlign: 'right',
+                    width: '150px',
+                  }}
+                >
                   Sub-Orders
                 </th>
               </tr>
@@ -191,7 +247,10 @@ export function CommerceOrdersTable({
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={6} style={{ padding: 48, textAlign: 'center', color: 'var(--text-muted)' }}>
+                  <td
+                    colSpan={6}
+                    style={{ padding: 48, textAlign: 'center', color: 'var(--text-muted)' }}
+                  >
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                       <Clock size={16} className="loader" />
                       <span>Loading commerce orders...</span>
@@ -201,7 +260,14 @@ export function CommerceOrdersTable({
               ) : orders.length === 0 ? (
                 <tr>
                   <td colSpan={6} style={{ padding: 48, textAlign: 'center' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: 8,
+                      }}
+                    >
                       <Package size={36} color="var(--text-muted)" />
                       <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>
                         No orders found
@@ -218,8 +284,12 @@ export function CommerceOrdersTable({
                   const subOrdersCount = (order.subOrders || []).length
                   const isPaid = order.paymentStatus === 'PAID'
                   const primarySubOrder = (order.subOrders || [])[0]
-                  const primaryStatusBadge = primarySubOrder ? getFulfilmentBadge(primarySubOrder.customerStatus) : null
-                  const ratingSubOrder = (order.subOrders || []).find((s) => typeof s.customerRating === 'number' && s.customerRating > 0)
+                  const primaryStatusBadge = primarySubOrder
+                    ? getFulfilmentBadge(primarySubOrder.customerStatus)
+                    : null
+                  const ratingSubOrder = (order.subOrders || []).find(
+                    (s) => typeof s.customerRating === 'number' && s.customerRating > 0,
+                  )
 
                   return (
                     <React.Fragment key={order.uuid}>
@@ -255,7 +325,14 @@ export function CommerceOrdersTable({
 
                         {/* Customer & Delivery */}
                         <td style={{ padding: '14px 16px', verticalAlign: 'top' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              marginBottom: 3,
+                            }}
+                          >
                             <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>
                               {order.recipientName}
                             </span>
@@ -276,7 +353,10 @@ export function CommerceOrdersTable({
                               lineHeight: 1.4,
                             }}
                           >
-                            <MapPin size={13} style={{ flexShrink: 0, marginTop: 2, color: 'var(--text-muted)' }} />
+                            <MapPin
+                              size={13}
+                              style={{ flexShrink: 0, marginTop: 2, color: 'var(--text-muted)' }}
+                            />
                             <span>{order.deliveryAddress}</span>
                           </div>
                           {(order.deliveryNotes || order.deliveryInstructions) && (
@@ -298,7 +378,8 @@ export function CommerceOrdersTable({
                             >
                               <Key size={11} style={{ flexShrink: 0 }} />
                               <span>
-                                <strong>Gate / Driver Note:</strong> {order.deliveryNotes || order.deliveryInstructions}
+                                <strong>Gate / Driver Note:</strong>{' '}
+                                {order.deliveryNotes || order.deliveryInstructions}
                               </span>
                             </div>
                           )}
@@ -306,7 +387,14 @@ export function CommerceOrdersTable({
 
                         {/* Sub-Orders / Vendors */}
                         <td style={{ padding: '14px 16px', verticalAlign: 'top' }}>
-                          <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
+                          <div
+                            style={{
+                              fontSize: 12.5,
+                              fontWeight: 600,
+                              color: 'var(--text)',
+                              marginBottom: 4,
+                            }}
+                          >
                             {subOrdersCount} {subOrdersCount === 1 ? 'Shipment' : 'Shipments'}
                           </div>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
@@ -341,7 +429,14 @@ export function CommerceOrdersTable({
 
                         {/* Payment & Fulfilment Status */}
                         <td style={{ padding: '14px 16px', verticalAlign: 'top' }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start' }}>
+                          <div
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 6,
+                              alignItems: 'flex-start',
+                            }}
+                          >
                             <span
                               style={{
                                 fontSize: 11,
@@ -349,7 +444,9 @@ export function CommerceOrdersTable({
                                 padding: '2px 8px',
                                 borderRadius: 6,
                                 display: 'inline-block',
-                                background: isPaid ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                                background: isPaid
+                                  ? 'rgba(16, 185, 129, 0.1)'
+                                  : 'rgba(245, 158, 11, 0.1)',
                                 color: isPaid ? '#059669' : '#d97706',
                                 border: `1px solid ${isPaid ? 'rgba(16, 185, 129, 0.2)' : 'rgba(245, 158, 11, 0.2)'}`,
                               }}
@@ -388,7 +485,11 @@ export function CommerceOrdersTable({
                                   border: '1px solid rgba(245, 158, 11, 0.3)',
                                   whiteSpace: 'nowrap',
                                 }}
-                                title={ratingSubOrder.customerFeedback ? `"${ratingSubOrder.customerFeedback}"` : 'Customer Review'}
+                                title={
+                                  ratingSubOrder.customerFeedback
+                                    ? `"${ratingSubOrder.customerFeedback}"`
+                                    : 'Customer Review'
+                                }
                               >
                                 <Star size={11} fill="#f59e0b" color="#f59e0b" />
                                 <span>{ratingSubOrder.customerRating}.0★ Review</span>
@@ -398,7 +499,9 @@ export function CommerceOrdersTable({
                         </td>
 
                         {/* Expand Button */}
-                        <td style={{ padding: '14px 16px', verticalAlign: 'top', textAlign: 'right' }}>
+                        <td
+                          style={{ padding: '14px 16px', verticalAlign: 'top', textAlign: 'right' }}
+                        >
                           <button
                             type="button"
                             onClick={() => toggleExpand(order.uuid)}
@@ -423,7 +526,13 @@ export function CommerceOrdersTable({
                       {/* Nested Sub-Orders Row */}
                       {isExpanded && (
                         <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                          <td colSpan={6} style={{ padding: '0 16px 16px 16px', background: 'var(--surface-hover)' }}>
+                          <td
+                            colSpan={6}
+                            style={{
+                              padding: '0 16px 16px 16px',
+                              background: 'var(--surface-hover)',
+                            }}
+                          >
                             <div
                               style={{
                                 background: 'var(--white)',
@@ -435,13 +544,22 @@ export function CommerceOrdersTable({
                                 gap: 12,
                               }}
                             >
-                              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                              <div
+                                style={{
+                                  fontSize: 12,
+                                  fontWeight: 700,
+                                  color: 'var(--text-muted)',
+                                  textTransform: 'uppercase',
+                                }}
+                              >
                                 Sub-Orders & Fulfilment Milestones for {order.orderNumber}
                               </div>
 
                               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                                 {(order.subOrders || []).map((subOrder) => {
-                                  const isService = (subOrder.items || []).some((i) => i.offeringType === 'SERVICE')
+                                  const isService = (subOrder.items || []).some(
+                                    (i) => i.offeringType === 'SERVICE',
+                                  )
 
                                   return (
                                     <div
@@ -458,7 +576,15 @@ export function CommerceOrdersTable({
                                         flexWrap: 'wrap',
                                       }}
                                     >
-                                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, flex: 1, minWidth: 280 }}>
+                                      <div
+                                        style={{
+                                          display: 'flex',
+                                          alignItems: 'flex-start',
+                                          gap: 12,
+                                          flex: 1,
+                                          minWidth: 280,
+                                        }}
+                                      >
                                         <div
                                           style={{
                                             width: 36,
@@ -477,27 +603,68 @@ export function CommerceOrdersTable({
                                         </div>
 
                                         <div>
-                                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                                            <span style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 800, color: 'var(--text)' }}>
+                                          <div
+                                            style={{
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              gap: 8,
+                                              marginBottom: 4,
+                                            }}
+                                          >
+                                            <span
+                                              style={{
+                                                fontFamily: 'monospace',
+                                                fontSize: 13,
+                                                fontWeight: 800,
+                                                color: 'var(--text)',
+                                              }}
+                                            >
                                               {subOrder.subOrderNumber}
                                             </span>
-                                            <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                                              · Vendor: <strong>{subOrder.vendor?.name || 'Upward Merchant'}</strong>
+                                            <span
+                                              style={{ fontSize: 12, color: 'var(--text-muted)' }}
+                                            >
+                                              · Vendor:{' '}
+                                              <strong>
+                                                {subOrder.vendor?.name || 'Upward Merchant'}
+                                              </strong>
                                             </span>
                                           </div>
 
                                           {/* Items List */}
-                                          <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 6 }}>
+                                          <div
+                                            style={{
+                                              display: 'flex',
+                                              flexDirection: 'column',
+                                              gap: 3,
+                                              marginBottom: 6,
+                                            }}
+                                          >
                                             {(subOrder.items || []).map((item) => (
-                                              <div key={item.uuid} style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
-                                                • {item.snapshotData?.title || 'Merchandise Item'} × {item.quantity} (
+                                              <div
+                                                key={item.uuid}
+                                                style={{
+                                                  fontSize: 12.5,
+                                                  color: 'var(--text-secondary)',
+                                                }}
+                                              >
+                                                • {item.snapshotData?.title || 'Merchandise Item'} ×{' '}
+                                                {item.quantity} (
                                                 {formatKoboToNgn(item.totalPriceKobo)})
                                               </div>
                                             ))}
                                           </div>
 
                                           {/* Status & Carrier / Tracking meta */}
-                                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 12 }}>
+                                          <div
+                                            style={{
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              gap: 8,
+                                              flexWrap: 'wrap',
+                                              fontSize: 12,
+                                            }}
+                                          >
                                             <span
                                               style={{
                                                 fontSize: 11,
@@ -514,7 +681,8 @@ export function CommerceOrdersTable({
                                             {subOrder.carrierName && (
                                               <span style={{ color: 'var(--text-muted)' }}>
                                                 Carrier: <strong>{subOrder.carrierName}</strong>
-                                                {subOrder.trackingNumber && ` (${subOrder.trackingNumber})`}
+                                                {subOrder.trackingNumber &&
+                                                  ` (${subOrder.trackingNumber})`}
                                               </span>
                                             )}
 
@@ -538,7 +706,8 @@ export function CommerceOrdersTable({
                                             )}
 
                                             {/* Driver / Courier Details */}
-                                            {(subOrder.technicianName || subOrder.technicianPhone) && (
+                                            {(subOrder.technicianName ||
+                                              subOrder.technicianPhone) && (
                                               <span
                                                 style={{
                                                   display: 'inline-flex',
@@ -555,11 +724,18 @@ export function CommerceOrdersTable({
                                               >
                                                 <Phone size={11} />
                                                 <span>
-                                                  {isService ? 'Technician' : 'Driver'}: <strong>{subOrder.technicianName || 'Assigned'}</strong>
+                                                  {isService ? 'Technician' : 'Driver'}:{' '}
+                                                  <strong>
+                                                    {subOrder.technicianName || 'Assigned'}
+                                                  </strong>
                                                   {subOrder.technicianPhone && (
                                                     <a
                                                       href={`tel:${subOrder.technicianPhone}`}
-                                                      style={{ color: 'inherit', marginLeft: 4, textDecoration: 'underline' }}
+                                                      style={{
+                                                        color: 'inherit',
+                                                        marginLeft: 4,
+                                                        textDecoration: 'underline',
+                                                      }}
                                                       title="Call driver"
                                                     >
                                                       ({subOrder.technicianPhone})
@@ -571,7 +747,10 @@ export function CommerceOrdersTable({
 
                                             {subOrder.serviceScheduledAt && (
                                               <span style={{ color: 'var(--text-muted)' }}>
-                                                Appointment: <strong>{formatDate(subOrder.serviceScheduledAt)}</strong>
+                                                Appointment:{' '}
+                                                <strong>
+                                                  {formatDate(subOrder.serviceScheduledAt)}
+                                                </strong>
                                               </span>
                                             )}
                                           </div>
@@ -593,62 +772,122 @@ export function CommerceOrdersTable({
                                                 lineHeight: 1.4,
                                               }}
                                             >
-                                              <MessageSquare size={13} style={{ flexShrink: 0, marginTop: 2, color: 'var(--clay)' }} />
+                                              <MessageSquare
+                                                size={13}
+                                                style={{
+                                                  flexShrink: 0,
+                                                  marginTop: 2,
+                                                  color: 'var(--clay)',
+                                                }}
+                                              />
                                               <div>
-                                                <strong style={{ color: 'var(--text)' }}>Dispatch Note:</strong> {subOrder.adminOperationalNotes}
+                                                <strong style={{ color: 'var(--text)' }}>
+                                                  Dispatch Note:
+                                                </strong>{' '}
+                                                {subOrder.adminOperationalNotes}
                                               </div>
                                             </div>
                                           )}
 
                                           {/* Verified Customer Rating & Feedback */}
-                                          {typeof subOrder.customerRating === 'number' && subOrder.customerRating > 0 && (
-                                            <div
-                                              style={{
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                gap: 6,
-                                                marginTop: 8,
-                                                padding: '8px 12px',
-                                                borderRadius: 8,
-                                                background: 'rgba(245, 158, 11, 0.07)',
-                                                border: '1px solid rgba(245, 158, 11, 0.25)',
-                                              }}
-                                            >
-                                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                                  {[1, 2, 3, 4, 5].map((starVal) => (
-                                                    <Star
-                                                      key={starVal}
-                                                      size={12}
-                                                      fill={starVal <= (subOrder.customerRating || 0) ? '#f59e0b' : 'none'}
-                                                      color={starVal <= (subOrder.customerRating || 0) ? '#f59e0b' : 'var(--text-muted)'}
-                                                    />
-                                                  ))}
-                                                  <span style={{ fontSize: 12, fontWeight: 800, color: '#92400e', marginLeft: 4 }}>
-                                                    {subOrder.customerRating}.0 / 5.0
-                                                  </span>
-                                                  <span style={{ fontSize: 11, color: '#b45309', fontWeight: 600 }}>
-                                                    (Verified Customer Review)
-                                                  </span>
+                                          {typeof subOrder.customerRating === 'number' &&
+                                            subOrder.customerRating > 0 && (
+                                              <div
+                                                style={{
+                                                  display: 'flex',
+                                                  flexDirection: 'column',
+                                                  gap: 6,
+                                                  marginTop: 8,
+                                                  padding: '8px 12px',
+                                                  borderRadius: 8,
+                                                  background: 'rgba(245, 158, 11, 0.07)',
+                                                  border: '1px solid rgba(245, 158, 11, 0.25)',
+                                                }}
+                                              >
+                                                <div
+                                                  style={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'space-between',
+                                                    flexWrap: 'wrap',
+                                                    gap: 6,
+                                                  }}
+                                                >
+                                                  <div
+                                                    style={{
+                                                      display: 'flex',
+                                                      alignItems: 'center',
+                                                      gap: 4,
+                                                    }}
+                                                  >
+                                                    {[1, 2, 3, 4, 5].map((starVal) => (
+                                                      <Star
+                                                        key={starVal}
+                                                        size={12}
+                                                        fill={
+                                                          starVal <= (subOrder.customerRating || 0)
+                                                            ? '#f59e0b'
+                                                            : 'none'
+                                                        }
+                                                        color={
+                                                          starVal <= (subOrder.customerRating || 0)
+                                                            ? '#f59e0b'
+                                                            : 'var(--text-muted)'
+                                                        }
+                                                      />
+                                                    ))}
+                                                    <span
+                                                      style={{
+                                                        fontSize: 12,
+                                                        fontWeight: 800,
+                                                        color: '#92400e',
+                                                        marginLeft: 4,
+                                                      }}
+                                                    >
+                                                      {subOrder.customerRating}.0 / 5.0
+                                                    </span>
+                                                    <span
+                                                      style={{
+                                                        fontSize: 11,
+                                                        color: '#b45309',
+                                                        fontWeight: 600,
+                                                      }}
+                                                    >
+                                                      (Verified Customer Review)
+                                                    </span>
+                                                  </div>
+                                                  {subOrder.tenantConfirmedAt && (
+                                                    <span
+                                                      style={{
+                                                        fontSize: 11,
+                                                        color: 'var(--text-muted)',
+                                                      }}
+                                                    >
+                                                      {formatDate(subOrder.tenantConfirmedAt)}
+                                                    </span>
+                                                  )}
                                                 </div>
-                                                {subOrder.tenantConfirmedAt && (
-                                                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                                                    {formatDate(subOrder.tenantConfirmedAt)}
-                                                  </span>
+                                                {subOrder.customerFeedback && (
+                                                  <div
+                                                    style={{
+                                                      fontSize: 12,
+                                                      color: '#78350f',
+                                                      fontStyle: 'italic',
+                                                      lineHeight: 1.4,
+                                                    }}
+                                                  >
+                                                    &ldquo;{subOrder.customerFeedback}&rdquo;
+                                                  </div>
                                                 )}
                                               </div>
-                                              {subOrder.customerFeedback && (
-                                                <div style={{ fontSize: 12, color: '#78350f', fontStyle: 'italic', lineHeight: 1.4 }}>
-                                                  &ldquo;{subOrder.customerFeedback}&rdquo;
-                                                </div>
-                                              )}
-                                            </div>
-                                          )}
+                                            )}
                                         </div>
                                       </div>
 
                                       {/* Action Button */}
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                      <div
+                                        style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                                      >
                                         {isPaid ? (
                                           <button
                                             type="button"

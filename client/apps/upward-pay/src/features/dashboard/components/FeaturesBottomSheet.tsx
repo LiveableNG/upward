@@ -117,7 +117,9 @@ export function FeaturesBottomSheet({ isOpen, onClose, sections }: FeaturesBotto
                         </span>
                         <span className="features-sheet__item-desc">{item.description}</span>
                       </span>
-                      {!isDisabled ? <ChevronRight size={16} className="features-sheet__item-chevron" /> : null}
+                      {!isDisabled ? (
+                        <ChevronRight size={16} className="features-sheet__item-chevron" />
+                      ) : null}
                     </button>
                   )
                 })}

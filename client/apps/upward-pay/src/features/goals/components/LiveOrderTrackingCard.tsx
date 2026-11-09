@@ -2,14 +2,7 @@
 
 import React from 'react'
 import { useRouter } from 'next/navigation'
-import {
-  Truck,
-  Wrench,
-  Clock,
-  AlertTriangle,
-  ChevronRight,
-  Package,
-} from 'lucide-react'
+import { Truck, Wrench, Clock, AlertTriangle, ChevronRight, Package } from 'lucide-react'
 import { useTenantOrders } from '../hooks/useCommerceOrders'
 import type { CustomerFulfilmentStatus, TenantOrderSummaryDto } from '../types/commerce.types'
 
@@ -112,9 +105,15 @@ export function LiveOrderTrackingCard() {
   // Find the most relevant active order (not cancelled/refunded and not fully received over 24h)
   const activeOrder: TenantOrderSummaryDto | undefined = data.orders.find((ord) => {
     if (['CANCELLED', 'REFUNDED'].includes(ord.status)) return false
-    return ['ORDER_CONFIRMED', 'PROCESSING', 'DISPATCHED', 'OUT_FOR_DELIVERY', 'SERVICE_SCHEDULED', 'TECHNICIAN_EN_ROUTE', 'DISPUTED'].includes(
-      ord.primaryStatus,
-    )
+    return [
+      'ORDER_CONFIRMED',
+      'PROCESSING',
+      'DISPATCHED',
+      'OUT_FOR_DELIVERY',
+      'SERVICE_SCHEDULED',
+      'TECHNICIAN_EN_ROUTE',
+      'DISPUTED',
+    ].includes(ord.primaryStatus)
   })
 
   if (!activeOrder) {
@@ -151,14 +150,20 @@ export function LiveOrderTrackingCard() {
 
       <div className="live-order-card__content">
         <div className="live-order-card__icon-wrap">
-          {isService ? <Wrench size={20} color="var(--clay)" /> : <Truck size={20} color="var(--clay)" />}
+          {isService ? (
+            <Wrench size={20} color="var(--clay)" />
+          ) : (
+            <Truck size={20} color="var(--clay)" />
+          )}
         </div>
         <div className="live-order-card__info">
           <div className="live-order-card__status-title" style={{ color: statusInfo.color }}>
             {statusInfo.label}
           </div>
           <div className="live-order-card__status-desc">
-            {firstItem ? `${firstItem.title} (${activeOrder.itemsCount} ${activeOrder.itemsCount === 1 ? 'item' : 'items'})` : statusInfo.description}
+            {firstItem
+              ? `${firstItem.title} (${activeOrder.itemsCount} ${activeOrder.itemsCount === 1 ? 'item' : 'items'})`
+              : statusInfo.description}
           </div>
         </div>
         <div className="live-order-card__action">

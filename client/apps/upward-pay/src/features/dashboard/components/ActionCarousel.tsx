@@ -156,18 +156,18 @@ export function ActionCarousel({
       singleOrder.primaryStatus === 'OUT_FOR_DELIVERY'
         ? 'Out for Delivery'
         : singleOrder.primaryStatus === 'TECHNICIAN_EN_ROUTE'
-        ? 'Technician En Route'
-        : singleOrder.primaryStatus === 'DISPATCHED'
-        ? 'Dispatched to Carrier'
-        : singleOrder.primaryStatus === 'PROCESSING'
-        ? 'Order in Preparation'
-        : singleOrder.primaryStatus === 'SERVICE_SCHEDULED'
-        ? 'Service Scheduled'
-        : singleOrder.primaryStatus === 'DISPUTED'
-        ? 'Inquiry Logged'
-        : isService
-        ? 'Booking Confirmed'
-        : 'Order Confirmed'
+          ? 'Technician En Route'
+          : singleOrder.primaryStatus === 'DISPATCHED'
+            ? 'Dispatched to Carrier'
+            : singleOrder.primaryStatus === 'PROCESSING'
+              ? 'Order in Preparation'
+              : singleOrder.primaryStatus === 'SERVICE_SCHEDULED'
+                ? 'Service Scheduled'
+                : singleOrder.primaryStatus === 'DISPUTED'
+                  ? 'Inquiry Logged'
+                  : isService
+                    ? 'Booking Confirmed'
+                    : 'Order Confirmed'
 
     const itemTitle = firstItem ? firstItem.title : 'Lifestyle Order'
     const count = singleOrder.itemsCount ?? (singleOrder.itemsPreview?.length || 1)
@@ -238,11 +238,7 @@ export function ActionCarousel({
         type: 'pending',
         id: p.uuid,
         ...alert,
-        actionLabel: proofPending
-          ? 'View status'
-          : proofRejected
-            ? 'Fix payment'
-            : 'Pay Now',
+        actionLabel: proofPending ? 'View status' : proofRejected ? 'Fix payment' : 'Pay Now',
         action: () => {
           if (proofPending) {
             router.push('/dashboard/pay-rent')
@@ -341,12 +337,7 @@ export function ActionCarousel({
   const rootClass = skin === 'proto' ? 'activity-alerts activity-alerts--proto' : 'activity-alerts'
 
   return (
-    <div
-      className={rootClass}
-      role="region"
-      aria-label="Action items"
-      data-count={items.length}
-    >
+    <div className={rootClass} role="region" aria-label="Action items" data-count={items.length}>
       {items.map((item) => (
         <article
           key={item.id}
@@ -377,9 +368,7 @@ export function ActionCarousel({
                   aria-hidden="true"
                 />
               )}
-              <h4 className="activity-alerts__title">
-                {item.title}
-              </h4>
+              <h4 className="activity-alerts__title">{item.title}</h4>
             </div>
             {item.meta ? <p className="activity-alerts__meta">{item.meta}</p> : null}
             <span className="activity-alerts__cta">

@@ -39,9 +39,10 @@ export const LifestyleGoalsWidget: React.FC = () => {
   const currentBalanceNaira = hasVault ? (vault.current_balance_kobo || 0) / 100 : 0
   const targetRentNaira = hasVault ? (vault.target_amount_kobo || 0) / 100 : 0
   const accruedYieldNaira = hasVault ? (vault.accrued_yield_kobo || 0) / 100 : 0
-  const completionPct = targetRentNaira > 0
-    ? Math.min(100, Math.round((currentBalanceNaira / targetRentNaira) * 100))
-    : 0
+  const completionPct =
+    targetRentNaira > 0
+      ? Math.min(100, Math.round((currentBalanceNaira / targetRentNaira) * 100))
+      : 0
 
   return (
     <div className="lifestyle-goals-widget">
@@ -70,17 +71,15 @@ export const LifestyleGoalsWidget: React.FC = () => {
                 {formatCurrency(currentBalanceNaira, 'NGN')}
               </span>
               <span className="lifestyle-goals-widget__vault-target">
-                {' '}of {formatCurrency(targetRentNaira, 'NGN')}
+                {' '}
+                of {formatCurrency(targetRentNaira, 'NGN')}
               </span>
             </div>
             <span className="lifestyle-goals-widget__vault-pct">{completionPct}%</span>
           </div>
 
           <div className="lifestyle-goals-widget__track">
-            <div
-              className="lifestyle-goals-widget__fill"
-              style={{ width: `${completionPct}%` }}
-            />
+            <div className="lifestyle-goals-widget__fill" style={{ width: `${completionPct}%` }} />
           </div>
 
           <div className="lifestyle-goals-widget__vault-meta">
@@ -97,7 +96,8 @@ export const LifestyleGoalsWidget: React.FC = () => {
         <div style={{ marginBottom: 14 }}>
           <h3 className="lifestyle-goals-widget__title">Save for Rent · 14.5% Yield</h3>
           <p className="lifestyle-goals-widget__desc">
-            Lock monthly or weekly contributions toward your next rent payment and earn daily compound yield.
+            Lock monthly or weekly contributions toward your next rent payment and earn daily
+            compound yield.
           </p>
           <button
             type="button"
@@ -118,7 +118,9 @@ export const LifestyleGoalsWidget: React.FC = () => {
           <div className="lifestyle-goals-widget__header">
             <span className="lifestyle-goals-widget__badge">
               <Target size={12} />
-              <span>Lifestyle Priorities {activeGoals.length > 0 ? `(${activeGoals.length})` : ''}</span>
+              <span>
+                Lifestyle Priorities {activeGoals.length > 0 ? `(${activeGoals.length})` : ''}
+              </span>
             </span>
             <button
               type="button"

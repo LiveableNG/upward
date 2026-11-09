@@ -1,17 +1,9 @@
-import {
-  BadRequestException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common'
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import {
   COMMERCE_ORDER_REPOSITORY,
   CommerceOrderRepository,
 } from '../../../domains/commerce/commerce-order.repository'
-import {
-  USER_REPOSITORY,
-  UserRepository,
-} from '../../../domains/users/user.repository'
+import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import {
   CommerceReceiptData,
   CommerceReceiptService,
@@ -29,10 +21,14 @@ export class GetCommerceReceiptPdfUseCase {
     private readonly encryption: EncryptionService,
   ) {}
 
-  async execute(userIdentifier: number | string, orderUuid: string): Promise<{ buffer: Buffer; filename: string }> {
-    const user = typeof userIdentifier === 'number'
-      ? await this.userRepo.findById(userIdentifier)
-      : await this.userRepo.findByUuid(userIdentifier)
+  async execute(
+    userIdentifier: number | string,
+    orderUuid: string,
+  ): Promise<{ buffer: Buffer; filename: string }> {
+    const user =
+      typeof userIdentifier === 'number'
+        ? await this.userRepo.findById(userIdentifier)
+        : await this.userRepo.findByUuid(userIdentifier)
     if (!user?.id) {
       throw new NotFoundException('Order not found')
     }

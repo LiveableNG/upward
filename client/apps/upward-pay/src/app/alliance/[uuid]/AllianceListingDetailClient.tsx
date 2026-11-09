@@ -1,8 +1,8 @@
-'use client';
+'use client'
 
-import React, { useState } from 'react';
-import { useParams, useSearchParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
+import React, { useState } from 'react'
+import { useParams, useSearchParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
 import {
   MapPin,
   Bed,
@@ -14,47 +14,47 @@ import {
   Calendar,
   AlertCircle,
   ShieldCheck,
-} from 'lucide-react';
+} from 'lucide-react'
 import {
   useAllianceListingDetail,
   useAllianceReferral,
-} from '@/features/alliance/hooks/useAllianceMarketplace';
-import { AllianceGallery } from '@/features/alliance/components/AllianceGallery';
-import { AlliancePmProfileCard } from '@/features/alliance/components/AlliancePmProfileCard';
-import { AllianceInquiryModal } from '@/features/alliance/components/AllianceInquiryModal';
-import { AllianceRatingModal } from '@/features/alliance/components/AllianceRatingModal';
-import { AllianceReferralBanner } from '@/features/alliance/components/AllianceReferralBanner';
-import { getPublicWebUrl, copyTextToClipboard } from '@/lib/utils';
+} from '@/features/alliance/hooks/useAllianceMarketplace'
+import { AllianceGallery } from '@/features/alliance/components/AllianceGallery'
+import { AlliancePmProfileCard } from '@/features/alliance/components/AlliancePmProfileCard'
+import { AllianceInquiryModal } from '@/features/alliance/components/AllianceInquiryModal'
+import { AllianceRatingModal } from '@/features/alliance/components/AllianceRatingModal'
+import { AllianceReferralBanner } from '@/features/alliance/components/AllianceReferralBanner'
+import { getPublicWebUrl, copyTextToClipboard } from '@/lib/utils'
 
 export function AllianceListingDetailClient() {
-  const params = useParams();
-  const searchParams = useSearchParams();
-  const router = useRouter();
+  const params = useParams()
+  const searchParams = useSearchParams()
+  const router = useRouter()
 
-  const uuid = params?.uuid as string;
-  const refToken = searchParams?.get('ref') || undefined;
+  const uuid = params?.uuid as string
+  const refToken = searchParams?.get('ref') || undefined
 
-  const [isInquiryModalOpen, setIsInquiryModalOpen] = useState(false);
-  const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
-  const [copiedLink, setCopiedLink] = useState(false);
+  const [isInquiryModalOpen, setIsInquiryModalOpen] = useState(false)
+  const [isRatingModalOpen, setIsRatingModalOpen] = useState(false)
+  const [copiedLink, setCopiedLink] = useState(false)
 
-  const { data: listing, isLoading, isError, error } = useAllianceListingDetail(uuid);
-  const { data: referralContext } = useAllianceReferral(refToken);
+  const { data: listing, isLoading, isError, error } = useAllianceListingDetail(uuid)
+  const { data: referralContext } = useAllianceReferral(refToken)
 
   const handleShare = async () => {
-    const shareUrl = getPublicWebUrl();
-    const success = await copyTextToClipboard(shareUrl);
+    const shareUrl = getPublicWebUrl()
+    const success = await copyTextToClipboard(shareUrl)
     if (success) {
-      setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 2000);
+      setCopiedLink(true)
+      setTimeout(() => setCopiedLink(false), 2000)
     }
-  };
+  }
 
   const formatPrice = (amount?: number | null, currency = 'NGN') => {
-    if (amount === undefined || amount === null) return 'Price on Request';
-    const symbol = currency === 'USD' ? '$' : currency === 'GBP' ? '£' : '₦';
-    return `${symbol}${amount.toLocaleString()}`;
-  };
+    if (amount === undefined || amount === null) return 'Price on Request'
+    const symbol = currency === 'USD' ? '$' : currency === 'GBP' ? '£' : '₦'
+    return `${symbol}${amount.toLocaleString()}`
+  }
 
   if (isLoading) {
     return (
@@ -63,27 +63,31 @@ export function AllianceListingDetailClient() {
         <div className="pay-alliance-skeleton__media" style={{ height: '360px' }} />
         <div className="pay-alliance-skeleton__line" style={{ width: '60%', height: '32px' }} />
       </div>
-    );
+    )
   }
 
   if (isError || !listing) {
     return (
       <div className="pay-alliance-empty" style={{ margin: '40px auto', maxWidth: '500px' }}>
-        <div className="pay-alliance-empty__icon" style={{ background: '#fee2e2', color: '#dc2626' }}>
+        <div
+          className="pay-alliance-empty__icon"
+          style={{ background: '#fee2e2', color: '#dc2626' }}
+        >
           <AlertCircle size={32} />
         </div>
         <h3 className="pay-alliance-empty__title">Listing Unavailable</h3>
         <p className="pay-alliance-empty__desc">
-          {(error as any)?.message || 'This property listing is no longer active or could not be found.'}
+          {(error as any)?.message ||
+            'This property listing is no longer active or could not be found.'}
         </p>
         <Link href="/alliance" className="pay-alliance-empty__btn">
           Back to Listings
         </Link>
       </div>
-    );
+    )
   }
 
-  const referringPm = referralContext?.referringPm;
+  const referringPm = referralContext?.referringPm
 
   return (
     <div className="pay-alliance-detail" style={{ padding: '24px 20px 80px 20px' }}>
@@ -98,11 +102,7 @@ export function AllianceListingDetailClient() {
           <span>Back to Marketplace</span>
         </button>
 
-        <button
-          type="button"
-          onClick={handleShare}
-          className="pay-alliance-detail__share-btn"
-        >
+        <button type="button" onClick={handleShare} className="pay-alliance-detail__share-btn">
           <Share2 size={15} />
           <span>{copiedLink ? 'Copied Link!' : 'Share'}</span>
         </button>
@@ -196,9 +196,7 @@ export function AllianceListingDetailClient() {
           {/* Description */}
           {listing.description && (
             <div className="pay-alliance-detail__card">
-              <h3 style={{ fontSize: '15px', fontWeight: 800, margin: 0 }}>
-                Property Overview
-              </h3>
+              <h3 style={{ fontSize: '15px', fontWeight: 800, margin: 0 }}>Property Overview</h3>
               <p
                 style={{
                   fontSize: '13.5px',
@@ -259,7 +257,14 @@ export function AllianceListingDetailClient() {
             </button>
 
             <div className="pay-alliance-sticky-card__footer">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                }}
+              >
                 <ShieldCheck size={14} style={{ color: 'var(--clay)' }} />
                 <span>Upward Alliance Protection Active</span>
               </div>
@@ -289,5 +294,5 @@ export function AllianceListingDetailClient() {
         />
       )}
     </div>
-  );
+  )
 }

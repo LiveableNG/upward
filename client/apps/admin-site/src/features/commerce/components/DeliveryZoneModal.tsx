@@ -23,11 +23,43 @@ interface DeliveryZoneModalProps {
 }
 
 const FALLBACK_NIGERIAN_STATES = [
-  'Abia', 'Adamawa', 'Akwa Ibom', 'Anambra', 'Bauchi', 'Bayelsa', 'Benue', 'Borno',
-  'Cross River', 'Delta', 'Ebonyi', 'Edo', 'Ekiti', 'Enugu', 'FCT Abuja', 'Gombe',
-  'Imo', 'Jigawa', 'Kaduna', 'Kano', 'Katsina', 'Kebbi', 'Kogi', 'Kwara', 'Lagos',
-  'Nasarawa', 'Niger', 'Ogun', 'Ondo', 'Osun', 'Oyo', 'Plateau', 'Rivers', 'Sokoto',
-  'Taraba', 'Yobe', 'Zamfara',
+  'Abia',
+  'Adamawa',
+  'Akwa Ibom',
+  'Anambra',
+  'Bauchi',
+  'Bayelsa',
+  'Benue',
+  'Borno',
+  'Cross River',
+  'Delta',
+  'Ebonyi',
+  'Edo',
+  'Ekiti',
+  'Enugu',
+  'FCT Abuja',
+  'Gombe',
+  'Imo',
+  'Jigawa',
+  'Kaduna',
+  'Kano',
+  'Katsina',
+  'Kebbi',
+  'Kogi',
+  'Kwara',
+  'Lagos',
+  'Nasarawa',
+  'Niger',
+  'Ogun',
+  'Ondo',
+  'Osun',
+  'Oyo',
+  'Plateau',
+  'Rivers',
+  'Sokoto',
+  'Taraba',
+  'Yobe',
+  'Zamfara',
 ]
 
 function deriveTagFromName(name: string): string {
@@ -132,7 +164,9 @@ export const DeliveryZoneModal: React.FC<DeliveryZoneModalProps> = ({
 
     const finalTag = derivedTag.trim()
     if (!finalTag) {
-      setError('Could not generate a system tag identifier. Please provide a descriptive zone name.')
+      setError(
+        'Could not generate a system tag identifier. Please provide a descriptive zone name.',
+      )
       return
     }
 
@@ -204,7 +238,10 @@ export const DeliveryZoneModal: React.FC<DeliveryZoneModalProps> = ({
         </div>
       }
     >
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+      <form
+        onSubmit={handleSubmit}
+        style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}
+      >
         {error && (
           <div
             style={{
@@ -243,7 +280,12 @@ export const DeliveryZoneModal: React.FC<DeliveryZoneModalProps> = ({
               value={state}
               onChange={(e) => setState(e.target.value)}
               disabled={loadingStates}
-              style={{ width: '100%', borderRadius: '8px', padding: '9px 12px', fontSize: '13.5px' }}
+              style={{
+                width: '100%',
+                borderRadius: '8px',
+                padding: '9px 12px',
+                fontSize: '13.5px',
+              }}
             >
               {availableStates.map((s) => (
                 <option key={s} value={s}>
@@ -271,7 +313,12 @@ export const DeliveryZoneModal: React.FC<DeliveryZoneModalProps> = ({
               placeholder="e.g. Island, Mainland, Central"
               value={region}
               onChange={(e) => setRegion(e.target.value)}
-              style={{ width: '100%', borderRadius: '8px', padding: '9px 12px', fontSize: '13.5px' }}
+              style={{
+                width: '100%',
+                borderRadius: '8px',
+                padding: '9px 12px',
+                fontSize: '13.5px',
+              }}
             />
           </div>
         </div>
@@ -357,7 +404,14 @@ export const DeliveryZoneModal: React.FC<DeliveryZoneModalProps> = ({
               resize: 'vertical',
             }}
           />
-          <span style={{ fontSize: '11.5px', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+          <span
+            style={{
+              fontSize: '11.5px',
+              color: 'var(--text-muted)',
+              marginTop: '4px',
+              display: 'block',
+            }}
+          >
             Users searching for any of these keywords will be matched to this delivery zone.
           </span>
         </div>
@@ -381,7 +435,12 @@ export const DeliveryZoneModal: React.FC<DeliveryZoneModalProps> = ({
               placeholder="e.g. 1 - 2 business days"
               value={estimatedDeliveryDays}
               onChange={(e) => setEstimatedDeliveryDays(e.target.value)}
-              style={{ width: '100%', borderRadius: '8px', padding: '9px 12px', fontSize: '13.5px' }}
+              style={{
+                width: '100%',
+                borderRadius: '8px',
+                padding: '9px 12px',
+                fontSize: '13.5px',
+              }}
             />
           </div>
 
@@ -405,7 +464,12 @@ export const DeliveryZoneModal: React.FC<DeliveryZoneModalProps> = ({
               placeholder="0 (Free Delivery)"
               value={deliveryFeeNgn}
               onChange={(e) => setDeliveryFeeNgn(e.target.value)}
-              style={{ width: '100%', borderRadius: '8px', padding: '9px 12px', fontSize: '13.5px' }}
+              style={{
+                width: '100%',
+                borderRadius: '8px',
+                padding: '9px 12px',
+                fontSize: '13.5px',
+              }}
             />
           </div>
         </div>
@@ -496,7 +560,12 @@ export const DeliveryZoneModal: React.FC<DeliveryZoneModalProps> = ({
                 placeholder="e.g. Temporarily paused due to severe flooding / road works"
                 value={pauseReason}
                 onChange={(e) => setPauseReason(e.target.value)}
-                style={{ width: '100%', borderRadius: '6px', padding: '8px 10px', fontSize: '12.5px' }}
+                style={{
+                  width: '100%',
+                  borderRadius: '6px',
+                  padding: '8px 10px',
+                  fontSize: '12.5px',
+                }}
               />
             </div>
           )}

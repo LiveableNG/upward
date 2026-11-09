@@ -1,9 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common'
-import {
-  GOAL_REPOSITORY,
-  Goal,
-  GoalRepository,
-} from '../../../../domains/goals/goal.repository'
+import { GOAL_REPOSITORY, Goal, GoalRepository } from '../../../../domains/goals/goal.repository'
 import { CreateGoalDto, GoalQueryDto, UpdateGoalDto } from '../../dto/goal.dto'
 
 @Injectable()
@@ -21,7 +17,9 @@ export class AdminManageGoalsUseCase {
     const tagline = dto.tagline || dto.subtitle
     const iconName = dto.iconName || dto.icon
     const heroImage = dto.heroImage || dto.coverImageUrl
-    const status = dto.status || (dto.isPublished !== undefined ? (dto.isPublished ? 'PUBLISHED' : 'DRAFT') : undefined)
+    const status =
+      dto.status ||
+      (dto.isPublished !== undefined ? (dto.isPublished ? 'PUBLISHED' : 'DRAFT') : undefined)
     const { subtitle, icon, coverImageUrl, tags, isPublished, ...rest } = dto
     return this.goalRepo.createGoal({
       ...rest,

@@ -155,7 +155,12 @@ export class PrismaOfferingRepository implements OfferingRepository {
   async createOffering(
     data: Partial<Offering>,
     media?: Array<Partial<OfferingMedia>>,
-    packageItems?: Array<{ componentId: number; quantity: number; isOptional?: boolean; overridePrice?: number }>,
+    packageItems?: Array<{
+      componentId: number
+      quantity: number
+      isOptional?: boolean
+      overridePrice?: number
+    }>,
   ): Promise<Offering> {
     const created = await this.prisma.upward_offering.create({
       data: {
@@ -249,7 +254,9 @@ export class PrismaOfferingRepository implements OfferingRepository {
         ...(data.maxPrice !== undefined ? { maxPrice: data.maxPrice } : {}),
         ...(data.inStock !== undefined ? { inStock: data.inStock } : {}),
         ...(data.stockCount !== undefined ? { stockCount: data.stockCount } : {}),
-        ...(data.deliveryAvailable !== undefined ? { deliveryAvailable: data.deliveryAvailable } : {}),
+        ...(data.deliveryAvailable !== undefined
+          ? { deliveryAvailable: data.deliveryAvailable }
+          : {}),
         ...(data.leadTimeDays !== undefined ? { leadTimeDays: data.leadTimeDays } : {}),
         ...(data.status ? { status: data.status } : {}),
         ...(data.isFeatured !== undefined ? { isFeatured: data.isFeatured } : {}),
@@ -294,7 +301,12 @@ export class PrismaOfferingRepository implements OfferingRepository {
 
   async setPackageItems(
     packageId: number,
-    items: Array<{ componentId: number; quantity: number; isOptional?: boolean; overridePrice?: number }>,
+    items: Array<{
+      componentId: number
+      quantity: number
+      isOptional?: boolean
+      overridePrice?: number
+    }>,
   ): Promise<PackageItem[]> {
     return this.prisma.$transaction(async (tx) => {
       await tx.upward_package_item.deleteMany({
@@ -323,4 +335,3 @@ export class PrismaOfferingRepository implements OfferingRepository {
     })
   }
 }
-

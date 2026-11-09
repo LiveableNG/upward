@@ -41,9 +41,11 @@ export default function ReceiptsPage() {
           : null
 
         const isFutureCredit = tx.transactionType === 'FUTURE_CREDIT'
-        const title = isFutureCredit 
-          ? 'Future Credit Receipt' 
-          : (tx.type === 'RENT' ? 'Rent Payment Receipt' : 'Savings Deposit Receipt')
+        const title = isFutureCredit
+          ? 'Future Credit Receipt'
+          : tx.type === 'RENT'
+            ? 'Rent Payment Receipt'
+            : 'Savings Deposit Receipt'
 
         const breakdownDesc =
           tx.lineItems && tx.lineItems.length > 0
@@ -55,35 +57,55 @@ export default function ReceiptsPage() {
               : 'Upward Wallet'
 
         const propInfo = tx.property || landlord?.properties?.[0]
-        const propertyAddress = tx.propertyAddress || propInfo?.locationAddress || propInfo?.address || tx.paymentRequest?.propertyLocation || profile?.address || ''
+        const propertyAddress =
+          tx.propertyAddress ||
+          propInfo?.locationAddress ||
+          propInfo?.address ||
+          tx.paymentRequest?.propertyLocation ||
+          profile?.address ||
+          ''
 
-        const rentStartDate = tx.rentStartDate || tx.paymentRequest?.rentStartDate || propInfo?.rentStartDate
-        const rentEndDate = tx.rentEndDate || tx.paymentRequest?.rentEndDate || propInfo?.rentEndDate
-        const tenancyPeriod = tx.tenancyPeriod || ((rentStartDate && rentEndDate)
-          ? `${new Date(rentStartDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} - ${new Date(rentEndDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
-          : undefined)
+        const rentStartDate =
+          tx.rentStartDate || tx.paymentRequest?.rentStartDate || propInfo?.rentStartDate
+        const rentEndDate =
+          tx.rentEndDate || tx.paymentRequest?.rentEndDate || propInfo?.rentEndDate
+        const tenancyPeriod =
+          tx.tenancyPeriod ||
+          (rentStartDate && rentEndDate
+            ? `${new Date(rentStartDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} - ${new Date(rentEndDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
+            : undefined)
 
         const pr = tx.paymentRequest
-        const fullRentAmount = tx.rentAmount ?? tx.totalInvoiceAmount ?? propInfo?.rentAmount ?? pr?.amount
-        const totalInvoiceAmount = (tx.totalInvoiceAmount !== undefined && tx.totalInvoiceAmount !== null)
-          ? tx.totalInvoiceAmount
-          : (fullRentAmount || pr?.amount)
+        const fullRentAmount =
+          tx.rentAmount ?? tx.totalInvoiceAmount ?? propInfo?.rentAmount ?? pr?.amount
+        const totalInvoiceAmount =
+          tx.totalInvoiceAmount !== undefined && tx.totalInvoiceAmount !== null
+            ? tx.totalInvoiceAmount
+            : fullRentAmount || pr?.amount
         const initialPaid = propInfo?.initialAmountPaid || 0
-        const totalPaidToDate = (tx.totalPaidToDate !== undefined && tx.totalPaidToDate !== null)
-          ? tx.totalPaidToDate
-          : ((tx.historicalPaidToDate !== undefined && tx.historicalPaidToDate !== null)
-            ? tx.historicalPaidToDate 
-            : ((pr?.amountPaid || 0) + (initialPaid && tx.amount < (fullRentAmount || 0) ? initialPaid : 0)))
-        const remainingBalance = (tx.remainingBalance !== undefined && tx.remainingBalance !== null)
-          ? tx.remainingBalance
-          : ((tx.historicalRemaining !== undefined && tx.historicalRemaining !== null)
-            ? tx.historicalRemaining
-            : (totalInvoiceAmount !== undefined && totalPaidToDate !== undefined 
-              ? Math.max(0, totalInvoiceAmount - totalPaidToDate)
-              : (pr?.amount ? Math.max(0, pr.amount - (pr.amountPaid || 0)) : undefined)))
-        const isPartial = (tx.isPartial !== undefined && tx.isPartial !== null)
-          ? Boolean(tx.isPartial)
-          : (remainingBalance !== undefined ? remainingBalance > 0 : (tx.status === 'PARTIAL' || pr?.status === 'PARTIAL'))
+        const totalPaidToDate =
+          tx.totalPaidToDate !== undefined && tx.totalPaidToDate !== null
+            ? tx.totalPaidToDate
+            : tx.historicalPaidToDate !== undefined && tx.historicalPaidToDate !== null
+              ? tx.historicalPaidToDate
+              : (pr?.amountPaid || 0) +
+                (initialPaid && tx.amount < (fullRentAmount || 0) ? initialPaid : 0)
+        const remainingBalance =
+          tx.remainingBalance !== undefined && tx.remainingBalance !== null
+            ? tx.remainingBalance
+            : tx.historicalRemaining !== undefined && tx.historicalRemaining !== null
+              ? tx.historicalRemaining
+              : totalInvoiceAmount !== undefined && totalPaidToDate !== undefined
+                ? Math.max(0, totalInvoiceAmount - totalPaidToDate)
+                : pr?.amount
+                  ? Math.max(0, pr.amount - (pr.amountPaid || 0))
+                  : undefined
+        const isPartial =
+          tx.isPartial !== undefined && tx.isPartial !== null
+            ? Boolean(tx.isPartial)
+            : remainingBalance !== undefined
+              ? remainingBalance > 0
+              : tx.status === 'PARTIAL' || pr?.status === 'PARTIAL'
 
         const cleanDisplayName = (name?: string | null, fallback = 'Upward') => {
           if (!name) return fallback
@@ -111,22 +133,28 @@ export default function ReceiptsPage() {
 
         const candidateCompanyName =
           tx.companyName ||
-          ((landlord?.accountName && landlord.accountName !== 'account_name')
+          (landlord?.accountName && landlord.accountName !== 'account_name'
             ? landlord.accountName
-            : (landlord?.name ||
-               tx.paymentRequest?.companyName ||
-               tx.paymentRequest?.managerName ||
-               tx.paymentRequest?.subaccount?.businessName ||
-               tx.paymentRequest?.manualAccount?.accountName ||
-               tx.property?.manualAccount?.accountName ||
-               tx.property?.accountName))
+            : landlord?.name ||
+              tx.paymentRequest?.companyName ||
+              tx.paymentRequest?.managerName ||
+              tx.paymentRequest?.subaccount?.businessName ||
+              tx.paymentRequest?.manualAccount?.accountName ||
+              tx.property?.manualAccount?.accountName ||
+              tx.property?.accountName)
         const resolvedCompanyName = cleanDisplayName(candidateCompanyName, 'Upward')
 
         const companyLogo = tx.companyLogo || landlord?.logoUrl || ''
         const themeColor = tx.themeColor || landlord?.themeColor || '#B65B37'
 
-        const isManual = tx.isManual || tx.reference?.startsWith('MNL-') || tx.paymentType?.toLowerCase().includes('manual') || tx.paymentType?.toLowerCase().includes('bank transfer')
-        const channel = isManual ? 'Bank Transfer (Manual)' : (tx.channel || tx.paymentType || 'Paystack')
+        const isManual =
+          tx.isManual ||
+          tx.reference?.startsWith('MNL-') ||
+          tx.paymentType?.toLowerCase().includes('manual') ||
+          tx.paymentType?.toLowerCase().includes('bank transfer')
+        const channel = isManual
+          ? 'Bank Transfer (Manual)'
+          : tx.channel || tx.paymentType || 'Paystack'
 
         // Map backend Transaction to frontend ReceiptData
         const data: ReceiptData = {
@@ -146,7 +174,11 @@ export default function ReceiptsPage() {
           channel,
           paystackReference: tx.reference,
           type: 'debit',
-          status: isPartial ? 'PARTIAL' : (tx.status === 'SUCCESS' ? 'PAID' : (tx.paymentRequest?.status || 'PENDING')),
+          status: isPartial
+            ? 'PARTIAL'
+            : tx.status === 'SUCCESS'
+              ? 'PAID'
+              : tx.paymentRequest?.status || 'PENDING',
           isPartial: !!isPartial,
           rentAmount: tx.rentAmount,
           totalInvoiceAmount,
@@ -177,7 +209,7 @@ export default function ReceiptsPage() {
 
   async function handleDownload() {
     if (!receipt) return
-    
+
     // On native mobile, we prefer sharing as it's more reliable for 'saving' files
     if (Capacitor.isNativePlatform()) {
       return handleShare()
@@ -209,20 +241,20 @@ export default function ReceiptsPage() {
         scale: 2,
         useCORS: true,
         logging: false,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
       })
-      
+
       const imgData = canvas.toDataURL('image/png')
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
-        format: 'a4'
+        format: 'a4',
       })
 
       const imgProps = pdf.getImageProperties(imgData)
       const pdfWidth = pdf.internal.pageSize.getWidth()
       const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width
-      
+
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight)
       const filename = `receipt-${receipt.receiptNumber}.pdf`
 
@@ -274,7 +306,7 @@ export default function ReceiptsPage() {
           text: `Your payment receipt from Upward for ${receipt.amount.toLocaleString()} ${receipt.currency}`,
           url: writeResult.uri,
         })
-        
+
         return
       } catch (err) {
         console.error('Native sharing failed, falling back to web share:', err)
@@ -284,7 +316,7 @@ export default function ReceiptsPage() {
     // Standard Web Share API / Download Fallback
     try {
       const file = new File([blob], filename, { type: 'application/pdf' })
-      
+
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({
           files: [file],

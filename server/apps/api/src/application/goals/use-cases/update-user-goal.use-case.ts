@@ -1,9 +1,11 @@
-import { Inject, Injectable, Optional, NotFoundException, UnauthorizedException } from '@nestjs/common'
 import {
-  GOAL_REPOSITORY,
-  GoalRepository,
-  UserGoal,
-} from '../../../domains/goals/goal.repository'
+  Inject,
+  Injectable,
+  Optional,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common'
+import { GOAL_REPOSITORY, GoalRepository, UserGoal } from '../../../domains/goals/goal.repository'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import { UpdateUserGoalDto } from '../dto/user-goal.dto'
 
@@ -17,7 +19,11 @@ export class UpdateUserGoalUseCase {
     private readonly userRepo?: UserRepository,
   ) {}
 
-  async execute(userIdentifier: number | string, goalId: number, dto: UpdateUserGoalDto): Promise<UserGoal> {
+  async execute(
+    userIdentifier: number | string,
+    goalId: number,
+    dto: UpdateUserGoalDto,
+  ): Promise<UserGoal> {
     let resolvedUserId: number
     if (typeof userIdentifier === 'number') {
       resolvedUserId = userIdentifier
@@ -44,4 +50,3 @@ export class UpdateUserGoalUseCase {
     return this.goalRepo.updateUserGoal(existing.id, updateData)
   }
 }
-

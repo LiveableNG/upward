@@ -3,10 +3,7 @@ import {
   COMMERCE_ORDER_REPOSITORY,
   CommerceOrderRepository,
 } from '../../../domains/commerce/commerce-order.repository'
-import {
-  USER_REPOSITORY,
-  UserRepository,
-} from '../../../domains/users/user.repository'
+import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 import { EmailService } from '../../../shared/infrastructure/email/email.service'
 import { NotificationService } from '../../../shared/infrastructure/common/notification.service'
@@ -111,18 +108,18 @@ export class SendCommerceReceiptEmailUseCase {
 
     // 2. Generate PDF receipt
     const lineItems: CommerceReceiptData['lineItems'] = []
-      ; (order.subOrders || []).forEach((sub) => {
-        ; (sub.items || []).forEach((item) => {
-          const snap = (item.snapshotData as any) || {}
-          lineItems.push({
-            title: snap.title || snap.name || `Offering #${item.offeringId}`,
-            offeringType: item.offeringType,
-            quantity: item.quantity,
-            unitPriceKobo: item.unitPriceKobo,
-            totalPriceKobo: item.totalPriceKobo,
-          })
+    ;(order.subOrders || []).forEach((sub) => {
+      ;(sub.items || []).forEach((item) => {
+        const snap = (item.snapshotData as any) || {}
+        lineItems.push({
+          title: snap.title || snap.name || `Offering #${item.offeringId}`,
+          offeringType: item.offeringType,
+          quantity: item.quantity,
+          unitPriceKobo: item.unitPriceKobo,
+          totalPriceKobo: item.totalPriceKobo,
         })
       })
+    })
 
     const receiptNumber = order.orderNumber.replace('UPW-ORD-', 'UPW-RCP-')
     const receiptData: CommerceReceiptData = {
@@ -278,26 +275,28 @@ export class SendCommerceReceiptEmailUseCase {
                       ${itemsCustomerHtml}
                     </tbody>
                     <tfoot>
-                      ${order.deliveryFeeKobo > 0n
-            ? `
+                      ${
+                        order.deliveryFeeKobo > 0n
+                          ? `
                       <tr>
                         <td colspan="2" style="padding: 10px 16px; font-size: 12.5px; color: #5C554B; border-top: 1px solid #F0ECE4;">Delivery Fee</td>
                         <td align="right" style="padding: 10px 16px; font-size: 12.5px; color: #1E1B18; font-weight: 600; border-top: 1px solid #F0ECE4;">${formatKoboToNgn(order.deliveryFeeKobo, order.currency)}</td>
                       </tr>`
-            : `
+                          : `
                       <tr>
                         <td colspan="2" style="padding: 10px 16px; font-size: 12.5px; color: #5C554B; border-top: 1px solid #F0ECE4;">Delivery &amp; Logistics</td>
                         <td align="right" style="padding: 10px 16px; font-size: 12.5px; color: #059669; font-weight: 600; border-top: 1px solid #F0ECE4;">Free</td>
                       </tr>`
-          }
-                      ${order.discountKobo > 0n
-            ? `
+                      }
+                      ${
+                        order.discountKobo > 0n
+                          ? `
                       <tr>
                         <td colspan="2" style="padding: 10px 16px; font-size: 12.5px; color: #059669;">Platform Discount</td>
                         <td align="right" style="padding: 10px 16px; font-size: 12.5px; color: #059669; font-weight: 600;">-${formatKoboToNgn(order.discountKobo, order.currency)}</td>
                       </tr>`
-            : ''
-          }
+                          : ''
+                      }
                       <tr style="background-color: #FAF8F5;">
                         <td colspan="2" style="padding: 14px 16px; font-size: 14px; font-weight: 800; color: #1E1B18; border-top: 1px solid #EAE6DF;">Total Paid</td>
                         <td align="right" style="padding: 14px 16px; font-size: 15px; font-weight: 800; color: #B65B37; border-top: 1px solid #EAE6DF;">${formatKoboToNgn(order.totalAmountKobo, order.currency)}</td>
@@ -347,11 +346,11 @@ export class SendCommerceReceiptEmailUseCase {
 
         const attachments = pdfBuffer
           ? [
-            {
-              filename: `${receiptNumber}.pdf`,
-              content: pdfBuffer,
-            },
-          ]
+              {
+                filename: `${receiptNumber}.pdf`,
+                content: pdfBuffer,
+              },
+            ]
           : undefined
 
         await this.emailService.sendEmailWithRetry({

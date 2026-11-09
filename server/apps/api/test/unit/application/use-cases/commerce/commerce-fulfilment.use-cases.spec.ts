@@ -11,10 +11,7 @@ import {
   CommerceOrderRepository,
   CommerceVendorSuborder,
 } from '@domains/commerce/commerce-order.repository'
-import {
-  USER_REPOSITORY,
-  UserRepository,
-} from '@domains/users/user.repository'
+import { USER_REPOSITORY, UserRepository } from '@domains/users/user.repository'
 import { AdminFulfilmentTransitionAction } from '@application/commerce/dto/admin-commerce.dto'
 
 describe('Phase 6B.4: Admin-Managed Fulfilment APIs & Milestone Dispatch', () => {
@@ -228,20 +225,26 @@ describe('Phase 6B.4: Admin-Managed Fulfilment APIs & Milestone Dispatch', () =>
     }
 
     mockUserRepo = {
-      findById: jest.fn().mockImplementation(async (id: number) => ({
-        id,
-        uuid: `user-uuid-${id}`,
-        email: `tenant-${id}@upward.ng`,
-        firstName: 'Amara',
-        lastName: 'Okafor',
-      } as any)),
-      findByUuid: jest.fn().mockImplementation(async (uuid: string) => ({
-        id: 1,
-        uuid,
-        email: 'tenant@upward.ng',
-        firstName: 'Amara',
-        lastName: 'Okafor',
-      } as any)),
+      findById: jest.fn().mockImplementation(
+        async (id: number) =>
+          ({
+            id,
+            uuid: `user-uuid-${id}`,
+            email: `tenant-${id}@upward.ng`,
+            firstName: 'Amara',
+            lastName: 'Okafor',
+          }) as any,
+      ),
+      findByUuid: jest.fn().mockImplementation(
+        async (uuid: string) =>
+          ({
+            id: 1,
+            uuid,
+            email: 'tenant@upward.ng',
+            firstName: 'Amara',
+            lastName: 'Okafor',
+          }) as any,
+      ),
     }
 
     const module: TestingModule = await Test.createTestingModule({
@@ -263,10 +266,18 @@ describe('Phase 6B.4: Admin-Managed Fulfilment APIs & Milestone Dispatch', () =>
     }).compile()
 
     adminGetOrdersUseCase = module.get<AdminGetCommerceOrdersUseCase>(AdminGetCommerceOrdersUseCase)
-    adminGetOrderDetailUseCase = module.get<AdminGetCommerceOrderDetailUseCase>(AdminGetCommerceOrderDetailUseCase)
-    adminUpdateFulfilmentUseCase = module.get<AdminUpdateSubOrderFulfilmentUseCase>(AdminUpdateSubOrderFulfilmentUseCase)
-    tenantConfirmReceiptUseCase = module.get<TenantConfirmSubOrderReceiptUseCase>(TenantConfirmSubOrderReceiptUseCase)
-    tenantGetOrderDetailUseCase = module.get<GetTenantOrderDetailUseCase>(GetTenantOrderDetailUseCase)
+    adminGetOrderDetailUseCase = module.get<AdminGetCommerceOrderDetailUseCase>(
+      AdminGetCommerceOrderDetailUseCase,
+    )
+    adminUpdateFulfilmentUseCase = module.get<AdminUpdateSubOrderFulfilmentUseCase>(
+      AdminUpdateSubOrderFulfilmentUseCase,
+    )
+    tenantConfirmReceiptUseCase = module.get<TenantConfirmSubOrderReceiptUseCase>(
+      TenantConfirmSubOrderReceiptUseCase,
+    )
+    tenantGetOrderDetailUseCase = module.get<GetTenantOrderDetailUseCase>(
+      GetTenantOrderDetailUseCase,
+    )
   })
 
   describe('Admin Order Query APIs', () => {
@@ -392,12 +403,16 @@ describe('Phase 6B.4: Admin-Managed Fulfilment APIs & Milestone Dispatch', () =>
 
       mockOrderRepo.executeSubOrderFulfilmentTransition.mockResolvedValue(dispatchedSubOrder)
 
-      const result = await adminUpdateFulfilmentUseCase.execute('suborder-prod-uuid', 'admin-uuid-1', {
-        action: AdminFulfilmentTransitionAction.DISPATCH,
-        carrierName: 'GIG Logistics',
-        trackingNumber: 'GIG-999-LAGOS',
-        trackingUrl: 'https://giglogistics.com/track/GIG-999-LAGOS',
-      })
+      const result = await adminUpdateFulfilmentUseCase.execute(
+        'suborder-prod-uuid',
+        'admin-uuid-1',
+        {
+          action: AdminFulfilmentTransitionAction.DISPATCH,
+          carrierName: 'GIG Logistics',
+          trackingNumber: 'GIG-999-LAGOS',
+          trackingUrl: 'https://giglogistics.com/track/GIG-999-LAGOS',
+        },
+      )
 
       expect(result.customerStatus).toBe('DISPATCHED')
       expect(result.operationalStatus).toBe('CARRIER_DISPATCHED')
@@ -648,9 +663,9 @@ describe('Phase 6B.4: Admin-Managed Fulfilment APIs & Milestone Dispatch', () =>
       })
 
       // Attempt by user 999
-      await expect(
-        tenantConfirmReceiptUseCase.execute(999, 'suborder-prod-uuid'),
-      ).rejects.toThrow(NotFoundException)
+      await expect(tenantConfirmReceiptUseCase.execute(999, 'suborder-prod-uuid')).rejects.toThrow(
+        NotFoundException,
+      )
     })
 
     it('should reject receipt confirmation if sub-order is not DELIVERED or SERVICE_COMPLETED', async () => {
@@ -660,9 +675,9 @@ describe('Phase 6B.4: Admin-Managed Fulfilment APIs & Milestone Dispatch', () =>
         order: mockMasterOrder,
       })
 
-      await expect(
-        tenantConfirmReceiptUseCase.execute(1, 'suborder-prod-uuid'),
-      ).rejects.toThrow('Sub-order must be in DELIVERED or SERVICE_COMPLETED status')
+      await expect(tenantConfirmReceiptUseCase.execute(1, 'suborder-prod-uuid')).rejects.toThrow(
+        'Sub-order must be in DELIVERED or SERVICE_COMPLETED status',
+      )
     })
 
     it('should confirm receipt when DELIVERED, transition payable to ELIGIBLE_FOR_PAYOUT, and close fulfilment', async () => {

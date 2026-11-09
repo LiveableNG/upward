@@ -1,16 +1,7 @@
 'use client'
 
 import React, { useEffect } from 'react'
-import {
-  X,
-  ShieldCheck,
-  Mail,
-  Phone,
-  MapPin,
-  Star,
-  CheckCircle2,
-  Building2,
-} from 'lucide-react'
+import { X, ShieldCheck, Mail, Phone, MapPin, Star, CheckCircle2, Building2 } from 'lucide-react'
 import type { CommerceVendor } from '../types/goals.types'
 
 interface VendorCredibilityModalProps {
@@ -49,10 +40,7 @@ export const VendorCredibilityModal: React.FC<VendorCredibilityModalProps> = ({
       aria-labelledby="vendor-modal-title"
       onClick={onClose}
     >
-      <div
-        className="vendor-modal__container"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="vendor-modal__container" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="vendor-modal__header">
           <div className="vendor-modal__title-row">
@@ -91,12 +79,10 @@ export const VendorCredibilityModal: React.FC<VendorCredibilityModalProps> = ({
           <div className="vendor-modal__trust-box">
             <CheckCircle2 size={18} className="vendor-modal__trust-icon" />
             <div>
-              <p className="vendor-modal__trust-title">
-                Upward Certified Merchant
-              </p>
+              <p className="vendor-modal__trust-title">Upward Certified Merchant</p>
               <p className="vendor-modal__trust-desc">
-                This merchant has been verified by the Upward Operations team for
-                licensing, customer satisfaction, and service delivery standards.
+                This merchant has been verified by the Upward Operations team for licensing,
+                customer satisfaction, and service delivery standards.
               </p>
             </div>
           </div>
@@ -106,14 +92,10 @@ export const VendorCredibilityModal: React.FC<VendorCredibilityModalProps> = ({
             <div className="vendor-modal__stat-card">
               <div className="vendor-modal__rating-row">
                 <Star size={18} className="vendor-modal__star-icon" />
-                <span className="vendor-modal__rating-value">
-                  {vendor.rating.toFixed(1)}
-                </span>
+                <span className="vendor-modal__rating-value">{vendor.rating.toFixed(1)}</span>
                 <span className="vendor-modal__rating-scale">/ 5.0</span>
               </div>
-              <span className="vendor-modal__rating-label">
-                Tenant Satisfaction Score
-              </span>
+              <span className="vendor-modal__rating-label">Tenant Satisfaction Score</span>
             </div>
           )}
 
@@ -165,11 +147,7 @@ export const VendorCredibilityModal: React.FC<VendorCredibilityModalProps> = ({
 
         {/* Footer */}
         <div className="vendor-modal__footer">
-          <button
-            type="button"
-            className="vendor-modal__done-btn"
-            onClick={onClose}
-          >
+          <button type="button" className="vendor-modal__done-btn" onClick={onClose}>
             Done
           </button>
         </div>

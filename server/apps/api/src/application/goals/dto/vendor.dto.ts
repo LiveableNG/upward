@@ -137,4 +137,3 @@ export class UpdateVendorDto {
   @IsOptional()
   isVerified?: boolean
 }
-

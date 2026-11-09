@@ -111,7 +111,8 @@ export function OrderTrackingScreen({
     if (propOrderUuid && propOrderUuid !== 'placeholder') {
       return propOrderUuid
     }
-    const fromSearch = searchParams?.get('uuid') || searchParams?.get('order') || searchParams?.get('id')
+    const fromSearch =
+      searchParams?.get('uuid') || searchParams?.get('order') || searchParams?.get('id')
     if (fromSearch) return fromSearch
     if (typeof window !== 'undefined') {
       const parts = window.location.pathname.split('/dashboard/lifestyle/orders/')
@@ -123,17 +124,19 @@ export function OrderTrackingScreen({
     return propOrderUuid || ''
   }, [propOrderUuid, searchParams])
 
-  const { data: order, isLoading, error } = useTenantOrderDetail(
-    orderUuid,
-    Boolean(orderUuid && orderUuid !== 'placeholder'),
-  )
+  const {
+    data: order,
+    isLoading,
+    error,
+  } = useTenantOrderDetail(orderUuid, Boolean(orderUuid && orderUuid !== 'placeholder'))
   const downloadReceipt = useDownloadCommerceReceipt()
   const confirmReceipt = useConfirmSubOrderReceipt()
   const createDispute = useCreateCommerceDispute()
   const initializePayment = useInitializeCommercePayment()
   const verifyPayment = useVerifyCommercePayment()
 
-  const [activeDisputeSubOrder, setActiveDisputeSubOrder] = useState<TenantSubOrderDetailDto | null>(null)
+  const [activeDisputeSubOrder, setActiveDisputeSubOrder] =
+    useState<TenantSubOrderDetailDto | null>(null)
   const [subOrderToConfirm, setSubOrderToConfirm] = useState<TenantSubOrderDetailDto | null>(null)
   const [rating, setRating] = useState<number>(5)
   const [feedback, setFeedback] = useState<string>('')
@@ -195,11 +198,7 @@ export function OrderTrackingScreen({
           <p className="orders-hub__empty-desc">
             We could not locate this order or it belongs to a different session.
           </p>
-          <button
-            type="button"
-            className="orders-hub__explore-btn"
-            onClick={handleBack}
-          >
+          <button type="button" className="orders-hub__explore-btn" onClick={handleBack}>
             <span>Back to My Orders</span>
           </button>
         </div>
@@ -326,11 +325,7 @@ export function OrderTrackingScreen({
             onClick={handlePayNow}
             disabled={isPaying}
           >
-            {isPaying ? (
-              <Loader2 size={14} className="animate-spin" />
-            ) : (
-              <CreditCard size={14} />
-            )}
+            {isPaying ? <Loader2 size={14} className="animate-spin" /> : <CreditCard size={14} />}
             <span>Pay Now</span>
           </button>
         )}
@@ -350,7 +345,8 @@ export function OrderTrackingScreen({
               <span className="order-tracking__unpaid-badge">Action Required</span>
             </div>
             <p className="order-tracking__unpaid-desc">
-              Your order has been placed, but payment is not complete. Pay now with Paystack so the merchant can begin preparation and dispatch.
+              Your order has been placed, but payment is not complete. Pay now with Paystack so the
+              merchant can begin preparation and dispatch.
             </p>
             <button
               type="button"
@@ -415,7 +411,10 @@ export function OrderTrackingScreen({
               activeStepIndex = 3
             } else if (subOrder.customerStatus === 'TECHNICIAN_EN_ROUTE') {
               activeStepIndex = 2
-            } else if (subOrder.customerStatus === 'SERVICE_SCHEDULED' || subOrder.customerStatus === 'PROCESSING') {
+            } else if (
+              subOrder.customerStatus === 'SERVICE_SCHEDULED' ||
+              subOrder.customerStatus === 'PROCESSING'
+            ) {
               activeStepIndex = 1
             } else {
               activeStepIndex = 0
@@ -444,7 +443,10 @@ export function OrderTrackingScreen({
                   )}
                   <div className="order-tracking__vendor-tag">
                     <ShieldCheck size={14} color="var(--clay)" />
-                    <span>Fulfilled by {subOrder.vendor?.name || subOrder.vendorName || 'Upward Merchant'}</span>
+                    <span>
+                      Fulfilled by{' '}
+                      {subOrder.vendor?.name || subOrder.vendorName || 'Upward Merchant'}
+                    </span>
                   </div>
                 </div>
 
@@ -480,7 +482,11 @@ export function OrderTrackingScreen({
               {/* Operational Dispatch Message / Live Advisory */}
               {subOrder.adminOperationalNotes && (
                 <div className="order-tracking__alert-banner order-tracking__alert-banner--dispatch">
-                  <MessageSquare size={16} color="var(--clay)" style={{ flexShrink: 0, marginTop: 2 }} />
+                  <MessageSquare
+                    size={16}
+                    color="var(--clay)"
+                    style={{ flexShrink: 0, marginTop: 2 }}
+                  />
                   <div className="order-tracking__alert-text">
                     <strong>Dispatch Note:</strong> {subOrder.adminOperationalNotes}
                   </div>
@@ -493,7 +499,9 @@ export function OrderTrackingScreen({
                   <div
                     className="order-tracking__stepper-fill"
                     style={{
-                      width: ['DELIVERED', 'RECEIVED_CONFIRMED', 'SERVICE_COMPLETED'].includes(subOrder.customerStatus)
+                      width: ['DELIVERED', 'RECEIVED_CONFIRMED', 'SERVICE_COMPLETED'].includes(
+                        subOrder.customerStatus,
+                      )
                         ? '100%'
                         : `${(activeStepIndex / (steps.length - 1)) * 100}%`,
                     }}
@@ -501,8 +509,14 @@ export function OrderTrackingScreen({
                 </div>
                 <div className="order-tracking__stepper-nodes">
                   {steps.map((step, idx) => {
-                    const isFinalReached = ['DELIVERED', 'RECEIVED_CONFIRMED', 'SERVICE_COMPLETED'].includes(subOrder.customerStatus)
-                    const isAllFinalized = ['RECEIVED_CONFIRMED', 'SERVICE_COMPLETED'].includes(subOrder.customerStatus)
+                    const isFinalReached = [
+                      'DELIVERED',
+                      'RECEIVED_CONFIRMED',
+                      'SERVICE_COMPLETED',
+                    ].includes(subOrder.customerStatus)
+                    const isAllFinalized = ['RECEIVED_CONFIRMED', 'SERVICE_COMPLETED'].includes(
+                      subOrder.customerStatus,
+                    )
                     const isDone = isFinalReached ? idx <= activeStepIndex : idx < activeStepIndex
                     const isCurrent = isFinalReached ? false : idx === activeStepIndex
                     const isBeamingStep = isCurrent && isDispatchedLive
@@ -510,16 +524,18 @@ export function OrderTrackingScreen({
                     return (
                       <div
                         key={step.key}
-                        className={`order-tracking__node ${isDone
-                          ? 'order-tracking__node--done'
-                          : isCurrent
-                            ? 'order-tracking__node--current'
-                            : ''
-                          }`}
+                        className={`order-tracking__node ${
+                          isDone
+                            ? 'order-tracking__node--done'
+                            : isCurrent
+                              ? 'order-tracking__node--current'
+                              : ''
+                        }`}
                       >
                         <div
-                          className={`order-tracking__node-dot ${isBeamingStep ? 'order-tracking__node-dot--beaming' : ''
-                            }`}
+                          className={`order-tracking__node-dot ${
+                            isBeamingStep ? 'order-tracking__node-dot--beaming' : ''
+                          }`}
                         >
                           {isBeamingStep ? (
                             <>
@@ -535,7 +551,9 @@ export function OrderTrackingScreen({
                         <div className="order-tracking__node-label">
                           <span>
                             {isAllFinalized && idx === steps.length - 1
-                              ? (isService ? 'Service Confirmed' : 'Delivered & Confirmed')
+                              ? isService
+                                ? 'Service Confirmed'
+                                : 'Delivered & Confirmed'
                               : step.label}
                           </span>
                           {isBeamingStep && (
@@ -556,103 +574,109 @@ export function OrderTrackingScreen({
                 subOrder.serviceScheduledAt ||
                 subOrder.technicianName ||
                 subOrder.technicianPhone) && (
-                  <div className="order-tracking__dispatch-box">
-                    {/* Delivery Rider (Physical goods delivery) */}
-                    {!isService && (subOrder.technicianName || subOrder.technicianPhone) && (
-                      <div className="order-tracking__dispatch-item order-tracking__dispatch-item--rider">
-                        <Truck size={16} color="var(--clay)" />
-                        <div className="order-tracking__dispatch-details">
-                          <div className="order-tracking__dispatch-label">Delivery Rider</div>
-                          <div className="order-tracking__dispatch-val">
-                            {subOrder.technicianName || 'Assigned Rider'}
-                            {subOrder.technicianPhone && (
-                              <span className="order-tracking__dispatch-phone"> · {subOrder.technicianPhone}</span>
-                            )}
-                          </div>
-                        </div>
-                        {subOrder.technicianPhone && (
-                          <a
-                            href={`tel:${subOrder.technicianPhone.replace(/\s+/g, '')}`}
-                            className="order-tracking__call-btn"
-                            aria-label={`Call delivery rider at ${subOrder.technicianPhone}`}
-                          >
-                            <Phone size={13} />
-                            <span>Call Rider</span>
-                          </a>
-                        )}
-                      </div>
-                    )}
-
-                    {/* 3rd Party Carrier details if provided */}
-                    {subOrder.carrierName && (
-                      <div className="order-tracking__dispatch-item">
-                        <Truck size={16} color="var(--clay)" />
-                        <div>
-                          <div className="order-tracking__dispatch-label">Carrier & Tracking</div>
-                          <div className="order-tracking__dispatch-val">
-                            {subOrder.carrierName}
-                            {subOrder.trackingNumber && ` · #${subOrder.trackingNumber}`}
-                          </div>
-                          {subOrder.trackingUrl && (
-                            <a
-                              href={subOrder.trackingUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="order-tracking__carrier-link"
-                            >
-                              <span>Carrier Tracking Portal</span>
-                              <ExternalLink size={12} />
-                            </a>
+                <div className="order-tracking__dispatch-box">
+                  {/* Delivery Rider (Physical goods delivery) */}
+                  {!isService && (subOrder.technicianName || subOrder.technicianPhone) && (
+                    <div className="order-tracking__dispatch-item order-tracking__dispatch-item--rider">
+                      <Truck size={16} color="var(--clay)" />
+                      <div className="order-tracking__dispatch-details">
+                        <div className="order-tracking__dispatch-label">Delivery Rider</div>
+                        <div className="order-tracking__dispatch-val">
+                          {subOrder.technicianName || 'Assigned Rider'}
+                          {subOrder.technicianPhone && (
+                            <span className="order-tracking__dispatch-phone">
+                              {' '}
+                              · {subOrder.technicianPhone}
+                            </span>
                           )}
                         </div>
                       </div>
-                    )}
+                      {subOrder.technicianPhone && (
+                        <a
+                          href={`tel:${subOrder.technicianPhone.replace(/\s+/g, '')}`}
+                          className="order-tracking__call-btn"
+                          aria-label={`Call delivery rider at ${subOrder.technicianPhone}`}
+                        >
+                          <Phone size={13} />
+                          <span>Call Rider</span>
+                        </a>
+                      )}
+                    </div>
+                  )}
 
-                    {/* Service appointment */}
-                    {subOrder.serviceScheduledAt && (
-                      <div className="order-tracking__dispatch-item">
-                        <Calendar size={16} color="var(--clay)" />
-                        <div>
-                          <div className="order-tracking__dispatch-label">Scheduled Appointment</div>
-                          <div className="order-tracking__dispatch-val">
-                            {formatDateTime(subOrder.serviceScheduledAt)}
-                          </div>
-                          {subOrder.serviceWindowNotes && (
-                            <div className="order-tracking__dispatch-notes">
-                              {subOrder.serviceWindowNotes}
-                            </div>
-                          )}
+                  {/* 3rd Party Carrier details if provided */}
+                  {subOrder.carrierName && (
+                    <div className="order-tracking__dispatch-item">
+                      <Truck size={16} color="var(--clay)" />
+                      <div>
+                        <div className="order-tracking__dispatch-label">Carrier & Tracking</div>
+                        <div className="order-tracking__dispatch-val">
+                          {subOrder.carrierName}
+                          {subOrder.trackingNumber && ` · #${subOrder.trackingNumber}`}
                         </div>
-                      </div>
-                    )}
-
-                    {/* Service specialist */}
-                    {isService && subOrder.technicianName && (
-                      <div className="order-tracking__dispatch-item order-tracking__dispatch-item--rider">
-                        <User size={16} color="var(--clay)" />
-                        <div className="order-tracking__dispatch-details">
-                          <div className="order-tracking__dispatch-label">Assigned Specialist</div>
-                          <div className="order-tracking__dispatch-val">
-                            {subOrder.technicianName} (Upward Verified)
-                            {subOrder.technicianPhone && (
-                              <span className="order-tracking__dispatch-phone"> · {subOrder.technicianPhone}</span>
-                            )}
-                          </div>
-                        </div>
-                        {subOrder.technicianPhone && (
+                        {subOrder.trackingUrl && (
                           <a
-                            href={`tel:${subOrder.technicianPhone.replace(/\s+/g, '')}`}
-                            className="order-tracking__call-btn"
-                            aria-label={`Call specialist at ${subOrder.technicianPhone}`}
+                            href={subOrder.trackingUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="order-tracking__carrier-link"
                           >
-                            <Phone size={13} />
-                            <span>Call Specialist</span>
+                            <span>Carrier Tracking Portal</span>
+                            <ExternalLink size={12} />
                           </a>
                         )}
                       </div>
-                    )}
-                  </div>
-                )}
+                    </div>
+                  )}
+
+                  {/* Service appointment */}
+                  {subOrder.serviceScheduledAt && (
+                    <div className="order-tracking__dispatch-item">
+                      <Calendar size={16} color="var(--clay)" />
+                      <div>
+                        <div className="order-tracking__dispatch-label">Scheduled Appointment</div>
+                        <div className="order-tracking__dispatch-val">
+                          {formatDateTime(subOrder.serviceScheduledAt)}
+                        </div>
+                        {subOrder.serviceWindowNotes && (
+                          <div className="order-tracking__dispatch-notes">
+                            {subOrder.serviceWindowNotes}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Service specialist */}
+                  {isService && subOrder.technicianName && (
+                    <div className="order-tracking__dispatch-item order-tracking__dispatch-item--rider">
+                      <User size={16} color="var(--clay)" />
+                      <div className="order-tracking__dispatch-details">
+                        <div className="order-tracking__dispatch-label">Assigned Specialist</div>
+                        <div className="order-tracking__dispatch-val">
+                          {subOrder.technicianName} (Upward Verified)
+                          {subOrder.technicianPhone && (
+                            <span className="order-tracking__dispatch-phone">
+                              {' '}
+                              · {subOrder.technicianPhone}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {subOrder.technicianPhone && (
+                        <a
+                          href={`tel:${subOrder.technicianPhone.replace(/\s+/g, '')}`}
+                          className="order-tracking__call-btn"
+                          aria-label={`Call specialist at ${subOrder.technicianPhone}`}
+                        >
+                          <Phone size={13} />
+                          <span>Call Specialist</span>
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Items in this suborder */}
               <div className="order-tracking__items-section">
@@ -724,9 +748,13 @@ export function OrderTrackingScreen({
             <p className="order-tracking__form-intro">
               Reporting an issue for{' '}
               {order.subOrders.length > 1 ? (
-                <>package <strong>{activeDisputeSubOrder.subOrderNumber}</strong></>
+                <>
+                  package <strong>{activeDisputeSubOrder.subOrderNumber}</strong>
+                </>
               ) : (
-                <>order <strong>{order.orderNumber}</strong></>
+                <>
+                  order <strong>{order.orderNumber}</strong>
+                </>
               )}
               . Our support team will coordinate directly with the partner to resolve this for you.
             </p>
@@ -734,10 +762,18 @@ export function OrderTrackingScreen({
             <div className="order-tracking__form-field">
               <label className="order-tracking__form-label">Nature of Issue</label>
               <select {...register('reason')} className="order-tracking__select">
-                <option value="Damaged or incorrect item received">Damaged or incorrect item received</option>
-                <option value="Item not delivered / severe transit delay">Item not delivered / severe transit delay</option>
-                <option value="Technician did not show up for appointment">Technician did not show up for appointment</option>
-                <option value="Service quality does not match specification">Service quality does not match specification</option>
+                <option value="Damaged or incorrect item received">
+                  Damaged or incorrect item received
+                </option>
+                <option value="Item not delivered / severe transit delay">
+                  Item not delivered / severe transit delay
+                </option>
+                <option value="Technician did not show up for appointment">
+                  Technician did not show up for appointment
+                </option>
+                <option value="Service quality does not match specification">
+                  Service quality does not match specification
+                </option>
                 <option value="Other complaint or question">Other complaint or question</option>
               </select>
               {errors.reason && (
@@ -766,11 +802,7 @@ export function OrderTrackingScreen({
               >
                 Cancel
               </button>
-              <button
-                type="submit"
-                className="order-tracking__submit-btn"
-                disabled={isSubmitting}
-              >
+              <button type="submit" className="order-tracking__submit-btn" disabled={isSubmitting}>
                 {isSubmitting ? (
                   <Loader2 size={16} className="animate-spin" />
                 ) : (
@@ -802,7 +834,9 @@ export function OrderTrackingScreen({
               <div className="order-tracking__rating-header">
                 <h4 className="order-tracking__rating-title">Rate Delivery & Experience</h4>
                 <p className="order-tracking__rating-subtitle">
-                  How satisfied are you with {subOrderToConfirm.vendor?.name || subOrderToConfirm.vendorName || 'the merchant'}&apos;s service?
+                  How satisfied are you with{' '}
+                  {subOrderToConfirm.vendor?.name || subOrderToConfirm.vendorName || 'the merchant'}
+                  &apos;s service?
                 </p>
               </div>
 
@@ -876,7 +910,9 @@ export function OrderTrackingScreen({
               <div className="order-tracking__confirm-items-list">
                 {subOrderToConfirm.items.map((item) => (
                   <div key={item.uuid} className="order-tracking__confirm-item-row">
-                    <span className="order-tracking__confirm-item-title">• {item.snapshotData?.title || 'Package Item'}</span>
+                    <span className="order-tracking__confirm-item-title">
+                      • {item.snapshotData?.title || 'Package Item'}
+                    </span>
                     <span className="order-tracking__confirm-item-qty">Qty: {item.quantity}</span>
                   </div>
                 ))}

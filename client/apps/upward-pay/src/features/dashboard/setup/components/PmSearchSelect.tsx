@@ -195,7 +195,9 @@ export function PmSearchSelect({
         <div className="setup-page__pm-card-inner">
           <CheckCircle2 size={24} className="setup-page__pm-check" aria-hidden />
           <div className="setup-page__pm-details">
-            <strong className="setup-page__pm-name">{managerLabel || 'Verified Property Manager'}</strong>
+            <strong className="setup-page__pm-name">
+              {managerLabel || 'Verified Property Manager'}
+            </strong>
             <span className="setup-page__pm-meta">Verified & Managed on Upward</span>
           </div>
         </div>
@@ -218,7 +220,15 @@ export function PmSearchSelect({
           borderRadius: 14,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', width: '100%', gap: 10 }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+            width: '100%',
+            gap: 10,
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, minWidth: 0, flex: 1 }}>
             <div
               style={{
@@ -240,7 +250,14 @@ export function PmSearchSelect({
             </div>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                <strong style={{ fontSize: 14.5, color: '#1a1714', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <strong
+                  style={{
+                    fontSize: 14.5,
+                    color: '#1a1714',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
                   {value.pmDetails?.name}
                 </strong>
                 <ShieldCheck size={16} color="#0284c7" style={{ flexShrink: 0 }} />
@@ -276,13 +293,34 @@ export function PmSearchSelect({
                   </span>
                 )}
               </div>
-              {value.pmDetails?.businessName && value.pmDetails.businessName !== value.pmDetails.name ? (
-                <span style={{ fontSize: 12.5, color: '#5c544b', display: 'block', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {value.pmDetails?.businessName &&
+              value.pmDetails.businessName !== value.pmDetails.name ? (
+                <span
+                  style={{
+                    fontSize: 12.5,
+                    color: '#5c544b',
+                    display: 'block',
+                    marginTop: 1,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
                   {value.pmDetails.businessName}
                 </span>
               ) : null}
               {value.pmEmail ? (
-                <span style={{ fontSize: 11.5, color: '#7a7268', display: 'block', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span
+                  style={{
+                    fontSize: 11.5,
+                    color: '#7a7268',
+                    display: 'block',
+                    marginTop: 2,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
                   {value.pmEmail}
                 </span>
               ) : null}
@@ -329,8 +367,23 @@ export function PmSearchSelect({
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
               <Landmark size={15} color="var(--skin-primary, #c2501f)" style={{ flexShrink: 0 }} />
-              <div style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#7a7268', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+              <div
+                style={{
+                  minWidth: 0,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: '#7a7268',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.03em',
+                  }}
+                >
                   Payout:
                 </span>{' '}
                 <strong style={{ fontSize: 12.5, color: '#1a1714' }}>
@@ -367,8 +420,23 @@ export function PmSearchSelect({
 
   if (isInviteMode) {
     return (
-      <div className="setup-page__invite-form" style={{ background: '#fcfaf7', border: '1px solid #eae2d7', borderRadius: 14, padding: 16 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+      <div
+        className="setup-page__invite-form"
+        style={{
+          background: '#fcfaf7',
+          border: '1px solid #eae2d7',
+          borderRadius: 14,
+          padding: 16,
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: 14,
+          }}
+        >
           <div>
             <strong style={{ fontSize: 14, color: '#1a1714', display: 'block' }}>
               Invite Landlord or Manager
@@ -380,7 +448,15 @@ export function PmSearchSelect({
           <button
             type="button"
             onClick={handleReset}
-            style={{ fontSize: 12, color: '#c2501f', background: 'none', border: 'none', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}
+            style={{
+              fontSize: 12,
+              color: '#c2501f',
+              background: 'none',
+              border: 'none',
+              fontWeight: 600,
+              cursor: 'pointer',
+              textDecoration: 'underline',
+            }}
           >
             Back to search
           </button>
@@ -388,7 +464,17 @@ export function PmSearchSelect({
 
         <div className="setup-page__field-row" style={{ marginBottom: 12 }}>
           <div className="setup-page__field">
-            <label style={{ fontSize: 12.5, fontWeight: 600, color: '#5c544b', marginBottom: 5, display: 'block' }}>Role</label>
+            <label
+              style={{
+                fontSize: 12.5,
+                fontWeight: 600,
+                color: '#5c544b',
+                marginBottom: 5,
+                display: 'block',
+              }}
+            >
+              Role
+            </label>
             <select
               className="setup-page__input"
               value={value.pmType}
@@ -401,7 +487,17 @@ export function PmSearchSelect({
           </div>
 
           <div className="setup-page__field">
-            <label style={{ fontSize: 12.5, fontWeight: 600, color: '#5c544b', marginBottom: 5, display: 'block' }}>Full name</label>
+            <label
+              style={{
+                fontSize: 12.5,
+                fontWeight: 600,
+                color: '#5c544b',
+                marginBottom: 5,
+                display: 'block',
+              }}
+            >
+              Full name
+            </label>
             <input
               className="setup-page__input"
               type="text"
@@ -414,7 +510,17 @@ export function PmSearchSelect({
 
         <div className="setup-page__field-row">
           <div className="setup-page__field">
-            <label style={{ fontSize: 12.5, fontWeight: 600, color: '#5c544b', marginBottom: 5, display: 'block' }}>Email address (for invite)</label>
+            <label
+              style={{
+                fontSize: 12.5,
+                fontWeight: 600,
+                color: '#5c544b',
+                marginBottom: 5,
+                display: 'block',
+              }}
+            >
+              Email address (for invite)
+            </label>
             <input
               className="setup-page__input"
               type="email"
@@ -427,7 +533,17 @@ export function PmSearchSelect({
           </div>
 
           <div className="setup-page__field">
-            <label style={{ fontSize: 12.5, fontWeight: 600, color: '#5c544b', marginBottom: 5, display: 'block' }}>Company / Estate name (optional)</label>
+            <label
+              style={{
+                fontSize: 12.5,
+                fontWeight: 600,
+                color: '#5c544b',
+                marginBottom: 5,
+                display: 'block',
+              }}
+            >
+              Company / Estate name (optional)
+            </label>
             <input
               className="setup-page__input"
               type="text"
@@ -452,12 +568,29 @@ export function PmSearchSelect({
           onChange={(e) => setSearchQuery(e.target.value)}
           style={{ paddingLeft: 40, paddingRight: isSearching || searchQuery ? 40 : 14 }}
         />
-        <div style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)', color: '#9ca3af', pointerEvents: 'none' }}>
+        <div
+          style={{
+            position: 'absolute',
+            left: 13,
+            top: '50%',
+            transform: 'translateY(-50%)',
+            color: '#9ca3af',
+            pointerEvents: 'none',
+          }}
+        >
           <Search size={18} />
         </div>
 
         {isSearching && (
-          <div style={{ position: 'absolute', right: 13, top: '50%', transform: 'translateY(-50%)', color: '#c2501f' }}>
+          <div
+            style={{
+              position: 'absolute',
+              right: 13,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              color: '#c2501f',
+            }}
+          >
             <Loader2 size={18} className="animate-spin" />
           </div>
         )}
@@ -470,7 +603,17 @@ export function PmSearchSelect({
               setSearchResults([])
               setHasSearched(false)
             }}
-            style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', padding: 4 }}
+            style={{
+              position: 'absolute',
+              right: 12,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              background: 'none',
+              border: 'none',
+              color: '#9ca3af',
+              cursor: 'pointer',
+              padding: 4,
+            }}
           >
             <X size={16} />
           </button>
@@ -493,7 +636,18 @@ export function PmSearchSelect({
         >
           {searchResults.length > 0 ? (
             <div>
-              <div style={{ padding: '8px 14px', background: '#f8fafc', borderBottom: '1px solid #f1f5f9', fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: '#64748b' }}>
+              <div
+                style={{
+                  padding: '8px 14px',
+                  background: '#f8fafc',
+                  borderBottom: '1px solid #f1f5f9',
+                  fontSize: 11.5,
+                  fontWeight: 700,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  color: '#64748b',
+                }}
+              >
                 Matching Managers on Upward
               </div>
               {searchResults.map((pm) => (
@@ -569,7 +723,9 @@ export function PmSearchSelect({
                         >
                           {pm.name}
                         </strong>
-                        {pm.isVerified && <ShieldCheck size={14} color="#0284c7" style={{ flexShrink: 0 }} />}
+                        {pm.isVerified && (
+                          <ShieldCheck size={14} color="#0284c7" style={{ flexShrink: 0 }} />
+                        )}
                         {pm.isExternal ? (
                           <span
                             style={{
@@ -659,13 +815,26 @@ export function PmSearchSelect({
                           }}
                         >
                           <Mail size={11} style={{ flexShrink: 0 }} />
-                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <span
+                            style={{
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                            }}
+                          >
                             {pm.email}
                           </span>
                         </span>
                       )}
                       {pm.phone && (
-                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            flexShrink: 0,
+                          }}
+                        >
                           <Phone size={11} style={{ flexShrink: 0 }} />
                           <span>{pm.phone}</span>
                         </span>
@@ -691,7 +860,13 @@ export function PmSearchSelect({
                         }}
                       >
                         <Landmark size={11} style={{ flexShrink: 0 }} />
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <span
+                          style={{
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
                           Payout: {pm.defaultSettlementAccount.bankName} (••••{' '}
                           {pm.defaultSettlementAccount.accountNumber.slice(-4)})
                         </span>
@@ -701,12 +876,31 @@ export function PmSearchSelect({
                 </button>
               ))}
 
-              <div style={{ padding: '10px 14px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div
+                style={{
+                  padding: '10px 14px',
+                  background: '#f8fafc',
+                  borderTop: '1px solid #e2e8f0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                }}
+              >
                 <span style={{ fontSize: 12, color: '#64748b' }}>Not listed above?</span>
                 <button
                   type="button"
                   onClick={() => handleStartInvite()}
-                  style={{ background: 'none', border: 'none', color: '#c2501f', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#c2501f',
+                    fontSize: 12.5,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
                 >
                   <UserPlus size={14} />
                   Invite &quot;{searchQuery}&quot;
