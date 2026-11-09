@@ -174,7 +174,11 @@ export class CommerceReceiptService {
 
         // Hero Amount (Times-Bold)
         const totalFormatted = formatNgnAmount(data.totalAmountKobo, data.currency)
-        doc.font('Times-Bold').fontSize(32).fillColor('#FBF3EE').text(totalFormatted, BRAND_X, 94)
+        doc
+          .font('Times-Bold')
+          .fontSize(32)
+          .fillColor('#FBF3EE')
+          .text(totalFormatted, BRAND_X, 94)
 
         // Hero Foot: Status Pill & Time
         const PILL_W = 104
@@ -232,11 +236,7 @@ export class CommerceReceiptService {
         doc.restore()
 
         // Cell 1: Items Subtotal
-        doc
-          .font('Helvetica')
-          .fontSize(8.5)
-          .fillColor(inkMuted)
-          .text('Items subtotal', CARD_X + 16, STATS_Y + 12)
+        doc.font('Helvetica').fontSize(8.5).fillColor(inkMuted).text('Items subtotal', CARD_X + 16, STATS_Y + 12)
         doc
           .font('Helvetica-Bold')
           .fontSize(12.5)
@@ -245,7 +245,9 @@ export class CommerceReceiptService {
 
         // Cell 2: Delivery & Logistics
         const deliveryDisplay =
-          data.deliveryFeeKobo > 0n ? formatNgnAmount(data.deliveryFeeKobo, data.currency) : 'Free'
+          data.deliveryFeeKobo > 0n
+            ? formatNgnAmount(data.deliveryFeeKobo, data.currency)
+            : 'Free'
         doc
           .font('Helvetica')
           .fontSize(8.5)
@@ -258,11 +260,7 @@ export class CommerceReceiptService {
           .text(deliveryDisplay, CARD_X + halfW + 17, STATS_Y + 28)
 
         // Cell 3: Total Paid (Highlighted in clayTint)
-        doc
-          .font('Helvetica')
-          .fontSize(8.5)
-          .fillColor(inkMuted)
-          .text('Total paid', CARD_X + 16, STATS_Y + halfH + 13)
+        doc.font('Helvetica').fontSize(8.5).fillColor(inkMuted).text('Total paid', CARD_X + 16, STATS_Y + halfH + 13)
         doc
           .font('Helvetica-Bold')
           .fontSize(12.5)
@@ -411,62 +409,32 @@ export class CommerceReceiptService {
 
         // Row 1: Order Number & Receipt Number
         doc.font('Helvetica').fontSize(8.5).fillColor(inkMuted).text('Order number', CARD_X, gridY)
-        doc
-          .font('Helvetica-Bold')
-          .fontSize(9.5)
-          .fillColor(ink)
-          .text(data.orderNumber, CARD_X, gridY + 12, { width: colW })
+        doc.font('Helvetica-Bold').fontSize(9.5).fillColor(ink).text(data.orderNumber, CARD_X, gridY + 12, { width: colW })
 
         doc.font('Helvetica').fontSize(8.5).fillColor(inkMuted).text('Receipt no.', col2X, gridY)
-        doc
-          .font('Helvetica-Bold')
-          .fontSize(9.5)
-          .fillColor(ink)
-          .text(data.receiptNumber, col2X, gridY + 12, { width: colW })
+        doc.font('Helvetica-Bold').fontSize(9.5).fillColor(ink).text(data.receiptNumber, col2X, gridY + 12, { width: colW })
 
         gridY += 38
 
         // Row 2: Billed To & Payment Channel
         doc.font('Helvetica').fontSize(8.5).fillColor(inkMuted).text('Billed to', CARD_X, gridY)
-        doc
-          .font('Helvetica-Bold')
-          .fontSize(9.5)
-          .fillColor(ink)
-          .text(data.customerName, CARD_X, gridY + 12, { width: colW })
+        doc.font('Helvetica-Bold').fontSize(9.5).fillColor(ink).text(data.customerName, CARD_X, gridY + 12, { width: colW })
         if (data.customerEmail) {
-          doc
-            .font('Helvetica')
-            .fontSize(8)
-            .fillColor(inkMuted)
-            .text(data.customerEmail, CARD_X, gridY + 24, { width: colW })
+          doc.font('Helvetica').fontSize(8).fillColor(inkMuted).text(data.customerEmail, CARD_X, gridY + 24, { width: colW })
         }
 
-        doc
-          .font('Helvetica')
-          .fontSize(8.5)
-          .fillColor(inkMuted)
-          .text('Payment channel', col2X, gridY)
+        doc.font('Helvetica').fontSize(8.5).fillColor(inkMuted).text('Payment channel', col2X, gridY)
         doc
           .font('Helvetica-Bold')
           .fontSize(9.5)
           .fillColor(ink)
-          .text(data.paymentChannel || 'Paystack Central Checkout', col2X, gridY + 12, {
-            width: colW,
-          })
+          .text(data.paymentChannel || 'Paystack Central Checkout', col2X, gridY + 12, { width: colW })
 
         gridY += 38
 
         // Row 3: Payment Reference (Full Width)
-        doc
-          .font('Helvetica')
-          .fontSize(8.5)
-          .fillColor(inkMuted)
-          .text('Payment reference', CARD_X, gridY)
-        doc
-          .font('Courier')
-          .fontSize(8.5)
-          .fillColor(ink)
-          .text(data.paymentReference, CARD_X, gridY + 12, { width: CARD_W })
+        doc.font('Helvetica').fontSize(8.5).fillColor(inkMuted).text('Payment reference', CARD_X, gridY)
+        doc.font('Courier').fontSize(8.5).fillColor(ink).text(data.paymentReference, CARD_X, gridY + 12, { width: CARD_W })
 
         // 8. Footer
         doc

@@ -8,11 +8,7 @@ import FallbackSuspense from '@/components/FallbackSuspense'
 import dynamic from 'next/dynamic'
 import { BottomNav } from '@/features/dashboard/components/BottomNav'
 import { DashboardHeader } from '@/features/dashboard/components/DashboardHeader'
-import {
-  getStandaloneRentalPath,
-  hasRentalInfo,
-  isProfileSetupComplete,
-} from '@/features/dashboard/utils/profileCompletion'
+import { getStandaloneRentalPath, hasRentalInfo, isProfileSetupComplete } from '@/features/dashboard/utils/profileCompletion'
 import { useScoreProfile } from '@/features/dashboard/services/scoreService'
 import { useRentalExperiment } from '@/features/dashboard/setup/hooks/useRentalExperiment'
 import { useRentalGate } from '@/features/dashboard/setup/hooks/useRentalGate'
@@ -35,37 +31,14 @@ function writeStorageFlag(storage: 'local' | 'session', key: string): void {
   try {
     const store = storage === 'local' ? window.localStorage : window.sessionStorage
     store.setItem(key, 'true')
-  } catch {}
+  } catch {
+  }
 }
 
-const AnnouncementManager = dynamic(
-  () =>
-    import('@/features/dashboard/components/AnnouncementManager').then(
-      (mod) => mod.AnnouncementManager,
-    ),
-  { ssr: false },
-)
-const RentReminderManager = dynamic(
-  () =>
-    import('@/features/dashboard/components/RentReminderManager').then(
-      (mod) => mod.RentReminderManager,
-    ),
-  { ssr: false },
-)
-const ProfileSetupBlocker = dynamic(
-  () =>
-    import('@/features/dashboard/components/ProfileSetupBlocker').then(
-      (mod) => mod.ProfileSetupBlocker,
-    ),
-  { ssr: false },
-)
-const TermsAcceptanceModal = dynamic(
-  () =>
-    import('@/features/auth/components/TermsAcceptanceModal').then(
-      (mod) => mod.TermsAcceptanceModal,
-    ),
-  { ssr: false },
-)
+const AnnouncementManager = dynamic(() => import('@/features/dashboard/components/AnnouncementManager').then(mod => mod.AnnouncementManager), { ssr: false })
+const RentReminderManager = dynamic(() => import('@/features/dashboard/components/RentReminderManager').then(mod => mod.RentReminderManager), { ssr: false })
+const ProfileSetupBlocker = dynamic(() => import('@/features/dashboard/components/ProfileSetupBlocker').then(mod => mod.ProfileSetupBlocker), { ssr: false })
+const TermsAcceptanceModal = dynamic(() => import('@/features/auth/components/TermsAcceptanceModal').then(mod => mod.TermsAcceptanceModal), { ssr: false })
 import { useUserGoals, useGoalCategories } from '@/features/goals/hooks/useGoals'
 import { PageTransition } from '@/components/common/PageTransition'
 import { DashboardSkeleton } from '@/features/dashboard/components/DashboardSkeleton'
@@ -100,7 +73,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       ? localStorage.getItem(`upward_profile_setup_skipped_${user.uuid}`) === 'true'
       : false
 
-  const isDismissed = isRequired ? false : blockerDismissed || isSkippedInStorage
+  const isDismissed = isRequired ? false : (blockerDismissed || isSkippedInStorage)
 
   const handleSkipBlocker = () => {
     if (typeof window !== 'undefined' && user?.uuid) {
@@ -109,19 +82,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setBlockerDismissed(true)
   }
 
-  const searchParams =
-    typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+  const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+
+
 
   // Global Deep Link Handler: Mark as read if notif_id is present
   useEffect(() => {
     const notifId = searchParams?.get('notif_id')
     if (notifId && isLoggedIn) {
-      api
-        .markNotificationRead(notifId)
-        .then(() => {
-          // Optionally refresh counts
-        })
-        .catch((err) => console.error('Failed to auto-mark read', err))
+      api.markNotificationRead(notifId).then(() => {
+        // Optionally refresh counts
+      }).catch(err => console.error('Failed to auto-mark read', err))
     }
   }, [searchParams, isLoggedIn])
 
@@ -146,10 +117,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const autoOpenSessionKey = user?.uuid ? `upward_rental_autoopen_${user.uuid}` : ''
   const createdAtMs = user?.createdAt ? new Date(user.createdAt).getTime() : NaN
   const isFreshSignup = !isNaN(createdAtMs) && Date.now() - createdAtMs < FRESH_SIGNUP_WINDOW_MS
-  const isSignupDevice =
-    !!signupDeviceKey && (isFreshSignup || readStorageFlag('local', signupDeviceKey))
-  const hasAutoOpenedThisSession =
-    !!autoOpenSessionKey && readStorageFlag('session', autoOpenSessionKey)
+  const isSignupDevice = !!signupDeviceKey && (isFreshSignup || readStorageFlag('local', signupDeviceKey))
+  const hasAutoOpenedThisSession = !!autoOpenSessionKey && readStorageFlag('session', autoOpenSessionKey)
 
   // On the signup device, open the rental form directly once per session instead of showing the blocker
   const shouldAutoOpenRental =
@@ -210,17 +179,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         })
       }
     }
-  }, [
-    loading,
-    isLoggedIn,
-    user,
-    showProfileBlocker,
-    showTermsGate,
-    variant,
-    isRequired,
-    hasRental,
-    pathname,
-  ])
+  }, [loading, isLoggedIn, user, showProfileBlocker, showTermsGate, variant, isRequired, hasRental, pathname])
 
   if (!loading && !isLoggedIn && !isPinLocked) {
     return <FallbackSuspense message="Redirecting to login..." />
@@ -241,13 +200,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const isRootTab = ROOT_NAV_PATHS.has(normalizedPath)
 
-  const hideBottomNav = !isRootTab || !!showProfileBlocker || isRentalGated
+  const hideBottomNav =
+    !isRootTab ||
+    !!showProfileBlocker ||
+    isRentalGated
 
   return (
-    <div
-      className={`dashboard-layout${showProfileBlocker || showTermsGate ? ' dashboard-layout--blocker' : ''}${hideBottomNav ? ' dashboard-layout--no-bottom-nav' : ''}`}
-    >
-      {showTermsGate && <TermsAcceptanceModal onAccepted={() => window.location.reload()} />}
+    <div className={`dashboard-layout${showProfileBlocker || showTermsGate ? ' dashboard-layout--blocker' : ''}${hideBottomNav ? ' dashboard-layout--no-bottom-nav' : ''}`}>
+      {showTermsGate && (
+        <TermsAcceptanceModal onAccepted={() => window.location.reload()} />
+      )}
       {showProfileBlocker && user && (
         <ProfileSetupBlocker
           user={user}
@@ -275,3 +237,4 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     </div>
   )
 }
+

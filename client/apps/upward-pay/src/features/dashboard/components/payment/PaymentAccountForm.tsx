@@ -31,7 +31,7 @@ export function isPaymentAccountResolved(value: PaymentAccountFormValue): boolea
 
 function findMatchingBank(
   bankName: string,
-  bankList: { code: string; name: string }[],
+  bankList: { code: string; name: string }[]
 ): { code: string; name: string } | null {
   if (!bankName || !bankList.length) return null
   const clean = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -56,7 +56,7 @@ function findMatchingBank(
     .filter(
       (t) =>
         t.length >= 3 &&
-        !['bank', 'mfb', 'microfinance', 'limited', 'services', 'digital', 'plc'].includes(t),
+        !['bank', 'mfb', 'microfinance', 'limited', 'services', 'digital', 'plc'].includes(t)
     )
   if (tokens.length > 0) {
     const tokenMatch = bankList.find((b) => {
@@ -143,11 +143,7 @@ export function PaymentAccountForm({
 
   // Auto-resolve bankCode if bankName is provided but bankCode is missing or mismatched
   useEffect(() => {
-    if (
-      banks.length > 0 &&
-      value.bankName &&
-      (!value.bankCode || !banks.some((b) => b.code === value.bankCode))
-    ) {
+    if (banks.length > 0 && value.bankName && (!value.bankCode || !banks.some((b) => b.code === value.bankCode))) {
       const matched = findMatchingBank(value.bankName, banks)
       if (matched && matched.code !== value.bankCode) {
         onChange({
@@ -186,9 +182,7 @@ export function PaymentAccountForm({
           tabIndex={disabled ? -1 : 0}
           className={`pay-flow__select-trigger ${isBankModalOpen ? 'pay-flow__select-trigger--open' : ''} ${disabled ? 'pay-flow__select-trigger--disabled' : ''}`}
           onClick={() => !disabled && !loadingBanks && setIsBankModalOpen(true)}
-          onKeyDown={(e) =>
-            e.key === 'Enter' && !disabled && !loadingBanks && setIsBankModalOpen(true)
-          }
+          onKeyDown={(e) => e.key === 'Enter' && !disabled && !loadingBanks && setIsBankModalOpen(true)}
           style={disabled ? { opacity: 0.6, cursor: 'not-allowed' } : {}}
         >
           <span className="pay-flow__select-trigger-icon">

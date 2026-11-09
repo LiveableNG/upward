@@ -24,7 +24,10 @@ export class AdminAppVersionController {
   }
 
   @Put(':platform')
-  async updatePolicy(@Param('platform') platform: string, @Body() dto: UpdateAppVersionPolicyDto) {
+  async updatePolicy(
+    @Param('platform') platform: string,
+    @Body() dto: UpdateAppVersionPolicyDto,
+  ) {
     const updated = await this.updateAppVersionPolicyUseCase.execute({
       ...dto,
       platform,
@@ -37,7 +40,10 @@ export class AdminAppVersionController {
   }
 
   @Patch(':platform/toggle')
-  async togglePolicy(@Param('platform') platform: string, @Body() dto: ToggleAppForceUpdateDto) {
+  async togglePolicy(
+    @Param('platform') platform: string,
+    @Body() dto: ToggleAppForceUpdateDto,
+  ) {
     const updated = await this.toggleAppForceUpdateUseCase.execute({
       app: dto.app || 'upward-pay',
       platform,

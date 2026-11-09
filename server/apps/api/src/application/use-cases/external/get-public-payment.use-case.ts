@@ -1,30 +1,15 @@
 import { Injectable, Inject, NotFoundException, Logger } from '@nestjs/common'
-import {
-  PAYMENT_REQUEST_REPOSITORY,
+import { 
+  PAYMENT_REQUEST_REPOSITORY, 
   IPaymentRequestRepository,
   PAYMENT_LINE_ITEM_REPOSITORY,
   IPaymentLineItemRepository,
 } from '../../../domains/payments/payment.repository'
-import {
-  PROPERTY_REPOSITORY,
-  PropertyRepository,
-} from '../../../domains/companies/property.repository'
-import {
-  USER_REPOSITORY,
-  UserRepository,
-  PASS_PLACEHOLDERS,
-} from '../../../domains/users/user.repository'
-import {
-  COMPANY_REPOSITORY,
-  CompanyRepository,
-  MANAGER_REPOSITORY,
-  ManagerRepository,
-} from '../../../domains/companies/company.repository'
+import { PROPERTY_REPOSITORY, PropertyRepository } from '../../../domains/companies/property.repository'
+import { USER_REPOSITORY, UserRepository, PASS_PLACEHOLDERS } from '../../../domains/users/user.repository'
+import { COMPANY_REPOSITORY, CompanyRepository, MANAGER_REPOSITORY, ManagerRepository } from '../../../domains/companies/company.repository'
 import { PAYMENT_GATEWAY, IPaymentGateway } from '../../../domains/payments/payment.repository'
-import {
-  VERIFICATION_TOKEN_REPOSITORY,
-  VerificationTokenRepository,
-} from '../../../domains/auth/verification-token.repository'
+import { VERIFICATION_TOKEN_REPOSITORY, VerificationTokenRepository } from '../../../domains/auth/verification-token.repository'
 import { PaymentConfigurationService } from '../../../shared/infrastructure/common/payment-config.service'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { randomUUID } from 'node:crypto'
@@ -34,17 +19,14 @@ export class GetPublicPaymentDetailsUseCase {
   private readonly logger = new Logger(GetPublicPaymentDetailsUseCase.name)
 
   constructor(
-    @Inject(PAYMENT_REQUEST_REPOSITORY)
-    private readonly paymentRequestRepository: IPaymentRequestRepository,
-    @Inject(PAYMENT_LINE_ITEM_REPOSITORY)
-    private readonly lineItemRepository: IPaymentLineItemRepository,
+    @Inject(PAYMENT_REQUEST_REPOSITORY) private readonly paymentRequestRepository: IPaymentRequestRepository,
+    @Inject(PAYMENT_LINE_ITEM_REPOSITORY) private readonly lineItemRepository: IPaymentLineItemRepository,
     @Inject(PROPERTY_REPOSITORY) private readonly propertyRepository: PropertyRepository,
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
     @Inject(COMPANY_REPOSITORY) private readonly companyRepository: CompanyRepository,
     @Inject(MANAGER_REPOSITORY) private readonly managerRepository: ManagerRepository,
     @Inject(PAYMENT_GATEWAY) private readonly gateway: IPaymentGateway,
-    @Inject(VERIFICATION_TOKEN_REPOSITORY)
-    private readonly tokenRepository: VerificationTokenRepository,
+    @Inject(VERIFICATION_TOKEN_REPOSITORY) private readonly tokenRepository: VerificationTokenRepository,
     private readonly paymentConfig: PaymentConfigurationService,
     private readonly prisma: PrismaService,
   ) {}
@@ -66,7 +48,7 @@ export class GetPublicPaymentDetailsUseCase {
     }
 
     const paidRequests = await this.paymentRequestRepository.findByUserIdAndStatus(user.id!, 'PAID')
-    const paidRequestsCount = paidRequests.filter((pr) => pr.id !== paymentRequest.id).length
+    const paidRequestsCount = paidRequests.filter(pr => pr.id !== paymentRequest.id).length
 
     let company = null
     if (property.companyId) {
@@ -84,15 +66,14 @@ export class GetPublicPaymentDetailsUseCase {
     const subaccountCode = paymentRequest.subaccount?.subaccountCode || null
 
     // Company name: prefer company, fallback to manager full name
-    const companyName =
-      company?.name || (manager ? `${manager.firstName} ${manager.lastName}` : null)
+    const companyName = company?.name || 
+                        (manager ? `${manager.firstName} ${manager.lastName}` : null)
 
     // Property location address: compose from location data
     const location = (property as any).location
     const locationAddress = location
       ? [location.address, location.area, location.state, location.country]
-          .filter(Boolean)
-          .join(', ')
+          .filter(Boolean).join(', ')
       : null
 
     let verifiedRecipientName = null
@@ -105,24 +86,20 @@ export class GetPublicPaymentDetailsUseCase {
         verifiedRecipientName = verification.accountName
       } catch (err: any) {
         // Fallback to company/manager name if verification fails
-        this.logger.warn(
-          `Account verification failed for PR ${paymentRequest.uuid}: ${err?.message || 'Unknown error'}`,
-        )
+        this.logger.warn(`Account verification failed for PR ${paymentRequest.uuid}: ${err?.message || 'Unknown error'}`)
       }
     }
 
     let inviteToken = null
-    const isSocial =
-      user.passwordHash === PASS_PLACEHOLDERS.SOCIAL ||
-      user.passwordHash === 'SOCIAL_AUTH' ||
-      user.authProvider === 'google' ||
-      user.authProvider === 'apple'
-    const isShadow =
-      !isSocial &&
-      (user.passwordHash === PASS_PLACEHOLDERS.INVITED ||
-        user.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
-        !!(user.passwordHash && !user.passwordHash.startsWith('$2')))
-
+    const isSocial = user.passwordHash === PASS_PLACEHOLDERS.SOCIAL || 
+                     user.passwordHash === 'SOCIAL_AUTH' ||
+                     user.authProvider === 'google' || 
+                     user.authProvider === 'apple';
+    const isShadow = !isSocial && (
+                     user.passwordHash === PASS_PLACEHOLDERS.INVITED || 
+                     user.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
+                     !!(user.passwordHash && !user.passwordHash.startsWith('$2')));
+    
     if (isShadow) {
       const validToken = await this.tokenRepository.findByIdentifier(user.uuid, 'INVITE')
       if (validToken && validToken.expiresAt > new Date()) {
@@ -138,13 +115,8 @@ export class GetPublicPaymentDetailsUseCase {
       }
     }
 
-    const dynamicRates = await this.paymentConfig.getDynamicProcessingRates(
-      user.id!,
-      paymentRequest.userPropertyId,
-      paymentRequest.id,
-    )
-    const dynamicFee =
-      dynamicRates.transactionFee + (dynamicRates.benefitsPaid ? 0 : dynamicRates.benefitsFee)
+    const dynamicRates = await this.paymentConfig.getDynamicProcessingRates(user.id!, paymentRequest.userPropertyId, paymentRequest.id)
+    const dynamicFee = dynamicRates.transactionFee + (dynamicRates.benefitsPaid ? 0 : dynamicRates.benefitsFee)
 
     const pendingRefundTx = await this.prisma.upward_transaction.findFirst({
       where: {
@@ -163,7 +135,7 @@ export class GetPublicPaymentDetailsUseCase {
       where: { paymentRequestId: paymentRequest.id },
       orderBy: { createdAt: 'desc' },
     })
-
+    
     const latestProof = proofs.length > 0 ? proofs[0] : null
 
     return {
@@ -178,12 +150,7 @@ export class GetPublicPaymentDetailsUseCase {
         subaccountCode: subaccountCode,
         allowPartial: paymentRequest.allowPartial || false,
         minAmount: paymentRequest.minAmount || undefined,
-        maxPartialAmount: paymentRequest.minAmount
-          ? Math.max(
-              0,
-              paymentRequest.amount - (paymentRequest.amountPaid || 0) - paymentRequest.minAmount,
-            )
-          : paymentRequest.amount - (paymentRequest.amountPaid || 0),
+        maxPartialAmount: paymentRequest.minAmount ? Math.max(0, (paymentRequest.amount - (paymentRequest.amountPaid || 0)) - paymentRequest.minAmount) : (paymentRequest.amount - (paymentRequest.amountPaid || 0)),
         remainingBalance: paymentRequest.amount - (paymentRequest.amountPaid || 0),
         rentStartDate: paymentRequest.rentStartDate || property.rentStartDate || null,
         rentEndDate: paymentRequest.rentEndDate || property.rentEndDate || null,
@@ -198,17 +165,15 @@ export class GetPublicPaymentDetailsUseCase {
           benefitsFee: dynamicRates.benefitsFee,
           rentValue: dynamicRates.rentValue,
           benefitsPaid: (dynamicRates as any).benefitsPaid || false,
-          benefitsPaidForRequest: (dynamicRates as any).benefitsPaidForRequest || false,
+          benefitsPaidForRequest: (dynamicRates as any).benefitsPaidForRequest || false
         },
         isPendingRefund: !!pendingRefundTx,
-        latestProof: latestProof
-          ? {
-              id: latestProof.id,
-              status: latestProof.status,
-              remarks: latestProof.remarks,
-              createdAt: latestProof.createdAt,
-            }
-          : null,
+        latestProof: latestProof ? {
+          id: latestProof.id,
+          status: latestProof.status,
+          remarks: latestProof.remarks,
+          createdAt: latestProof.createdAt,
+        } : null,
       },
       user: {
         uuid: user.uuid,
@@ -235,12 +200,10 @@ export class GetPublicPaymentDetailsUseCase {
       company: {
         name: companyName,
       },
-      manager: manager
-        ? {
-            firstName: manager.firstName,
-            lastName: manager.lastName,
-          }
-        : null,
+      manager: manager ? {
+        firstName: manager.firstName,
+        lastName: manager.lastName,
+      } : null,
       hasPassword: !!user.passwordHash && user.passwordHash.startsWith('$2'),
       inviteToken: inviteToken,
     }

@@ -14,8 +14,6 @@ If you are new to the project, please review the developer onboarding documents 
 4.  **[4. Git Workflow & Deployment](./onboarding/4-git-workflow.md)**: Branch naming conventions, Conventional Commit standards, and Vercel preview environments.
 5.  **[5. Payment Infrastructure](./onboarding/5-payment-infrastructure.md)**: Technical breakdown of our Paystack integration, split payouts, Dedicated Virtual Accounts, and webhook log retries.
 6.  **[6. Database Maintenance & Scripts](./onboarding/6-database-maintenance-scripts.md)**: Guide on using and writing local operational scripts for database management.
-7.  **[7. React Native Migration Specification](./onboarding/7-react-native-migration-spec.md)** ([Download PDF](./onboarding/7-react-native-migration-spec.pdf)): Full mobile spec detailing all screens, user flows, native device capabilities, and backend API contracts for the React Native team.
-8.  **[8. React Native vs. Capacitor Comparison (PDF)](./onboarding/React_Native_vs_Capacitor_Comparison.pdf)**: Architectural evaluation & performance benchmark analysis between React Native and Capacitor.
 
 ---
 
@@ -30,7 +28,6 @@ If you are new to the project, please review the developer onboarding documents 
 7. [Development Workflow](#7-development-workflow)
 8. [Code Quality Tools](#8-code-quality-tools)
 9. [Deployment Mapping](#9-deployment-mapping)
-10. [KYC & Identity Verification Test Credentials](#10-kyc--identity-verification-test-credentials-sandbox)
 
 ---
 
@@ -168,51 +165,3 @@ For details, read [4. Git Workflow & Deployment](./onboarding/4-git-workflow.md)
 | **All Web Clients** | Staging | `dev` | [https://upward-web.vercel.app](https://upward-web.vercel.app) |
 | **All Web Clients** | Production | `production` | [https://upward.goodtenants.io](https://upward.goodtenants.io) |
 | **NestJS Backend** | Staging / Prod | — | Managed on AWS EC2 (CD deployment pipelines) |
-
----
-
-## 10. KYC & Identity Verification Test Credentials (Sandbox)
-
-Upward integrates with **Prembly (Identitypass)** for regulatory investor and tenant identity verification (BVN & NIN).
-
-In **Sandbox / Test Mode** (`PREMBLY_API_KEY=test_sk_...`), Prembly accepts **any 11-digit number** and returns predefined mock identity datasets. Because Upward's KYC verification strictly cross-matches the user's registered account name with the national registry, **test user accounts must match the mock names below** (or use the sample numbers listed).
-
-### BVN Verification (Bank Verification Number)
-
-> In sandbox mode, any 11-digit number acts as a valid BVN and returns this profile.
-
-| Field | Mock Registry Value | Requirement / Notes |
-| :--- | :--- | :--- |
-| **First Name** | **`RONALD`** | Must match your Upward account first name |
-| **Last Name** | **`EKOM`** | Must match your Upward account last name |
-| **Middle Name** | `DONATIUS` | |
-| **Full Legal Name** | `RONALD DONATIUS EKOM` | |
-| **Date of Birth** | `11-May-2004` (`2004-05-11`) | |
-| **Gender** | `Male` | |
-| **Phone Number** | `07058690798` | |
-| **Email** | `microdans49xlt@yahoo.com` | |
-| **Address** | `C/O OTORO NEW P.A, IYEMT OBIOMA, EYIM EKPO` | |
-| **LGA / State** | `Inyem Ekpo, Akwa Ibom State` | |
-| **Sample Test BVN** | `22222222222` *(or any unique 11 digits)* | Each test user should use unique 11 digits to avoid account collision |
-
-### NIN Verification (National Identity Number)
-
-> In sandbox mode, any 11-digit number acts as a valid NIN and returns this profile.
-
-| Field | Mock Registry Value | Requirement / Notes |
-| :--- | :--- | :--- |
-| **First Name** | **`CHIDERA`** | Must match your Upward account first name |
-| **Last Name / Surname** | **`JOHNSON`** | Must match your Upward account last name |
-| **Middle Name** | `ANITA` | |
-| **Full Legal Name** | `CHIDERA ANITA JOHNSON` | |
-| **Date of Birth** | `22-05-1998` (`1998-05-22`) | |
-| **Gender** | `Male` (`m`) | |
-| **Phone Number** | `08092097506` | |
-| **Address** | `21 AJANAKU STREET, BARIGA, Lagos` | |
-| **LGA / State** | `Shomolu, Lagos` | |
-| **Next of Kin** | `JOHNATHAN JOHNSON` | |
-| **Sample Test NIN** | `11111111111` *(or any unique 11 digits)* | |
-
-> [!TIP]
-> **Anti-Fraud Uniqueness**: Upward prevents the same BVN/NIN from being linked to multiple accounts. When testing multiple accounts, append or vary the 11-digit number (e.g. `22222222223`, `22222222224`, `12345678901`) — Prembly sandbox will still verify them as valid!
-

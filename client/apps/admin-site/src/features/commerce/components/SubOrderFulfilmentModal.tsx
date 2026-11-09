@@ -1,7 +1,10 @@
 import React, { useState } from 'react'
 import { Truck, Wrench, Send, Loader2, User, ChevronRight } from 'lucide-react'
 import { Modal } from '../../../components/common/modal/Modal'
-import type { AdminCommerceSubOrder, AdminFulfilmentTransitionAction } from '../types'
+import type {
+  AdminCommerceSubOrder,
+  AdminFulfilmentTransitionAction,
+} from '../types'
 
 interface SubOrderFulfilmentModalProps {
   subOrder: AdminCommerceSubOrder
@@ -125,9 +128,7 @@ export function SubOrderFulfilmentModal({
         carrierName: carrierName.trim() || undefined,
         trackingNumber: trackingNumber.trim() || undefined,
         trackingUrl: trackingUrl.trim() || undefined,
-        serviceScheduledAt: serviceScheduledAt
-          ? new Date(serviceScheduledAt).toISOString()
-          : undefined,
+        serviceScheduledAt: serviceScheduledAt ? new Date(serviceScheduledAt).toISOString() : undefined,
         serviceWindowNotes: serviceWindowNotes.trim() || undefined,
         technicianName: technicianName.trim() || undefined,
         technicianPhone: technicianPhone.trim() || undefined,
@@ -145,14 +146,14 @@ export function SubOrderFulfilmentModal({
     action === 'DELIVER'
       ? 'Mark as Delivered'
       : action === 'COMPLETE_SERVICE'
-        ? 'Complete Service'
-        : action === 'DISPATCH'
-          ? 'Dispatch with Rider'
-          : action === 'OUT_FOR_DELIVERY'
-            ? 'Set Out for Delivery'
-            : action === 'CONFIRM_BY_VENDOR'
-              ? 'Confirm Vendor Acceptance'
-              : 'Update Milestone'
+      ? 'Complete Service'
+      : action === 'DISPATCH'
+      ? 'Dispatch with Rider'
+      : action === 'OUT_FOR_DELIVERY'
+      ? 'Set Out for Delivery'
+      : action === 'CONFIRM_BY_VENDOR'
+      ? 'Confirm Vendor Acceptance'
+      : 'Update Milestone'
 
   return (
     <Modal
@@ -179,39 +180,21 @@ export function SubOrderFulfilmentModal({
         >
           <div>
             <span style={{ color: 'var(--text-muted)' }}>Current Customer Status: </span>
-            <strong style={{ color: 'var(--text)' }}>
-              {subOrder.customerStatus.replace(/_/g, ' ')}
-            </strong>
+            <strong style={{ color: 'var(--text)' }}>{subOrder.customerStatus.replace(/_/g, ' ')}</strong>
           </div>
           <div>
             <span style={{ color: 'var(--text-muted)' }}>Internal Status: </span>
-            <strong style={{ color: 'var(--text)' }}>
-              {subOrder.operationalStatus.replace(/_/g, ' ')}
-            </strong>
+            <strong style={{ color: 'var(--text)' }}>{subOrder.operationalStatus.replace(/_/g, ' ')}</strong>
           </div>
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* Chronological Step Pipeline */}
           <div>
-            <label
-              style={{
-                display: 'block',
-                fontSize: 12.5,
-                fontWeight: 700,
-                marginBottom: 8,
-                color: 'var(--text)',
-              }}
-            >
+            <label style={{ display: 'block', fontSize: 12.5, fontWeight: 700, marginBottom: 8, color: 'var(--text)' }}>
               Milestone Stage (Click to transition or edit details) *
             </label>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: isService ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)',
-                gap: 8,
-              }}
-            >
+            <div style={{ display: 'grid', gridTemplateColumns: isService ? 'repeat(4, 1fr)' : 'repeat(3, 1fr)', gap: 8 }}>
               {steps.map((st) => {
                 const isSelected = action === st.action
                 return (
@@ -289,9 +272,7 @@ export function SubOrderFulfilmentModal({
                 gap: 12,
               }}
             >
-              <div
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
-              >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <User size={16} color="var(--clay, #B65B37)" />
                   <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
@@ -402,14 +383,7 @@ export function SubOrderFulfilmentModal({
                     }}
                   >
                     <div>
-                      <label
-                        style={{
-                          display: 'block',
-                          fontSize: 11.5,
-                          fontWeight: 600,
-                          marginBottom: 4,
-                        }}
-                      >
+                      <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, marginBottom: 4 }}>
                         Logistics Partner
                       </label>
                       <input
@@ -429,14 +403,7 @@ export function SubOrderFulfilmentModal({
                     </div>
 
                     <div>
-                      <label
-                        style={{
-                          display: 'block',
-                          fontSize: 11.5,
-                          fontWeight: 600,
-                          marginBottom: 4,
-                        }}
-                      >
+                      <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, marginBottom: 4 }}>
                         Tracking Number
                       </label>
                       <input
@@ -456,14 +423,7 @@ export function SubOrderFulfilmentModal({
                     </div>
 
                     <div style={{ gridColumn: 'span 2' }}>
-                      <label
-                        style={{
-                          display: 'block',
-                          fontSize: 11.5,
-                          fontWeight: 600,
-                          marginBottom: 4,
-                        }}
-                      >
+                      <label style={{ display: 'block', fontSize: 11.5, fontWeight: 600, marginBottom: 4 }}>
                         Tracking Portal URL
                       </label>
                       <input
@@ -491,15 +451,7 @@ export function SubOrderFulfilmentModal({
           {isService && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    marginBottom: 5,
-                    color: 'var(--text)',
-                  }}
-                >
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 5, color: 'var(--text)' }}>
                   Appointment Date & Time
                 </label>
                 <input
@@ -518,15 +470,7 @@ export function SubOrderFulfilmentModal({
               </div>
 
               <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    marginBottom: 5,
-                    color: 'var(--text)',
-                  }}
-                >
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 5, color: 'var(--text)' }}>
                   Service Window Notes
                 </label>
                 <input
@@ -546,15 +490,7 @@ export function SubOrderFulfilmentModal({
               </div>
 
               <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    marginBottom: 5,
-                    color: 'var(--text)',
-                  }}
-                >
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 5, color: 'var(--text)' }}>
                   Specialist Name
                 </label>
                 <input
@@ -574,15 +510,7 @@ export function SubOrderFulfilmentModal({
               </div>
 
               <div>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    marginBottom: 5,
-                    color: 'var(--text)',
-                  }}
-                >
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 5, color: 'var(--text)' }}>
                   Specialist Phone
                 </label>
                 <input
@@ -605,14 +533,7 @@ export function SubOrderFulfilmentModal({
 
           {/* Operational Notes */}
           <div>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: 5,
-              }}
-            >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
               <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--text)' }}>
                 Operational Notes / Dispatch Message
               </label>
@@ -679,3 +600,4 @@ export function SubOrderFulfilmentModal({
     </Modal>
   )
 }
+

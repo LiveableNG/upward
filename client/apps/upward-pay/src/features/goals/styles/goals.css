@@ -49,9 +49,7 @@
   color: #5c544b;
   cursor: pointer;
   box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
-  transition:
-    transform 100ms ease-out,
-    background 150ms ease;
+  transition: transform 100ms ease-out, background 150ms ease;
 }
 
 .goal-selection__back-btn:hover {
@@ -72,9 +70,7 @@
   cursor: pointer;
   padding: 6px 10px;
   border-radius: var(--radius-sm);
-  transition:
-    color 150ms ease,
-    background 150ms ease;
+  transition: color 150ms ease, background 150ms ease;
 }
 
 .goal-selection__skip-link:hover {
@@ -116,9 +112,7 @@
   border: none;
   cursor: pointer;
   box-shadow: var(--btn-primary-shadow);
-  transition:
-    transform 100ms ease-out,
-    box-shadow 150ms ease;
+  transition: transform 100ms ease-out, box-shadow 150ms ease;
 }
 
 .goal-selection__btn-primary--compact {
@@ -200,10 +194,7 @@
   border: 1.5px solid var(--border);
   cursor: pointer;
   text-align: left;
-  transition:
-    transform 100ms ease-out,
-    border-color 150ms ease,
-    background 150ms ease;
+  transition: transform 100ms ease-out, border-color 150ms ease, background 150ms ease;
   user-select: none;
 }
 
@@ -228,9 +219,7 @@
   justify-content: center;
   color: var(--text-secondary);
   flex-shrink: 0;
-  transition:
-    background 150ms ease,
-    color 150ms ease;
+  transition: background 150ms ease, color 150ms ease;
 }
 
 .goal-card--selected .goal-card__icon-box {
@@ -273,9 +262,7 @@
   justify-content: center;
   color: #ffffff;
   flex-shrink: 0;
-  transition:
-    background 150ms ease,
-    border-color 150ms ease;
+  transition: background 150ms ease, border-color 150ms ease;
 }
 
 .goal-card--selected .goal-card__checkbox {
@@ -362,10 +349,7 @@
 
 .lifestyle-goals-widget__chip--interactive {
   cursor: pointer;
-  transition:
-    transform 100ms ease-out,
-    border-color 150ms ease,
-    background 150ms ease;
+  transition: transform 100ms ease-out, border-color 150ms ease, background 150ms ease;
   font-family: inherit;
   text-align: left;
 }
@@ -538,9 +522,7 @@
   cursor: pointer;
   flex-shrink: 0;
   box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
-  transition:
-    background 0.15s ease,
-    transform 100ms ease;
+  transition: background 0.15s ease, transform 100ms ease;
 }
 
 .lifestyle-discovery__back-btn:hover {
@@ -667,10 +649,7 @@
   flex-shrink: 0;
   white-space: nowrap;
   box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
-  transition:
-    transform 100ms ease-out,
-    border-color 150ms ease,
-    background 150ms ease;
+  transition: transform 100ms ease-out, border-color 150ms ease, background 150ms ease;
 }
 
 .lifestyle-discovery__goals-trigger:hover,
@@ -740,6 +719,7 @@
 }
 
 @media (min-width: 768px) {
+
   .lifestyle-discovery__type-scroll-wrap::after,
   .lifestyle-discovery__goal-scroll-wrap::after {
     display: none;
@@ -794,9 +774,7 @@
   font-size: 13.5px;
   outline: none;
   box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
-  transition:
-    border-color 150ms ease,
-    box-shadow 150ms ease;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
 }
 
 .lifestyle-discovery__search-input:focus {
@@ -845,10 +823,7 @@
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
-  transition:
-    transform 100ms ease-out,
-    background 150ms ease,
-    color 150ms ease;
+  transition: transform 100ms ease-out, background 150ms ease, color 150ms ease;
 }
 
 .lifestyle-discovery__type-chip:active {
@@ -1291,8 +1266,7 @@
   overflow: hidden;
   cursor: pointer;
   outline: none;
-  transition:
-    transform 120ms cubic-bezier(0.22, 1, 0.36, 1),
+  transition: transform 120ms cubic-bezier(0.22, 1, 0.36, 1),
     border-color 150ms ease,
     box-shadow 150ms ease;
 }
@@ -1568,9 +1542,7 @@
   cursor: pointer;
   flex-shrink: 0;
   box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
-  transition:
-    transform 100ms ease-out,
-    background 150ms ease;
+  transition: transform 100ms ease-out, background 150ms ease;
 }
 
 .offering-detail__back-btn:hover,
@@ -1677,9 +1649,7 @@
   border-radius: var(--radius-full);
   cursor: pointer;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
-  transition:
-    background 0.15s,
-    transform 0.15s ease-out;
+  transition: background 0.15s, transform 0.15s ease-out;
   z-index: 2;
 }
 
@@ -2165,10 +2135,7 @@
   text-decoration: none;
   cursor: pointer;
   box-shadow: 0 4px 14px rgba(217, 119, 87, 0.28);
-  transition:
-    transform 100ms ease-out,
-    filter 150ms ease,
-    box-shadow 150ms ease;
+  transition: transform 100ms ease-out, filter 150ms ease, box-shadow 150ms ease;
   width: 100%;
 }
 
@@ -2362,9 +2329,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition:
-    transform 0.15s ease-out,
-    background 0.15s;
+  transition: transform 0.15s ease-out, background 0.15s;
 }
 
 .offering-lightbox__close-btn:active {
@@ -2396,9 +2361,7 @@
   justify-content: center;
   cursor: pointer;
   z-index: 5;
-  transition:
-    background 0.15s,
-    transform 0.15s;
+  transition: background 0.15s, transform 0.15s;
 }
 
 .offering-lightbox__arrow:active {
@@ -2440,9 +2403,7 @@
   overflow-y: auto;
   overflow-x: hidden;
   border-radius: var(--radius-xl);
-  box-shadow:
-    0 24px 60px rgba(0, 0, 0, 0.65),
-    0 0 0 1px rgba(255, 255, 255, 0.1);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.1);
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
@@ -2472,6 +2433,7 @@
 .offering-lightbox__hint-dot {
   opacity: 0.5;
 }
+
 
 /* ==========================================================================
    Delivery Location Bar & Exclusivity Styles
@@ -2660,9 +2622,7 @@
   color: var(--text-secondary);
   cursor: pointer;
   flex-shrink: 0;
-  transition:
-    transform 100ms ease,
-    background 150ms ease;
+  transition: transform 100ms ease, background 150ms ease;
 }
 
 .delivery-sheet__close:active {
@@ -3073,9 +3033,7 @@
   color: var(--text-secondary);
   cursor: pointer;
   flex-shrink: 0;
-  transition:
-    transform 100ms ease,
-    background 150ms ease;
+  transition: transform 100ms ease, background 150ms ease;
 }
 
 .inquiry-sheet__close:active {
@@ -3122,9 +3080,7 @@
   font-size: 13.5px;
   outline: none;
   font-family: inherit;
-  transition:
-    border-color 150ms ease,
-    background-color 150ms ease;
+  transition: border-color 150ms ease, background-color 150ms ease;
 }
 
 .inquiry-form__select:focus,
@@ -3259,10 +3215,7 @@
   margin-bottom: 16px;
   cursor: pointer;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
-  transition:
-    transform 120ms ease,
-    box-shadow 150ms ease,
-    border-color 150ms ease;
+  transition: transform 120ms ease, box-shadow 150ms ease, border-color 150ms ease;
   overflow: hidden;
   position: relative;
   user-select: none;
@@ -3434,9 +3387,7 @@
   cursor: pointer;
   flex-shrink: 0;
   box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
-  transition:
-    background 150ms ease,
-    transform 100ms ease;
+  transition: background 150ms ease, transform 100ms ease;
 }
 
 .orders-hub__back-btn:hover {
@@ -3482,9 +3433,7 @@
   border: none;
   border-bottom: 2px solid transparent;
   cursor: pointer;
-  transition:
-    color 150ms ease,
-    border-color 150ms ease;
+  transition: color 150ms ease, border-color 150ms ease;
 }
 
 .orders-hub__tab--active {
@@ -3620,13 +3569,13 @@
 
 .orders-hub__badge--processing {
   background: rgba(217, 119, 6, 0.08);
-  color: #d97706;
+  color: #D97706;
 }
 
 .orders-hub__badge--dispatched,
 .orders-hub__badge--scheduled {
   background: rgba(13, 148, 136, 0.08);
-  color: #0d9488;
+  color: #0D9488;
 }
 
 .orders-hub__badge--out-for-delivery,
@@ -3637,32 +3586,32 @@
 
 .orders-hub__badge--delivered {
   background: rgba(16, 185, 129, 0.1);
-  color: #10b981;
+  color: #10B981;
 }
 
 .orders-hub__badge--disputed {
   background: rgba(220, 38, 38, 0.08);
-  color: #dc2626;
+  color: #DC2626;
 }
 
 .orders-hub__badge--cancelled {
   background: rgba(107, 114, 128, 0.1);
-  color: #6b7280;
+  color: #6B7280;
 }
 
 .orders-hub__badge--unpaid {
   background: rgba(217, 119, 6, 0.15);
-  color: #b45309;
+  color: #B45309;
   font-weight: 800;
 }
 
 .orders-hub__track-btn--pay {
-  background: #d97706;
+  background: #D97706;
   color: #fff;
 }
 
 .orders-hub__track-btn--pay:hover {
-  background: #b45309;
+  background: #B45309;
 }
 
 .orders-hub__items {
@@ -3777,9 +3726,7 @@
   font-size: 12.5px;
   font-weight: 700;
   cursor: pointer;
-  transition:
-    transform 100ms ease,
-    background 150ms ease;
+  transition: transform 100ms ease, background 150ms ease;
 }
 
 .orders-hub__track-btn:active {
@@ -3836,9 +3783,7 @@
   cursor: pointer;
   flex-shrink: 0;
   box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
-  transition:
-    transform 100ms ease,
-    background 150ms ease;
+  transition: transform 100ms ease, background 150ms ease;
 }
 
 .order-tracking__back-btn:hover {
@@ -3891,15 +3836,13 @@
   gap: 6px;
   padding: 8px 14px;
   border-radius: var(--radius-md, 8px);
-  background: #d97706;
+  background: #D97706;
   color: #fff;
   border: none;
   font-size: 12.5px;
   font-weight: 700;
   cursor: pointer;
-  transition:
-    transform 100ms ease,
-    opacity 150ms ease;
+  transition: transform 100ms ease, opacity 150ms ease;
 }
 
 .order-tracking__header-pay-btn:active {
@@ -3915,8 +3858,8 @@
   display: flex;
   align-items: flex-start;
   gap: 14px;
-  background: #fffbeb;
-  border: 1px solid #fde68a;
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
   border-radius: var(--radius-lg, 14px);
   padding: 16px 18px;
   margin-bottom: 20px;
@@ -3952,14 +3895,14 @@
 .order-tracking__unpaid-title {
   font-size: 14px;
   font-weight: 800;
-  color: #92400e;
+  color: #92400E;
 }
 
 .order-tracking__unpaid-badge {
   font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
-  color: #b45309;
+  color: #B45309;
   background: rgba(217, 119, 6, 0.15);
   padding: 2px 8px;
   border-radius: 999px;
@@ -3968,7 +3911,7 @@
 
 .order-tracking__unpaid-desc {
   font-size: 12.5px;
-  color: #78350f;
+  color: #78350F;
   line-height: 1.45;
   margin: 0 0 4px 0;
 }
@@ -4073,7 +4016,7 @@
   flex-wrap: wrap;
 }
 
-.order-tracking__suborder-head > div:first-child {
+.order-tracking__suborder-head>div:first-child {
   min-width: 0;
   flex: 1 1 auto;
 }
@@ -4113,7 +4056,7 @@
     gap: 12px;
   }
 
-  .order-tracking__suborder-head > div:first-child {
+  .order-tracking__suborder-head>div:first-child {
     width: 100%;
   }
 
@@ -4159,9 +4102,7 @@
   cursor: pointer;
   white-space: nowrap;
   flex-shrink: 0;
-  transition:
-    transform 100ms ease,
-    background 150ms ease;
+  transition: transform 100ms ease, background 150ms ease;
 }
 
 .order-tracking__dispute-btn:hover {
@@ -4177,11 +4118,11 @@
   align-items: center;
   gap: 10px;
   padding: 10px 14px;
-  background: #fef3c7;
-  border: 1px solid #fcd34d;
+  background: #FEF3C7;
+  border: 1px solid #FCD34D;
   border-radius: var(--radius-md, 10px);
   font-size: 12.5px;
-  color: #92400e;
+  color: #92400E;
   margin-bottom: 18px;
 }
 
@@ -4197,7 +4138,7 @@
   left: 20px;
   right: 20px;
   height: 3px;
-  background: var(--surface2, #e5e7eb);
+  background: var(--surface2, #E5E7EB);
   z-index: 1;
 }
 
@@ -4269,9 +4210,7 @@
   background: var(--clay) !important;
   border-color: var(--clay) !important;
   color: #ffffff !important;
-  box-shadow:
-    0 0 0 4px var(--clay-tint, rgba(182, 91, 55, 0.2)),
-    0 4px 12px rgba(182, 91, 55, 0.35);
+  box-shadow: 0 0 0 4px var(--clay-tint, rgba(182, 91, 55, 0.2)), 0 4px 12px rgba(182, 91, 55, 0.35);
 }
 
 .order-tracking__radar-ring {
@@ -4341,6 +4280,7 @@
 }
 
 @keyframes beaconPulse {
+
   0%,
   100% {
     opacity: 1;
@@ -4396,7 +4336,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: var(--clay, #b65b37);
+  background: var(--clay, #B65B37);
   color: #ffffff;
   padding: 6px 14px;
   border-radius: 999px;
@@ -4404,9 +4344,7 @@
   font-weight: 700;
   text-decoration: none;
   flex-shrink: 0;
-  transition:
-    transform 100ms ease,
-    opacity 100ms ease;
+  transition: transform 100ms ease, opacity 100ms ease;
   box-shadow: 0 2px 6px rgba(182, 91, 55, 0.25);
 }
 
@@ -4543,7 +4481,7 @@
   gap: 14px;
   position: relative;
   padding-left: 14px;
-  border-left: 2px solid var(--surface2, #e5e7eb);
+  border-left: 2px solid var(--surface2, #E5E7EB);
   margin-left: 6px;
 }
 
@@ -4597,7 +4535,7 @@
   border-radius: var(--radius-lg, 14px);
   padding: 16px 18px;
   font-size: 12.5px;
-  color: #065f46;
+  color: #065F46;
   line-height: 1.5;
 }
 
@@ -4610,7 +4548,7 @@
 
 .order-tracking__protection-footer p {
   margin: 0;
-  color: #065f46;
+  color: #065F46;
 }
 
 /* Modal */
@@ -4703,7 +4641,7 @@
 
 .order-tracking__error {
   font-size: 11.5px;
-  color: #dc2626;
+  color: #DC2626;
 }
 
 .order-tracking__modal-actions {
@@ -4810,13 +4748,13 @@
 }
 
 .order-tracking__star-btn--filled {
-  color: #f59e0b;
+  color: #F59E0B;
 }
 
 .order-tracking__rating-label {
   font-size: 11.5px;
   font-weight: 700;
-  color: #b45309;
+  color: #B45309;
   background: rgba(245, 158, 11, 0.12);
   padding: 3px 12px;
   border-radius: 999px;
@@ -5035,9 +4973,7 @@
   border: 1px solid var(--border);
   color: var(--text-muted);
   cursor: pointer;
-  transition:
-    transform 100ms ease,
-    background 150ms ease;
+  transition: transform 100ms ease, background 150ms ease;
 }
 
 .checkout-sheet__close:active {
@@ -5248,9 +5184,7 @@
   color: var(--text);
   font-size: 13.5px;
   outline: none;
-  transition:
-    border-color 150ms ease,
-    box-shadow 150ms ease;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
 }
 
 .checkout-sheet__input:focus {
@@ -5365,10 +5299,7 @@
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
-  transition:
-    transform 100ms ease,
-    opacity 150ms ease,
-    box-shadow 150ms ease;
+  transition: transform 100ms ease, opacity 150ms ease, box-shadow 150ms ease;
   box-shadow: 0 4px 14px color-mix(in srgb, var(--clay) 35%, transparent);
 }
 

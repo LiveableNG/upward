@@ -33,12 +33,7 @@ interface ManualAccountModalProps {
   onClose: () => void
 }
 
-export function ManualAccountModal({
-  propertyId,
-  propertyName,
-  initialData,
-  onClose,
-}: ManualAccountModalProps) {
+export function ManualAccountModal({ propertyId, propertyName, initialData, onClose }: ManualAccountModalProps) {
   const [mounted, setMounted] = useState(false)
   const toast = useToast()
   const queryClient = useQueryClient()
@@ -50,35 +45,28 @@ export function ManualAccountModal({
     setMounted(true)
   }, [])
 
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    control,
-    reset,
-    formState: { errors, isDirty },
-  } = useForm<ManualAccountForm>({
+  const { register, handleSubmit, setValue, control, reset, formState: { errors, isDirty } } = useForm<ManualAccountForm>({
     resolver: zodResolver(manualAccountSchema),
     defaultValues: initialData || {
       bankCode: '',
       accountNumber: '',
       accountName: '',
       bankName: '',
-    },
+    }
   })
 
   const selectedBankCode = useWatch({ control, name: 'bankCode' })
   const accountNumber = useWatch({ control, name: 'accountNumber' })
   const accountName = useWatch({ control, name: 'accountName' })
 
-  const { data: banks = [], isLoading: loadingBanks } = useQuery<{ name: string; code: string }[]>({
+  const { data: banks = [], isLoading: loadingBanks } = useQuery<{ name: string, code: string }[]>({
     queryKey: ['banks'],
-    queryFn: api.getBanks,
+    queryFn: api.getBanks
   })
 
   useEffect(() => {
     if (selectedBankCode) {
-      const bank = banks.find((b) => b.code === selectedBankCode)
+      const bank = banks.find(b => b.code === selectedBankCode)
       if (bank) setValue('bankName', bank.name)
     }
   }, [selectedBankCode, banks, setValue])
@@ -100,7 +88,7 @@ export function ManualAccountModal({
 
   const handleVerify = async () => {
     if (!selectedBankCode || accountNumber.length !== 10) return
-
+    
     setIsVerifying(true)
     try {
       const data = await api.resolveAccount(accountNumber, selectedBankCode)
@@ -131,31 +119,23 @@ export function ManualAccountModal({
     },
     onError: (err: any) => {
       toast.error(err.message || 'Failed to configure manual account', 'Error')
-    },
+    }
   })
 
-  const selectedBank = banks.find((b) => b.code === selectedBankCode)
+  const selectedBank = banks.find(b => b.code === selectedBankCode)
 
   if (!mounted) return null
 
   return createPortal(
     <div className="modal-overlay" onClick={onClose}>
-      <div
-        className="modal-card animate-in zoom-in-95 duration-200"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="modal-card animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
         <div className="modal-card__header">
-          <div
-            className="modal-card__badge"
-            style={{ background: 'var(--clay-faint)', color: 'var(--clay)' }}
-          >
+          <div className="modal-card__badge" style={{ background: 'var(--clay-faint)', color: 'var(--clay)' }}>
             <Landmark size={20} />
           </div>
           <div>
             <h3 className="modal-card__title">Setup Bank Transfer</h3>
-            <p className="modal-card__subtitle">
-              Add the bank account you will transfer rent to for {propertyName}.
-            </p>
+            <p className="modal-card__subtitle">Add the bank account you will transfer rent to for {propertyName}.</p>
           </div>
         </div>
 
@@ -184,32 +164,19 @@ export function ManualAccountModal({
 
           <div className="pay-flow__field field-spacing-md">
             <label className="pay-flow__field-label">Account Number</label>
-            <div
-              className={`pay-flow__input-wrap ${isVerifying ? 'pay-flow__input-wrap--loading' : ''} ${isConfirmed ? 'pay-flow__input-wrap--success' : ''}`}
-            >
-              <input
-                {...register('accountNumber')}
+            <div className={`pay-flow__input-wrap ${isVerifying ? 'pay-flow__input-wrap--loading' : ''} ${isConfirmed ? 'pay-flow__input-wrap--success' : ''}`}>
+              <input 
+                {...register('accountNumber')} 
                 type="text"
                 inputMode="numeric"
                 pattern="[0-9]*"
                 placeholder="10-digit account number"
                 maxLength={10}
               />
-              {isVerifying && (
-                <span
-                  className="pay-flow__cta-spinner"
-                  style={{ borderColor: 'var(--clay)', borderTopColor: 'transparent' }}
-                />
-              )}
-              {isConfirmed && (
-                <span style={{ color: 'var(--success)' }}>
-                  <CheckCircle2 size={18} />
-                </span>
-              )}
+              {isVerifying && <span className="pay-flow__cta-spinner" style={{ borderColor: 'var(--clay)', borderTopColor: 'transparent' }} />}
+              {isConfirmed && <span style={{ color: 'var(--success)' }}><CheckCircle2 size={18} /></span>}
             </div>
-            {errors.accountNumber && (
-              <span className="field-error">{errors.accountNumber.message}</span>
-            )}
+            {errors.accountNumber && <span className="field-error">{errors.accountNumber.message}</span>}
           </div>
 
           {isConfirmed && !isVerifying && (
@@ -223,19 +190,10 @@ export function ManualAccountModal({
           )}
 
           <div className="modal-card__actions">
-            <button
-              type="button"
-              className="btn btn--secondary flex-1"
-              onClick={onClose}
-              disabled={isPending}
-            >
+            <button type="button" className="btn btn--secondary flex-1" onClick={onClose} disabled={isPending}>
               Cancel
             </button>
-            <button
-              type="submit"
-              className="btn btn--primary flex-1"
-              disabled={isPending || !isConfirmed}
-            >
+            <button type="submit" className="btn btn--primary flex-1" disabled={isPending || !isConfirmed}>
               {isPending ? 'Saving...' : 'Save Account'}
             </button>
           </div>
@@ -362,13 +320,13 @@ export function ManualAccountModal({
         .flex-1 {
           flex: 1;
         }
-        form input,
+        form input, 
         form select {
           width: 100%;
           box-sizing: border-box;
         }
       `}</style>
     </div>,
-    document.body,
+    document.body
   )
 }

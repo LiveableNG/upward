@@ -1,5 +1,10 @@
 import { useEffect } from 'react'
-import { useQuery, useMutation, useQueryClient, type UseQueryResult } from '@tanstack/react-query'
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  type UseQueryResult,
+} from '@tanstack/react-query'
 import { useAuth } from '@/features/auth/AuthContext'
 import {
   fetchGoalCategories,
@@ -12,7 +17,10 @@ import {
   updateUserGoal,
   removeUserGoal,
 } from '../services/goalsService'
-import { getCachedUserGoals, setCachedUserGoals } from '../utils/goalCache'
+import {
+  getCachedUserGoals,
+  setCachedUserGoals,
+} from '../utils/goalCache'
 import type {
   GoalCategory,
   Goal,
@@ -172,7 +180,8 @@ export function useUpdateUserGoal() {
             ? {
                 ...ug,
                 ...data,
-                progressPct: data.progressPct !== undefined ? data.progressPct : ug.progressPct,
+                progressPct:
+                  data.progressPct !== undefined ? data.progressPct : ug.progressPct,
                 status: data.status || ug.status,
                 updatedAt: new Date().toISOString(),
               }

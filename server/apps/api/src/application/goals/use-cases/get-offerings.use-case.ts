@@ -46,3 +46,4 @@ export class GetOfferingsUseCase {
     return result
   }
 }
+

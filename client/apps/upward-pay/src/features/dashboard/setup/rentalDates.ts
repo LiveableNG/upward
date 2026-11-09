@@ -22,7 +22,11 @@ export function isDateInputValue(value: string): boolean {
   if (!DATE_INPUT_PATTERN.test(value)) return false
   const [year, month, day] = value.split('-').map(Number)
   const date = new Date(year, month - 1, day)
-  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
+  return (
+    date.getFullYear() === year &&
+    date.getMonth() === month - 1 &&
+    date.getDate() === day
+  )
 }
 
 export function isRentDateRangeValid(start: string, end: string): boolean {
@@ -36,7 +40,7 @@ export function calculateRentEndDate(
   startDate: string,
   rentType: string,
   leaseDuration: number | string = 1,
-  leaseUnit: LeaseDurationUnit = 'years',
+  leaseUnit: LeaseDurationUnit = 'years'
 ): string {
   if (!startDate) return ''
   const [yearStr, monthStr, dayStr] = startDate.split('-')

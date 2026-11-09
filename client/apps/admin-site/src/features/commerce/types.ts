@@ -185,3 +185,4 @@ export interface AdminDeliveryZone {
   createdAt: string
   updatedAt: string
 }
+

@@ -136,18 +136,20 @@ export function BottomSheetModal({
             <div className="sheet-modal__header-left">
               {icon && <div className="sheet-modal__icon">{icon}</div>}
               <div className="sheet-modal__title-wrap">
-                {title &&
-                  (typeof title === 'string' ? (
+                {title && (
+                  typeof title === 'string' ? (
                     <h3 className="sheet-modal__title">{title}</h3>
                   ) : (
                     title
-                  ))}
-                {subtitle &&
-                  (typeof subtitle === 'string' ? (
+                  )
+                )}
+                {subtitle && (
+                  typeof subtitle === 'string' ? (
                     <p className="sheet-modal__subtitle">{subtitle}</p>
                   ) : (
                     subtitle
-                  ))}
+                  )
+                )}
               </div>
             </div>
 
@@ -167,11 +169,17 @@ export function BottomSheetModal({
           </div>
         )}
 
-        <div className={`sheet-modal__body ${bodyClassName}`.trim()}>{children}</div>
+        <div className={`sheet-modal__body ${bodyClassName}`.trim()}>
+          {children}
+        </div>
 
-        {footer && <div className="sheet-modal__footer">{footer}</div>}
+        {footer && (
+          <div className="sheet-modal__footer">
+            {footer}
+          </div>
+        )}
       </div>
     </div>,
-    document.body,
+    document.body
   )
 }

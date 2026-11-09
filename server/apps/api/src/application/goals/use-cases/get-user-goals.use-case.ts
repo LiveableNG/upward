@@ -31,3 +31,4 @@ export class GetUserGoalsUseCase {
     return this.goalRepo.findUserGoals(resolvedUserId, status)
   }
 }
+

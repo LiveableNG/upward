@@ -25,9 +25,7 @@ export async function generateQrDataUrl(url: string): Promise<string> {
   })
 }
 
-export async function generateScoreShareImage(
-  elementId: string = SHARE_SCORE_CAPTURE_ID,
-): Promise<Blob> {
+export async function generateScoreShareImage(elementId: string = SHARE_SCORE_CAPTURE_ID): Promise<Blob> {
   const element = document.getElementById(elementId)
   if (!element) {
     throw new Error('Share card element not found')

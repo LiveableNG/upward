@@ -22,7 +22,7 @@ export class GetPendingPaymentsUseCase {
     @Inject(PAYMENT_GATEWAY)
     private readonly gateway: IPaymentGateway,
     private readonly prisma: PrismaService,
-  ) {}
+  ) { }
 
   async execute(userId: string) {
     const user = await this.userRepository.findByUuid(userId)
@@ -34,64 +34,60 @@ export class GetPendingPaymentsUseCase {
     // Fetch Refund Alerts
     const refundAlerts = await this.prisma.upward_transaction.findMany({
       where: { userId: user.id!, settlementStatus: 'PENDING_REFUND' } as any,
-      include: { paymentRequest: true },
+      include: { paymentRequest: true }
     })
 
     const payments = [...pending, ...partial]
 
-    const paymentsData = await Promise.all(
-      payments.map(async (p: any) => {
-        const lineItemRecords = await this.lineItemRepo.findByPaymentRequestId(p.id!)
+    const paymentsData = await Promise.all(payments.map(async (p: any) => {
+      const lineItemRecords = await this.lineItemRepo.findByPaymentRequestId(p.id!)
 
-        const pmPR = await this.prisma.upward_pm_payment_request.findFirst({
-          where: { paymentRequestId: p.id },
-          include: { pm: true },
-        })
+      const pmPR = await this.prisma.upward_pm_payment_request.findFirst({
+        where: { paymentRequestId: p.id },
+        include: { pm: true }
+      })
 
-        const proofs = await this.prisma.upward_payment_proof.findMany({
-          where: { paymentRequestId: p.id },
-          orderBy: { createdAt: 'desc' },
-        })
+      const proofs = await this.prisma.upward_payment_proof.findMany({
+        where: { paymentRequestId: p.id },
+        orderBy: { createdAt: 'desc' },
+      })
 
-        const latestProof = proofs.length > 0 ? proofs[0] : null
+      const latestProof = proofs.length > 0 ? proofs[0] : null
 
-        return {
-          id: p.id,
-          uuid: p.uuid,
-          total_amount: p.amount,
-          amountPaid: p.amountPaid || 0,
-          currency: p.currency,
-          status: p.status,
-          allowPartial: p.allowPartial,
-          minAmount: p.minAmount,
-          remainingBalance: p.amount - (p.amountPaid || 0),
-          payment_link_token: p.uuid,
-          invoice_number: p.reference || p.uuid.slice(-8),
-          description: p.description || 'Property Payment',
-          subaccountCode: p.subaccount?.subaccountCode || null,
-          company_name: p.companyName,
-          manager_name: p.managerName,
-          property_address: p.propertyLocation,
-          userPropertyUuid: p.userPropertyUuid,
-          isManual: p.isManual,
-          isVerified: pmPR?.pm?.isVerified || false,
-          lineItemRecords,
-          dueDate: p.dueDate || p.userProperty?.rentEndDate || null,
-          due_date: p.dueDate || p.userProperty?.rentEndDate || null,
-          type: 'invoice',
-          latestProof: latestProof
-            ? {
-                id: latestProof.id,
-                status: latestProof.status,
-                remarks: latestProof.remarks,
-                createdAt: latestProof.createdAt,
-              }
-            : null,
-        }
-      }),
-    )
+      return {
+        id: p.id,
+        uuid: p.uuid,
+        total_amount: p.amount,
+        amountPaid: p.amountPaid || 0,
+        currency: p.currency,
+        status: p.status,
+        allowPartial: p.allowPartial,
+        minAmount: p.minAmount,
+        remainingBalance: p.amount - (p.amountPaid || 0),
+        payment_link_token: p.uuid,
+        invoice_number: p.reference || p.uuid.slice(-8),
+        description: p.description || 'Property Payment',
+        subaccountCode: p.subaccount?.subaccountCode || null,
+        company_name: p.companyName,
+        manager_name: p.managerName,
+        property_address: p.propertyLocation,
+        userPropertyUuid: p.userPropertyUuid,
+        isManual: p.isManual,
+        isVerified: pmPR?.pm?.isVerified || false,
+        lineItemRecords,
+        dueDate: p.dueDate || p.userProperty?.rentEndDate || null,
+        due_date: p.dueDate || p.userProperty?.rentEndDate || null,
+        type: 'invoice',
+        latestProof: latestProof ? {
+          id: latestProof.id,
+          status: latestProof.status,
+          remarks: latestProof.remarks,
+          createdAt: latestProof.createdAt,
+        } : null
+      }
+    }))
 
-    const alertsData = refundAlerts.map((a) => ({
+    const alertsData = refundAlerts.map(a => ({
       id: a.id,
       uuid: a.uuid,
       amount: a.amount,
@@ -100,25 +96,26 @@ export class GetPendingPaymentsUseCase {
       status: 'PENDING_REFUND',
       type: 'refund_alert',
       description: 'Refund Pending: Full payment requirement not met',
-      property_address: a.propertyAddress || 'Your Property',
+      property_address: a.propertyAddress || 'Your Property'
     }))
 
     const standaloneProofs = await this.prisma.upward_payment_proof.findMany({
       where: {
         paymentRequestId: null,
         status: { in: ['PENDING', 'REJECTED'] },
-        OR: [{ uploadedByUserId: user.id }, { userProperty: { userId: user.id } }],
+        OR: [
+          { uploadedByUserId: user.id },
+          { userProperty: { userId: user.id } },
+        ],
       },
       include: {
-        userProperty: { include: { location: true, company: true } },
-      },
+        userProperty: { include: { location: true, company: true } }
+      }
     })
 
-    const standaloneProofsData = standaloneProofs.map((proof) => {
+    const standaloneProofsData = standaloneProofs.map(proof => {
       const p = proof.userProperty
-      const property_address = p?.location
-        ? `${p.location.area}, ${p.location.state}`
-        : 'Your Property'
+      const property_address = p?.location ? `${p.location.area}, ${p.location.state}` : 'Your Property'
       return {
         id: proof.id,
         uuid: proof.uuid,
@@ -148,7 +145,7 @@ export class GetPendingPaymentsUseCase {
           status: proof.status,
           remarks: proof.remarks,
           createdAt: proof.createdAt,
-        },
+        }
       }
     })
 

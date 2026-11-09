@@ -67,12 +67,12 @@ export function useDashboardFeatureSections() {
             return true
           })
           .map((item) => {
-            if (item.id === 'save-for-rent') {
+            if (item.id === 'save-for-rent' && savingsEnabled) {
               return {
                 ...item,
                 href: '/dashboard/savings',
                 comingSoon: false,
-                description: 'Lock in rent with 14.5% compound yield',
+                description: 'Build up funds for your next rent payment',
                 badge: badgeByFeatureId[item.id],
               }
             }

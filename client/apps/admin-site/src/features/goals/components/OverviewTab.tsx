@@ -1,5 +1,13 @@
 import React from 'react'
-import { Target, Users, Package, Store, FolderTree, TrendingUp, ShieldCheck } from 'lucide-react'
+import {
+  Target,
+  Users,
+  Package,
+  Store,
+  FolderTree,
+  TrendingUp,
+  ShieldCheck,
+} from 'lucide-react'
 import type { GoalsOverview, GoalTab } from '../types'
 
 interface OverviewTabProps {
@@ -45,10 +53,8 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             </span>
             <Target size={20} color="var(--accent)" />
           </div>
-          <div
-            style={{ fontSize: '28px', fontWeight: 800, marginTop: '8px', color: 'var(--text)' }}
-          >
-            {isLoading ? '...' : (overview?.totalGoals ?? 0)}
+          <div style={{ fontSize: '28px', fontWeight: 800, marginTop: '8px', color: 'var(--text)' }}>
+            {isLoading ? '...' : overview?.totalGoals ?? 0}
           </div>
           <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
             Across {overview?.totalCategories ?? 0} lifestyle categories
@@ -63,7 +69,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             <Users size={20} color="#10b981" />
           </div>
           <div style={{ fontSize: '28px', fontWeight: 800, marginTop: '8px', color: '#10b981' }}>
-            {isLoading ? '...' : (overview?.activeUserGoals ?? 0)}
+            {isLoading ? '...' : overview?.activeUserGoals ?? 0}
           </div>
           <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
             Tenants pursuing active lifestyle goals
@@ -81,10 +87,8 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             </span>
             <Package size={20} color="#6366f1" />
           </div>
-          <div
-            style={{ fontSize: '28px', fontWeight: 800, marginTop: '8px', color: 'var(--text)' }}
-          >
-            {isLoading ? '...' : (overview?.totalOfferings ?? 0)}
+          <div style={{ fontSize: '28px', fontWeight: 800, marginTop: '8px', color: 'var(--text)' }}>
+            {isLoading ? '...' : overview?.totalOfferings ?? 0}
           </div>
           <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
             Products, services, and bundled packages
@@ -102,10 +106,8 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             </span>
             <Store size={20} color="#f59e0b" />
           </div>
-          <div
-            style={{ fontSize: '28px', fontWeight: 800, marginTop: '8px', color: 'var(--text)' }}
-          >
-            {isLoading ? '...' : (overview?.totalVendors ?? 0)}
+          <div style={{ fontSize: '28px', fontWeight: 800, marginTop: '8px', color: 'var(--text)' }}>
+            {isLoading ? '...' : overview?.totalVendors ?? 0}
           </div>
           <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
             Artisans, fitness clubs, and merchants
@@ -123,14 +125,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
       >
         {/* Top Goals Distribution */}
         <div className="card" style={{ padding: '24px' }}>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '18px',
-            }}
-          >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
             <div>
               <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: 'var(--text)' }}>
                 Top Goals Selected by Tenants
@@ -144,8 +139,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
 
           {topGoals.length === 0 ? (
             <div style={{ padding: '36px 0', textAlign: 'center', color: 'var(--text-muted)' }}>
-              No user goal selections recorded yet. Once tenants select goals during onboarding or
-              from their dashboard, adoption distribution will appear here.
+              No user goal selections recorded yet. Once tenants select goals during onboarding or from their dashboard, adoption distribution will appear here.
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -153,14 +147,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
                 const percent = Math.round((item.userCount / maxUserCount) * 100)
                 return (
                   <div key={item.id}>
-                    <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        fontSize: '13px',
-                        marginBottom: '6px',
-                      }}
-                    >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px' }}>
                       <span style={{ fontWeight: 600, color: 'var(--text)' }}>
                         {index + 1}. {item.title}
                       </span>
@@ -206,76 +193,48 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             <button
               onClick={onNewGoal}
               className="btn btn-secondary"
-              style={{
-                justifyContent: 'flex-start',
-                padding: '14px',
-                height: 'auto',
-                textAlign: 'left',
-              }}
+              style={{ justifyContent: 'flex-start', padding: '14px', height: 'auto', textAlign: 'left' }}
             >
               <Target size={18} color="var(--accent)" />
               <div>
                 <div style={{ fontWeight: 600, fontSize: '13px' }}>+ New Goal</div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                  Publish life goal
-                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Publish life goal</div>
               </div>
             </button>
 
             <button
               onClick={onNewCategory}
               className="btn btn-secondary"
-              style={{
-                justifyContent: 'flex-start',
-                padding: '14px',
-                height: 'auto',
-                textAlign: 'left',
-              }}
+              style={{ justifyContent: 'flex-start', padding: '14px', height: 'auto', textAlign: 'left' }}
             >
               <FolderTree size={18} color="var(--accent)" />
               <div>
                 <div style={{ fontWeight: 600, fontSize: '13px' }}>+ New Category</div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                  E.g. Home, Fitness
-                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>E.g. Home, Fitness</div>
               </div>
             </button>
 
             <button
               onClick={onNewOffering}
               className="btn btn-secondary"
-              style={{
-                justifyContent: 'flex-start',
-                padding: '14px',
-                height: 'auto',
-                textAlign: 'left',
-              }}
+              style={{ justifyContent: 'flex-start', padding: '14px', height: 'auto', textAlign: 'left' }}
             >
               <Package size={18} color="#6366f1" />
               <div>
                 <div style={{ fontWeight: 600, fontSize: '13px' }}>+ New Offering</div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                  Product or bundle
-                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Product or bundle</div>
               </div>
             </button>
 
             <button
               onClick={onNewVendor}
               className="btn btn-secondary"
-              style={{
-                justifyContent: 'flex-start',
-                padding: '14px',
-                height: 'auto',
-                textAlign: 'left',
-              }}
+              style={{ justifyContent: 'flex-start', padding: '14px', height: 'auto', textAlign: 'left' }}
             >
               <Store size={18} color="#f59e0b" />
               <div>
                 <div style={{ fontWeight: 600, fontSize: '13px' }}>+ Onboard Vendor</div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                  Partner merchants
-                </div>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Partner merchants</div>
               </div>
             </button>
           </div>
@@ -289,22 +248,12 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
               border: '1px solid var(--border)',
             }}
           >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontSize: '12.5px',
-                fontWeight: 600,
-                color: 'var(--text)',
-              }}
-            >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12.5px', fontWeight: 600, color: 'var(--text)' }}>
               <ShieldCheck size={16} color="#10b981" />
               <span>Architectural Domain Isolation Intact</span>
             </div>
             <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '4px 0 0 24px' }}>
-              Lifestyle Goals and Commerce domains are fully decoupled from Alliance Property
-              Marketplace and rent payment workflows.
+              Lifestyle Goals and Commerce domains are fully decoupled from Alliance Property Marketplace and rent payment workflows.
             </p>
           </div>
         </div>

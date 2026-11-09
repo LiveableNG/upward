@@ -61,7 +61,8 @@ export function BottomNav() {
     pathname === '/dashboard/pay-rent' || !!pathname?.startsWith('/dashboard/pay-rent/')
   const isTransactionsRoute =
     pathname === '/dashboard/transactions' || !!pathname?.startsWith('/dashboard/transactions/')
-  const isProfileRoute = pathname === '/dashboard/me' || !!pathname?.startsWith('/dashboard/me/')
+  const isProfileRoute =
+    pathname === '/dashboard/me' || !!pathname?.startsWith('/dashboard/me/')
 
   const items = SIDE_NAV_ITEMS.filter((item) => {
     if ('hideOnDashboard' in item && item.hideOnDashboard) return false
@@ -216,7 +217,9 @@ export function BottomNav() {
     >
       <div
         ref={containerRef}
-        className={`bottom-nav__container ${isFluidNav ? 'bottom-nav__container--scrubbable' : ''}`}
+        className={`bottom-nav__container ${
+          isFluidNav ? 'bottom-nav__container--scrubbable' : ''
+        }`}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}

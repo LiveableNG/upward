@@ -6,7 +6,16 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { X, ShieldCheck, MapPin, Lock, Plus, Minus, Loader2, AlertCircle } from 'lucide-react'
+import {
+  X,
+  ShieldCheck,
+  MapPin,
+  Lock,
+  Plus,
+  Minus,
+  Loader2,
+  AlertCircle,
+} from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
 import { sessionTracker } from '@/lib/sessionTracker'
@@ -36,10 +45,7 @@ interface CommerceCheckoutModalProps {
 const checkoutSchema = z.object({
   recipientName: z.string().trim().min(2, 'Please enter your full name'),
   recipientPhone: z.string().trim().min(8, 'Please enter a valid phone number'),
-  streetAddress: z
-    .string()
-    .trim()
-    .min(3, 'Specific street address and house/flat number is required'),
+  streetAddress: z.string().trim().min(3, 'Specific street address and house/flat number is required'),
   landmark: z.string().trim().optional(),
   deliveryNotes: z.string().trim().optional(),
 })
@@ -73,8 +79,8 @@ export function CommerceCheckoutModal({
 
   // Configured delivery zones & user selected zone
   const [availableZones, setAvailableZones] = useState<DeliveryZoneItem[]>(PRESET_DELIVERY_ZONES)
-  const [selectedLocation, setSelectedLocation] = useState<UserDeliveryLocation>(
-    () => deliveryLocation || getStoredDeliveryLocation(),
+  const [selectedLocation, setSelectedLocation] = useState<UserDeliveryLocation>(() =>
+    deliveryLocation || getStoredDeliveryLocation(),
   )
 
   const createOrder = useCreateCommerceOrder()
@@ -141,7 +147,9 @@ export function CommerceCheckoutModal({
     }
   }, [isOpen, isProcessing, onClose])
 
-  const initialName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : ''
+  const initialName = user
+    ? `${user.firstName || ''} ${user.lastName || ''}`.trim()
+    : ''
   const initialPhone = user?.phone || ''
 
   const {
@@ -187,9 +195,9 @@ export function CommerceCheckoutModal({
 
   const isZoneDeliverable = Boolean(
     selectedLocation.isDelivering &&
-    selectedLocation.zoneTag &&
-    selectedLocation.zoneTag !== 'UNCONFIGURED' &&
-    selectedLocation.zoneTag !== 'UNCOVERED',
+      selectedLocation.zoneTag &&
+      selectedLocation.zoneTag !== 'UNCONFIGURED' &&
+      selectedLocation.zoneTag !== 'UNCOVERED',
   )
 
   const onSubmit = async (data: CheckoutFormData) => {
@@ -326,7 +334,11 @@ export function CommerceCheckoutModal({
           <div className="checkout-sheet__item-card">
             {primaryImage ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={primaryImage} alt={offeringTitle} className="checkout-sheet__item-thumb" />
+              <img
+                src={primaryImage}
+                alt={offeringTitle}
+                className="checkout-sheet__item-thumb"
+              />
             ) : (
               <div className="checkout-sheet__item-thumb-placeholder">
                 <MapPin size={24} />
@@ -342,8 +354,7 @@ export function CommerceCheckoutModal({
                 {formatNgn(unitPrice)}
                 {offering.pricingModel === 'STARTING_AT' && (
                   <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)' }}>
-                    {' '}
-                    starting
+                    {' '}starting
                   </span>
                 )}
               </div>
@@ -453,7 +464,9 @@ export function CommerceCheckoutModal({
                   background: isZoneDeliverable
                     ? 'var(--success-bg, rgba(34, 197, 94, 0.08))'
                     : 'var(--surface2)',
-                  color: isZoneDeliverable ? 'var(--success, #22c55e)' : 'var(--text-muted)',
+                  color: isZoneDeliverable
+                    ? 'var(--success, #22c55e)'
+                    : 'var(--text-muted)',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -464,6 +477,7 @@ export function CommerceCheckoutModal({
               </div>
 
               <div style={{ flex: 1, minWidth: 0 }}>
+
                 <div
                   style={{
                     fontWeight: 700,
@@ -523,16 +537,14 @@ export function CommerceCheckoutModal({
                       'We are working towards expanding our delivery coverage to other locations soon!'}
                   </span>
                   <br />
-                  Delivery to this zone is currently paused or pending rollout. You cannot place
-                  orders to this location at this time.
+                  Delivery to this zone is currently paused or pending rollout. You cannot place orders to this location at this time.
                 </div>
               </div>
             )}
 
             <div className="checkout-sheet__field">
               <label className="checkout-sheet__label" htmlFor="streetAddress">
-                Specific Street Address &amp; House / Unit Number{' '}
-                <span style={{ color: 'var(--clay)' }}>*</span>
+                Specific Street Address &amp; House / Unit Number <span style={{ color: 'var(--clay)' }}>*</span>
               </label>
               <div className="checkout-sheet__input-with-icon">
                 <MapPin size={16} className="checkout-sheet__input-icon" />
@@ -548,7 +560,9 @@ export function CommerceCheckoutModal({
                 />
               </div>
               {errors.streetAddress && (
-                <span className="checkout-sheet__field-error">{errors.streetAddress.message}</span>
+                <span className="checkout-sheet__field-error">
+                  {errors.streetAddress.message}
+                </span>
               )}
             </div>
 
@@ -590,7 +604,9 @@ export function CommerceCheckoutModal({
               <span className="checkout-sheet__ledger-label">
                 Subtotal ({quantity} {quantity === 1 ? 'item' : 'items'})
               </span>
-              <span className="checkout-sheet__ledger-val">{formatNgn(itemsSubtotal)}</span>
+              <span className="checkout-sheet__ledger-val">
+                {formatNgn(itemsSubtotal)}
+              </span>
             </div>
 
             <div className="checkout-sheet__ledger-row">
@@ -610,7 +626,9 @@ export function CommerceCheckoutModal({
 
             <div className="checkout-sheet__ledger-row checkout-sheet__ledger-row--total">
               <span className="checkout-sheet__ledger-label-total">Total Due</span>
-              <span className="checkout-sheet__ledger-val-total">{formatNgn(grandTotal)}</span>
+              <span className="checkout-sheet__ledger-val-total">
+                {formatNgn(grandTotal)}
+              </span>
             </div>
           </div>
 

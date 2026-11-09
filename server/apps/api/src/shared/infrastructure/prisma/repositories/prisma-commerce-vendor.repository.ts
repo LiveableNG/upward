@@ -103,3 +103,4 @@ export class PrismaCommerceVendorRepository implements VendorRepository {
     })
   }
 }
+

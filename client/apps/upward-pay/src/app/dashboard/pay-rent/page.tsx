@@ -4,11 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 
-import {
-  type Landlord,
-  type LineItem,
-  type PayRentStep,
-} from '@/features/dashboard/components/payment/types'
+import { type Landlord, type LineItem, type PayRentStep } from '@/features/dashboard/components/payment/types'
 import { StepNewLandlord } from '@/features/dashboard/components/payment/StepNewLandlord'
 import { StepAmount } from '@/features/dashboard/components/payment/StepAmount'
 import { StepPropertySelect } from '@/features/dashboard/components/payment/StepPropertySelect'
@@ -18,16 +14,9 @@ import { PayRentSkeleton } from '@/features/dashboard/components/payment/PayRent
 import { PayPageShell } from '@/features/dashboard/components/payment/PayPageShell'
 import { RenewalModal } from '@/features/payments/components/unified-pay/RenewalModal'
 import { clearSetupDraft } from '@/features/dashboard/setup/setupDraft'
-import {
-  SETUP_RETURN_PATHS,
-  setupAddPropertyPath,
-  setupEditPropertyPath,
-} from '@/features/dashboard/setup/setupPaths'
+import { SETUP_RETURN_PATHS, setupAddPropertyPath, setupEditPropertyPath } from '@/features/dashboard/setup/setupPaths'
 import { propertySupportsBankTransfer } from '@/features/dashboard/components/payment/propertyBankAccount'
-import {
-  findProofUnderReviewForProperty,
-  isProofUnderReview,
-} from '@/features/dashboard/components/payment/propertyPayDisplay'
+import { findProofUnderReviewForProperty, isProofUnderReview } from '@/features/dashboard/components/payment/propertyPayDisplay'
 import { useToast } from '@/components/common/Toast'
 import { isSelfInitiatedPayment } from '@/features/dashboard/components/payment/paymentOrigin'
 
@@ -63,10 +52,9 @@ export default function PayRentPage() {
 
   useEffect(() => {
     if (selectedPropertyUuid) {
-      api
-        .getPropertyBalance(selectedPropertyUuid)
-        .then((res) => setPropertyBalance(res))
-        .catch((err) => console.error('Failed to fetch balance:', err))
+      api.getPropertyBalance(selectedPropertyUuid)
+        .then(res => setPropertyBalance(res))
+        .catch(err => console.error('Failed to fetch balance:', err))
     } else {
       setPropertyBalance(null)
     }
@@ -80,9 +68,7 @@ export default function PayRentPage() {
       uuid: 'verified',
       name:
         prop.company?.name ||
-        (prop.manager?.firstName
-          ? `${prop.manager.firstName} ${prop.manager.lastName || ''}`
-          : null) ||
+        (prop.manager?.firstName ? `${prop.manager.firstName} ${prop.manager.lastName || ''}` : null) ||
         prop.managerName ||
         'Property Owner',
       accountName:
@@ -91,17 +77,9 @@ export default function PayRentPage() {
         prop.manualAccount?.accountName ||
         prop.company?.name ||
         'Verified Recipient',
-      accountNumber:
-        prop.subaccount?.accountNumber ||
-        prop.dedicatedAccount?.accountNumber ||
-        prop.manualAccount?.accountNumber ||
-        '',
+      accountNumber: prop.subaccount?.accountNumber || prop.dedicatedAccount?.accountNumber || prop.manualAccount?.accountNumber || '',
       bankName: prop.dedicatedAccount?.bankName || prop.manualAccount?.bankName || '',
-      bankCode:
-        prop.subaccount?.bankCode ||
-        prop.dedicatedAccount?.bankCode ||
-        prop.manualAccount?.bankCode ||
-        '',
+      bankCode: prop.subaccount?.bankCode || prop.dedicatedAccount?.bankCode || prop.manualAccount?.bankCode || '',
       avatar: (prop.company?.name || prop.manager?.firstName || 'P')[0].toUpperCase(),
       lastPaid: null,
       lastAmount: 0,
@@ -123,10 +101,7 @@ export default function PayRentPage() {
         return !['Processing Fee', 'Transaction Fee', 'Upward Benefits'].includes(name)
       })
       .map((item: any) => {
-        const remaining = Math.max(
-          0,
-          Number(item.totalAmount || item.amount || 0) - Number(item.amountPaid || 0),
-        )
+        const remaining = Math.max(0, Number(item.totalAmount || item.amount || 0) - Number(item.amountPaid || 0))
         return {
           id: item.id,
           name: item.name || 'Item',
@@ -144,18 +119,12 @@ export default function PayRentPage() {
 
     const lineItemsRecords = pending?.lineItemRecords || []
     const lineItemsSum = lineItemsRecords.reduce((sum: number, item: any) => {
-      const isFee =
-        item.name === 'Processing Fee' ||
-        item.id === -2 ||
-        item.name === 'Transaction Fee' ||
-        item.id === -3 ||
-        item.name === 'Upward Benefits'
+      const isFee = item.name === 'Processing Fee' || item.id === -2 || item.name === 'Transaction Fee' || item.id === -3 || item.name === 'Upward Benefits'
       if (isFee) return sum
       return sum + Number(item.totalAmount || item.amount || 0)
     }, 0)
 
-    const fullInvoiceTotal =
-      lineItemsSum > 0 ? lineItemsSum : Number(pending.total_amount || pending.amount || 0)
+    const fullInvoiceTotal = lineItemsSum > 0 ? lineItemsSum : Number(pending.total_amount || pending.amount || 0)
     const amountPaid = Number(pending.amountPaid || 0)
     const remaining = Math.max(0, fullInvoiceTotal - amountPaid)
 
@@ -171,9 +140,7 @@ export default function PayRentPage() {
 
     if (prop) {
       const loc = prop.location
-      const fullAddr = [loc?.address || prop.address, loc?.area, loc?.state, loc?.country]
-        .filter(Boolean)
-        .join(', ')
+      const fullAddr = [loc?.address || prop.address, loc?.area, loc?.state, loc?.country].filter(Boolean).join(', ')
       setPropertyAddress(fullAddr || pending.property_address || '')
       if (propertyHasPayoutRoute(prop)) {
         setSelectedLandlord(buildLandlordFromProperty(prop))
@@ -194,7 +161,7 @@ export default function PayRentPage() {
     }
 
     const activeRequest = pending.find(
-      (p) =>
+      p =>
         p.userPropertyUuid === prop.uuid &&
         (p.status === 'PENDING' || p.status === 'PARTIAL') &&
         !isProofUnderReview(p),
@@ -207,9 +174,7 @@ export default function PayRentPage() {
     setActivePaymentRequest(null)
     setSelectedPropertyUuid(prop.uuid)
     const loc = prop.location
-    const fullAddr = [loc?.address || prop.address, loc?.area, loc?.state, loc?.country]
-      .filter(Boolean)
-      .join(', ')
+    const fullAddr = [loc?.address || prop.address, loc?.area, loc?.state, loc?.country].filter(Boolean).join(', ')
     setPropertyAddress(fullAddr)
     setpaymentType('Rent Payment')
     setPayAmount(0)
@@ -355,9 +320,10 @@ export default function PayRentPage() {
     enterPendingInvoiceFlow(p, userProperties)
   }
 
-  const selectedProperty = userProperties.find((p) => p.uuid === selectedPropertyUuid)
+  const selectedProperty = userProperties.find(p => p.uuid === selectedPropertyUuid)
   const canBankTransfer = propertySupportsBankTransfer(selectedProperty)
-  const canCancelPending = !!activePaymentRequest && isSelfInitiatedPayment(activePaymentRequest)
+  const canCancelPending =
+    !!activePaymentRequest && isSelfInitiatedPayment(activePaymentRequest)
 
   const stepTitle: Record<PayRentStep, string> = {
     select: 'Pay Rent',
@@ -437,11 +403,7 @@ export default function PayRentPage() {
             let finalLandlord = data as Landlord
             if (data.accountNumber && data.bankCode) {
               try {
-                const res = await api.resolveSubaccount(
-                  data.accountNumber,
-                  data.bankCode,
-                  data.name,
-                )
+                const res = await api.resolveSubaccount(data.accountNumber, data.bankCode, data.name)
                 finalLandlord = { ...data, subaccountCode: res.subaccountCode } as Landlord
               } catch (e) {
                 console.error('Failed to resolve subaccount on the fly:', e)
@@ -493,7 +455,7 @@ export default function PayRentPage() {
             setpaymentType(name)
             setLineItems(items || [])
 
-            const prop = userProperties.find((p) => p.uuid === selectedPropertyUuid)
+            const prop = userProperties.find(p => p.uuid === selectedPropertyUuid)
             if (propertySupportsBankTransfer(prop)) {
               setStep('payment-method')
             } else {
@@ -544,14 +506,13 @@ export default function PayRentPage() {
           onClose={() => setShowRenewalModal(false)}
           onRenewed={() => {
             setShowRenewalModal(false)
-            setUserProperties((prev) =>
-              prev.map((p) =>
-                p.uuid === renewalPropertyUuid ? { ...p, isPastTenancy: false } : p,
-              ),
+            setUserProperties(prev =>
+              prev.map(p => (p.uuid === renewalPropertyUuid ? { ...p, isPastTenancy: false } : p)),
             )
           }}
         />
       )}
+
     </PayPageShell>
   )
 }

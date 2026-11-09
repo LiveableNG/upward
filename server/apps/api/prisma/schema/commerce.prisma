@@ -272,7 +272,7 @@ model upward_commerce_payment_attempt {
   gatewayResponse       String?                  @db.Text
   ipAddress             String?                  @db.VarChar(50)
   createdAt             DateTime                 @default(now())
-  updatedAt             DateTime                 @default(now()) @updatedAt
+  updatedAt             DateTime                 @updatedAt
 
   order                 upward_commerce_order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
@@ -370,7 +370,7 @@ model upward_commerce_delivery_zone {
   pauseReason           String?                  @db.VarChar(255)
   sortOrder             Int                      @default(0)
   createdAt             DateTime                 @default(now())
-  updatedAt             DateTime                 @default(now()) @updatedAt
+  updatedAt             DateTime                 @updatedAt
 
   @@index([state])
   @@index([isDelivering])

@@ -1,10 +1,6 @@
 import React, { useState } from 'react'
 import { Plus, Search, FolderTree, Edit2, Trash2, CheckCircle2, XCircle } from 'lucide-react'
-import {
-  DataTable,
-  type ColumnDef,
-  type ActionItem,
-} from '../../../components/common/table/DataTable'
+import { DataTable, type ColumnDef, type ActionItem } from '../../../components/common/table/DataTable'
 import type { GoalCategory } from '../types'
 
 interface CategoriesTabProps {
@@ -160,15 +156,7 @@ export const CategoriesTab: React.FC<CategoriesTabProps> = ({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
       {/* Search and Action Bar */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: '12px',
-          flexWrap: 'wrap',
-        }}
-      >
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', width: '320px', maxWidth: '100%' }}>
           <Search
             size={16}

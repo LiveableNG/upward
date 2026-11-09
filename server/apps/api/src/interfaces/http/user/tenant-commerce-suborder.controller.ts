@@ -16,7 +16,9 @@ import { ConfirmSubOrderReceiptInputDto } from '../../../application/commerce/dt
 @Controller('user/commerce/sub-orders')
 @UseGuards(JwtAuthGuard)
 export class TenantCommerceSubOrderController {
-  constructor(private readonly confirmReceiptUseCase: TenantConfirmSubOrderReceiptUseCase) {}
+  constructor(
+    private readonly confirmReceiptUseCase: TenantConfirmSubOrderReceiptUseCase,
+  ) {}
 
   @Post(':uuid/confirm-receipt')
   @HttpCode(HttpStatus.OK)

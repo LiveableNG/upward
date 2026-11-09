@@ -21,30 +21,30 @@ import {
   buildGlobalLayoutHtml,
   buildRentOverpaymentEmailHtml,
   buildRentDepositCreditedHtml,
-} from '../email/email.helper'
+} from '../email/email.helper';
 
-export type RecipientRole = 'TENANT' | 'PM' | 'LANDLORD' | 'ADMIN'
-export type ThemeType = 'CLAY' | 'FOREST'
+export type RecipientRole = 'TENANT' | 'PM' | 'LANDLORD' | 'ADMIN';
+export type ThemeType = 'CLAY' | 'FOREST';
 
 export function resolveTheme(role?: RecipientRole | string): ThemeType {
   if (role === 'PM' || role === 'LANDLORD' || role === 'ADMIN') {
-    return 'FOREST'
+    return 'FOREST';
   }
-  return 'CLAY'
+  return 'CLAY';
 }
 
 export interface TemplateInterpolationContext {
-  [key: string]: any
+  [key: string]: any;
 }
 
 export interface CommunicationTemplateDef {
-  recipientRole: RecipientRole
-  subjectTemplate: string
-  plainTextTemplate: string
-  whatsappTemplateName?: string
-  whatsappParams?: string[]
-  whatsappButtonParam?: string
-  buildHtml?: (context: TemplateInterpolationContext, theme: ThemeType) => string
+  recipientRole: RecipientRole;
+  subjectTemplate: string;
+  plainTextTemplate: string;
+  whatsappTemplateName?: string;
+  whatsappParams?: string[];
+  whatsappButtonParam?: string;
+  buildHtml?: (context: TemplateInterpolationContext, theme: ThemeType) => string;
 }
 
 export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> = {
@@ -134,9 +134,7 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
         tenantName: ctx.displayName || ctx.tenantName || 'Tenant',
         pmName: ctx.pmName || 'Property Manager',
         propertyAddress: ctx.propertyAddress || 'Property',
-        loginLink: ctx.frontendUrl
-          ? `${ctx.frontendUrl}/dashboard`
-          : 'https://upward.goodtenants.io/dashboard',
+        loginLink: ctx.frontendUrl ? `${ctx.frontendUrl}/dashboard` : 'https://upward.goodtenants.io/dashboard',
       }),
   },
 
@@ -248,11 +246,10 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
       'Hello {{email}}, we received a request to delete all data associated with your email from Upward. This process is irreversible.',
     whatsappTemplateName: 'upward_data_deletion_request',
     whatsappParams: ['email'],
-    buildHtml: (ctx) =>
-      buildDataDeletionRequestConfirmationHtml({
-        userName: ctx.displayName || ctx.userName || 'User',
-        deletionLink: ctx.deletionLink || '',
-      }),
+    buildHtml: (ctx) => buildDataDeletionRequestConfirmationHtml({
+      userName: ctx.displayName || ctx.userName || 'User',
+      deletionLink: ctx.deletionLink || '',
+    }),
   },
 
   RENT_RECEIPT: {
@@ -266,14 +263,14 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
       buildRentReceiptEmailHtml({
         tenantName: ctx.tenantName || 'Tenant',
         amountPaid: (() => {
-          const val = ctx.amountPaid ?? ctx.amount ?? 0
-          if (typeof val === 'number') return val
+          const val = ctx.amountPaid ?? ctx.amount ?? 0;
+          if (typeof val === 'number') return val;
           if (typeof val === 'string') {
-            const cleaned = val.replace(/[^0-9.]/g, '')
-            const parsed = parseFloat(cleaned)
-            return isNaN(parsed) ? 0 : parsed
+            const cleaned = val.replace(/[^0-9.]/g, '');
+            const parsed = parseFloat(cleaned);
+            return isNaN(parsed) ? 0 : parsed;
           }
-          return 0
+          return 0;
         })(),
         balance: Number(ctx.balance || 0),
         propertyAddress: ctx.propertyAddress || 'Property',
@@ -395,8 +392,7 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
 
   PM_SUBSCRIPTION_PRE_INVOICE: {
     recipientRole: 'PM',
-    subjectTemplate:
-      'Upcoming Subscription Renewal: NGN {{formattedAmountDue}} due on {{deductionDate}}',
+    subjectTemplate: 'Upcoming Subscription Renewal: NGN {{formattedAmountDue}} due on {{deductionDate}}',
     plainTextTemplate:
       'Dear {{pmName}}, this is a friendly reminder that your monthly Upward subscription fee of NGN {{formattedAmountDue}} for {{unitCount}} units will be deducted from your wallet on {{deductionDate}}.{{billingNote}} Current balance: NGN {{formattedCurrentBalance}}.',
     buildHtml: (ctx: TemplateInterpolationContext, theme: ThemeType) =>
@@ -441,8 +437,7 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
       const contexts: Record<string, { title: string; message: string; subject?: string }> = {
         SIGNUP: {
           title: 'Verify your email',
-          message:
-            'Welcome to Upward! Use the code below to verify your email address and complete your signup.',
+          message: 'Welcome to Upward! Use the code below to verify your email address and complete your signup.',
           subject: '{{otp}} is your Upward verification code',
         },
         LOGIN: {
@@ -452,36 +447,32 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
         },
         INVITE: {
           title: 'Accept Your Invite',
-          message:
-            'You have been invited to join Upward. Use the code below to verify your identity and accept the invite.',
+          message: 'You have been invited to join Upward. Use the code below to verify your identity and accept the invite.',
           subject: '{{otp}} is your Upward invite verification code',
         },
         PAYMENT: {
           title: 'Verify Payment Access',
-          message:
-            'Use the code below to verify your access to this payment. This ensures your transaction is secure.',
+          message: 'Use the code below to verify your access to this payment. This ensures your transaction is secure.',
           subject: '{{otp}} is your payment verification code',
         },
         WAITLIST: {
           title: 'Claim Your Waitlist Spot',
-          message:
-            'Use the code below to verify your email and claim your spot on the Upward waitlist.',
+          message: 'Use the code below to verify your email and claim your spot on the Upward waitlist.',
           subject: '{{otp}} is your waitlist verification code',
         },
         DELETE_ACCOUNT: {
           title: 'Confirm Account Deletion',
-          message:
-            'You requested to permanently delete your Upward account. Use the verification code below to confirm this action. If you did not make this request, please contact support and change your password immediately.',
+          message: 'You requested to permanently delete your Upward account. Use the verification code below to confirm this action. If you did not make this request, please contact support and change your password immediately.',
           subject: '{{otp}} is your account deletion code',
         },
-      }
+      };
 
       const fallback = {
         title: ctx.title || 'Verify your email',
         message: ctx.message || 'Use the code below to proceed.',
-      }
+      };
 
-      const selected = ctx.context && contexts[ctx.context] ? contexts[ctx.context] : fallback
+      const selected = (ctx.context && contexts[ctx.context]) ? contexts[ctx.context] : fallback;
 
       return buildGlobalLayoutHtml({
         role: 'TENANT',
@@ -494,7 +485,7 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
           </div>
           <p>${ctx.expiryText || 'This code expires in 10 minutes. Please do not share it with anyone.'}</p>
         `,
-      })
+      });
     },
   },
 
@@ -541,34 +532,30 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
   TENANT_PROPERTY_VERIFIED: {
     recipientRole: 'TENANT',
     subjectTemplate: 'Your property has been verified! 🎉',
-    plainTextTemplate:
-      'Hello {{tenantName}}, your property at {{propertyName}} has been verified by {{pmName}}. You can now manage your rent payments on Upward.',
+    plainTextTemplate: 'Hello {{tenantName}}, your property at {{propertyName}} has been verified by {{pmName}}. You can now manage your rent payments on Upward.',
     whatsappTemplateName: 'tenant_property_verified_v1',
     whatsappParams: ['tenantName', 'propertyName', 'pmName'],
-    buildHtml: (ctx) =>
-      buildGlobalLayoutHtml({
-        role: 'TENANT',
-        title: 'Property Verified',
-        contentHtml: `
+    buildHtml: (ctx) => buildGlobalLayoutHtml({
+      role: 'TENANT',
+      title: 'Property Verified',
+      contentHtml: `
         <p>Hello ${ctx.tenantName},</p>
         <p>Great news! Your property at <strong>${ctx.propertyName}</strong> has been successfully verified by your property manager, <strong>${ctx.pmName}</strong>.</p>
         <p>You can now log in to your Upward account to view your tenancy details, track your rent payments, and build your rental credibility score.</p>
       `,
-        buttonText: 'View Property Dashboard',
-        buttonUrl: ctx.portalUrl || 'https://upward.goodtenants.io/login',
-      }),
+      buttonText: 'View Property Dashboard',
+      buttonUrl: ctx.portalUrl || 'https://upward.goodtenants.io/login',
+    }),
   },
 
   PM_CONNECTION_REQUEST: {
     recipientRole: 'PM',
     subjectTemplate: 'New Connection Request: {{tenantName}}',
-    plainTextTemplate:
-      'Hello {{pmName}}, {{tenantName}} wants to connect and sync their unit ({{unitAddress}}) with you. Log in to your dashboard to review this request.',
-    buildHtml: (ctx) =>
-      buildGlobalLayoutHtml({
-        role: 'PM',
-        title: 'New Connection Request',
-        contentHtml: `
+    plainTextTemplate: 'Hello {{pmName}}, {{tenantName}} wants to connect and sync their unit ({{unitAddress}}) with you. Log in to your dashboard to review this request.',
+    buildHtml: (ctx) => buildGlobalLayoutHtml({
+      role: 'PM',
+      title: 'New Connection Request',
+      contentHtml: `
         <p>Hello ${ctx.pmName},</p>
         <p><strong>${ctx.tenantName}</strong> wants to connect and sync a unit with you on Upward.</p>
         <div style="background: #ffffff; border: 1px solid #e5e7eb; padding: 20px; border-radius: 12px; margin: 24px 0;">
@@ -577,9 +564,9 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
         </div>
         <p>Please log in to your property manager portal to approve or decline this request.</p>
       `,
-        buttonText: 'Review Connection Request',
-        buttonUrl: ctx.portalUrl || 'https://upward-pm.vercel.app/dashboard',
-      }),
+      buttonText: 'Review Connection Request',
+      buttonUrl: ctx.portalUrl || 'https://upward-pm.vercel.app/dashboard',
+    }),
   },
 
   PM_INVITE: {
@@ -603,22 +590,19 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
     subjectTemplate: 'Daily Digest: {{count}} New Rent Request{{plural}} on Upward',
     plainTextTemplate:
       'Hello {{pmName}}, prospective tenants submitted rent requests on Upward. Log in to your property manager portal to view them: {{portalUrl}}',
-    buildHtml: (ctx) =>
-      ctx.htmlOverride || '<p>New rent requests are available in your portal.</p>',
+    buildHtml: (ctx) => ctx.htmlOverride || '<p>New rent requests are available in your portal.</p>',
   },
 
   SUPPORT_TICKET: {
     recipientRole: 'TENANT',
     subjectTemplate: 'Update on your Support Ticket',
-    plainTextTemplate:
-      'Hello {{displayName}}, your support ticket regarding "{{message}}..." has been resolved with the following response: {{responseMessage}}',
+    plainTextTemplate: 'Hello {{displayName}}, your support ticket regarding "{{message}}..." has been resolved with the following response: {{responseMessage}}',
     whatsappTemplateName: 'upward_support_ticket_resolved',
     whatsappParams: ['displayName'],
-    buildHtml: (ctx) =>
-      buildGlobalLayoutHtml({
-        role: 'TENANT',
-        title: 'Support Ticket Update',
-        contentHtml: `
+    buildHtml: (ctx) => buildGlobalLayoutHtml({
+      role: 'TENANT',
+      title: 'Support Ticket Update',
+      contentHtml: `
         <p>Hello ${ctx.displayName},</p>
         <p>Your support ticket regarding <strong>"${ctx.message}..."</strong> has been resolved with the following message from our team:</p>
         
@@ -629,101 +613,90 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
         <p style="font-size: 14px; color: #9ca3af; line-height: 1.5;">
           If you have any more issues, please don't hesitate to reach to the support hub again.
         </p>
-      `,
-      }),
+      `
+    }),
   },
 
   SIGNUP_CONFIRMATION: {
     recipientRole: 'TENANT',
     subjectTemplate: 'Welcome to the Upward Waitlist — You’re In',
-    plainTextTemplate:
-      'Hi {{firstName}}, you are officially on the waitlist for Upward by GoodTenants! We will notify you as soon as early access is ready.',
+    plainTextTemplate: 'Hi {{firstName}}, you are officially on the waitlist for Upward by GoodTenants! We will notify you as soon as early access is ready.',
     whatsappTemplateName: 'upward_waitlist_confirmation',
     whatsappParams: ['firstName'],
-    buildHtml: (ctx) =>
-      buildWaitlistConfirmationHtml({
-        displayName: ctx.displayName || ctx.firstName || 'there',
-        firstName: ctx.firstName,
-        email: ctx.email || '',
-        frontendUrl: ctx.frontendUrl || 'https://upward.goodtenants.io',
-      }),
+    buildHtml: (ctx) => buildWaitlistConfirmationHtml({
+      displayName: ctx.displayName || ctx.firstName || 'there',
+      firstName: ctx.firstName,
+      email: ctx.email || '',
+      frontendUrl: ctx.frontendUrl || 'https://upward.goodtenants.io',
+    }),
   },
 
   ONBOARDING_SEQUENCE_WELCOME: {
     recipientRole: 'TENANT',
     subjectTemplate: 'Welcome to Upward, {{displayName}}!',
-    plainTextTemplate:
-      'Welcome to Upward! Your account has been successfully created. Log in now to complete your profile.',
+    plainTextTemplate: 'Welcome to Upward! Your account has been successfully created. Log in now to complete your profile.',
     whatsappTemplateName: 'upward_seq_welcome_v2',
     whatsappParams: ['displayName', 'companyName'],
-    buildHtml: (ctx) =>
-      buildSequenceWelcomeHtml({
-        firstName: ctx.displayName || 'there',
-        loginLink: ctx.loginLink || 'https://upward.goodtenants.io/login',
-      }),
+    buildHtml: (ctx) => buildSequenceWelcomeHtml({
+      firstName: ctx.displayName || 'there',
+      loginLink: ctx.loginLink || 'https://upward.goodtenants.io/login',
+    }),
   },
 
   ONBOARDING_SEQUENCE_DAY_2: {
     recipientRole: 'TENANT',
     subjectTemplate: 'Your Upward Score breakdown',
-    plainTextTemplate:
-      'Hi {{displayName}}, see how your Upward Score is developing and how it can help you build your rental reputation.',
+    plainTextTemplate: 'Hi {{displayName}}, see how your Upward Score is developing and how it can help you build your rental reputation.',
     whatsappTemplateName: 'upward_seq_day2_v2',
     whatsappParams: ['displayName'],
-    buildHtml: (ctx) =>
-      buildSequenceDay2Html({
-        firstName: ctx.displayName || 'there',
-        scoreLink: ctx.scoreLink || 'https://upward.goodtenants.io/dashboard',
-      }),
+    buildHtml: (ctx) => buildSequenceDay2Html({
+      firstName: ctx.displayName || 'there',
+      scoreLink: ctx.scoreLink || 'https://upward.goodtenants.io/dashboard',
+    }),
   },
 
   ONBOARDING_SEQUENCE_DAY_5: {
     recipientRole: 'TENANT',
     subjectTemplate: 'How paying rent through Upward builds your future',
-    plainTextTemplate:
-      'Hi {{displayName}}, read how a resident in Yaba renews rent through Upward and watches their score increase.',
+    plainTextTemplate: 'Hi {{displayName}}, read how a resident in Yaba renews rent through Upward and watches their score increase.',
     whatsappTemplateName: 'upward_seq_day9_v2',
     whatsappParams: ['displayName'],
-    buildHtml: (ctx) =>
-      buildSequenceDay9Html({
-        firstName: ctx.displayName || 'there',
-        appLink: ctx.appLink || 'https://upward.goodtenants.io/blog',
-      }),
+    buildHtml: (ctx) => buildSequenceDay9Html({
+      firstName: ctx.displayName || 'there',
+      appLink: ctx.appLink || 'https://upward.goodtenants.io/blog',
+    }),
   },
 
   ONBOARDING_SEQUENCE_DAY_9: {
     recipientRole: 'TENANT',
     subjectTemplate: '5 Ways to Build a Stronger Rental Reputation',
-    plainTextTemplate:
-      'Hi {{displayName}}, two tenants can pay the exact same rent for years, but one does it with credit. Learn why in our short guide.',
+    plainTextTemplate: 'Hi {{displayName}}, two tenants can pay the exact same rent for years, but one does it with credit. Learn why in our short guide.',
     whatsappTemplateName: 'upward_seq_day5_v2',
     whatsappParams: ['displayName'],
-    buildHtml: (ctx) =>
-      buildSequenceDay5Html({
-        firstName: ctx.displayName || 'there',
-        guideLink: ctx.guideLink || 'https://upward.goodtenants.io/dashboard',
-      }),
+    buildHtml: (ctx) => buildSequenceDay5Html({
+      firstName: ctx.displayName || 'there',
+      guideLink: ctx.guideLink || 'https://upward.goodtenants.io/dashboard',
+    }),
   },
+
+
 
   ONBOARDING_SEQUENCE_DAY_14: {
     recipientRole: 'TENANT',
     subjectTemplate: 'Keep building your rental reputation with Upward',
-    plainTextTemplate:
-      'Hi {{displayName}}, your Upward account is ready. Build your profile, view receipts, and request past records.',
+    plainTextTemplate: 'Hi {{displayName}}, your Upward account is ready. Build your profile, view receipts, and request past records.',
     whatsappTemplateName: 'upward_seq_day14_v2',
     whatsappParams: ['displayName'],
-    buildHtml: (ctx) =>
-      buildSequenceDay14Html({
-        firstName: ctx.displayName || 'there',
-        appLink: ctx.appLink || 'https://upward.goodtenants.io/dashboard',
-      }),
+    buildHtml: (ctx) => buildSequenceDay14Html({
+      firstName: ctx.displayName || 'there',
+      appLink: ctx.appLink || 'https://upward.goodtenants.io/dashboard',
+    }),
   },
 
   ASSISTED_UPLOAD_REVIEW: {
     recipientRole: 'PM',
     subjectTemplate: 'Your Assisted Upload is Ready for Review',
-    plainTextTemplate:
-      'The data from your file {{fileName}} has been transcribed and staged. Please log in to your dashboard to review, edit, and approve the import.',
+    plainTextTemplate: 'The data from your file {{fileName}} has been transcribed and staged. Please log in to your dashboard to review, edit, and approve the import.',
   },
 
   LANDLORD_REPORT: {
@@ -731,7 +704,7 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
     subjectTemplate: 'Property Performance Report',
     plainTextTemplate: 'Please view the performance report in your landlord dashboard.',
   },
-
+  
   RENT_OVERPAYMENT_RECEIVED: {
     recipientRole: 'TENANT',
     subjectTemplate: 'Extra payment of {{currency}} {{formattedAmount}} saved to your Rent Deposit',
@@ -769,4 +742,4 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
         depositLink: ctx.depositLink || 'https://upward.goodtenants.io/dashboard/deposit-balance',
       }),
   },
-}
+};

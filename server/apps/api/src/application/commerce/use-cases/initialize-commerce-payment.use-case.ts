@@ -1,11 +1,23 @@
-import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common'
 import { randomUUID } from 'crypto'
 import {
   COMMERCE_ORDER_REPOSITORY,
   CommerceOrderRepository,
 } from '../../../domains/commerce/commerce-order.repository'
-import { PAYMENT_GATEWAY, IPaymentGateway } from '../../../domains/payments/payment.repository'
-import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
+import {
+  PAYMENT_GATEWAY,
+  IPaymentGateway,
+} from '../../../domains/payments/payment.repository'
+import {
+  USER_REPOSITORY,
+  UserRepository,
+} from '../../../domains/users/user.repository'
 import { InitializeCommercePaymentResponse } from '../dto/initialize-commerce-payment.dto'
 
 @Injectable()
@@ -57,12 +69,7 @@ export class InitializeCommercePaymentUseCase {
       throw new BadRequestException('Cannot pay for a cancelled or expired order')
     }
 
-    if (
-      order.paymentStatus === 'PAID' ||
-      order.status === 'CONFIRMED' ||
-      order.status === 'COMPLETED' ||
-      order.status === 'PROCESSING'
-    ) {
+    if (order.paymentStatus === 'PAID' || order.status === 'CONFIRMED' || order.status === 'COMPLETED' || order.status === 'PROCESSING') {
       throw new BadRequestException('Order has already been paid and confirmed')
     }
 
@@ -71,8 +78,7 @@ export class InitializeCommercePaymentUseCase {
     }
 
     // 3. Retrieve tenant email
-    const email =
-      userEmail || order.user?.email || order.recipientPhone || 'customer@goodtenants.africa'
+    const email = userEmail || order.user?.email || order.recipientPhone || 'customer@goodtenants.africa'
 
     // 4. Generate unique payment attempt reference (distinct from order idempotency key)
     const paymentReference = `UPW_ORD_PAY_${randomUUID()}`
@@ -105,10 +111,7 @@ export class InitializeCommercePaymentUseCase {
         },
       })
     } catch (error: any) {
-      this.logger.error(
-        `Failed to initialize Paystack transaction for order ${order.orderNumber}:`,
-        error,
-      )
+      this.logger.error(`Failed to initialize Paystack transaction for order ${order.orderNumber}:`, error)
       await this.orderRepo.updatePaymentAttemptStatus(
         paymentReference,
         'FAILED',

@@ -1,7 +1,18 @@
-import { Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
+import {
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common'
 import { randomUUID } from 'crypto'
-import { OFFERING_REPOSITORY, OfferingRepository } from '../../../domains/goals/offering.repository'
-import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
+import {
+  OFFERING_REPOSITORY,
+  OfferingRepository,
+} from '../../../domains/goals/offering.repository'
+import {
+  USER_REPOSITORY,
+  UserRepository,
+} from '../../../domains/users/user.repository'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 import { EmailService } from '../../../shared/infrastructure/email/email.service'
@@ -92,7 +103,10 @@ export class CreateCommerceInquiryUseCase {
         url: `/dashboard/lifestyle/${offering.uuid}`,
       })
     } catch (err) {
-      this.logger.error(`Failed to dispatch in-app notification for inquiry ${inquiryUuid}`, err)
+      this.logger.error(
+        `Failed to dispatch in-app notification for inquiry ${inquiryUuid}`,
+        err,
+      )
     }
 
     // 3. Transactional Email to tenant
@@ -219,3 +233,4 @@ export class CreateCommerceInquiryUseCase {
     }
   }
 }
+

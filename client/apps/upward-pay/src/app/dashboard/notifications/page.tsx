@@ -2,17 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import {
-  ArrowLeft,
-  Bell,
-  Calendar,
-  Megaphone,
-  Info,
-  ArrowRight,
-  UserCircle,
-  Clock,
-  Landmark,
-} from 'lucide-react'
+import { ArrowLeft, Bell, Calendar, Megaphone, Info, ArrowRight, UserCircle, Clock, Landmark } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { formatCurrency } from '@/lib/utils'
@@ -138,8 +128,7 @@ export default function NotificationsPage() {
   })
 
   const markAllReadMutation = useMutation({
-    mutationFn: (category: TabType) =>
-      api.post('/user/notifications/mark-category-read', { category }),
+    mutationFn: (category: TabType) => api.post('/user/notifications/mark-category-read', { category }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-counts'] })
@@ -149,13 +138,13 @@ export default function NotificationsPage() {
   // Auto-mark category as read when switching tabs
   useEffect(() => {
     if (isNotifLoading) return
-
+    
     const timer = setTimeout(() => {
       if (activeTab === 'Services') {
         markAllReadMutation.mutate(activeTab)
       }
     }, 1500)
-
+    
     return () => clearTimeout(timer)
   }, [activeTab, isNotifLoading])
 
@@ -189,7 +178,7 @@ export default function NotificationsPage() {
         isRead: false,
         isDynamic: true,
         url: '/dashboard/setup',
-        icon: <UserCircle size={18} />,
+        icon: <UserCircle size={18} />
       })
     }
 
@@ -240,7 +229,7 @@ export default function NotificationsPage() {
             </button>
             <h1 className="header-title">Notifications</h1>
           </div>
-
+          
           <NotificationTabBar
             activeTab={activeTab}
             onTabChange={setActiveTab}
@@ -259,48 +248,44 @@ export default function NotificationsPage() {
             <p>No {activeTab.toLowerCase()} to show right now.</p>
           </div>
         ) : (
-          Object.entries(groupedNotifications).map(
-            ([group, list]) =>
-              list.length > 0 && (
-                <div key={group} className="notification-group">
-                  <h3 className="notification-group__title">{group}</h3>
-                  {list.map((notif) => (
-                    <div
-                      key={notif.id}
-                      className={`notification-card ${!notif.isRead ? 'unread' : ''}`}
-                      onClick={() => handleMarkRead(notif)}
-                    >
-                      <div className="card-icon-wrap">
-                        {notif.icon || ICON_MAP[notif.type] || <Info size={18} />}
+          Object.entries(groupedNotifications).map(([group, list]) => (
+            list.length > 0 && (
+              <div key={group} className="notification-group">
+                <h3 className="notification-group__title">{group}</h3>
+                {list.map((notif) => (
+                  <div
+                    key={notif.id}
+                    className={`notification-card ${!notif.isRead ? 'unread' : ''}`}
+                    onClick={() => handleMarkRead(notif)}
+                  >
+                    <div className="card-icon-wrap">
+                      {notif.icon || ICON_MAP[notif.type] || <Info size={18} />}
+                    </div>
+                    <div className="card-content">
+                      <div className="card-top">
+                        <span className="card-title">{notif.title}</span>
+                        {!notif.isRead && <div className="unread-dot" />}
                       </div>
-                      <div className="card-content">
-                        <div className="card-top">
-                          <span className="card-title">{notif.title}</span>
-                          {!notif.isRead && <div className="unread-dot" />}
-                        </div>
-                        <div
-                          className="card-msg card-msg--truncate"
-                          dangerouslySetInnerHTML={{ __html: notif.message }}
-                        />
-                        <div className="card-footer">
-                          <span className="card-time">
-                            {new Date(notif.createdAt).toLocaleTimeString([], {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
+                      <div 
+                      className="card-msg card-msg--truncate" 
+                      dangerouslySetInnerHTML={{ __html: notif.message }} 
+                    />
+                      <div className="card-footer">
+                        <span className="card-time">
+                          {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                        {notif.url && (
+                          <span className="card-view-all">
+                            View <ArrowRight size={12} />
                           </span>
-                          {notif.url && (
-                            <span className="card-view-all">
-                              View <ArrowRight size={12} />
-                            </span>
-                          )}
-                        </div>
+                        )}
                       </div>
                     </div>
-                  ))}
-                </div>
-              ),
-          )
+                  </div>
+                ))}
+              </div>
+            )
+          ))
         )}
       </div>
 
@@ -384,9 +369,7 @@ export default function NotificationsPage() {
           border-radius: 16px;
           margin-bottom: 12px;
           cursor: pointer;
-          transition:
-            border-color 0.2s ease,
-            background 0.2s ease;
+          transition: border-color 0.2s ease, background 0.2s ease;
           box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
         }
 
