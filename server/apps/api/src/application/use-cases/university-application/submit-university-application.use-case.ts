@@ -160,8 +160,8 @@ export class SubmitUniversityApplicationUseCase {
 
         if (isPaidNow) {
           subjectText = 'Application & Fee Confirmed — Upward Academy Cohort 2026'
-          buttonText = 'Explore Upward Academy'
-          buttonUrl = 'https://upward.goodtenants.io/academy'
+          buttonText = ''
+          buttonUrl = ''
           contentHtml = `
             <p style="margin-top: 0;">Hi <strong>${firstName}</strong>,</p>
             <p><strong>Thank you! Your Upward Academy Application & ₦5,000 Fee Payment have been received.</strong></p>
