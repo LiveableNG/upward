@@ -40,19 +40,22 @@ export function SetupDraftProvider({ children }: { children: React.ReactNode }) 
         const rawPlan = localStorage.getItem('upward_savings_rent_plan')
         if (rawPlan) {
           const plan = JSON.parse(rawPlan)
-          if (plan.rentAmount && (!initialDraft.formData.rentAmount || initialDraft.formData.rentAmount === '0')) {
-            initialDraft.formData.rentAmount = Number(plan.rentAmount).toLocaleString()
-          }
-          if (plan.dueDate && !initialDraft.formData.rentEndDate) {
-            initialDraft.formData.rentEndDate = plan.dueDate
-            initialDraft.formData.rentStartDate = new Date(
-              new Date(plan.dueDate).getTime() - 365 * 24 * 60 * 60 * 1000,
-            )
-              .toISOString()
-              .split('T')[0]
-          }
-          if (plan.address && !initialDraft.formData.address) {
-            initialDraft.formData.address = plan.address
+          const isPlanForUser = !plan.userId || (user?.id && plan.userId === user.id)
+          if (isPlanForUser) {
+            if (plan.rentAmount && (!initialDraft.formData.rentAmount || initialDraft.formData.rentAmount === '0')) {
+              initialDraft.formData.rentAmount = Number(plan.rentAmount).toLocaleString()
+            }
+            if (plan.dueDate && !initialDraft.formData.rentEndDate) {
+              initialDraft.formData.rentEndDate = plan.dueDate
+              initialDraft.formData.rentStartDate = new Date(
+                new Date(plan.dueDate).getTime() - 365 * 24 * 60 * 60 * 1000,
+              )
+                .toISOString()
+                .split('T')[0]
+            }
+            if (plan.address && !initialDraft.formData.address) {
+              initialDraft.formData.address = plan.address
+            }
           }
         }
       } catch {}

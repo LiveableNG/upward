@@ -84,7 +84,7 @@ export function RentCalculatorView({ onProceedToSetup, onOpenKycModal }: RentCal
       try {
         localStorage.setItem(
           'upward_savings_rent_plan',
-          JSON.stringify({ rentAmount: targetAmountNaira, dueDate: contractualDueDate }),
+          JSON.stringify({ userId: user?.id, rentAmount: targetAmountNaira, dueDate: contractualDueDate }),
         )
         const rawDraft = localStorage.getItem('upward_setup_draft')
         if (rawDraft) {
