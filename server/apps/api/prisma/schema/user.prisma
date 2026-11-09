@@ -74,6 +74,8 @@ model upward_user {
   allianceSubjectRatings  upward_alliance_rating[]       @relation("AllianceSubjectUser")
   tenantNotes           upward_admin_tenant_note[]
   kycVerifications      upward_kyc_verification[]
+  userGoals             upward_user_goal[]
+  commerceOrders        upward_commerce_order[]
 
   @@index([email])
   @@index([createdAt])
@@ -252,3 +254,4 @@ model upward_kyc_verification {
   @@index([status])
   @@index([armSyncStatus])
 }
+

@@ -16,57 +16,42 @@ import {
   Check,
   ChevronRight,
   Sparkles,
-  ArrowLeft,
 } from 'lucide-react'
 import { useScoreProfile } from '../services/scoreService'
-import { formatCurrency } from '@/lib/utils'
+import { PayPageShell } from '@/features/dashboard/components/payment/PayPageShell'
+import { formatCurrency, getPublicWebUrl, copyTextToClipboard } from '@/lib/utils'
 import { useToast } from '@/components/common/Toast'
 import { Capacitor } from '@capacitor/core'
 
 function ScoreBreakdownSkeleton() {
   return (
-    <div className="score-breakdown-screen dashboard--nav-offset" aria-hidden="true">
-      <header className="score-page__header">
-        <div className="score-page__back-skeleton animate-pulse" />
-        <div className="score-page__header-text">
-          <div
-            className="score-page__skel-line score-page__skel-line--title"
-            style={{ width: '280px', height: '28px' }}
-          />
-          <div
-            className="score-page__skel-line score-page__skel-line--body"
-            style={{ width: '420px', marginTop: '6px' }}
-          />
-        </div>
-      </header>
-      <div className="score-page score-page--loading animate-pulse">
-        <div className="score-page__hero score-page__hero--skeleton">
-          <div className="score-page__gauge-skeleton" />
-          <div className="score-page__hero-copy-skeleton">
-            <div className="score-page__skel-line score-page__skel-line--title" />
-            <div className="score-page__skel-line score-page__skel-line--body" />
-            <div className="score-page__skel-line score-page__skel-line--body score-page__skel-line--short" />
-          </div>
-        </div>
-        <div>
-          <div className="score-page__skel-line score-page__skel-line--label" />
-          <div className="score-page__factor-grid">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <div key={i} className="score-page__factor-card score-page__factor-card--skeleton">
-                <div className="score-page__factor-top">
-                  <div className="score-page__skel-box" />
-                  <div className="score-page__skel-num" />
-                </div>
-                <div className="score-page__skel-line score-page__skel-line--sub" />
-                <div className="score-page__skel-line score-page__skel-line--desc" />
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="score-page__history-card score-page__history-card--skeleton">
+    <div className="score-page score-page--loading animate-pulse" aria-hidden="true">
+      <div className="score-page__hero score-page__hero--skeleton">
+        <div className="score-page__gauge-skeleton" />
+        <div className="score-page__hero-copy-skeleton">
           <div className="score-page__skel-line score-page__skel-line--title" />
-          <div className="score-page__skel-line score-page__skel-line--table" />
+          <div className="score-page__skel-line score-page__skel-line--body" />
+          <div className="score-page__skel-line score-page__skel-line--body score-page__skel-line--short" />
         </div>
+      </div>
+      <div>
+        <div className="score-page__skel-line score-page__skel-line--label" />
+        <div className="score-page__factor-grid">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="score-page__factor-card score-page__factor-card--skeleton">
+              <div className="score-page__factor-top">
+                <div className="score-page__skel-box" />
+                <div className="score-page__skel-num" />
+              </div>
+              <div className="score-page__skel-line score-page__skel-line--sub" />
+              <div className="score-page__skel-line score-page__skel-line--desc" />
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="score-page__history-card score-page__history-card--skeleton">
+        <div className="score-page__skel-line score-page__skel-line--title" />
+        <div className="score-page__skel-line score-page__skel-line--table" />
       </div>
     </div>
   )
@@ -85,42 +70,24 @@ export function ScoreBreakdownScreen() {
       router.push('/dashboard/kyc')
       return
     }
-    const defaultWebUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'
-    const baseUrl = Capacitor.isNativePlatform()
-      ? defaultWebUrl
-      : typeof window !== 'undefined'
-        ? window.location.origin
-        : defaultWebUrl
+    const url = getPublicWebUrl(`/profile/${identifier}`)
 
-    const url = `${baseUrl}/profile/${identifier}`
-
-    try {
-      if (navigator?.clipboard?.writeText) {
-        await navigator.clipboard.writeText(url)
-      } else {
-        const textArea = document.createElement('textarea')
-        textArea.value = url
-        document.body.appendChild(textArea)
-        textArea.select()
-        document.execCommand('copy')
-        document.body.removeChild(textArea)
-      }
+    const copiedSuccess = await copyTextToClipboard(url)
+    if (copiedSuccess) {
       setCopied(true)
       success('Profile link copied to clipboard!')
       setTimeout(() => setCopied(false), 2500)
-    } catch {
+    } else {
       toastError('Failed to copy link')
     }
   }
 
-  const cycles = scoreProfile?.data?.cycles || []
-  const sortedCycles = useMemo(
-    () => [...cycles].sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime()),
-    [cycles],
-  )
-
   if (isLoading || !scoreProfile) {
-    return <ScoreBreakdownSkeleton />
+    return (
+      <PayPageShell title="Score Breakdown" showBack onBack={() => router.push('/dashboard')}>
+        <ScoreBreakdownSkeleton />
+      </PayPageShell>
+    )
   }
 
   const {
@@ -129,6 +96,7 @@ export function ScoreBreakdownScreen() {
     rank,
     band,
     metrics,
+    cycles = [],
     properties = [],
     profile,
     maxScore,
@@ -169,6 +137,11 @@ export function ScoreBreakdownScreen() {
     return status.replace(/_/g, ' ')
   }
 
+  const sortedCycles = useMemo(
+    () => [...cycles].sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime()),
+    [cycles],
+  )
+
   // Circular gauge parameters
   const safeMaxScore = maxScore > 0 ? maxScore : 1000
   const scorePct = Math.min(100, Math.max(0, (score / safeMaxScore) * 100))
@@ -185,7 +158,7 @@ export function ScoreBreakdownScreen() {
     },
     {
       label: 'Payment Consistency',
-      value: `${metrics?.longestStreak || 0} ${(metrics?.longestStreak || 0) === 1 ? 'cycle' : 'cycles'}`,
+      value: `${metrics?.longestStreak || 0} cycles`,
       icon: Flame,
       desc: 'Your longest continuous streak of on-time rent cycles.',
     },
@@ -197,7 +170,7 @@ export function ScoreBreakdownScreen() {
     },
     {
       label: 'Tenure',
-      value: `${metrics?.historyYears || 0} ${(metrics?.historyYears || 0) === 1 ? 'yr' : 'yrs'}`,
+      value: `${metrics?.historyYears || 0} yrs`,
       icon: History,
       desc: 'Length of your verified rent payment history.',
     },
@@ -272,26 +245,12 @@ export function ScoreBreakdownScreen() {
   }
 
   return (
-    <div className="score-breakdown-screen dashboard--nav-offset">
-      <header className="score-page__header">
-        <button
-          type="button"
-          className="score-page__back-btn"
-          onClick={() => router.push('/dashboard')}
-          aria-label="Back to Dashboard"
-        >
-          <ArrowLeft size={16} />
-          <span>Back to Dashboard</span>
-        </button>
-        <div className="score-page__header-text">
-          <h1 className="score-page__title">Upward Rent Score Breakdown</h1>
-          <p className="score-page__subtitle">
-            How your payment behavior, streak consistency, and tenancy history shape your rent
-            credibility rating.
-          </p>
-        </div>
-      </header>
-
+    <PayPageShell
+      title="Score Breakdown"
+      subtitle="How your payment behavior shapes your rent credibility score."
+      showBack
+      onBack={() => router.push('/dashboard')}
+    >
       <div className="score-page">
         {/* Hero Glass Card with Apple-style Ring Gauge */}
         <section className="score-page__hero">
@@ -586,6 +545,6 @@ export function ScoreBreakdownScreen() {
           </button>
         </section>
       </div>
-    </div>
+    </PayPageShell>
   )
 }

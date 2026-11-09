@@ -38,6 +38,7 @@ import {
   toDateInputValue,
   validateRentDates,
   calculateRentEndDate,
+  formatDisplayDate,
   type LeaseDurationUnit,
 } from '../rentalDates'
 import { formatCurrency } from '@/lib/utils'
@@ -62,6 +63,7 @@ export function RentalFormView() {
   const [formStep, setFormStep] = useState<RentalFormStep>('location')
   const hasStartedRef = useRef(false)
   const hasViewedRef = useRef(false)
+  const startDateInputRef = useRef<HTMLInputElement>(null)
 
   // Track RENTAL_DETAILS_VIEWED and exposure on mount
   useEffect(() => {
@@ -92,7 +94,7 @@ export function RentalFormView() {
       localStorage.setItem(`upward_profile_setup_skipped_${user.uuid}`, 'true')
     }
     trackDeferral('rental_form_footer', { formStep })
-    toast.info("Your draft is saved. You can resume rental setup anytime from your dashboard.")
+    toast.info('Your draft is saved. You can resume rental setup anytime from your dashboard.')
     router.push(SETUP_PATHS.dashboard)
   }
 
@@ -929,27 +931,62 @@ export function RentalFormView() {
                       ? 'Current cycle starts'
                       : 'Tenancy period starts'}
                 </label>
-                <input
-                  className="setup-page__input"
-                  type="date"
-                  value={draft.formData.rentStartDate}
-                  onChange={(e) => {
-                    const rentStartDate = toDateInputValue(e.target.value)
-                    const computedEnd = calculateRentEndDate(
-                      rentStartDate,
-                      draft.formData.rentType || 'Annually',
-                      draft.formData.leaseDuration || '1',
-                      draft.formData.leaseUnit || 'years',
-                    )
-                    updateDraft({
-                      formData: {
-                        ...draft.formData,
-                        rentStartDate,
-                        rentEndDate: computedEnd,
-                      },
-                    })
+                <div
+                  className={`setup-page__date-picker ${draft.formData.rentStartDate ? 'has-value' : ''}`}
+                  onClick={() => {
+                    try {
+                      startDateInputRef.current?.showPicker?.()
+                    } catch {
+                      startDateInputRef.current?.focus()
+                    }
                   }}
-                />
+                >
+                  <div className="setup-page__date-picker__left">
+                    <Calendar size={16} className="setup-page__date-picker__icon" />
+                    <span
+                      className={`setup-page__date-picker__text ${
+                        !draft.formData.rentStartDate
+                          ? 'setup-page__date-picker__text--placeholder'
+                          : ''
+                      }`}
+                    >
+                      {draft.formData.rentStartDate
+                        ? formatDisplayDate(draft.formData.rentStartDate)
+                        : 'Select start date (DD/MM/YYYY)'}
+                    </span>
+                  </div>
+
+                  <div className="setup-page__date-picker__right">
+                    <span className="setup-page__date-picker__badge">
+                      <Calendar size={12} />
+                      <span>Pick</span>
+                    </span>
+                  </div>
+
+                  <input
+                    ref={startDateInputRef}
+                    className="setup-page__date-picker__native"
+                    type="date"
+                    value={draft.formData.rentStartDate}
+                    onChange={(e) => {
+                      const rentStartDate = toDateInputValue(e.target.value)
+                      const computedEnd = calculateRentEndDate(
+                        rentStartDate,
+                        draft.formData.rentType || 'Annually',
+                        draft.formData.leaseDuration || '1',
+                        draft.formData.leaseUnit || 'years',
+                      )
+                      updateDraft({
+                        formData: {
+                          ...draft.formData,
+                          rentStartDate,
+                          rentEndDate: computedEnd,
+                        },
+                      })
+                    }}
+                    aria-label="Tenancy period start date"
+                  />
+                </div>
               </div>
               <div className="setup-page__field">
                 <label>
@@ -959,52 +996,29 @@ export function RentalFormView() {
                       ? 'Current cycle due date'
                       : 'Next rent due date'}
                 </label>
-                <div
-                  style={{
-                    position: 'relative',
-                    width: '100%',
-                    minWidth: 0,
-                    boxSizing: 'border-box',
-                  }}
-                >
-                  <input
-                    className="setup-page__input"
-                    type="date"
-                    readOnly
-                    disabled
-                    value={draft.formData.rentEndDate}
-                    style={{
-                      backgroundColor: '#f8f5f0',
-                      borderColor: '#e8e0d5',
-                      cursor: 'not-allowed',
-                      color: '#49423b',
-                      paddingRight: 60,
-                      width: '100%',
-                      minWidth: 0,
-                      maxWidth: '100%',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                  <div
-                    style={{
-                      position: 'absolute',
-                      right: 10,
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      fontSize: 11,
-                      fontWeight: 600,
-                      color: '#7a7268',
-                      background: '#ede6db',
-                      padding: '3px 7px',
-                      borderRadius: 6,
-                      pointerEvents: 'none',
-                      userSelect: 'none',
-                    }}
-                  >
-                    <Lock size={11} /> Auto
+                <div className="setup-page__date-display">
+                  <div className="setup-page__date-picker__left">
+                    <Calendar
+                      size={16}
+                      className="setup-page__date-picker__icon"
+                      style={{ opacity: 0.6 }}
+                    />
+                    <span
+                      className={`setup-page__date-picker__text ${
+                        !draft.formData.rentEndDate
+                          ? 'setup-page__date-picker__text--placeholder'
+                          : ''
+                      }`}
+                    >
+                      {draft.formData.rentEndDate
+                        ? formatDisplayDate(draft.formData.rentEndDate)
+                        : 'Calculated automatically'}
+                    </span>
+                  </div>
+                  <div className="setup-page__date-picker__right">
+                    <span className="setup-page__date-display__badge">
+                      <Lock size={10} /> Auto
+                    </span>
                   </div>
                 </div>
               </div>

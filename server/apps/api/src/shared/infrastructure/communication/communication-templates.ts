@@ -443,30 +443,36 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
           title: 'Verify your email',
           message:
             'Welcome to Upward! Use the code below to verify your email address and complete your signup.',
+          subject: '{{otp}} is your Upward verification code',
         },
         LOGIN: {
           title: 'Login Verification',
           message: 'You requested to log in via verification code. Use the code below to proceed.',
+          subject: '{{otp}} is your Upward login code',
         },
         INVITE: {
           title: 'Accept Your Invite',
           message:
             'You have been invited to join Upward. Use the code below to verify your identity and accept the invite.',
+          subject: '{{otp}} is your Upward invite verification code',
         },
         PAYMENT: {
           title: 'Verify Payment Access',
           message:
             'Use the code below to verify your access to this payment. This ensures your transaction is secure.',
+          subject: '{{otp}} is your payment verification code',
         },
         WAITLIST: {
           title: 'Claim Your Waitlist Spot',
           message:
             'Use the code below to verify your email and claim your spot on the Upward waitlist.',
+          subject: '{{otp}} is your waitlist verification code',
         },
         DELETE_ACCOUNT: {
           title: 'Confirm Account Deletion',
           message:
             'You requested to permanently delete your Upward account. Use the verification code below to confirm this action. If you did not make this request, please contact support and change your password immediately.',
+          subject: '{{otp}} is your account deletion code',
         },
       }
 
@@ -597,7 +603,8 @@ export const COMMUNICATION_TEMPLATES: Record<string, CommunicationTemplateDef> =
     subjectTemplate: 'Daily Digest: {{count}} New Rent Request{{plural}} on Upward',
     plainTextTemplate:
       'Hello {{pmName}}, prospective tenants submitted rent requests on Upward. Log in to your property manager portal to view them: {{portalUrl}}',
-    buildHtml: (ctx) => ctx.htmlOverride || '<p>New rent requests are available in your portal.</p>',
+    buildHtml: (ctx) =>
+      ctx.htmlOverride || '<p>New rent requests are available in your portal.</p>',
   },
 
   SUPPORT_TICKET: {

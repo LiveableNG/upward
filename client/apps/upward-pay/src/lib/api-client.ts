@@ -12,7 +12,7 @@ export const API_BASE =
   typeof window !== 'undefined' && !Capacitor.isNativePlatform()
     ? '/api/v1'
     : process.env.NEXT_PUBLIC_API_URL ||
-      (process.env.NODE_ENV === 'development' ? 'http://localhost:4500/api/v1' : '')
+      (process.env.NODE_ENV === 'development' ? 'http://localhost:4000/api/v1' : '')
 
 let cachedAppInfo: { version: string; build: string } | null = null
 
@@ -147,11 +147,11 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
       clearTimeout(timeoutId)
       console.error(`[api-client] Network error requesting ${url}:`, err)
       if (err.name === 'AbortError') {
-        throw new Error(`Request timed out for ${url}. Please check your internet connection.`)
+        throw new Error('Request timed out. Please check your internet connection and try again.')
       }
       if (err.message === 'Load failed' || err.message === 'Failed to fetch') {
         throw new Error(
-          `Unable to reach server at ${url}. Please check your internet connection or server availability.`,
+          'Unable to reach the server. Please check your internet connection and try again.',
         )
       }
       throw err
@@ -252,11 +252,11 @@ export async function requestBlob(path: string, options: RequestInit = {}): Prom
       clearTimeout(timeoutId)
       console.error(`[api-client] Network error requesting blob ${url}:`, err)
       if (err.name === 'AbortError') {
-        throw new Error(`Download timed out for ${url}. Please check your internet connection.`)
+        throw new Error('Download timed out. Please check your internet connection and try again.')
       }
       if (err.message === 'Load failed' || err.message === 'Failed to fetch') {
         throw new Error(
-          `Unable to reach server at ${url}. Please check your internet connection or server availability.`,
+          'Unable to reach the server. Please check your internet connection and try again.',
         )
       }
       throw err

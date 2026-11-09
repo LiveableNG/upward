@@ -12,8 +12,10 @@ export const SETUP_PATHS = {
   rental: '/dashboard/setup/rental',
   confirm: '/dashboard/setup/confirm',
   phone: '/dashboard/setup/phone',
+  goals: '/dashboard/setup/goals',
   identity: '/dashboard/verify-identity',
   dashboard: '/dashboard',
+  dashboardGoals: '/dashboard/goals',
   profile: '/dashboard/me',
 } as const
 
@@ -41,10 +43,7 @@ export function setupRentalListPath(): string {
   return `${SETUP_PATHS.rental}?mode=edit`
 }
 
-export function setupPath(
-  pathname: string,
-  options?: { mode?: SetupMode },
-): string {
+export function setupPath(pathname: string, options?: { mode?: SetupMode }): string {
   if (options?.mode === 'edit') {
     return `${pathname}?mode=edit`
   }

@@ -218,10 +218,16 @@ export class UserAuthService extends BaseAuthService {
     }
 
     if (existing) {
+      const isSocial =
+        existing.passwordHash === PASS_PLACEHOLDERS.SOCIAL ||
+        existing.passwordHash === 'SOCIAL_AUTH' ||
+        existing.authProvider === 'google' ||
+        existing.authProvider === 'apple'
       const isShadow =
-        existing.passwordHash === PASS_PLACEHOLDERS.INVITED ||
-        existing.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
-        !!(existing.passwordHash && !existing.passwordHash.startsWith('$2'))
+        !isSocial &&
+        (existing.passwordHash === PASS_PLACEHOLDERS.INVITED ||
+          existing.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
+          !!(existing.passwordHash && !existing.passwordHash.startsWith('$2')))
 
       if (isShadow || !existing.passwordHash) {
         const passwordHash = await bcrypt.hash(dto.password, 10)
@@ -487,10 +493,17 @@ export class UserAuthService extends BaseAuthService {
       throw new UnauthorizedException('Invalid credentials')
     }
 
+    const isSocial =
+      user.passwordHash === PASS_PLACEHOLDERS.SOCIAL ||
+      user.passwordHash === 'SOCIAL_AUTH' ||
+      user.authProvider === 'google' ||
+      user.authProvider === 'apple'
+
     const isShadow =
-      user.passwordHash === PASS_PLACEHOLDERS.INVITED ||
-      user.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
-      !!(user.passwordHash && !user.passwordHash.startsWith('$2'))
+      !isSocial &&
+      (user.passwordHash === PASS_PLACEHOLDERS.INVITED ||
+        user.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
+        !!(user.passwordHash && !user.passwordHash.startsWith('$2')))
 
     if (isShadow) {
       throw new ForbiddenException({
@@ -500,11 +513,7 @@ export class UserAuthService extends BaseAuthService {
       })
     }
 
-    if (
-      user.passwordHash === PASS_PLACEHOLDERS.SOCIAL ||
-      user.authProvider === 'google' ||
-      user.authProvider === 'apple'
-    ) {
+    if (isSocial) {
       const providerLabel = user.authProvider === 'apple' ? 'Apple' : 'Google'
       throw new ForbiddenException({
         message: `This account uses ${providerLabel} sign-in. Please continue with ${providerLabel}.`,
@@ -1101,22 +1110,30 @@ export class UserAuthService extends BaseAuthService {
         return {
           exists: true,
           isWaitlist: true,
+          uuid: waitlistEntry.uuid,
         }
       }
       return { exists: false }
     }
 
-    const isShadow =
-      user.passwordHash === PASS_PLACEHOLDERS.INVITED ||
-      user.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
-      !!(user.passwordHash && !user.passwordHash.startsWith('$2'))
     const isSocial =
       user.passwordHash === PASS_PLACEHOLDERS.SOCIAL ||
+      user.passwordHash === 'SOCIAL_AUTH' ||
       user.authProvider === 'google' ||
       user.authProvider === 'apple'
+
+    const isShadow =
+      !isSocial &&
+      (user.passwordHash === PASS_PLACEHOLDERS.INVITED ||
+        user.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
+        !!(user.passwordHash && !user.passwordHash.startsWith('$2')))
+
+    const isWaitlist = isShadow && !!user.isFromWaitlist && !user.isFromInvite
+    const isInvited = isShadow && !isWaitlist
     return {
       exists: true,
-      isInvited: isShadow,
+      isInvited,
+      isWaitlist,
       hasPassword: !!user.passwordHash && user.passwordHash !== '' && !isShadow && !isSocial,
       authProvider: user.authProvider ?? 'email',
     }
@@ -1461,7 +1478,8 @@ export class UserAuthService extends BaseAuthService {
     }
 
     if (user) {
-      const isShadow = user.passwordHash === PASS_PLACEHOLDERS.INVITED ||
+      const isShadow =
+        user.passwordHash === PASS_PLACEHOLDERS.INVITED ||
         user.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
         !!(
           user.passwordHash &&
@@ -1489,8 +1507,10 @@ export class UserAuthService extends BaseAuthService {
 
       // Only update first name if current is empty or looks like an email,
       // and the social name is valid (non-empty & not an email)
-      const currentFirstEmptyOrEmail = !user.firstName?.trim() || (user.firstName.includes('@')) || user.firstName === 'User'
-      const newFirstValid = firstName.trim() !== '' && !firstName.includes('@') && firstName !== 'User'
+      const currentFirstEmptyOrEmail =
+        !user.firstName?.trim() || user.firstName.includes('@') || user.firstName === 'User'
+      const newFirstValid =
+        firstName.trim() !== '' && !firstName.includes('@') && firstName !== 'User'
       if (currentFirstEmptyOrEmail && newFirstValid) {
         updates.firstName = firstName
       }
@@ -1526,7 +1546,9 @@ export class UserAuthService extends BaseAuthService {
         await this.syncTenantStatuses(email)
         this.emailService
           .sendCustomerSupportNotification('USER', String(user.id))
-          .catch(e => console.error('Failed to send CS notification on invite social activate', e))
+          .catch((e) =>
+            console.error('Failed to send CS notification on invite social activate', e),
+          )
       }
     } else {
       isNewUser = true
@@ -1539,9 +1561,7 @@ export class UserAuthService extends BaseAuthService {
 
       const waitlistPhone = waitlistEntry?.phone || undefined
       const resolvedFirstName =
-        firstName && firstName !== 'User'
-          ? firstName
-          : (waitlistEntry?.firstName || 'User')
+        firstName && firstName !== 'User' ? firstName : waitlistEntry?.firstName || 'User'
       const resolvedLastName = lastName || waitlistEntry?.lastName || ''
 
       const userData: Partial<User> = {
@@ -1570,7 +1590,9 @@ export class UserAuthService extends BaseAuthService {
         await this.deleteWaitlistEntry(waitlistEntry.uuid)
       }
 
-      this.emailService.sendCustomerSupportNotification('USER', String(user.id)).catch(e => console.error('Failed to send CS notification', e));
+      this.emailService
+        .sendCustomerSupportNotification('USER', String(user.id))
+        .catch((e) => console.error('Failed to send CS notification', e))
 
       let pmName: string | undefined = undefined
       if (user.companyUsers && user.companyUsers.length > 0) {
@@ -1592,13 +1614,15 @@ export class UserAuthService extends BaseAuthService {
       const sendEmail = !isPhoneOnlyEmail && !hasPhone
 
       if (sendWhatsapp && user.phone) {
-        this.initializeUserSequenceUseCase.execute({
-          userId: user.id!,
-          firstName: resolvedFirstName,
-          phoneEncrypted: user.phone,
-          phoneHash: user.phoneHash,
-          pmName: pmName,
-        }).catch(e => console.error('Failed to init WA sequence', e));
+        this.initializeUserSequenceUseCase
+          .execute({
+            userId: user.id!,
+            firstName: resolvedFirstName,
+            phoneEncrypted: user.phone,
+            phoneHash: user.phoneHash,
+            pmName: pmName,
+          })
+          .catch((e) => console.error('Failed to init WA sequence', e))
       }
 
       if (sendEmail) {
@@ -1610,7 +1634,9 @@ export class UserAuthService extends BaseAuthService {
           .catch((e) => console.error('Failed to init email sequence', e))
       }
 
-      this.sendWelcomeMessages(user, resolvedFirstName, pmName).catch(e => console.error('Failed to send welcome messages', e));
+      this.sendWelcomeMessages(user, resolvedFirstName, pmName).catch((e) =>
+        console.error('Failed to send welcome messages', e),
+      )
     }
 
     if (!user) {
@@ -1687,8 +1713,8 @@ export class UserAuthService extends BaseAuthService {
         },
         data: {
           inviteStatus: 'ON_UPWARD',
-          inviteAcceptedAt: new Date()
-        }
+          inviteAcceptedAt: new Date(),
+        },
       })
     } catch (error) {
       console.error('Failed to sync tenant statuses:', error)

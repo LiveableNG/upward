@@ -1,5 +1,5 @@
-import FallbackSuspense from '@/components/FallbackSuspense'
+import { TransactionSkeleton } from '@/features/dashboard/components/transactions/TransactionSkeleton'
 
 export default function Loading() {
-  return <FallbackSuspense message="Loading Transactions..." />
+  return <TransactionSkeleton />
 }

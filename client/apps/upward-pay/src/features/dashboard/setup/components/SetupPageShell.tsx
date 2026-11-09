@@ -71,12 +71,11 @@ export function SetupPageShell({
                     className={`setup-page__substep ${isActive ? 'setup-page__substep--active' : ''} ${isComplete ? 'setup-page__substep--complete' : ''}`}
                   >
                     {isComplete ? (
-                      <Check
-                        size={12}
-                        style={{ display: 'inline-block', verticalAlign: 'middle', marginRight: 2 }}
-                      />
+                      <span className="setup-page__substep-icon">
+                        <Check size={11} strokeWidth={2.5} />
+                      </span>
                     ) : null}
-                    {name}
+                    <span className="setup-page__substep-text">{name}</span>
                   </div>
                 )
               })}

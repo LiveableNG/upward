@@ -4,15 +4,25 @@ import React from 'react'
 import { ChevronDown } from 'lucide-react'
 
 interface DatePickerProps {
-  value: string           // ISO: 'YYYY-MM-DD' or ''
+  value: string // ISO: 'YYYY-MM-DD' or ''
   onChange: (iso: string) => void
   id?: string
   required?: boolean
 }
 
 const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ]
 
 function daysInMonth(month: number, year: number) {
@@ -25,9 +35,10 @@ export function DatePicker({ value, onChange, id, required }: DatePickerProps) {
   const [localMonth, setLocalMonth] = React.useState('')
   const [localDay, setLocalDay] = React.useState('')
 
-  const localIso = (localYear && localMonth && localDay)
-    ? `${localYear}-${localMonth.padStart(2, '0')}-${localDay.padStart(2, '0')}`
-    : ''
+  const localIso =
+    localYear && localMonth && localDay
+      ? `${localYear}-${localMonth.padStart(2, '0')}-${localDay.padStart(2, '0')}`
+      : ''
 
   React.useEffect(() => {
     if (value !== localIso) {
@@ -41,7 +52,7 @@ export function DatePicker({ value, onChange, id, required }: DatePickerProps) {
 
   const currentYear = new Date().getFullYear()
   const minYear = currentYear - 100
-  const maxYear = currentYear - 10  // must be at least 10
+  const maxYear = currentYear - 10 // must be at least 10
 
   const numDays = daysInMonth(Number(localMonth), Number(localYear))
   const days = Array.from({ length: numDays }, (_, i) => i + 1)
@@ -92,16 +103,22 @@ export function DatePicker({ value, onChange, id, required }: DatePickerProps) {
           <select
             className={`dob-select ${localDay ? 'has-value' : ''}`}
             value={localDay}
-            onChange={e => handleDay(e.target.value)}
+            onChange={(e) => handleDay(e.target.value)}
             required={required}
             aria-label="Day"
           >
-            <option value="" disabled>Day</option>
-            {days.map(d => (
-              <option key={d} value={d}>{d}</option>
+            <option value="" disabled>
+              Day
+            </option>
+            {days.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
             ))}
           </select>
-          <ChevronDown size={14} className="dob-select__chevron" />
+          <span className="dob-select__chevron" aria-hidden="true">
+            <ChevronDown size={14} />
+          </span>
         </div>
       </div>
 
@@ -111,16 +128,22 @@ export function DatePicker({ value, onChange, id, required }: DatePickerProps) {
           <select
             className={`dob-select ${localMonth ? 'has-value' : ''}`}
             value={localMonth}
-            onChange={e => handleMonth(e.target.value)}
+            onChange={(e) => handleMonth(e.target.value)}
             required={required}
             aria-label="Month"
           >
-            <option value="" disabled>Month</option>
-            {months.map(m => (
-              <option key={m.value} value={m.value}>{m.label}</option>
+            <option value="" disabled>
+              Month
+            </option>
+            {months.map((m) => (
+              <option key={m.value} value={m.value}>
+                {m.label}
+              </option>
             ))}
           </select>
-          <ChevronDown size={14} className="dob-select__chevron" />
+          <span className="dob-select__chevron" aria-hidden="true">
+            <ChevronDown size={14} />
+          </span>
         </div>
       </div>
 
@@ -130,16 +153,22 @@ export function DatePicker({ value, onChange, id, required }: DatePickerProps) {
           <select
             className={`dob-select ${localYear ? 'has-value' : ''}`}
             value={localYear}
-            onChange={e => handleYear(e.target.value)}
+            onChange={(e) => handleYear(e.target.value)}
             required={required}
             aria-label="Year"
           >
-            <option value="" disabled>Year</option>
-            {years.map(y => (
-              <option key={y} value={y}>{y}</option>
+            <option value="" disabled>
+              Year
+            </option>
+            {years.map((y) => (
+              <option key={y} value={y}>
+                {y}
+              </option>
             ))}
           </select>
-          <ChevronDown size={14} className="dob-select__chevron" />
+          <span className="dob-select__chevron" aria-hidden="true">
+            <ChevronDown size={14} />
+          </span>
         </div>
       </div>
 
@@ -173,8 +202,8 @@ export function DatePicker({ value, onChange, id, required }: DatePickerProps) {
         }
         .dob-select {
           width: 100%;
-          height: 48px;
-          padding: 0 24px 0 10px;
+          height: 52px;
+          padding: 0 28px 0 12px;
           border: 1.5px solid var(--border-solid, #ece4d9);
           border-radius: 12px;
           background: var(--surface, #fff);
@@ -187,10 +216,16 @@ export function DatePicker({ value, onChange, id, required }: DatePickerProps) {
           -moz-appearance: none;
           cursor: pointer;
           outline: none;
-          transition: border-color 0.2s, box-shadow 0.2s, color 0.2s;
+          transition:
+            border-color 0.2s,
+            box-shadow 0.2s,
+            color 0.2s;
           text-overflow: ellipsis;
           white-space: nowrap;
           overflow: hidden;
+        }
+        .dob-select::-ms-expand {
+          display: none;
         }
         .dob-select.has-value {
           color: var(--text, #1a1714);
@@ -204,21 +239,28 @@ export function DatePicker({ value, onChange, id, required }: DatePickerProps) {
         }
         .dob-select__chevron {
           position: absolute;
-          right: 8px;
+          right: 10px;
+          top: 50%;
+          transform: translateY(-50%);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
           color: var(--text-muted, #7a7268);
           pointer-events: none;
           flex-shrink: 0;
+          line-height: 0;
+          z-index: 1;
         }
         @media (max-width: 380px) {
           .dob-picker {
             gap: 6px;
           }
           .dob-select {
-            padding: 0 20px 0 8px;
+            padding: 0 24px 0 8px;
             font-size: 13px;
           }
           .dob-select__chevron {
-            right: 6px;
+            right: 7px;
           }
         }
       `}</style>

@@ -22,11 +22,7 @@ export function isDateInputValue(value: string): boolean {
   if (!DATE_INPUT_PATTERN.test(value)) return false
   const [year, month, day] = value.split('-').map(Number)
   const date = new Date(year, month - 1, day)
-  return (
-    date.getFullYear() === year &&
-    date.getMonth() === month - 1 &&
-    date.getDate() === day
-  )
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
 }
 
 export function isRentDateRangeValid(start: string, end: string): boolean {
@@ -40,7 +36,7 @@ export function calculateRentEndDate(
   startDate: string,
   rentType: string,
   leaseDuration: number | string = 1,
-  leaseUnit: LeaseDurationUnit = 'years'
+  leaseUnit: LeaseDurationUnit = 'years',
 ): string {
   if (!startDate) return ''
   const [yearStr, monthStr, dayStr] = startDate.split('-')
@@ -91,4 +87,19 @@ export function validateRentDates(start: string, end: string): string | null {
     return 'Next rent due must be on or after the lease start date.'
   }
   return null
+}
+
+export function formatDisplayDate(dateStr?: string | null): string {
+  if (!dateStr) return ''
+  try {
+    const clean = toDateInputValue(dateStr)
+    const parts = clean.split('-')
+    if (parts.length !== 3) return dateStr
+    const [year, month, day] = parts
+    const d = new Date(Number(year), Number(month) - 1, Number(day))
+    if (Number.isNaN(d.getTime())) return dateStr
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  } catch {
+    return dateStr || ''
+  }
 }

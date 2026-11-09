@@ -10,6 +10,7 @@ interface PayPageShellProps {
   rightElement?: React.ReactNode
   footer?: React.ReactNode
   pinFooter?: boolean
+  hideNav?: boolean
   children: React.ReactNode
 }
 
@@ -21,12 +22,16 @@ export function PayPageShell({
   rightElement,
   footer,
   pinFooter = false,
+  hideNav = false,
   children,
 }: PayPageShellProps) {
   const headerBalanced = showBack && !rightElement
 
   return (
-    <div className={`pay-flow dashboard--nav-offset${pinFooter ? ' pay-flow--pin-footer' : ''}`}>
+    <div
+      className={`pay-flow dashboard--nav-offset${pinFooter ? ' pay-flow--pin-footer' : ''}`}
+      data-hide-bottom-nav={hideNav ? 'true' : undefined}
+    >
       <div className="pay-flow__shell">
         <header className="pay-flow__header">
           <div
@@ -84,12 +89,7 @@ export function PayFlowPrimaryButton({
   loading?: boolean
 }) {
   return (
-    <button
-      type={type}
-      className="pay-flow__cta"
-      onClick={onClick}
-      disabled={disabled || loading}
-    >
+    <button type={type} className="pay-flow__cta" onClick={onClick} disabled={disabled || loading}>
       {loading && <span className="pay-flow__cta-spinner" aria-hidden />}
       {children}
     </button>

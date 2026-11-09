@@ -2,10 +2,19 @@
 
 import React, { useState, useEffect, useMemo } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, Bell, Calendar, Megaphone, Info, ArrowRight, UserCircle, Clock, Landmark } from 'lucide-react'
+import {
+  ArrowLeft,
+  Bell,
+  Calendar,
+  Megaphone,
+  Info,
+  ArrowRight,
+  UserCircle,
+  Clock,
+  Landmark,
+} from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
-import FallbackSuspense from '@/components/FallbackSuspense'
 import { formatCurrency } from '@/lib/utils'
 import { NotificationTabBar } from '@/features/notifications/components/NotificationTabBar'
 import {
@@ -22,6 +31,75 @@ const ICON_MAP: Record<string, React.ReactNode> = {
 }
 
 type TabType = NotificationTab
+
+function NotificationsSkeleton({ onBack }: { onBack: () => void }) {
+  return (
+    <div className="dashboard notifications-page dashboard--nav-offset">
+      <header className="page-header fixed-top-mobile">
+        <div className="header-content">
+          <div className="header-left">
+            <button className="back-btn" onClick={onBack} aria-label="Go back">
+              <ArrowLeft size={20} />
+            </button>
+            <h1 className="header-title">Notifications</h1>
+          </div>
+        </div>
+      </header>
+
+      <div className="notifications-content animate-pulse" style={{ padding: '16px 20px' }}>
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div
+            key={i}
+            style={{
+              display: 'flex',
+              gap: 14,
+              padding: '16px 0',
+              borderBottom: '1px solid #ECE5DC',
+            }}
+          >
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 12,
+                background: '#F0EAE1',
+                flexShrink: 0,
+              }}
+            />
+            <div style={{ flex: 1 }}>
+              <div
+                style={{
+                  width: '55%',
+                  height: 15,
+                  background: '#EAE3D9',
+                  borderRadius: 4,
+                  marginBottom: 8,
+                }}
+              />
+              <div
+                style={{
+                  width: '85%',
+                  height: 12,
+                  background: '#F0EAE1',
+                  borderRadius: 4,
+                  marginBottom: 6,
+                }}
+              />
+              <div
+                style={{
+                  width: '30%',
+                  height: 10,
+                  background: '#F5EFE8',
+                  borderRadius: 4,
+                }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 export default function NotificationsPage() {
   const router = useRouter()
@@ -60,7 +138,8 @@ export default function NotificationsPage() {
   })
 
   const markAllReadMutation = useMutation({
-    mutationFn: (category: TabType) => api.post('/user/notifications/mark-category-read', { category }),
+    mutationFn: (category: TabType) =>
+      api.post('/user/notifications/mark-category-read', { category }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard-counts'] })
@@ -70,13 +149,13 @@ export default function NotificationsPage() {
   // Auto-mark category as read when switching tabs
   useEffect(() => {
     if (isNotifLoading) return
-    
+
     const timer = setTimeout(() => {
       if (activeTab === 'Services') {
         markAllReadMutation.mutate(activeTab)
       }
     }, 1500)
-    
+
     return () => clearTimeout(timer)
   }, [activeTab, isNotifLoading])
 
@@ -110,7 +189,7 @@ export default function NotificationsPage() {
         isRead: false,
         isDynamic: true,
         url: '/dashboard/setup',
-        icon: <UserCircle size={18} />
+        icon: <UserCircle size={18} />,
       })
     }
 
@@ -140,7 +219,7 @@ export default function NotificationsPage() {
     return groups
   }, [filteredNotifications])
 
-  if (isNotifLoading) return <FallbackSuspense message="Loading notifications..." />
+  if (isNotifLoading) return <NotificationsSkeleton onBack={() => router.back()} />
 
   const handleMarkRead = (notif: any) => {
     if (!notif.isRead && !notif.isDynamic) {
@@ -161,7 +240,7 @@ export default function NotificationsPage() {
             </button>
             <h1 className="header-title">Notifications</h1>
           </div>
-          
+
           <NotificationTabBar
             activeTab={activeTab}
             onTabChange={setActiveTab}
@@ -180,44 +259,48 @@ export default function NotificationsPage() {
             <p>No {activeTab.toLowerCase()} to show right now.</p>
           </div>
         ) : (
-          Object.entries(groupedNotifications).map(([group, list]) => (
-            list.length > 0 && (
-              <div key={group} className="notification-group">
-                <h3 className="notification-group__title">{group}</h3>
-                {list.map((notif) => (
-                  <div
-                    key={notif.id}
-                    className={`notification-card ${!notif.isRead ? 'unread' : ''}`}
-                    onClick={() => handleMarkRead(notif)}
-                  >
-                    <div className="card-icon-wrap">
-                      {notif.icon || ICON_MAP[notif.type] || <Info size={18} />}
-                    </div>
-                    <div className="card-content">
-                      <div className="card-top">
-                        <span className="card-title">{notif.title}</span>
-                        {!notif.isRead && <div className="unread-dot" />}
+          Object.entries(groupedNotifications).map(
+            ([group, list]) =>
+              list.length > 0 && (
+                <div key={group} className="notification-group">
+                  <h3 className="notification-group__title">{group}</h3>
+                  {list.map((notif) => (
+                    <div
+                      key={notif.id}
+                      className={`notification-card ${!notif.isRead ? 'unread' : ''}`}
+                      onClick={() => handleMarkRead(notif)}
+                    >
+                      <div className="card-icon-wrap">
+                        {notif.icon || ICON_MAP[notif.type] || <Info size={18} />}
                       </div>
-                      <div 
-                      className="card-msg card-msg--truncate" 
-                      dangerouslySetInnerHTML={{ __html: notif.message }} 
-                    />
-                      <div className="card-footer">
-                        <span className="card-time">
-                          {new Date(notif.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                        {notif.url && (
-                          <span className="card-view-all">
-                            View <ArrowRight size={12} />
+                      <div className="card-content">
+                        <div className="card-top">
+                          <span className="card-title">{notif.title}</span>
+                          {!notif.isRead && <div className="unread-dot" />}
+                        </div>
+                        <div
+                          className="card-msg card-msg--truncate"
+                          dangerouslySetInnerHTML={{ __html: notif.message }}
+                        />
+                        <div className="card-footer">
+                          <span className="card-time">
+                            {new Date(notif.createdAt).toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
                           </span>
-                        )}
+                          {notif.url && (
+                            <span className="card-view-all">
+                              View <ArrowRight size={12} />
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )
-          ))
+                  ))}
+                </div>
+              ),
+          )
         )}
       </div>
 
@@ -238,7 +321,7 @@ export default function NotificationsPage() {
           backdrop-filter: blur(20px);
           -webkit-backdrop-filter: blur(20px);
           border-bottom: 1px solid var(--shell-border, #f0e9df);
-          padding: 12px 20px 8px;
+          padding: calc(var(--safe-top, 0px) + 12px) 20px 8px;
         }
 
         .header-content {
@@ -276,7 +359,7 @@ export default function NotificationsPage() {
         .content-area {
           max-width: 720px;
           margin: 0 auto;
-          padding: 122px 16px 28px;
+          padding: calc(var(--safe-top, 0px) + 122px) 16px calc(var(--safe-bottom, 0px) + 28px);
         }
 
         .notification-group {
@@ -301,7 +384,9 @@ export default function NotificationsPage() {
           border-radius: 16px;
           margin-bottom: 12px;
           cursor: pointer;
-          transition: border-color 0.2s ease, background 0.2s ease;
+          transition:
+            border-color 0.2s ease,
+            background 0.2s ease;
           box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
         }
 
