@@ -184,12 +184,11 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
           </span>
         </div>
 
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <div className="vault-dashboard__actions">
           <button
             type="button"
             className="vault-btn-primary"
             onClick={() => setShowFundModal(true)}
-            style={{ flex: 1, minWidth: 180 }}
           >
             <PlusCircle size={18} />
             <span>Add Funds</span>
@@ -199,7 +198,6 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
             <button
               type="button"
               className={isSettlementReady ? 'vault-btn-primary' : 'vault-btn-secondary'}
-              style={{ flex: 1, minWidth: 180 }}
               onClick={onGoToSettlementHub}
             >
               <span>{isSettlementReady ? 'Settle Landlord & Claim Bonus' : 'Pay Landlord'}</span>
@@ -219,9 +217,7 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
           </div>
           <div className="vault-dva-card__number-row">
             <div className="vault-dva-card__number-block">
-              <span className="vault-dva-card__number-label">
-                {vault.dedicated_account.account_name}
-              </span>
+              <span className="vault-dva-card__number-label">Account Number</span>
               <span className="vault-dva-card__number">
                 {vault.dedicated_account.account_number}
               </span>
@@ -235,14 +231,28 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
             >
               {copiedAccount ? (
                 <>
-                  <Check size={14} /> Copied
+                  <Check size={14} /> Copied!
                 </>
               ) : (
                 <>
-                  <Copy size={14} /> Copy Account
+                  <Copy size={14} /> Copy
                 </>
               )}
             </button>
+          </div>
+          <div className="vault-dva-card__meta-list">
+            <div className="vault-dva-card__meta-row">
+              <span className="vault-dva-card__meta-label">Account Name</span>
+              <span className="vault-dva-card__meta-value">
+                {vault.dedicated_account.account_name}
+              </span>
+            </div>
+            <div className="vault-dva-card__meta-row">
+              <span className="vault-dva-card__meta-label">Bank Name</span>
+              <span className="vault-dva-card__meta-value">
+                {vault.dedicated_account.bank_name || 'Wema Bank'}
+              </span>
+            </div>
           </div>
         </div>
       )}
@@ -313,16 +323,19 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
 
         <button
           type="button"
-          className="vault-action-btn"
+          className="vault-action-btn vault-action-btn--featured"
           onClick={() => onGoToSettlementHub?.()}
         >
           <div className="vault-action-btn__icon">
             <Landmark size={18} />
           </div>
-          <span className="vault-action-btn__title">Settle Rent to Landlord</span>
-          <span className="vault-action-btn__subtitle">
-            Direct NIP transfer + 1.5% on-time rent bonus
-          </span>
+          <div className="vault-action-btn__content">
+            <span className="vault-action-btn__title">Settle Rent to Landlord</span>
+            <span className="vault-action-btn__subtitle">
+              Direct NIP transfer + 1.5% on-time rent bonus
+            </span>
+          </div>
+          <ArrowRight size={16} className="vault-action-btn__arrow" />
         </button>
       </div>
 

@@ -148,7 +148,7 @@ export function RentSavingsMainView() {
     return (
       <div className="savings-kyc-banner savings-kyc-banner--verified">
         <div className="savings-kyc-banner__icon">
-          <ShieldCheck size={18} color="#10b981" />
+          <ShieldCheck size={18} color="var(--success, #22c55e)" />
         </div>
         <div className="savings-kyc-banner__content">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
