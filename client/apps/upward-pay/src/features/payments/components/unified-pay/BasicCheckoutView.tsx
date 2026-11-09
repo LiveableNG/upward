@@ -101,12 +101,30 @@ export function BasicCheckoutView({
     paymentData.company?.name ||
     'Payment recipient'
 
-  const bankName = paymentData.payment?.bankName as string | undefined
-  const accountNumber = paymentData.payment?.accountNumber as string | undefined
-  const accountMeta =
-    bankName && accountNumber
-      ? `${bankName} · ${accountNumber}`
-      : paymentData.property?.locationAddress || paymentData.payment?.description || null
+  // Do not expose raw bank details to prevent users bypassing DVA/checkout
+  const propertyAddress =
+    paymentData.property?.locationAddress ||
+    paymentData.payment?.description ||
+    null
+
+  const rentStartDate =
+    paymentData.payment?.rentStartDate ||
+    paymentData.property?.rentStartDate ||
+    null
+
+  const rentEndDate =
+    paymentData.payment?.rentEndDate ||
+    paymentData.property?.rentEndDate ||
+    null
+
+  const rentType =
+    paymentData.payment?.rentType ||
+    paymentData.property?.rentType ||
+    null
+
+  const invoiceRef =
+    paymentData.payment?.reference ||
+    (uuid ? `PR-${uuid.slice(0, 8).toUpperCase()}` : null)
 
   const rentLineItems = useMemo(
     () => visibleLineItems.filter((item) => !isFeeLine(item.name, item.id)),
@@ -252,9 +270,12 @@ export function BasicCheckoutView({
     >
       <CheckoutRecipientCard
         accountName={accountName}
-        accountMeta={accountMeta}
+        propertyAddress={propertyAddress}
         dueDate={paymentData.payment.dueDate}
         isVerified={!!paymentData.payment?.verifiedRecipientName}
+        rentStartDate={rentStartDate}
+        rentEndDate={rentEndDate}
+        invoiceRef={invoiceRef}
       />
       <style jsx>{`
         .manual-upload-btn {

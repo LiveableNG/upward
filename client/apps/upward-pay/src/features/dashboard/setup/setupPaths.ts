@@ -12,8 +12,10 @@ export const SETUP_PATHS = {
   rental: '/dashboard/setup/rental',
   confirm: '/dashboard/setup/confirm',
   phone: '/dashboard/setup/phone',
+  goals: '/dashboard/setup/goals',
   identity: '/dashboard/verify-identity',
   dashboard: '/dashboard',
+  dashboardGoals: '/dashboard/goals',
   profile: '/dashboard/me',
 } as const
 

@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Star, CheckCircle2 } from 'lucide-react';
+import { Star, CheckCircle2 } from 'lucide-react';
 import { useSubmitClientRating } from '../hooks/useAllianceMarketplace';
+import { BottomSheetModal } from '@/components/common/BottomSheetModal';
 
 interface AllianceRatingModalProps {
   isOpen: boolean;
@@ -57,16 +58,7 @@ export const AllianceRatingModal: React.FC<AllianceRatingModalProps> = ({
   };
 
   return (
-    <div className="pay-alliance-modal-backdrop" onClick={handleClose}>
-      <div className="pay-alliance-modal" onClick={(e) => e.stopPropagation()}>
-        <button
-          type="button"
-          onClick={handleClose}
-          className="pay-alliance-modal__close"
-          aria-label="Close modal"
-        >
-          <X size={18} />
-        </button>
+    <BottomSheetModal isOpen={isOpen} onClose={handleClose} maxWidth="480px">
 
         {isSuccess ? (
           <div style={{ textAlign: 'center', padding: '16px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
@@ -199,7 +191,6 @@ export const AllianceRatingModal: React.FC<AllianceRatingModalProps> = ({
             </form>
           </div>
         )}
-      </div>
-    </div>
+    </BottomSheetModal>
   );
 };

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -11,6 +11,7 @@ import {
   CreditCard,
   FileText,
   Globe,
+  Home,
   Lock,
   MapPin,
   Trash2,
@@ -23,7 +24,7 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
 import { PayFlowPrimaryButton, PayPageShell } from '@/features/dashboard/components/payment/PayPageShell'
 import { PaymentAccountForm, isPaymentAccountResolved } from '@/features/dashboard/components/payment/PaymentAccountForm'
-import { toDateInputValue, validateRentDates, calculateRentEndDate, type LeaseDurationUnit } from '../rentalDates'
+import { toDateInputValue, validateRentDates, calculateRentEndDate, formatDisplayDate, type LeaseDurationUnit } from '../rentalDates'
 import { deleteProofOfPayment, uploadProofOfPayment } from '@/features/payments/services/paymentService'
 import { setupRentalListPath, useSetupMode } from '../setupPaths'
 import { PmSearchSelect } from './PmSearchSelect'
@@ -51,8 +52,6 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
   const isManaged = isPmVerified || isExternalUnit
   const isRentTermsDisabled = isManaged || hasPaidOnUpward
 
-  const initialManual = (property as any)?.manualAccount || (property as any)?.pmManualAccount
-
   const [address, setAddress] = useState('')
   const [area, setArea] = useState('')
   const [subarea, setSubarea] = useState('')
@@ -65,6 +64,7 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
   const [leaseUnit, setLeaseUnit] = useState<LeaseDurationUnit>('years')
   const [rentStartDate, setRentStartDate] = useState('')
   const [rentEndDate, setRentEndDate] = useState('')
+  const editStartDateInputRef = useRef<HTMLInputElement>(null)
 
   const [paymentAccount, setPaymentAccount] = useState({
     accountNumber: '',
@@ -98,6 +98,8 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
   const [isDeletingProof, setIsDeletingProof] = useState(false)
   const [newProofFile, setNewProofFile] = useState<File | null>(null)
   const [isUploadingProof, setIsUploadingProof] = useState(false)
+
+  const [activeTab, setActiveTab] = useState<'property' | 'payout'>('property')
 
   const [isHydrated, setIsHydrated] = useState(false)
 
@@ -140,17 +142,23 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
         isExternal: !!((property as any)?.company?.platformId || (property as any)?.isPlatformLinked),
         companyUuid: (property as any)?.company?.uuid,
         managerUuid: (property as any)?.manager?.uuid,
+        defaultSettlementAccount: (property as any)?.pmManualAccount || null,
       })
     } else {
       setPmDetails(null)
     }
 
-    if (initialManual?.accountNumber && initialManual?.bankCode) {
+    const activePayoutAccount =
+      hasLinkedPm && (property as any)?.pmManualAccount
+        ? (property as any).pmManualAccount
+        : (property as any)?.pmManualAccount || (property as any)?.manualAccount
+
+    if (activePayoutAccount?.accountNumber && (activePayoutAccount?.bankCode || activePayoutAccount?.bankName)) {
       setPaymentAccount({
-        accountNumber: initialManual.accountNumber,
-        bankCode: initialManual.bankCode,
-        accountName: initialManual.accountName || '',
-        bankName: initialManual.bankName || '',
+        accountNumber: activePayoutAccount.accountNumber,
+        bankCode: activePayoutAccount.bankCode || '',
+        accountName: activePayoutAccount.accountName || '',
+        bankName: activePayoutAccount.bankName || '',
       })
     } else if ((property as any)?.subaccount?.accountNumber) {
       const sub = (property as any).subaccount
@@ -223,22 +231,27 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!address.trim() || !area.trim()) {
+        setActiveTab('property')
         throw new Error('Please provide property address and area.')
       }
       if (!rentAmount || !rentStartDate || !rentEndDate) {
+        setActiveTab('property')
         throw new Error('Please complete rent amount and tenancy dates.')
       }
       const dateErr = validateRentDates(rentStartDate, rentEndDate)
       if (dateErr) {
+        setActiveTab('property')
         throw new Error(dateErr)
       }
 
       const numAmount = parseFloat(rentAmount.replace(/,/g, ''))
       if (isNaN(numAmount) || numAmount <= 0) {
+        setActiveTab('property')
         throw new Error('Please enter a valid rent amount.')
       }
 
       if (!isManaged && paymentAccount.accountNumber && !isPaymentAccountResolved(paymentAccount)) {
+        setActiveTab('payout')
         throw new Error('Please enter and verify a valid landlord bank account.')
       }
 
@@ -481,328 +494,365 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
           </div>
         )}
 
-        {/* Section 1: Location & Address */}
-        <div className="setup-page__card" style={{ background: '#fff', borderRadius: 16, padding: 18, border: '1px solid #eae2d7', boxSizing: 'border-box', overflow: 'hidden' }}>
-          <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <MapPin size={18} color="var(--skin-primary, #c2501f)" />
-            Location & Address
-          </h3>
-
-          <div className="setup-page__field" style={{ marginBottom: 14 }}>
-            <label style={{ fontSize: 13, fontWeight: 600, color: '#5c544b', marginBottom: 6, display: 'block' }}>Street address</label>
-            <input
-              disabled={isManaged}
-              className="setup-page__input"
-              type="text"
-              placeholder="14 Admiralty Way, Lekki"
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-            />
-          </div>
-
-          <div className="setup-page__field-row" style={{ marginBottom: 14 }}>
-            <div className="setup-page__field">
-              <label style={{ fontSize: 13, fontWeight: 600, color: '#5c544b', marginBottom: 6, display: 'block' }}>Area</label>
-              <input
-                disabled={isManaged}
-                className="setup-page__input"
-                type="text"
-                placeholder="Lekki"
-                value={area}
-                onChange={(e) => setArea(e.target.value)}
-              />
-            </div>
-            <div className="setup-page__field">
-              <label style={{ fontSize: 13, fontWeight: 600, color: '#5c544b', marginBottom: 6, display: 'block' }}>State</label>
-              <select
-                disabled={isManaged}
-                className="setup-page__input"
-                value={stateName}
-                onChange={(e) => setStateName(e.target.value)}
-              >
-                {(STATES[country] || []).map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="setup-page__field">
-            <label style={{ fontSize: 13, fontWeight: 600, color: '#5c544b', marginBottom: 6, display: 'block' }}>Country</label>
-            <select
-              disabled={isManaged}
-              className="setup-page__input"
-              value={country}
-              onChange={(e) => {
-                setCountry(e.target.value)
-                setStateName(STATES[e.target.value]?.[0] || '')
-              }}
-            >
-              {COUNTRIES.map((c) => (
-                <option key={c.code} value={c.code}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
+        {/* Apple WWDC Fluid Segmented Tab Control */}
+        <div
+          role="tablist"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: 4,
+            padding: 4,
+            background: '#f2ede4',
+            borderRadius: 12,
+            boxSizing: 'border-box',
+          }}
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'property'}
+            onClick={() => setActiveTab('property')}
+            style={{
+              padding: '9px 12px',
+              borderRadius: 9,
+              border: 'none',
+              fontSize: 13,
+              fontWeight: activeTab === 'property' ? 700 : 500,
+              background: activeTab === 'property' ? '#fff' : 'transparent',
+              color: activeTab === 'property' ? '#1a1714' : '#7a7268',
+              boxShadow: activeTab === 'property' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+            }}
+          >
+            <Home size={15} color={activeTab === 'property' ? 'var(--skin-primary, #c2501f)' : '#7a7268'} />
+            <span>Property & Terms</span>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'payout'}
+            onClick={() => setActiveTab('payout')}
+            style={{
+              padding: '9px 12px',
+              borderRadius: 9,
+              border: 'none',
+              fontSize: 13,
+              fontWeight: activeTab === 'payout' ? 700 : 500,
+              background: activeTab === 'payout' ? '#fff' : 'transparent',
+              color: activeTab === 'payout' ? '#1a1714' : '#7a7268',
+              boxShadow: activeTab === 'payout' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+            }}
+          >
+            <CreditCard size={15} color={activeTab === 'payout' ? 'var(--skin-primary, #c2501f)' : '#7a7268'} />
+            <span>Landlord & Payout</span>
+          </button>
         </div>
 
-        {/* Section 2: Tenancy & Rent Schedule */}
-        <div className="setup-page__card" style={{ background: '#fff', borderRadius: 16, padding: 18, border: '1px solid #eae2d7', boxSizing: 'border-box', overflow: 'hidden' }}>
-          <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Calendar size={18} color="var(--skin-primary, #c2501f)" />
-            Tenancy Terms
-          </h3>
+        {/* Tab 1: Property Location & Tenancy Terms */}
+        {activeTab === 'property' && (
+          <>
+            {/* Section 1: Location & Address */}
+            <div className="setup-page__card" style={{ background: '#fff', borderRadius: 16, padding: 18, border: '1px solid #eae2d7', boxSizing: 'border-box', overflow: 'hidden' }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <MapPin size={18} color="var(--skin-primary, #c2501f)" />
+                Location & Address
+              </h3>
 
-          <div className="setup-page__field-row" style={{ marginBottom: 14 }}>
-            <div className="setup-page__field">
-              <label style={{ fontSize: 13, fontWeight: 600, color: '#5c544b', marginBottom: 6, display: 'block' }}>Rent cycle</label>
-              <select
-                disabled={isRentTermsDisabled}
-                className="setup-page__input"
-                value={rentType}
-                onChange={(e) => {
-                  const newType = e.target.value
-                  setRentType(newType)
-                  const newEnd = calculateRentEndDate(rentStartDate, newType, leaseDuration, leaseUnit)
-                  if (newEnd) setRentEndDate(newEnd)
-                }}
-              >
-                <option value="Monthly">Monthly</option>
-                <option value="Annually">Annually</option>
-                <option value="Lease">Lease</option>
-              </select>
-            </div>
+              <div className="setup-page__field" style={{ marginBottom: 14 }}>
+                <label style={{ fontSize: 13, fontWeight: 600, color: '#5c544b', marginBottom: 6, display: 'block' }}>Street address</label>
+                <input
+                  disabled={isManaged}
+                  className="setup-page__input"
+                  type="text"
+                  placeholder="14 Admiralty Way, Lekki"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                />
+              </div>
 
-            {rentType === 'Lease' && (
-              <div className="setup-page__field">
-                <label style={{ fontSize: 13, fontWeight: 600, color: '#5c544b', marginBottom: 6, display: 'block' }}>Lease duration</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: 8 }}>
+              <div className="setup-page__field-row" style={{ marginBottom: 14 }}>
+                <div className="setup-page__field">
+                  <label style={{ fontSize: 13, fontWeight: 600, color: '#5c544b', marginBottom: 6, display: 'block' }}>Area</label>
                   <input
-                    disabled={isRentTermsDisabled}
-                    type="number"
-                    min="1"
+                    disabled={isManaged}
                     className="setup-page__input"
-                    placeholder="1"
-                    value={leaseDuration}
-                    onChange={(e) => {
-                      const newDur = e.target.value
-                      setLeaseDuration(newDur)
-                      const newEnd = calculateRentEndDate(rentStartDate, 'Lease', newDur, leaseUnit)
-                      if (newEnd) setRentEndDate(newEnd)
-                    }}
+                    type="text"
+                    placeholder="Lekki"
+                    value={area}
+                    onChange={(e) => setArea(e.target.value)}
                   />
+                </div>
+                <div className="setup-page__field">
+                  <label style={{ fontSize: 13, fontWeight: 600, color: '#5c544b', marginBottom: 6, display: 'block' }}>State</label>
                   <select
-                    disabled={isRentTermsDisabled}
+                    disabled={isManaged}
                     className="setup-page__input"
-                    value={leaseUnit}
-                    onChange={(e) => {
-                      const newUnit = e.target.value as LeaseDurationUnit
-                      setLeaseUnit(newUnit)
-                      const newEnd = calculateRentEndDate(rentStartDate, 'Lease', leaseDuration, newUnit)
-                      if (newEnd) setRentEndDate(newEnd)
-                    }}
+                    value={stateName}
+                    onChange={(e) => setStateName(e.target.value)}
                   >
-                    <option value="years">Years</option>
-                    <option value="months">Months</option>
-                    <option value="weeks">Weeks</option>
-                    <option value="days">Days</option>
+                    {(STATES[country] || []).map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
                   </select>
                 </div>
               </div>
-            )}
 
-            <div className="setup-page__field">
-              <label style={{ fontSize: 13, fontWeight: 600, color: '#5c544b', marginBottom: 6, display: 'block' }}>
-                {rentType === 'Monthly' ? 'Monthly' : rentType === 'Lease' ? 'Total Lease' : 'Yearly'} rent amount
-              </label>
-              <div className="setup-page__input-row">
-                <span>₦</span>
-                <input
-                  disabled={isRentTermsDisabled}
-                  type="text"
-                  placeholder="1,200,000"
-                  value={rentAmount}
-                  onChange={(e) => {
-                    const val = e.target.value.replace(/\D/g, '')
-                    setRentAmount(val ? parseInt(val, 10).toLocaleString() : '')
-                  }}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="setup-page__field-row">
-            <div className="setup-page__field">
-              <label style={{ fontSize: 13, fontWeight: 600, color: '#5c544b', marginBottom: 6, display: 'block' }}>Tenancy period start</label>
-              <input
-                disabled={isRentTermsDisabled}
-                className="setup-page__input"
-                type="date"
-                value={rentStartDate}
-                onChange={(e) => {
-                  const val = toDateInputValue(e.target.value)
-                  setRentStartDate(val)
-                  const newEnd = calculateRentEndDate(val, rentType, leaseDuration, leaseUnit)
-                  if (newEnd) setRentEndDate(newEnd)
-                }}
-              />
-            </div>
-
-            <div className="setup-page__field">
-              <label style={{ fontSize: 13, fontWeight: 600, color: '#5c544b', marginBottom: 6, display: 'block' }}>Next rent due date</label>
-              <div style={{ position: 'relative' }}>
-                <input
-                  disabled
-                  readOnly
+              <div className="setup-page__field">
+                <label style={{ fontSize: 13, fontWeight: 600, color: '#5c544b', marginBottom: 6, display: 'block' }}>Country</label>
+                <select
+                  disabled={isManaged}
                   className="setup-page__input"
-                  type="date"
-                  value={rentEndDate}
-                  style={{
-                    backgroundColor: '#f8f5f0',
-                    borderColor: '#e8e0d5',
-                    cursor: 'not-allowed',
-                    color: '#49423b',
-                    paddingRight: 80,
-                  }}
-                />
-                <div
-                  style={{
-                    position: 'absolute',
-                    right: 12,
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 4,
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: '#7a7268',
-                    background: '#ede6db',
-                    padding: '3px 7px',
-                    borderRadius: 6,
-                    pointerEvents: 'none',
-                    userSelect: 'none',
+                  value={country}
+                  onChange={(e) => {
+                    setCountry(e.target.value)
+                    setStateName(STATES[e.target.value]?.[0] || '')
                   }}
                 >
-                  <Lock size={11} /> Auto
+                  {COUNTRIES.map((c) => (
+                    <option key={c.code} value={c.code}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Section 2: Tenancy & Rent Schedule */}
+            <div className="setup-page__card" style={{ background: '#fff', borderRadius: 16, padding: 18, border: '1px solid #eae2d7', boxSizing: 'border-box', overflow: 'hidden' }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Calendar size={18} color="var(--skin-primary, #c2501f)" />
+                Tenancy Terms
+              </h3>
+
+              <div className="setup-page__field-row" style={{ marginBottom: 14 }}>
+                <div className="setup-page__field">
+                  <label style={{ fontSize: 13, fontWeight: 600, color: '#5c544b', marginBottom: 6, display: 'block' }}>Rent cycle</label>
+                  <select
+                    disabled={isRentTermsDisabled}
+                    className="setup-page__input"
+                    value={rentType}
+                    onChange={(e) => {
+                      const newType = e.target.value
+                      setRentType(newType)
+                      const newEnd = calculateRentEndDate(rentStartDate, newType, leaseDuration, leaseUnit)
+                      if (newEnd) setRentEndDate(newEnd)
+                    }}
+                  >
+                    <option value="Monthly">Monthly</option>
+                    <option value="Annually">Annually</option>
+                    <option value="Lease">Lease</option>
+                  </select>
+                </div>
+
+                {rentType === 'Lease' && (
+                  <div className="setup-page__field">
+                    <label style={{ fontSize: 13, fontWeight: 600, color: '#5c544b', marginBottom: 6, display: 'block' }}>Lease duration</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr', gap: 8 }}>
+                      <input
+                        disabled={isRentTermsDisabled}
+                        type="number"
+                        min="1"
+                        className="setup-page__input"
+                        placeholder="1"
+                        value={leaseDuration}
+                        onChange={(e) => {
+                          const newDur = e.target.value
+                          setLeaseDuration(newDur)
+                          const newEnd = calculateRentEndDate(rentStartDate, 'Lease', newDur, leaseUnit)
+                          if (newEnd) setRentEndDate(newEnd)
+                        }}
+                      />
+                      <select
+                        disabled={isRentTermsDisabled}
+                        className="setup-page__input"
+                        value={leaseUnit}
+                        onChange={(e) => {
+                          const newUnit = e.target.value as LeaseDurationUnit
+                          setLeaseUnit(newUnit)
+                          const newEnd = calculateRentEndDate(rentStartDate, 'Lease', leaseDuration, newUnit)
+                          if (newEnd) setRentEndDate(newEnd)
+                        }}
+                      >
+                        <option value="years">Years</option>
+                        <option value="months">Months</option>
+                        <option value="weeks">Weeks</option>
+                        <option value="days">Days</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                <div className="setup-page__field">
+                  <label style={{ fontSize: 13, fontWeight: 600, color: '#5c544b', marginBottom: 6, display: 'block' }}>
+                    {rentType === 'Monthly' ? 'Monthly' : rentType === 'Lease' ? 'Total Lease' : 'Yearly'} rent amount
+                  </label>
+                  <div className="setup-page__input-row">
+                    <span>₦</span>
+                    <input
+                      disabled={isRentTermsDisabled}
+                      type="text"
+                      placeholder="1,200,000"
+                      value={rentAmount}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '')
+                        setRentAmount(val ? parseInt(val, 10).toLocaleString() : '')
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="setup-page__field-row">
+                <div className="setup-page__field">
+                  <label style={{ fontSize: 13, fontWeight: 600, color: '#5c544b', marginBottom: 6, display: 'block' }}>Tenancy period start</label>
+                  <div
+                    className={`setup-page__date-picker ${rentStartDate ? 'has-value' : ''}`}
+                    style={isRentTermsDisabled ? { opacity: 0.7, pointerEvents: 'none', background: '#f8f5f0' } : undefined}
+                    onClick={() => {
+                      if (isRentTermsDisabled) return
+                      try {
+                        editStartDateInputRef.current?.showPicker?.()
+                      } catch {
+                        editStartDateInputRef.current?.focus()
+                      }
+                    }}
+                  >
+                    <div className="setup-page__date-picker__left">
+                      <Calendar size={16} className="setup-page__date-picker__icon" />
+                      <span
+                        className={`setup-page__date-picker__text ${
+                          !rentStartDate ? 'setup-page__date-picker__text--placeholder' : ''
+                        }`}
+                      >
+                        {rentStartDate ? formatDisplayDate(rentStartDate) : 'Select start date (DD/MM/YYYY)'}
+                      </span>
+                    </div>
+                    <div className="setup-page__date-picker__right">
+                      <span className="setup-page__date-picker__badge">
+                        <Calendar size={12} />
+                        <span>Pick</span>
+                      </span>
+                    </div>
+                    <input
+                      ref={editStartDateInputRef}
+                      disabled={isRentTermsDisabled}
+                      className="setup-page__date-picker__native"
+                      type="date"
+                      value={rentStartDate}
+                      onChange={(e) => {
+                        const val = toDateInputValue(e.target.value)
+                        setRentStartDate(val)
+                        const newEnd = calculateRentEndDate(val, rentType, leaseDuration, leaseUnit)
+                        if (newEnd) setRentEndDate(newEnd)
+                      }}
+                      aria-label="Tenancy period start"
+                    />
+                  </div>
+                </div>
+
+                <div className="setup-page__field">
+                  <label style={{ fontSize: 13, fontWeight: 600, color: '#5c544b', marginBottom: 6, display: 'block' }}>Next rent due date</label>
+                  <div className="setup-page__date-display">
+                    <div className="setup-page__date-picker__left">
+                      <Calendar size={16} className="setup-page__date-picker__icon" style={{ opacity: 0.6 }} />
+                      <span
+                        className={`setup-page__date-picker__text ${
+                          !rentEndDate ? 'setup-page__date-picker__text--placeholder' : ''
+                        }`}
+                      >
+                        {rentEndDate ? formatDisplayDate(rentEndDate) : 'Calculated automatically'}
+                      </span>
+                    </div>
+                    <div className="setup-page__date-picker__right">
+                      <span className="setup-page__date-display__badge">
+                        <Lock size={10} /> Auto
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+          </>
+        )}
 
-        {/* Section 3: Landlord Bank Account */}
-        <div className="setup-page__card" style={{ background: '#fff', borderRadius: 16, padding: 18, border: '1px solid #eae2d7', boxSizing: 'border-box', overflow: 'hidden' }}>
-          <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <CreditCard size={18} color="var(--skin-primary, #c2501f)" />
-            Landlord Payment Account
-          </h3>
+        {/* Tab 2: Landlord Contact & Payout Account */}
+        {activeTab === 'payout' && (
+          <>
+            {/* Section 1: Landlord / Property Manager Contact (FIRST) */}
+            <div className="setup-page__card" style={{ background: '#fff', borderRadius: 16, padding: 18, border: '1px solid #eae2d7', boxSizing: 'border-box', overflow: 'hidden' }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Building2 size={18} color="var(--skin-primary, #c2501f)" />
+                Landlord or Property Manager
+              </h3>
+              <p style={{ fontSize: 13, color: '#7a7268', margin: '0 0 16px', lineHeight: 1.45 }}>
+                Search by manager name, company name, email, or phone number in real time.
+              </p>
 
-          {pmFound && pmDetails?.defaultSettlementAccount && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 12,
-                padding: '12px 14px',
-                borderRadius: 12,
-                background: '#f0fdf4',
-                border: '1px solid #86efac',
-                marginBottom: 16,
-              }}
-            >
-              <div>
-                <strong style={{ display: 'block', fontSize: 13, color: '#166534', fontWeight: 700 }}>
-                  Verified Account for {pmDetails.name}
-                </strong>
-                <p style={{ margin: '2px 0 0', fontSize: 12, color: '#15803d' }}>
-                  {pmDetails.defaultSettlementAccount.bankName} · {pmDetails.defaultSettlementAccount.accountNumber} ({pmDetails.defaultSettlementAccount.accountName})
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  if (pmDetails?.defaultSettlementAccount) {
+              <PmSearchSelect
+                value={{
+                  pmEmail,
+                  pmName,
+                  pmType,
+                  companyName,
+                  pmInviteEmail,
+                  pmFound,
+                  pmDetails,
+                }}
+                onChange={(patch) => {
+                  setPmEmail(patch.pmEmail)
+                  setPmName(patch.pmName)
+                  setPmType(patch.pmType)
+                  setCompanyName(patch.companyName)
+                  setPmInviteEmail(patch.pmInviteEmail)
+                  setPmFound(patch.pmFound)
+                  setPmDetails(patch.pmDetails)
+
+                  // Prefill settlement account directly into payment account
+                  if (patch.pmDetails?.defaultSettlementAccount) {
                     setPaymentAccount({
-                      bankName: pmDetails.defaultSettlementAccount.bankName,
-                      accountNumber: pmDetails.defaultSettlementAccount.accountNumber,
-                      accountName: pmDetails.defaultSettlementAccount.accountName,
-                      bankCode: pmDetails.defaultSettlementAccount.bankCode || '',
+                      bankName: patch.pmDetails.defaultSettlementAccount.bankName,
+                      accountNumber: patch.pmDetails.defaultSettlementAccount.accountNumber,
+                      accountName: patch.pmDetails.defaultSettlementAccount.accountName,
+                      bankCode: patch.pmDetails.defaultSettlementAccount.bankCode || '',
                     })
-                    toast.success('Applied verified property manager account!')
+                    toast.success('Prefilled property manager settlement account.')
                   }
                 }}
-                style={{
-                  flexShrink: 0,
-                  padding: '7px 12px',
-                  borderRadius: 8,
-                  background: '#16a34a',
-                  color: '#fff',
-                  border: 'none',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                Use This Account
-              </button>
+                disabled={isManaged}
+                isManaged={isManaged}
+                managerLabel={managerLabel}
+              />
             </div>
-          )}
 
-          <PaymentAccountForm
-            value={paymentAccount}
-            onChange={setPaymentAccount}
-            disabled={isManaged}
-            intro="Enter the bank account where you send rent payments."
-          />
-        </div>
+            {/* Section 2: Landlord Bank Account (Directly below manager) */}
+            <div className="setup-page__card" style={{ background: '#fff', borderRadius: 16, padding: 18, border: '1px solid #eae2d7', boxSizing: 'border-box', overflow: 'hidden' }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <CreditCard size={18} color="var(--skin-primary, #c2501f)" />
+                Landlord Payment Account
+              </h3>
 
-        {/* Section 4: Landlord / Property Manager Contact */}
-        <div className="setup-page__card" style={{ background: '#fff', borderRadius: 16, padding: 18, border: '1px solid #eae2d7', boxSizing: 'border-box', overflow: 'hidden' }}>
-          <h3 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 6px', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Building2 size={18} color="var(--skin-primary, #c2501f)" />
-            Landlord or Property Manager
-          </h3>
-          <p style={{ fontSize: 13, color: '#7a7268', margin: '0 0 16px', lineHeight: 1.45 }}>
-            Search by manager name, company name, email, or phone number in real time.
-          </p>
-
-          <PmSearchSelect
-            value={{
-              pmEmail,
-              pmName,
-              pmType,
-              companyName,
-              pmInviteEmail,
-              pmFound,
-              pmDetails,
-            }}
-            onChange={(patch) => {
-              setPmEmail(patch.pmEmail)
-              setPmName(patch.pmName)
-              setPmType(patch.pmType)
-              setCompanyName(patch.companyName)
-              setPmInviteEmail(patch.pmInviteEmail)
-              setPmFound(patch.pmFound)
-              setPmDetails(patch.pmDetails)
-              if (!paymentAccount.accountNumber && patch.pmDetails?.defaultSettlementAccount) {
-                setPaymentAccount({
-                  bankName: patch.pmDetails.defaultSettlementAccount.bankName,
-                  accountNumber: patch.pmDetails.defaultSettlementAccount.accountNumber,
-                  accountName: patch.pmDetails.defaultSettlementAccount.accountName,
-                  bankCode: patch.pmDetails.defaultSettlementAccount.bankCode || '',
-                })
-              }
-            }}
-            disabled={isManaged}
-            isManaged={isManaged}
-            managerLabel={managerLabel}
-          />
-        </div>
+              <PaymentAccountForm
+                value={paymentAccount}
+                onChange={setPaymentAccount}
+                disabled={isManaged}
+                intro="Enter or confirm the bank account where you send rent payments."
+              />
+            </div>
+          </>
+        )}
       </div>
     </PayPageShell>
   )

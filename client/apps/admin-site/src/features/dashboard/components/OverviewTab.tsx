@@ -27,6 +27,7 @@ import {
   ChevronUp,
 } from 'lucide-react'
 import { Square, CheckSquare } from './Checkbox'
+import { LifestyleCommerceCard } from './LifestyleCommerceCard'
 import type { FlatMetrics, SignedUpRecord, InvitedRecord } from '../types'
 import * as XLSX from 'xlsx'
 import { showToast } from '@upward/client-core'
@@ -948,6 +949,9 @@ const OverviewTab: React.FC<OverviewTabProps> = ({
                 tooltip="Total number of active login/authorization sessions created for both Tenants and PMs in the selected timeframe."
               />
             </div>
+
+            {/* ── Lifestyle Goals & Commerce Hub ── */}
+            <LifestyleCommerceCard token={token} />
 
             {/* ── Where Did You Hear About Us Breakdown ── */}
             <div className="card" style={{ padding: '24px', marginTop: '24px' }}>

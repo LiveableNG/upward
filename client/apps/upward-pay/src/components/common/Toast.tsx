@@ -25,6 +25,31 @@ interface ToastContextType {
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined)
 
+function sanitizeToastMessage(message: string, type: ToastType): string {
+  if (!message || typeof message !== 'string') {
+    return type === 'error' ? 'An unexpected error occurred. Please try again.' : ''
+  }
+
+  let cleaned = message.replace(/https?:\/\/[^\s)]+/gi, '').replace(/\s{2,}/g, ' ').trim()
+
+  if (/timed out/i.test(cleaned)) {
+    return 'Request timed out. Please check your internet connection and try again.'
+  }
+  if (/failed to fetch|network error|load failed|unable to reach server/i.test(cleaned)) {
+    return 'Unable to connect. Please check your internet connection and try again.'
+  }
+  if (/internal server error|status code 500/i.test(cleaned)) {
+    return 'Something went wrong on our end. Please try again shortly.'
+  }
+
+  cleaned = cleaned
+    .replace(/\s+(for|at|to)\s*[.:,;]?$/i, '.')
+    .replace(/\s*\.\s*\./g, '.')
+    .trim()
+
+  return cleaned || (type === 'error' ? 'An unexpected error occurred. Please try again.' : '')
+}
+
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([])
 
@@ -33,8 +58,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const addToast = useCallback(
-    (type: ToastType, message: string, title?: string) => {
+    (type: ToastType, rawMessage: string, title?: string) => {
       const id = generateId('toast')
+      const message = sanitizeToastMessage(rawMessage, type)
       const newToast: Toast = {
         id,
         type,
@@ -68,7 +94,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={{ toast }}>
       {children}
-      <div className="toast-container">
+      <div className="toast-container" aria-live="polite" aria-atomic="false">
         {toasts.map((t) => (
           <div key={t.id} className={`toast toast--${t.type}`}>
             <div className="toast__icon">

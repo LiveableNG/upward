@@ -184,7 +184,6 @@ body {
   overscroll-behavior-x: none;
   min-height: 100vh;
   min-height: 100dvh;
-  padding-top: var(--safe-top);
   position: relative;
 }
 

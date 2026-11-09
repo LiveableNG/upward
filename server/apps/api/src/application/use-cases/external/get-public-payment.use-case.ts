@@ -91,9 +91,14 @@ export class GetPublicPaymentDetailsUseCase {
     }
 
     let inviteToken = null
-    const isShadow = user.passwordHash === PASS_PLACEHOLDERS.INVITED || 
+    const isSocial = user.passwordHash === PASS_PLACEHOLDERS.SOCIAL || 
+                     user.passwordHash === 'SOCIAL_AUTH' ||
+                     user.authProvider === 'google' || 
+                     user.authProvider === 'apple';
+    const isShadow = !isSocial && (
+                     user.passwordHash === PASS_PLACEHOLDERS.INVITED || 
                      user.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
-                     !!(user.passwordHash && !user.passwordHash.startsWith('$2'));
+                     !!(user.passwordHash && !user.passwordHash.startsWith('$2')));
     
     if (isShadow) {
       const validToken = await this.tokenRepository.findByIdentifier(user.uuid, 'INVITE')
@@ -147,6 +152,11 @@ export class GetPublicPaymentDetailsUseCase {
         minAmount: paymentRequest.minAmount || undefined,
         maxPartialAmount: paymentRequest.minAmount ? Math.max(0, (paymentRequest.amount - (paymentRequest.amountPaid || 0)) - paymentRequest.minAmount) : (paymentRequest.amount - (paymentRequest.amountPaid || 0)),
         remainingBalance: paymentRequest.amount - (paymentRequest.amountPaid || 0),
+        rentStartDate: paymentRequest.rentStartDate || property.rentStartDate || null,
+        rentEndDate: paymentRequest.rentEndDate || property.rentEndDate || null,
+        rentType: paymentRequest.rentType || property.rentType || null,
+        reference: paymentRequest.reference || null,
+        createdAt: paymentRequest.createdAt,
         lineItemRecords: lineItemRecords,
         verifiedRecipientName: verifiedRecipientName,
         processingFee: dynamicFee,
@@ -180,7 +190,9 @@ export class GetPublicPaymentDetailsUseCase {
         rentAmount: property.rentAmount,
         amountPaid: property.amountPaid,
         amountRemaining: property.amountRemaining,
-        rentEndDate: property.rentEndDate,
+        rentStartDate: property.rentStartDate || null,
+        rentEndDate: property.rentEndDate || null,
+        rentType: property.rentType || null,
         isPastTenancy: property.isPastTenancy,
         locationAddress: locationAddress,
         manualAccount: (property as any).pmManualAccount || (property as any).manualAccount || null,

@@ -1,5 +1,6 @@
 'use client'
 
+import React from 'react'
 import { usePathname } from 'next/navigation'
 
 interface PageTransitionProps {
@@ -11,8 +12,12 @@ export function PageTransition({ children, className = '' }: PageTransitionProps
   const pathname = usePathname()
 
   return (
-    <div key={pathname} className={`app-page-transition ${className}`}>
+    <div
+      key={pathname}
+      className={`app-page-transition ${className}`}
+    >
       {children}
     </div>
   )
 }
+

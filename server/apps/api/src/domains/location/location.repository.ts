@@ -6,6 +6,7 @@ export interface Country {
 export interface LocationRepository {
   getCountries(): Promise<Country[]>
   getCities(countryId: string): Promise<string[]>
+  getStates(countryId?: string): Promise<string[]>
 }
 
 export const LOCATION_REPOSITORY = Symbol('LOCATION_REPOSITORY')

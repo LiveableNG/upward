@@ -31,6 +31,10 @@
   background: var(--shell-page-bg);
   scrollbar-width: none !important;
   -ms-overflow-style: none !important;
+  width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 .dashboard-layout::-webkit-scrollbar,
@@ -44,6 +48,8 @@
   padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px));
   scrollbar-width: none !important;
   -ms-overflow-style: none !important;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .dashboard-layout--blocker .dashboard-layout__content {
@@ -58,13 +64,45 @@
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
+/* Automatically hide bottom nav bar whenever an inner view requests it via data-hide-bottom-nav, personal-card, or personal-sticky-actions */
+.dashboard-layout:has([data-hide-bottom-nav="true"]) .bottom-nav,
+.dashboard-layout:has([data-hide-bottom-nav="true"]) .fluid-dock-wrapper,
+.dashboard-layout:has(.personal-sticky-actions) .bottom-nav,
+.dashboard-layout:has(.personal-sticky-actions) .fluid-dock-wrapper,
+.dashboard-layout:has(.personal-card) .bottom-nav,
+.dashboard-layout:has(.personal-card) .fluid-dock-wrapper,
+.dashboard-layout:has(.banking-card-preview) .bottom-nav,
+.dashboard-layout:has(.banking-card-preview) .fluid-dock-wrapper,
+.dashboard-layout:has(.banking-empty) .bottom-nav,
+.dashboard-layout:has(.banking-empty) .fluid-dock-wrapper,
+.dashboard-layout:has(.banking-form) .bottom-nav,
+.dashboard-layout:has(.banking-form) .fluid-dock-wrapper {
+  display: none !important;
+}
+
+.dashboard-layout:has([data-hide-bottom-nav="true"]) .dashboard-layout__content,
+.dashboard-layout:has(.personal-sticky-actions) .dashboard-layout__content,
+.dashboard-layout:has(.personal-card) .dashboard-layout__content,
+.dashboard-layout:has(.banking-card-preview) .dashboard-layout__content,
+.dashboard-layout:has(.banking-form) .dashboard-layout__content {
+  padding-bottom: 0 !important;
+}
+
+.dashboard-layout:has([data-hide-bottom-nav="true"]) .dashboard--nav-offset,
+.dashboard-layout:has(.personal-sticky-actions) .dashboard--nav-offset,
+.dashboard-layout:has(.personal-card) .dashboard--nav-offset,
+.dashboard-layout:has(.banking-card-preview) .dashboard--nav-offset,
+.dashboard-layout:has(.banking-form) .dashboard--nav-offset {
+  padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+}
+
 .dashboard-layout--blocker .mobile-header-sticky {
   visibility: hidden;
 }
 
 /* ── Mobile sticky header zone ── */
 .mobile-header-sticky {
-  padding: 6px var(--space-5) 0;
+  padding: calc(var(--safe-top, 0px) + 6px) var(--space-5) 0;
   background: var(--shell-page-bg);
 }
 

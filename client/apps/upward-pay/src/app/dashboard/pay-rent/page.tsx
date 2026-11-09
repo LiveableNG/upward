@@ -385,6 +385,7 @@ export default function PayRentPage() {
       subtitle={stepSubtitle[step]}
       showBack
       onBack={handleBack}
+      hideNav
     >
       {step === 'property-select' && (
         <StepPropertySelect

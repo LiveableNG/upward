@@ -1,0 +1,151 @@
+model upward_rent_vault {
+  id                      Int                              @id @default(autoincrement())
+  uuid                    String                           @unique @default(uuid())
+  userId                  Int
+  targetAmountKobo        BigInt
+  currentPrincipalKobo    BigInt                           @default(0)
+  accruedYieldKobo        BigInt                           @default(0)
+  cadence                 String                           @default("MONTHLY") // DAILY, WEEKLY, MONTHLY
+  contractualDueDate      DateTime
+  unlockDate              DateTime                         // Strictly contractualDueDate - 30 days
+  lockStatus              String                           @default("LOCKED")  // LOCKED, SETTLEMENT_READY, SETTLED, BROKEN_OUT
+  preferredFundingMethod  String                           @default("DVA")     // DVA, CARD_TOKEN
+  paydayDayOfMonth        Int?
+  cardAuthorizationCode   String?
+  
+  // Paystack Dedicated Virtual Account (DVA) Details
+  dvaBankName             String?
+  dvaAccountNumber        String?
+  dvaAccountName          String?
+  dvaCustomerCode         String?
+  dvaAssignmentStatus     String                           @default("PENDING") // PENDING, ACTIVE, FAILED
+
+  // Settlement & PM Approval Settings
+  autoBypassPmApproval    Boolean                          @default(true)
+  
+  // Pluggable Investment Provider Details (ARM Connect, Mock, etc.)
+  investmentProvider      String                           @default("ARM")     // ARM, MOCK, etc.
+  providerMembershipId    String?                          // e.g. ARM B2B2C customer membershipId
+  providerAccountNumber   String?                          // e.g. ARM productAccountNumber for withdrawals
+  providerCrmStatus       String?                          // Submitted, Approved, Rejected
+  armPurchaseId           String?                          // Latest ARM mutual fund purchase ID
+  armWithdrawalId         String?                          // Settlement redemption ID from ARM
+  lastYieldSyncAt         DateTime?                        // Timestamp of last ARM portfolio reconciliation
+
+  createdAt               DateTime                         @default(now())
+  updatedAt               DateTime                         @default(now()) @updatedAt
+
+  user                    upward_user                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions            upward_rent_vault_transaction[]
+  advances                upward_rent_advance[]
+  settlements             upward_rent_settlement[]
+  savingsScore            upward_rent_savings_score?
+
+  @@index([userId])
+  @@index([lockStatus])
+  @@index([dvaAccountNumber])
+  @@index([contractualDueDate])
+}
+
+model upward_rent_vault_transaction {
+  id                    Int                 @id @default(autoincrement())
+  uuid                  String              @unique @default(uuid())
+  vaultId               Int
+  userId                Int
+  type                  String              // DEPOSIT, YIELD_ACCRUAL, ADVANCE_DISBURSEMENT, ADVANCE_REPAYMENT, LIQUIDATION_PENALTY, SETTLEMENT_DISBURSEMENT, CASHBACK
+  amountKobo            BigInt
+  principalDeltaKobo    BigInt              @default(0)
+  yieldDeltaKobo        BigInt              @default(0)
+  balanceAfterKobo      BigInt
+  reference             String              @unique
+  channel               String?             // DVA_NIP, CARD_TOKEN, SYSTEM_YIELD, NIP_TRANSFER
+  narration             String?
+  metadata              Json?
+  createdAt             DateTime            @default(now())
+
+  vault                 upward_rent_vault   @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+  user                  upward_user         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([vaultId])
+  @@index([userId])
+  @@index([type])
+  @@index([reference])
+  @@index([createdAt])
+}
+
+model upward_rent_advance {
+  id                        Int               @id @default(autoincrement())
+  uuid                      String            @unique @default(uuid())
+  vaultId                   Int
+  userId                    Int
+  borrowedAmountKobo        BigInt            // <= 40% of current accumulated balance
+  facilityFeeKobo           BigInt            // 3.5% facility fee
+  totalRepayableKobo        BigInt            // borrowedAmountKobo + facilityFeeKobo
+  repaymentDueDate          DateTime          // Strictly +30 calendar days
+  latePenaltiesKobo         BigInt            @default(0) // 0.1%/day after day 30
+  amountRepaidKobo          BigInt            @default(0)
+  status                    String            @default("ACTIVE") // ACTIVE, REPAID, DEFAULTED, OFFSET_AT_SETTLEMENT
+  destinationBankCode       String
+  destinationAccountNumber  String
+  destinationAccountName    String?
+  payoutTransferReference   String?
+  repaidAt                  DateTime?
+  createdAt                 DateTime          @default(now())
+  updatedAt                 DateTime          @default(now()) @updatedAt
+
+  vault                     upward_rent_vault @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+  user                      upward_user       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([vaultId])
+  @@index([userId])
+  @@index([status])
+  @@index([repaymentDueDate])
+}
+
+model upward_rent_settlement {
+  id                          Int               @id @default(autoincrement())
+  uuid                        String            @unique @default(uuid())
+  vaultId                     Int
+  userId                      Int
+  landlordBankCode            String
+  landlordAccountNumber       String
+  landlordName                String
+  propertyAddress             String?
+  amountPaidToLandlordKobo    BigInt
+  cashbackCreditedKobo        BigInt            @default(0)
+  earlyBirdMultiplierApplied  Boolean           @default(false)
+  nipSessionId                String?
+  settlementReference         String            @unique
+  receiptPdfUrl               String?
+  settlementStatus            String            @default("PAID") // PAID, DISBURSED_PENDING_PM_APPROVAL, FAILED
+  smsAlertDispatched          Boolean           @default(false)
+  disburseSurplusToWallet     Boolean           @default(true)
+  createdAt                   DateTime          @default(now())
+  updatedAt                   DateTime          @default(now()) @updatedAt
+
+  vault                       upward_rent_vault @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+  user                        upward_user       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([vaultId])
+  @@index([userId])
+  @@index([settlementReference])
+}
+
+model upward_rent_savings_score {
+  id                    Int               @id @default(autoincrement())
+  uuid                  String            @unique @default(uuid())
+  vaultId               Int               @unique
+  userId                Int
+  cadencePoints         Int               @default(0)  // Max 40 points (timeliness +/- 48h)
+  velocityPoints        Int               @default(0)  // Max 40 points (25%, 50%, 75%, 100%)
+  loanDisciplinePoints  Int               @default(20) // Max 20 points (defaults / late fee penalties)
+  totalScore            Int               @default(20) // Total out of 100
+  historyLog            Json?             // Array of score delta events
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @default(now()) @updatedAt
+
+  vault                 upward_rent_vault @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+  user                  upward_user       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}

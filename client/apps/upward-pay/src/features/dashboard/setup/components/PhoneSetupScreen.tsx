@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowRight } from 'lucide-react'
+import { ArrowRight, ShieldCheck } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import { getMe } from '@/features/auth/services/authService'
 import { api } from '@/lib/api'
@@ -187,7 +187,7 @@ export function PhoneSetupScreen() {
       </form>
 
       <div className="setup-page__notice">
-        <span aria-hidden="true">🔒</span>
+        <ShieldCheck size={18} className="setup-page__notice-icon" aria-hidden />
         <div>We only use these details for account alerts and your rent profile.</div>
       </div>
     </SetupPageShell>

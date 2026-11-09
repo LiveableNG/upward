@@ -1,20 +1,20 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ArrowDownRight,
   ArrowUpRight,
   Building2,
   ChevronRight,
-  Flame,
-  History,
+  CreditCard,
+  PiggyBank,
   Receipt,
   ShieldCheck,
   Smartphone,
+  Target,
   TrendingUp,
   X,
-  Zap,
 } from 'lucide-react'
 import { useHasMyHome, useMyHomeProperties, useAllPendingBills } from '@/features/my-home/hooks/useMyHome'
 import { formatCurrency, formatDate, formatTime } from '@/lib/utils'
@@ -27,6 +27,11 @@ import { UpcomingFeaturesWidget } from './UpcomingFeaturesWidget'
 import { ExclusiveHomesBrowseLink } from './exclusive-homes/ExclusiveHomesPromo'
 import { isSavingsWalletEnabled } from '../utils/savingsWallet'
 import { RentDepositCard } from './RentDepositCard'
+import {
+  LifestyleGoalsWidget,
+  useTenantOrders,
+  type TenantOrderSummaryDto,
+} from '@/features/goals'
 
 interface DashboardHomeProps {
   user: UserProfile
@@ -66,75 +71,6 @@ function formatPropertyShort(address?: string): string {
   return address
 }
 
-function daysUntil(dateStr: string | Date): number {
-  const diff = new Date(dateStr).getTime() - Date.now()
-  return Math.ceil(diff / (1000 * 60 * 60 * 24))
-}
-
-function getRentDue(pendingPayments: PendingPayment[], user: UserProfile) {
-  const firstPending = pendingPayments[0]
-  if (firstPending) {
-    const dateStr = firstPending.due_date || firstPending.dueDate
-    const remaining = firstPending.total_amount - (firstPending.amountPaid || 0)
-    const amount = remaining > 0 ? remaining : firstPending.total_amount
-    const isOverdue = dateStr ? new Date(dateStr) < new Date() : false
-    const days = dateStr ? Math.abs(daysUntil(dateStr)) : 0
-    let label = isOverdue ? 'Overdue' : 'Rent Due'
-    let isRejected = false
-    let isReviewing = false
-
-    if (firstPending.latestProof) {
-      if (firstPending.latestProof.status === 'PENDING') {
-        label = 'In Review'
-        isReviewing = true
-      } else if (firstPending.latestProof.status === 'REJECTED') {
-        label = 'Proof Rejected'
-        isRejected = true
-      }
-    }
-
-    return {
-      amount,
-      currency: firstPending.currency || 'NGN',
-      address: formatPropertyShort(firstPending.property_address),
-      days,
-      isOverdue,
-      isReviewing,
-      isRejected,
-      label,
-      daysLabel: isOverdue ? 'OVERDUE' : 'DAYS',
-      href: `/dashboard/pay-rent${firstPending.uuid ? `?paymentUuid=${firstPending.uuid}` : ''}`,
-    }
-  }
-
-  const activeProps = (user.properties || []).filter((p) => !p.isPastTenancy && p.rentEndDate)
-  const upcoming = activeProps
-    .map((prop) => {
-      const days = daysUntil(prop.rentEndDate!)
-      if (days < 0) return null
-      const address = prop.location
-        ? [prop.location.area, prop.location.state].filter(Boolean).join(', ')
-        : prop.address
-      return {
-        amount: prop.rentAmount || 0,
-        currency: 'NGN',
-        address: formatPropertyShort(address),
-        days,
-        isOverdue: false,
-        isReviewing: false,
-        isRejected: false,
-        label: 'Rent Due',
-        daysLabel: 'DAYS',
-        href: `/dashboard/pay-rent?propertyUuid=${prop.uuid}`,
-        sortKey: days,
-      }
-    })
-    .filter(Boolean)
-    .sort((a, b) => (a!.sortKey ?? 0) - (b!.sortKey ?? 0))[0]
-
-  return upcoming || null
-}
-
 export function DashboardHome({
   user,
   pendingPayments,
@@ -167,6 +103,56 @@ export function DashboardHome({
   const { bills: gtBills } = useAllPendingBills()
   const [isNavigatingToBreakdown, setIsNavigatingToBreakdown] = useState(false)
 
+  const { data: tenantOrdersData } = useTenantOrders({ take: 10 })
+  const { activeOrders, unpaidOrder } = useMemo(() => {
+    const orders = tenantOrdersData?.orders || []
+
+    const getStageWeight = (status: string) => {
+      switch (status) {
+        case 'OUT_FOR_DELIVERY':
+        case 'TECHNICIAN_EN_ROUTE':
+          return 100
+        case 'DISPATCHED':
+          return 80
+        case 'PROCESSING':
+        case 'SERVICE_SCHEDULED':
+          return 60
+        case 'ORDER_CONFIRMED':
+          return 40
+        default:
+          return 20
+      }
+    }
+
+    // 1. Paid active in-flight orders only, sorted by stage precedence
+    const paid = orders
+      .filter((ord) => {
+        if (ord.paymentStatus !== 'PAID') return false
+        if (['CANCELLED', 'REFUNDED'].includes(ord.status)) return false
+        return [
+          'ORDER_CONFIRMED',
+          'PROCESSING',
+          'DISPATCHED',
+          'OUT_FOR_DELIVERY',
+          'SERVICE_SCHEDULED',
+          'TECHNICIAN_EN_ROUTE',
+          'DISPUTED',
+        ].includes(ord.primaryStatus)
+      })
+      .sort((a, b) => getStageWeight(b.primaryStatus) - getStageWeight(a.primaryStatus))
+
+    // 2. Unpaid order awaiting payment
+    const unpaid = orders.find((ord) => {
+      if (['CANCELLED', 'REFUNDED'].includes(ord.status)) return false
+      return ord.paymentStatus !== 'PAID'
+    })
+
+    return {
+      activeOrders: paid,
+      unpaidOrder: unpaid,
+    }
+  }, [tenantOrdersData])
+
   const handleScoreClick = () => {
     setIsNavigatingToBreakdown(true)
     setTimeout(() => {
@@ -192,10 +178,11 @@ export function DashboardHome({
   }
 
   const ringPct = Math.min(100, Math.max((credScore / maxScore) * 100, 4))
-  const rentDue = getRentDue(pendingPayments, user)
   const recent = completedPayments.slice(0, 3)
 
   const showActivityCenter =
+    activeOrders.length > 0 ||
+    Boolean(unpaidOrder) ||
     pendingPayments.length > 0 ||
     gtBills.length > 0 ||
     isNewUser ||
@@ -218,7 +205,7 @@ export function DashboardHome({
 
   return (
     <div className="dash-home">
-      <RentDepositCard />
+      {/* <RentDepositCard /> */}
       <button
         type="button"
         className={`dash-home__benefits-card ${benefitsActive ? 'is-active' : ''}`}
@@ -283,6 +270,8 @@ export function DashboardHome({
             isIdentityVerified={!verificationOn || isIdentityVerified}
             skin="proto"
             showBenefitsUpsell={!benefitsActive}
+            activeOrders={activeOrders}
+            unpaidOrder={unpaidOrder}
           />
         </div>
       )}
@@ -321,116 +310,38 @@ export function DashboardHome({
           </div>
         </button>
 
-        <div className="dash-home__metrics">
-          <div className="dash-home__metric">
-            <Flame size={18} className={streak > 0 ? 'dash-home__metric-icon--active' : 'dash-home__metric-icon--muted'} />
-            <span className="dash-home__metric-val">{streak}</span>
-            <span className="dash-home__metric-lbl">Streak</span>
-          </div>
-          <div className="dash-home__metric">
-            <ShieldCheck size={18} className={onTimePct > 0 ? 'dash-home__metric-icon--active' : 'dash-home__metric-icon--muted'} />
-            <span className="dash-home__metric-val">{onTimePct}%</span>
-            <span className="dash-home__metric-lbl">On-time</span>
-          </div>
-          <div className="dash-home__metric">
-            <Zap size={18} className={profileCompletion > 0 ? 'dash-home__metric-icon--active' : 'dash-home__metric-icon--muted'} />
-            <span className="dash-home__metric-val">{profileCompletion}%</span>
-            <span className="dash-home__metric-lbl">Profile</span>
-          </div>
-        </div>
-
-        {/* <div className="dash-home__insights">
-          <div className="dash-home__insight">
-            <div className="dash-home__insight-head">
-              <span>Reliability rating</span>
-              <span>{onTimePct}%</span>
-            </div>
-            <div className="dash-home__goal-bar">
-              <div className="dash-home__goal-fill" style={{ width: `${onTimePct}%` }} />
-            </div>
-          </div>
-          <div className="dash-home__insight">
-            <div className="dash-home__insight-head">
-              <span>Score band</span>
-              <span>{(band || '—').toUpperCase()}</span>
-            </div>
-            <div className="dash-home__goal-bar">
-              <div
-                className="dash-home__goal-fill"
-                style={{ width: `${Math.min(100, (credScore / maxScore) * 100)}%` }}
-              />
-            </div>
-          </div>
-          <button
-            type="button"
-            className="dash-home__records-link"
-            onClick={() => router.push('/dashboard/request-records')}
-          >
-            <History size={16} />
-            <span>Request rent records</span>
-            <ChevronRight size={16} />
-          </button>
-        </div> */}
-
         <div className="dash-home__actions">
-          <button type="button" className="dash-home__action dash-home__action--primary" onClick={() => router.push('/dashboard/pay-rent')}>
-            Pay Rent
-          </button>
-          {savingsEnabled ? (
-            <button
-              type="button"
-              className="dash-home__action dash-home__action--secondary"
-              onClick={() => router.push('/dashboard/savings')}
-            >
-              <span>Save Rent</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="dash-home__action dash-home__action--secondary dash-home__action--disabled"
-              disabled
-              aria-disabled="true"
-            >
-              <span>Save Rent</span>
-              <span className="dash-home__action-soon">Coming soon</span>
-            </button>
-          )}
-          <button type="button" className="dash-home__action dash-home__action--secondary" onClick={() => router.push('/dashboard/save-for-home')}>
-            Save for Home
-          </button>
-        </div>
-
-        {rentDue && (rentDue.amount > 0 || rentDue.days >= 0) && (
           <button
             type="button"
-            className={`dash-home__rent-due ${rentDue.isOverdue ? 'dash-home__rent-due--overdue' : ''}`}
-            onClick={() => router.push(rentDue.href)}
+            className="dash-home__action"
+            onClick={() => router.push('/dashboard/pay-rent')}
           >
-            <div>
-              <div className="dash-home__rent-due-label">{rentDue.label}</div>
-              <div className="dash-home__rent-due-amount">
-                {rentDue.amount > 0 ? formatCurrency(rentDue.amount, rentDue.currency) : '—'}
-              </div>
-              <div className="dash-home__rent-due-meta">
-                {rentDue.isRejected ? (
-                  <span style={{ color: 'var(--error)' }}>Upload new proof or pay online</span>
-                ) : rentDue.isReviewing ? (
-                  <span style={{ color: 'var(--warning-text)' }}>Your document is being reviewed</span>
-                ) : rentDue.isOverdue
-                  ? `Overdue · ${rentDue.address}`
-                  : `Due in ${rentDue.days} days · ${rentDue.address}`}
-              </div>
-            </div>
-            <div className={`dash-home__rent-due-badge ${rentDue.isOverdue || rentDue.isRejected ? 'dash-home__rent-due-badge--overdue' : rentDue.isReviewing ? 'dash-home__rent-due-badge--review' : ''}`}>
-              <div className={`dash-home__rent-due-days ${rentDue.isOverdue ? 'dash-home__rent-due-days--overdue' : ''}`}>
-                {rentDue.days}
-              </div>
-              <div className={`dash-home__rent-due-days-label ${rentDue.isOverdue ? 'dash-home__rent-due-days-label--overdue' : ''}`}>
-                {rentDue.daysLabel}
-              </div>
-            </div>
+            <span className="dash-home__action-icon">
+              <CreditCard size={18} strokeWidth={2.2} />
+            </span>
+            <span className="dash-home__action-lbl">Pay Rent</span>
           </button>
-        )}
+          <button
+            type="button"
+            className="dash-home__action"
+            onClick={() => router.push('/dashboard/savings')}
+          >
+            <span className="dash-home__action-icon">
+              <PiggyBank size={18} strokeWidth={2.2} />
+            </span>
+            <span className="dash-home__action-lbl">Save Rent</span>
+          </button>
+          <button
+            type="button"
+            className="dash-home__action"
+            onClick={() => router.push('/dashboard/lifestyle')}
+          >
+            <span className="dash-home__action-icon">
+              <Target size={18} strokeWidth={2.2} />
+            </span>
+            <span className="dash-home__action-lbl">Living Goals</span>
+          </button>
+        </div>
       </div>
 
       <div className="dash-home__aside">
@@ -488,13 +399,7 @@ export function DashboardHome({
       </div>
 
       <div className="dash-home__wide">
-        {/* Hidden for now — exclusive homes prototype hidden for production deployment
-        <div className="dash-home__discover">
-          <h2 className="dash-home__discover-title">Discover</h2>
-          <ExclusiveHomesPromo />
-          <ExclusiveHomesBrowseLink />
-        </div>
-        */}
+        <LifestyleGoalsWidget />
 
         <div className="dash-home__section-head">
           <h2 className="dash-home__section-title">Recent Activity</h2>

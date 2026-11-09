@@ -452,4 +452,41 @@ export class PaystackGateway implements IPaymentGateway {
       throw error
     }
   }
+
+  async validateCustomerIdentification(data: {
+    customerCode: string
+    country?: string
+    type: 'bvn' | 'bank_account'
+    value: string
+    firstName: string
+    lastName: string
+  }): Promise<{ status: boolean; message: string }> {
+    try {
+      this.logger.log(`Validating customer ${data.customerCode} identification via Paystack`)
+      const res = await fetch(`${this.baseUrl}/customer/${data.customerCode}/identification`, {
+        method: 'POST',
+        headers: this.headers,
+        body: JSON.stringify({
+          country: data.country || 'NG',
+          type: data.type,
+          value: data.value,
+          first_name: data.firstName,
+          last_name: data.lastName,
+        }),
+      })
+      const responseData = await res.json()
+      return {
+        status: res.ok && !!responseData.status,
+        message:
+          responseData.message ||
+          (res.ok ? 'Customer identification submitted' : 'Failed to submit identification'),
+      }
+    } catch (err: any) {
+      this.logger.warn(
+        `Failed to submit identification to Paystack for customer ${data.customerCode}: ${err.message}`,
+      )
+      return { status: false, message: err.message }
+    }
+  }
 }
+
