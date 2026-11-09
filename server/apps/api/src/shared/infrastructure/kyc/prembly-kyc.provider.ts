@@ -25,7 +25,6 @@ export class PremblyKycProvider implements IKycProvider {
   async verify(
     idType: KycType,
     idNumber: string,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     expectedUser?: KycUserData,
   ): Promise<KycVerificationResult> {
     const cleanedNumber = idNumber.replace(/\D/g, '')
@@ -38,8 +37,8 @@ export class PremblyKycProvider implements IKycProvider {
       }
     }
 
-    if (!this.apiKey || !this.appId) {
-      this.logger.error('Prembly API credentials (PREMBLY_API_KEY or PREMBLY_APP_ID) are missing')
+    if (!this.apiKey) {
+      this.logger.error('Prembly API credential (PREMBLY_API_KEY) is missing')
       return {
         success: false,
         message: 'KYC provider credentials not configured',
@@ -48,42 +47,117 @@ export class PremblyKycProvider implements IKycProvider {
       }
     }
 
-    const endpoint =
-      idType === 'BVN'
-        ? `${this.baseUrl}/identitypass/verification/bvn`
-        : `${this.baseUrl}/identitypass/verification/nin`
+    // Determine target service name according to Prembly Option B: Verification Services REST API
+    // https://docs.prembly.com/guides/products/verification/kyc#option-b-verification-services-rest-api
+    const serviceName = idType.toLowerCase() // 'bvn' | 'nin' | 'vnin'
+    const primaryUrl = `${this.baseUrl}/api/v1/verification/api/${serviceName}/`
+    const fallbackUrl = `${this.baseUrl}/verification/${serviceName}`
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'x-api-key': this.apiKey,
+    }
+    if (this.appId) {
+      headers['app-id'] = this.appId
+    }
+
+    // Pass standard Option B schema with legacy fallbacks for maximum resilience
+    const payload: Record<string, any> = {
+      id_number: cleanedNumber,
+      number: cleanedNumber,
+      bvn: cleanedNumber,
+      number_nin: cleanedNumber,
+      nin: cleanedNumber,
+    }
+
+    if (expectedUser?.firstName) {
+      payload['first_name'] = expectedUser.firstName
+    }
+    if (expectedUser?.lastName) {
+      payload['last_name'] = expectedUser.lastName
+    }
+    if (expectedUser?.dateOfBirth) {
+      payload['dob'] = expectedUser.dateOfBirth
+    }
 
     try {
-      this.logger.log(`Initiating ${idType} verification with Prembly API`)
-      const res = await fetch(endpoint, {
+      this.logger.log(`Initiating ${idType} verification with Prembly Verification Services API`)
+      let res = await fetch(primaryUrl, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': this.apiKey,
-          'app-id': this.appId,
-        },
-        body: JSON.stringify({ number: cleanedNumber }),
+        headers,
+        body: JSON.stringify(payload),
       })
 
-      const data = await res.json()
-      if (!res.ok || !data.status) {
+      // If primary Option B route returns 404, fall back to root /verification/{service_name}
+      if (res.status === 404) {
         this.logger.warn(
-          `Prembly ${idType} verification failed: ${res.status} - ${data.message || JSON.stringify(data)}`,
+          `Primary Prembly endpoint 404'd (${primaryUrl}), attempting fallback route: ${fallbackUrl}`,
+        )
+        res = await fetch(fallbackUrl, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload),
+        })
+      }
+
+      const data = await res.json().catch(() => ({}))
+
+      // Prembly standard response codes from KYC guide:
+      // "00": Success (matched and retrieved from authoritative registry)
+      // "01": Not Found (ID number does not exist in national registry)
+      // "02": Service Unavailable (upstream registry down)
+      const responseCode = data.response_code || data.code || ''
+      const isSuccess =
+        data.status === true ||
+        data.status === 'VERIFIED' ||
+        data.status === 'success' ||
+        responseCode === '00'
+
+      if (!res.ok || !isSuccess) {
+        let failureMessage = data.message || data.detail || `Failed to verify ${idType}`
+        if (responseCode === '01') {
+          failureMessage = `The provided ${idType} (${cleanedNumber}) was not found in the official registry.`
+        } else if (responseCode === '02') {
+          failureMessage = `The official ${idType} registry is temporarily unavailable. Please try again in a few moments.`
+        }
+
+        this.logger.warn(
+          `Prembly ${idType} verification unsuccessful [${res.status} | code: ${responseCode}]: ${failureMessage}`,
         )
         return {
           success: false,
-          message: data.message || `Failed to verify ${idType} with identity provider`,
+          message: failureMessage,
           idType,
           provider: 'PREMBLY',
           rawResponse: data,
         }
       }
 
-      const returned = data.data || {}
-      const firstName = returned.firstName || returned.firstname || returned.first_name || ''
-      const lastName = returned.lastName || returned.surname || returned.last_name || ''
-      const dateOfBirth = returned.dateOfBirth || returned.birthdate || returned.dob || ''
-      const phone = returned.phoneNumber || returned.telephoneno || returned.phone || ''
+      // Demographic data extraction across Prembly response shapes
+      const returned = data.data || data.nin_data || data.bvn_data || data
+      const firstName = returned.first_name || returned.firstName || returned.firstname || ''
+      const lastName = returned.last_name || returned.lastName || returned.surname || ''
+      const dateOfBirth =
+        returned.dob || returned.date_of_birth || returned.dateOfBirth || returned.birthdate || ''
+      const phone =
+        returned.phone_number ||
+        returned.phoneNumber ||
+        returned.phoneNumber1 ||
+        returned.telephoneno ||
+        returned.phone ||
+        ''
+      const gender = returned.gender || ''
+
+      // Biometric passport portrait extraction (Base64 JPEG/PNG)
+      const rawPhoto =
+        returned.photo ||
+        returned.image ||
+        returned.base64Image ||
+        returned.bvn_image ||
+        data.photo ||
+        data.image ||
+        ''
+      const photo = typeof rawPhoto === 'string' ? rawPhoto : ''
 
       return {
         success: true,
@@ -93,15 +167,17 @@ export class PremblyKycProvider implements IKycProvider {
         lastName,
         dateOfBirth,
         phone,
+        gender,
+        photo,
         provider: 'PREMBLY',
-        providerReference: data.reference || data.verification_id,
+        providerReference: data.reference || data.verification_id || returned.reference,
         rawResponse: data,
       }
     } catch (error: any) {
       this.logger.error(`Error during Prembly ${idType} verification:`, error)
       return {
         success: false,
-        message: 'Network error communicating with identity verification provider',
+        message: 'Network error communicating with Prembly identity verification provider',
         idType,
         provider: 'PREMBLY',
       }

@@ -35,10 +35,7 @@ function formatShortDate(dateVal: string | number | Date): string {
   })
 }
 
-export function formatRentalPeriod(
-  start?: string | null,
-  end?: string | null,
-): string | null {
+export function formatRentalPeriod(start?: string | null, end?: string | null): string | null {
   const formattedStart = start ? formatShortDate(start) : null
   const formattedEnd = end ? formatShortDate(end) : null
 
@@ -81,8 +78,8 @@ export function getDueStatus(dueDateStr?: string | null): {
       daysOverdue === 1
         ? `Overdue by 1 day · ${formattedDate}`
         : daysOverdue > 60
-        ? `Overdue (${daysOverdue}d) · ${formattedDate}`
-        : `Overdue by ${daysOverdue} days · ${formattedDate}`
+          ? `Overdue (${daysOverdue}d) · ${formattedDate}`
+          : `Overdue by ${daysOverdue} days · ${formattedDate}`
     return {
       isOverdue: true,
       isToday: false,
@@ -135,14 +132,12 @@ export function CheckoutRecipientCard({
               />
             ) : null}
           </div>
-          {displayAddress ? (
-            <div className="pay-flow__recipient-meta">{displayAddress}</div>
-          ) : null}
+          {displayAddress ? <div className="pay-flow__recipient-meta">{displayAddress}</div> : null}
         </div>
       </div>
 
       {/* Invoice Details: Payment for, Payment due, and Invoice ID */}
-      {(rentalPeriodText || dueStatus || invoiceRef) ? (
+      {rentalPeriodText || dueStatus || invoiceRef ? (
         <div className="pay-flow__invoice-details">
           {rentalPeriodText ? (
             <div className="pay-flow__invoice-detail-row">

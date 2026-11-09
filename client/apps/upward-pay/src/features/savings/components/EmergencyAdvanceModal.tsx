@@ -1,17 +1,21 @@
 'use client'
 
-import React, { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import React, { useState, useEffect, useMemo, useSyncExternalStore } from 'react'
+import { createPortal } from 'react-dom'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { X, AlertCircle, Clock, CheckCircle2, ArrowRight } from 'lucide-react'
+import { X, AlertCircle, Clock, CheckCircle2, ArrowRight, Loader2 } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 import { formatCurrency } from '@/lib/utils'
 import { useDisburseAdvance } from '../hooks/useRentSavings'
+import type { EmergencyAdvanceResultData } from '../services/savingsService'
 import { useToast } from '@/components/common/Toast'
+import { api } from '@/lib/api'
 
 interface EmergencyAdvanceModalProps {
   vaultId: string
-  currentBalanceKobo: number
+  currentBalanceKobo?: number
   maxBorrowableKobo: number
   hasActiveLoan: boolean
   onClose: () => void
@@ -19,15 +23,36 @@ interface EmergencyAdvanceModalProps {
 
 const advanceFormSchema = z.object({
   amountKobo: z.number().positive(),
-  destinationBankCode: z.string().min(3, 'Bank code is required'),
-  destinationAccountNumber: z.string().length(10, 'Account number must be 10 digits'),
+  destinationBankCode: z.string().min(1, 'Please select a destination bank'),
+  destinationAccountNumber: z
+    .string()
+    .min(10, 'Account number must be 10 digits')
+    .max(10, 'Account number must be 10 digits')
+    .regex(/^\d{10}$/, 'Must be numeric 10-digit NUBAN'),
 })
 
 type AdvanceFormData = z.infer<typeof advanceFormSchema>
 
+const POPULAR_BANKS = [
+  { code: '058', name: 'Guaranty Trust Bank (GTBank)' },
+  { code: '044', name: 'Access Bank' },
+  { code: '057', name: 'Zenith Bank' },
+  { code: '011', name: 'First Bank of Nigeria' },
+  { code: '033', name: 'United Bank for Africa (UBA)' },
+  { code: '035', name: 'Wema Bank' },
+  { code: '090267', name: 'Kuda Bank' },
+  { code: '999992', name: 'OPay Digital Services' },
+  { code: '999991', name: 'PalmPay' },
+  { code: '214', name: 'First City Monument Bank (FCMB)' },
+  { code: '070', name: 'Fidelity Bank' },
+  { code: '232', name: 'Sterling Bank' },
+  { code: '221', name: 'Stanbic IBTC Bank' },
+]
+
+const emptySubscribe = () => () => {}
+
 export function EmergencyAdvanceModal({
   vaultId,
-  currentBalanceKobo,
   maxBorrowableKobo,
   hasActiveLoan,
   onClose,
@@ -35,24 +60,94 @@ export function EmergencyAdvanceModal({
   const [borrowAmountKobo, setBorrowAmountKobo] = useState<number>(
     Math.min(maxBorrowableKobo, Math.max(1000000, Math.floor(maxBorrowableKobo * 0.5))),
   )
-  const [successData, setSuccessData] = useState<any | null>(null)
+  const [successData, setSuccessData] = useState<EmergencyAdvanceResultData | null>(null)
+
+  const isClient = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  )
 
   const { error: toastError, success: toastSuccess } = useToast()
   const disburseMutation = useDisburseAdvance()
+
+  const { data: banksData, isLoading: isLoadingBanks } = useQuery({
+    queryKey: ['banks'],
+    queryFn: () => api.getBanks(),
+    staleTime: 1000 * 60 * 30,
+  })
+
+  const bankList = useMemo(() => {
+    if (Array.isArray(banksData) && banksData.length > 0) {
+      const map = new Map<string, string>()
+      for (const b of POPULAR_BANKS) {
+        map.set(b.code, b.name)
+      }
+      for (const b of banksData as { code: string; name: string }[]) {
+        if (b.code && b.name && !map.has(b.code)) {
+          map.set(b.code, b.name)
+        }
+      }
+      return Array.from(map.entries()).map(([code, name]) => ({ code, name }))
+    }
+    return POPULAR_BANKS
+  }, [banksData])
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [])
 
   const {
     register,
     handleSubmit,
     setValue,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<AdvanceFormData>({
     resolver: zodResolver(advanceFormSchema),
     defaultValues: {
       amountKobo: borrowAmountKobo,
-      destinationBankCode: '058', // GTBank default / sample
+      destinationBankCode: '058',
       destinationAccountNumber: '',
     },
   })
+
+  const destinationBankCode = useWatch({
+    control,
+    name: 'destinationBankCode',
+  })
+  const destinationAccountNumber = useWatch({
+    control,
+    name: 'destinationAccountNumber',
+  })
+
+  const rawAccountNumber = (destinationAccountNumber || '').replace(/\D/g, '')
+
+  const {
+    data: resolvedData,
+    isLoading: isResolving,
+    error: resolveQueryError,
+  } = useQuery({
+    queryKey: ['resolve-account', rawAccountNumber, destinationBankCode],
+    queryFn: () => api.resolveAccount(rawAccountNumber, destinationBankCode),
+    enabled: rawAccountNumber.length === 10 && Boolean(destinationBankCode),
+    staleTime: 1000 * 60 * 10,
+    retry: 1,
+  })
+
+  const resolvedAccountName =
+    resolvedData?.accountName ||
+    resolvedData?.account_name ||
+    resolvedData?.data?.account_name ||
+    null
+
+  const resolveError = resolveQueryError
+    ? (resolveQueryError as { message?: string })?.message ||
+      'Could not verify account name. Check details.'
+    : null
 
   const facilityFeeKobo = Math.round(borrowAmountKobo * 0.035)
   const totalRepayableKobo = borrowAmountKobo + facilityFeeKobo
@@ -64,6 +159,11 @@ export function EmergencyAdvanceModal({
   }
 
   const onSubmit = async (data: AdvanceFormData) => {
+    if (!resolvedAccountName) {
+      toastError('Please wait for account name verification before proceeding')
+      return
+    }
+
     try {
       const res = await disburseMutation.mutateAsync({
         vaultId,
@@ -74,13 +174,23 @@ export function EmergencyAdvanceModal({
         },
       })
       setSuccessData(res)
-      toastSuccess('Emergency advance successfully disbursed!')
-    } catch (err: any) {
-      toastError(err?.message || 'Failed to disburse emergency advance')
+      toastSuccess('Emergency advance successfully sent to your bank!')
+    } catch (err: unknown) {
+      const error = err as { message?: string }
+      toastError(error?.message || 'Failed to disburse emergency advance')
     }
   }
 
-  return (
+  const canSubmit =
+    !isSubmitting &&
+    !disburseMutation.isPending &&
+    maxBorrowableKobo >= 1000000 &&
+    Boolean(resolvedAccountName) &&
+    !isResolving
+
+  if (!isClient || typeof document === 'undefined') return null
+
+  return createPortal(
     <div className="vault-modal-overlay" onClick={onClose}>
       <div className="vault-modal-card" onClick={(e) => e.stopPropagation()}>
         <div className="vault-modal-header">
@@ -97,8 +207,8 @@ export function EmergencyAdvanceModal({
               <div>
                 <strong>Active Advance In Progress</strong>
                 <p style={{ marginTop: 4 }}>
-                  You currently have an outstanding emergency advance on this rent vault. You can
-                  request a new advance once the existing loan is repaid.
+                  You already have an outstanding emergency advance. You can request a new one once
+                  your current advance is repaid.
                 </p>
               </div>
             </div>
@@ -110,8 +220,8 @@ export function EmergencyAdvanceModal({
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, textAlign: 'center' }}>
             <div
               style={{
-                width: 56,
-                height: 56,
+                width: 52,
+                height: 52,
                 borderRadius: '50%',
                 background: 'rgba(34, 197, 94, 0.1)',
                 color: 'var(--success)',
@@ -121,29 +231,30 @@ export function EmergencyAdvanceModal({
                 margin: '0 auto',
               }}
             >
-              <CheckCircle2 size={32} />
+              <CheckCircle2 size={30} />
             </div>
 
             <div>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text)' }}>
-                {formatCurrency(successData.borrowed_amount_kobo / 100, 'NGN')} Disbursed
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text)' }}>
+                {formatCurrency(successData.borrowed_amount_kobo / 100, 'NGN')} Sent to Your Bank
+                Account
               </h3>
-              <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: 4 }}>
-                Instant NIP Transfer Reference: {successData.payout_transfer_reference}
+              <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                Reference: {successData.payout_transfer_reference}
               </p>
             </div>
 
             <div className="vault-fee-breakdown">
               <div className="vault-fee-breakdown__row">
-                <span>Facility Fee (3.5%)</span>
+                <span>Service Fee (3.5%)</span>
                 <span>{formatCurrency(successData.facility_fee_kobo / 100, 'NGN')}</span>
               </div>
               <div className="vault-fee-breakdown__row vault-fee-breakdown__row--total">
-                <span>Total Repayable</span>
+                <span>Total to Repay in 30 Days</span>
                 <span>{formatCurrency(successData.total_repayable_kobo / 100, 'NGN')}</span>
               </div>
               <div className="vault-fee-breakdown__row">
-                <span>Due Date (30 Days)</span>
+                <span>Due Date</span>
                 <span>
                   {new Date(successData.repayment_due_date).toLocaleDateString('en-GB', {
                     day: 'numeric',
@@ -161,16 +272,16 @@ export function EmergencyAdvanceModal({
         ) : (
           <form
             onSubmit={handleSubmit(onSubmit)}
-            style={{ display: 'flex', flexDirection: 'column', gap: 20 }}
+            style={{ display: 'flex', flexDirection: 'column', gap: 16 }}
           >
-            {/* Limit Cap Notice */}
-            <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-              Draw up to <strong>40% ({formatCurrency(maxBorrowableKobo / 100, 'NGN')})</strong> of
-              your accumulated mutual fund collateral for an emergency. Your principal continues
-              working.
+            <div
+              style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}
+            >
+              Borrow up to <strong>40% ({formatCurrency(maxBorrowableKobo / 100, 'NGN')})</strong>{' '}
+              against your rent savings for urgent needs. Your savings keep growing while you handle
+              the emergency.
             </div>
 
-            {/* Slider Section */}
             <div className="vault-slider-group">
               <div
                 style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}
@@ -187,9 +298,9 @@ export function EmergencyAdvanceModal({
               <input
                 type="range"
                 className="vault-slider"
-                min={1000000} // Min ₦10,000
+                min={1000000}
                 max={Math.max(1000000, maxBorrowableKobo)}
-                step={500000} // ₦5,000 steps
+                step={500000}
                 value={borrowAmountKobo}
                 onChange={handleSliderChange}
                 disabled={maxBorrowableKobo < 1000000}
@@ -207,36 +318,35 @@ export function EmergencyAdvanceModal({
               </div>
             </div>
 
-            {/* Transparent Fee & Term Breakdown */}
             <div className="vault-fee-breakdown">
               <div className="vault-fee-breakdown__row">
-                <span>Borrowed Capital</span>
+                <span>Borrow Amount</span>
                 <span>{formatCurrency(borrowAmountKobo / 100, 'NGN')}</span>
               </div>
               <div className="vault-fee-breakdown__row">
-                <span>Facility Fee (3.5% flat)</span>
+                <span>Service Fee (3.5%)</span>
                 <span>{formatCurrency(facilityFeeKobo / 100, 'NGN')}</span>
               </div>
               <div className="vault-fee-breakdown__row vault-fee-breakdown__row--total">
-                <span>Total Repayable (in 30 days)</span>
+                <span>Total to Repay in 30 Days</span>
                 <span>{formatCurrency(totalRepayableKobo / 100, 'NGN')}</span>
               </div>
             </div>
 
-            {/* Destination Bank Account */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div className="rent-calculator__field">
-                <label className="rent-calculator__label">Destination Bank</label>
+                <label className="rent-calculator__label">
+                  Destination Bank {isLoadingBanks && '(Loading...)'}
+                </label>
                 <select
                   {...register('destinationBankCode')}
                   className="rent-calculator__input rent-calculator__input--no-prefix"
                 >
-                  <option value="058">Guaranty Trust Bank (GTBank)</option>
-                  <option value="011">First Bank of Nigeria</option>
-                  <option value="033">United Bank for Africa (UBA)</option>
-                  <option value="057">Zenith Bank</option>
-                  <option value="035">Wema Bank</option>
-                  <option value="044">Access Bank</option>
+                  {bankList.map((b) => (
+                    <option key={b.code} value={b.code}>
+                      {b.name}
+                    </option>
+                  ))}
                 </select>
                 {errors.destinationBankCode && (
                   <span style={{ fontSize: '0.75rem', color: 'var(--error)' }}>
@@ -251,11 +361,33 @@ export function EmergencyAdvanceModal({
                   <input
                     type="text"
                     maxLength={10}
-                    placeholder="0123456789"
+                    placeholder="10-digit account number"
                     {...register('destinationAccountNumber')}
                     className="rent-calculator__input rent-calculator__input--no-prefix"
                   />
                 </div>
+
+                {isResolving && (
+                  <div className="vault-account-resolving">
+                    <Loader2 size={13} className="animate-spin" />
+                    <span>Verifying account details with Paystack...</span>
+                  </div>
+                )}
+
+                {!isResolving && resolvedAccountName && (
+                  <div className="vault-account-verified">
+                    <CheckCircle2 size={15} />
+                    <span>Verified: {resolvedAccountName}</span>
+                  </div>
+                )}
+
+                {!isResolving && resolveError && rawAccountNumber.length === 10 && (
+                  <div className="vault-account-error">
+                    <AlertCircle size={14} />
+                    <span>{resolveError}</span>
+                  </div>
+                )}
+
                 {errors.destinationAccountNumber && (
                   <span style={{ fontSize: '0.75rem', color: 'var(--error)' }}>
                     {errors.destinationAccountNumber.message}
@@ -264,39 +396,32 @@ export function EmergencyAdvanceModal({
               </div>
             </div>
 
-            {/* 30-Day SLA & Late fee warning */}
             <div
               style={{
                 display: 'flex',
-                alignItems: 'flex-start',
-                gap: 10,
+                alignItems: 'center',
+                gap: 8,
                 fontSize: '0.75rem',
                 color: 'var(--text-muted)',
-                lineHeight: 1.45,
+                lineHeight: 1.4,
               }}
             >
-              <Clock size={16} color="var(--warning)" style={{ flexShrink: 0, marginTop: 2 }} />
-              <span>
-                30-day fixed repayment tenure. Repayment is automatically deducted on day 30 or can
-                be repaid manually at any time with zero prepayment penalties. Late defaults incur
-                0.1%/day late charges.
-              </span>
+              <Clock size={15} color="var(--clay)" style={{ flexShrink: 0 }} />
+              <span>Repay within 30 days. You can repay early anytime with zero fees.</span>
             </div>
 
-            {/* Submit CTA */}
-            <button
-              type="submit"
-              className="vault-btn-primary"
-              disabled={isSubmitting || disburseMutation.isPending || maxBorrowableKobo < 1000000}
-            >
+            <button type="submit" className="vault-btn-primary" disabled={!canSubmit}>
               {disburseMutation.isPending
-                ? 'Processing Transfer...'
-                : 'Disburse Cash (Instant NIP)'}
+                ? 'Sending Cash...'
+                : isResolving
+                  ? 'Verifying Account...'
+                  : 'Get Cash Now'}
               <ArrowRight size={18} />
             </button>
           </form>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

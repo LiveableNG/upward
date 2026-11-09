@@ -13,14 +13,14 @@ export async function signup(data: {
   isFromInvite?: boolean
   hearAboutUs?: string
   properties?: Array<{
-    uuid?: string;
-    address: string;
-    subarea?: string;
-    state?: string;
-    country?: string;
-    rentDueDate?: string;
-    companyName?: string;
-    managerName?: string;
+    uuid?: string
+    address: string
+    subarea?: string
+    state?: string
+    country?: string
+    rentDueDate?: string
+    companyName?: string
+    managerName?: string
   }>
 }) {
   return request<AuthResponse>('/user/auth/signup', {
@@ -41,7 +41,11 @@ export async function socialSignIn(data: {
   })
 }
 
-export async function login(credentials: { email: string; password: string; type?: 'email' | 'phone' }) {
+export async function login(credentials: {
+  email: string
+  password: string
+  type?: 'email' | 'phone'
+}) {
   return request<AuthResponse>('/user/auth/login', {
     method: 'POST',
     body: JSON.stringify(credentials),
@@ -49,7 +53,10 @@ export async function login(credentials: { email: string; password: string; type
 }
 
 export async function logout() {
-  return request<{ message: string }>('/user/auth/logout', { method: 'POST', body: JSON.stringify({}) })
+  return request<{ message: string }>('/user/auth/logout', {
+    method: 'POST',
+    body: JSON.stringify({}),
+  })
 }
 
 export async function requestDeleteAccountOtp() {
@@ -85,17 +92,23 @@ export async function updateProfile(data: Partial<UserProfile>) {
 }
 
 export async function acceptTerms(version: string = '2026-08-24') {
-  return request<{ success: boolean; termsAcceptedAt: string; termsVersion: string }>('/user/auth/accept-terms', {
-    method: 'POST',
-    body: JSON.stringify({ version }),
-  })
+  return request<{ success: boolean; termsAcceptedAt: string; termsVersion: string }>(
+    '/user/auth/accept-terms',
+    {
+      method: 'POST',
+      body: JSON.stringify({ version }),
+    },
+  )
 }
 
 export async function getAvatarUploadUrl(contentType: string, filename: string) {
-  return request<{ key: string; uploadUrl: string; publicUrl: string }>('/user/auth/avatar-upload-url', {
-    method: 'POST',
-    body: JSON.stringify({ contentType, filename }),
-  })
+  return request<{ key: string; uploadUrl: string; publicUrl: string }>(
+    '/user/auth/avatar-upload-url',
+    {
+      method: 'POST',
+      body: JSON.stringify({ contentType, filename }),
+    },
+  )
 }
 
 export async function completeProfile(data: {
@@ -111,14 +124,14 @@ export async function completeProfile(data: {
   address?: string
   profilePic?: string
   properties?: Array<{
-    uuid?: string;
-    address: string;
-    subarea?: string;
-    state?: string;
-    country?: string;
-    rentDueDate?: string;
-    companyName?: string;
-    managerName?: string;
+    uuid?: string
+    address: string
+    subarea?: string
+    state?: string
+    country?: string
+    rentDueDate?: string
+    companyName?: string
+    managerName?: string
   }>
 }) {
   return request<AuthResponse>('/user/auth/complete-profile', {
@@ -161,19 +174,31 @@ export async function checkEmail(email: string, type?: 'email' | 'phone') {
   })
 }
 
-export async function requestOTP(email: string, context: 'SIGNUP' | 'LOGIN' | 'INVITE' | 'PAYMENT' | 'WAITLIST', type?: 'email' | 'phone', channel?: 'SMS' | 'WHATSAPP') {
+export async function requestOTP(
+  email: string,
+  context: 'SIGNUP' | 'LOGIN' | 'INVITE' | 'PAYMENT' | 'WAITLIST',
+  type?: 'email' | 'phone',
+  channel?: 'SMS' | 'WHATSAPP',
+) {
   return request<{ success: boolean; message: string }>('/user/auth/request-otp', {
     method: 'POST',
     body: JSON.stringify({ email, context, type, channel }),
   })
 }
 
-export async function verifyOTP(email: string, otp: string, context: string, type?: 'email' | 'phone') {
-  return request<{ success: boolean; message?: string; inviteToken?: string }>('/user/auth/verify-otp', {
-
-    method: 'POST',
-    body: JSON.stringify({ email, otp, context, type }),
-  })
+export async function verifyOTP(
+  email: string,
+  otp: string,
+  context: string,
+  type?: 'email' | 'phone',
+) {
+  return request<{ success: boolean; message?: string; inviteToken?: string }>(
+    '/user/auth/verify-otp',
+    {
+      method: 'POST',
+      body: JSON.stringify({ email, otp, context, type }),
+    },
+  )
 }
 
 export async function loginWithOTP(email: string, otp: string, type?: 'email' | 'phone') {
@@ -184,9 +209,12 @@ export async function loginWithOTP(email: string, otp: string, type?: 'email' | 
 }
 
 export async function verifyBvn(bvn: string) {
-  return request<{ success: boolean; message: string }>('/user/auth/verify-bvn', {
-    method: 'POST',
-    body: JSON.stringify({ bvn }),
-  })
+  return verifyKyc({ type: 'BVN', idNumber: bvn })
 }
 
+export async function verifyKyc(data: { type: 'BVN' | 'NIN'; idNumber: string }) {
+  return request<{ success: boolean; message: string }>('/user/auth/verify-kyc', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  })
+}

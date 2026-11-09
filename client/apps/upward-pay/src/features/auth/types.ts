@@ -82,6 +82,10 @@ export interface UserProfile {
   createdAt: string
   updatedAt: string
   bankDetails?: BankDetails | null
+  kycVerification?: {
+    idType?: 'BVN' | 'NIN'
+    idNumberMasked?: string
+  }
 }
 
 export interface AuthResponse {
