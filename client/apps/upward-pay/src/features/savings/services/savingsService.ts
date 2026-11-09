@@ -32,31 +32,145 @@ export interface ExecuteSettlementPayload {
   disburse_surplus_to_wallet?: boolean
 }
 
-export async function simulateRentSavings(payload: SimulateRentSavingsPayload) {
-  const res = await request<{ status: string; data: any }>('/rent-calculator/simulate', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  })
+export interface SimulateRentSavingsData {
+  days_remaining: number
+  periodic_deposit_kobo: number
+  number_of_payments: number
+  total_tenant_contribution_kobo: number
+  projected_yield_kobo: number
+  net_annual_yield_rate: number
+  affordability: {
+    rent_to_income_ratio: number
+    is_over_threshold?: boolean
+    isOverThreshold?: boolean
+    advisory_message?: string
+    advisoryMessage?: string
+  }
+}
+
+export interface BreakoutResultData {
+  breakout_reference: string
+  original_principal_kobo: number
+  forfeited_yield_kobo: number
+  recalculated_base_yield_kobo: number
+  admin_fee_kobo: number
+  advance_deduction_kobo: number
+  net_payout_kobo: number
+}
+
+export interface EmergencyAdvanceResultData {
+  advance_id: string
+  borrowed_amount_kobo: number
+  facility_fee_kobo: number
+  total_repayable_kobo: number
+  repayment_due_date: string
+  remaining_vault_balance_kobo: number
+  payout_transfer_reference: string
+}
+
+export interface SettlementResultData {
+  settlement_reference: string
+  nip_session_id: string
+  amount_paid_to_landlord_kobo: number
+  cashback_credited_kobo: number
+  early_bird_bonus_applied: boolean
+  settlement_status: string
+  receipt_download_url: string
+  sms_alert_dispatched: boolean
+  upward_score_delta: string
+  surplus_to_wallet_kobo?: number
+}
+
+export interface RentVaultData {
+  vault_id: string
+  lock_status: string
+  current_balance_kobo: number
+  principal_kobo: number
+  accrued_yield_kobo: number
+  daily_yield_rate: number
+  days_to_unlock: number
+  days_remaining: number
+  target_amount_kobo: number
+  target_completion_percentage: number
+  contractual_due_date: string
+  unlock_date: string
+  dedicated_account: {
+    bank_name: string
+    account_number: string
+    account_name: string
+    assignment_status: string
+  } | null
+  emergency_advance: {
+    has_active_loan: boolean
+    active_loan_details: {
+      advance_id: string
+      borrowed_amount_kobo: number
+      total_repayable_kobo: number
+      repayment_due_date: string
+      status: string
+    } | null
+    max_borrowable_kobo: number
+  }
+  savings_score: {
+    total_score: number
+    cadence_points: number
+    velocity_points: number
+    loan_discipline_points: number
+  }
+}
+
+export interface OnboardInvestorData {
+  is_verified: boolean
+  masked_bvn: string
+  provider: string
+  dedicated_account: {
+    bank_name: string
+    account_number: string
+    account_name: string
+    assignment_status?: string
+  }
+}
+
+export async function simulateRentSavings(
+  payload: SimulateRentSavingsPayload,
+): Promise<SimulateRentSavingsData> {
+  const res = await request<{ status: string; data: SimulateRentSavingsData }>(
+    '/rent-calculator/simulate',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+  )
   return res.data
 }
 
 export async function createRentVault(payload: CreateVaultPayload) {
-  const res = await request<{ status: string; data: any }>('/rent-vaults', {
+  const res = await request<{ status: string; data: Record<string, unknown> }>('/rent-vaults', {
     method: 'POST',
     body: JSON.stringify(payload),
   })
   return res.data
 }
 
-export async function getMyRentVault() {
-  const res = await request<{ status: string; data: any }>('/rent-vaults/me', {
+export async function getMyRentVault(): Promise<RentVaultData> {
+  const res = await request<{ status: string; data: RentVaultData }>('/rent-vaults/me', {
     method: 'GET',
   })
   return res.data
 }
 
-export async function disburseEmergencyAdvance(vaultId: string, payload: DisburseAdvancePayload) {
-  const res = await request<{ status: string; data: any }>(
+export async function consentToSavings() {
+  const res = await request<{ status: string; message: string }>('/rent-vaults/consent', {
+    method: 'POST',
+  })
+  return res
+}
+
+export async function disburseEmergencyAdvance(
+  vaultId: string,
+  payload: DisburseAdvancePayload,
+): Promise<EmergencyAdvanceResultData> {
+  const res = await request<{ status: string; data: EmergencyAdvanceResultData }>(
     `/rent-vaults/${vaultId}/advance/disburse`,
     {
       method: 'POST',
@@ -69,8 +183,8 @@ export async function disburseEmergencyAdvance(vaultId: string, payload: Disburs
 export async function executeLandlordSettlement(
   vaultId: string,
   payload: ExecuteSettlementPayload,
-) {
-  const res = await request<{ status: string; data: any }>(
+): Promise<SettlementResultData> {
+  const res = await request<{ status: string; data: SettlementResultData }>(
     `/rent-vaults/${vaultId}/settlement/execute`,
     {
       method: 'POST',
@@ -80,11 +194,36 @@ export async function executeLandlordSettlement(
   return res.data
 }
 
-export async function breakoutRentVault(vaultId: string) {
-  const res = await request<{ status: string; data: any }>(`/rent-vaults/${vaultId}/breakout`, {
-    method: 'POST',
-  })
+export async function breakoutRentVault(vaultId: string): Promise<BreakoutResultData> {
+  const res = await request<{ status: string; data: BreakoutResultData }>(
+    `/rent-vaults/${vaultId}/breakout`,
+    {
+      method: 'POST',
+    },
+  )
   return res.data
+}
+
+export async function simulateVaultDeposit(accountNumber: string, amountKobo: number) {
+  const res = await request<{ status: string; reference?: string }>(
+    '/payments/webhooks/rent-savings/paystack',
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        event: 'charge.success',
+        data: {
+          reference: `TEST_DEP_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+          amount: amountKobo,
+          currency: 'NGN',
+          channel: 'dedicated_nuban',
+          dedicated_account: {
+            account_number: accountNumber,
+          },
+        },
+      }),
+    },
+  )
+  return res
 }
 
 export interface OnboardInvestorPayload {
@@ -98,14 +237,16 @@ export interface OnboardInvestorPayload {
   next_of_kin_phone: string
   next_of_kin_email?: string
   next_of_kin_address?: string
-  settlement_bank_code: string
-  settlement_account_number: string
-  settlement_account_name: string
+  settlement_bank_code?: string
+  settlement_account_number?: string
+  settlement_account_name?: string
   settlement_bank_name?: string
 }
 
-export async function onboardSavingsInvestor(payload: OnboardInvestorPayload) {
-  const res = await request<{ status: string; message: string; data: any }>(
+export async function onboardSavingsInvestor(
+  payload: OnboardInvestorPayload,
+): Promise<OnboardInvestorData> {
+  const res = await request<{ status: string; message: string; data: OnboardInvestorData }>(
     '/rent-vaults/onboard-investor',
     {
       method: 'POST',

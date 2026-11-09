@@ -16,42 +16,56 @@ import {
   Check,
   ChevronRight,
   Sparkles,
+  ArrowLeft,
 } from 'lucide-react'
-import { useScoreProfile } from '../services/scoreService'
-import { PayPageShell } from '@/features/dashboard/components/payment/PayPageShell'
+import { useScoreProfile, type ScoreCycle, type ScoreProperty } from '../services/scoreService'
 import { formatCurrency, getPublicWebUrl, copyTextToClipboard } from '@/lib/utils'
 import { useToast } from '@/components/common/Toast'
-import { Capacitor } from '@capacitor/core'
 
 function ScoreBreakdownSkeleton() {
   return (
-    <div className="score-page score-page--loading animate-pulse" aria-hidden="true">
-      <div className="score-page__hero score-page__hero--skeleton">
-        <div className="score-page__gauge-skeleton" />
-        <div className="score-page__hero-copy-skeleton">
-          <div className="score-page__skel-line score-page__skel-line--title" />
-          <div className="score-page__skel-line score-page__skel-line--body" />
-          <div className="score-page__skel-line score-page__skel-line--body score-page__skel-line--short" />
+    <div className="score-breakdown-screen dashboard--nav-offset" aria-hidden="true">
+      <header className="score-page__header">
+        <div className="score-page__back-skeleton animate-pulse" />
+        <div className="score-page__header-text">
+          <div
+            className="score-page__skel-line score-page__skel-line--title"
+            style={{ width: '280px', height: '28px' }}
+          />
+          <div
+            className="score-page__skel-line score-page__skel-line--body"
+            style={{ width: '420px', marginTop: '6px' }}
+          />
         </div>
-      </div>
-      <div>
-        <div className="score-page__skel-line score-page__skel-line--label" />
-        <div className="score-page__factor-grid">
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="score-page__factor-card score-page__factor-card--skeleton">
-              <div className="score-page__factor-top">
-                <div className="score-page__skel-box" />
-                <div className="score-page__skel-num" />
+      </header>
+      <div className="score-page score-page--loading animate-pulse">
+        <div className="score-page__hero score-page__hero--skeleton">
+          <div className="score-page__gauge-skeleton" />
+          <div className="score-page__hero-copy-skeleton">
+            <div className="score-page__skel-line score-page__skel-line--title" />
+            <div className="score-page__skel-line score-page__skel-line--body" />
+            <div className="score-page__skel-line score-page__skel-line--body score-page__skel-line--short" />
+          </div>
+        </div>
+        <div>
+          <div className="score-page__skel-line score-page__skel-line--label" />
+          <div className="score-page__factor-grid">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="score-page__factor-card score-page__factor-card--skeleton">
+                <div className="score-page__factor-top">
+                  <div className="score-page__skel-box" />
+                  <div className="score-page__skel-num" />
+                </div>
+                <div className="score-page__skel-line score-page__skel-line--sub" />
+                <div className="score-page__skel-line score-page__skel-line--desc" />
               </div>
-              <div className="score-page__skel-line score-page__skel-line--sub" />
-              <div className="score-page__skel-line score-page__skel-line--desc" />
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
-      <div className="score-page__history-card score-page__history-card--skeleton">
-        <div className="score-page__skel-line score-page__skel-line--title" />
-        <div className="score-page__skel-line score-page__skel-line--table" />
+        <div className="score-page__history-card score-page__history-card--skeleton">
+          <div className="score-page__skel-line score-page__skel-line--title" />
+          <div className="score-page__skel-line score-page__skel-line--table" />
+        </div>
       </div>
     </div>
   )
@@ -82,19 +96,44 @@ export function ScoreBreakdownScreen() {
     }
   }
 
-  if (isLoading || !scoreProfile) {
-    return (
-      <PayPageShell title="Score Breakdown" showBack onBack={() => router.push('/dashboard')}>
-        <ScoreBreakdownSkeleton />
-      </PayPageShell>
+  const sortedCycles = useMemo(() => {
+    const rawCycles = scoreProfile?.data?.cycles || []
+    return [...rawCycles].sort(
+      (a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime(),
     )
+  }, [scoreProfile?.data?.cycles])
+
+  if (isLoading || !scoreProfile) {
+    return <ScoreBreakdownSkeleton />
   }
 
-  const { isScorable, score, rank, band, metrics, cycles = [], properties = [], profile, maxScore } = scoreProfile.data
-  const paidPaymentsCount = cycles.filter((c: any) => c.status && (c.status.includes('PAID') || c.status.includes('PARTIAL'))).length
-  const hasVerifiedPmProperty = properties.some((p: any) => p.isVerified && (p.isPmVerified || p.isPlatformLinked || p.pm?.isVerified || !!p.company?.platformId))
+  const {
+    isScorable,
+    score,
+    rank,
+    band,
+    metrics,
+    scoreHistory = [],
+    properties = [],
+    profile,
+    maxScore,
+    cycles = [],
+  } = scoreProfile.data
+  const breakdown = metrics?.breakdown
+  const paidPaymentsCount = cycles.filter(
+    (c: ScoreCycle) => c.status && (c.status.includes('PAID') || c.status.includes('PARTIAL')),
+  ).length
+  const hasVerifiedPmProperty = properties.some(
+    (p: ScoreProperty) =>
+      p.isVerified &&
+      (p.isPmVerified || p.isPlatformLinked || p.pm?.isVerified || !!p.company?.platformId),
+  )
   const verificationOn = profile?.verificationOn ?? true
-  const isVerified = (verificationOn === false || !!profile?.isIdentityVerified) && paidPaymentsCount > 0 && hasVerifiedPmProperty || properties.some((p: any) => p.isVerified)
+  const isVerified =
+    ((verificationOn === false || !!profile?.isIdentityVerified) &&
+      paidPaymentsCount > 0 &&
+      hasVerifiedPmProperty) ||
+    properties.some((p: ScoreProperty) => p.isVerified)
 
   const getRankColor = () => {
     if (!isScorable || !isVerified) return '#928e89'
@@ -105,24 +144,34 @@ export function ScoreBreakdownScreen() {
     return 'var(--error)'
   }
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string, timelinessTier?: string) => {
+    if (timelinessTier === 'PAID_EARLY' || timelinessTier === 'PAID_SLIGHTLY_EARLY')
+      return 'var(--success, #16a34a)'
     if (status === 'PAID_ON_TIME' || status === 'PAID_BEFORE_DUE') return 'var(--clay)'
-    if (status === 'PAID_LATE' || status === 'PARTIAL_LATE' || status === 'MISSED') return 'var(--error)'
+    if (status === 'PAID_LATE' || status === 'PARTIAL_LATE' || status === 'MISSED')
+      return 'var(--error)'
     if (status === 'PENDING') return 'var(--warning)'
     return 'var(--text-muted)'
   }
 
-  const getStatusLabel = (status: string) => {
-    return status.replace(/_/g, ' ')
+  const getStatusLabel = (cycle: ScoreCycle) => {
+    if (cycle.source === 'SELF_REPORTED' && cycle.excluded) {
+      return 'PENDING VERIFICATION'
+    }
+    if (cycle.timelinessTier === 'PAID_EARLY') {
+      return 'PAID EARLY (7+ DAYS)'
+    }
+    if (cycle.timelinessTier === 'PAID_SLIGHTLY_EARLY') {
+      return 'PAID EARLY'
+    }
+    if (cycle.status === 'PAID_ON_TIME') {
+      return 'PAID ON DUE DATE'
+    }
+    return (cycle.status || '').replace(/_/g, ' ')
   }
 
-  const sortedCycles = useMemo(
-    () => [...cycles].sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime()),
-    [cycles],
-  )
-
   // Circular gauge parameters
-  const safeMaxScore = maxScore > 0 ? maxScore : 1000
+  const safeMaxScore = maxScore > 0 ? maxScore : 900
   const scorePct = Math.min(100, Math.max(0, (score / safeMaxScore) * 100))
   const radius = 62
   const circumference = 2 * Math.PI * radius
@@ -132,50 +181,63 @@ export function ScoreBreakdownScreen() {
     {
       label: 'Payment Timeliness',
       value: `${Math.round(metrics?.ptPercentage || 0)}%`,
+      pts: breakdown ? `${breakdown.timeliness} / ${breakdown.maxTimeliness} pts` : null,
       icon: Clock,
-      desc: 'How often you pay on or before the due date.',
+      desc: 'Pays 200 pts when settled 7+ days early (+15 early-bird bonus) or 185 pts on due date.',
     },
     {
       label: 'Payment Consistency',
-      value: `${metrics?.longestStreak || 0} cycles`,
+      value: `${metrics?.longestStreak || 0} ${(metrics?.longestStreak || 0) === 1 ? 'cycle' : 'cycles'}`,
+      pts: breakdown ? `${breakdown.streak} / ${breakdown.maxStreak} pts` : null,
       icon: Flame,
-      desc: 'Your longest continuous streak of on-time rent cycles.',
+      desc: 'Continuous streak of on-time rent cycles along the 6-year credibility curve.',
     },
     {
       label: 'Financial Discipline',
       value: `${Math.round(metrics?.discipline || 0)}%`,
+      pts: breakdown ? `${breakdown.discipline} / ${breakdown.maxDiscipline} pts` : null,
       icon: Target,
-      desc: 'The ratio of full payments vs partial payments.',
+      desc: 'Full 100 pts when 100% of rent is settled on or before the due date.',
     },
     {
-      label: 'Tenure',
-      value: `${metrics?.historyYears || 0} yrs`,
+      label: 'Verified Tenure',
+      value: `${metrics?.historyYears || 0} ${(metrics?.historyYears || 0) === 1 ? 'yr' : 'yrs'}`,
+      pts: breakdown ? `${breakdown.tenure} / ${breakdown.maxTenure} pts` : null,
       icon: History,
-      desc: 'Length of your verified rent payment history.',
+      desc: 'Total verified tenancy duration across Upward and GoodTenants.',
     },
     {
-      label: 'Savings Bonus',
+      label: 'Rent Vault Bonus',
       value: `+${metrics?.savingsBonus || 0} pts`,
+      pts: breakdown ? `${breakdown.savingsBonus} / ${breakdown.maxSavingsBonus} pts` : null,
       icon: TrendingUp,
-      desc: 'Bonus points awarded for your rent preparation savings.',
+      desc: 'Powered by your Rent Vault deposit cadence, milestone velocity, and advance discipline.',
       highlight: true,
     },
   ]
 
-  const renderImpact = (cycle: any) => {
+  const renderImpact = (cycle: ScoreCycle) => {
     if (cycle.excluded) {
       return (
         <span className="score-page__impact score-page__impact--neutral">
           <Info size={13} />
-          <span>No Impact</span>
+          <span>{cycle.source === 'SELF_REPORTED' ? 'Pending Verification' : 'No Impact Yet'}</span>
         </span>
       )
     }
-    if (cycle.status === 'PAID_ON_TIME') {
+    if (cycle.timelinessTier === 'PAID_EARLY' || cycle.timelinessTier === 'PAID_SLIGHTLY_EARLY') {
       return (
         <span className="score-page__impact score-page__impact--positive">
           <TrendingUp size={13} />
-          <span>Positive</span>
+          <span>Early Bonus ({cycle.timelinessPoints || 200}/200)</span>
+        </span>
+      )
+    }
+    if (cycle.status === 'PAID_ON_TIME' || cycle.isOnTime) {
+      return (
+        <span className="score-page__impact score-page__impact--positive">
+          <TrendingUp size={13} />
+          <span>On Time ({cycle.timelinessPoints || 185}/200)</span>
         </span>
       )
     }
@@ -187,7 +249,11 @@ export function ScoreBreakdownScreen() {
         </span>
       )
     }
-    if (cycle.status === 'PAID_LATE' || cycle.status === 'PARTIAL_LATE' || cycle.status === 'MISSED') {
+    if (
+      cycle.status === 'PAID_LATE' ||
+      cycle.status === 'PARTIAL_LATE' ||
+      cycle.status === 'MISSED'
+    ) {
       return (
         <span className="score-page__impact score-page__impact--negative">
           <AlertCircle size={13} />
@@ -220,16 +286,33 @@ export function ScoreBreakdownScreen() {
   }
 
   return (
-    <PayPageShell
-      title="Score Breakdown"
-      subtitle="How your payment behavior shapes your rent credibility score."
-      showBack
-      onBack={() => router.push('/dashboard')}
-    >
+    <div className="score-breakdown-screen dashboard--nav-offset">
+      <header className="score-page__header">
+        <button
+          type="button"
+          className="score-page__back-btn"
+          onClick={() => router.push('/dashboard')}
+          aria-label="Back to Dashboard"
+        >
+          <ArrowLeft size={16} />
+          <span>Back to Dashboard</span>
+        </button>
+        <div className="score-page__header-text">
+          <h1 className="score-page__title">Upward Rent Score Breakdown</h1>
+          <p className="score-page__subtitle">
+            How your payment behavior, streak consistency, and tenancy history shape your rent
+            credibility rating.
+          </p>
+        </div>
+      </header>
+
       <div className="score-page">
         {/* Hero Glass Card with Apple-style Ring Gauge */}
         <section className="score-page__hero">
-          <div className="score-page__gauge-wrap" style={{ '--rank-color': getRankColor() } as React.CSSProperties}>
+          <div
+            className="score-page__gauge-wrap"
+            style={{ '--rank-color': getRankColor() } as React.CSSProperties}
+          >
             <div className="score-page__gauge">
               <svg className="score-page__gauge-svg" viewBox="0 0 148 148" width="148" height="148">
                 <defs>
@@ -303,13 +386,18 @@ export function ScoreBreakdownScreen() {
                 </div>
                 <div className="score-page__notice-text">
                   <strong>Verification Needed</strong>
-                  <span>Connect with an Upward partner landlord to verify records and activate your live score.</span>
+                  <span>
+                    Connect with an Upward partner landlord to verify records and activate your live
+                    score.
+                  </span>
                 </div>
               </div>
             )}
 
             <p className="score-page__hero-desc">
-              Your score reflects payment timeliness, streak consistency, financial discipline, tenure history, and rent preparation savings. Every recorded cycle directly improves this rating.
+              Your score reflects payment timeliness, streak consistency, financial discipline,
+              tenure history, and rent preparation savings. Every recorded cycle directly improves
+              this rating.
             </p>
           </div>
         </section>
@@ -333,7 +421,10 @@ export function ScoreBreakdownScreen() {
                     <div className="score-page__factor-icon">
                       <Icon size={18} />
                     </div>
-                    <span className="score-page__factor-value">{factor.value}</span>
+                    <div className="score-page__factor-right">
+                      <span className="score-page__factor-value">{factor.value}</span>
+                      {factor.pts && <span className="score-page__factor-pts">{factor.pts}</span>}
+                    </div>
                   </div>
                   <strong className="score-page__factor-title">{factor.label}</strong>
                   <p className="score-page__factor-desc">{factor.desc}</p>
@@ -342,6 +433,45 @@ export function ScoreBreakdownScreen() {
             })}
           </div>
         </section>
+
+        {/* Score Progression Timeline (V2 Audit Trail) */}
+        {scoreHistory.length > 0 && (
+          <section className="score-page__history-card">
+            <div className="score-page__history-head">
+              <div>
+                <h3>Score Progression</h3>
+                <p>How each verified rent payment and Rent Vault milestone moved your score.</p>
+              </div>
+              <span className="score-page__history-count">300 Base • 500 Starter</span>
+            </div>
+            <div className="score-page__cycle-list" style={{ display: 'flex' }}>
+              {scoreHistory.map((item) => (
+                <div key={item.id} className="score-page__cycle-item">
+                  <div className="score-page__cycle-top-row">
+                    <div className="score-page__cycle-date-block">
+                      <strong>{item.title}</strong>
+                      <span>{item.subtitle}</span>
+                    </div>
+                    <div className="score-page__cycle-amount-block">
+                      <span
+                        className={`score-page__impact ${
+                          item.delta >= 0
+                            ? 'score-page__impact--positive'
+                            : 'score-page__impact--negative'
+                        }`}
+                      >
+                        <TrendingUp size={13} />
+                        <span>
+                          {item.delta >= 0 ? `+${item.delta}` : item.delta} pts → {item.scoreAfter}
+                        </span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Cycle History Card */}
         <section className="score-page__history-card">
@@ -366,7 +496,8 @@ export function ScoreBreakdownScreen() {
                 </div>
                 <p className="score-page__empty-title">No cycle history yet</p>
                 <p className="score-page__empty-desc">
-                  Recorded rent payments and landlord-verified cycles will show up here automatically.
+                  Recorded rent payments and landlord-verified cycles will show up here
+                  automatically.
                 </p>
               </div>
             ) : (
@@ -380,26 +511,40 @@ export function ScoreBreakdownScreen() {
                           year: 'numeric',
                         })}
                       </strong>
-                      <span>Due {new Date(cycle.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
+                      <span>
+                        Due{' '}
+                        {new Date(cycle.dueDate).toLocaleDateString('en-GB', {
+                          day: 'numeric',
+                          month: 'short',
+                        })}
+                      </span>
                     </div>
 
                     <div className="score-page__cycle-amount-block">
-                      <span className="score-page__cycle-amount">{formatCurrency(cycle.amount, 'NGN')}</span>
+                      <span className="score-page__cycle-amount">
+                        {formatCurrency(cycle.amount, 'NGN')}
+                      </span>
                     </div>
                   </div>
 
                   <div className="score-page__cycle-bottom-row">
-                    <span className={`score-page__source-tag score-page__source-tag--${cycle.source.toLowerCase()}`}>
+                    <span
+                      className={`score-page__source-tag score-page__source-tag--${cycle.source.toLowerCase()}`}
+                    >
                       {cycle.source.replace(/_/g, ' ')}
                     </span>
 
                     <div className="score-page__cycle-tags">
                       <span
                         className="score-page__status-badge"
-                        style={{ '--status-color': getStatusColor(cycle.status) } as React.CSSProperties}
+                        style={
+                          {
+                            '--status-color': getStatusColor(cycle.status, cycle.timelinessTier),
+                          } as React.CSSProperties
+                        }
                       >
                         <span className="score-page__status-dot" />
-                        {getStatusLabel(cycle.status)}
+                        {getStatusLabel(cycle)}
                       </span>
                       {renderImpact(cycle)}
                     </div>
@@ -443,23 +588,29 @@ export function ScoreBreakdownScreen() {
                         </div>
                       </td>
                       <td>
-                        <span className={`score-page__source-tag score-page__source-tag--${cycle.source.toLowerCase()}`}>
+                        <span
+                          className={`score-page__source-tag score-page__source-tag--${cycle.source.toLowerCase()}`}
+                        >
                           {cycle.source.replace(/_/g, ' ')}
                         </span>
                       </td>
-                      <td className="score-page__td-amount">{formatCurrency(cycle.amount, 'NGN')}</td>
+                      <td className="score-page__td-amount">
+                        {formatCurrency(cycle.amount, 'NGN')}
+                      </td>
                       <td>
                         <span
                           className="score-page__status-badge"
-                          style={{ '--status-color': getStatusColor(cycle.status) } as React.CSSProperties}
+                          style={
+                            {
+                              '--status-color': getStatusColor(cycle.status, cycle.timelinessTier),
+                            } as React.CSSProperties
+                          }
                         >
                           <span className="score-page__status-dot" />
-                          {getStatusLabel(cycle.status)}
+                          {getStatusLabel(cycle)}
                         </span>
                       </td>
-                      <td>
-                        {renderImpact(cycle)}
-                      </td>
+                      <td>{renderImpact(cycle)}</td>
                     </tr>
                   ))
                 )}
@@ -476,7 +627,10 @@ export function ScoreBreakdownScreen() {
             </div>
             <div>
               <h3>Missing past records?</h3>
-              <p>Add rent payments from previous tenancies to improve your tenure and consistency score.</p>
+              <p>
+                Add rent payments from previous tenancies to improve your tenure and consistency
+                score.
+              </p>
             </div>
           </div>
           <button
@@ -490,6 +644,6 @@ export function ScoreBreakdownScreen() {
           </button>
         </section>
       </div>
-    </PayPageShell>
+    </div>
   )
 }

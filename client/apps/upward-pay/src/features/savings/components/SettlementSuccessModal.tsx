@@ -1,7 +1,8 @@
 'use client'
 
-import React from 'react'
-import { CheckCircle2, Download, Award, ArrowRight, ShieldCheck, Share2 } from 'lucide-react'
+import React, { useEffect, useSyncExternalStore } from 'react'
+import { createPortal } from 'react-dom'
+import { CheckCircle2, Download, Award, ArrowRight } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 
 interface SettlementSuccessModalProps {
@@ -20,6 +21,8 @@ interface SettlementSuccessModalProps {
   onRestartVault: () => void
 }
 
+const emptySubscribe = () => () => {}
+
 export function SettlementSuccessModal({
   data,
   landlordName,
@@ -30,15 +33,32 @@ export function SettlementSuccessModal({
   const cashbackNaira = data.cashback_credited_kobo / 100
   const surplusNaira = (data.surplus_to_wallet_kobo || 0) / 100
 
+  const isClient = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  )
+
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [])
+
   const handleDownloadReceipt = () => {
-    // In production, triggers the PDF receipt download
     window.open(data.receipt_download_url, '_blank')
   }
 
-  return (
-    <div className="vault-modal-overlay">
-      <div className="vault-modal-card" style={{ maxWidth: 520, textAlign: 'center' }}>
-        {/* Animated Success Badge */}
+  if (!isClient || typeof document === 'undefined') return null
+
+  return createPortal(
+    <div className="vault-modal-overlay" onClick={onClose}>
+      <div
+        className="vault-modal-card"
+        style={{ maxWidth: 520, textAlign: 'center' }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <div
           style={{
             width: 64,
@@ -64,7 +84,6 @@ export function SettlementSuccessModal({
           </p>
         </div>
 
-        {/* NIP Session ID & Settlement Details */}
         <div className="vault-fee-breakdown" style={{ textAlign: 'left' }}>
           <div className="vault-fee-breakdown__row">
             <span>Amount Paid to Landlord</span>
@@ -98,7 +117,6 @@ export function SettlementSuccessModal({
           </div>
         </div>
 
-        {/* Cashback & Discipline Gamification Banner */}
         <div
           style={{
             background:
@@ -137,7 +155,6 @@ export function SettlementSuccessModal({
           </span>
         </div>
 
-        {/* Legal Tenancy Receipt Action */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
           <button
             type="button"
@@ -146,7 +163,7 @@ export function SettlementSuccessModal({
             onClick={handleDownloadReceipt}
           >
             <Download size={18} />
-            <span>Download Official PDF Rent Receipt</span>
+            <span>Download Official Rent Receipt</span>
           </button>
 
           <p style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
@@ -159,11 +176,12 @@ export function SettlementSuccessModal({
             onClick={onRestartVault}
             style={{ marginTop: 6 }}
           >
-            <span>Start Next Year&apos;s Rent Vault</span>
+            <span>Start Saving for Next Year&apos;s Rent</span>
             <ArrowRight size={18} />
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

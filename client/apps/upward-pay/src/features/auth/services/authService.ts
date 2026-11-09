@@ -184,9 +184,13 @@ export async function loginWithOTP(email: string, otp: string, type?: 'email' | 
 }
 
 export async function verifyBvn(bvn: string) {
-  return request<{ success: boolean; message: string }>('/user/auth/verify-bvn', {
+  return verifyKyc({ type: 'BVN', idNumber: bvn })
+}
+
+export async function verifyKyc(data: { type: 'BVN' | 'NIN'; idNumber: string }) {
+  return request<{ success: boolean; message: string }>('/user/auth/verify-kyc', {
     method: 'POST',
-    body: JSON.stringify({ bvn }),
+    body: JSON.stringify(data),
   })
 }
 

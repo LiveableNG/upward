@@ -1,6 +1,41 @@
 import { request } from '@/lib/api-client'
 import { useQuery } from '@tanstack/react-query'
 
+export interface ScoreCycle {
+  id: number
+  uuid: string
+  amount: number
+  amountPaid?: number
+  dueDate: string
+  paidDate: string | null
+  status: string
+  ptValue: number
+  timelinessPoints?: number
+  timelinessTier?: string
+  isOnTime?: boolean
+  source: string
+  excluded: boolean
+}
+
+export interface ScoreProperty {
+  id?: number
+  uuid?: string
+  isVerified?: boolean
+  isPmVerified?: boolean
+  isPlatformLinked?: boolean
+  isPastTenancy?: boolean
+  rentStartDate?: string | null
+  rentEndDate?: string | null
+  pm?: { isVerified?: boolean } | null
+  company?: { platformId?: number | null } | null
+  location?: {
+    address?: string
+    area?: string
+    state?: string
+    country?: string
+  } | null
+}
+
 export interface ScoreProfile {
   success: boolean
   data: {
@@ -11,12 +46,38 @@ export interface ScoreProfile {
     rank: string
     metrics: {
       ptPercentage: number
+      timelinessScorePct?: number
+      earlyPaymentCount?: number
       longestStreak: number
+      currentStreak?: number
       totalCycles: number
       historyYears: number
       discipline: number
       savingsBonus?: number
+      avgDaysLeadTime?: number
+      breakdown?: {
+        base: number
+        timeliness: number
+        maxTimeliness: number
+        streak: number
+        maxStreak: number
+        discipline: number
+        maxDiscipline: number
+        tenure: number
+        maxTenure: number
+        savingsBonus: number
+        maxSavingsBonus: number
+      }
     }
+    scoreHistory?: Array<{
+      id: string
+      date: string
+      title: string
+      subtitle: string
+      delta: number
+      scoreAfter: number
+      category: string
+    }>
     profile: {
       name: string
       email: string
@@ -30,18 +91,8 @@ export interface ScoreProfile {
       bio?: string
       gender?: string
     }
-    cycles: Array<{
-      id: number
-      uuid: string
-      amount: number
-      dueDate: string
-      paidDate: string | null
-      status: string
-      ptValue: number
-      source: string
-      excluded: boolean
-    }>
-    properties: any[]
+    cycles: ScoreCycle[]
+    properties: ScoreProperty[]
   }
 }
 

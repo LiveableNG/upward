@@ -84,6 +84,18 @@ export class RentVaultController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Post('consent')
+  @HttpCode(HttpStatus.OK)
+  async consentToSavings(@Req() req: any) {
+    const userId = await this.getNumericUserId(req)
+    await this.userRepo.update(userId, { savingsWalletEnabled: true })
+    return {
+      status: 'success',
+      message: 'Rent savings consent recorded successfully',
+    }
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get('me')
   @HttpCode(HttpStatus.OK)
   async getMyVault(@Req() req: any) {

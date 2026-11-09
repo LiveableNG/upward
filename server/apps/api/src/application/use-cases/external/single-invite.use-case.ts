@@ -1,20 +1,28 @@
 import { Injectable, Logger, Inject, BadRequestException } from '@nestjs/common'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
-import { UserRepository, USER_REPOSITORY, PASS_PLACEHOLDERS, User } from '../../../domains/users/user.repository'
+import {
+  UserRepository,
+  USER_REPOSITORY,
+  PASS_PLACEHOLDERS,
+  User,
+} from '../../../domains/users/user.repository'
 import {
   CompanyRepository,
   COMPANY_REPOSITORY,
   MANAGER_REPOSITORY,
   ManagerRepository,
   COMPANY_USER_REPOSITORY,
-  CompanyUserRepository
+  CompanyUserRepository,
 } from '../../../domains/companies/company.repository'
-import { VERIFICATION_TOKEN_REPOSITORY, VerificationTokenRepository } from '../../../domains/auth/verification-token.repository'
+import {
+  VERIFICATION_TOKEN_REPOSITORY,
+  VerificationTokenRepository,
+} from '../../../domains/auth/verification-token.repository'
 import {
   PropertyRepository,
   PROPERTY_REPOSITORY,
   LOCATION_REPOSITORY,
-  LocationRepository
+  LocationRepository,
 } from '../../../domains/companies/property.repository'
 import { PAYMENT_GATEWAY, IPaymentGateway } from '../../../domains/payments/payment.repository'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
@@ -30,7 +38,7 @@ import { SyncUserSequenceChannelUseCase } from '../sequence/sync-user-sequence-c
 
 import {
   InviteRequestDto as InviteRequest,
-  UserPropertyContextDto as InvitePropertyInfo
+  UserPropertyContextDto as InvitePropertyInfo,
 } from './external-api.dto'
 
 export { InviteRequest, InvitePropertyInfo }
@@ -52,7 +60,8 @@ export class SingleInviteUseCase {
     @Inject(COMPANY_USER_REPOSITORY) private readonly companyUserRepository: CompanyUserRepository,
     @Inject(PROPERTY_REPOSITORY) private readonly propertyRepository: PropertyRepository,
     @Inject(LOCATION_REPOSITORY) private readonly locationRepository: LocationRepository,
-    @Inject(VERIFICATION_TOKEN_REPOSITORY) private readonly tokenRepository: VerificationTokenRepository,
+    @Inject(VERIFICATION_TOKEN_REPOSITORY)
+    private readonly tokenRepository: VerificationTokenRepository,
     @Inject(PAYMENT_GATEWAY) private readonly paymentGateway: IPaymentGateway,
     private readonly notificationService: NotificationService,
     private readonly resolveDedicatedAccount: ResolveDedicatedAccountUseCase,
@@ -61,10 +70,10 @@ export class SingleInviteUseCase {
     private readonly rentalPeriodService: RentalPeriodService,
     private readonly ingestExternalRentHistoryUseCase: IngestExternalRentHistoryUseCase,
     private readonly syncUserSequenceChannelUseCase: SyncUserSequenceChannelUseCase,
-  ) { }
+  ) {}
 
   async execute(payload: InviteRequest, platformId?: number): Promise<any> {
-    const result = await this.setupInviteContext(payload, platformId);
+    const result = await this.setupInviteContext(payload, platformId)
     const firstProp = result.properties[0]
 
     // 4. Generate expirable verification token for the link
@@ -81,16 +90,19 @@ export class SingleInviteUseCase {
       propertyId: p.id,
       bankCode: p.bankCode,
       accountNumber: p.accountNumber,
-      businessName: p.businessName
+      businessName: p.businessName,
     }))
 
-    this.eventBus.publish(new TenantSyncedEvent(
-      result.user.id,
-      result.user.email,
-      `${result.user.firstName || ''} ${result.user.lastName || ''}`.trim() || result.user.email.split('@')[0],
-      result.user.phone ?? undefined,
-      propertiesForSync
-    ))
+    this.eventBus.publish(
+      new TenantSyncedEvent(
+        result.user.id,
+        result.user.email,
+        `${result.user.firstName || ''} ${result.user.lastName || ''}`.trim() ||
+          result.user.email.split('@')[0],
+        result.user.phone ?? undefined,
+        propertiesForSync,
+      ),
+    )
 
     return {
       userId: result.user.uuid,
@@ -99,17 +111,20 @@ export class SingleInviteUseCase {
       userPropertyUuid: firstProp?.uuid || null,
       email: result.user.email,
       inviteLink: urls[0] + `/invite/${token}`,
-      properties: result.properties.map(p => ({
+      properties: result.properties.map((p) => ({
         uuid: p.uuid,
         address: p.address,
-        managerId: p.managerUuid
-      }))
+        managerId: p.managerUuid,
+      })),
     }
   }
 
-  async setupInviteContext(payload: InviteRequest, platformId?: number): Promise<{
-    user: any,
-    company: any,
+  async setupInviteContext(
+    payload: InviteRequest,
+    platformId?: number,
+  ): Promise<{
+    user: any
+    company: any
     properties: any[]
   }> {
     const { company: companyData, invite } = payload
@@ -117,7 +132,9 @@ export class SingleInviteUseCase {
     // 1. Find or Create Company
     let company = companyData.uuid
       ? await this.companyRepository.findByUuid(companyData.uuid)
-      : (companyData.name ? await this.companyRepository.findByName(companyData.name) : null)
+      : companyData.name
+        ? await this.companyRepository.findByName(companyData.name)
+        : null
 
     const incomingLogo = companyData.logoUrl || (companyData as any).logo
 
@@ -137,7 +154,8 @@ export class SingleInviteUseCase {
     } else {
       const updateData: any = {}
       if (companyData.name && company.name !== companyData.name) updateData.name = companyData.name
-      if (companyData.address && company.address !== companyData.address) updateData.address = companyData.address
+      if (companyData.address && company.address !== companyData.address)
+        updateData.address = companyData.address
       if (incomingLogo && company.logoUrl !== incomingLogo) updateData.logoUrl = incomingLogo
 
       if (Object.keys(updateData).length > 0) {
@@ -147,24 +165,24 @@ export class SingleInviteUseCase {
 
     // 2. Find or Create User
     const userData = invite.user
-    
-    let effectiveEmail = userData.email;
-    let user: User | null = null;
-    
+
+    let effectiveEmail = userData.email
+    let user: User | null = null
+
     if (effectiveEmail) {
-      user = await this.userRepository.findByEmail(effectiveEmail);
+      user = await this.userRepository.findByEmail(effectiveEmail)
     }
-    
+
     if (!user && userData.phone) {
-      user = await this.userRepository.findByPhone(userData.phone);
+      user = await this.userRepository.findByPhone(userData.phone)
     }
 
     if (!user && !effectiveEmail && userData.phone) {
-      effectiveEmail = `${userData.phone.replace('+', '')}@upward.com`;
+      effectiveEmail = `${userData.phone.replace('+', '')}@upward.com`
     }
 
     if (!user && !effectiveEmail && !userData.phone) {
-      throw new BadRequestException('User must have either email or phone');
+      throw new BadRequestException('User must have either email or phone')
     }
 
     if (!user) {
@@ -191,9 +209,7 @@ export class SingleInviteUseCase {
       const isPlaceholderEmail =
         user.email &&
         user.email.endsWith('@upward.com') &&
-        (user.phone
-          ? user.email.startsWith(user.phone.replace('+', ''))
-          : true)
+        (user.phone ? user.email.startsWith(user.phone.replace('+', '')) : true)
 
       if (
         (!user.email || isPlaceholderEmail) &&
@@ -218,10 +234,7 @@ export class SingleInviteUseCase {
       }
 
       if (Object.keys(userUpdate).length > 0) {
-        const updatedUser = await this.userRepository.update(
-          user.id!,
-          userUpdate,
-        )
+        const updatedUser = await this.userRepository.update(user.id!, userUpdate)
 
         if (updatedUser) {
           user = updatedUser
@@ -235,10 +248,7 @@ export class SingleInviteUseCase {
 
       // Existing users with an established password should be synced
       // to the appropriate sequence channel when a phone number is available.
-      if (
-        user.passwordHash !== PASS_PLACEHOLDERS.INVITED &&
-        (user.phone || userData.phone)
-      ) {
+      if (user.passwordHash !== PASS_PLACEHOLDERS.INVITED && (user.phone || userData.phone)) {
         const phone = user.phone || userData.phone!
 
         this.syncUserSequenceChannelUseCase
@@ -247,16 +257,9 @@ export class SingleInviteUseCase {
             firstName: user.firstName || userData.firstName || '',
             phoneEncrypted: phone,
             phoneHash: user.phoneHash || this.encryption.hash(phone),
-            pmName: company?.name
-              ? this.encryption.decrypt(company.name)
-              : undefined,
+            pmName: company?.name ? this.encryption.decrypt(company.name) : undefined,
           })
-          .catch((e) =>
-            this.logger.error(
-              'Failed to sync sequence channel on single invite',
-              e,
-            ),
-          )
+          .catch((e) => this.logger.error('Failed to sync sequence channel on single invite', e))
       }
     }
 
@@ -264,7 +267,10 @@ export class SingleInviteUseCase {
       throw new Error('Failed to create or update user')
     }
 
-    const existingLink = await this.companyUserRepository.findByCompanyAndUser(company.id!, user.id!)
+    const existingLink = await this.companyUserRepository.findByCompanyAndUser(
+      company.id!,
+      user.id!,
+    )
 
     if (!existingLink) {
       await this.companyUserRepository.save({
@@ -277,11 +283,21 @@ export class SingleInviteUseCase {
     }
 
     const propertiesToProcess = invite.properties || (invite.property ? [invite.property] : [])
-    const createdProperties = await this.processProperties(user, company, propertiesToProcess, platformId)
+    const createdProperties = await this.processProperties(
+      user,
+      company,
+      propertiesToProcess,
+      platformId,
+    )
     return { user, company, properties: createdProperties }
   }
 
-  async processProperties(user: any, company: any, properties: InvitePropertyInfo[], platformId?: number): Promise<any[]> {
+  async processProperties(
+    user: any,
+    company: any,
+    properties: InvitePropertyInfo[],
+    platformId?: number,
+  ): Promise<any[]> {
     const createdProperties = []
 
     // 3. Process each property
@@ -292,20 +308,29 @@ export class SingleInviteUseCase {
 
       // Derive rentEndDate if omitted but leasePeriod (e.g. "3 weeks", "4 months") is present
       if (!rentData.rentEndDate) {
-        const leasePeriodStr = (rentData as any).leasePeriod || (rentData.rentType && !['Annually', 'Monthly', 'Quarterly', 'Bi-Annually', 'Weekly', 'Shortlet'].includes(rentData.rentType) ? rentData.rentType : undefined);
+        const leasePeriodStr =
+          (rentData as any).leasePeriod ||
+          (rentData.rentType &&
+          !['Annually', 'Monthly', 'Quarterly', 'Bi-Annually', 'Weekly', 'Shortlet'].includes(
+            rentData.rentType,
+          )
+            ? rentData.rentType
+            : undefined)
         if (leasePeriodStr) {
           const computedEnd = this.rentalPeriodService.calculateEndDateFromPeriod(
             rentData.rentStartDate || new Date(),
             leasePeriodStr,
-          );
+          )
           if (computedEnd) {
-            rentData.rentEndDate = computedEnd.toISOString();
+            rentData.rentEndDate = computedEnd.toISOString()
           }
         }
       }
 
       if (!rentData.rentAmount || !rentData.rentEndDate) {
-        throw new BadRequestException('Rent amount and rent end date are compulsory for all properties');
+        throw new BadRequestException(
+          'Rent amount and rent end date are compulsory for all properties',
+        )
       }
 
       // 3a. Find or Create Manager for this property (if provided)
@@ -313,11 +338,15 @@ export class SingleInviteUseCase {
       if (managerData) {
         manager = managerData.uuid
           ? await this.managerRepository.findByUuid(managerData.uuid)
-          : (managerData.email ? await this.managerRepository.findByEmail(managerData.email) : null)
+          : managerData.email
+            ? await this.managerRepository.findByEmail(managerData.email)
+            : null
 
         if (!manager) {
           if (!managerData.firstName || !managerData.lastName || !managerData.email) {
-            throw new BadRequestException('Manager details (firstName, lastName, email) are required for new manager')
+            throw new BadRequestException(
+              'Manager details (firstName, lastName, email) are required for new manager',
+            )
           }
           manager = await this.managerRepository.save({
             uuid: randomUUID(),
@@ -331,9 +360,12 @@ export class SingleInviteUseCase {
           } as any)
         } else {
           const updateData: any = {}
-          if (managerData.firstName && manager.firstName !== managerData.firstName) updateData.firstName = managerData.firstName
-          if (managerData.lastName && manager.lastName !== managerData.lastName) updateData.lastName = managerData.lastName
-          if (managerData.phone && manager.phone !== managerData.phone) updateData.phone = managerData.phone
+          if (managerData.firstName && manager.firstName !== managerData.firstName)
+            updateData.firstName = managerData.firstName
+          if (managerData.lastName && manager.lastName !== managerData.lastName)
+            updateData.lastName = managerData.lastName
+          if (managerData.phone && manager.phone !== managerData.phone)
+            updateData.phone = managerData.phone
 
           if (Object.keys(updateData).length > 0) {
             manager = await this.managerRepository.update(manager.id!, updateData)
@@ -346,7 +378,7 @@ export class SingleInviteUseCase {
         locData.address || '',
         locData.area || '',
         locData.state || '',
-        locData.country || 'Nigeria'
+        locData.country || 'Nigeria',
       )
 
       if (!location) {
@@ -364,22 +396,31 @@ export class SingleInviteUseCase {
 
       // 3c. Find or Create Property record
       const existingProperties = await this.propertyRepository.findByUserId(user.id!)
-      let property = existingProperties.find((p: any) =>
-        p.companyId === company.id! && p.locationId === location!.id!
+      let property = existingProperties.find(
+        (p: any) => p.companyId === company.id! && p.locationId === location!.id!,
       )
 
       const bankCode = propData.paymentAccount?.bank_code || propData.bankCode
       const accountNumber = propData.paymentAccount?.account_number || propData.accountNumber
-      const businessName = propData.paymentAccount?.account_name ||
+      const businessName =
+        propData.paymentAccount?.account_name ||
         (propData.manager?.firstName
           ? `${propData.manager.firstName} ${propData.manager.lastName || ''}`
-          : (company.name || 'Property Owner'))
+          : company.name || 'Property Owner')
 
       const targetPlatformId = platformId ?? property?.platformId
       const targetExternalUnitId = propData.externalUnitId ?? property?.externalUnitId
 
-      if (targetPlatformId !== undefined && targetPlatformId !== null && targetExternalUnitId !== undefined && targetExternalUnitId !== null) {
-        const existingMapping = await this.propertyRepository.findByPlatformUnit(targetPlatformId, targetExternalUnitId)
+      if (
+        targetPlatformId !== undefined &&
+        targetPlatformId !== null &&
+        targetExternalUnitId !== undefined &&
+        targetExternalUnitId !== null
+      ) {
+        const existingMapping = await this.propertyRepository.findByPlatformUnit(
+          targetPlatformId,
+          targetExternalUnitId,
+        )
         if (existingMapping && (!property || existingMapping.id !== property.id)) {
           await this.propertyRepository.update(existingMapping.id!, {
             platformId: null as any,
@@ -389,14 +430,21 @@ export class SingleInviteUseCase {
         }
       }
 
-      const canonicalStart = this.rentalPeriodService.parseCalendarDate(rentData.rentStartDate) || this.rentalPeriodService.parseCalendarDate(new Date())!
+      const canonicalStart =
+        this.rentalPeriodService.parseCalendarDate(rentData.rentStartDate) ||
+        this.rentalPeriodService.parseCalendarDate(new Date())!
       const canonicalEnd = this.rentalPeriodService.parseCalendarDate(rentData.rentEndDate)!
-      const diffDays = Math.ceil(Math.abs(canonicalEnd.getTime() - canonicalStart.getTime()) / (1000 * 60 * 60 * 24))
+      const diffDays = Math.ceil(
+        Math.abs(canonicalEnd.getTime() - canonicalStart.getTime()) / (1000 * 60 * 60 * 24),
+      )
 
       let inferredRentType = rentData.rentType
-      if (!inferredRentType || ['lease', 'fixed lease', 'long lease'].includes(inferredRentType.toLowerCase())) {
+      if (
+        !inferredRentType ||
+        ['lease', 'fixed lease', 'long lease'].includes(inferredRentType.toLowerCase())
+      ) {
         if (diffDays < 28) {
-          inferredRentType = (diffDays % 7 === 0 || (diffDays + 1) % 7 === 0) ? 'Weekly' : 'Shortlet'
+          inferredRentType = diffDays % 7 === 0 || (diffDays + 1) % 7 === 0 ? 'Weekly' : 'Shortlet'
         } else if (diffDays <= 45) {
           inferredRentType = 'Monthly'
         } else if (diffDays <= 135) {
@@ -408,7 +456,8 @@ export class SingleInviteUseCase {
         }
       }
 
-      const leaseYears = rentData.leaseYears ?? (diffDays > 400 ? Math.max(1, Math.round(diffDays / 365)) : 1)
+      const leaseYears =
+        rentData.leaseYears ?? (diffDays > 400 ? Math.max(1, Math.round(diffDays / 365)) : 1)
       const rentType = inferredRentType
 
       const rentalState = this.rentalPeriodService.initializeRentalState({
@@ -474,12 +523,12 @@ export class SingleInviteUseCase {
           rentAmount: rentData.rentAmount,
           currency: (rentData as any).currency || 'NGN',
           txClient: this.prisma,
-        });
+        })
       }
 
       if (rentalState.initialAmountPaid > 0 && property.id) {
         const existingRecord = await this.prisma.upward_platform_rent_payment.findFirst({
-          where: { userPropertyId: property.id, notes: 'Initial Onboarding Payment' }
+          where: { userPropertyId: property.id, notes: 'Initial Onboarding Payment' },
         })
         if (!existingRecord) {
           await this.prisma.upward_platform_rent_payment.create({
@@ -493,11 +542,13 @@ export class SingleInviteUseCase {
               notes: 'Initial Onboarding Payment',
               periodStart: rentalState.rentStartDate,
               periodEnd: rentalState.rentEndDate,
-            }
+            },
           })
         }
 
-        if (user.id && (rentData as any).timeliness) {
+        const hasHistoryCoveringCurrent =
+          Array.isArray(propData.rentHistory) && propData.rentHistory.length > 0
+        if (user.id && ((rentData as any).timeliness || !hasHistoryCoveringCurrent)) {
           await this.rentalPeriodService.reconcileInitialRentCycle({
             userId: user.id,
             userPropertyId: property.id,
@@ -505,17 +556,20 @@ export class SingleInviteUseCase {
             initialAmountPaid: rentalState.initialAmountPaid,
             rentStartDate: rentalState.rentStartDate,
             currency: (rentData as any).currency,
-            timeliness: (rentData as any).timeliness,
+            timeliness: (rentData as any).timeliness || 'ON_TIME',
+            paymentDate: (rentData as any).paymentDate || rentalState.rentStartDate,
             txClient: this.prisma,
-          });
+          })
         }
       }
 
       if (propData.rentHistory && propData.rentHistory.length > 0 && property.id) {
-        await this.ingestExternalRentHistoryUseCase.execute(property.id, propData.rentHistory, platformId)
+        await this.ingestExternalRentHistoryUseCase.execute(
+          property.id,
+          propData.rentHistory,
+          platformId,
+        )
       }
-
-
 
       const now = new Date()
       const dueDate = new Date(rentData.rentEndDate)
@@ -523,14 +577,22 @@ export class SingleInviteUseCase {
       const daysUntilDue = Math.ceil(diff / (1000 * 60 * 60 * 24))
 
       if (daysUntilDue <= 14) {
-        const amountStr = new Intl.NumberFormat('en-NG', { style: 'currency', currency: 'NGN' }).format(rentData.rentAmount)
-        const urgencyMsg = daysUntilDue < 0 ? 'is OVERDUE' : daysUntilDue === 0 ? 'is DUE TODAY' : `is due in ${daysUntilDue} days`
+        const amountStr = new Intl.NumberFormat('en-NG', {
+          style: 'currency',
+          currency: 'NGN',
+        }).format(rentData.rentAmount)
+        const urgencyMsg =
+          daysUntilDue < 0
+            ? 'is OVERDUE'
+            : daysUntilDue === 0
+              ? 'is DUE TODAY'
+              : `is due in ${daysUntilDue} days`
 
         await this.notificationService.notifyUser(user.id, {
           title: 'Rent Reminder',
           message: `Your rent for ${locData.address || locData.area} ${urgencyMsg}. Amount: ${amountStr}`,
           type: 'RENT_REMINDER',
-          url: `/dashboard/pay-rent?propertyUuid=${property.uuid}`
+          url: `/dashboard/pay-rent?propertyUuid=${property.uuid}`,
         })
       }
 
@@ -554,7 +616,7 @@ export class SingleInviteUseCase {
         managerUuid: finalManager?.uuid || (property.manager as any)?.uuid,
         bankCode,
         accountNumber,
-        businessName
+        businessName,
       })
     }
 

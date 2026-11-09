@@ -287,6 +287,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .vault-dashboard__lock-pill {
@@ -374,6 +376,48 @@
 .vault-dashboard__interest-rate {
   font-size: 0.75rem;
   color: rgba(255, 255, 255, 0.6);
+}
+
+@media (max-width: 480px) {
+  .vault-dashboard__hero {
+    padding: 16px 14px;
+    gap: 14px;
+  }
+
+  .vault-dashboard__current-balance {
+    font-size: 1.625rem;
+  }
+
+  .vault-dashboard__target-label {
+    font-size: 0.8125rem;
+  }
+
+  .vault-dashboard__top-row {
+    gap: 6px;
+  }
+
+  .vault-dashboard__lock-pill {
+    font-size: 0.6875rem;
+    padding: 3px 8px;
+  }
+
+  .vault-dashboard__countdown-pill {
+    font-size: 0.75rem;
+  }
+
+  .vault-dashboard__interest-card {
+    padding: 10px 12px;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .vault-dashboard__interest-text {
+    font-size: 0.8125rem;
+  }
+
+  .vault-dashboard__interest-rate {
+    font-size: 0.6875rem;
+  }
 }
 
 /* Upward Score 100-Point Discipline Card */
@@ -485,11 +529,14 @@
   inset: 0;
   background: rgba(0, 0, 0, 0.65);
   backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 999999;
   padding: var(--space-4, 16px);
+  overflow-y: auto;
+  box-sizing: border-box;
 }
 
 .vault-modal-card {
@@ -504,6 +551,344 @@
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
   max-height: 90vh;
   overflow-y: auto;
+}
+
+@media (max-width: 640px) {
+  .vault-modal-overlay {
+    padding: 12px 10px calc(16px + env(safe-area-inset-bottom, 12px));
+    align-items: center;
+    justify-content: center;
+  }
+
+  .vault-modal-card {
+    padding: 16px 14px;
+    gap: 14px;
+    max-height: min(88vh, calc(100dvh - 28px));
+    border-radius: 18px;
+    width: 100%;
+    box-sizing: border-box;
+    margin: auto 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Paystack Account Resolution Badges */
+.vault-account-resolving {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 6px;
+}
+
+.vault-account-verified {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--success, #10b981);
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin-top: 6px;
+}
+
+.vault-account-error {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: var(--error, #ef4444);
+  margin-top: 6px;
+}
+
+/* Dedicated Virtual Account (DVA) Card & Responsive Layout */
+.vault-dva-card {
+  background: var(--surface, #f9fafb);
+  border: 1.5px solid var(--border, #e5e7eb);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-sizing: border-box;
+}
+
+.vault-dva-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.vault-dva-card__title {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.vault-dva-card__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.08);
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.vault-dva-card__number-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 10px;
+  padding: 10px 12px;
+  gap: 8px;
+  box-sizing: border-box;
+}
+
+.vault-dva-card__number-block {
+  min-width: 0;
+  flex: 1;
+}
+
+.vault-dva-card__number-label {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  display: block;
+}
+
+.vault-dva-card__number {
+  font-size: clamp(1.125rem, 5vw, 1.35rem);
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--text);
+  font-family: monospace;
+  line-height: 1.2;
+  word-break: break-all;
+}
+
+.vault-dva-card__copy-btn {
+  background: var(--clay-faint, rgba(200, 107, 73, 0.1));
+  color: var(--clay);
+  border: none;
+  border-radius: 8px;
+  padding: 7px 12px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.vault-dva-card__copy-btn--copied {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.vault-dva-card__meta-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+.vault-dva-card__meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.vault-dva-card__meta-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.vault-dva-card__meta-value {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text);
+  text-align: right;
+  word-break: break-word;
+}
+
+@media (max-width: 640px) {
+  .vault-dva-card {
+    padding: 14px 12px;
+    gap: 10px;
+  }
+
+  .vault-dva-card__number-row {
+    padding: 8px 10px;
+  }
+}
+
+/* Test Sandbox Simulation Card (Development Only) */
+.vault-sandbox-card {
+  background: var(--surface, #f9fafb);
+  border: 1px dashed var(--clay);
+  border-radius: var(--radius-md, 12px);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.vault-sandbox-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.vault-sandbox-card__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--clay);
+}
+
+.vault-sandbox-card__badge {
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: var(--clay);
+  background: var(--clay-faint, rgba(200, 107, 73, 0.1));
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.vault-sandbox-card__desc {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.vault-sandbox-card__chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.vault-sandbox-card__chip {
+  padding: 4px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.vault-sandbox-card__chip:hover {
+  border-color: var(--clay);
+  color: var(--clay);
+}
+
+.vault-sandbox-card__chip--active {
+  background: var(--clay);
+  border-color: var(--clay);
+  color: #ffffff;
+}
+
+.vault-sandbox-card__input-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+}
+
+.vault-sandbox-card__input-wrapper {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.vault-sandbox-card__currency-prefix {
+  position: absolute;
+  left: 10px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.vault-sandbox-card__input {
+  width: 100%;
+  height: 38px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0 10px 0 24px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.vault-sandbox-card__input:focus {
+  border-color: var(--clay);
+}
+
+.vault-sandbox-card__submit-btn {
+  height: 38px;
+  padding: 0 14px;
+  background: var(--clay);
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  transition: opacity 0.15s ease;
+}
+
+.vault-sandbox-card__submit-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.vault-sandbox-card__submit-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@media (max-width: 360px) {
+  .vault-sandbox-card__input-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .vault-sandbox-card__submit-btn {
+    justify-content: center;
+  }
 }
 
 .vault-modal-header {
@@ -621,8 +1006,8 @@
   color: var(--btn-primary-text);
   border: none;
   border-radius: var(--radius-md, 10px);
-  font-size: 0.9375rem;
-  font-weight: 700;
+  font-size: 0.875rem;
+  font-weight: 600;
   cursor: pointer;
   box-shadow: var(--btn-primary-shadow);
   display: flex;
@@ -755,4 +1140,63 @@
   padding: 1px 6px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+}
+
+/* Gated & Blurred Activities Container (when KYC is pending) */
+.rent-savings__gated-container {
+  position: relative;
+  width: 100%;
+}
+
+.rent-savings__gated-content {
+  transition:
+    filter 0.25s ease,
+    opacity 0.25s ease;
+}
+
+.rent-savings__gated-content--blurred {
+  filter: blur(6px);
+  opacity: 0.5;
+  pointer-events: none;
+  user-select: none;
+}
+
+.rent-savings__gated-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 52px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-lg, 16px);
+}
+
+.rent-savings__gated-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.12));
+  border-radius: 9999px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  color: var(--text);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  backdrop-filter: blur(12px);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.rent-savings__gated-overlay:hover .rent-savings__gated-badge {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(217, 119, 87, 0.2);
+  border-color: var(--clay);
+  color: var(--clay);
 }

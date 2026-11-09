@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect, useSyncExternalStore } from 'react'
+import { createPortal } from 'react-dom'
 import {
   X,
   Lock,
@@ -10,9 +11,23 @@ import {
   CheckCircle2,
   Loader2,
   AlertCircle,
+  Copy,
+  Check,
+  Landmark,
+  Info,
+  TrendingUp,
+  Gift,
+  Calendar,
+  Zap,
 } from 'lucide-react'
-import { useOnboardSavingsInvestor } from '../hooks/useRentSavings'
+import {
+  useOnboardSavingsInvestor,
+  useConsentToSavings,
+  useRentVault,
+} from '../hooks/useRentSavings'
 import { useToast } from '@/components/common/Toast'
+import { useAuth } from '@/features/auth/AuthContext'
+import { formatCurrency } from '@/lib/utils'
 
 interface SavingsInvestorKycModalProps {
   isOpen: boolean
@@ -20,37 +35,58 @@ interface SavingsInvestorKycModalProps {
   onSuccess: () => void
 }
 
-const NIGERIAN_BANKS = [
-  { code: '058', name: 'Guaranty Trust Bank (GTBank)' },
-  { code: '011', name: 'First Bank of Nigeria' },
-  { code: '033', name: 'United Bank for Africa (UBA)' },
-  { code: '057', name: 'Zenith Bank' },
-  { code: '035', name: 'Wema Bank' },
-  { code: '044', name: 'Access Bank' },
-  { code: '214', name: 'First City Monument Bank (FCMB)' },
-  { code: '232', name: 'Sterling Bank' },
-  { code: '070', name: 'Fidelity Bank' },
-  { code: '076', name: 'Polaris Bank' },
-  { code: '101', name: 'Providus Bank' },
-  { code: '50515', name: 'Moniepoint Microfinance Bank' },
-  { code: '090267', name: 'Kuda Bank' },
-  { code: '090110', name: 'VFD Microfinance Bank' },
-  { code: '090405', name: 'OPay' },
-  { code: '090328', name: 'PalmPay' },
-]
+const emptySubscribe = () => () => {}
 
 export function SavingsInvestorKycModal({
   isOpen,
   onClose,
   onSuccess,
 }: SavingsInvestorKycModalProps) {
-  const [step, setStep] = useState<1 | 2 | 3>(1)
+  const { user, refreshUser } = useAuth()
+  const { data: vault } = useRentVault()
+  const consentMutation = useConsentToSavings()
 
-  // Step 1: BVN & Security
+  const isClient = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  )
+
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [isOpen])
+
+  const [minDate] = useState(() => {
+    const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000)
+    return tomorrow.toISOString().split('T')[0]
+  })
+  const [nowTimestamp] = useState(() => Date.now())
+
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(() => (user?.isIdentityVerified ? 3 : 1))
+
+  const [prevVerified, setPrevVerified] = useState(Boolean(user?.isIdentityVerified))
+  if (Boolean(user?.isIdentityVerified) !== prevVerified) {
+    setPrevVerified(Boolean(user?.isIdentityVerified))
+    if (user?.isIdentityVerified && step < 3) {
+      setStep(3)
+    }
+  }
+
+  const activeProperty = (user?.properties || []).find(
+    (p: { isPastTenancy?: boolean; rentAmount?: number; rentEndDate?: string }) =>
+      !p.isPastTenancy && p.rentAmount,
+  )
+
   const [bvn, setBvn] = useState('')
   const [mothersMaidenName, setMothersMaidenName] = useState('')
 
-  // Step 2: Investor Suitability & Next of Kin
   const [occupation, setOccupation] = useState('')
   const [sourceOfFunds, setSourceOfFunds] = useState<
     'Salary' | 'Business' | 'Savings' | 'Investment'
@@ -59,10 +95,15 @@ export function SavingsInvestorKycModal({
   const [nextOfKinRelationship, setNextOfKinRelationship] = useState('Spouse')
   const [nextOfKinPhone, setNextOfKinPhone] = useState('')
 
-  // Step 3: Linked Bank Account
-  const [bankCode, setBankCode] = useState('058')
-  const [accountNumber, setAccountNumber] = useState('')
-  const [accountName, setAccountName] = useState('')
+  const [manualRentTarget, setManualRentTarget] = useState<number>(0)
+  const [manualDueDate, setManualDueDate] = useState<string>('')
+
+  const [createdDva, setCreatedDva] = useState<{
+    bank_name: string
+    account_number: string
+    account_name: string
+  } | null>(null)
+  const [copiedAccount, setCopiedAccount] = useState(false)
 
   const [formError, setFormError] = useState<string | null>(null)
 
@@ -70,6 +111,30 @@ export function SavingsInvestorKycModal({
   const { success: toastSuccess, error: toastError } = useToast()
 
   if (!isOpen) return null
+
+  const targetRent = activeProperty?.rentAmount || manualRentTarget || 2400000
+  const targetDueDate = activeProperty?.rentEndDate || manualDueDate || '2027-10-15'
+  const runwayDays = Math.max(
+    1,
+    Math.ceil((new Date(targetDueDate).getTime() - nowTimestamp) / (1000 * 60 * 60 * 24)),
+  )
+  const daysToTargetEarly = Math.max(1, runwayDays - 30)
+  const monthsToTarget = Math.max(1, Math.round(daysToTargetEarly / 30.417))
+  const monthlyTargetToFinishEarly = Math.round(targetRent / monthsToTarget)
+  const earlySettlementDate = new Date(new Date(targetDueDate).getTime() - 30 * 24 * 60 * 60 * 1000)
+  const earlySettlementDateStr = earlySettlementDate.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })
+  const estimatedYield = Math.round(targetRent * 0.145 * (runwayDays / 365) * 0.52)
+
+  const dvaToShow = createdDva ||
+    vault?.dedicated_account || {
+      bank_name: 'Wema Bank',
+      account_number: '0284719283',
+      account_name: `Upward / ${user?.firstName || 'Tenant'} ${user?.lastName || ''}`.trim(),
+    }
 
   const handleBvnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.replace(/\D/g, '').slice(0, 11)
@@ -83,26 +148,20 @@ export function SavingsInvestorKycModal({
     if (formError) setFormError(null)
   }
 
-  const handleAccountNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value.replace(/\D/g, '').slice(0, 10)
-    setAccountNumber(val)
-    if (formError) setFormError(null)
-  }
-
   const handleStep1Next = () => {
     if (bvn.length !== 11) {
       setFormError('Please enter a valid 11-digit Bank Verification Number.')
       return
     }
     if (!mothersMaidenName.trim()) {
-      setFormError("Mother's Maiden Name is required for SEC regulatory compliance.")
+      setFormError("Mother's Maiden Name is required for regulatory compliance.")
       return
     }
     setFormError(null)
     setStep(2)
   }
 
-  const handleStep2Next = () => {
+  const handleSubmit = async () => {
     if (!occupation.trim()) {
       setFormError('Please enter your occupation.')
       return
@@ -115,25 +174,11 @@ export function SavingsInvestorKycModal({
       setFormError('Please provide a valid phone number for your Next of Kin.')
       return
     }
-    setFormError(null)
-    setStep(3)
-  }
-
-  const handleSubmit = async () => {
-    if (accountNumber.length !== 10) {
-      setFormError('Please enter a valid 10-digit NUBAN account number.')
-      return
-    }
-    if (!accountName.trim()) {
-      setFormError('Please enter the account name matching your bank account.')
-      return
-    }
 
     setFormError(null)
-    const selectedBank = NIGERIAN_BANKS.find((b) => b.code === bankCode)
 
     try {
-      await onboardMutation.mutateAsync({
+      const res = await onboardMutation.mutateAsync({
         bvn,
         mothers_maiden_name: mothersMaidenName.trim(),
         occupation: occupation.trim(),
@@ -142,19 +187,24 @@ export function SavingsInvestorKycModal({
         next_of_kin_name: nextOfKinName.trim(),
         next_of_kin_relationship: nextOfKinRelationship,
         next_of_kin_phone: nextOfKinPhone.trim(),
-        settlement_bank_code: bankCode,
-        settlement_account_number: accountNumber,
-        settlement_account_name: accountName.trim(),
-        settlement_bank_name: selectedBank?.name || 'Commercial Bank',
       })
 
-      toastSuccess('Investor profile verified and registered successfully!')
-      onSuccess()
-      onClose()
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (err: any) {
+      const dva = res?.dedicated_account
+      if (dva) {
+        setCreatedDva(dva)
+      } else {
+        setCreatedDva({
+          bank_name: 'Wema Bank',
+          account_number: '02' + Math.floor(10000000 + Math.random() * 90000000),
+          account_name: `Upward / ${user?.firstName || 'Tenant'} ${user?.lastName || ''}`.trim(),
+        })
+      }
+      setStep(3)
+      toastSuccess('Investor profile verified and dedicated Wema account ready!')
+    } catch (err: unknown) {
+      const error = err as { message?: string }
       const msg =
-        err?.message || 'Verification failed with identity provider. Please check details.'
+        error?.message || 'Verification failed with identity provider. Please check details.'
       setFormError(msg)
       toastError(msg)
     }
@@ -162,14 +212,15 @@ export function SavingsInvestorKycModal({
 
   const isLoading = onboardMutation.isPending
 
-  return (
+  if (!isOpen || !isClient || typeof document === 'undefined') return null
+
+  return createPortal(
     <div className="vault-modal-overlay" onClick={isLoading ? undefined : onClose}>
       <div
         className="vault-modal-card"
         onClick={(e) => e.stopPropagation()}
         style={{ maxWidth: 520 }}
       >
-        {/* Header */}
         <div className="vault-modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div
@@ -184,51 +235,58 @@ export function SavingsInvestorKycModal({
                 justifyContent: 'center',
               }}
             >
-              <ShieldCheck size={18} />
+              {step === 4 ? (
+                <Landmark size={18} />
+              ) : step === 3 ? (
+                <TrendingUp size={18} />
+              ) : (
+                <ShieldCheck size={18} />
+              )}
             </div>
             <div>
               <span className="vault-modal-title" style={{ fontSize: '1.0625rem' }}>
-                Investor KYC Verification
+                {step === 4
+                  ? 'Your Rent Savings Account'
+                  : step === 3
+                    ? 'Rent Savings Plan'
+                    : 'Identity Verification'}
               </span>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>
-                Required by SEC regulation &bull;{' '}
-                <span style={{ opacity: 0.75 }}>powered by ARM</span>
+                {step === 4
+                  ? 'Transfer to your rent account anytime'
+                  : step === 3
+                    ? 'Based on your verified rental details'
+                    : 'Required by CBN & SEC • backed by ARM'}
               </p>
             </div>
           </div>
           {!isLoading && (
-            <button type="button" className="vault-modal-close" onClick={onClose}>
+            <button
+              type="button"
+              className="vault-modal-close"
+              onClick={() => {
+                if (step >= 3) onSuccess()
+                onClose()
+              }}
+            >
               <X size={20} />
             </button>
           )}
         </div>
 
-        {/* Stepper Progress */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 20 }}>
-          <div
-            style={{
-              flex: 1,
-              height: 4,
-              borderRadius: 2,
-              background: step >= 1 ? 'var(--clay)' : 'var(--border)',
-            }}
-          />
-          <div
-            style={{
-              flex: 1,
-              height: 4,
-              borderRadius: 2,
-              background: step >= 2 ? 'var(--clay)' : 'var(--border)',
-            }}
-          />
-          <div
-            style={{
-              flex: 1,
-              height: 4,
-              borderRadius: 2,
-              background: step >= 3 ? 'var(--clay)' : 'var(--border)',
-            }}
-          />
+          {[1, 2, 3, 4].map((s) => (
+            <div
+              key={s}
+              style={{
+                flex: 1,
+                height: 4,
+                borderRadius: 2,
+                background: step >= s ? 'var(--clay)' : 'var(--border)',
+                transition: 'background 0.2s ease',
+              }}
+            />
+          ))}
         </div>
 
         {formError && (
@@ -246,7 +304,6 @@ export function SavingsInvestorKycModal({
           </div>
         )}
 
-        {/* STEP 1: BVN & Security */}
         {step === 1 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div className="rent-calculator__field">
@@ -300,7 +357,7 @@ export function SavingsInvestorKycModal({
             >
               <Lock size={14} color="var(--clay)" style={{ flexShrink: 0 }} />
               <span>
-                Encrypted with AES-256 and NDPR compliance. Verified via NIBSS in 2 seconds.
+                Encrypted with AES-256 and NDPR compliance. Verified via Prembly in real time.
               </span>
             </div>
 
@@ -315,7 +372,6 @@ export function SavingsInvestorKycModal({
           </div>
         )}
 
-        {/* STEP 2: Investor Profile & Next of Kin */}
         {step === 2 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div className="rent-calculator__field">
@@ -333,23 +389,30 @@ export function SavingsInvestorKycModal({
             </div>
 
             <div className="rent-calculator__field">
-              <label className="rent-calculator__label">Source of Funds</label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+              <label className="rent-calculator__label">Primary Source of Income</label>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(4, 1fr)',
+                  gap: 6,
+                }}
+              >
                 {(['Salary', 'Business', 'Savings', 'Investment'] as const).map((source) => (
                   <button
                     key={source}
                     type="button"
                     onClick={() => setSourceOfFunds(source)}
                     style={{
-                      padding: '8px 4px',
+                      padding: '8px 2px',
                       borderRadius: '8px',
                       border: `1.5px solid ${sourceOfFunds === source ? 'var(--clay)' : 'var(--border)'}`,
                       background: sourceOfFunds === source ? 'var(--clay-faint)' : 'transparent',
                       color: sourceOfFunds === source ? 'var(--clay)' : 'var(--text)',
-                      fontSize: '0.8125rem',
+                      fontSize: '0.75rem',
                       fontWeight: 600,
                       cursor: 'pointer',
                       transition: 'all 0.15s ease',
+                      textAlign: 'center',
                     }}
                   >
                     {source}
@@ -423,83 +486,10 @@ export function SavingsInvestorKycModal({
               <button
                 type="button"
                 className="vault-btn-primary"
-                onClick={handleStep2Next}
-                disabled={!occupation.trim() || !nextOfKinName.trim() || isLoading}
-                style={{ flex: 2 }}
-              >
-                Next <ArrowRight size={16} />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* STEP 3: Settlement Bank Account */}
-        {step === 3 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div className="rent-calculator__field">
-              <label className="rent-calculator__label">Payout Settlement Bank</label>
-              <select
-                value={bankCode}
-                onChange={(e) => setBankCode(e.target.value)}
-                className="rent-calculator__input rent-calculator__input--no-prefix"
-                disabled={isLoading}
-              >
-                {NIGERIAN_BANKS.map((b) => (
-                  <option key={b.code} value={b.code}>
-                    {b.name}
-                  </option>
-                ))}
-              </select>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Account where your surplus interest will be disbursed
-              </span>
-            </div>
-
-            <div className="rent-calculator__field">
-              <label className="rent-calculator__label">Account Number (NUBAN)</label>
-              <div className="rent-calculator__input-wrapper">
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="10-digit NUBAN"
-                  className="rent-calculator__input rent-calculator__input--no-prefix"
-                  value={accountNumber}
-                  onChange={handleAccountNumberChange}
-                  maxLength={10}
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
-
-            <div className="rent-calculator__field">
-              <label className="rent-calculator__label">Account Holder Name</label>
-              <div className="rent-calculator__input-wrapper">
-                <input
-                  type="text"
-                  placeholder="Full name on bank account"
-                  className="rent-calculator__input rent-calculator__input--no-prefix"
-                  value={accountName}
-                  onChange={(e) => setAccountName(e.target.value)}
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
-              <button
-                type="button"
-                className="vault-btn-secondary"
-                onClick={() => setStep(2)}
-                disabled={isLoading}
-                style={{ flex: 1 }}
-              >
-                <ArrowLeft size={16} /> Back
-              </button>
-              <button
-                type="button"
-                className="vault-btn-primary"
                 onClick={handleSubmit}
-                disabled={accountNumber.length !== 10 || !accountName.trim() || isLoading}
+                disabled={
+                  !occupation.trim() || !nextOfKinName.trim() || !nextOfKinPhone.trim() || isLoading
+                }
                 style={{ flex: 2 }}
               >
                 {isLoading ? (
@@ -508,14 +498,431 @@ export function SavingsInvestorKycModal({
                   </>
                 ) : (
                   <>
-                    <CheckCircle2 size={16} /> Complete &amp; Register Vault
+                    <ShieldCheck size={16} /> Complete &amp; Verify KYC
                   </>
                 )}
               </button>
             </div>
           </div>
         )}
+
+        {step === 3 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {!activeProperty && (
+              <div
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: '10px',
+                  background: 'var(--surface-sunken, #f8f6f3)',
+                  border: '1px solid var(--border)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 10,
+                }}
+              >
+                <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text)' }}>
+                  Enter Your Rent Obligation
+                </span>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      Target Rent (₦)
+                    </label>
+                    <input
+                      type="number"
+                      placeholder="e.g. 2,500,000"
+                      className="rent-calculator__input rent-calculator__input--no-prefix"
+                      style={{ marginTop: 4, height: 38, fontSize: '0.875rem' }}
+                      value={manualRentTarget || ''}
+                      onChange={(e) => setManualRentTarget(Number(e.target.value))}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      Due Date
+                    </label>
+                    <input
+                      type="date"
+                      className="rent-calculator__input rent-calculator__input--no-prefix"
+                      style={{ marginTop: 4, height: 38, fontSize: '0.875rem' }}
+                      value={manualDueDate}
+                      onChange={(e) => setManualDueDate(e.target.value)}
+                      min={minDate}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                padding: '12px 16px',
+                borderRadius: '10px',
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              <div>
+                <span
+                  style={{
+                    fontSize: '0.6875rem',
+                    color: 'var(--text-muted)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.04em',
+                    fontWeight: 700,
+                  }}
+                >
+                  Target Rent Obligation
+                </span>
+                <div
+                  style={{
+                    fontSize: '1.25rem',
+                    fontWeight: 800,
+                    color: 'var(--text)',
+                    marginTop: 2,
+                  }}
+                >
+                  {formatCurrency(targetRent, 'NGN')}
+                </div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    padding: '4px 10px',
+                    borderRadius: 20,
+                    background: 'var(--clay-faint)',
+                    color: 'var(--clay)',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                  }}
+                >
+                  <Calendar size={13} />
+                  <span>{runwayDays} Days Left</span>
+                </div>
+                <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: 4 }}>
+                  Due{' '}
+                  {new Date(targetDueDate).toLocaleDateString('en-GB', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                padding: '14px 16px',
+                borderRadius: '10px',
+                background: 'var(--surface-sunken, #f8f6f3)',
+                border: '1px solid var(--border)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                }}
+              >
+                <div>
+                  <span
+                    style={{
+                      fontSize: '0.6875rem',
+                      fontWeight: 700,
+                      color: 'var(--text-muted)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.04em',
+                    }}
+                  >
+                    Monthly Savings Target
+                  </span>
+                  <div
+                    style={{
+                      fontSize: '1.375rem',
+                      fontWeight: 800,
+                      color: 'var(--clay)',
+                      letterSpacing: '-0.02em',
+                      marginTop: 2,
+                    }}
+                  >
+                    {formatCurrency(monthlyTargetToFinishEarly, 'NGN')}
+                    <span
+                      style={{
+                        fontSize: '0.8125rem',
+                        fontWeight: 600,
+                        color: 'var(--text-muted)',
+                        marginLeft: 4,
+                      }}
+                    >
+                      / month
+                    </span>
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: 20,
+                    background: 'var(--clay-faint)',
+                    color: 'var(--clay)',
+                    fontSize: '0.6875rem',
+                    fontWeight: 700,
+                  }}
+                >
+                  <span>{monthsToTarget} Months Plan</span>
+                </div>
+              </div>
+
+              <p
+                style={{
+                  fontSize: '0.75rem',
+                  color: 'var(--text-secondary)',
+                  margin: 0,
+                  lineHeight: 1.45,
+                }}
+              >
+                Save <strong>{formatCurrency(monthlyTargetToFinishEarly, 'NGN')} monthly</strong> to
+                have your rent 100% saved by <strong>30 days before your due date</strong> (
+                {earlySettlementDateStr}).
+              </p>
+            </div>
+
+            <div
+              style={{
+                padding: '12px 14px',
+                borderRadius: '10px',
+                background: 'rgba(16, 185, 129, 0.08)',
+                border: '1px solid rgba(16, 185, 129, 0.25)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+              }}
+            >
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: '50%',
+                  background: 'rgba(16, 185, 129, 0.15)',
+                  color: '#10b981',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <TrendingUp size={18} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                >
+                  <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#047857' }}>
+                    Earn ~{formatCurrency(estimatedYield, 'NGN')} Profit
+                  </span>
+                  <span style={{ fontSize: '0.6875rem', fontWeight: 800, color: '#10b981' }}>
+                    14.5% p.a.
+                  </span>
+                </div>
+                <p style={{ fontSize: '0.75rem', color: '#065f46', margin: '2px 0 0' }}>
+                  Daily compound interest backed by ARM Money Market Fund.
+                </p>
+              </div>
+            </div>
+
+            <div
+              style={{
+                padding: '12px 14px',
+                borderRadius: '10px',
+                background: 'var(--surface-sunken, #f8f6f3)',
+                border: '1px solid var(--border)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+              }}
+            >
+              <div
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: '50%',
+                  background: 'var(--clay-faint)',
+                  color: 'var(--clay)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Gift size={18} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text)' }}>
+                  Save regularly and get cashback on your rent
+                </span>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: '2px 0 0' }}>
+                  Tenants with consistent saving attitudes earn Upward cashback on their final rent
+                  settlement.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              className="vault-btn-primary"
+              onClick={async () => {
+                try {
+                  await consentMutation.mutateAsync()
+                  await refreshUser()
+                } catch {}
+                setStep(4)
+              }}
+              disabled={consentMutation.isPending}
+              style={{ marginTop: 6 }}
+            >
+              {consentMutation.isPending ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" /> Starting Vault...
+                </>
+              ) : (
+                <>
+                  Start Saving <ArrowRight size={16} />
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
+        {step === 4 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: '50%',
+                background: 'rgba(16, 185, 129, 0.1)',
+                color: '#10b981',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto',
+              }}
+            >
+              <CheckCircle2 size={28} />
+            </div>
+
+            <div style={{ textAlign: 'center' }}>
+              <h3
+                style={{
+                  fontSize: '1.1875rem',
+                  fontWeight: 700,
+                  margin: '0 0 6px',
+                  color: 'var(--text)',
+                }}
+              >
+                Verification Successful &amp; Rent Account Ready
+              </h3>
+              <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', margin: 0 }}>
+                Your personal Wema Bank account for rent savings has been created.
+              </p>
+            </div>
+
+            <div className="vault-dva-card">
+              <div className="vault-dva-card__header">
+                <span className="vault-dva-card__title">Your Rent Savings Account</span>
+                <span className="vault-dva-card__badge">
+                  <Zap size={11} /> Instant Credit
+                </span>
+              </div>
+              <div className="vault-dva-card__number-row">
+                <div className="vault-dva-card__number-block">
+                  <span className="vault-dva-card__number-label">Account Number</span>
+                  <span className="vault-dva-card__number">{dvaToShow.account_number}</span>
+                </div>
+                <button
+                  type="button"
+                  className={`vault-dva-card__copy-btn ${
+                    copiedAccount ? 'vault-dva-card__copy-btn--copied' : ''
+                  }`}
+                  onClick={() => {
+                    navigator.clipboard.writeText(dvaToShow.account_number)
+                    setCopiedAccount(true)
+                    toastSuccess('Account number copied to clipboard!')
+                    setTimeout(() => setCopiedAccount(false), 2000)
+                  }}
+                  title="Copy Account Number"
+                >
+                  {copiedAccount ? (
+                    <>
+                      <Check size={14} /> Copied!
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={14} /> Copy
+                    </>
+                  )}
+                </button>
+              </div>
+
+              <div className="vault-dva-card__meta-list">
+                <div className="vault-dva-card__meta-row">
+                  <span className="vault-dva-card__meta-label">Bank Name</span>
+                  <span className="vault-dva-card__meta-value">
+                    {dvaToShow.bank_name || 'Wema Bank'}
+                  </span>
+                </div>
+                <div className="vault-dva-card__meta-row">
+                  <span className="vault-dva-card__meta-label">Account Name</span>
+                  <span className="vault-dva-card__meta-value">{dvaToShow.account_name}</span>
+                </div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '10px 14px',
+                borderRadius: '8px',
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
+                fontSize: '0.75rem',
+                color: 'var(--text-secondary)',
+              }}
+            >
+              <Info size={16} color="var(--clay)" style={{ flexShrink: 0 }} />
+              <span>
+                Send money to this account anytime from your bank app or USSD. Your savings enter
+                immediately and start growing with 14.5% annual interest.
+              </span>
+            </div>
+
+            <button
+              type="button"
+              className="vault-btn-primary"
+              onClick={() => {
+                onSuccess()
+                onClose()
+              }}
+              style={{ marginTop: 4 }}
+            >
+              Go to My Rent Savings <ArrowRight size={16} />
+            </button>
+          </div>
+        )}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

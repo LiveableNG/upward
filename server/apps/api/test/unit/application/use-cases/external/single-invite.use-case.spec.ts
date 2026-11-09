@@ -1,19 +1,22 @@
 import { BadRequestException } from '@nestjs/common'
-import { SingleInviteUseCase, InviteRequest } from '@application/use-cases/external/single-invite.use-case'
+import {
+  SingleInviteUseCase,
+  InviteRequest,
+} from '@application/use-cases/external/single-invite.use-case'
 import { UserRepository } from '@domains/users/user.repository'
 import {
   CompanyRepository,
   ManagerRepository,
   CompanyUserRepository,
 } from '@domains/companies/company.repository'
-import {
-  PropertyRepository,
-  LocationRepository,
-} from '@domains/companies/property.repository'
+import { PropertyRepository, LocationRepository } from '@domains/companies/property.repository'
 import { PrismaService } from '@shared/infrastructure/prisma/prisma.service'
 import { EncryptionService } from '@shared/infrastructure/common/encryption.service'
 import { NotificationService } from '@shared/infrastructure/common/notification.service'
-import { VERIFICATION_TOKEN_REPOSITORY, VerificationTokenRepository } from '@domains/auth/verification-token.repository'
+import {
+  VERIFICATION_TOKEN_REPOSITORY,
+  VerificationTokenRepository,
+} from '@domains/auth/verification-token.repository'
 import { IPaymentGateway } from '@domains/payments/payment.repository'
 import { RentalPeriodService } from '@application/services/rental-period.service'
 import { SyncUserSequenceChannelUseCase } from '@application/use-cases/sequence/sync-user-sequence-channel.use-case'
@@ -113,26 +116,28 @@ const validInviteRequest = (): any => ({
       lastName: 'Doe',
       phone: '08012345678',
     },
-    properties: [{
-      location: {
-        country: 'Nigeria',
-        state: 'Lagos',
-        area: 'Lekki',
-        subarea: 'Phase 1',
-        address: 'Plot 5, Lekki',
+    properties: [
+      {
+        location: {
+          country: 'Nigeria',
+          state: 'Lagos',
+          area: 'Lekki',
+          subarea: 'Phase 1',
+          address: 'Plot 5, Lekki',
+        },
+        rent: {
+          rentAmount: 500000,
+          rentStartDate: '2026-01-01',
+          rentEndDate: '2026-12-31',
+        },
+        manager: {
+          firstName: 'Grace',
+          lastName: 'Adeyemi',
+          email: 'grace@acme.com',
+          phone: '08099887766',
+        },
       },
-      rent: {
-        rentAmount: 500000,
-        rentStartDate: '2026-01-01',
-        rentEndDate: '2026-12-31',
-      },
-      manager: {
-        firstName: 'Grace',
-        lastName: 'Adeyemi',
-        email: 'grace@acme.com',
-        phone: '08099887766',
-      },
-    }],
+    ],
   },
 })
 
@@ -553,9 +558,7 @@ describe('SingleInviteUseCase', () => {
       await useCase.setupInviteContext(validInviteRequest())
 
       const saved = userRepository.save.mock.calls[0]![0] as any
-      expect(saved.uuid).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
-      )
+      expect(saved.uuid).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/)
     })
   })
 
@@ -699,7 +702,7 @@ describe('SingleInviteUseCase', () => {
       setupPre()
 
       const payload = validInviteRequest()
-        ; (payload.invite.properties[0].rent as any).rentAmount = 0
+      ;(payload.invite.properties[0].rent as any).rentAmount = 0
 
       await expect(useCase.setupInviteContext(payload)).rejects.toThrow(BadRequestException)
     })
@@ -814,7 +817,7 @@ describe('SingleInviteUseCase', () => {
         expect.objectContaining({
           rentType: 'Weekly',
           leaseYears: 1,
-        })
+        }),
       )
       expect(result.properties[0].id).toBe(99)
     })
@@ -841,7 +844,7 @@ describe('SingleInviteUseCase', () => {
         expect.objectContaining({
           rentType: 'Quarterly',
           leaseYears: 1,
-        })
+        }),
       )
     })
 
@@ -868,7 +871,7 @@ describe('SingleInviteUseCase', () => {
         expect.objectContaining({
           rentEndDate: new Date('2026-03-21T00:00:00.000Z'),
           rentType: 'Weekly',
-        })
+        }),
       )
     })
 
@@ -894,7 +897,49 @@ describe('SingleInviteUseCase', () => {
         expect.objectContaining({
           rentEndDate: new Date('2026-06-30T00:00:00.000Z'),
           rentType: 'Quarterly',
-        })
+        }),
+      )
+    })
+
+    it('should reconcile initial paid rent cycle via RentalPeriodService when invite includes initialAmountPaid > 0', async () => {
+      companyRepository.findByName.mockResolvedValue(makeCompany() as any)
+      managerRepository.findByEmail.mockResolvedValue(makeManager() as any)
+      userRepository.findByEmail.mockResolvedValue(makeUser() as any)
+      companyUserRepository.findByCompanyAndUser.mockResolvedValue(makeCompanyUser() as any)
+      locationRepository.findByAddress.mockResolvedValue(makeLocation() as any)
+      propertyRepository.findByUserId.mockResolvedValue([])
+      propertyRepository.save.mockImplementation(async (data: any) => ({
+        ...data,
+        id: 103,
+        uuid: 'prop-103',
+      }))
+      ;(prisma as any).upward_platform_rent_payment = {
+        findFirst: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue({ id: 1 }),
+      }
+      jest.spyOn(rentalPeriodService, 'ensureInitialTenancyPeriod').mockResolvedValue({} as any)
+      const reconcileSpy = jest
+        .spyOn(rentalPeriodService, 'reconcileInitialRentCycle')
+        .mockResolvedValue({} as any)
+
+      const payload = validInviteRequest()
+      payload.invite.properties[0].rent = {
+        rentAmount: 1500000,
+        initialAmountPaid: 1500000,
+        rentStartDate: '2026-01-01',
+        rentEndDate: '2026-12-31',
+      }
+
+      await useCase.setupInviteContext(payload)
+
+      expect(reconcileSpy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: 1,
+          userPropertyId: 103,
+          rentAmount: 1500000,
+          initialAmountPaid: 1500000,
+          timeliness: 'ON_TIME',
+        }),
       )
     })
   })

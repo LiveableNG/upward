@@ -8,7 +8,7 @@ import {
   IsDateString,
   IsNotEmpty,
   IsEmail,
-  IsUUID
+  IsUUID,
 } from 'class-validator'
 import { Type, Transform } from 'class-transformer'
 
@@ -81,7 +81,20 @@ export function normalizeRentType(val: any): string | undefined {
   if (val === undefined || val === null || val === '') return undefined
   if (typeof val !== 'string') return val
   const trimmed = val.trim().toLowerCase()
-  if (['yearly', 'annual', 'annually', 'year', 'per annum', 'per_annum', 'p.a.', 'lease', 'long lease', 'fixed lease'].includes(trimmed)) {
+  if (
+    [
+      'yearly',
+      'annual',
+      'annually',
+      'year',
+      'per annum',
+      'per_annum',
+      'p.a.',
+      'lease',
+      'long lease',
+      'fixed lease',
+    ].includes(trimmed)
+  ) {
     return 'Annually'
   }
   if (['monthly', 'month', 'per month', 'per_month', 'p.m.'].includes(trimmed)) {
@@ -103,7 +116,9 @@ export function normalizeRentType(val: any): string | undefined {
 }
 
 export class RentInfoDto {
-  @Transform(({ value }) => (value !== undefined && value !== null && value !== '' ? Number(value) : value))
+  @Transform(({ value }) =>
+    value !== undefined && value !== null && value !== '' ? Number(value) : value,
+  )
   @IsNumber()
   rentAmount!: number
 
@@ -125,7 +140,9 @@ export class RentInfoDto {
   isFirstRent?: boolean
 
   @IsOptional()
-  @Transform(({ value }) => (value !== undefined && value !== null && value !== '' ? Number(value) : undefined))
+  @Transform(({ value }) =>
+    value !== undefined && value !== null && value !== '' ? Number(value) : undefined,
+  )
   @IsNumber()
   initialAmountPaid?: number
 
@@ -142,6 +159,14 @@ export class RentInfoDto {
   @Transform(({ value }) => normalizeRentType(value))
   @IsString()
   rentType?: string
+
+  @IsOptional()
+  @IsString()
+  timeliness?: 'ON_TIME' | 'LATE'
+
+  @IsOptional()
+  @IsDateString()
+  paymentDate?: string
 }
 
 export class ManagerInfoDto {
@@ -202,12 +227,12 @@ export class PaymentAccountDto {
 
 export class UserPropertyContextDto {
   @IsOptional()
-  @Transform(({ value }) => value !== undefined && value !== null ? String(value) : value)
+  @Transform(({ value }) => (value !== undefined && value !== null ? String(value) : value))
   @IsString()
   externalUnitId?: string
 
   @IsOptional()
-  @Transform(({ value }) => value !== undefined && value !== null ? String(value) : value)
+  @Transform(({ value }) => (value !== undefined && value !== null ? String(value) : value))
   @IsString()
   externalPropertyId?: string
 
@@ -249,7 +274,9 @@ export class UserPropertyContextDto {
 }
 
 export class RentHistoryDto {
-  @Transform(({ value }) => (value !== undefined && value !== null && value !== '' ? Number(value) : value))
+  @Transform(({ value }) =>
+    value !== undefined && value !== null && value !== '' ? Number(value) : value,
+  )
   @IsNumber()
   amount!: number
 
@@ -316,7 +343,9 @@ export class LineItemDto {
   @IsNotEmpty()
   name!: string
 
-  @Transform(({ value }) => (value !== undefined && value !== null && value !== '' ? Number(value) : value))
+  @Transform(({ value }) =>
+    value !== undefined && value !== null && value !== '' ? Number(value) : value,
+  )
   @IsNumber()
   amount!: number
 }
@@ -463,7 +492,6 @@ export class UpdateExternalPaymentRequestPayloadDto {
   recurrenceInterval?: string
 }
 
-
 export class AddPropertyPayloadDto {
   @IsUUID()
   @IsNotEmpty()
@@ -481,12 +509,12 @@ export class AddPropertyPayloadDto {
 
 export class IdentifyPropertyPayloadDto {
   @IsOptional()
-  @Transform(({ value }) => value !== undefined && value !== null ? String(value) : value)
+  @Transform(({ value }) => (value !== undefined && value !== null ? String(value) : value))
   @IsString()
   externalUnitId?: string
 
   @IsOptional()
-  @Transform(({ value }) => value !== undefined && value !== null ? String(value) : value)
+  @Transform(({ value }) => (value !== undefined && value !== null ? String(value) : value))
   @IsString()
   externalPropertyId?: string
 }
@@ -519,7 +547,9 @@ export class VerifyAndAssignPropertyDto {
   externalPropertyId?: string
 
   @IsOptional()
-  @Transform(({ value }) => (value !== '' && value !== null && value !== undefined ? Number(value) : undefined))
+  @Transform(({ value }) =>
+    value !== '' && value !== null && value !== undefined ? Number(value) : undefined,
+  )
   @IsNumber()
   rentAmount?: number
 
@@ -537,7 +567,9 @@ export class VerifyAndAssignPropertyDto {
   rentType?: string
 
   @IsOptional()
-  @Transform(({ value }) => (value !== '' && value !== null && value !== undefined ? Number(value) : undefined))
+  @Transform(({ value }) =>
+    value !== '' && value !== null && value !== undefined ? Number(value) : undefined,
+  )
   @IsNumber()
   leaseYears?: number
 
@@ -552,4 +584,3 @@ export class VerifyAndAssignPropertyDto {
   @Type(() => RentHistoryDto)
   rentHistory?: RentHistoryDto[]
 }
-
