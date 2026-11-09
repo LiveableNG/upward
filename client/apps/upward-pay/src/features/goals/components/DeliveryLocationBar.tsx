@@ -16,7 +16,6 @@ import { useAuth } from '@/features/auth/AuthContext'
 import {
   type UserDeliveryLocation,
   type DeliveryZoneItem,
-  PRESET_DELIVERY_ZONES,
   resolveDeliveryZone,
   formatShortLocation,
   saveStoredDeliveryLocation,
@@ -38,8 +37,8 @@ export const DeliveryLocationBar: React.FC<DeliveryLocationBarProps> = ({
   const [isOpen, setIsOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [zones, setZones] = useState<DeliveryZoneItem[]>(PRESET_DELIVERY_ZONES)
-  const [isLoadingZones, setIsLoadingZones] = useState(false)
+  const [zones, setZones] = useState<DeliveryZoneItem[]>([])
+  const [isLoadingZones, setIsLoadingZones] = useState(true)
 
   useEffect(() => {
     setMounted(true)
@@ -52,8 +51,8 @@ export const DeliveryLocationBar: React.FC<DeliveryLocationBarProps> = ({
       try {
         setIsLoadingZones(true)
         const dynamic = await fetchDeliveryZones()
-        if (isMounted && dynamic && dynamic.length > 0) {
-          setZones(dynamic)
+        if (isMounted) {
+          setZones(dynamic || [])
         }
       } catch (err) {
         console.warn('Failed to load dynamic delivery zones', err)

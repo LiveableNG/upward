@@ -4,6 +4,11 @@ Number.prototype.toLocaleString = function (locales, options) {
   return originalToLocaleString.call(this, locales || 'en-US', options);
 };
 
+// Guarantee safe serialization of BigInt fields in JSON responses
+;(BigInt.prototype as any).toJSON = function () {
+  return this.toString();
+};
+
 import { NestFactory } from '@nestjs/core';
 import type { NestFastifyApplication } from '@nestjs/platform-fastify'
 import { FastifyAdapter } from '@nestjs/platform-fastify'

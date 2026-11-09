@@ -37,49 +37,8 @@ export interface UserDeliveryLocation {
   driverNotes?: string
 }
 
-export const PRESET_DELIVERY_ZONES: DeliveryZoneItem[] = [
-  {
-    tag: 'LAGOS_ISLAND',
-    name: 'Lagos Island (Ikoyi / VI / Lekki Phase 1)',
-    state: 'Lagos',
-    region: 'Island',
-    areasCovered: 'Victoria Island, Ikoyi, Lekki Phase 1, Oniru, Marina, Banana Island, Ajah',
-    isDelivering: true,
-    estimatedDeliveryDays: 'Same-day or next-day delivery',
-    sortOrder: 1,
-  },
-  {
-    tag: 'LAGOS_MAINLAND',
-    name: 'Lagos Mainland (Ikeja / Surulere / Yaba)',
-    state: 'Lagos',
-    region: 'Mainland',
-    areasCovered: 'Ikeja, Surulere, Yaba, Maryland, Magodo, Gbagada, Ogudu, Ilupeju, Anthony',
-    isDelivering: true,
-    estimatedDeliveryDays: '1 - 2 business days',
-    sortOrder: 2,
-  },
-  {
-    tag: 'ABUJA_METRO',
-    name: 'Abuja Metro (Maitama / Wuse II / Asokoro)',
-    state: 'FCT Abuja',
-    region: 'Metropolis',
-    areasCovered: 'Maitama, Asokoro, Wuse 2, Central Business District, Garki, Jabi, Gwarinpa, Guzape',
-    isDelivering: true,
-    estimatedDeliveryDays: '2 - 3 business days',
-    sortOrder: 3,
-  },
-  {
-    tag: 'PORT_HARCOURT',
-    name: 'Port Harcourt (GRA Phases 1-3 / Trans-Amadi)',
-    state: 'Rivers',
-    region: 'South South',
-    areasCovered: 'Old GRA, New GRA, Peter Odili, Trans-Amadi, Woji, Rumuola',
-    isDelivering: false,
-    pauseReason: 'Upcoming launch region — rollout scheduled soon',
-    estimatedDeliveryDays: 'Coming Soon',
-    sortOrder: 4,
-  },
-]
+// No hardcoded preset delivery zones; all zones are loaded dynamically from the database
+export const PRESET_DELIVERY_ZONES: DeliveryZoneItem[] = []
 
 /**
  * Derives a matched zone from any raw address or search query against available configured zones.
@@ -177,15 +136,17 @@ export function resolveDeliveryZone(
     normalized.includes('oniru') ||
     normalized.includes('banana island')
   ) {
-    const lagosIsland = configuredZones.find((z) => z.tag === 'LAGOS_ISLAND') || PRESET_DELIVERY_ZONES[0]
-    return {
-      zoneTag: lagosIsland.tag,
-      zoneName: lagosIsland.name,
-      state: lagosIsland.state,
-      isDelivering: lagosIsland.isDelivering,
-      pauseReason: lagosIsland.pauseReason,
-      deliveryFeeKobo: lagosIsland.deliveryFeeKobo,
-      isSupported: true,
+    const lagosIsland = configuredZones.find((z) => z.tag === 'LAGOS_ISLAND')
+    if (lagosIsland) {
+      return {
+        zoneTag: lagosIsland.tag,
+        zoneName: lagosIsland.name,
+        state: lagosIsland.state,
+        isDelivering: lagosIsland.isDelivering,
+        pauseReason: lagosIsland.pauseReason,
+        deliveryFeeKobo: lagosIsland.deliveryFeeKobo,
+        isSupported: true,
+      }
     }
   }
 
@@ -200,15 +161,17 @@ export function resolveDeliveryZone(
     normalized.includes('ilupeju') ||
     normalized.includes('festac')
   ) {
-    const lagosMainland = configuredZones.find((z) => z.tag === 'LAGOS_MAINLAND') || PRESET_DELIVERY_ZONES[1]
-    return {
-      zoneTag: lagosMainland.tag,
-      zoneName: lagosMainland.name,
-      state: lagosMainland.state,
-      isDelivering: lagosMainland.isDelivering,
-      pauseReason: lagosMainland.pauseReason,
-      deliveryFeeKobo: lagosMainland.deliveryFeeKobo,
-      isSupported: true,
+    const lagosMainland = configuredZones.find((z) => z.tag === 'LAGOS_MAINLAND')
+    if (lagosMainland) {
+      return {
+        zoneTag: lagosMainland.tag,
+        zoneName: lagosMainland.name,
+        state: lagosMainland.state,
+        isDelivering: lagosMainland.isDelivering,
+        pauseReason: lagosMainland.pauseReason,
+        deliveryFeeKobo: lagosMainland.deliveryFeeKobo,
+        isSupported: true,
+      }
     }
   }
 
@@ -220,15 +183,17 @@ export function resolveDeliveryZone(
     normalized.includes('garki') ||
     normalized.includes('fct')
   ) {
-    const abuja = configuredZones.find((z) => z.tag === 'ABUJA_METRO') || PRESET_DELIVERY_ZONES[2]
-    return {
-      zoneTag: abuja.tag,
-      zoneName: abuja.name,
-      state: abuja.state,
-      isDelivering: abuja.isDelivering,
-      pauseReason: abuja.pauseReason,
-      deliveryFeeKobo: abuja.deliveryFeeKobo,
-      isSupported: true,
+    const abuja = configuredZones.find((z) => z.tag === 'ABUJA_METRO')
+    if (abuja) {
+      return {
+        zoneTag: abuja.tag,
+        zoneName: abuja.name,
+        state: abuja.state,
+        isDelivering: abuja.isDelivering,
+        pauseReason: abuja.pauseReason,
+        deliveryFeeKobo: abuja.deliveryFeeKobo,
+        isSupported: true,
+      }
     }
   }
 
@@ -237,15 +202,17 @@ export function resolveDeliveryZone(
     normalized.includes('rivers') ||
     normalized.includes('trans amadi')
   ) {
-    const ph = configuredZones.find((z) => z.tag === 'PORT_HARCOURT') || PRESET_DELIVERY_ZONES[3]
-    return {
-      zoneTag: ph.tag,
-      zoneName: ph.name,
-      state: ph.state,
-      isDelivering: ph.isDelivering,
-      pauseReason: ph.pauseReason,
-      deliveryFeeKobo: ph.deliveryFeeKobo,
-      isSupported: true,
+    const ph = configuredZones.find((z) => z.tag === 'PORT_HARCOURT')
+    if (ph) {
+      return {
+        zoneTag: ph.tag,
+        zoneName: ph.name,
+        state: ph.state,
+        isDelivering: ph.isDelivering,
+        pauseReason: ph.pauseReason,
+        deliveryFeeKobo: ph.deliveryFeeKobo,
+        isSupported: true,
+      }
     }
   }
 
@@ -328,10 +295,7 @@ export function isOfferingDeliverableToLocation(
 
   // Build friendly zone names
   const friendlyNames = coverageZones
-    .map((z) => {
-      const match = PRESET_DELIVERY_ZONES.find((p) => p.tag === z)
-      return match ? match.name : z.replace(/_/g, ' ')
-    })
+    .map((z) => z.replace(/_/g, ' '))
     .join(', ')
 
   return {
@@ -344,7 +308,7 @@ const STORAGE_KEY = 'upward_lifestyle_delivery_loc'
 
 export function getStoredDeliveryLocation(
   defaultAddress?: string | null,
-  configuredZones: DeliveryZoneItem[] = PRESET_DELIVERY_ZONES,
+  configuredZones: DeliveryZoneItem[] = [],
 ): UserDeliveryLocation {
   if (typeof window !== 'undefined') {
     try {

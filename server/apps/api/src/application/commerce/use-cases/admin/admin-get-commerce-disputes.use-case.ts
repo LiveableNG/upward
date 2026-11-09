@@ -34,6 +34,49 @@ export class AdminGetCommerceDisputesUseCase {
       take: 1000,
     })
 
+    const mappedOrderDisputes: CommerceDispute[] = disputesResult.items.map((dispute: any) => ({
+      id: dispute.id,
+      uuid: dispute.uuid,
+      subOrderId: dispute.subOrderId,
+      userId: dispute.userId,
+      status: dispute.status as DisputeStatus,
+      reason: dispute.reason,
+      explanation: dispute.explanation,
+      evidenceUrls: dispute.evidenceUrls || [],
+      resolutionNotes: dispute.resolutionNotes || null,
+      resolvedAt: dispute.resolvedAt || null,
+      resolvedBy: dispute.resolvedBy || null,
+      createdAt: dispute.createdAt,
+      updatedAt: dispute.updatedAt,
+      subOrder: dispute.subOrder
+        ? {
+            id: dispute.subOrder.id,
+            uuid: dispute.subOrder.uuid,
+            subOrderNumber: dispute.subOrder.subOrderNumber,
+            customerStatus: dispute.subOrder.customerStatus,
+            operationalStatus: dispute.subOrder.operationalStatus,
+            subtotalKobo: dispute.subOrder.subtotalKobo?.toString() || '0',
+            deliveryFeeKobo: dispute.subOrder.deliveryFeeKobo?.toString() || '0',
+            order: dispute.subOrder.order
+              ? {
+                  id: dispute.subOrder.order.id,
+                  uuid: dispute.subOrder.order.uuid,
+                  orderNumber: dispute.subOrder.order.orderNumber,
+                  recipientName: dispute.subOrder.order.recipientName || '',
+                  recipientPhone: dispute.subOrder.order.recipientPhone || '',
+                  deliveryAddress: dispute.subOrder.order.deliveryAddress || '',
+                }
+              : undefined,
+            vendor: dispute.subOrder.vendor
+              ? {
+                  id: dispute.subOrder.vendor.id,
+                  name: dispute.subOrder.vendor.name,
+                }
+              : undefined,
+          }
+        : undefined,
+    }))
+
     // 2. Fetch pre-purchase commerce product inquiries
     const inquiryWhere: any = {
       message: { startsWith: '[Commerce Inquiry:' },
@@ -124,7 +167,7 @@ export class AdminGetCommerceDisputesUseCase {
       }
     })
 
-    const combined = [...disputesResult.items, ...inquiryDisputes].sort(
+    const combined = [...mappedOrderDisputes, ...inquiryDisputes].sort(
       (a, b) => new Date(b.createdAt!).getTime() - new Date(a.createdAt!).getTime(),
     )
 

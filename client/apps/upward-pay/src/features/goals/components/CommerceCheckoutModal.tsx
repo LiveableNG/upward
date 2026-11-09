@@ -30,7 +30,6 @@ import {
   saveStoredDeliveryLocation,
   type UserDeliveryLocation,
   type DeliveryZoneItem,
-  PRESET_DELIVERY_ZONES,
 } from '../utils/deliveryLocation'
 import { fetchDeliveryZones } from '../services/goalsService'
 import '../styles/goals.css'
@@ -78,7 +77,7 @@ export function CommerceCheckoutModal({
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   // Configured delivery zones & user selected zone
-  const [availableZones, setAvailableZones] = useState<DeliveryZoneItem[]>(PRESET_DELIVERY_ZONES)
+  const [availableZones, setAvailableZones] = useState<DeliveryZoneItem[]>([])
   const [selectedLocation, setSelectedLocation] = useState<UserDeliveryLocation>(() =>
     deliveryLocation || getStoredDeliveryLocation(),
   )
