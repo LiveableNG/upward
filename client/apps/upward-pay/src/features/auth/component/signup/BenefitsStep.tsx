@@ -11,7 +11,7 @@ const BENEFITS = [
     icon: PiggyBank,
     color: '#C2501F',
     title: 'Save for Rent Stress-Free',
-    desc: 'Never scramble on rent day again. Put money aside bit by bit, watch it grow with daily bonus returns, and earn cash back on your rent.',
+    desc: 'Save at your own pace, earn daily returns, and get cash back on rent day.',
   },
   {
     icon: Target,
@@ -46,15 +46,17 @@ interface BenefitsStepProps {
 
 export function BenefitsStep({ onSignup, onLogin }: BenefitsStepProps) {
   const [active, setActive] = useState(0)
+  const [dragOffset, setDragOffset] = useState(0)
+  const [isDragging, setIsDragging] = useState(false)
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const touchStartXRef = useRef<number | null>(null)
-  const touchEndXRef = useRef<number | null>(null)
+  const currentDragRef = useRef(0)
 
   const startTimer = () => {
     if (timerRef.current) clearInterval(timerRef.current)
     timerRef.current = setInterval(() => {
       setActive((a) => (a + 1) % BENEFITS.length)
-    }, 3800)
+    }, 4000)
   }
 
   useEffect(() => {
@@ -71,26 +73,42 @@ export function BenefitsStep({ onSignup, onLogin }: BenefitsStepProps) {
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartXRef.current = e.touches[0].clientX
-    touchEndXRef.current = null
+    currentDragRef.current = 0
+    setIsDragging(true)
+    if (timerRef.current) clearInterval(timerRef.current)
   }
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    touchEndXRef.current = e.touches[0].clientX
+    if (touchStartXRef.current === null) return
+    const currentX = e.touches[0].clientX
+    const diff = currentX - touchStartXRef.current
+    currentDragRef.current = diff
+    setDragOffset(diff)
   }
 
   const handleTouchEnd = () => {
-    if (touchStartXRef.current !== null && touchEndXRef.current !== null) {
-      const diff = touchStartXRef.current - touchEndXRef.current
-      const threshold = 40
-      if (diff > threshold) {
-        goToSlide((active + 1) % BENEFITS.length)
-      } else if (diff < -threshold) {
-        goToSlide((active - 1 + BENEFITS.length) % BENEFITS.length)
-      }
-    }
+    const diff = currentDragRef.current
+    const threshold = 40
+    setIsDragging(false)
+    setDragOffset(0)
     touchStartXRef.current = null
-    touchEndXRef.current = null
+
+    if (diff > threshold) {
+      goToSlide((active - 1 + BENEFITS.length) % BENEFITS.length)
+    } else if (diff < -threshold) {
+      goToSlide((active + 1) % BENEFITS.length)
+    } else {
+      startTimer()
+    }
   }
+
+  const trackTransform = isDragging
+    ? `translateX(calc(-${active * 100}% + ${dragOffset}px))`
+    : `translateX(-${active * 100}%)`
+
+  const trackTransition = isDragging
+    ? 'none'
+    : 'transform 0.65s cubic-bezier(0.16, 1, 0.3, 1)'
 
   return (
     <div className="auth-shell auth-shell--welcome">
@@ -107,12 +125,20 @@ export function BenefitsStep({ onSignup, onLogin }: BenefitsStepProps) {
         <div className="benefit-carousel__slider">
           <div
             className="benefit-carousel__track"
-            style={{ transform: `translateX(-${active * 100}%)` }}
+            style={{
+              transform: trackTransform,
+              transition: trackTransition,
+            }}
           >
             {BENEFITS.map((item, idx) => {
               const ItemIcon = item.icon
+              const isActive = idx === active
               return (
-                <div key={item.title} className="benefit-carousel__slide" aria-hidden={idx !== active}>
+                <div
+                  key={item.title}
+                  className={`benefit-carousel__slide ${isActive ? 'is-active' : ''}`}
+                  aria-hidden={!isActive}
+                >
                   <div
                     className="benefit-carousel__icon-ring"
                     style={{ '--accent': item.color } as React.CSSProperties}
