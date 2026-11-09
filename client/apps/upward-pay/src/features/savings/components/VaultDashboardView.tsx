@@ -16,7 +16,6 @@ import {
 import { formatCurrency } from '@/lib/utils'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
-import { FairBreakoutModal } from './FairBreakoutModal'
 import { FundVaultModal } from './FundVaultModal'
 import type { VaultTransactionItem } from '../services/savingsService'
 
@@ -62,7 +61,6 @@ interface VaultDashboardViewProps {
 
 export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboardViewProps) {
   const [showFundModal, setShowFundModal] = useState(false)
-  const [showBreakoutModal, setShowBreakoutModal] = useState(false)
   const [copiedAccount, setCopiedAccount] = useState(false)
 
   const { user } = useAuth()
@@ -345,37 +343,11 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
         )}
       </div>
 
-      <div style={{ textAlign: 'center', marginTop: 8 }}>
-        <button
-          type="button"
-          onClick={() => setShowBreakoutModal(true)}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: 'var(--text-muted)',
-            fontSize: '0.8125rem',
-            textDecoration: 'underline',
-            cursor: 'pointer',
-          }}
-        >
-          Review Fair Exit &amp; Breakout Policy
-        </button>
-      </div>
-
       <FundVaultModal
         isOpen={showFundModal}
         onClose={() => setShowFundModal(false)}
         dedicatedAccount={vault.dedicated_account}
       />
-
-      {showBreakoutModal && (
-        <FairBreakoutModal
-          vaultId={vault.vault_id}
-          principalKobo={vault.principal_kobo}
-          accruedYieldKobo={vault.accrued_yield_kobo}
-          onClose={() => setShowBreakoutModal(false)}
-        />
-      )}
     </div>
   )
 }
