@@ -10,8 +10,7 @@ export default function SavingsDashboardPage() {
 
   return (
     <PayPageShell
-      title="Rent Savings & Lock"
-      subtitle="Save towards your next rent, earn daily returns, and get cash back"
+      title="Rent Savings"
       showBack
       onBack={() => router.push('/dashboard')}
     >

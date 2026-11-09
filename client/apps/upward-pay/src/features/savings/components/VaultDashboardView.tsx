@@ -114,13 +114,13 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
         <div className="vault-dashboard__top-row">
           <div className="vault-dashboard__lock-pill">
             <Lock size={13} color="var(--clay)" />
-            <span>{isSettlementReady ? 'Ready to Pay Rent' : 'Target Rent Savings'}</span>
+            <span>{isSettlementReady ? 'Ready to Settle' : 'Target Rent Savings'}</span>
           </div>
-          <span className="vault-dashboard__countdown-pill">{daysRemaining} Days to Rent Day</span>
+          <span className="vault-dashboard__countdown-pill">{daysRemaining} Days Left</span>
         </div>
 
         <div className="vault-dashboard__amounts">
-          <span className="vault-dashboard__balance-caption">Total Rent Savings &amp; Deposit</span>
+          <span className="vault-dashboard__balance-caption">Total Savings</span>
           <span className="vault-dashboard__current-balance">
             {formatCurrency(currentBalanceNaira, 'NGN')}
           </span>
@@ -153,35 +153,28 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
 
         <div className="vault-dashboard__breakdown-grid">
           <div className="vault-dashboard__breakdown-item">
-            <span className="vault-dashboard__breakdown-label">Vault Principal</span>
+            <span className="vault-dashboard__breakdown-label">Principal</span>
             <span className="vault-dashboard__breakdown-val">
               {formatCurrency(vaultPrincipalNaira, 'NGN')}
             </span>
           </div>
           {depositBalanceNaira > 0 && (
             <div className="vault-dashboard__breakdown-item">
-              <span className="vault-dashboard__breakdown-label">Rent Deposit Credit</span>
+              <span className="vault-dashboard__breakdown-label">Deposit Credit</span>
               <span className="vault-dashboard__breakdown-val">
                 {formatCurrency(depositBalanceNaira, 'NGN')}
               </span>
             </div>
           )}
           <div className="vault-dashboard__breakdown-item">
-            <span className="vault-dashboard__breakdown-label">Interest Earned (14.5% p.a.)</span>
+            <span className="vault-dashboard__breakdown-label">Returns (14.5% p.a.)</span>
             <span className="vault-dashboard__breakdown-val vault-dashboard__breakdown-val--yield">
               +{formatCurrency(accruedYieldNaira, 'NGN')}
+              <span className="vault-dashboard__yield-sub">
+                +{formatCurrency(estimatedDailyAddNaira, 'NGN')}/day
+              </span>
             </span>
           </div>
-        </div>
-
-        <div className="vault-dashboard__interest-card">
-          <div className="vault-dashboard__interest-text">
-            <TrendingUp size={16} />
-            <span>+{formatCurrency(accruedYieldNaira, 'NGN')} Total Returns</span>
-          </div>
-          <span className="vault-dashboard__interest-rate">
-            +{formatCurrency(estimatedDailyAddNaira, 'NGN')} / day at 14.5% p.a.
-          </span>
         </div>
 
         <div className="vault-dashboard__actions">
@@ -194,13 +187,13 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
             <span>Add Funds</span>
           </button>
 
-          {onGoToSettlementHub && (
+          {isSettlementReady && onGoToSettlementHub && (
             <button
               type="button"
-              className={isSettlementReady ? 'vault-btn-primary' : 'vault-btn-secondary'}
+              className="vault-btn-secondary"
               onClick={onGoToSettlementHub}
             >
-              <span>{isSettlementReady ? 'Settle Landlord & Claim Bonus' : 'Pay Landlord'}</span>
+              <span>Settle Landlord &amp; Bonus</span>
               <ArrowRight size={16} />
             </button>
           )}
@@ -210,16 +203,18 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
       {vault.dedicated_account?.account_number && (
         <div className="vault-dva-card">
           <div className="vault-dva-card__header">
-            <span className="vault-dva-card__title">Your Personal Rent Account</span>
+            <span className="vault-dva-card__title">Personal Rent Account</span>
             <span className="vault-dva-card__badge">
               {vault.dedicated_account.bank_name || 'Wema Bank'}
             </span>
           </div>
           <div className="vault-dva-card__number-row">
             <div className="vault-dva-card__number-block">
-              <span className="vault-dva-card__number-label">Account Number</span>
               <span className="vault-dva-card__number">
                 {vault.dedicated_account.account_number}
+              </span>
+              <span className="vault-dva-card__sub-label">
+                {vault.dedicated_account.account_name}
               </span>
             </div>
             <button
@@ -240,31 +235,17 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
               )}
             </button>
           </div>
-          <div className="vault-dva-card__meta-list">
-            <div className="vault-dva-card__meta-row">
-              <span className="vault-dva-card__meta-label">Account Name</span>
-              <span className="vault-dva-card__meta-value">
-                {vault.dedicated_account.account_name}
-              </span>
-            </div>
-            <div className="vault-dva-card__meta-row">
-              <span className="vault-dva-card__meta-label">Bank Name</span>
-              <span className="vault-dva-card__meta-value">
-                {vault.dedicated_account.bank_name || 'Wema Bank'}
-              </span>
-            </div>
-          </div>
         </div>
       )}
 
       <div className="vault-score-card">
         <div className="vault-score-card__header">
           <div className="vault-score-card__title">
-            <ShieldCheck size={20} color="var(--clay)" />
-            <span>Upward Savings Discipline</span>
+            <ShieldCheck size={18} color="var(--clay)" />
+            <span>Savings Discipline</span>
           </div>
           <span className="vault-score-card__points-pill">
-            {vault.savings_score.total_score} / 100 Points
+            {vault.savings_score.total_score} / 100
           </span>
         </div>
 
@@ -273,79 +254,76 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
             <div className="vault-score-card__metric-val">
               {vault.savings_score.cadence_points} / 40
             </div>
-            <div className="vault-score-card__metric-label">Cadence (On-time)</div>
+            <div className="vault-score-card__metric-label">Cadence</div>
           </div>
           <div>
             <div className="vault-score-card__metric-val">
               {vault.savings_score.velocity_points} / 40
             </div>
-            <div className="vault-score-card__metric-label">Milestone Target</div>
+            <div className="vault-score-card__metric-label">Milestone</div>
           </div>
           <div>
             <div className="vault-score-card__metric-val">
               {vault.savings_score.loan_discipline_points} / 20
             </div>
-            <div className="vault-score-card__metric-label">Lock Consistency</div>
+            <div className="vault-score-card__metric-label">Lock</div>
           </div>
         </div>
       </div>
 
-      <div className="vault-actions-grid">
-        <button type="button" className="vault-action-btn" onClick={() => setShowFundModal(true)}>
-          <div className="vault-action-btn__icon">
-            <ArrowDownToLine size={18} />
-          </div>
-          <span className="vault-action-btn__title">Top Up Savings</span>
-          <span className="vault-action-btn__subtitle">
-            {vault.dedicated_account
-              ? `${vault.dedicated_account.bank_name} • ${vault.dedicated_account.account_number}`
-              : 'Direct bank transfer'}
-          </span>
-        </button>
+      {(vault.emergency_advance || onGoToSettlementHub) && (
+        <div className="vault-services-list">
+          {vault.emergency_advance && (
+            <button
+              type="button"
+              className="vault-service-item"
+              onClick={() => setShowAdvanceModal(true)}
+            >
+              <div className="vault-service-item__icon">
+                <Sparkles size={18} />
+              </div>
+              <div className="vault-service-item__content">
+                <span className="vault-service-item__title">Borrow Emergency Cash</span>
+                <span className="vault-service-item__subtitle">
+                  {vault.emergency_advance.has_active_loan
+                    ? 'Active advance in progress'
+                    : `Up to ${formatCurrency(vault.emergency_advance.max_borrowable_kobo / 100, 'NGN')} (40%)`}
+                </span>
+              </div>
+              <ArrowRight size={16} className="vault-service-item__arrow" />
+            </button>
+          )}
 
-        {vault.emergency_advance && (
-          <button
-            type="button"
-            className="vault-action-btn"
-            onClick={() => setShowAdvanceModal(true)}
-          >
-            <div className="vault-action-btn__icon">
-              <Sparkles size={18} />
-            </div>
-            <span className="vault-action-btn__title">Borrow Emergency Cash</span>
-            <span className="vault-action-btn__subtitle">
-              {vault.emergency_advance.has_active_loan
-                ? 'Active advance in progress'
-                : `Up to ${formatCurrency(vault.emergency_advance.max_borrowable_kobo / 100, 'NGN')} (40%)`}
-            </span>
-          </button>
-        )}
-
-        <button
-          type="button"
-          className="vault-action-btn vault-action-btn--featured"
-          onClick={() => onGoToSettlementHub?.()}
-        >
-          <div className="vault-action-btn__icon">
-            <Landmark size={18} />
-          </div>
-          <div className="vault-action-btn__content">
-            <span className="vault-action-btn__title">Settle Rent to Landlord</span>
-            <span className="vault-action-btn__subtitle">
-              Direct NIP transfer + 1.5% on-time rent bonus
-            </span>
-          </div>
-          <ArrowRight size={16} className="vault-action-btn__arrow" />
-        </button>
-      </div>
+          {onGoToSettlementHub && (
+            <button
+              type="button"
+              className="vault-service-item"
+              onClick={() => onGoToSettlementHub()}
+            >
+              <div className="vault-service-item__icon">
+                <Landmark size={18} />
+              </div>
+              <div className="vault-service-item__content">
+                <span className="vault-service-item__title">Settle Rent to Landlord</span>
+                <span className="vault-service-item__subtitle">
+                  Direct NIP transfer + 1.5% on-time rent bonus
+                </span>
+              </div>
+              <ArrowRight size={16} className="vault-service-item__arrow" />
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="vault-ledger">
         <div className="vault-ledger__header">
           <div className="vault-ledger__title">
             <Receipt size={18} color="var(--clay)" />
-            <span>Savings &amp; Deposit Activity</span>
+            <span>Recent Activity</span>
           </div>
-          <span className="vault-ledger__count">{transactions.length} entries</span>
+          <span className="vault-ledger__count">
+            {transactions.length} {transactions.length === 1 ? 'entry' : 'entries'}
+          </span>
         </div>
 
         {transactions.length === 0 ? (
@@ -420,7 +398,7 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
             cursor: 'pointer',
           }}
         >
-          Need funds early? Review Fair Exit &amp; Breakout Policy
+          Review Fair Exit &amp; Breakout Policy
         </button>
       </div>
 
