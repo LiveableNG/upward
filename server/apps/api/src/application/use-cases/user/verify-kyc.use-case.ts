@@ -45,10 +45,10 @@ function checkNameMatch(
     return true
   }
 
-  // In local development, Prembly sandbox always returns "RONALD EKOM".
-  // Allow local testers to verify their accounts without needing to rename their profiles.
+  // In non-production environments, Prembly sandbox always returns "RONALD EKOM".
+  // Allow non-production testers to verify their accounts without needing to rename their profiles.
   if (
-    (process.env.NODE_ENV === 'development' || process.env.ALLOW_KYC_TEST_NAMES === 'true') &&
+    (process.env.NODE_ENV !== 'production' || process.env.ALLOW_KYC_TEST_NAMES === 'true') &&
     provFull.includes('ronald') &&
     provFull.includes('ekom')
   ) {
@@ -166,7 +166,7 @@ export class VerifyKycUseCase {
     const existingVerified = await this.kycRepository.findVerifiedByHash(idNumberHash)
     if (existingVerified && existingVerified.userId !== user.id) {
       if (
-        process.env.NODE_ENV === 'development' ||
+        (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') ||
         process.env.ALLOW_TEST_KYC_DUPLICATES === 'true'
       ) {
         this.logger.warn(
@@ -221,7 +221,7 @@ export class VerifyKycUseCase {
     const nameMatched = checkNameMatch(user.firstName, user.lastName, returnedFirst, returnedLast)
     const dobProvidedOnAccount = !!user.dateOfBirth
     const isDevSandboxPersona =
-      (process.env.NODE_ENV === 'development' || process.env.ALLOW_KYC_TEST_NAMES === 'true') &&
+      (process.env.NODE_ENV !== 'production' || process.env.ALLOW_KYC_TEST_NAMES === 'true') &&
       returnedFirst.toUpperCase() === 'RONALD' &&
       returnedLast.toUpperCase() === 'EKOM'
     const dobMatched = !dobProvidedOnAccount || datesMatch(user.dateOfBirth, returnedDob) || isDevSandboxPersona

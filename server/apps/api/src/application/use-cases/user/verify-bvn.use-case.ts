@@ -17,8 +17,7 @@ function checkNameMatch(userFirst: string, userLast: string, bvnFirst: string, b
 
   const provFull = `${bf} ${bl}`
   if (
-    (process.env.NODE_ENV === 'development' ||
-      process.env.APP_ENV === 'staging' ||
+    (process.env.NODE_ENV !== 'production' ||
       process.env.ALLOW_KYC_TEST_NAMES === 'true') &&
     provFull.includes('ronald') &&
     provFull.includes('ekom')
@@ -136,8 +135,7 @@ export class VerifyBvnUseCase {
 
       const nameMatched = checkNameMatch(user.firstName, user.lastName, bvnFirst, bvnLast)
       const isDevSandboxPersona =
-        (process.env.NODE_ENV === 'development' ||
-          process.env.APP_ENV === 'staging' ||
+        (process.env.NODE_ENV !== 'production' ||
           process.env.ALLOW_KYC_TEST_NAMES === 'true') &&
         bvnFirst.toUpperCase() === 'RONALD' &&
         bvnLast.toUpperCase() === 'EKOM'
