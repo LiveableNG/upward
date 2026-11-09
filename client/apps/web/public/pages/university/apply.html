@@ -15,31 +15,7 @@
     href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;1,9..144,500;1,9..144,600&family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter+Tight:wght@700;800;900&family=Inter:wght@400;500;600;700;800&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- Facebook Pixel Code -->
-  <script>
-    !function (f, b, e, v, n, t, s) {
-      if (f.fbq) return; n = f.fbq = function () {
-        n.callMethod ?
-        n.callMethod.apply(n, arguments) : n.queue.push(arguments)
-      };
-      if (!f._fbq) f._fbq = n; n.push = n; n.loaded = !0; n.version = '2.0';
-      n.queue = []; t = b.createElement(e); t.async = !0;
-      t.src = v; s = b.getElementsByTagName(e)[0];
-      s.parentNode.insertBefore(t, s)
-    }(window, document, 'script',
-      'https://connect.facebook.net/en_US/fbevents.js');
-    fbq('init', '1079928187833425');
-    fbq('track', 'PageView');
-    fbq('track', 'ViewContent', {
-      content_name: 'Upward Academy Application Form',
-      content_category: 'Education / Real Estate'
-    });
-  </script>
-  <noscript>
-    <img height="1" width="1" style="display:none"
-      src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1" />
-  </noscript>
-  <!-- End Facebook Pixel Code -->
+
   <!-- Google Tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=AW-18414957187"></script>
   <script>
@@ -2402,9 +2378,6 @@
 
           const serverData = await res.json().catch(() => ({}));
 
-          if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
-            window.fbq('track', 'Purchase', { value: 5000, currency: 'NGN', content_name: 'Student Application Step 1' });
-          }
           if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
             window.gtag('event', 'conversion', {
               'send_to': 'AW-18414957187/zGcOCN2Loe4cEIPl98xE',

@@ -363,17 +363,19 @@
           });
         }
 
-        // Smooth transition to Success State
-        const firstName = name.split(' ')[0] || 'Friend';
-        const successTitle = document.getElementById('successAttendeeName');
-        if (successTitle) {
-          successTitle.textContent = 'Seat Confirmed, ' + firstName + '!';
-        }
+        // Store attendee first name in sessionStorage for clean Thank You page greeting
+        try {
+          const firstName = name.trim().split(' ')[0] || '';
+          if (firstName) {
+            sessionStorage.setItem('upward_webinar_attendee', firstName);
+          }
+        } catch (e) {}
 
-        form.style.display = 'none';
-        if (formHeader) formHeader.style.display = 'none';
-        if (urgencyCard) urgencyCard.style.display = 'none';
-        if (successBox) successBox.classList.add('visible');
+        // Redirect directly to dedicated Thank You conversion page (clean URL)
+        const isAcademy = window.location.pathname.startsWith('/academy');
+        const thankYouUrl = isAcademy ? '/academy/webinar/thank-you' : '/webinar/thank-you';
+        window.location.href = thankYouUrl;
+        return;
 
         // Setup 1-Click Calendar Links
         const webinarStart = new Date(Date.UTC(2026, 10, 21, 10, 0, 0));

@@ -1160,10 +1160,6 @@
         };
 
         // Analytics conversion events
-        if (typeof window.fbq === 'function') {
-          window.fbq('track', 'Subscribe', { content_name: 'Info & QA Session Registration' });
-          window.fbq('track', 'Lead', { content_name: 'Upward Academy Info Session' });
-        }
         if (typeof window.gtag === 'function') {
           window.gtag('event', 'conversion', {
             send_to: 'AW-18414957187/iJ36CIv2lO4cEIPl98xE',
