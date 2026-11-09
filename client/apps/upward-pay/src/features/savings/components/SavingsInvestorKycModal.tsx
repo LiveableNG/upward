@@ -110,8 +110,30 @@ export function SavingsInvestorKycModal({
   const [nextOfKinRelationship, setNextOfKinRelationship] = useState('Spouse')
   const [nextOfKinPhone, setNextOfKinPhone] = useState('')
 
-  const [manualRentTarget, setManualRentTarget] = useState<number>(0)
-  const [manualDueDate, setManualDueDate] = useState<string>('')
+  const [manualRentTarget, setManualRentTarget] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('upward_savings_rent_plan')
+        if (raw) {
+          const parsed = JSON.parse(raw)
+          if (parsed.rentAmount) return Number(parsed.rentAmount)
+        }
+      } catch {}
+    }
+    return 0
+  })
+  const [manualDueDate, setManualDueDate] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('upward_savings_rent_plan')
+        if (raw) {
+          const parsed = JSON.parse(raw)
+          if (parsed.dueDate) return parsed.dueDate
+        }
+      } catch {}
+    }
+    return ''
+  })
 
   const [prevPrefill, setPrevPrefill] = useState<typeof prefill | null>(null)
   if (prefill && prefill !== prevPrefill && isOpen) {
@@ -136,6 +158,36 @@ export function SavingsInvestorKycModal({
       setManualDueDate(prefill.property.rent_end_date.split('T')[0])
     }
   }
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      if (manualRentTarget > 0 || manualDueDate) {
+        const rawPlan = localStorage.getItem('upward_savings_rent_plan')
+        const plan = rawPlan ? JSON.parse(rawPlan) : {}
+        if (manualRentTarget > 0) plan.rentAmount = manualRentTarget
+        if (manualDueDate) plan.dueDate = manualDueDate
+        localStorage.setItem('upward_savings_rent_plan', JSON.stringify(plan))
+
+        const rawDraft = localStorage.getItem('upward_setup_draft')
+        if (rawDraft) {
+          const parsed = JSON.parse(rawDraft)
+          if (parsed?.formData) {
+            if (manualRentTarget > 0) parsed.formData.rentAmount = manualRentTarget.toLocaleString()
+            if (manualDueDate) {
+              parsed.formData.rentEndDate = manualDueDate
+              parsed.formData.rentStartDate = new Date(
+                new Date(manualDueDate).getTime() - 365 * 24 * 60 * 60 * 1000,
+              )
+                .toISOString()
+                .split('T')[0]
+            }
+            localStorage.setItem('upward_setup_draft', JSON.stringify(parsed))
+          }
+        }
+      }
+    } catch {}
+  }, [manualRentTarget, manualDueDate])
 
   const [createdDva, setCreatedDva] = useState<{
     bank_name: string
@@ -234,6 +286,8 @@ export function SavingsInvestorKycModal({
         settlement_account_number: prefill?.settlement_account_number || undefined,
         settlement_account_name: prefill?.settlement_account_name || undefined,
         settlement_bank_name: prefill?.settlement_bank_name || undefined,
+        target_amount: manualRentTarget || (prefill as any)?.target_rent || 2400000,
+        rent_due_date: manualDueDate || (prefill as any)?.rent_due_date || undefined,
       })
 
       const dva = res?.dedicated_account

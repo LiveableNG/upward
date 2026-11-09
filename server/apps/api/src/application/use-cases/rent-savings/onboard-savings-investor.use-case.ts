@@ -1,5 +1,6 @@
 import { Injectable, Inject, Logger, BadRequestException, NotFoundException } from '@nestjs/common'
-import { IsEmail, IsIn, IsNotEmpty, IsOptional, IsString, Matches } from 'class-validator'
+import { IsEmail, IsIn, IsNotEmpty, IsNumber, IsOptional, IsString, Matches } from 'class-validator'
+import { Type } from 'class-transformer'
 import * as crypto from 'crypto'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { UserRepository, USER_REPOSITORY } from '../../../domains/users/user.repository'
@@ -69,6 +70,15 @@ export class OnboardSavingsInvestorDto {
   @IsOptional()
   @IsString()
   settlement_bank_name?: string
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  target_amount?: number
+
+  @IsOptional()
+  @IsString()
+  rent_due_date?: string
 }
 
 function cleanName(name: string): string {
@@ -205,6 +215,13 @@ export class OnboardSavingsInvestorUseCase {
           .join(', ')
       : null
 
+    const latestVault = this.prisma?.upward_rent_vault
+      ? await this.prisma.upward_rent_vault.findFirst({
+          where: { userId },
+          orderBy: { createdAt: 'desc' },
+        })
+      : null
+
     const landlordAccount = activeProp?.pmManualAccount || activeProp?.manualAccount || activeProp?.subaccount
     const landlordName =
       landlordAccount?.accountName ||
@@ -214,6 +231,23 @@ export class OnboardSavingsInvestorUseCase {
         ? `${activeProp.manager.firstName || ''} ${activeProp.manager.lastName || ''}`.trim()
         : null) ||
       null
+
+    const defaultRentAmount = 2400000
+    const defaultDueDate = new Date(Date.now() + 343 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split('T')[0]
+
+    const effectiveTargetRent = latestVault
+      ? Number(latestVault.targetAmountKobo) / 100
+      : activeProp?.rentAmount || (latestKyc?.status === 'VERIFIED' ? defaultRentAmount : null)
+
+    const effectiveDueDate = latestVault?.contractualDueDate
+      ? new Date(latestVault.contractualDueDate).toISOString().split('T')[0]
+      : activeProp?.rentEndDate
+        ? new Date(activeProp.rentEndDate).toISOString().split('T')[0]
+        : latestKyc?.status === 'VERIFIED'
+          ? defaultDueDate
+          : null
 
     return {
       status: 'success',
@@ -233,6 +267,9 @@ export class OnboardSavingsInvestorUseCase {
         next_of_kin_email:
           latestKyc?.nextOfKinEmail || tryDecrypt(pmTenant?.nextOfKinEmail) || user.email || null,
         next_of_kin_address: latestKyc?.nextOfKinAddress || propAddress || null,
+        kyc_address: latestKyc?.nextOfKinAddress || null,
+        target_rent: effectiveTargetRent,
+        rent_due_date: effectiveDueDate,
         settlement_bank: bankDetails
           ? {
               bank_code: bankDetails.bankCode,
@@ -254,7 +291,31 @@ export class OnboardSavingsInvestorUseCase {
               landlord_bank_name: (landlordAccount as any)?.bankName || null,
               landlord_account_number: landlordAccount?.accountNumber || null,
             }
-          : null,
+          : latestVault
+            ? {
+                uuid: latestVault.uuid,
+                rent_amount: Number(latestVault.targetAmountKobo) / 100,
+                rent_end_date: latestVault.contractualDueDate
+                  ? new Date(latestVault.contractualDueDate).toISOString().split('T')[0]
+                  : null,
+                address: latestKyc?.nextOfKinAddress || null,
+                landlord_name: null,
+                landlord_bank_code: null,
+                landlord_bank_name: null,
+                landlord_account_number: null,
+              }
+            : latestKyc?.status === 'VERIFIED'
+              ? {
+                  uuid: 'savings-draft',
+                  rent_amount: defaultRentAmount,
+                  rent_end_date: defaultDueDate,
+                  address: latestKyc.nextOfKinAddress || null,
+                  landlord_name: null,
+                  landlord_bank_code: null,
+                  landlord_bank_name: null,
+                  landlord_account_number: null,
+                }
+              : null,
       },
     }
   }
@@ -500,6 +561,19 @@ export class OnboardSavingsInvestorUseCase {
         })
       : null
 
+    const resolvedRent =
+      dto.target_amount ||
+      activeProperty?.rentAmount ||
+      2400000
+
+    const resolvedDueDate = dto.rent_due_date
+      ? new Date(dto.rent_due_date)
+      : activeProperty?.rentEndDate
+        ? new Date(activeProperty.rentEndDate)
+        : new Date(Date.now() + 343 * 24 * 60 * 60 * 1000)
+
+    const resolvedUnlockDate = new Date(resolvedDueDate.getTime() - 30 * 24 * 60 * 60 * 1000)
+
     if (activeVault) {
       const updateData: any = {
         dvaBankName,
@@ -508,13 +582,24 @@ export class OnboardSavingsInvestorUseCase {
         dvaCustomerCode: paystackCustomerCode,
         dvaAssignmentStatus: 'ACTIVE',
       }
-      if (activeProperty?.rentAmount && activeProperty?.rentEndDate) {
+      if (dto.target_amount) {
+        updateData.targetAmountKobo = BigInt(Math.round(dto.target_amount * 100))
+      } else if (activeProperty?.rentAmount) {
         updateData.targetAmountKobo = BigInt(Math.round(activeProperty.rentAmount * 100))
+      }
+
+      if (dto.rent_due_date) {
+        updateData.contractualDueDate = new Date(dto.rent_due_date)
+        updateData.unlockDate = new Date(
+          new Date(dto.rent_due_date).getTime() - 30 * 24 * 60 * 60 * 1000,
+        )
+      } else if (activeProperty?.rentEndDate) {
         updateData.contractualDueDate = new Date(activeProperty.rentEndDate)
         updateData.unlockDate = new Date(
           new Date(activeProperty.rentEndDate).getTime() - 30 * 24 * 60 * 60 * 1000,
         )
       }
+
       await this.prisma.upward_rent_vault.update({
         where: { id: activeVault.id },
         data: updateData,
@@ -522,11 +607,9 @@ export class OnboardSavingsInvestorUseCase {
       this.logger.log(
         `Assigned Wema DVA ${dvaAccountNumber} and synced rental details to active vault ID ${activeVault.id}`,
       )
-    } else if (activeProperty?.rentAmount && activeProperty?.rentEndDate) {
-      // Auto-provision rent vault from rental settings
-      const dueDate = new Date(activeProperty.rentEndDate)
-      const unlockDate = new Date(dueDate.getTime() - 30 * 24 * 60 * 60 * 1000)
-      const targetAmountKobo = BigInt(Math.round(activeProperty.rentAmount * 100))
+    } else {
+      // Auto-provision rent vault for the verified investor
+      const targetAmountKobo = BigInt(Math.round(resolvedRent * 100))
 
       const newVault = await this.prisma.upward_rent_vault.create({
         data: {
@@ -535,8 +618,8 @@ export class OnboardSavingsInvestorUseCase {
           currentPrincipalKobo: 0n,
           accruedYieldKobo: 0n,
           cadence: 'MONTHLY',
-          contractualDueDate: dueDate,
-          unlockDate,
+          contractualDueDate: resolvedDueDate,
+          unlockDate: resolvedUnlockDate,
           lockStatus: 'LOCKED',
           preferredFundingMethod: 'DVA',
           dvaBankName,
@@ -569,7 +652,7 @@ export class OnboardSavingsInvestorUseCase {
         update: {},
       })
       this.logger.log(
-        `Auto-created active rent vault ID ${newVault.id} from rental settings for user ID ${userId}`,
+        `Auto-provisioned rent vault ID ${newVault.id} with DVA ${dvaAccountNumber} for verified investor user ID ${userId}`,
       )
     }
 

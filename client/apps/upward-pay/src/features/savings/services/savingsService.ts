@@ -288,6 +288,8 @@ export interface OnboardInvestorPayload {
   settlement_account_number?: string
   settlement_account_name?: string
   settlement_bank_name?: string
+  target_amount?: number
+  rent_due_date?: string
 }
 
 export async function getSavingsOnboardingPrefill(): Promise<SavingsOnboardingPrefillData> {

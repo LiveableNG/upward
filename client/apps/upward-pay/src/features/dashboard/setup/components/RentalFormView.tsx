@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import {
   ArrowRight,
   CheckCircle2,
@@ -91,6 +91,93 @@ export function RentalFormView() {
     toast.info("Your draft is saved. You can resume rental setup anytime from your dashboard.")
     router.push(SETUP_PATHS.dashboard)
   }
+
+  // Prefill rental details from savings onboarding or previous savings plan
+  const { data: prefillData } = useQuery({
+    queryKey: ['rental-setup-prefill', user?.uuid],
+    queryFn: () => api.getSavingsOnboardingPrefill(),
+    enabled: !isEdit && (!draft.formData.rentAmount || !draft.formData.address),
+    staleTime: 60_000,
+  })
+
+  useEffect(() => {
+    if (isEdit) return
+
+    let savingsPlan: { rentAmount?: number | string; dueDate?: string; address?: string } | null = null
+    if (typeof window !== 'undefined') {
+      try {
+        const raw = localStorage.getItem('upward_savings_rent_plan')
+        if (raw) savingsPlan = JSON.parse(raw)
+      } catch {}
+    }
+
+    const patch: Partial<typeof draft.formData> = {}
+    let needsUpdate = false
+
+    // 1. Rent Amount prefill from savings
+    if (!draft.formData.rentAmount || draft.formData.rentAmount === '0') {
+      const candidateAmount =
+        savingsPlan?.rentAmount ||
+        prefillData?.property?.rent_amount ||
+        (prefillData as any)?.target_rent
+      if (candidateAmount) {
+        patch.rentAmount = Number(candidateAmount).toLocaleString()
+        needsUpdate = true
+      }
+    }
+
+    // 2. Tenancy Due Date & Start Date prefill from savings
+    if (!draft.formData.rentEndDate) {
+      const candidateEndDate =
+        savingsPlan?.dueDate ||
+        prefillData?.property?.rent_end_date ||
+        (prefillData as any)?.rent_due_date
+      if (candidateEndDate) {
+        const cleanEndDate = candidateEndDate.split('T')[0]
+        patch.rentEndDate = cleanEndDate
+        const computedStart = new Date(
+          new Date(cleanEndDate).getTime() - 365 * 24 * 60 * 60 * 1000,
+        )
+          .toISOString()
+          .split('T')[0]
+        patch.rentStartDate = computedStart
+        needsUpdate = true
+      }
+    }
+
+    // 3. Location / Address prefill
+    if (!draft.formData.address) {
+      const candidateAddress =
+        savingsPlan?.address ||
+        prefillData?.property?.address ||
+        prefillData?.next_of_kin_address ||
+        (prefillData as any)?.kyc_address
+      if (candidateAddress) {
+        patch.address = candidateAddress
+        needsUpdate = true
+
+        const parts = candidateAddress.split(',').map((s: string) => s.trim())
+        if (parts.length >= 2 && !draft.formData.area) {
+          patch.area = parts[0]
+        }
+        const stateCandidate = parts.find((p: string) =>
+          (STATES.NG || []).some((s: string) => s.toLowerCase() === p.toLowerCase()),
+        )
+        if (stateCandidate) {
+          patch.state = stateCandidate
+        }
+      }
+    }
+
+    if (needsUpdate) {
+      updateDraft({
+        formData: {
+          ...draft.formData,
+          ...patch,
+        },
+      })
+    }
+  }, [isEdit, prefillData, draft.formData, updateDraft])
 
   // Auto-calculate end date whenever tenancy parameters change
   useEffect(() => {

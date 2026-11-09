@@ -33,8 +33,32 @@ export function SetupDraftProvider({ children }: { children: React.ReactNode }) 
 
   const [draft, setDraftState] = useState<SetupDraft>(() => {
     const stored = loadSetupDraft()
-    if (stored) return { ...stored, mode: stored.mode || mode }
-    return createEmptyDraft(mode)
+    const initialDraft = stored ? { ...stored, mode: stored.mode || mode } : createEmptyDraft(mode)
+
+    if (typeof window !== 'undefined' && mode === 'onboarding') {
+      try {
+        const rawPlan = localStorage.getItem('upward_savings_rent_plan')
+        if (rawPlan) {
+          const plan = JSON.parse(rawPlan)
+          if (plan.rentAmount && (!initialDraft.formData.rentAmount || initialDraft.formData.rentAmount === '0')) {
+            initialDraft.formData.rentAmount = Number(plan.rentAmount).toLocaleString()
+          }
+          if (plan.dueDate && !initialDraft.formData.rentEndDate) {
+            initialDraft.formData.rentEndDate = plan.dueDate
+            initialDraft.formData.rentStartDate = new Date(
+              new Date(plan.dueDate).getTime() - 365 * 24 * 60 * 60 * 1000,
+            )
+              .toISOString()
+              .split('T')[0]
+          }
+          if (plan.address && !initialDraft.formData.address) {
+            initialDraft.formData.address = plan.address
+          }
+        }
+      } catch {}
+    }
+
+    return initialDraft
   })
 
   useEffect(() => {

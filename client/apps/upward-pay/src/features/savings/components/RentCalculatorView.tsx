@@ -79,6 +79,29 @@ export function RentCalculatorView({ onProceedToSetup, onOpenKycModal }: RentCal
       initial_deposit_kobo: 0,
       cadence: 'MONTHLY',
     })
+
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(
+          'upward_savings_rent_plan',
+          JSON.stringify({ rentAmount: targetAmountNaira, dueDate: contractualDueDate }),
+        )
+        const rawDraft = localStorage.getItem('upward_setup_draft')
+        if (rawDraft) {
+          const parsedDraft = JSON.parse(rawDraft)
+          if (parsedDraft?.formData) {
+            parsedDraft.formData.rentAmount = targetAmountNaira.toLocaleString()
+            parsedDraft.formData.rentEndDate = contractualDueDate
+            parsedDraft.formData.rentStartDate = new Date(
+              new Date(contractualDueDate).getTime() - 365 * 24 * 60 * 60 * 1000,
+            )
+              .toISOString()
+              .split('T')[0]
+            localStorage.setItem('upward_setup_draft', JSON.stringify(parsedDraft))
+          }
+        }
+      } catch {}
+    }
   }, [targetAmountNaira, contractualDueDate, mutateSimulate])
 
   const simData = simulateMutation.data
