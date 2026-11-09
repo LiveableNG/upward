@@ -24,6 +24,7 @@ import {
   useOnboardSavingsInvestor,
   useConsentToSavings,
   useRentVault,
+  useSavingsOnboardingPrefill,
 } from '../hooks/useRentSavings'
 import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/features/auth/AuthContext'
@@ -44,6 +45,7 @@ export function SavingsInvestorKycModal({
 }: SavingsInvestorKycModalProps) {
   const { user, refreshUser } = useAuth()
   const { data: vault } = useRentVault()
+  const { data: prefill } = useSavingsOnboardingPrefill(isOpen)
   const consentMutation = useConsentToSavings()
 
   const isClient = useSyncExternalStore(
@@ -97,6 +99,68 @@ export function SavingsInvestorKycModal({
 
   const [manualRentTarget, setManualRentTarget] = useState<number>(0)
   const [manualDueDate, setManualDueDate] = useState<string>('')
+  const [hasAppliedPrefill, setHasAppliedPrefill] = useState(false)
+
+  useEffect(() => {
+    if (!isOpen || hasAppliedPrefill) return
+
+    let applied = false
+    if (prefill) {
+      if (prefill.bvn && !bvn) setBvn(prefill.bvn)
+      if (prefill.mothers_maiden_name && !mothersMaidenName) {
+        setMothersMaidenName(prefill.mothers_maiden_name)
+      }
+      if (prefill.occupation && !occupation) setOccupation(prefill.occupation)
+      if (prefill.source_of_funds) setSourceOfFunds(prefill.source_of_funds)
+      if (prefill.next_of_kin_name && !nextOfKinName) setNextOfKinName(prefill.next_of_kin_name)
+      if (prefill.next_of_kin_relationship) {
+        setNextOfKinRelationship(prefill.next_of_kin_relationship)
+      }
+      if (prefill.next_of_kin_phone && !nextOfKinPhone) {
+        setNextOfKinPhone(prefill.next_of_kin_phone)
+      }
+      if (prefill.property?.rent_amount && !manualRentTarget) {
+        setManualRentTarget(prefill.property.rent_amount)
+      }
+      if (prefill.property?.rent_end_date && !manualDueDate) {
+        setManualDueDate(prefill.property.rent_end_date.split('T')[0])
+      }
+      applied = true
+    }
+
+    if (typeof window !== 'undefined' && user?.uuid) {
+      try {
+        const savedPolicy = window.localStorage.getItem(`rent_support_policy_${user.uuid}`)
+        if (savedPolicy) {
+          const parsed = JSON.parse(savedPolicy) as {
+            occupation?: string
+            employerName?: string
+          }
+          if (parsed.occupation && !occupation && !prefill?.occupation) {
+            setOccupation(parsed.occupation)
+          }
+        }
+      } catch {
+        // Ignore storage read errors
+      }
+    }
+
+    if (applied) {
+      setHasAppliedPrefill(true)
+    }
+  }, [
+    isOpen,
+    hasAppliedPrefill,
+    prefill,
+    user?.uuid,
+    bvn,
+    mothersMaidenName,
+    occupation,
+    nextOfKinName,
+    nextOfKinPhone,
+    manualRentTarget,
+    manualDueDate,
+  ])
 
   const [createdDva, setCreatedDva] = useState<{
     bank_name: string
@@ -148,8 +212,10 @@ export function SavingsInvestorKycModal({
     if (formError) setFormError(null)
   }
 
+  const hasVerifiedBvnOnFile = Boolean(prefill?.has_verified_bvn)
+
   const handleStep1Next = () => {
-    if (bvn.length !== 11) {
+    if (bvn.length !== 11 && !hasVerifiedBvnOnFile) {
       setFormError('Please enter a valid 11-digit Bank Verification Number.')
       return
     }
@@ -179,14 +245,20 @@ export function SavingsInvestorKycModal({
 
     try {
       const res = await onboardMutation.mutateAsync({
-        bvn,
+        bvn: bvn.length === 11 ? bvn : undefined,
         mothers_maiden_name: mothersMaidenName.trim(),
         occupation: occupation.trim(),
         source_of_funds: sourceOfFunds,
-        income_range: '1M-5M',
+        income_range: prefill?.income_range || '1M-5M',
         next_of_kin_name: nextOfKinName.trim(),
         next_of_kin_relationship: nextOfKinRelationship,
         next_of_kin_phone: nextOfKinPhone.trim(),
+        next_of_kin_email: prefill?.next_of_kin_email || undefined,
+        next_of_kin_address: prefill?.next_of_kin_address || undefined,
+        settlement_bank_code: prefill?.settlement_bank_code || undefined,
+        settlement_account_number: prefill?.settlement_account_number || undefined,
+        settlement_account_name: prefill?.settlement_account_name || undefined,
+        settlement_bank_name: prefill?.settlement_bank_name || undefined,
       })
 
       const dva = res?.dedicated_account
@@ -306,13 +378,37 @@ export function SavingsInvestorKycModal({
 
         {step === 1 && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {(hasVerifiedBvnOnFile || prefill?.mothers_maiden_name || prefill?.next_of_kin_name) && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  background: 'rgba(16, 185, 129, 0.08)',
+                  border: '1px solid rgba(16, 185, 129, 0.22)',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  color: '#10b981',
+                }}
+              >
+                <CheckCircle2 size={14} style={{ flexShrink: 0 }} />
+                <span>Details pre-filled from your existing Upward profile</span>
+              </div>
+            )}
+
             <div className="rent-calculator__field">
               <label className="rent-calculator__label">Bank Verification Number (BVN)</label>
               <div className="rent-calculator__input-wrapper">
                 <input
                   type="text"
                   inputMode="numeric"
-                  placeholder="Enter 11-digit BVN"
+                  placeholder={
+                    hasVerifiedBvnOnFile && prefill?.masked_bvn
+                      ? `Verified on file (${prefill.masked_bvn})`
+                      : 'Enter 11-digit BVN'
+                  }
                   className="rent-calculator__input rent-calculator__input--no-prefix"
                   value={bvn}
                   onChange={handleBvnChange}
@@ -321,7 +417,9 @@ export function SavingsInvestorKycModal({
                 />
               </div>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                {bvn.length}/11 digits
+                {hasVerifiedBvnOnFile && bvn.length !== 11
+                  ? `Verified BVN (${prefill?.masked_bvn}) on file`
+                  : `${bvn.length}/11 digits`}
               </span>
             </div>
 
@@ -365,7 +463,11 @@ export function SavingsInvestorKycModal({
               type="button"
               className="vault-btn-primary"
               onClick={handleStep1Next}
-              disabled={bvn.length !== 11 || !mothersMaidenName.trim() || isLoading}
+              disabled={
+                (bvn.length !== 11 && !hasVerifiedBvnOnFile) ||
+                !mothersMaidenName.trim() ||
+                isLoading
+              }
             >
               Continue <ArrowRight size={16} />
             </button>

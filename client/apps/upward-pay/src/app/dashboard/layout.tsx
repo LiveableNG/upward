@@ -57,11 +57,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     setMounted(true)
   }, [])
 
-  const { data: userGoals = [] } = useUserGoals({ enabled: !!user?.uuid })
-  const { data: goalCategories = [] } = useGoalCategories()
+  const {
+    data: userGoals = [],
+    isLoading: isUserGoalsLoading,
+  } = useUserGoals({ enabled: !!user?.uuid })
+  const {
+    data: goalCategories = [],
+    isLoading: isGoalCategoriesLoading,
+  } = useGoalCategories()
   const hasGoals = userGoals.filter((g) => g.status === 'ACTIVE').length > 0
   const totalGoalsCount = goalCategories.reduce((acc, cat) => acc + (cat.goals?.length || 0), 0)
   const goalsAvailable = totalGoalsCount > 0
+  const isGoalsReady = !isGoalCategoriesLoading && (!user?.uuid || !isUserGoalsLoading)
 
   const { variant, isRequired, isLoading: isExperimentLoading } = useRentalExperiment()
   const { isGated: isRentalGated, notifyGated } = useRentalGate()
@@ -159,13 +166,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const showProfileBlocker =
     mounted &&
+    !loading &&
     !showTermsGate &&
     !!user &&
     !isExperimentLoading &&
+    isGoalsReady &&
     !shouldAutoOpenRental &&
-    (isRequired
-      ? isRentalGated && !isExemptRoute
-      : isDashboardHome && !isSetupComplete && !isDismissed)
+    ((isRequired && isRentalGated && !isExemptRoute) ||
+      (isDashboardHome && !isSetupComplete && !isDismissed))
 
   useEffect(() => {
     if (!loading && isLoggedIn && user && !showProfileBlocker && !showTermsGate) {

@@ -1,5 +1,6 @@
 import { request } from '@/lib/api-client'
 import { useQuery } from '@tanstack/react-query'
+import { useAuth } from '@/features/auth/AuthContext'
 
 export interface ScoreProfile {
   success: boolean
@@ -50,9 +51,11 @@ export async function fetchScoreProfile(): Promise<ScoreProfile> {
 }
 
 export function useScoreProfile() {
+  const { user } = useAuth()
   return useQuery<ScoreProfile>({
-    queryKey: ['scoreProfile'],
+    queryKey: ['scoreProfile', user?.uuid],
     queryFn: fetchScoreProfile,
+    enabled: !!user?.uuid,
     staleTime: 60 * 1000,
   })
 }

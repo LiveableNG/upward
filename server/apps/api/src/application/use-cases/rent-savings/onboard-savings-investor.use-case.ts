@@ -13,10 +13,10 @@ import {
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 
 export class OnboardSavingsInvestorDto {
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   @Matches(/^\d{11}$/, { message: 'BVN must be exactly 11 numeric digits' })
-  bvn!: string
+  bvn?: string
 
   @IsNotEmpty()
   @IsString()
@@ -135,13 +135,150 @@ export class OnboardSavingsInvestorUseCase {
     private readonly assetManagementProvider: IAssetManagementProvider,
   ) {}
 
+  async getOnboardingPrefill(userId: number) {
+    const user = await this.userRepository.findById(userId)
+    if (!user) {
+      throw new NotFoundException('User not found')
+    }
+
+    const latestKyc = this.prisma?.upward_kyc_verification
+      ? await this.prisma.upward_kyc_verification.findFirst({
+          where: { userId },
+          orderBy: { createdAt: 'desc' },
+        })
+      : null
+
+    let decryptedBvn: string | null = null
+    let decryptedMaidenName: string | null = null
+
+    if (latestKyc?.idNumberEncrypted) {
+      try {
+        decryptedBvn = this.encryption.decrypt(latestKyc.idNumberEncrypted)
+      } catch {
+        decryptedBvn = null
+      }
+    }
+
+    if (latestKyc?.mothersMaidenNameEnc) {
+      try {
+        decryptedMaidenName = this.encryption.decrypt(latestKyc.mothersMaidenNameEnc)
+      } catch {
+        decryptedMaidenName = null
+      }
+    }
+
+    // Check PM tenant record for Next of Kin fallback if not in KYC yet
+    let pmTenant: any = null
+    if (this.prisma?.upward_pm_tenant && (user.emailHash || user.phoneHash)) {
+      const orConditions: any[] = []
+      if (user.emailHash) orConditions.push({ emailHash: user.emailHash })
+      if (user.phoneHash) orConditions.push({ phoneHash: user.phoneHash })
+      if (orConditions.length > 0) {
+        pmTenant = await this.prisma.upward_pm_tenant.findFirst({
+          where: { OR: orConditions },
+          orderBy: { createdAt: 'desc' },
+        })
+      }
+    }
+
+    const tryDecrypt = (val?: string | null): string | null => {
+      if (!val) return null
+      try {
+        return this.encryption.decrypt(val)
+      } catch {
+        return val
+      }
+    }
+
+    const bankDetails = this.prisma?.upward_user_bank_details
+      ? await this.prisma.upward_user_bank_details.findUnique({
+          where: { userId },
+        })
+      : null
+
+    const activeProp = (user.properties || []).find((p: any) => !p.isPastTenancy) || user.properties?.[0]
+    const propAddress = activeProp?.location
+      ? [activeProp.location.address, activeProp.location.area, activeProp.location.state]
+          .filter(Boolean)
+          .join(', ')
+      : null
+
+    const landlordAccount = activeProp?.pmManualAccount || activeProp?.manualAccount || activeProp?.subaccount
+    const landlordName =
+      landlordAccount?.accountName ||
+      (activeProp as any)?.subaccount?.businessName ||
+      activeProp?.company?.name ||
+      (activeProp?.manager
+        ? `${activeProp.manager.firstName || ''} ${activeProp.manager.lastName || ''}`.trim()
+        : null) ||
+      null
+
+    return {
+      status: 'success',
+      data: {
+        has_verified_bvn: !!(latestKyc?.status === 'VERIFIED' && decryptedBvn),
+        masked_bvn: latestKyc?.idNumberMasked || (decryptedBvn ? maskId(decryptedBvn) : null),
+        bvn: decryptedBvn || null,
+        mothers_maiden_name: decryptedMaidenName || null,
+        occupation: latestKyc?.occupation || null,
+        source_of_funds: latestKyc?.sourceOfFunds || null,
+        income_range: latestKyc?.incomeRange || null,
+        next_of_kin_name:
+          latestKyc?.nextOfKinName || tryDecrypt(pmTenant?.nextOfKinName) || null,
+        next_of_kin_relationship: latestKyc?.nextOfKinRelationship || null,
+        next_of_kin_phone:
+          latestKyc?.nextOfKinPhone || tryDecrypt(pmTenant?.nextOfKinPhone) || null,
+        next_of_kin_email:
+          latestKyc?.nextOfKinEmail || tryDecrypt(pmTenant?.nextOfKinEmail) || user.email || null,
+        next_of_kin_address: latestKyc?.nextOfKinAddress || propAddress || null,
+        settlement_bank: bankDetails
+          ? {
+              bank_code: bankDetails.bankCode,
+              bank_name: bankDetails.bankName,
+              account_number: bankDetails.accountNumber,
+              account_name: bankDetails.accountName,
+            }
+          : null,
+        property: activeProp
+          ? {
+              uuid: activeProp.uuid,
+              rent_amount: activeProp.rentAmount || null,
+              rent_end_date: activeProp.rentEndDate
+                ? new Date(activeProp.rentEndDate).toISOString().split('T')[0]
+                : null,
+              address: propAddress,
+              landlord_name: landlordName,
+              landlord_bank_code: landlordAccount?.bankCode || null,
+              landlord_bank_name: (landlordAccount as any)?.bankName || null,
+              landlord_account_number: landlordAccount?.accountNumber || null,
+            }
+          : null,
+      },
+    }
+  }
+
   async execute(userId: number, dto: OnboardSavingsInvestorDto) {
     const user = await this.userRepository.findById(userId)
     if (!user) {
       throw new NotFoundException('User not found')
     }
 
-    const cleanBvn = dto.bvn.replace(/\D/g, '')
+    let rawBvn = dto.bvn ? dto.bvn.replace(/\D/g, '') : ''
+    if (rawBvn.length !== 11 && this.prisma?.upward_kyc_verification) {
+      const priorKyc = await this.prisma.upward_kyc_verification.findFirst({
+        where: { userId, idType: 'BVN', idNumberEncrypted: { not: null } },
+        orderBy: { createdAt: 'desc' },
+      })
+      if (priorKyc?.idNumberEncrypted) {
+        try {
+          rawBvn = this.encryption.decrypt(priorKyc.idNumberEncrypted).replace(/\D/g, '')
+        } catch {
+          rawBvn = ''
+        }
+      }
+    }
+
+    const cleanBvn = rawBvn
     if (cleanBvn.length !== 11) {
       throw new BadRequestException('BVN must be exactly 11 numeric digits')
     }

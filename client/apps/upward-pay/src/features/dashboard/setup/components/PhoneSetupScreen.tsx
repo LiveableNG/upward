@@ -11,9 +11,11 @@ import { useToast } from '@/components/common/Toast'
 import { DatePicker } from '@/features/auth/component/signup/DatePicker'
 import {
   getIdentityVerificationPath,
+  hasRentalInfo,
   needsIdentityVerification,
   PHONE_REGEX,
 } from '@/features/dashboard/utils/profileCompletion'
+import { useGoalCategories, useUserGoals } from '@/features/goals/hooks/useGoals'
 import { SETUP_PATHS } from '../setupPaths'
 import { SetupPageShell, SetupPrimaryButton } from './SetupPageShell'
 
@@ -22,6 +24,10 @@ export function PhoneSetupScreen() {
   const { user, refreshUser } = useAuth()
   const toast = useToast()
   const queryClient = useQueryClient()
+  const { data: goalCategories = [] } = useGoalCategories()
+  const { data: userGoals = [] } = useUserGoals()
+  const hasGoalsConfigured = goalCategories.some((cat) => (cat.goals?.length || 0) > 0)
+  const hasActiveGoals = userGoals.some((g) => g.status === 'ACTIVE')
 
   const [firstName, setFirstName] = useState(user?.firstName || '')
   const [lastName, setLastName] = useState(user?.lastName || '')
@@ -72,9 +78,13 @@ export function PhoneSetupScreen() {
       queryClient.invalidateQueries({ queryKey: ['score-profile'] })
       toast.success('Your personal details have been saved.', 'Saved')
       const freshUser = await getMe()
-      const nextPath = needsIdentityVerification(freshUser)
-        ? getIdentityVerificationPath(SETUP_PATHS.dashboard)
-        : SETUP_PATHS.dashboard
+      const nextPath = !hasRentalInfo(freshUser)
+        ? SETUP_PATHS.rental
+        : needsIdentityVerification(freshUser)
+          ? getIdentityVerificationPath(SETUP_PATHS.dashboard)
+          : hasGoalsConfigured && !hasActiveGoals
+            ? SETUP_PATHS.goals
+            : SETUP_PATHS.dashboard
       router.push(nextPath)
     },
     onError: (err: Error) => {

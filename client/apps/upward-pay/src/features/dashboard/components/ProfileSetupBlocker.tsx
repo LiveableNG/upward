@@ -102,7 +102,7 @@ export function ProfileSetupBlocker({ user, score, maxScore, onSkip }: ProfileSe
             hint: goalsDone ? 'Completed' : 'Required',
             icon: Target,
             done: goalsDone,
-            href: '/dashboard/lifestyle?goals=open',
+            href: '/dashboard/setup/goals',
           },
         ]
       : []),

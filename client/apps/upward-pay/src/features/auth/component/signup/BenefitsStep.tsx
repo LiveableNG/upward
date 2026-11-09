@@ -1,35 +1,41 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { TrendingUp, Gift, Shield, CheckCircle2, UserPlus, LogIn } from 'lucide-react'
+import { TrendingUp, Shield, PiggyBank, Target, Building2, UserPlus, LogIn } from 'lucide-react'
 import { UpwardLogo } from '@/components/PoweredByUpward'
 import { GoogleSignInButton } from '@/features/auth/components/GoogleSignInButton'
 import { AppleSignInButton } from '@/features/auth/components/AppleSignInButton'
 
 const BENEFITS = [
   {
-    icon: Gift,
+    icon: PiggyBank,
     color: '#C2501F',
-    title: 'Earn Rewards',
-    desc: 'Every on-time payment earns Upward points redeemable for rent discounts and exclusive perks.',
+    title: 'Save & Earn 14.5% on Rent',
+    desc: 'Automate your next rent with 14.5% p.a. compound yield, a dedicated savings account, and early-bird rent cashback.',
+  },
+  {
+    icon: Target,
+    color: '#16a34a',
+    title: 'Lifestyle & Living Goals',
+    desc: 'Plan home upgrades, utilities, and personal milestones with curated packages and verified merchant perks.',
+  },
+  {
+    icon: Building2,
+    color: '#6366f1',
+    title: 'Verified Home Marketplace',
+    desc: 'Explore vetted homes, Exclusive listings, and flexible rent financing through the Upward Alliance network.',
   },
   {
     icon: TrendingUp,
-    color: '#22c55e',
-    title: 'Build Your Credit',
-    desc: 'Monthly rent payments are reported to credit bureaus — boosting your financial score effortlessly.',
+    color: '#0ea5e9',
+    title: 'Build Rent Credit & Rewards',
+    desc: 'Every on-time rent payment boosts your Upward Score, unlocks rent discounts, and builds a verified Rent Passport.',
   },
   {
     icon: Shield,
-    color: '#6366f1',
-    title: 'Verified Tenancy',
-    desc: 'Get a tamper-proof digital record of your tenancy history — trusted by future landlords instantly.',
-  },
-  {
-    icon: CheckCircle2,
-    color: '#0ea5e9',
-    title: 'Secure Payments',
-    desc: 'Bank-grade encryption on every transaction. Your money and data stay protected, always.',
+    color: '#d97706',
+    title: 'Seamless Rent Settlements',
+    desc: 'Settle landlords instantly with bank-grade security, automated receipts, and tamper-proof payment records.',
   },
 ]
 

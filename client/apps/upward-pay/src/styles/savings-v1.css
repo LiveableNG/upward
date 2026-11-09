@@ -124,32 +124,36 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
-/* Dynamic Output Card */
+/* Dynamic Output Card — Warm Upward Target Savings Summary (Jakob's Law) */
 .rent-calculator__results {
-  background: linear-gradient(145deg, var(--dark) 0%, var(--dark-surface) 100%);
-  color: #ffffff;
+  background: linear-gradient(145deg, var(--surface) 0%, rgba(194, 80, 31, 0.05) 100%);
+  color: var(--text);
+  border: 1.5px solid rgba(194, 80, 31, 0.22);
   border-radius: var(--radius-lg, 16px);
   padding: var(--space-6, 24px);
   display: flex;
   flex-direction: column;
   gap: var(--space-4, 16px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 4px 18px rgba(28, 25, 23, 0.04);
 }
 
 .rent-calculator__results-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .rent-calculator__days-badge {
-  background: rgba(217, 119, 87, 0.18);
+  background: var(--clay-faint);
   color: var(--clay);
+  border: 1px solid rgba(194, 80, 31, 0.2);
   padding: 4px 10px;
   border-radius: 20px;
   font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -158,14 +162,14 @@
 .rent-calculator__deposit-figure {
   font-size: 1.75rem;
   font-weight: 800;
-  color: #ffffff;
+  color: var(--text);
   letter-spacing: -0.5px;
 }
 
 .rent-calculator__deposit-cadence {
   font-size: 0.8125rem;
-  color: rgba(255, 255, 255, 0.65);
-  font-weight: 500;
+  color: var(--text-muted);
+  font-weight: 600;
 }
 
 .rent-calculator__grid {
@@ -173,7 +177,7 @@
   grid-template-columns: 1fr 1fr;
   gap: var(--space-3, 12px);
   padding-top: var(--space-3, 12px);
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--border);
 }
 
 .rent-calculator__grid-item {
@@ -184,17 +188,17 @@
 
 .rent-calculator__grid-label {
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.55);
+  color: var(--text-muted);
 }
 
 .rent-calculator__grid-val {
   font-size: 0.9375rem;
   font-weight: 700;
-  color: #ffffff;
+  color: var(--text);
 }
 
 .rent-calculator__grid-val--highlight {
-  color: var(--success);
+  color: var(--success, #16a34a);
 }
 
 .rent-calculator__affordability {
@@ -270,17 +274,19 @@
 }
 
 /* ==========================================================================
-   Screen 3: Vault Dashboard (Active Locked View)
+   Screen 3: Vault Dashboard (Active Target Savings View — Jakob's Law)
    ========================================================================== */
 .vault-dashboard__hero {
-  background: linear-gradient(145deg, var(--dark) 0%, var(--dark-card) 100%);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-top: 4px solid var(--clay);
   border-radius: var(--radius-lg, 18px);
   padding: var(--space-6, 24px);
-  color: #ffffff;
+  color: var(--text);
   display: flex;
   flex-direction: column;
   gap: var(--space-5, 20px);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 20px rgba(28, 25, 23, 0.04);
 }
 
 .vault-dashboard__top-row {
@@ -295,16 +301,21 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: rgba(255, 255, 255, 0.12);
-  padding: 4px 10px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  padding: 5px 12px;
   border-radius: 20px;
   font-size: 0.75rem;
   font-weight: 600;
 }
 
 .vault-dashboard__countdown-pill {
-  font-size: 0.8125rem;
+  font-size: 0.75rem;
   color: var(--clay);
+  background: var(--clay-faint);
+  padding: 4px 10px;
+  border-radius: 20px;
   font-weight: 700;
 }
 
@@ -312,51 +323,98 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
 }
 
 .vault-dashboard__gauge-header {
   display: flex;
   justify-content: space-between;
   font-size: 0.8125rem;
-  color: rgba(255, 255, 255, 0.7);
+  font-weight: 600;
+  color: var(--text-secondary);
 }
 
 .vault-dashboard__progress-bar {
   width: 100%;
   height: 10px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 5px;
+  background: var(--surface2, #ede6dd);
+  border-radius: 999px;
   overflow: hidden;
 }
 
 .vault-dashboard__progress-fill {
   height: 100%;
   background: var(--btn-primary-bg);
-  border-radius: 5px;
+  border-radius: 999px;
   transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .vault-dashboard__amounts {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
+}
+
+.vault-dashboard__balance-caption {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
 }
 
 .vault-dashboard__current-balance {
   font-size: 2rem;
   font-weight: 800;
   letter-spacing: -0.5px;
-  color: #ffffff;
+  color: var(--text);
 }
 
 .vault-dashboard__target-label {
   font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.6);
+  color: var(--text-muted);
+}
+
+.vault-dashboard__breakdown-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+}
+
+.vault-dashboard__breakdown-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.vault-dashboard__breakdown-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.vault-dashboard__breakdown-val {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.vault-dashboard__breakdown-val--yield {
+  color: var(--success, #16a34a);
 }
 
 .vault-dashboard__interest-card {
-  background: rgba(34, 197, 94, 0.08);
-  border: 1px solid rgba(34, 197, 94, 0.2);
+  background: rgba(22, 163, 74, 0.06);
+  border: 1px solid rgba(22, 163, 74, 0.2);
   border-radius: var(--radius-md, 12px);
   padding: var(--space-3, 12px) var(--space-4, 16px);
   display: flex;
@@ -367,7 +425,7 @@
 .vault-dashboard__interest-text {
   font-size: 0.875rem;
   font-weight: 700;
-  color: var(--success);
+  color: var(--success, #16a34a);
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -375,7 +433,8 @@
 
 .vault-dashboard__interest-rate {
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.6);
+  font-weight: 600;
+  color: var(--text-secondary);
 }
 
 @media (max-width: 480px) {
@@ -522,14 +581,14 @@
 }
 
 /* ==========================================================================
-   Screen 4 & 7: Modals (Emergency Advance & Fair Breakout)
+   Screen 4 & 7: Modals (Bottom Sheet on Mobile, Centered Card on Desktop)
    ========================================================================== */
 .vault-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(15, 13, 11, 0.58);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -540,36 +599,52 @@
 }
 
 .vault-modal-card {
+  position: relative;
   width: 100%;
   max-width: 480px;
   background: var(--bg);
-  border-radius: var(--radius-lg, 18px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 20px);
   padding: var(--space-6, 24px);
   display: flex;
   flex-direction: column;
   gap: var(--space-5, 20px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-  max-height: 90vh;
+  box-shadow: 0 24px 48px rgba(15, 13, 11, 0.22);
+  max-height: 88dvh;
   overflow-y: auto;
+  box-sizing: border-box;
 }
 
 @media (max-width: 640px) {
   .vault-modal-overlay {
-    padding: 12px 10px calc(16px + env(safe-area-inset-bottom, 12px));
-    align-items: center;
+    padding: 0;
+    align-items: flex-end;
     justify-content: center;
   }
 
   .vault-modal-card {
-    padding: 16px 14px;
-    gap: 14px;
-    max-height: min(88vh, calc(100dvh - 28px));
-    border-radius: 18px;
+    padding: 20px 18px calc(24px + env(safe-area-inset-bottom, 12px));
+    gap: 16px;
+    max-width: 100%;
+    max-height: 90dvh;
+    border-radius: 24px 24px 0 0;
+    border-bottom: none;
     width: 100%;
     box-sizing: border-box;
-    margin: auto 0;
+    margin: 0;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+  }
+
+  .vault-modal-card::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--border);
+    margin: -6px auto 2px;
+    flex-shrink: 0;
   }
 }
 
@@ -951,8 +1026,9 @@
    Screen 5 & 6: Settlement Hub & Landlord Payout Success
    ========================================================================== */
 .settlement-hub-banner {
-  background: linear-gradient(135deg, #1e3a8a 0%, #1e1b4b 100%);
-  color: #ffffff;
+  background: linear-gradient(135deg, rgba(194, 80, 31, 0.1) 0%, rgba(194, 80, 31, 0.03) 100%);
+  border: 1.5px solid rgba(194, 80, 31, 0.24);
+  color: var(--text);
   border-radius: var(--radius-lg, 16px);
   padding: var(--space-5, 20px);
   display: flex;
@@ -961,16 +1037,169 @@
 }
 
 .settlement-hub-banner__multiplier {
-  background: #f59e0b;
-  color: #000000;
+  background: var(--clay);
+  color: #ffffff;
   font-size: 0.75rem;
-  font-weight: 800;
+  font-weight: 700;
   padding: 4px 10px;
   border-radius: 12px;
   align-self: flex-start;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
+}
+
+/* Unified Savings & Deposit Activity Ledger */
+.vault-ledger {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg, 16px);
+  padding: var(--space-5, 20px);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.vault-ledger__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.vault-ledger__title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vault-ledger__count {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--surface);
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+}
+
+.vault-ledger__list {
+  display: flex;
+  flex-direction: column;
+}
+
+.vault-ledger__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.vault-ledger__row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.vault-ledger__row:first-child {
+  padding-top: 2px;
+}
+
+.vault-ledger__left {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.vault-ledger__icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.vault-ledger__icon--credit {
+  background: rgba(22, 163, 74, 0.1);
+  color: var(--success, #16a34a);
+}
+
+.vault-ledger__icon--debit {
+  background: var(--clay-faint);
+  color: var(--clay);
+}
+
+.vault-ledger__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.vault-ledger__label {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.vault-ledger__sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vault-ledger__right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.vault-ledger__amount {
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.vault-ledger__amount--credit {
+  color: var(--success, #16a34a);
+}
+
+.vault-ledger__amount--debit {
+  color: var(--text);
+}
+
+.vault-ledger__receipt-link {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--clay);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.vault-ledger__receipt-link:hover {
+  text-decoration: underline;
+}
+
+.vault-ledger__empty {
+  padding: 20px 12px;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  background: var(--surface);
+  border-radius: 10px;
 }
 
 .settlement-landlord-card {

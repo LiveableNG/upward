@@ -160,9 +160,9 @@ export function VaultSetupFlow({ initialConfig, onBack, onSuccess }: VaultSetupF
         <div className="vault-setup__lock-notice">
           <Lock size={20} color="var(--clay)" style={{ flexShrink: 0 }} />
           <div>
-            <strong>Maturity Lock Agreement:</strong> Funds in this vault are strictly locked to
-            safeguard your rent until 30 days before expiration. You can borrow up to 40% in an
-            emergency, and daily interest continues compounding at 14.5% p.a.
+            <strong>Maturity Lock Agreement:</strong> Funds in this vault are locked toward your
+            target rent until 30 days before your lease renewal date, while daily interest compounds
+            at 14.5% p.a.
           </div>
         </div>
 

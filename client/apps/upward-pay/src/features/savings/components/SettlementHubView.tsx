@@ -1,14 +1,15 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Sparkles, ArrowRight, TrendingUp } from 'lucide-react'
+import { Award, ArrowRight, TrendingUp, CheckCircle2 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
-import { useExecuteSettlement } from '../hooks/useRentSavings'
+import { useExecuteSettlement, useSavingsOnboardingPrefill } from '../hooks/useRentSavings'
 import type { SettlementResultData } from '../services/savingsService'
 import { useToast } from '@/components/common/Toast'
+import { useAuth } from '@/features/auth/AuthContext'
 import { SettlementSuccessModal } from './SettlementSuccessModal'
 
 interface SettlementHubViewProps {
@@ -39,6 +40,8 @@ export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewPr
   const [landlordNameSubmitted, setLandlordNameSubmitted] = useState<string>('')
 
   const { error: toastError, success: toastSuccess } = useToast()
+  const { user } = useAuth()
+  const { data: prefill } = useSavingsOnboardingPrefill(true)
   const settlementMutation = useExecuteSettlement()
 
   const currentBalanceNaira = vault.current_balance_kobo / 100
@@ -49,6 +52,8 @@ export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewPr
   const {
     register,
     handleSubmit,
+    setValue,
+    getValues,
     formState: { errors, isSubmitting },
   } = useForm<SettlementFormData>({
     resolver: zodResolver(settlementFormSchema),
@@ -60,6 +65,53 @@ export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewPr
       disburseSurplusToWallet: true,
     },
   })
+
+  useEffect(() => {
+    const activeProperty = (user?.properties || []).find(
+      (p: {
+        isPastTenancy?: boolean
+        address?: string
+        landlordFirstName?: string
+        landlordLastName?: string
+        landlordBankCode?: string
+        landlordAccountNumber?: string
+      }) => !p.isPastTenancy,
+    ) as
+      | {
+          address?: string
+          landlordFirstName?: string
+          landlordLastName?: string
+          landlordBankCode?: string
+          landlordAccountNumber?: string
+        }
+      | undefined
+
+    const currentValues = getValues()
+    const prefillLandlordName =
+      prefill?.property?.landlord_name ||
+      [activeProperty?.landlordFirstName, activeProperty?.landlordLastName]
+        .filter(Boolean)
+        .join(' ')
+    const prefillBankCode =
+      prefill?.property?.landlord_bank_code || activeProperty?.landlordBankCode
+    const prefillAccountNum =
+      prefill?.property?.landlord_account_number || activeProperty?.landlordAccountNumber
+    const prefillAddress =
+      prefill?.property?.address || prefill?.property?.name || activeProperty?.address
+
+    if (prefillLandlordName && !currentValues.landlordName) {
+      setValue('landlordName', prefillLandlordName)
+    }
+    if (prefillBankCode) {
+      setValue('landlordBankCode', prefillBankCode)
+    }
+    if (prefillAccountNum && !currentValues.landlordAccountNumber) {
+      setValue('landlordAccountNumber', prefillAccountNum)
+    }
+    if (prefillAddress && !currentValues.propertyAddress) {
+      setValue('propertyAddress', prefillAddress)
+    }
+  }, [prefill, user?.properties, setValue, getValues])
 
   const onSubmit = async (data: SettlementFormData) => {
     try {
@@ -85,30 +137,53 @@ export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewPr
   return (
     <div className="rent-savings">
       <div className="settlement-hub-banner">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 8,
+          }}
+        >
           <div className="settlement-hub-banner__multiplier">
-            <Sparkles size={14} />
+            <Award size={14} />
             <span>1.2x Early-Bird Cashback Active</span>
           </div>
-          <span style={{ fontSize: '0.8125rem', opacity: 0.85 }}>
+          <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
             {vault.days_remaining} Days to Lease Due Date
           </span>
         </div>
 
         <div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 800, letterSpacing: -0.5 }}>
+          <h2
+            style={{
+              fontSize: '1.375rem',
+              fontWeight: 800,
+              letterSpacing: -0.4,
+              color: 'var(--text)',
+            }}
+          >
             Pay Your Landlord (Rent Ready)
           </h2>
-          <p style={{ fontSize: '0.875rem', opacity: 0.8, marginTop: 4, lineHeight: 1.45 }}>
-            Your rent savings are complete and ready for payment. Sending rent directly to your
-            landlord generates an official rent receipt and credits your early-bird cashback bonus
-            to your wallet.
+          <p
+            style={{
+              fontSize: '0.875rem',
+              color: 'var(--text-secondary)',
+              marginTop: 4,
+              lineHeight: 1.45,
+            }}
+          >
+            Your rent savings are ready for settlement. Sending rent directly to your landlord
+            generates an official rent receipt and credits your early-bird cashback bonus to your
+            wallet.
           </p>
         </div>
 
         <div
           style={{
-            background: 'rgba(255, 255, 255, 0.1)',
+            background: 'var(--bg)',
+            border: '1px solid var(--border)',
             borderRadius: 'var(--radius-md, 10px)',
             padding: '12px 14px',
             display: 'flex',
@@ -117,14 +192,16 @@ export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewPr
           }}
         >
           <div>
-            <div style={{ fontSize: '0.75rem', opacity: 0.7 }}>Total Saved + Interest</div>
-            <div style={{ fontSize: '1.25rem', fontWeight: 800 }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              Total Saved + Interest
+            </div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text)' }}>
               {formatCurrency(currentBalanceNaira, 'NGN')}
             </div>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '0.75rem', opacity: 0.7 }}>Total Rent Due</div>
-            <div style={{ fontSize: '1.25rem', fontWeight: 800 }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Total Rent Due</div>
+            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--clay)' }}>
               {formatCurrency(targetRentNaira, 'NGN')}
             </div>
           </div>

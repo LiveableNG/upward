@@ -76,6 +76,14 @@ export class RentVaultController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get('prefill')
+  @HttpCode(HttpStatus.OK)
+  async getOnboardingPrefill(@Req() req: any) {
+    const userId = await this.getNumericUserId(req)
+    return this.onboardInvestorUseCase.getOnboardingPrefill(userId)
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Post('onboard-investor')
   @HttpCode(HttpStatus.OK)
   async onboardInvestor(@Req() req: any, @Body() dto: OnboardSavingsInvestorDto) {

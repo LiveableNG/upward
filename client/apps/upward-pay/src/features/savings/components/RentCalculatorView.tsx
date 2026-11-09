@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { Calendar, AlertCircle, ArrowRight, Sparkles, Home } from 'lucide-react'
+import { Calendar, AlertCircle, ArrowRight, TrendingUp, Home } from 'lucide-react'
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from '@/lib/utils'
 import { useSimulateRentSavings } from '../hooks/useRentSavings'
 import { useAuth } from '@/features/auth/AuthContext'
@@ -234,7 +234,7 @@ export function RentCalculatorView({ onProceedToSetup }: RentCalculatorViewProps
             {daysRemaining} Days to Rent Day
           </span>
           <span className="rent-calculator__days-badge">
-            <Sparkles size={13} />
+            <TrendingUp size={13} />
             14.5% p.a. Net Yield
           </span>
         </div>

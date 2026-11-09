@@ -13,7 +13,9 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
 import { useRentalExperiment } from '../hooks/useRentalExperiment'
 import { sessionTracker } from '@/lib/sessionTracker'
-import { useGoalCategories } from '@/features/goals/hooks/useGoals'
+import { useGoalCategories, useUserGoals } from '@/features/goals/hooks/useGoals'
+import { getMe } from '@/features/auth/services/authService'
+import { hasContactDetails } from '@/features/dashboard/utils/profileCompletion'
 import { ShieldCheck } from 'lucide-react'
 
 const STEP_NAMES = ['Location', 'Tenancy', 'Landlord', 'Review']
@@ -27,7 +29,9 @@ export function RentalConfirmView() {
   const { isEdit, withMode, returnTo } = useSetupMode()
   const { trackCompletion, variant } = useRentalExperiment()
   const { data: goalCategories = [] } = useGoalCategories()
+  const { data: userGoals = [] } = useUserGoals()
   const hasGoalsConfigured = goalCategories.some((cat) => (cat.goals?.length || 0) > 0)
+  const hasActiveGoals = userGoals.some((g) => g.status === 'ACTIVE')
 
   const addressLine = [draft.formData.address, draft.formData.area, draft.formData.state]
     .filter(Boolean)
@@ -76,7 +80,10 @@ export function RentalConfirmView() {
         router.push(setupRentalListPath())
       } else {
         toast.success('Your property has been saved.', 'Saved')
-        if (hasGoalsConfigured) {
+        const freshUser = await getMe().catch(() => null)
+        if (freshUser && !hasContactDetails(freshUser)) {
+          router.push(SETUP_PATHS.phone)
+        } else if (hasGoalsConfigured && !hasActiveGoals) {
           router.push(SETUP_PATHS.goals)
         } else {
           router.push('/dashboard')

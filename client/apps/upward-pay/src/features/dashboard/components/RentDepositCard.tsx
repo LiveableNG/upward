@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowUpRight, Sparkles, Building } from 'lucide-react'
+import { ArrowUpRight, PiggyBank, Building } from 'lucide-react'
 import { api } from '@/lib/api'
 import { formatCurrency } from '@/lib/utils'
 
@@ -26,7 +26,7 @@ export function RentDepositCard() {
   return (
     <div
       className="dashboard__deposit-card"
-      onClick={() => router.push('/dashboard/deposit-balance')}
+      onClick={() => router.push('/dashboard/savings')}
       style={{
         background: '#ffffff',
         border: hasBalance
@@ -60,7 +60,7 @@ export function RentDepositCard() {
             boxShadow: 'inset 0 0 0 1px rgba(217, 119, 87, 0.15)',
           }}
         >
-          {hasBalance ? <Sparkles size={20} /> : <Building size={20} />}
+          {hasBalance ? <PiggyBank size={20} /> : <Building size={20} />}
         </div>
 
         <div style={{ minWidth: 0 }}>
@@ -73,7 +73,7 @@ export function RentDepositCard() {
                 letterSpacing: '-0.01em',
               }}
             >
-              Rent Deposit Balance
+              Rent Savings &amp; Deposit
             </span>
             {hasBalance && (
               <span
