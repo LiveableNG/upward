@@ -43,7 +43,10 @@ export function setupRentalListPath(): string {
   return `${SETUP_PATHS.rental}?mode=edit`
 }
 
-export function setupPath(pathname: string, options?: { mode?: SetupMode }): string {
+export function setupPath(
+  pathname: string,
+  options?: { mode?: SetupMode },
+): string {
   if (options?.mode === 'edit') {
     return `${pathname}?mode=edit`
   }

@@ -10,6 +10,7 @@
   margin: 0 auto;
 }
 
+
 @media (max-width: 1023px) {
   .dashboard {
     overflow-y: auto;
@@ -41,6 +42,7 @@
   gap: var(--space-4);
   width: 100%;
 }
+
 
 .dashboard__header-inner {
   display: flex;
@@ -1181,6 +1183,7 @@
 
 /* Redundant definitions removed */
 
+
 .dashboard__col {
   display: contents;
 }
@@ -1246,6 +1249,7 @@
     width: 100%;
     max-width: none;
   }
+
 
   .dashboard__col {
     display: flex;
@@ -1493,7 +1497,9 @@
 
   /* Main grid handled in base layout */
 
+
   /* Column padding handled in base layout */
+
 
   .dashboard__col--left .dashboard__success-card {
     margin: 0 0 24px 0;
@@ -1574,6 +1580,7 @@
 
 /* 1280px Overrides handled in definitive block below */
 
+
 @media (min-width: 1440px) {
   .dashboard__main-grid {
     grid-template-columns: minmax(0, 2.8fr) minmax(360px, 1fr);
@@ -1648,6 +1655,7 @@
   padding-right: var(--space-5);
   padding-top: calc(var(--safe-top, 0px) + 6px);
 }
+
 
 /* On desktop, the mobile-header-sticky wrapper must not be sticky */
 @media (min-width: 1024px) {
@@ -3638,7 +3646,7 @@
     max-width: var(--max-width-desktop, 1440px);
     padding: var(--space-5) var(--space-8);
   }
-
+  
   .dashboard--nav-offset {
     padding-bottom: var(--space-5);
   }
@@ -3655,7 +3663,7 @@
     border-radius: 0;
     margin-bottom: 0;
   }
-
+  
   .dashboard__header-left {
     display: flex;
     align-items: center;
@@ -3670,7 +3678,7 @@
     width: 100%;
     margin: 0 !important;
     padding: 0 var(--space-8);
-    background: rgba(var(--bg-rgb), 0.98);
+    background: rgba(var(--bg-rgb), 0.98); 
     backdrop-filter: blur(20px) saturate(160%);
     -webkit-backdrop-filter: blur(20px) saturate(160%);
     box-shadow: 0 1px 0 var(--border);
@@ -3732,7 +3740,7 @@
     align-items: start;
     width: 100%;
   }
-
+  
   /* Reset bounds to expand naturally without borders slicing content */
   .dashboard__col--left,
   .dashboard__col--right {
@@ -3750,7 +3758,7 @@
     gap: var(--space-2);
     min-width: 200px;
   }
-
+  
   .dashboard__header-logo-text {
     font-size: 22px;
     font-weight: 800;
@@ -3765,7 +3773,7 @@
     flex: 1;
     justify-content: center;
   }
-
+  
   .dashboard__header-nav a {
     color: var(--text-secondary);
     font-size: 14px;
@@ -3775,12 +3783,12 @@
     transition: all 0.2s;
     text-decoration: none;
   }
-
+  
   .dashboard__header-nav a:hover {
     color: var(--clay);
     background: var(--surface2);
   }
-
+  
   .dashboard__header-nav a.active {
     color: var(--clay);
     background: var(--clay-faint);
@@ -3822,7 +3830,7 @@
     border: 2px solid var(--border-solid);
     overflow: hidden;
   }
-
+  
   .dashboard__desktop-avatar:hover {
     transform: scale(1.05);
   }
@@ -3831,6 +3839,7 @@
     margin-bottom: var(--space-8);
   }
 }
+
 
 @media (min-width: 1280px) {
   .dashboard__main-grid {
@@ -3876,6 +3885,7 @@
     display: none !important;
   }
 }
+
 
 /* ══════════════════════════════════════════
    NOTIFICATION PANEL (SLIDE-OVER)
@@ -3952,12 +3962,8 @@
 }
 
 @keyframes slideInRight {
-  from {
-    transform: translateX(100%);
-  }
-  to {
-    transform: translateX(0);
-  }
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -3982,6 +3988,7 @@
 /* ═══════════════════════════════════════════════════════════════
    RENT REMINDER BANNER
 ═══════════════════════════════════════════════════════════════ */
+
 
 .rent-reminder-banner {
   display: flex;
@@ -4014,12 +4021,8 @@
 }
 
 @keyframes shimmer {
-  0% {
-    background-position: 200% 0;
-  }
-  100% {
-    background-position: -200% 0;
-  }
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 .rent-reminder-banner__content {
@@ -4069,9 +4072,7 @@
   font-weight: 700;
   cursor: pointer;
   white-space: nowrap;
-  transition:
-    opacity 0.2s,
-    transform 0.15s;
+  transition: opacity 0.2s, transform 0.15s;
 }
 
 .rent-reminder-banner__cta:hover {
@@ -4127,7 +4128,7 @@
   inset: 0;
   z-index: 99999;
   display: flex;
-  align-items: flex-end; /* Mobile: sheet slides from bottom */
+  align-items: flex-end;       /* Mobile: sheet slides from bottom */
   justify-content: center;
   padding: 0;
   background: rgba(0, 0, 0, 0.65);
@@ -4279,9 +4280,7 @@
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
-  transition:
-    opacity 0.2s,
-    transform 0.15s;
+  transition: opacity 0.2s, transform 0.15s;
   margin-bottom: 12px;
 }
 
@@ -4336,3 +4335,4 @@
     font-size: 30px;
   }
 }
+

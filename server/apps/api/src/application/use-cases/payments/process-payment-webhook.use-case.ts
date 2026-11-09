@@ -38,7 +38,7 @@ export class ProcessPaymentWebhookUseCase {
     private readonly creditWalletUseCase: CreditWalletUseCase,
     private readonly unifiedCommService: UnifiedCommunicationService,
     private readonly confirmCommercePaymentUseCase: ConfirmCommercePaymentUseCase,
-  ) {}
+  ) { }
 
   async execute(payload: any, signature?: string, url: string = '/payments/webhook') {
     let logRecord: any = null
@@ -59,27 +59,23 @@ export class ProcessPaymentWebhookUseCase {
     try {
       const result = await this.processWebhookPayload(payload, signature)
       if (logRecord) {
-        await this.prisma.upward_webhook_log
-          .update({
-            where: { id: logRecord.id },
-            data: { status: 'SUCCESS', responseCode: 200 },
-          })
-          .catch(() => {})
+        await this.prisma.upward_webhook_log.update({
+          where: { id: logRecord.id },
+          data: { status: 'SUCCESS', responseCode: 200 },
+        }).catch(() => {})
       }
       return result
     } catch (error: any) {
       this.logger.error('Webhook processing failed:', error)
       if (logRecord) {
-        await this.prisma.upward_webhook_log
-          .update({
-            where: { id: logRecord.id },
-            data: {
-              status: 'FAILED',
-              errorMessage: error.message || String(error),
-              responseCode: error.status || 500,
-            },
-          })
-          .catch(() => {})
+        await this.prisma.upward_webhook_log.update({
+          where: { id: logRecord.id },
+          data: {
+            status: 'FAILED',
+            errorMessage: error.message || String(error),
+            responseCode: error.status || 500,
+          },
+        }).catch(() => {})
       }
       throw error
     }
@@ -93,25 +89,20 @@ export class ProcessPaymentWebhookUseCase {
       throw new UnauthorizedException('Missing webhook signature')
     }
 
-    const secret =
-      this.configService.get<string>('PAYSTACK_SECRET_KEY') ||
-      process.env.PAYSTACK_SECRET_KEY ||
-      'sk_test_fallback'
+    const secret = this.configService.get<string>('PAYSTACK_SECRET_KEY') || process.env.PAYSTACK_SECRET_KEY || 'sk_test_fallback'
 
     // Verify HMAC SHA512 signature
     const bodyString = JSON.stringify(payload)
-    const hash = createHmac('sha512', secret).update(bodyString).digest('hex')
+    const hash = createHmac('sha512', secret)
+      .update(bodyString)
+      .digest('hex')
 
     if (hash !== signature) {
-      this.logger.warn(
-        `Invalid webhook signature attempt. Received: ${signature.slice(0, 8)}..., Expected: ${hash.slice(0, 8)}...`,
-      )
+      this.logger.warn(`Invalid webhook signature attempt. Received: ${signature.slice(0, 8)}..., Expected: ${hash.slice(0, 8)}...`)
       this.logger.debug(`Hashed string: ${bodyString}`)
 
       if (secret.startsWith('sk_test_')) {
-        this.logger.warn(
-          'BYPASS: Allowing invalid signature because sk_test key is in use. Fix stringification for production!',
-        )
+        this.logger.warn('BYPASS: Allowing invalid signature because sk_test key is in use. Fix stringification for production!')
       } else {
         throw new UnauthorizedException('Invalid signature')
       }
@@ -121,7 +112,8 @@ export class ProcessPaymentWebhookUseCase {
     if (typeof rawMetadata === 'string' && rawMetadata.length > 0) {
       try {
         rawMetadata = JSON.parse(rawMetadata)
-      } catch (e) {}
+      } catch (e) {
+      }
     }
     const sourceApp = rawMetadata?.source_app || payload.data?.customer?.metadata?.source_app
 
@@ -165,11 +157,7 @@ export class ProcessPaymentWebhookUseCase {
         return this.handleAcademyApplicationPayment(payload.data, metadata)
       }
 
-      if (
-        payload.data.dedicated_account ||
-        payload.data.channel === 'dedicated_account' ||
-        payload.data.channel === 'dedicated_nuban'
-      ) {
+      if (payload.data.dedicated_account || payload.data.channel === 'dedicated_account' || payload.data.channel === 'dedicated_nuban') {
         this.logger.log(`DVA Payment detected in charge.success for reference: ${reference}`)
         return this.handleDvaPayment(payload.data)
       }
@@ -191,39 +179,24 @@ export class ProcessPaymentWebhookUseCase {
               const propertyId = parseInt(propertyMatch[1])
               if (!metadata) metadata = {}
               const prop = await this.prisma.upward_user_property.findUnique({
-                where: { id: propertyId },
+                where: { id: propertyId }
               })
               if (prop) {
                 metadata.userPropertyUuid = prop.uuid
-                this.logger.log(
-                  `Resolved property context from alias: ${rawEmail} -> Prop UUID: ${prop.uuid}`,
-                )
+                this.logger.log(`Resolved property context from alias: ${rawEmail} -> Prop UUID: ${prop.uuid}`)
 
                 const dva = await this.dvaRepo.findByUserPropertyId(prop.id)
-                if (
-                  dva &&
-                  dva.metadata &&
-                  typeof dva.metadata === 'object' &&
-                  'lastPaymentIntent' in (dva.metadata as any)
-                ) {
+                if (dva && dva.metadata && typeof dva.metadata === 'object' && 'lastPaymentIntent' in (dva.metadata as any)) {
                   const intent = (dva.metadata as any).lastPaymentIntent
                   const amountPaid = amount / 100
 
-                  if (
-                    intent &&
-                    intent.amount === amountPaid &&
-                    Date.now() - intent.timestamp < 48 * 60 * 60 * 1000
-                  ) {
+                  if (intent && intent.amount === amountPaid && (Date.now() - intent.timestamp < 48 * 60 * 60 * 1000)) {
                     metadata.lineItems = intent.lineItems
-                    this.logger.log(
-                      `Recovered lineItems from DVA intent for alias-based payment: ${JSON.stringify(metadata.lineItems)}`,
-                    )
+                    this.logger.log(`Recovered lineItems from DVA intent for alias-based payment: ${JSON.stringify(metadata.lineItems)}`)
 
                     await this.prisma.upward_dedicated_virtual_account.update({
                       where: { id: dva.id },
-                      data: {
-                        metadata: { ...((dva.metadata as any) || {}), lastPaymentIntent: null },
-                      },
+                      data: { metadata: { ...((dva.metadata as any) || {}), lastPaymentIntent: null } }
                     })
                   }
                 }
@@ -234,31 +207,23 @@ export class ProcessPaymentWebhookUseCase {
 
         const emailHash = this.encryption.hash(searchEmail)
         const user = await this.prisma.upward_user.findUnique({
-          where: { emailHash },
+          where: { emailHash }
         })
 
         if (user) {
           userUuid = user.uuid
-          this.logger.log(
-            `Recovered user identity via email for reference ${reference}: ${user.email} (from ${rawEmail})`,
-          )
+          this.logger.log(`Recovered user identity via email for reference ${reference}: ${user.email} (from ${rawEmail})`)
         } else {
-          this.logger.warn(
-            `Could not find user for customer email: ${searchEmail} (raw: ${rawEmail})`,
-          )
+          this.logger.warn(`Could not find user for customer email: ${searchEmail} (raw: ${rawEmail})`)
         }
       }
 
       if (!userUuid && !userId) {
-        this.logger.error(
-          `Webhook failed: No user identification in metadata or customer record for reference ${reference}`,
-        )
+        this.logger.error(`Webhook failed: No user identification in metadata or customer record for reference ${reference}`)
         throw new Error('No user identification in Paystack metadata')
       }
 
-      this.logger.log(
-        `Processing charge.success for reference ${reference}. Lineitems: ${JSON.stringify(metadata?.lineItems || 'none')}`,
-      )
+      this.logger.log(`Processing charge.success for reference ${reference}. Lineitems: ${JSON.stringify(metadata?.lineItems || 'none')}`)
 
       const effectiveUserId = userUuid || userId
 
@@ -308,21 +273,19 @@ export class ProcessPaymentWebhookUseCase {
       if (reference.startsWith('BATCH-')) {
         const batchUuid = reference.replace('BATCH-', '')
         const batch =
-          (await this.prisma.upward_settlement_batch.findUnique({
-            where: { transferReference: reference },
-          })) ||
+          (await this.prisma.upward_settlement_batch.findUnique({ where: { transferReference: reference } })) ||
           (await this.prisma.upward_settlement_batch.findUnique({ where: { uuid: reference } })) ||
           (await this.prisma.upward_settlement_batch.findUnique({ where: { uuid: batchUuid } }))
 
         if (batch) {
           await this.prisma.upward_settlement_batch.update({
             where: { id: batch.id },
-            data: { status },
+            data: { status }
           })
           if (!isSuccess) {
             await this.prisma.upward_transaction.updateMany({
               where: { settlementBatchId: batch.id },
-              data: { settlementStatus: 'VERIFIED', settlementBatchId: null },
+              data: { settlementStatus: 'VERIFIED', settlementBatchId: null }
             })
           }
         } else {
@@ -334,17 +297,17 @@ export class ProcessPaymentWebhookUseCase {
         const originalTxRef = reference.replace('REFUND-', '')
         await this.prisma.upward_transaction.update({
           where: { reference: originalTxRef },
-          data: { settlementStatus: isSuccess ? 'REFUNDED' : 'PENDING_REFUND' },
+          data: { settlementStatus: isSuccess ? 'REFUNDED' : 'PENDING_REFUND' }
         })
 
         const targetTx = await this.prisma.upward_transaction.findUnique({
-          where: { reference: originalTxRef },
+          where: { reference: originalTxRef }
         })
         if (targetTx) {
           const logStatus = isSuccess ? 'DISPATCHED' : 'FAILED'
           const existingLog = await this.prisma.upward_refund_log.findFirst({
             where: { transactionId: targetTx.id },
-            orderBy: { createdAt: 'desc' },
+            orderBy: { createdAt: 'desc' }
           })
           if (existingLog) {
             await this.prisma.upward_refund_log.update({
@@ -353,10 +316,10 @@ export class ProcessPaymentWebhookUseCase {
                 status: logStatus,
                 resolvedAt: isSuccess ? new Date() : undefined,
                 metadata: {
-                  ...((existingLog.metadata as any) || {}),
-                  webhookPayload: payload.data,
-                },
-              },
+                  ...(existingLog.metadata as any || {}),
+                  webhookPayload: payload.data
+                }
+              }
             })
           }
         }
@@ -369,45 +332,37 @@ export class ProcessPaymentWebhookUseCase {
   }
 
   private async handleDvaPayment(data: any) {
-    const accountNumber =
-      data.dedicated_account?.account_number ||
-      data.dedicated_account ||
-      data.authorization?.receiver_bank_account_number ||
-      data.metadata?.receiver_account_number
+    const accountNumber = data.dedicated_account?.account_number || data.dedicated_account || data.authorization?.receiver_bank_account_number || data.metadata?.receiver_account_number
     if (!accountNumber) {
-      this.logger.error(
-        `Could not resolve account number from DVA payload: ${JSON.stringify(data)}`,
-      )
+      this.logger.error(`Could not resolve account number from DVA payload: ${JSON.stringify(data)}`)
       return { success: false, message: 'Missing account number' }
     }
 
     this.logger.log(`Processing DVA Payment for account: ${accountNumber}`)
 
     const pmDva = await this.prisma.upward_pm_dedicated_virtual_account.findUnique({
-      where: { accountNumber },
-    })
+      where: { accountNumber }
+    });
 
     if (pmDva) {
-      this.logger.log(`Routing DVA Payment for PM Wallet: PM ID ${pmDva.pmId}`)
-
-      const amountPaid = data.amount / 100
+      this.logger.log(`Routing DVA Payment for PM Wallet: PM ID ${pmDva.pmId}`);
+      
+      const amountPaid = data.amount / 100;
 
       const existingTx = data.reference
         ? await this.prisma.upward_pm_wallet_transaction.findUnique({
             where: { reference: data.reference },
           })
-        : null
+        : null;
 
       if (existingTx) {
         this.logger.log(`Skipping duplicate PM wallet DVA payment for reference ${data.reference}`)
         return { success: true, message: 'PM Wallet Funding already processed' }
       }
-
-      let wallet = await this.prisma.upward_pm_wallet.findUnique({ where: { pmId: pmDva.pmId } })
+      
+      let wallet = await this.prisma.upward_pm_wallet.findUnique({ where: { pmId: pmDva.pmId } });
       if (!wallet) {
-        wallet = await this.prisma.upward_pm_wallet.create({
-          data: { pmId: pmDva.pmId, balance: 0 },
-        })
+        wallet = await this.prisma.upward_pm_wallet.create({ data: { pmId: pmDva.pmId, balance: 0 } });
       }
 
       await this.prisma.upward_pm_wallet_transaction.create({
@@ -419,13 +374,13 @@ export class ProcessPaymentWebhookUseCase {
           reference: data.reference || `PM_DVA_${Date.now()}`,
           status: 'SUCCESS',
           narration: 'Wallet Funding via Dedicated Virtual Account',
-        },
-      })
-
+        }
+      });
+      
       await this.prisma.upward_pm_wallet.update({
         where: { id: wallet.id },
-        data: { balance: { increment: amountPaid } },
-      })
+        data: { balance: { increment: amountPaid } }
+      });
 
       const updatedBalance = (wallet.balance || 0) + amountPaid
 
@@ -435,26 +390,26 @@ export class ProcessPaymentWebhookUseCase {
 
       const sub = await this.prisma.upward_subscription.findUnique({
         where: { pmId: pmDva.pmId },
-      })
+      });
 
       const totalUnits = await this.prisma.upward_pm_unit.count({
         where: { property: { pmId: pmDva.pmId } },
-      })
+      });
 
       const occupiedUnits = await this.prisma.upward_pm_unit.count({
         where: { property: { pmId: pmDva.pmId }, status: 'OCCUPIED' },
-      })
+      });
 
-      const billingMode = sub?.unitBillingMode ?? 'ALL'
-      const unitCount = billingMode === 'ALL' ? Math.max(totalUnits, 1) : occupiedUnits
-      const yearlyRate = sub?.tier === 'TIER_3' ? 2250 : 1500
-      const minRequiredDeposit = Math.max(50000, unitCount * yearlyRate)
+      const billingMode = sub?.unitBillingMode ?? 'ALL';
+      const unitCount = billingMode === 'ALL' ? Math.max(totalUnits, 1) : occupiedUnits;
+      const yearlyRate = sub?.tier === 'TIER_3' ? 2250 : 1500;
+      const minRequiredDeposit = Math.max(50000, unitCount * yearlyRate);
 
       if (updatedBalance >= minRequiredDeposit && pm && !(pm as any).isManuallyBlocked) {
         await this.prisma.upward_property_manager.update({
           where: { id: pmDva.pmId },
           data: { isBlocked: false },
-        })
+        });
       }
       const pmEmail = pm?.email ? this.encryption.decrypt(pm.email) : null
       const pmFirstName = pm?.firstName ? this.encryption.decrypt(pm.firstName) : ''
@@ -474,32 +429,28 @@ export class ProcessPaymentWebhookUseCase {
       })
 
       if (pmEmail) {
-        const baseUrl = (process.env.FRONTEND_URL || 'https://upward.goodtenants.io')
-          .split(',')[0]!
-          .trim()
-        await this.unifiedCommService
-          .processCommunication({
-            recipientEmail: pmEmail,
-            recipientName: pmName,
-            recipientRole: 'PM',
-            pmUuid: pm?.uuid,
-            type: 'PM_WALLET_FUNDING_RECEIVED',
-            context: {
-              pmName,
-              amount: amountPaid,
-              formattedAmount: amountPaid.toLocaleString(),
-              walletBalance: updatedBalance,
-              formattedWalletBalance: updatedBalance.toLocaleString(),
-              accountNumber,
-              baseUrl,
-            },
-          })
-          .catch((err) => {
-            this.logger.error(`Failed to send DVA funding email to PM ${pmEmail}:`, err)
-          })
+        const baseUrl = (process.env.FRONTEND_URL || 'https://upward.goodtenants.io').split(',')[0]!.trim();
+        await this.unifiedCommService.processCommunication({
+          recipientEmail: pmEmail,
+          recipientName: pmName,
+          recipientRole: 'PM',
+          pmUuid: pm?.uuid,
+          type: 'PM_WALLET_FUNDING_RECEIVED',
+          context: {
+            pmName,
+            amount: amountPaid,
+            formattedAmount: amountPaid.toLocaleString(),
+            walletBalance: updatedBalance,
+            formattedWalletBalance: updatedBalance.toLocaleString(),
+            accountNumber,
+            baseUrl,
+          },
+        }).catch((err) => {
+          this.logger.error(`Failed to send DVA funding email to PM ${pmEmail}:`, err)
+        })
       }
-
-      return { success: true, message: 'PM Wallet Funded' }
+      
+      return { success: true, message: 'PM Wallet Funded' };
     }
 
     const dva = await this.dvaRepo.findByAccountNumber(accountNumber)
@@ -512,33 +463,29 @@ export class ProcessPaymentWebhookUseCase {
     const pr = await this.prisma.upward_payment_request.findFirst({
       where: {
         userPropertyId: dva.userPropertyId,
-        status: { in: ['PENDING', 'PARTIAL'] },
+        status: { in: ['PENDING', 'PARTIAL'] }
       },
       include: {
         user: true,
         userProperty: {
-          include: { subaccount: true },
-        },
-      },
+          include: { subaccount: true }
+        }
+      }
     })
 
     const amountPaid = data.amount / 100
 
     if (!pr) {
-      this.logger.log(
-        `Direct DVA transfer received for Property ${dva.userPropertyId} with no active request. Crediting Rent Deposit Balance directly.`,
-      )
+      this.logger.log(`Direct DVA transfer received for Property ${dva.userPropertyId} with no active request. Crediting Rent Deposit Balance directly.`)
 
       // Find the user associated with this property
       const userProp = await this.prisma.upward_user_property.findUnique({
         where: { id: dva.userPropertyId },
-        include: { user: true, subaccount: true },
+        include: { user: true, subaccount: true }
       })
 
       if (!userProp) {
-        this.logger.error(
-          `DVA payment received for non-existent property relation: ${dva.userPropertyId}`,
-        )
+        this.logger.error(`DVA payment received for non-existent property relation: ${dva.userPropertyId}`)
         return { success: true, message: 'Property not found' }
       }
 
@@ -564,36 +511,24 @@ export class ProcessPaymentWebhookUseCase {
     let lineItemPayments: any[] | undefined = undefined
     let upwardFeeAmount = 0
     let excludeBenefits = false
-    if (
-      dva.metadata &&
-      typeof dva.metadata === 'object' &&
-      'lastPaymentIntent' in (dva.metadata as any)
-    ) {
+    if (dva.metadata && typeof dva.metadata === 'object' && 'lastPaymentIntent' in (dva.metadata as any)) {
       const intent = (dva.metadata as any).lastPaymentIntent
       // If the intent is fresh (e.g. < 48 hours) and amount matches exactly
-      if (
-        intent &&
-        intent.amount === amountPaid &&
-        Date.now() - intent.timestamp < 48 * 60 * 60 * 1000
-      ) {
+      if (intent && intent.amount === amountPaid && (Date.now() - intent.timestamp < 48 * 60 * 60 * 1000)) {
         lineItemPayments = intent.lineItems
-        excludeBenefits =
-          intent.excludeBenefits === true ||
-          !!(lineItemPayments && !lineItemPayments.some((lp) => lp.name === 'Upward Benefits'))
-        this.logger.log(
-          `Found matching payment intent for DVA transfer. Using manual allocations. ExcludeBenefits: ${excludeBenefits}`,
-        )
+        excludeBenefits = intent.excludeBenefits === true || !!(lineItemPayments && !lineItemPayments.some(lp => lp.name === 'Upward Benefits'))
+        this.logger.log(`Found matching payment intent for DVA transfer. Using manual allocations. ExcludeBenefits: ${excludeBenefits}`)
 
         // Extract fee if specified
-        const feeItem = lineItemPayments?.find((lp) => lp.name === 'Upward Benefits')
+        const feeItem = lineItemPayments?.find(lp => lp.name === 'Upward Benefits')
         if (feeItem) {
           upwardFeeAmount = Number(feeItem.amount || feeItem.amountPaid || 0)
         }
 
         // Map amount to amountPaid for distribute-allocations compatibility
-        lineItemPayments = lineItemPayments?.map((lp) => ({
+        lineItemPayments = lineItemPayments?.map(lp => ({
           ...lp,
-          amountPaid: Number(lp.amount || lp.amountPaid || 0),
+          amountPaid: Number(lp.amount || lp.amountPaid || 0)
         }))
 
         // Clear the intent so it's not reused
@@ -602,42 +537,34 @@ export class ProcessPaymentWebhookUseCase {
           data: {
             metadata: {
               ...((dva.metadata as any) || {}),
-              lastPaymentIntent: null,
-            },
-          },
+              lastPaymentIntent: null
+            }
+          }
         })
       } else if (intent) {
-        this.logger.log(
-          `DVA payment amount (${amountPaid}) does not match saved intent amount (${intent.amount}). Falling back to sequential fill.`,
-        )
+        this.logger.log(`DVA payment amount (${amountPaid}) does not match saved intent amount (${intent.amount}). Falling back to sequential fill.`)
         // Clear non-matching or expired intent
         await this.prisma.upward_dedicated_virtual_account.update({
           where: { id: dva.id },
           data: {
             metadata: {
               ...((dva.metadata as any) || {}),
-              lastPaymentIntent: null,
-            },
-          },
+              lastPaymentIntent: null
+            }
+          }
         })
       }
     }
 
     // Verification Logic: Intercept & Check against Source of Truth
-    const rates = await this.paymentConfig.getDynamicProcessingRates(
-      pr.userId,
-      pr.userPropertyId,
-      pr.id,
-    )
-    const activeBenefitsFee = rates.benefitsPaid || excludeBenefits ? 0 : rates.benefitsFee
+    const rates = await this.paymentConfig.getDynamicProcessingRates(pr.userId, pr.userPropertyId, pr.id)
+    const activeBenefitsFee = (rates.benefitsPaid || excludeBenefits) ? 0 : rates.benefitsFee
     const dynamicFee = rates.transactionFee + activeBenefitsFee
     const expectedTotal = pr.amount + dynamicFee
 
     let settlementStatus = 'VERIFIED'
     if (!pr.allowPartial && amountPaid < expectedTotal) {
-      this.logger.warn(
-        `Full-Payment Violation: User ${pr.user.email} paid ${amountPaid} instead of ${expectedTotal}. Marking for refund.`,
-      )
+      this.logger.warn(`Full-Payment Violation: User ${pr.user.email} paid ${amountPaid} instead of ${expectedTotal}. Marking for refund.`)
       settlementStatus = 'PENDING_REFUND'
     }
 
@@ -657,22 +584,20 @@ export class ProcessPaymentWebhookUseCase {
       lineItemPayments,
       sequentialFill,
       metadata: {
-        excludeBenefits,
-      },
+        excludeBenefits
+      }
     })
 
     if (settlementStatus === 'PENDING_REFUND') {
-      this.eventBus.publish(
-        new UnderpaymentDetectedEvent(
-          pr.user.id,
-          pr.userPropertyId!,
-          pr.id,
-          amountPaid,
-          expectedTotal,
-          data.reference,
-          true,
-        ),
-      )
+      this.eventBus.publish(new UnderpaymentDetectedEvent(
+        pr.user.id,
+        pr.userPropertyId!,
+        pr.id,
+        amountPaid,
+        expectedTotal,
+        data.reference,
+        true
+      ))
     }
 
     return result
@@ -694,9 +619,7 @@ export class ProcessPaymentWebhookUseCase {
     }
 
     if (!app) {
-      this.logger.warn(
-        `No university application found for ref ${reference} or email ${customerEmail}`,
-      )
+      this.logger.warn(`No university application found for ref ${reference} or email ${customerEmail}`)
       return { success: true, message: 'Academy application not found for payment' }
     }
 

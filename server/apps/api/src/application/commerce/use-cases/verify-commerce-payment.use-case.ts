@@ -1,10 +1,22 @@
-import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common'
 import {
   COMMERCE_ORDER_REPOSITORY,
   CommerceOrderRepository,
 } from '../../../domains/commerce/commerce-order.repository'
-import { PAYMENT_GATEWAY, IPaymentGateway } from '../../../domains/payments/payment.repository'
-import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
+import {
+  PAYMENT_GATEWAY,
+  IPaymentGateway,
+} from '../../../domains/payments/payment.repository'
+import {
+  USER_REPOSITORY,
+  UserRepository,
+} from '../../../domains/users/user.repository'
 import { ConfirmCommercePaymentUseCase } from './confirm-commerce-payment.use-case'
 
 @Injectable()
@@ -104,11 +116,7 @@ export class VerifyCommercePaymentUseCase {
       }
     }
 
-    this.logger.warn(
-      `Paystack verification returned unverified status for reference ${params.reference}`,
-    )
-    throw new BadRequestException(
-      'Payment verification failed with payment gateway. Please check your transaction reference.',
-    )
+    this.logger.warn(`Paystack verification returned unverified status for reference ${params.reference}`)
+    throw new BadRequestException('Payment verification failed with payment gateway. Please check your transaction reference.')
   }
 }

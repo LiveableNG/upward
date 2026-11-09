@@ -1,5 +1,12 @@
 import { useState, useMemo } from 'react'
-import { ShieldAlert, HelpCircle, Search, CheckCircle2, Clock, ArrowRight } from 'lucide-react'
+import {
+  ShieldAlert,
+  HelpCircle,
+  Search,
+  CheckCircle2,
+  Clock,
+  ArrowRight,
+} from 'lucide-react'
 import type { AdminCommerceDispute, DisputeStatus } from '../types'
 import { ResolveDisputeModal } from './ResolveDisputeModal'
 
@@ -39,8 +46,7 @@ export function CommerceDisputesTable({
   loading,
   onResolveDispute,
 }: CommerceDisputesTableProps) {
-  const [activeDisputeForResolve, setActiveDisputeForResolve] =
-    useState<AdminCommerceDispute | null>(null)
+  const [activeDisputeForResolve, setActiveDisputeForResolve] = useState<AdminCommerceDispute | null>(null)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<DisputeFilterTab>('ALL')
 
@@ -48,7 +54,8 @@ export function CommerceDisputesTable({
     return disputes.filter((d) => {
       const isResolved = d.status.startsWith('RESOLVED') || d.status === 'CLOSED'
       const isInquiry =
-        d.reason.startsWith('[Inquiry]') || Boolean(d.subOrder?.subOrderNumber?.startsWith('INQ-'))
+        d.reason.startsWith('[Inquiry]') ||
+        Boolean(d.subOrder?.subOrderNumber?.startsWith('INQ-'))
 
       if (statusFilter === 'INQUIRY_PENDING' && (!isInquiry || isResolved)) return false
       if (statusFilter === 'OPEN_DISPUTES' && (isInquiry || isResolved)) return false
@@ -138,8 +145,7 @@ export function CommerceDisputesTable({
                 fontSize: 12,
                 fontWeight: 600,
                 cursor: 'pointer',
-                background:
-                  statusFilter === 'INQUIRY_PENDING' ? 'var(--accent)' : 'var(--surface-hover)',
+                background: statusFilter === 'INQUIRY_PENDING' ? 'var(--accent)' : 'var(--surface-hover)',
                 color: statusFilter === 'INQUIRY_PENDING' ? '#fff' : 'var(--text)',
                 border: '1px solid var(--border)',
               }}
@@ -197,75 +203,22 @@ export function CommerceDisputesTable({
                   borderBottom: '2px solid var(--border)',
                 }}
               >
-                <th
-                  style={{
-                    padding: '12px 16px',
-                    fontSize: 11.5,
-                    fontWeight: 700,
-                    color: 'var(--text-muted)',
-                    textTransform: 'uppercase',
-                  }}
-                >
+                <th style={{ padding: '12px 16px', fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
                   Issue / Inquiry
                 </th>
-                <th
-                  style={{
-                    padding: '12px 16px',
-                    fontSize: 11.5,
-                    fontWeight: 700,
-                    color: 'var(--text-muted)',
-                    textTransform: 'uppercase',
-                    width: '150px',
-                  }}
-                >
+                <th style={{ padding: '12px 16px', fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', width: '150px' }}>
                   Reference
                 </th>
-                <th
-                  style={{
-                    padding: '12px 16px',
-                    fontSize: 11.5,
-                    fontWeight: 700,
-                    color: 'var(--text-muted)',
-                    textTransform: 'uppercase',
-                    width: '170px',
-                  }}
-                >
+                <th style={{ padding: '12px 16px', fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', width: '170px' }}>
                   Customer
                 </th>
-                <th
-                  style={{
-                    padding: '12px 16px',
-                    fontSize: 11.5,
-                    fontWeight: 700,
-                    color: 'var(--text-muted)',
-                    textTransform: 'uppercase',
-                    width: '150px',
-                  }}
-                >
+                <th style={{ padding: '12px 16px', fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', width: '150px' }}>
                   Status
                 </th>
-                <th
-                  style={{
-                    padding: '12px 16px',
-                    fontSize: 11.5,
-                    fontWeight: 700,
-                    color: 'var(--text-muted)',
-                    textTransform: 'uppercase',
-                  }}
-                >
+                <th style={{ padding: '12px 16px', fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
                   Resolution Summary
                 </th>
-                <th
-                  style={{
-                    padding: '12px 16px',
-                    fontSize: 11.5,
-                    fontWeight: 700,
-                    color: 'var(--text-muted)',
-                    textTransform: 'uppercase',
-                    textAlign: 'right',
-                    width: '150px',
-                  }}
-                >
+                <th style={{ padding: '12px 16px', fontSize: 11.5, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', textAlign: 'right', width: '150px' }}>
                   Action
                 </th>
               </tr>
@@ -273,10 +226,7 @@ export function CommerceDisputesTable({
             <tbody>
               {loading ? (
                 <tr>
-                  <td
-                    colSpan={6}
-                    style={{ padding: 48, textAlign: 'center', color: 'var(--text-muted)' }}
-                  >
+                  <td colSpan={6} style={{ padding: 48, textAlign: 'center', color: 'var(--text-muted)' }}>
                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                       <Clock size={16} className="loader" />
                       <span>Loading support inquiries & disputes...</span>
@@ -286,14 +236,7 @@ export function CommerceDisputesTable({
               ) : filteredDisputes.length === 0 ? (
                 <tr>
                   <td colSpan={6} style={{ padding: 48, textAlign: 'center' }}>
-                    <div
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: 8,
-                      }}
-                    >
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
                       <CheckCircle2 size={36} color="#10b981" />
                       <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)' }}>
                         No records match the filter
@@ -306,13 +249,14 @@ export function CommerceDisputesTable({
                 </tr>
               ) : (
                 filteredDisputes.map((dispute) => {
-                  const isResolved =
-                    dispute.status.startsWith('RESOLVED') || dispute.status === 'CLOSED'
+                  const isResolved = dispute.status.startsWith('RESOLVED') || dispute.status === 'CLOSED'
                   const isInquiry =
                     dispute.reason.startsWith('[Inquiry]') ||
                     Boolean(dispute.subOrder?.subOrderNumber?.startsWith('INQ-'))
                   const refCode = dispute.subOrder?.subOrderNumber || `REF-${dispute.subOrderId}`
-                  const tenantName = dispute.subOrder?.order?.recipientName || 'Customer'
+                  const tenantName =
+                    dispute.subOrder?.order?.recipientName ||
+                    'Customer'
 
                   return (
                     <tr
@@ -336,9 +280,7 @@ export function CommerceDisputesTable({
                               width: 32,
                               height: 32,
                               borderRadius: 8,
-                              background: isInquiry
-                                ? 'var(--accent-faint)'
-                                : 'rgba(239, 68, 68, 0.08)',
+                              background: isInquiry ? 'var(--accent-faint)' : 'rgba(239, 68, 68, 0.08)',
                               border: `1px solid ${isInquiry ? 'var(--accent-muted)' : 'rgba(239, 68, 68, 0.2)'}`,
                               display: 'flex',
                               alignItems: 'center',
@@ -351,14 +293,7 @@ export function CommerceDisputesTable({
                             {isInquiry ? <HelpCircle size={16} /> : <ShieldAlert size={16} />}
                           </div>
                           <div>
-                            <div
-                              style={{
-                                fontSize: 13.5,
-                                fontWeight: 700,
-                                color: 'var(--text)',
-                                marginBottom: 2,
-                              }}
-                            >
+                            <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text)', marginBottom: 2 }}>
                               {dispute.reason}
                             </div>
                             <div
@@ -427,7 +362,11 @@ export function CommerceDisputesTable({
                               : isInquiry
                                 ? 'var(--accent-faint)'
                                 : 'rgba(239, 68, 68, 0.1)',
-                            color: isResolved ? '#059669' : isInquiry ? 'var(--accent)' : '#dc2626',
+                            color: isResolved
+                              ? '#059669'
+                              : isInquiry
+                                ? 'var(--accent)'
+                                : '#dc2626',
                             border: `1px solid ${
                               isResolved
                                 ? 'rgba(16, 185, 129, 0.2)'
@@ -458,39 +397,23 @@ export function CommerceDisputesTable({
                                 lineHeight: 1.4,
                               }}
                             >
-                              <strong>Notes:</strong>{' '}
-                              {dispute.resolutionNotes || 'Resolved without notes.'}
+                              <strong>Notes:</strong> {dispute.resolutionNotes || 'Resolved without notes.'}
                               {dispute.resolvedBy && (
-                                <span
-                                  style={{
-                                    display: 'block',
-                                    fontSize: 11,
-                                    color: '#047857',
-                                    marginTop: 2,
-                                  }}
-                                >
+                                <span style={{ display: 'block', fontSize: 11, color: '#047857', marginTop: 2 }}>
                                   Resolved by {dispute.resolvedBy}
                                 </span>
                               )}
                             </div>
                           </div>
                         ) : (
-                          <span
-                            style={{
-                              fontSize: 12,
-                              color: 'var(--text-muted)',
-                              fontStyle: 'italic',
-                            }}
-                          >
+                          <span style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic' }}>
                             Awaiting response & action
                           </span>
                         )}
                       </td>
 
                       {/* Action */}
-                      <td
-                        style={{ padding: '14px 16px', verticalAlign: 'top', textAlign: 'right' }}
-                      >
+                      <td style={{ padding: '14px 16px', verticalAlign: 'top', textAlign: 'right' }}>
                         <button
                           type="button"
                           onClick={() => setActiveDisputeForResolve(dispute)}

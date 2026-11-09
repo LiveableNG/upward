@@ -81,15 +81,11 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
               select: { id: true, stockCount: true, inStock: true, status: true },
             })
             if (!offering || offering.status !== 'PUBLISHED' || !offering.inStock) {
-              throw new Error(
-                `OFFERING_UNAVAILABLE: Offering ID ${item.offeringId} is not available for purchase`,
-              )
+              throw new Error(`OFFERING_UNAVAILABLE: Offering ID ${item.offeringId} is not available for purchase`)
             }
             if (offering.stockCount !== null) {
               if (offering.stockCount < item.quantity) {
-                throw new Error(
-                  `INSUFFICIENT_STOCK: Offering ID ${item.offeringId} has only ${offering.stockCount} in stock, requested ${item.quantity}`,
-                )
+                throw new Error(`INSUFFICIENT_STOCK: Offering ID ${item.offeringId} has only ${offering.stockCount} in stock, requested ${item.quantity}`)
               }
               const updateRes = await tx.upward_offering.updateMany({
                 where: {
@@ -102,9 +98,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
                 },
               })
               if (updateRes.count === 0) {
-                throw new Error(
-                  `INSUFFICIENT_STOCK: Offering ID ${item.offeringId} was claimed by another customer`,
-                )
+                throw new Error(`INSUFFICIENT_STOCK: Offering ID ${item.offeringId} was claimed by another customer`)
               }
               await tx.upward_offering.updateMany({
                 where: {
@@ -129,9 +123,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
                   if (compOffering && compOffering.stockCount !== null) {
                     const requiredQty = (comp.quantity || 1) * item.quantity
                     if (compOffering.stockCount < requiredQty) {
-                      throw new Error(
-                        `INSUFFICIENT_STOCK: Package component ID ${comp.componentId} has only ${compOffering.stockCount} in stock, required ${requiredQty}`,
-                      )
+                      throw new Error(`INSUFFICIENT_STOCK: Package component ID ${comp.componentId} has only ${compOffering.stockCount} in stock, required ${requiredQty}`)
                     }
                     const compRes = await tx.upward_offering.updateMany({
                       where: {
@@ -144,9 +136,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
                       },
                     })
                     if (compRes.count === 0) {
-                      throw new Error(
-                        `INSUFFICIENT_STOCK: Package component ID ${comp.componentId} was claimed by another customer`,
-                      )
+                      throw new Error(`INSUFFICIENT_STOCK: Package component ID ${comp.componentId} was claimed by another customer`)
                     }
                     await tx.upward_offering.updateMany({
                       where: {
@@ -185,10 +175,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
           toState: 'PENDING',
           actorType: 'TENANT',
           actorId: String(data.userId),
-          details: {
-            orderNumber: data.orderNumber,
-            totalAmountKobo: data.totalAmountKobo.toString(),
-          },
+          details: { orderNumber: data.orderNumber, totalAmountKobo: data.totalAmountKobo.toString() },
         },
       })
 
@@ -341,16 +328,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
       take?: number
     } = {},
   ): Promise<{ items: CommerceOrder[]; total: number }> {
-    const {
-      skip = 0,
-      take = 50,
-      status,
-      paymentStatus,
-      vendorId,
-      search,
-      startDate,
-      endDate,
-    } = filter
+    const { skip = 0, take = 50, status, paymentStatus, vendorId, search, startDate, endDate } = filter
     const where: any = {}
     if (status) where.status = status
     if (paymentStatus) {
@@ -383,16 +361,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
         take,
         orderBy: { createdAt: 'desc' },
         include: {
-          user: {
-            select: {
-              id: true,
-              uuid: true,
-              email: true,
-              firstName: true,
-              lastName: true,
-              phone: true,
-            },
-          },
+          user: { select: { id: true, uuid: true, email: true, firstName: true, lastName: true, phone: true } },
           subOrders: {
             include: {
               vendor: true,
@@ -877,6 +846,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
           },
         },
       })
+
     })
 
     const updated = await this.findOrderById(params.orderId)

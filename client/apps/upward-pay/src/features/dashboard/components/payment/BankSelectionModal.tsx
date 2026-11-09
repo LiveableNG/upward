@@ -27,7 +27,7 @@ export function BankSelectionModal({
   const [search, setSearch] = useState('')
 
   const filteredBanks = banks.filter((b) =>
-    b.name.toLowerCase().includes(search.toLowerCase().trim()),
+    b.name.toLowerCase().includes(search.toLowerCase().trim())
   )
 
   return (
@@ -126,10 +126,7 @@ export function BankSelectionModal({
           background: var(--bg, #fdfbf7);
           border: 1.5px solid var(--border-solid, #ece4d9);
           border-radius: 12px;
-          transition:
-            border-color 0.2s,
-            box-shadow 0.2s,
-            background-color 0.2s;
+          transition: border-color 0.2s, box-shadow 0.2s, background-color 0.2s;
         }
 
         .bank-select__search:focus-within {
@@ -182,9 +179,7 @@ export function BankSelectionModal({
           border-bottom: 1px solid var(--border-subtle, #f3ece3);
           cursor: pointer;
           border-radius: 10px;
-          transition:
-            background-color 0.15s ease,
-            transform 0.1s ease;
+          transition: background-color 0.15s ease, transform 0.1s ease;
         }
 
         .bank-select__option:last-child {

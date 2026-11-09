@@ -93,24 +93,38 @@ export function BasicCheckoutView({
   const loginRequired = paymentData.hasPassword && !authUser
   const isGuest = !paymentData.hasPassword
   const isLoggedIn = !!authUser
-  const canPayPartial = !!paymentData.payment.allowPartial && !isPendingRefund && !isGuest
+  const canPayPartial =
+    !!paymentData.payment.allowPartial && !isPendingRefund && !isGuest
 
   const accountName =
-    paymentData.payment?.verifiedRecipientName || paymentData.company?.name || 'Payment recipient'
+    paymentData.payment?.verifiedRecipientName ||
+    paymentData.company?.name ||
+    'Payment recipient'
 
   // Do not expose raw bank details to prevent users bypassing DVA/checkout
   const propertyAddress =
-    paymentData.property?.locationAddress || paymentData.payment?.description || null
+    paymentData.property?.locationAddress ||
+    paymentData.payment?.description ||
+    null
 
   const rentStartDate =
-    paymentData.payment?.rentStartDate || paymentData.property?.rentStartDate || null
+    paymentData.payment?.rentStartDate ||
+    paymentData.property?.rentStartDate ||
+    null
 
-  const rentEndDate = paymentData.payment?.rentEndDate || paymentData.property?.rentEndDate || null
+  const rentEndDate =
+    paymentData.payment?.rentEndDate ||
+    paymentData.property?.rentEndDate ||
+    null
 
-  const rentType = paymentData.payment?.rentType || paymentData.property?.rentType || null
+  const rentType =
+    paymentData.payment?.rentType ||
+    paymentData.property?.rentType ||
+    null
 
   const invoiceRef =
-    paymentData.payment?.reference || (uuid ? `PR-${uuid.slice(0, 8).toUpperCase()}` : null)
+    paymentData.payment?.reference ||
+    (uuid ? `PR-${uuid.slice(0, 8).toUpperCase()}` : null)
 
   const rentLineItems = useMemo(
     () => visibleLineItems.filter((item) => !isFeeLine(item.name, item.id)),
@@ -128,11 +142,14 @@ export function BasicCheckoutView({
   )
 
   const transactionFeeAmount = useMemo(() => {
-    const feeAlloc = visibleAllocs.find((a) => a.name === 'Transaction Fee' || a.id === -2)
+    const feeAlloc = visibleAllocs.find(
+      (a) => a.name === 'Transaction Fee' || a.id === -2,
+    )
     return feeAlloc?.allocated ?? (rentSubtotal > 0 ? rates.transactionFee : 0)
   }, [visibleAllocs, rentSubtotal, rates.transactionFee])
 
-  const heroEditable = canPayPartial && rentLineItems.length === 1 && !isPendingRefund
+  const heroEditable =
+    canPayPartial && rentLineItems.length === 1 && !isPendingRefund
 
   const netPayable = parsedAmount
 
@@ -150,7 +167,11 @@ export function BasicCheckoutView({
           id: alloc.id,
           name: alloc.name,
           amount: alloc.allocated,
-          editable: canPayPartial && !isPaid && multiRent && !isFeeLine(alloc.name, alloc.id),
+          editable:
+            canPayPartial &&
+            !isPaid &&
+            multiRent &&
+            !isFeeLine(alloc.name, alloc.id),
           maxAmount: alloc.remaining,
         }
       })
@@ -165,7 +186,13 @@ export function BasicCheckoutView({
     }
 
     return rows
-  }, [rentAllocations, visibleLineItems, canPayPartial, rentLineItems.length, transactionFeeAmount])
+  }, [
+    rentAllocations,
+    visibleLineItems,
+    canPayPartial,
+    rentLineItems.length,
+    transactionFeeAmount,
+  ])
 
   const handleRentHeroChange = (value: string) => {
     const rent = parseRentInput(value)
@@ -185,7 +212,7 @@ export function BasicCheckoutView({
     return `Pay ${formatCurrency(netPayable, currency)} now`
   }
 
-  const hasNoLineItems = rentLineItems.length === 0 && paymentData.payment?.amount > 0
+  const hasNoLineItems = rentLineItems.length === 0 && (paymentData.payment?.amount > 0)
   const ctaDisabled = !isValidAmount || isUnderpaying || isPendingRefund || hasNoLineItems
 
   const handleBack = () => {
@@ -290,8 +317,7 @@ export function BasicCheckoutView({
               <div>
                 <strong>Invalid Invoice</strong>
                 <p>
-                  This payment request has no line items. Please contact your property manager to
-                  regenerate the invoice.
+                  This payment request has no line items. Please contact your property manager to regenerate the invoice.
                 </p>
               </div>
             </div>
@@ -302,7 +328,10 @@ export function BasicCheckoutView({
               <ShieldAlert size={18} />
               <div>
                 <strong>Refund action required</strong>
-                <p>An underpayment was detected. A refund is pending for this payment request.</p>
+                <p>
+                  An underpayment was detected. A refund is pending for this
+                  payment request.
+                </p>
               </div>
             </div>
           ) : null}
@@ -364,3 +393,4 @@ export function BasicCheckoutView({
     </PayPageShell>
   )
 }
+

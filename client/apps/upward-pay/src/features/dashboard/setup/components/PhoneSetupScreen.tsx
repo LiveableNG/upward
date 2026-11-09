@@ -27,7 +27,7 @@ export function PhoneSetupScreen() {
   const [lastName, setLastName] = useState(user?.lastName || '')
   const [phone, setPhone] = useState(user?.phone || '')
   const [dateOfBirth, setDateOfBirth] = useState(
-    user?.dateOfBirth ? user.dateOfBirth.split('T')[0] : '',
+    user?.dateOfBirth ? user.dateOfBirth.split('T')[0] : ''
   )
 
   useEffect(() => {
@@ -92,10 +92,7 @@ export function PhoneSetupScreen() {
     }
 
     if (!PHONE_REGEX.test(cleaned)) {
-      toast.error(
-        'Enter a valid phone number in international format (e.g. +2348030000000).',
-        'Invalid Phone',
-      )
+      toast.error('Enter a valid phone number in international format (e.g. +2348030000000).', 'Invalid Phone')
       return
     }
     if (!dateOfBirth) {
@@ -111,10 +108,7 @@ export function PhoneSetupScreen() {
       subtitle="Complete your profile to build credibility and secure your account."
       onBack={() => router.push(SETUP_PATHS.dashboard)}
       footer={
-        <SetupPrimaryButton
-          onClick={() => submitMutation.mutate()}
-          disabled={submitMutation.isPending}
-        >
+        <SetupPrimaryButton onClick={() => submitMutation.mutate()} disabled={submitMutation.isPending}>
           {submitMutation.isPending ? 'Saving…' : 'Save details'}
           {!submitMutation.isPending && <ArrowRight size={18} aria-hidden />}
         </SetupPrimaryButton>
@@ -158,7 +152,9 @@ export function PhoneSetupScreen() {
         <div className="setup-page__field">
           <div className="setup-page__field-label">
             <label htmlFor="setup-phone">Phone number</label>
-            <p className="setup-page__field-desc">For rent reminders and payment confirmations.</p>
+            <p className="setup-page__field-desc">
+              For rent reminders and payment confirmations.
+            </p>
           </div>
           <input
             id="setup-phone"
@@ -181,7 +177,12 @@ export function PhoneSetupScreen() {
               Helps build your Upward profile and credibility score.
             </p>
           </div>
-          <DatePicker id="setup-dob" value={dateOfBirth} onChange={setDateOfBirth} required />
+          <DatePicker
+            id="setup-dob"
+            value={dateOfBirth}
+            onChange={setDateOfBirth}
+            required
+          />
         </div>
       </form>
 

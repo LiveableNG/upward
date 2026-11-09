@@ -1,4 +1,10 @@
-import { IsBoolean, IsNumber, IsOptional, IsString, MinLength } from 'class-validator'
+import {
+  IsBoolean,
+  IsNumber,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator'
 
 export class CreateDeliveryZoneDto {
   @IsOptional()

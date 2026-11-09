@@ -20,7 +20,10 @@ import { UpdateUserGoalUseCase } from '../../../application/goals/use-cases/upda
 import { RemoveUserGoalUseCase } from '../../../application/goals/use-cases/remove-user-goal.use-case'
 import { EVENT_BUS, EventBus } from '../../../application/events/domain-event'
 import { UserGoalsUpdatedEvent } from '../../../application/events/definition/user-goals-updated.event'
-import { SetUserGoalsDto, UpdateUserGoalDto } from '../../../application/goals/dto/user-goal.dto'
+import {
+  SetUserGoalsDto,
+  UpdateUserGoalDto,
+} from '../../../application/goals/dto/user-goal.dto'
 
 @Controller('user/goals')
 @UseGuards(JwtAuthGuard)
@@ -68,7 +71,10 @@ export class UserGoalsController {
 
   @Delete(':goalId')
   @HttpCode(HttpStatus.OK)
-  async removeUserGoal(@Req() req: any, @Param('goalId') goalId: string) {
+  async removeUserGoal(
+    @Req() req: any,
+    @Param('goalId') goalId: string,
+  ) {
     const userUuid = req.user?.id || req.user?.sub
     if (!userUuid) throw new UnauthorizedException('Authentication required')
     await this.removeUserGoalUseCase.execute(userUuid, Number(goalId))
@@ -76,3 +82,4 @@ export class UserGoalsController {
     return { success: true, message: 'Goal removed successfully' }
   }
 }
+

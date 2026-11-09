@@ -65,8 +65,8 @@
 }
 
 /* Automatically hide bottom nav bar whenever an inner view requests it via data-hide-bottom-nav, personal-card, or personal-sticky-actions */
-.dashboard-layout:has([data-hide-bottom-nav='true']) .bottom-nav,
-.dashboard-layout:has([data-hide-bottom-nav='true']) .fluid-dock-wrapper,
+.dashboard-layout:has([data-hide-bottom-nav="true"]) .bottom-nav,
+.dashboard-layout:has([data-hide-bottom-nav="true"]) .fluid-dock-wrapper,
 .dashboard-layout:has(.personal-sticky-actions) .bottom-nav,
 .dashboard-layout:has(.personal-sticky-actions) .fluid-dock-wrapper,
 .dashboard-layout:has(.personal-card) .bottom-nav,
@@ -80,7 +80,7 @@
   display: none !important;
 }
 
-.dashboard-layout:has([data-hide-bottom-nav='true']) .dashboard-layout__content,
+.dashboard-layout:has([data-hide-bottom-nav="true"]) .dashboard-layout__content,
 .dashboard-layout:has(.personal-sticky-actions) .dashboard-layout__content,
 .dashboard-layout:has(.personal-card) .dashboard-layout__content,
 .dashboard-layout:has(.banking-card-preview) .dashboard-layout__content,
@@ -88,7 +88,7 @@
   padding-bottom: 0 !important;
 }
 
-.dashboard-layout:has([data-hide-bottom-nav='true']) .dashboard--nav-offset,
+.dashboard-layout:has([data-hide-bottom-nav="true"]) .dashboard--nav-offset,
 .dashboard-layout:has(.personal-sticky-actions) .dashboard--nav-offset,
 .dashboard-layout:has(.personal-card) .dashboard--nav-offset,
 .dashboard-layout:has(.banking-card-preview) .dashboard--nav-offset,
@@ -381,9 +381,7 @@
     border: 1px solid var(--shell-border);
     overflow: hidden;
     flex-shrink: 0;
-    transition:
-      border-color 0.2s ease,
-      transform 0.2s ease;
+    transition: border-color 0.2s ease, transform 0.2s ease;
   }
 
   .dashboard__desktop-avatar:hover {

@@ -1,7 +1,10 @@
 'use client'
 
 import React, { createContext, useContext, useMemo } from 'react'
-import { CHECKOUT_VARIANTS, type CheckoutVariant } from '../constants/checkoutVariant'
+import {
+  CHECKOUT_VARIANTS,
+  type CheckoutVariant,
+} from '../constants/checkoutVariant'
 
 export interface CheckoutVariantState {
   variant: CheckoutVariant
@@ -64,7 +67,11 @@ export function LaunchDarklyProvider({ children }: { children: React.ReactNode }
     }
   }, [])
 
-  return <CheckoutVariantContext.Provider value={value}>{children}</CheckoutVariantContext.Provider>
+  return (
+    <CheckoutVariantContext.Provider value={value}>
+      {children}
+    </CheckoutVariantContext.Provider>
+  )
 }
 
 export function useCheckoutVariant(): CheckoutVariantState {

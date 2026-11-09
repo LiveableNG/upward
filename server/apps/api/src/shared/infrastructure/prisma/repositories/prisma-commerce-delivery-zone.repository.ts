@@ -98,8 +98,7 @@ export class PrismaCommerceDeliveryZoneRepository implements CommerceDeliveryZon
     if (input.areasCovered !== undefined) data.areasCovered = input.areasCovered?.trim() || null
     if (input.isDelivering !== undefined) data.isDelivering = input.isDelivering
     if (input.deliveryFeeKobo !== undefined) data.deliveryFeeKobo = input.deliveryFeeKobo
-    if (input.estimatedDeliveryDays !== undefined)
-      data.estimatedDeliveryDays = input.estimatedDeliveryDays?.trim() || null
+    if (input.estimatedDeliveryDays !== undefined) data.estimatedDeliveryDays = input.estimatedDeliveryDays?.trim() || null
     if (input.pauseReason !== undefined) data.pauseReason = input.pauseReason?.trim() || null
     if (input.sortOrder !== undefined) data.sortOrder = input.sortOrder
 
@@ -126,7 +125,7 @@ export class PrismaCommerceDeliveryZoneRepository implements CommerceDeliveryZon
       where: { uuid },
       data: {
         isDelivering,
-        pauseReason: isDelivering ? null : pauseReason?.trim() || existing.pauseReason,
+        pauseReason: isDelivering ? null : (pauseReason?.trim() || existing.pauseReason),
       },
     })
     return this.mapToDomain(record)

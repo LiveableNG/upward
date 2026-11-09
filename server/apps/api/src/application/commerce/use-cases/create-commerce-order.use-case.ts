@@ -16,7 +16,10 @@ import {
   COMMERCE_DELIVERY_ZONE_REPOSITORY,
   CommerceDeliveryZoneRepository,
 } from '../../../domains/commerce/commerce-delivery-zone.repository'
-import { OFFERING_REPOSITORY, OfferingRepository } from '../../../domains/goals/offering.repository'
+import {
+  OFFERING_REPOSITORY,
+  OfferingRepository,
+} from '../../../domains/goals/offering.repository'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import {
   CommercePricingEngine,
@@ -46,10 +49,7 @@ export class CreateCommerceOrderUseCase {
     private readonly zoneRepo: CommerceDeliveryZoneRepository,
   ) {}
 
-  async execute(
-    userIdentifier: number | string,
-    dto: CreateCommerceOrderDto,
-  ): Promise<CreateCommerceOrderResponse> {
+  async execute(userIdentifier: number | string, dto: CreateCommerceOrderDto): Promise<CreateCommerceOrderResponse> {
     let resolvedUserId: number
     if (typeof userIdentifier === 'number') {
       resolvedUserId = userIdentifier
@@ -99,11 +99,13 @@ export class CreateCommerceOrderUseCase {
       const offering = item.offeringUuid
         ? await this.offeringRepo.findOfferingByUuid(item.offeringUuid)
         : item.offeringId
-          ? await this.offeringRepo.findOfferingById(item.offeringId)
-          : null
+        ? await this.offeringRepo.findOfferingById(item.offeringId)
+        : null
 
       if (!offering) {
-        throw new NotFoundException(`Offering '${item.offeringUuid || item.offeringId}' not found`)
+        throw new NotFoundException(
+          `Offering '${item.offeringUuid || item.offeringId}' not found`,
+        )
       }
 
       const priceableOffering: PriceableOffering = {

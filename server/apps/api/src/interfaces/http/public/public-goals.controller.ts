@@ -1,4 +1,11 @@
-import { Controller, Get, HttpCode, HttpStatus, Param, Query } from '@nestjs/common'
+import {
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Query,
+} from '@nestjs/common'
 import { GetGoalCategoriesUseCase } from '../../../application/goals/use-cases/get-goal-categories.use-case'
 import { GetGoalsUseCase } from '../../../application/goals/use-cases/get-goals.use-case'
 import { GetGoalDetailUseCase } from '../../../application/goals/use-cases/get-goal-detail.use-case'
@@ -29,10 +36,7 @@ export class PublicGoalsController {
   @Get('categories')
   @HttpCode(HttpStatus.OK)
   async getCategories() {
-    const data = await this.getCategoriesUseCase.execute({
-      status: 'PUBLISHED',
-      includeGoals: true,
-    })
+    const data = await this.getCategoriesUseCase.execute({ status: 'PUBLISHED', includeGoals: true })
     return { data }
   }
 
@@ -78,3 +82,4 @@ export class PublicGoalsController {
     return { data }
   }
 }
+

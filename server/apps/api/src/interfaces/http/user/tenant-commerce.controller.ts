@@ -65,7 +65,10 @@ export class TenantCommerceController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  async getTenantOrders(@Req() req: any, @Query() filter: GetTenantOrdersFilterDto) {
+  async getTenantOrders(
+    @Req() req: any,
+    @Query() filter: GetTenantOrdersFilterDto,
+  ) {
     const userUuid = req.user?.id || req.user?.sub
     if (!userUuid) {
       throw new UnauthorizedException('Authentication required')
@@ -135,7 +138,10 @@ export class TenantCommerceController {
       throw new UnauthorizedException('Authentication required')
     }
 
-    const { buffer, filename } = await this.getCommerceReceiptPdfUseCase.execute(userUuid, uuid)
+    const { buffer, filename } = await this.getCommerceReceiptPdfUseCase.execute(
+      userUuid,
+      uuid,
+    )
 
     res.header('Content-Type', 'application/pdf')
     res.header('Content-Disposition', `attachment; filename="${filename}"`)

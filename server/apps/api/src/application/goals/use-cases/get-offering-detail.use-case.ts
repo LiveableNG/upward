@@ -41,3 +41,4 @@ export class GetOfferingDetailUseCase {
     return offering
   }
 }
+

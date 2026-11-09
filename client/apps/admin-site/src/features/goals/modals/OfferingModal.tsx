@@ -53,10 +53,10 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
       setStockCount(offering.stockCount ?? '')
       setLeadTimeDays(offering.leadTimeDays ?? '')
       setIsDeliverable((offering as any).deliveryAvailable ?? offering.isDeliverable ?? true)
-
+      
       const firstMedia = offering.media?.[0]
       setMediaUrl(firstMedia?.url || (firstMedia as any)?.mediaUrl || '')
-
+      
       setIsPublished(offering.isPublished ?? (offering as any).status === 'PUBLISHED')
       setIsFeatured(offering.isFeatured ?? false)
 
@@ -135,15 +135,10 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
       icon={<Package size={20} />}
       maxWidth="580px"
     >
-      <form
-        onSubmit={handleSubmit}
-        style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
-      >
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           <div>
-            <label
-              style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}
-            >
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
               Offering Type *
             </label>
             <select
@@ -160,9 +155,7 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
           </div>
 
           <div>
-            <label
-              style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}
-            >
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
               Merchant / Vendor
             </label>
             <select
@@ -181,9 +174,7 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
         </div>
 
         <div>
-          <label
-            style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}
-          >
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
             Offering Title *
           </label>
           <input
@@ -197,9 +188,7 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
         </div>
 
         <div>
-          <label
-            style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}
-          >
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
             Slug *
           </label>
           <input
@@ -213,9 +202,7 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
         </div>
 
         <div>
-          <label
-            style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}
-          >
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
             Subtitle / Catchphrase
           </label>
           <input
@@ -229,9 +216,7 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           <div>
-            <label
-              style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}
-            >
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
               Price (₦ NGN) *
             </label>
             <input
@@ -245,9 +230,7 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
           </div>
 
           <div>
-            <label
-              style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}
-            >
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
               Compare At Price (₦)
             </label>
             <input
@@ -255,17 +238,13 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
               className="input"
               placeholder="e.g. 210000 (strike-through)"
               value={compareAtPrice}
-              onChange={(e) =>
-                setCompareAtPrice(e.target.value === '' ? '' : Number(e.target.value))
-              }
+              onChange={(e) => setCompareAtPrice(e.target.value === '' ? '' : Number(e.target.value))}
             />
           </div>
         </div>
 
         <div>
-          <label
-            style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}
-          >
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
             Cover Image URL
           </label>
           <input
@@ -278,9 +257,7 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
         </div>
 
         <div>
-          <label
-            style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}
-          >
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
             Description
           </label>
           <textarea
@@ -292,18 +269,10 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
           />
         </div>
 
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: type === 'SERVICE' ? '1fr' : '1fr 1fr',
-            gap: '12px',
-          }}
-        >
+        <div style={{ display: 'grid', gridTemplateColumns: type === 'SERVICE' ? '1fr' : '1fr 1fr', gap: '12px' }}>
           {type !== 'SERVICE' && (
             <div>
-              <label
-                style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}
-              >
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
                 Stock Count
               </label>
               <input
@@ -317,17 +286,13 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
           )}
 
           <div>
-            <label
-              style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}
-            >
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
               {type === 'SERVICE' ? 'Advance Notice / Lead Time (Days)' : 'Lead Time (Days)'}
             </label>
             <input
               type="number"
               className="input"
-              placeholder={
-                type === 'SERVICE' ? 'e.g. 1 for next-day service' : 'e.g. 2 for 48hrs delivery'
-              }
+              placeholder={type === 'SERVICE' ? 'e.g. 1 for next-day service' : 'e.g. 2 for 48hrs delivery'}
               value={leadTimeDays}
               onChange={(e) => setLeadTimeDays(e.target.value === '' ? '' : Number(e.target.value))}
             />
@@ -335,9 +300,7 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
         </div>
 
         <div>
-          <label
-            style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}
-          >
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
             Connected Lifestyle Goal(s)
           </label>
           <div
@@ -391,16 +354,8 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
               </span>
             )}
           </div>
-          <span
-            style={{
-              fontSize: '11px',
-              color: 'var(--text-muted)',
-              marginTop: '4px',
-              display: 'block',
-            }}
-          >
-            Connect this offering to goals so tenants see it when browsing or filtering
-            recommendations in Upward Pay.
+          <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+            Connect this offering to goals so tenants see it when browsing or filtering recommendations in Upward Pay.
           </span>
         </div>
 
@@ -413,10 +368,7 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
               onChange={(e) => setIsDeliverable(e.target.checked)}
               style={{ width: '16px', height: '16px', accentColor: 'var(--accent)' }}
             />
-            <label
-              htmlFor="offering-deliverable"
-              style={{ fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
-            >
+            <label htmlFor="offering-deliverable" style={{ fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
               {type === 'SERVICE' ? 'Home Visit / On-site Service' : 'Physical Delivery Available'}
             </label>
           </div>
@@ -429,10 +381,7 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
               onChange={(e) => setIsPublished(e.target.checked)}
               style={{ width: '16px', height: '16px', accentColor: 'var(--accent)' }}
             />
-            <label
-              htmlFor="offering-published"
-              style={{ fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
-            >
+            <label htmlFor="offering-published" style={{ fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
               Published in Commerce Catalog
             </label>
           </div>
@@ -445,10 +394,7 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
               onChange={(e) => setIsFeatured(e.target.checked)}
               style={{ width: '16px', height: '16px', accentColor: 'var(--accent)' }}
             />
-            <label
-              htmlFor="offering-featured"
-              style={{ fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
-            >
+            <label htmlFor="offering-featured" style={{ fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
               Featured
             </label>
           </div>
@@ -464,12 +410,7 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
             borderTop: '1px solid var(--border)',
           }}
         >
-          <button
-            type="button"
-            onClick={onClose}
-            className="btn btn-secondary"
-            disabled={submitting}
-          >
+          <button type="button" onClick={onClose} className="btn btn-secondary" disabled={submitting}>
             Cancel
           </button>
           <button type="submit" className="btn btn-primary" disabled={submitting}>

@@ -62,15 +62,12 @@ export class AdminGetCommerceDisputesUseCase {
       const vendorName = vendorLine ? vendorLine.replace('Vendor: ', '').trim() : 'Upward Partner'
 
       const splitIndex = ticket.message.indexOf('\n\n')
-      let userExplanation =
-        splitIndex !== -1 ? ticket.message.substring(splitIndex + 2) : ticket.message
+      let userExplanation = splitIndex !== -1 ? ticket.message.substring(splitIndex + 2) : ticket.message
 
       let resolutionNotes: string | null = null
       let resolvedBy: string | null = null
 
-      const resNotesMatch = ticket.message.match(
-        /\[RESOLUTION_NOTES\]\n([\s\S]*?)(?=\n\[RESOLVED_BY\]|$)/,
-      )
+      const resNotesMatch = ticket.message.match(/\[RESOLUTION_NOTES\]\n([\s\S]*?)(?=\n\[RESOLVED_BY\]|$)/)
       if (resNotesMatch) {
         resolutionNotes = resNotesMatch[1]!.trim()
       }
@@ -84,9 +81,7 @@ export class AdminGetCommerceDisputesUseCase {
         userExplanation = userExplanation.substring(0, resTagIndex).trim()
       }
 
-      const tenantFirst = ticket.user?.firstName
-        ? this.encryption.decrypt(ticket.user.firstName)
-        : ''
+      const tenantFirst = ticket.user?.firstName ? this.encryption.decrypt(ticket.user.firstName) : ''
       const tenantLast = ticket.user?.lastName ? this.encryption.decrypt(ticket.user.lastName) : ''
       const tenantName = `${tenantFirst} ${tenantLast}`.trim() || 'Tenant User'
       const tenantPhone = ticket.user?.phone ? this.encryption.decrypt(ticket.user.phone) : 'N/A'
@@ -139,3 +134,4 @@ export class AdminGetCommerceDisputesUseCase {
     }
   }
 }
+

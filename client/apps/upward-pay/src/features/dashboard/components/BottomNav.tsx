@@ -217,7 +217,9 @@ export function BottomNav() {
     >
       <div
         ref={containerRef}
-        className={`bottom-nav__container ${isFluidNav ? 'bottom-nav__container--scrubbable' : ''}`}
+        className={`bottom-nav__container ${
+          isFluidNav ? 'bottom-nav__container--scrubbable' : ''
+        }`}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}

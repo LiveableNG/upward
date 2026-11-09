@@ -1,5 +1,8 @@
 import { request, requestBlob } from '@/lib/api-client'
-import type { TenantOrderDetailDto, TenantOrderSummaryDto } from '../types/commerce.types'
+import type {
+  TenantOrderDetailDto,
+  TenantOrderSummaryDto,
+} from '../types/commerce.types'
 
 export async function fetchTenantOrders(
   filter: { status?: string; skip?: number; take?: number } = {},
@@ -10,9 +13,10 @@ export async function fetchTenantOrders(
   if (filter.take !== undefined) params.set('take', String(filter.take))
 
   const qs = params.toString()
-  const res = await request<{ data: any }>(`/user/commerce/orders${qs ? `?${qs}` : ''}`, {
-    method: 'GET',
-  })
+  const res = await request<{ data: any }>(
+    `/user/commerce/orders${qs ? `?${qs}` : ''}`,
+    { method: 'GET' },
+  )
   const rawList: any[] = res.data?.orders || res.data?.items || []
   const total: number = res.data?.total ?? rawList.length
 
@@ -22,8 +26,7 @@ export async function fetchTenantOrders(
     const itemsCount = ord.itemsCount ?? (itemsPreview.length || 1)
     const primaryStatus =
       ord.primaryStatus ||
-      (subOrders[0]?.customerStatus ??
-        (ord.status === 'COMPLETED' ? 'DELIVERED' : 'ORDER_CONFIRMED'))
+      (subOrders[0]?.customerStatus ?? (ord.status === 'COMPLETED' ? 'DELIVERED' : 'ORDER_CONFIRMED'))
 
     return {
       ...ord,
@@ -37,10 +40,13 @@ export async function fetchTenantOrders(
   return { orders, total }
 }
 
-export async function fetchTenantOrderDetail(orderUuid: string): Promise<TenantOrderDetailDto> {
-  const res = await request<{ data: TenantOrderDetailDto }>(`/user/commerce/orders/${orderUuid}`, {
-    method: 'GET',
-  })
+export async function fetchTenantOrderDetail(
+  orderUuid: string,
+): Promise<TenantOrderDetailDto> {
+  const res = await request<{ data: TenantOrderDetailDto }>(
+    `/user/commerce/orders/${orderUuid}`,
+    { method: 'GET' },
+  )
   return res.data
 }
 
@@ -90,10 +96,7 @@ export async function downloadCommerceReceiptPdf(
         return
       }
     } catch (err) {
-      console.error(
-        '[downloadCommerceReceiptPdf] Native download/share failed, falling back to browser download:',
-        err,
-      )
+      console.error('[downloadCommerceReceiptPdf] Native download/share failed, falling back to browser download:', err)
     }
   }
 
@@ -149,8 +152,7 @@ export async function confirmSubOrderReceipt(
   input: string | ConfirmSubOrderReceiptInput,
 ): Promise<{ message: string; subOrder: any }> {
   const uuid = typeof input === 'string' ? input : input.subOrderUuid
-  const payload =
-    typeof input === 'string' ? {} : { rating: input.rating, feedback: input.feedback }
+  const payload = typeof input === 'string' ? {} : { rating: input.rating, feedback: input.feedback }
   const res = await request<{ data: { message: string; subOrder: any } }>(
     `/user/commerce/sub-orders/${uuid}/confirm-receipt`,
     {
@@ -193,10 +195,13 @@ export interface PreviewCommerceOrderResult {
 export async function previewCommerceOrder(
   data: PreviewCommerceOrderInput,
 ): Promise<PreviewCommerceOrderResult> {
-  const res = await request<{ data: PreviewCommerceOrderResult }>(`/user/commerce/orders/preview`, {
-    method: 'POST',
-    body: JSON.stringify(data),
-  })
+  const res = await request<{ data: PreviewCommerceOrderResult }>(
+    `/user/commerce/orders/preview`,
+    {
+      method: 'POST',
+      body: JSON.stringify(data),
+    },
+  )
   return res.data
 }
 
@@ -218,10 +223,13 @@ export interface CreateCommerceOrderResult {
 export async function createCommerceOrder(
   data: CreateCommerceOrderInput,
 ): Promise<CreateCommerceOrderResult> {
-  const res = await request<{ data: CreateCommerceOrderResult }>(`/user/commerce/orders`, {
-    method: 'POST',
-    body: JSON.stringify(data),
-  })
+  const res = await request<{ data: CreateCommerceOrderResult }>(
+    `/user/commerce/orders`,
+    {
+      method: 'POST',
+      body: JSON.stringify(data),
+    },
+  )
   return res.data
 }
 

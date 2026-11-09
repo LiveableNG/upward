@@ -6,10 +6,7 @@ import { useSetupDraft } from '../SetupDraftContext'
 import { clearSetupDraft } from '../setupDraft'
 import { SETUP_PATHS, setupRentalListPath, useSetupMode } from '../setupPaths'
 import { SetupPageShell, SetupPrimaryButton } from './SetupPageShell'
-import {
-  PayFlowPrimaryButton,
-  PayPageShell,
-} from '@/features/dashboard/components/payment/PayPageShell'
+import { PayFlowPrimaryButton, PayPageShell } from '@/features/dashboard/components/payment/PayPageShell'
 import { submitRentalRequest } from '../submitRental'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuth } from '@/features/auth/AuthContext'
@@ -116,19 +113,12 @@ export function RentalConfirmView() {
         {draft.formData.tenancyStatus === 'PAYING_BALANCE' && (
           <>
             <ConfirmRow label="Amount paid offline" value={formatCurrency(paidNum, 'NGN')} />
-            <ConfirmRow
-              label="Balance to pay on Upward"
-              value={formatCurrency(remainingNum, 'NGN')}
-              highlight
-            />
+            <ConfirmRow label="Balance to pay on Upward" value={formatCurrency(remainingNum, 'NGN')} highlight />
           </>
         )}
 
         {draft.formData.proofFileMeta && (
-          <ConfirmRow
-            label="Proof of payment"
-            value={`Attached: ${draft.formData.proofFileMeta.name}`}
-          />
+          <ConfirmRow label="Proof of payment" value={`Attached: ${draft.formData.proofFileMeta.name}`} />
         )}
 
         <ConfirmRow label="Landlord account" value={paymentLabel} />
@@ -200,23 +190,12 @@ export function RentalConfirmView() {
   )
 }
 
-function ConfirmRow({
-  label,
-  value,
-  highlight = false,
-}: {
-  label: string
-  value: string
-  highlight?: boolean
-}) {
+function ConfirmRow({ label, value, highlight = false }: { label: string; value: string; highlight?: boolean }) {
   return (
     <div className="setup-page__confirm-row">
       <div className="setup-page__confirm-body">
         <span className="setup-page__confirm-label">{label}</span>
-        <span
-          className={`setup-page__confirm-value ${highlight ? 'setup-page__confirm-val--highlight' : ''}`}
-          style={highlight ? { color: '#166534', fontWeight: 700 } : undefined}
-        >
+        <span className={`setup-page__confirm-value ${highlight ? 'setup-page__confirm-val--highlight' : ''}`} style={highlight ? { color: '#166534', fontWeight: 700 } : undefined}>
           {value}
         </span>
       </div>

@@ -78,9 +78,7 @@ export class AdminUpdateSubOrderFulfilmentUseCase {
 
     // Validation 2: Master order must not be cancelled or refunded
     if (order.status === 'CANCELLED' || order.status === 'REFUNDED') {
-      throw new BadRequestException(
-        `Cannot perform fulfilment operations on order with status '${order.status}'`,
-      )
+      throw new BadRequestException(`Cannot perform fulfilment operations on order with status '${order.status}'`)
     }
 
     const items = subOrder.items || []
@@ -105,8 +103,7 @@ export class AdminUpdateSubOrderFulfilmentUseCase {
         targetCustomerStatus = 'PROCESSING'
         targetOperationalStatus = 'VENDOR_CONFIRMED'
         eventTitle = eventTitle || 'Vendor Confirmed'
-        eventDescription =
-          eventDescription || 'Vendor has confirmed and begun preparing the order items'
+        eventDescription = eventDescription || 'Vendor has confirmed and begun preparing the order items'
         break
       }
 
@@ -114,9 +111,7 @@ export class AdminUpdateSubOrderFulfilmentUseCase {
       case AdminFulfilmentTransitionAction.DISPATCH:
       case AdminFulfilmentTransitionAction.DISPATCH_CARRIER: {
         if (isServiceSubOrder) {
-          throw new BadRequestException(
-            'Cannot dispatch carrier for a service sub-order; use service scheduling',
-          )
+          throw new BadRequestException('Cannot dispatch carrier for a service sub-order; use service scheduling')
         }
 
         targetCustomerStatus = 'DISPATCHED'
@@ -130,8 +125,8 @@ export class AdminUpdateSubOrderFulfilmentUseCase {
         const riderInfo = effectiveRiderName
           ? `with rider ${effectiveRiderName}${effectiveRiderPhone ? ` (${effectiveRiderPhone})` : ''}`
           : dto.carrierName
-            ? `via ${dto.carrierName}`
-            : 'and is in transit to destination'
+          ? `via ${dto.carrierName}`
+          : 'and is in transit to destination'
 
         eventTitle = eventTitle || 'Package Dispatched'
         eventDescription = eventDescription || `Package has been dispatched ${riderInfo}`
@@ -178,7 +173,8 @@ export class AdminUpdateSubOrderFulfilmentUseCase {
         if (effectiveRiderPhone !== undefined) dispatchData.technicianPhone = effectiveRiderPhone
 
         eventTitle = eventTitle || 'Package Delivered'
-        eventDescription = eventDescription || 'Package has been delivered to the recipient address'
+        eventDescription =
+          eventDescription || 'Package has been delivered to the recipient address'
         break
       }
 
@@ -186,14 +182,10 @@ export class AdminUpdateSubOrderFulfilmentUseCase {
       case AdminFulfilmentTransitionAction.SCHEDULE_SERVICE:
       case AdminFulfilmentTransitionAction.SERVICE_SCHEDULE: {
         if (!isServiceSubOrder) {
-          throw new BadRequestException(
-            'Cannot schedule service appointment on a product sub-order',
-          )
+          throw new BadRequestException('Cannot schedule service appointment on a product sub-order')
         }
         if (!dto.serviceScheduledAt) {
-          throw new BadRequestException(
-            'serviceScheduledAt is required to schedule service appointment',
-          )
+          throw new BadRequestException('serviceScheduledAt is required to schedule service appointment')
         }
 
         const scheduledDate = new Date(dto.serviceScheduledAt)
@@ -232,7 +224,8 @@ export class AdminUpdateSubOrderFulfilmentUseCase {
         isCustomerVisible = dto.isCustomerVisible ?? false
         eventTitle = eventTitle || 'Technician Assigned'
         eventDescription =
-          eventDescription || `Technician ${dto.technicianName} assigned to service sub-order`
+          eventDescription ||
+          `Technician ${dto.technicianName} assigned to service sub-order`
         break
       }
 
@@ -268,9 +261,7 @@ export class AdminUpdateSubOrderFulfilmentUseCase {
 
       case AdminFulfilmentTransitionAction.COMPLETE_SERVICE: {
         if (!isServiceSubOrder) {
-          throw new BadRequestException(
-            'Cannot complete service on a product sub-order; use deliver',
-          )
+          throw new BadRequestException('Cannot complete service on a product sub-order; use deliver')
         }
         if (subOrder.customerStatus === 'SERVICE_COMPLETED') {
           return this.mapToAdminSubOrderDto(subOrder)
@@ -295,7 +286,8 @@ export class AdminUpdateSubOrderFulfilmentUseCase {
         payableStatusUpdate = { status: 'IN_COOLING_PERIOD' }
 
         eventTitle = eventTitle || 'Service Completed'
-        eventDescription = eventDescription || 'Service work has been completed by the technician'
+        eventDescription =
+          eventDescription || 'Service work has been completed by the technician'
         break
       }
 
@@ -386,10 +378,7 @@ export class AdminUpdateSubOrderFulfilmentUseCase {
           url: `/dashboard/lifestyle/orders/${order.uuid}`,
         })
         .catch((err) =>
-          this.logger.error(
-            `Failed to dispatch in-app notification for sub-order ${subOrderUuid}`,
-            err,
-          ),
+          this.logger.error(`Failed to dispatch in-app notification for sub-order ${subOrderUuid}`, err),
         )
     }
 
@@ -442,10 +431,7 @@ export class AdminUpdateSubOrderFulfilmentUseCase {
       this.thankYouEmailUseCase
         .execute(order.id!, subOrder.id!)
         .catch((err) =>
-          this.logger.error(
-            `Failed to dispatch thank-you email on completion for order #${order.id}`,
-            err,
-          ),
+          this.logger.error(`Failed to dispatch thank-you email on completion for order #${order.id}`, err),
         )
     }
 

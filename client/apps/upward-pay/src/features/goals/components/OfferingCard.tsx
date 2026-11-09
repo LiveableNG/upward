@@ -10,7 +10,11 @@ import {
   Truck,
   ArrowUpRight,
 } from 'lucide-react'
-import { isVendorVerified, type GoalOffering, type CommerceVendor } from '../types/goals.types'
+import {
+  isVendorVerified,
+  type GoalOffering,
+  type CommerceVendor,
+} from '../types/goals.types'
 import {
   type UserDeliveryLocation,
   isOfferingDeliverableToLocation,
@@ -18,7 +22,9 @@ import {
 import type { RecommendedOfferingItem } from '../utils/recommendationEngine'
 
 interface OfferingCardProps {
-  item: RecommendedOfferingItem | { offering: GoalOffering; reason?: string; isGoalMatch?: boolean }
+  item:
+    | RecommendedOfferingItem
+    | { offering: GoalOffering; reason?: string; isGoalMatch?: boolean }
   userLocation?: UserDeliveryLocation
   onClick?: (offering: GoalOffering) => void
   onVendorClick?: (vendor: CommerceVendor, e: React.MouseEvent) => void
@@ -26,12 +32,7 @@ interface OfferingCardProps {
 
 export function formatOfferingPrice(offering: GoalOffering): string {
   const currency = offering.currency || 'NGN'
-  return (
-    formatCurrencyValue(offering.price, currency) ||
-    (offering.minPrice != null
-      ? `From ${formatCurrencyValue(offering.minPrice, currency)}`
-      : 'Inquire for price')
-  )
+  return formatCurrencyValue(offering.price, currency) || (offering.minPrice != null ? `From ${formatCurrencyValue(offering.minPrice, currency)}` : 'Inquire for price')
 }
 
 export function formatCurrencyValue(val?: number | null, currency = 'NGN'): string {
@@ -61,11 +62,18 @@ export function getOfferingTypeIcon(type: string) {
   }
 }
 
-export const OfferingCard: React.FC<OfferingCardProps> = ({ item, userLocation, onClick }) => {
+export const OfferingCard: React.FC<OfferingCardProps> = ({
+  item,
+  userLocation,
+  onClick,
+}) => {
   const [imgError, setImgError] = useState(false)
   const offering = item.offering
   const rawReason = item.reason
-  const reason = rawReason && !rawReason.toLowerCase().includes('matched to') ? rawReason : null
+  const reason =
+    rawReason && !rawReason.toLowerCase().includes('matched to')
+      ? rawReason
+      : null
   const isGoalMatch = item.isGoalMatch
   const TypeIcon = getOfferingTypeIcon(offering.type)
 
@@ -82,13 +90,9 @@ export const OfferingCard: React.FC<OfferingCardProps> = ({ item, userLocation, 
   const title = offering.title || offering.name || 'Untitled Item'
   const vendor = offering.vendor
   const verified = isVendorVerified(vendor)
-  const compareAtPrice =
-    offering.compareAtPrice ?? (offering.pricingModel === 'FIXED' ? offering.maxPrice : null)
-  const hasDiscount =
-    compareAtPrice != null && offering.price != null && compareAtPrice > offering.price
-  const discountPercent = hasDiscount
-    ? Math.round(((compareAtPrice! - offering.price!) / compareAtPrice!) * 100)
-    : 0
+  const compareAtPrice = offering.compareAtPrice ?? (offering.pricingModel === 'FIXED' ? offering.maxPrice : null)
+  const hasDiscount = compareAtPrice != null && offering.price != null && compareAtPrice > offering.price
+  const discountPercent = hasDiscount ? Math.round(((compareAtPrice! - offering.price!) / compareAtPrice!) * 100) : 0
 
   return (
     <article
@@ -154,13 +158,17 @@ export const OfferingCard: React.FC<OfferingCardProps> = ({ item, userLocation, 
           )}
 
           {!deliveryCheck.isDeliverable && (
-            <span className="offering-card__undeliverable-badge">Unavailable in your area</span>
+            <span className="offering-card__undeliverable-badge">
+              Unavailable in your area
+            </span>
           )}
         </div>
 
         <h3 className="offering-card__title">{title}</h3>
 
-        {offering.subtitle && <p className="offering-card__subtitle">{offering.subtitle}</p>}
+        {offering.subtitle && (
+          <p className="offering-card__subtitle">{offering.subtitle}</p>
+        )}
 
         {reason && (
           <div className="offering-card__match-tag">
@@ -170,13 +178,17 @@ export const OfferingCard: React.FC<OfferingCardProps> = ({ item, userLocation, 
 
         <div className="offering-card__footer">
           <div className="offering-card__price-group">
-            <span className="offering-card__price">{formatOfferingPrice(offering)}</span>
+            <span className="offering-card__price">
+              {formatOfferingPrice(offering)}
+            </span>
             {hasDiscount && (
               <>
                 <span className="offering-card__compare-price">
                   {formatCurrencyValue(compareAtPrice, offering.currency)}
                 </span>
-                <span className="offering-card__discount-badge">-{discountPercent}%</span>
+                <span className="offering-card__discount-badge">
+                  -{discountPercent}%
+                </span>
               </>
             )}
             {offering.pricingModel && offering.pricingModel !== 'FIXED' && (

@@ -156,19 +156,7 @@ export const LifestyleCommerceCard: React.FC<LifestyleCommerceCardProps> = ({ to
             fontSize: '13px',
           }}
         >
-          {error}.{' '}
-          <button
-            onClick={fetchOverview}
-            style={{
-              color: 'var(--accent)',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              textDecoration: 'underline',
-            }}
-          >
-            Retry
-          </button>
+          {error}. <button onClick={fetchOverview} style={{ color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Retry</button>
         </div>
       ) : (
         <div
@@ -196,9 +184,7 @@ export const LifestyleCommerceCard: React.FC<LifestyleCommerceCardProps> = ({ to
               </span>
               <Users size={16} color="#10b981" />
             </div>
-            <div
-              style={{ fontSize: '26px', fontWeight: 800, marginTop: '8px', color: 'var(--text)' }}
-            >
+            <div style={{ fontSize: '26px', fontWeight: 800, marginTop: '8px', color: 'var(--text)' }}>
               {data?.activeUserGoals ?? 0}
             </div>
             <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
@@ -224,9 +210,7 @@ export const LifestyleCommerceCard: React.FC<LifestyleCommerceCardProps> = ({ to
               </span>
               <Package size={16} color="#6366f1" />
             </div>
-            <div
-              style={{ fontSize: '26px', fontWeight: 800, marginTop: '8px', color: 'var(--text)' }}
-            >
+            <div style={{ fontSize: '26px', fontWeight: 800, marginTop: '8px', color: 'var(--text)' }}>
               {data?.totalOfferings ?? 0}
             </div>
             <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
@@ -252,9 +236,7 @@ export const LifestyleCommerceCard: React.FC<LifestyleCommerceCardProps> = ({ to
               </span>
               <Store size={16} color="#f59e0b" />
             </div>
-            <div
-              style={{ fontSize: '26px', fontWeight: 800, marginTop: '8px', color: 'var(--text)' }}
-            >
+            <div style={{ fontSize: '26px', fontWeight: 800, marginTop: '8px', color: 'var(--text)' }}>
               {data?.totalVendors ?? 0}
             </div>
             <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>

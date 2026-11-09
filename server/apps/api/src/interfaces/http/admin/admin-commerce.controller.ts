@@ -124,7 +124,10 @@ export class AdminCommerceController {
   @Patch('delivery-zones/:uuid')
   @Roles(AdminRole.SUPERADMIN, AdminRole.DEVELOPER)
   @HttpCode(HttpStatus.OK)
-  async updateDeliveryZone(@Param('uuid') uuid: string, @Body() dto: UpdateDeliveryZoneDto) {
+  async updateDeliveryZone(
+    @Param('uuid') uuid: string,
+    @Body() dto: UpdateDeliveryZoneDto,
+  ) {
     const data = await this.updateDeliveryZoneUseCase.execute(uuid, dto)
     return { data }
   }
@@ -132,7 +135,10 @@ export class AdminCommerceController {
   @Patch('delivery-zones/:uuid/toggle-delivering')
   @Roles(AdminRole.SUPERADMIN, AdminRole.CUSTOMER_SUPPORT, AdminRole.DEVELOPER)
   @HttpCode(HttpStatus.OK)
-  async toggleDeliveryZone(@Param('uuid') uuid: string, @Body() dto: ToggleDeliveryZoneDto) {
+  async toggleDeliveryZone(
+    @Param('uuid') uuid: string,
+    @Body() dto: ToggleDeliveryZoneDto,
+  ) {
     const data = await this.toggleDeliveryZoneUseCase.execute(uuid, dto)
     return { data }
   }
