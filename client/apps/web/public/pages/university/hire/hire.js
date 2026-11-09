@@ -353,15 +353,6 @@
 
         const resData = await res.json().catch(() => ({}));
 
-        // Analytics Track
-        if (typeof window.fbq === 'function') {
-          window.fbq('track', 'Lead', {
-            content_name: 'Employer Talent Request',
-            content_category: payload.industry,
-            value: 0.0,
-            currency: 'NGN',
-          });
-        }
         if (typeof window.gtag === 'function') {
           window.gtag('event', 'generate_lead', {
             event_category: 'Academy Hire Request',

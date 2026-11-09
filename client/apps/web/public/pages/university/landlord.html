@@ -12,31 +12,7 @@
     rel="stylesheet">
   <link rel="icon" type="image/jpeg" href="/university-logos/upward_university_logo.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- Facebook Pixel Code -->
-  <script>
-    !function (f, b, e, v, n, t, s) {
-      if (f.fbq) return; n = f.fbq = function () {
-        n.callMethod ?
-        n.callMethod.apply(n, arguments) : n.queue.push(arguments)
-      };
-      if (!f._fbq) f._fbq = n; n.push = n; n.loaded = !0; n.version = '2.0';
-      n.queue = []; t = b.createElement(e); t.async = !0;
-      t.src = v; s = b.getElementsByTagName(e)[0];
-      s.parentNode.insertBefore(t, s)
-    }(window, document, 'script',
-      'https://connect.facebook.net/en_US/fbevents.js');
-    fbq('init', '1079928187833425');
-    fbq('track', 'PageView');
-    fbq('track', 'ViewContent', {
-      content_name: 'Upward Academy Landlord Program',
-      content_category: 'Education / Real Estate'
-    });
-  </script>
-  <noscript>
-    <img height="1" width="1" style="display:none"
-      src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1" />
-  </noscript>
-  <!-- End Facebook Pixel Code -->
+
   <!-- Google Tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=AW-18414957187"></script>
   <script>
@@ -1550,9 +1526,6 @@
           return;
         }
 
-        if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
-          window.fbq('track', 'Lead', { content_name: 'Landlord Early Access Lead' });
-        }
         if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
           window.gtag('event', 'conversion', {
             'send_to': 'AW-18414957187/iJ36CIv2lO4cEIPl98xE',
@@ -1599,9 +1572,6 @@
     // Track InitiateCheckout on Early Access CTA buttons
     document.querySelectorAll('a[href="#apply"], a[href="/academy/apply"], a[href="/university/apply"]').forEach(btn => {
       btn.addEventListener('click', () => {
-        if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
-          window.fbq('track', 'InitiateCheckout', { content_name: 'Landlord Early Access CTA Click' });
-        }
         if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
           window.gtag('event', 'begin_checkout', { event_category: 'CTA', event_label: 'Landlord Early Access CTA Click' });
         }

@@ -13,40 +13,7 @@
   <link rel="icon" type="image/jpeg" href="/university-logos/upward_university_logo.png">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-  <!-- Facebook Pixel Code -->
-  <script>
-    !function (f, b, e, v, n, t, s) {
-      if (f.fbq) return; n = f.fbq = function () {
-        n.callMethod ?
-        n.callMethod.apply(n, arguments) : n.queue.push(arguments)
-      };
-      if (!f._fbq) f._fbq = n; n.push = n; n.loaded = !0; n.version = '2.0';
-      n.queue = []; t = b.createElement(e); t.async = !0;
-      t.src = v; s = b.getElementsByTagName(e)[0];
-      s.parentNode.insertBefore(t, s)
-    }(window, document, 'script',
-      'https://connect.facebook.net/en_US/fbevents.js');
-    fbq('init', '1079928187833425');
-    fbq('track', 'PageView');
 
-    // Only track Purchase event if payment reference param exists in URL
-    (function () {
-      var ref = new URLSearchParams(window.location.search).get('ref');
-      if (ref && typeof fbq === 'function') {
-        fbq('track', 'Purchase', {
-          value: 5000,
-          currency: 'NGN',
-          content_name: 'Upward Academy Application Fee',
-          content_category: 'Education / Real Estate'
-        });
-      }
-    })();
-  </script>
-  <noscript>
-    <img height="1" width="1" style="display:none"
-      src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1" />
-  </noscript>
-  <!-- End Facebook Pixel Code -->
 
   <!-- Google Tag (gtag.js) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=AW-18414957187"></script>
@@ -397,15 +364,6 @@
           msgEl.textContent = `Thank you, ${firstName}! Your ₦5,000 application fee payment was successfully verified. Our admissions team will reach out via WhatsApp with your next steps.`;
         }
 
-        // Fire Meta Pixel ApplicationFeePaid event ONLY on backend-verified payment
-        if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
-          window.fbq('trackCustom', 'ApplicationFeePaid', {
-            value: 5000,
-            currency: 'NGN',
-            content_name: 'Upward Academy Application Fee',
-            content_category: 'Education / Real Estate'
-          });
-        }
 
         // Fire Google Ads conversion tracking event ONLY on backend-verified payment
         if (typeof window !== 'undefined' && typeof window.gtag === 'function') {

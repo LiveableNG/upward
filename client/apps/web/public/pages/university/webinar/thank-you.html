@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Seat Confirmed — Upward Academy Webinar</title>
+  <meta name="description"
+    content="Your seat is confirmed for the Tech-Driven Property Management & Brokerage Webinar on 21st November 2026.">
+
+  <!-- OpenGraph / Social Meta Tags -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Seat Confirmed — Upward Academy Webinar">
+  <meta property="og:description"
+    content="Your seat is confirmed for the Tech-Driven Property Management & Brokerage Webinar.">
+  <meta property="og:image" content="/university-logos/upward_university_logo.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/jpeg" href="/university-logos/upward_university_logo.png">
+
+  <!-- Google Fonts Preconnect & Load -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500;1,9..144,600&family=IBM+Plex+Mono:wght@400;500;600&family=Inter+Tight:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet">
+
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Stylesheet -->
+  <link rel="stylesheet" href="/pages/university/webinar/webinar.css">
+
+  <!-- Facebook Pixel Code (Isolated for Webinar Tracking) -->
+  <script>
+    !function (f, b, e, v, n, t, s) {
+      if (f.fbq) return; n = f.fbq = function () {
+        n.callMethod ?
+          n.callMethod.apply(n, arguments) : n.queue.push(arguments)
+      };
+      if (!f._fbq) f._fbq = n; n.push = n; n.loaded = !0; n.version = '2.0';
+      n.queue = []; t = b.createElement(e); t.async = !0;
+      t.src = v; s = b.getElementsByTagName(e)[0];
+      s.parentNode.insertBefore(t, s)
+    }(window, document, 'script',
+      'https://connect.facebook.net/en_US/fbevents.js');
+    fbq('init', '1079928187833425');
+    fbq('track', 'PageView');
+    fbq('track', 'CompleteRegistration', {
+      content_name: 'Property Management & Brokerage Webinar Nov 21',
+      status: 'Confirmed'
+    });
+    fbq('track', 'Lead', {
+      content_name: 'Property Management & Brokerage Webinar Lead'
+    });
+  </script>
+  <noscript>
+    <img height="1" width="1" style="display:none"
+      src="https://www.facebook.com/tr?id=1079928187833425&ev=PageView&noscript=1" alt="Facebook Pixel" />
+  </noscript>
+
+  <!-- Google Tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=AW-18414957187"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'AW-18414957187');
+    gtag('event', 'sign_up', {
+      method: 'Webinar Registration',
+      event_category: 'Webinar'
+    });
+  </script>
+
+  <style>
+    .thank-you-section {
+      padding: 72px 0 100px;
+      min-height: calc(100vh - 120px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .thank-you-card {
+      max-width: 640px;
+      margin: 0 auto;
+      background: var(--white);
+      border: 1px solid var(--sand);
+      border-radius: var(--radius-lg);
+      padding: 44px 36px;
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+
+    .thank-you-icon {
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      background: var(--forest-wash);
+      color: var(--forest);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 34px;
+      margin: 0 auto 24px;
+      box-shadow: 0 0 0 8px rgba(47, 122, 79, 0.08);
+      animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0.6); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .thank-you-card h1 {
+      font-size: 32px;
+      font-family: 'Fraunces', Georgia, serif;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 12px;
+      line-height: 1.2;
+    }
+
+    .thank-you-card p.subtitle {
+      font-size: 16px;
+      color: var(--ink-soft);
+      line-height: 1.55;
+      margin-bottom: 28px;
+    }
+
+    .event-meta-card {
+      background: var(--paper-dim);
+      border: 1px solid var(--sand);
+      border-radius: var(--radius-md);
+      padding: 20px 22px;
+      margin-bottom: 26px;
+      text-align: left;
+    }
+
+    .event-meta-card .event-topic {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--rust-dark);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .event-meta-card .event-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    @media (max-width: 600px) {
+      .event-meta-card .event-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+      }
+    }
+
+    .event-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 13.5px;
+      color: var(--ink);
+    }
+
+    .event-item i {
+      color: var(--rust);
+      margin-top: 3px;
+      font-size: 14px;
+      width: 16px;
+      text-align: center;
+    }
+
+    .event-item div strong {
+      display: block;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--ink-muted);
+      margin-bottom: 2px;
+    }
+
+    .action-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .thank-you-card .btn-whatsapp-community {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: #25D366;
+      color: #FFFFFF;
+      font-weight: 700;
+      font-size: 15px;
+      padding: 15px 18px;
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+      transition: background 0.2s, transform 0.15s;
+      box-shadow: 0 4px 14px rgba(37, 211, 102, 0.3);
+      white-space: nowrap;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .thank-you-card .btn-whatsapp-community:hover {
+      background: #1EBE5D;
+      transform: translateY(-1px);
+    }
+
+    @media (max-width: 540px) {
+      .thank-you-section {
+        padding: 32px 14px 60px;
+      }
+
+      .thank-you-card {
+        padding: 32px 18px;
+        border-radius: var(--radius-md);
+      }
+
+      .thank-you-card h1 {
+        font-size: 26px;
+      }
+
+      .thank-you-card p.subtitle {
+        font-size: 14.5px;
+        margin-bottom: 22px;
+      }
+    }
+
+    @media (max-width: 440px) {
+      .thank-you-card .btn-whatsapp-community {
+        font-size: 13.5px;
+        padding: 14px 10px;
+        gap: 6px;
+      }
+
+      .thank-you-card .btn-whatsapp-community i {
+        font-size: 17px !important;
+      }
+    }
+
+    .thank-you-card .calendar-action-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 4px;
+    }
+
+    @media (max-width: 500px) {
+      .thank-you-card .calendar-action-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .thank-you-card .btn-cal {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 14px;
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--ink);
+      background: var(--paper-dim);
+      border: 1px solid var(--sand);
+      border-radius: var(--radius-sm);
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .thank-you-card .btn-cal:hover {
+      background: var(--white);
+      border-color: var(--rust);
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ==========================================================
+       HEADER
+       ========================================================== -->
+  <header class="site-header">
+    <nav class="wrap nav-bar">
+      <a href="/academy/webinar" class="logo" title="Upward Academy">
+        <span class="mark">
+          <img src="/university-logos/upward_university_logo.png" alt="Upward Academy Logo"
+            onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'38\' height=\'38\' viewBox=\'0 0 38 38\'><rect width=\'38\' height=\'38\' fill=\'%238A4A2A\'/><text x=\'50%25\' y=\'55%25\' fill=\'white\' font-family=\'sans-serif\' font-size=\'18\' font-weight=\'bold\' text-anchor=\'middle\' dominant-baseline=\'middle\'>U</text></svg>';">
+        </span>
+        <div class="logo-text">
+          UPWARD
+          <small>Academy &amp; Business Accelerator</small>
+        </div>
+      </a>
+
+      <div class="nav-right">
+        <a class="btn-header" href="/academy/webinar">Webinar Overview</a>
+      </div>
+    </nav>
+  </header>
+
+  <!-- ==========================================================
+       THANK YOU / CONFIRMATION CONTENT
+       ========================================================== -->
+  <main class="thank-you-section">
+    <div class="wrap">
+      <div class="thank-you-card">
+        <div class="thank-you-icon">
+          <i class="fa-solid fa-check"></i>
+        </div>
+
+        <h1 id="thankYouHeading">Seat Confirmed!</h1>
+        <p class="subtitle">
+          You are officially registered for <strong>"Build a 6 Figure Income Career/Business in Tech-Driven Property Management/Brokerage"</strong>.
+        </p>
+
+        <div class="event-meta-card">
+          <div class="event-topic">
+            <i class="fa-solid fa-graduation-cap"></i> Upward Academy Exclusive Live Session
+          </div>
+          <div class="event-grid">
+            <div class="event-item">
+              <i class="fa-regular fa-calendar-check"></i>
+              <div>
+                <strong>Date</strong>
+                <span>Saturday, 21st Nov 2026</span>
+              </div>
+            </div>
+            <div class="event-item">
+              <i class="fa-regular fa-clock"></i>
+              <div>
+                <strong>Time</strong>
+                <span>10:00 AM (WAT / Lagos)</span>
+              </div>
+            </div>
+            <div class="event-item">
+              <i class="fa-solid fa-video"></i>
+              <div>
+                <strong>Format</strong>
+                <span>Online (Live Session)</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="action-group">
+          <!-- WhatsApp Waitlist Community Button -->
+          <a href="https://chat.whatsapp.com/LcFwiekT2UQLUSzrm2zGER?s=cl&p=a&mlu=4&ilr=4&iam=2"
+            class="btn-whatsapp-community" id="btnWhatsappCommunity" target="_blank" rel="noopener noreferrer">
+            <i class="fa-brands fa-whatsapp" style="font-size: 20px;"></i>
+            Join WhatsApp Attendees Community →
+          </a>
+
+          <!-- Add to Calendar Buttons -->
+          <div class="calendar-action-grid">
+            <a href="#" class="btn-cal" id="btnGoogleCalendar" target="_blank" rel="noopener noreferrer">
+              <i class="fa-brands fa-google" style="color:#EA4335;"></i> Add to Google Calendar
+            </a>
+            <button type="button" class="btn-cal" id="btnAppleCalendar">
+              <i class="fa-brands fa-apple" style="color:var(--ink);"></i> Add to Calendar (.ics)
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    (function () {
+      // 1. Personalize greeting from sessionStorage or URL fallback
+      var attendeeName = '';
+      try {
+        attendeeName = sessionStorage.getItem('upward_webinar_attendee') || '';
+      } catch (e) {}
+
+      if (!attendeeName) {
+        var params = new URLSearchParams(window.location.search);
+        var nameParam = params.get('name') || '';
+        if (nameParam) {
+          attendeeName = decodeURIComponent(nameParam).trim().split(' ')[0];
+        }
+      }
+
+      if (attendeeName) {
+        document.getElementById('thankYouHeading').textContent = 'Seat Confirmed, ' + attendeeName + '!';
+      } else {
+        document.getElementById('thankYouHeading').textContent = 'Seat Confirmed!';
+      }
+
+      // 2. Calendar Event Helpers
+      var webinarStart = new Date(Date.UTC(2026, 10, 21, 9, 0, 0)); // 10:00 AM WAT (UTC+1) = 09:00 UTC
+      var webinarEnd = new Date(Date.UTC(2026, 10, 21, 10, 30, 0));  // 11:30 AM WAT (UTC+1) = 10:30 UTC
+      var eventTitle = 'Upward Academy: Tech-Driven Property Management & Brokerage Webinar';
+      var eventDetails = 'Build a 6 Figure Income Career/Business in Tech-Driven Property Management/Brokerage.\\n\\nLive Online Webinar hosted by Upward Academy.\\nJoining details sent via WhatsApp & Email.';
+      var eventLocation = 'Online (Live Session)';
+
+      function formatDate(date) {
+        return date.toISOString().replace(/-|:|\.\\d\\d\\d/g, '');
+      }
+
+      // Google Calendar link
+      var gCalParams = new URLSearchParams({
+        action: 'TEMPLATE',
+        text: eventTitle,
+        details: eventDetails.replace(/\\\\n/g, '\n'),
+        location: eventLocation,
+        dates: formatDate(webinarStart) + '/' + formatDate(webinarEnd)
+      });
+      var googleCalBtn = document.getElementById('btnGoogleCalendar');
+      if (googleCalBtn) {
+        googleCalBtn.href = 'https://calendar.google.com/calendar/render?' + gCalParams.toString();
+      }
+
+      // Apple / iCal .ics download
+      var appleCalBtn = document.getElementById('btnAppleCalendar');
+      if (appleCalBtn) {
+        appleCalBtn.addEventListener('click', function (ev) {
+          ev.preventDefault();
+          var icsContent = [
+            'BEGIN:VCALENDAR',
+            'VERSION:2.0',
+            'PRODID:-//Upward Academy//Webinar Event//EN',
+            'CALSCALE:GREGORIAN',
+            'METHOD:PUBLISH',
+            'BEGIN:VEVENT',
+            'UID:' + Date.now() + '@upward.ng',
+            'DTSTAMP:' + formatDate(new Date()),
+            'DTSTART:' + formatDate(webinarStart),
+            'DTEND:' + formatDate(webinarEnd),
+            'SUMMARY:' + eventTitle,
+            'DESCRIPTION:' + eventDetails,
+            'LOCATION:' + eventLocation,
+            'STATUS:CONFIRMED',
+            'END:VEVENT',
+            'END:VCALENDAR'
+          ].join('\r\n');
+
+          var blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+          var link = document.createElement('a');
+          link.href = window.URL.createObjectURL(blob);
+          link.setAttribute('download', 'Upward_Academy_Webinar_Nov21.ics');
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        });
+      }
+    })();
+  </script>
+</body>
+
+</html>

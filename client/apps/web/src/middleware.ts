@@ -550,6 +550,14 @@ export async function middleware(request: NextRequest) {
     return NextResponse.rewrite(new URL('/pages/university/sessions/index.html', request.url))
   }
   if (
+    pathname === '/academy/webinar/thank-you' ||
+    pathname === '/webinar/thank-you' ||
+    pathname === '/enroll/thank-you' ||
+    pathname === '/university/webinar/thank-you'
+  ) {
+    return NextResponse.rewrite(new URL('/pages/university/webinar/thank-you.html', request.url))
+  }
+  if (
     pathname === '/academy/enroll' ||
     pathname === '/enroll' ||
     pathname === '/academy/webinar' ||
