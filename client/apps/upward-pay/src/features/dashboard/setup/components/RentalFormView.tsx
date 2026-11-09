@@ -101,14 +101,21 @@ export function RentalFormView() {
     staleTime: 60_000,
   })
 
-  useEffect(() => {
-    if (isEdit) return
+  const hasPrefilledRef = useRef(false)
 
-    let savingsPlan: { rentAmount?: number | string; dueDate?: string; address?: string } | null = null
+  useEffect(() => {
+    if (isEdit || hasPrefilledRef.current) return
+
+    let savingsPlan: { userId?: number; rentAmount?: number | string; dueDate?: string; address?: string } | null = null
     if (typeof window !== 'undefined') {
       try {
         const raw = localStorage.getItem('upward_savings_rent_plan')
-        if (raw) savingsPlan = JSON.parse(raw)
+        if (raw) {
+          const parsed = JSON.parse(raw)
+          if (!parsed.userId || (user?.id && parsed.userId === user.id)) {
+            savingsPlan = parsed
+          }
+        }
       } catch {}
     }
 
@@ -170,6 +177,8 @@ export function RentalFormView() {
       }
     }
 
+    hasPrefilledRef.current = true
+
     if (needsUpdate) {
       updateDraft({
         formData: {
@@ -178,7 +187,7 @@ export function RentalFormView() {
         },
       })
     }
-  }, [isEdit, prefillData, draft.formData, updateDraft])
+  }, [isEdit, prefillData, user?.id, updateDraft])
 
   // Auto-calculate end date whenever tenancy parameters change
   useEffect(() => {

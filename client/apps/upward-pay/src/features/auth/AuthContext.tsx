@@ -290,6 +290,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           'exclusive_home_requests',
           'upward_session_id',
           'upward_session_last_active',
+          'upward_savings_rent_plan',
+          'upward_setup_draft',
+          'has_seen_complete_profile_popup',
         ]
         keysToRemove.forEach((k) => localStorage.removeItem(k))
 
@@ -299,7 +302,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             k.startsWith('profile_popup_dismissed_') ||
             k.startsWith('rent_support_policy_') ||
             k.startsWith('upward_profile_setup_skipped_') ||
-            k.startsWith('upward_cached_user_goals_')
+            k.startsWith('upward_cached_user_goals_') ||
+            k.startsWith('upward_savings_') ||
+            k.startsWith('upward_setup_')
           ) {
             localStorage.removeItem(k)
           }

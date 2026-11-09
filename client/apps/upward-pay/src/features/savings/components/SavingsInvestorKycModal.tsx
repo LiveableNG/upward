@@ -188,6 +188,7 @@ export function SavingsInvestorKycModal({
       if (manualRentTarget > 0 || manualDueDate) {
         const rawPlan = localStorage.getItem('upward_savings_rent_plan')
         const plan = rawPlan ? JSON.parse(rawPlan) : {}
+        plan.userId = user?.id
         if (manualRentTarget > 0) plan.rentAmount = manualRentTarget
         if (manualDueDate) plan.dueDate = manualDueDate
         localStorage.setItem('upward_savings_rent_plan', JSON.stringify(plan))
