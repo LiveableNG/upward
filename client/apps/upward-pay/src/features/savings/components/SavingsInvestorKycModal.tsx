@@ -215,7 +215,7 @@ export function SavingsInvestorKycModal({
   const [copiedAccount, setCopiedAccount] = useState(false)
   const [copiedDetails, setCopiedDetails] = useState(false)
   const [fundingOption, setFundingOption] = useState<'DIRECT_DEBIT' | 'BANK_TRANSFER'>('DIRECT_DEBIT')
-  const [fundAmount, setFundAmount] = useState('100,000')
+  const [customFundAmount, setCustomFundAmount] = useState<string | null>(null)
   const [debitDay, setDebitDay] = useState(25)
 
   const [formError, setFormError] = useState<string | null>(null)
@@ -241,15 +241,12 @@ export function SavingsInvestorKycModal({
   })
   const estimatedYield = Math.round(targetRent * 0.145 * (runwayDays / 365) * 0.52)
 
+  const fundAmount =
+    customFundAmount ??
+    (monthlyTargetToFinishEarly > 0 ? monthlyTargetToFinishEarly.toLocaleString() : '100,000')
   const numericFundAmount = Number(fundAmount.replace(/,/g, '')) || 0
   const paystackFee = calculatePaystackFee(numericFundAmount)
   const totalFundAmount = numericFundAmount + paystackFee
-
-  useEffect(() => {
-    if (monthlyTargetToFinishEarly && monthlyTargetToFinishEarly > 0) {
-      setFundAmount((prev) => (prev === '100,000' ? monthlyTargetToFinishEarly.toLocaleString() : prev))
-    }
-  }, [monthlyTargetToFinishEarly])
 
   const dvaToShow = createdDva ||
     vault?.dedicated_account || {
@@ -1038,7 +1035,7 @@ export function SavingsInvestorKycModal({
                   value={fundAmount}
                   onChange={(e) => {
                     const digits = e.target.value.replace(/\D/g, '')
-                    setFundAmount(digits ? Number(digits).toLocaleString() : '')
+                    setCustomFundAmount(digits ? Number(digits).toLocaleString() : '')
                   }}
                   style={{ height: 44, fontSize: '1rem', fontWeight: 700 }}
                 />
@@ -1055,7 +1052,7 @@ export function SavingsInvestorKycModal({
                         ? 'vault-sandbox-card__chip--active'
                         : ''
                     }`}
-                    onClick={() => setFundAmount(preset.toLocaleString())}
+                    onClick={() => setCustomFundAmount(preset.toLocaleString())}
                   >
                     ₦{preset >= 1_000_000 ? `${preset / 1_000_000}M` : `${preset / 1_000}k`}
                   </button>
