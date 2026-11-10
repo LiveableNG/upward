@@ -62,6 +62,44 @@ export class PushNotificationService {
     }
   }
 
+  async convertApnsTokenToFcm(apnsToken: string, bundleId = 'com.goodtenants.upward'): Promise<string | null> {
+    const accessToken = await this.getAccessToken()
+    if (!accessToken) return null
+
+    // Try production first (for App Store / TestFlight builds), then sandbox
+    for (const sandbox of [false, true]) {
+      try {
+        const resp = await fetch('https://iid.googleapis.com/iid/v1:batchImport', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+            access_token_auth: 'true',
+          },
+          body: JSON.stringify({
+            application: bundleId,
+            sandbox,
+            apns_tokens: [apnsToken],
+          }),
+        })
+
+        if (!resp.ok) continue
+        const data = (await resp.json()) as {
+          results?: Array<{ status: string; token?: string; apns_token?: string }>
+        }
+        const result = data?.results?.[0]
+        if (result?.status === 'OK' && result.token) {
+          this.logger.log(`Successfully mapped APNs token to FCM token (sandbox=${sandbox})`)
+          return result.token
+        }
+      } catch (err) {
+        this.logger.warn(`Failed to import APNs token (sandbox=${sandbox})`, err)
+      }
+    }
+
+    return null
+  }
+
   async sendToTokens(
     tokens: string[],
     payload: { title: string; body: string; data?: Record<string, string> },
@@ -86,7 +124,17 @@ export class PushNotificationService {
     const url = `https://fcm.googleapis.com/v1/projects/${this.projectId}/messages:send`
 
     await Promise.allSettled(
-      tokens.map(async (token) => {
+      tokens.map(async (rawToken) => {
+        let token = rawToken.trim()
+
+        // If it is an Apple APNs 64-hex token, convert it to an FCM token first
+        if (/^[0-9a-fA-F]{64}$/.test(token)) {
+          const fcmToken = await this.convertApnsTokenToFcm(token)
+          if (fcmToken) {
+            token = fcmToken
+          }
+        }
+
         const body = {
           message: {
             token,

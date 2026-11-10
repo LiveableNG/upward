@@ -8,12 +8,24 @@ export class RegisterDeviceTokenUseCase {
   constructor(
     @Inject(USER_REPOSITORY) private readonly userRepo: UserRepository,
     private readonly deviceTokenRepo: PrismaDeviceTokenRepository,
+    private readonly pushService: PushNotificationService,
   ) {}
 
   async execute(userId: string, token: string, platform: string): Promise<void> {
     const user = await this.userRepo.findByUuid(userId)
     if (!user) throw new Error('User not found')
-    await this.deviceTokenRepo.upsertToken(user.id!, token, platform)
+
+    let fcmToken = token.trim()
+
+    // If registered from iOS with a 64-hex char APNs device token, map it to an FCM token
+    if (platform === 'ios' && /^[0-9a-fA-F]{64}$/.test(fcmToken)) {
+      const converted = await this.pushService.convertApnsTokenToFcm(fcmToken)
+      if (converted) {
+        fcmToken = converted
+      }
+    }
+
+    await this.deviceTokenRepo.upsertToken(user.id!, fcmToken, platform)
   }
 }
 
