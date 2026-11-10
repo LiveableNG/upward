@@ -202,7 +202,7 @@ export function DashboardHome({
   const nudgeDesc =
     streak >= 3
       ? 'Share your credibility with landlords.'
-      : '= a stronger profile for lenders.'
+      : '= a stronger profile for landlords.'
 
   return (
     <div className="dash-home">

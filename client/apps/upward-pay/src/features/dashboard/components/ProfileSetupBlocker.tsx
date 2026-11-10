@@ -160,10 +160,10 @@ export function ProfileSetupBlocker({ user, score, maxScore, onSkip }: ProfileSe
               <span className="setup-gate__hero-icon" aria-hidden="true">
                 <Home size={22} strokeWidth={2.2} />
               </span>
-              <span className="setup-gate__score-chip">
+              {/* <span className="setup-gate__score-chip">
                 <strong>{score ?? 500}</strong>
                 <span>/ {maxScore ?? 900}</span>
-              </span>
+              </span> */}
             </div>
             <h1 id="setup-gate-title" className="setup-gate__title">
               {title}
