@@ -11,6 +11,8 @@ export interface EarlyAccessRecord {
   propertyCount?: string | null
   landlordStatus?: string | null
   managementStyle?: string | null
+  sourceIdentifier?: string | null
+  abVariant?: string | null
   createdAt: string
   updatedAt: string
 }

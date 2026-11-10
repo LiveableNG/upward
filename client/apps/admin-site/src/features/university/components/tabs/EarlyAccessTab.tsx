@@ -17,6 +17,8 @@ interface EarlyAccessTabProps {
   totalPages: number
   typeFilter: 'ALL' | 'STUDENT' | 'LANDLORD'
   onTypeFilterChange: (type: 'ALL' | 'STUDENT' | 'LANDLORD') => void
+  sourceFilter?: string
+  onSourceFilterChange?: (source: string) => void
   search: string
   onSearchChange: (search: string) => void
   onSearchSubmit: (e: React.FormEvent) => void
@@ -31,6 +33,8 @@ export const EarlyAccessTab: React.FC<EarlyAccessTabProps> = ({
   totalPages,
   typeFilter,
   onTypeFilterChange,
+  sourceFilter = 'ALL',
+  onSourceFilterChange,
   search,
   onSearchChange,
   onSearchSubmit,
@@ -77,6 +81,53 @@ export const EarlyAccessTab: React.FC<EarlyAccessTabProps> = ({
         }}
       >
         {/* Top Row: Type Pills & Search & Export */}
+        {sourceFilter && sourceFilter !== 'ALL' && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '8px 14px',
+              borderRadius: '8px',
+              background: '#fbf1ed',
+              border: '1px solid rgba(217, 119, 87, 0.3)',
+              color: '#8A4A2A',
+              fontSize: '13px',
+              fontWeight: 600,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>Filtered by Referral / Source:</span>
+              <code
+                style={{
+                  background: '#fff',
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  border: '1px solid rgba(217, 119, 87, 0.3)',
+                  fontFamily: 'monospace',
+                }}
+              >
+                {sourceFilter}
+              </code>
+            </div>
+            <button
+              type="button"
+              onClick={() => onSourceFilterChange && onSourceFilterChange('ALL')}
+              style={{
+                background: '#fff',
+                border: '1px solid rgba(217, 119, 87, 0.3)',
+                borderRadius: '6px',
+                padding: '4px 10px',
+                color: '#8A4A2A',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              Clear Source Filter ×
+            </button>
+          </div>
+        )}
         <div
           style={{
             display: 'flex',

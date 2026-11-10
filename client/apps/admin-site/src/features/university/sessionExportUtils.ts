@@ -362,6 +362,7 @@ export function exportEarlyAccessToCsv(records: EarlyAccessRecord[], filename?: 
     'Session Day / City',
     'Session Venue',
     'Session Date & Time',
+    'Referral / Traffic Source',
     'Notes / Reason for Interest',
   ]
 
@@ -390,6 +391,7 @@ export function exportEarlyAccessToCsv(records: EarlyAccessRecord[], filename?: 
       { val: parsed.sessionDay },
       { val: parsed.sessionVenue },
       { val: parsed.sessionDateTime },
+      { val: rec.sourceIdentifier || 'Direct' },
       { val: parsed.cleanNotes },
     ]
   })

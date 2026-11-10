@@ -137,17 +137,17 @@ export const EarlyAccessDetailModal: React.FC<EarlyAccessDetailModalProps> = ({
                   textTransform: 'uppercase',
                 }}
               >
-                Submission ID
+                Referral / Campaign Source
               </div>
               <div
                 style={{
-                  fontWeight: 600,
+                  fontWeight: 700,
                   marginTop: '2px',
-                  color: 'var(--text-primary)',
-                  fontSize: '11px',
+                  color: record.sourceIdentifier ? '#8A4A2A' : 'var(--text-muted)',
+                  fontSize: '13px',
                 }}
               >
-                {record.id}
+                {record.sourceIdentifier || 'Direct (Organic)'}
               </div>
             </div>
           </div>

@@ -13,6 +13,7 @@ interface TrafficColumnsOptions {
   onToggleActive: (row: TrafficSourceRecord) => void
   onCopyLink: (identifier: string, targetUrl?: string) => void
   copiedId: string | null
+  onViewAttendees?: (identifier: string) => void
   onDelete?: (row: TrafficSourceRecord) => void
   isDeveloper: boolean
 }
@@ -22,6 +23,7 @@ export const getTrafficColumns = ({
   onToggleActive,
   onCopyLink,
   copiedId,
+  onViewAttendees,
   onDelete,
   isDeveloper,
 }: TrafficColumnsOptions): ColumnDef<TrafficSourceRecord>[] => [
@@ -71,6 +73,8 @@ export const getTrafficColumns = ({
       const linkPath =
         row.targetUrl && row.targetUrl.includes('/apply')
           ? `/academy/apply?ref=${row.identifier}`
+          : row.targetUrl && row.targetUrl !== '/academy' && row.targetUrl !== '/university'
+          ? `${row.targetUrl}${row.targetUrl.includes('?') ? '&' : '?'}ref=${row.identifier}`
           : `/academy/${row.identifier}`
       return (
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -133,16 +137,40 @@ export const getTrafficColumns = ({
     label: 'Conversions',
     render: (row) => (
       <div>
-        <div
-          style={{
-            fontWeight: 700,
-            fontSize: '13.5px',
-            color: row.conversions > 0 ? '#15803d' : 'var(--text-primary)',
-          }}
-        >
-          {row.conversions}
-        </div>
-        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>leads & apps</div>
+        {onViewAttendees && row.conversions > 0 ? (
+          <button
+            type="button"
+            onClick={() => onViewAttendees(row.identifier)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '3px 8px',
+              borderRadius: '6px',
+              background: '#f0fdf4',
+              border: '1px solid #bbf7d0',
+              fontWeight: 700,
+              fontSize: '12.5px',
+              color: '#15803d',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+            title={`View attendees who registered with referral code "${row.identifier}"`}
+          >
+            {row.conversions} attendees →
+          </button>
+        ) : (
+          <div
+            style={{
+              fontWeight: 700,
+              fontSize: '13.5px',
+              color: row.conversions > 0 ? '#15803d' : 'var(--text-primary)',
+            }}
+          >
+            {row.conversions}
+          </div>
+        )}
+        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>leads & apps</div>
       </div>
     ),
   },

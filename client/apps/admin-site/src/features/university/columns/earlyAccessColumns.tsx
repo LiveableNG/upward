@@ -9,6 +9,7 @@ import {
   Video,
   Compass,
   Clock,
+  Link2,
 } from 'lucide-react'
 import type { ColumnDef } from '../../../components/common/table/DataTable'
 import type { EarlyAccessRecord } from '../types'
@@ -248,6 +249,54 @@ export const getEarlyAccessColumns = ({
             Status: <b>{row.landlordStatus || 'N/A'}</b>
           </span>
         </div>
+      )
+    },
+  },
+  {
+    key: 'sourceIdentifier',
+    label: 'Referral / Source',
+    render: (row) => {
+      const src = row.sourceIdentifier
+      if (!src || src === 'direct') {
+        return (
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '2px 8px',
+              borderRadius: '12px',
+              fontSize: '11px',
+              fontWeight: 500,
+              color: 'var(--text-muted)',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+            }}
+          >
+            Direct
+          </span>
+        )
+      }
+      return (
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+            padding: '2px 8px',
+            borderRadius: '12px',
+            fontSize: '11.5px',
+            fontWeight: 700,
+            color: '#8A4A2A',
+            background: '#fbf1ed',
+            border: '1px solid rgba(138, 74, 42, 0.25)',
+            fontFamily: 'monospace',
+          }}
+          title={`Referred via campaign/group: ${src}`}
+        >
+          <Link2 size={11} />
+          {src}
+        </span>
       )
     },
   },

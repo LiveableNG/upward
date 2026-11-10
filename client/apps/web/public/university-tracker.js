@@ -77,9 +77,29 @@
       return queryRef.trim().toLowerCase();
     }
 
-    // 2. Check path: /academy/:identifier or /university/:identifier
-    var reserved = ['apply', 'landlord', 'programme', 'scholarships', 'scholarship', 'thank-you', 'sessions', 'session', 'info-session', 'qa-session', 'lecturers', 'lecturer', 'faq'];
-    if (pathname.startsWith('/academy/apply/')) {
+    // 2. Check path: /academy/:identifier, /webinar/:identifier, or /university/:identifier
+    var reserved = ['apply', 'landlord', 'programme', 'scholarships', 'scholarship', 'thank-you', 'sessions', 'session', 'info-session', 'qa-session', 'lecturers', 'lecturer', 'faq', 'webinar', 'webinars', 'enroll'];
+    if (pathname.startsWith('/academy/webinar/')) {
+      var webinarSlug = pathname.replace('/academy/webinar/', '').split('/')[0];
+      if (webinarSlug && reserved.indexOf(webinarSlug) === -1) {
+        return webinarSlug.trim().toLowerCase();
+      }
+    } else if (pathname.startsWith('/webinar/')) {
+      var directWebinarSlug = pathname.replace('/webinar/', '').split('/')[0];
+      if (directWebinarSlug && reserved.indexOf(directWebinarSlug) === -1) {
+        return directWebinarSlug.trim().toLowerCase();
+      }
+    } else if (pathname.startsWith('/academy/enroll/')) {
+      var enrollSlug = pathname.replace('/academy/enroll/', '').split('/')[0];
+      if (enrollSlug && reserved.indexOf(enrollSlug) === -1) {
+        return enrollSlug.trim().toLowerCase();
+      }
+    } else if (pathname.startsWith('/enroll/')) {
+      var directEnrollSlug = pathname.replace('/enroll/', '').split('/')[0];
+      if (directEnrollSlug && reserved.indexOf(directEnrollSlug) === -1) {
+        return directEnrollSlug.trim().toLowerCase();
+      }
+    } else if (pathname.startsWith('/academy/apply/')) {
       var applySlug = pathname.replace('/academy/apply/', '').split('/')[0];
       if (applySlug && reserved.indexOf(applySlug) === -1) {
         return applySlug.trim().toLowerCase();
@@ -103,6 +123,11 @@
       var slug = pathname.replace('/academy/', '').split('/')[0];
       if (slug && reserved.indexOf(slug) === -1) {
         return slug.trim().toLowerCase();
+      }
+    } else if (pathname.startsWith('/university/webinar/')) {
+      var uniWebinarSlug = pathname.replace('/university/webinar/', '').split('/')[0];
+      if (uniWebinarSlug && reserved.indexOf(uniWebinarSlug) === -1) {
+        return uniWebinarSlug.trim().toLowerCase();
       }
     } else if (pathname.startsWith('/university/apply/')) {
       var applySlug = pathname.replace('/university/apply/', '').split('/')[0];
