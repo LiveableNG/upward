@@ -77,9 +77,10 @@ async function convertApnsToken(apnsToken, accessToken) {
       if (!resp.ok) continue;
       const data = await resp.json();
       const result = data?.results?.[0];
-      if (result?.status === 'OK' && result.token) {
-        console.log(`✅ Successfully mapped APNs token to FCM (sandbox=${sandbox}):`, result.token.slice(0, 20) + '…');
-        return result.token;
+      const fcmToken = result?.registration_token || result?.token;
+      if (result?.status === 'OK' && fcmToken) {
+        console.log(`✅ Successfully mapped APNs token to FCM (sandbox=${sandbox}):`, fcmToken.slice(0, 20) + '…');
+        return fcmToken;
       }
     } catch (err) {
       console.warn(`Failed sandbox=${sandbox} import:`, err.message);
@@ -109,12 +110,13 @@ async function sendPush(token, title, body, data = {}) {
         notification: {
           icon: 'ic_notification',
           color: '#d97757',
-          sound: 'default',
+          sound: 'upward_chime',
+          channel_id: 'upward_alerts',
         },
       },
       apns: {
         payload: {
-          aps: { sound: 'default', badge: 1 },
+          aps: { sound: 'upward_chime.wav', badge: 1 },
         },
       },
     },
@@ -158,7 +160,15 @@ Examples:
   let tokens = [];
 
   if (target.includes('@')) {
-    const user = await prisma.upward_user.findFirst({ where: { email: target } });
+    const emailHash = crypto.createHash('sha256').update(target.toLowerCase().trim()).digest('hex');
+    const user = await prisma.upward_user.findFirst({
+      where: {
+        OR: [
+          { email: target },
+          { emailHash: emailHash },
+        ],
+      },
+    });
     if (!user) {
       console.error('User not found with email:', target);
       process.exit(1);

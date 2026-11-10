@@ -85,12 +85,13 @@ export class PushNotificationService {
 
         if (!resp.ok) continue
         const data = (await resp.json()) as {
-          results?: Array<{ status: string; token?: string; apns_token?: string }>
+          results?: Array<{ status: string; registration_token?: string; token?: string; apns_token?: string }>
         }
         const result = data?.results?.[0]
-        if (result?.status === 'OK' && result.token) {
+        const fcmToken = result?.registration_token || result?.token
+        if (result?.status === 'OK' && fcmToken) {
           this.logger.log(`Successfully mapped APNs token to FCM token (sandbox=${sandbox})`)
-          return result.token
+          return fcmToken
         }
       } catch (err) {
         this.logger.warn(`Failed to import APNs token (sandbox=${sandbox})`, err)
@@ -144,12 +145,13 @@ export class PushNotificationService {
               notification: {
                 icon: 'ic_notification',
                 color: '#d97757',
-                sound: 'default',
+                sound: 'upward_chime',
+                channel_id: 'upward_alerts',
               },
             },
             apns: {
               payload: {
-                aps: { sound: 'default', badge: 1 },
+                aps: { sound: 'upward_chime.wav', badge: 1 },
               },
             },
           },

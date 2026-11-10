@@ -39,6 +39,19 @@ export class PushNotificationService {
 
       // 2. Clear existing listeners to prevent leaks
       await PushNotifications.removeAllListeners()
+
+      // Create high-priority notification channel for Android with custom sound
+      if (Capacitor.getPlatform() === 'android') {
+        await PushNotifications.createChannel({
+          id: 'upward_alerts',
+          name: 'Upward Alerts',
+          description: 'Payment alerts and important updates',
+          importance: 5,
+          visibility: 1,
+          sound: 'upward_chime',
+          vibration: true,
+        }).catch((err) => console.warn('[Push] Channel creation failed:', err))
+      }
       
       // 3. Add listeners before registering
       await PushNotifications.addListener('registration', async (token) => {
