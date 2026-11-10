@@ -3,6 +3,7 @@ import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.serv
 import { EmailService } from '../../../shared/infrastructure/email/email.service';
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service';
 import { UnifiedCommunicationService } from '../../../shared/infrastructure/communication/unified-communication.service';
+import { NotificationService } from '../../../shared/infrastructure/common/notification.service';
 
 @Injectable()
 export class RejectCredibilityRequestUseCase {
@@ -11,6 +12,7 @@ export class RejectCredibilityRequestUseCase {
     private readonly emailService: EmailService,
     private readonly encryption: EncryptionService,
     private readonly unifiedCommService: UnifiedCommunicationService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async execute(requestUuid: string) {
@@ -61,6 +63,16 @@ export class RejectCredibilityRequestUseCase {
             reason: 'Declined by Property Manager',
           },
         });
+
+        await this.notificationService.notifyUser(user.id, {
+          title: 'Credibility Request Update 📋',
+          message: `Your rent verification request for ${property.location?.address || 'your property'} was declined by ${pmName}.`,
+          type: 'SYSTEM',
+          url: '/dashboard/credibility',
+          data: {
+            requestUuid,
+          },
+        }).catch(() => {});
       }
     } catch (e) {
       console.error('Failed to send credibility rejection email:', e);

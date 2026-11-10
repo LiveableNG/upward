@@ -51,6 +51,8 @@ export class RentReminderWorkflowUseCase {
     else if (daysLeft === 7) targetLevel = 7
     else if (daysLeft === 3) targetLevel = 3
     else if (daysLeft === 0) targetLevel = 1 // 1 represents "Due Day"
+    else if (daysLeft === -1) targetLevel = -1 // 1 day overdue
+    else if (daysLeft === -3) targetLevel = -3 // 3 days overdue
 
     if (targetLevel === 0) return
 
@@ -111,7 +113,19 @@ export class RentReminderWorkflowUseCase {
         push: `Your payment for ${address} is due today. Settle it now to stay in great standing!`,
         inApp: `It's finally here! Rent for ${address} is due today. Tap here to pay now and maintain your Upward Score.`,
         email: `Happy Rent Day! Your payment for ${address} is due today. Settle it easily through your dashboard to keep your score in the green.`,
-      }
+      },
+      [-1]: {
+        title: 'Rent Past Due ⚠️',
+        push: `Hi ${name}, your rent for ${address} was due yesterday. Pay now to protect your Upward Score and streak!`,
+        inApp: `Action required: Your rent for ${address} was due yesterday. Please settle your balance today to stay in good standing.`,
+        email: `Your rent for ${address} was due yesterday. Please log in to your dashboard to complete your payment and protect your credit streak.`,
+      },
+      [-3]: {
+        title: 'Urgent: Rent 3 Days Past Due 🚨',
+        push: `Urgent reminder: Rent for ${address} is 3 days past due. Settle it now to avoid penalties.`,
+        inApp: `Urgent: Rent for ${address} is 3 days past due. Settle your balance now to avoid penalty fees and protect your profile.`,
+        email: `Urgent Notice: Your rent for ${address} is 3 days overdue. Avoid penalties and settle your rent easily via your Upward dashboard.`,
+      },
     }
 
     const tpl = templates[level]

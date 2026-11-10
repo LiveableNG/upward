@@ -4,6 +4,7 @@ import { S3Service } from '../../../../shared/infrastructure/common/s3/s3.servic
 import { EmailService } from '../../../../shared/infrastructure/email/email.service';
 import { ConfigService } from '@nestjs/config';
 import { GenerateDocumentPdfUseCase } from './generate-document-pdf.use-case';
+import { NotificationService } from '../../../../shared/infrastructure/common/notification.service';
 import {
   PM_TENANT_REPOSITORY,
   ITenantRepository,
@@ -46,6 +47,7 @@ export class SendToTenantVaultUseCase {
     @Inject(PM_TENANT_REPOSITORY) private readonly tenantRepo: ITenantRepository,
     @Inject(PM_UNIT_REPOSITORY) private readonly unitRepo: IUnitRepository,
     @Inject(PROPERTY_MANAGER_REPOSITORY) private readonly pmRepo: PropertyManagerRepository,
+    private readonly notificationService: NotificationService,
   ) {}
 
   /**
@@ -268,6 +270,25 @@ export class SendToTenantVaultUseCase {
       }).catch((err) => {
         this.logger.error('Failed to send vault document notification email in background:', err);
       });
+    }
+
+    // In-app and push notification to the registered tenant
+    if (userProperty?.userId) {
+      const pmName = `${pm.firstName} ${pm.lastName}`.trim();
+      this.notificationService
+        .notifyUser(userProperty.userId, {
+          title: 'New Document in Your Vault 📄',
+          message: `${pmName} added a new document (${opts.fileName}) to your Upward vault. Tap to review.`,
+          type: 'SYSTEM',
+          url: '/dashboard/documents',
+          data: {
+            documentUuid: opts.vaultUuid,
+            fileName: opts.fileName,
+          },
+        })
+        .catch((err) => {
+          this.logger.warn(`Failed to dispatch vault document push notification: ${err?.message || err}`);
+        });
     }
 
     return {
