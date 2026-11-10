@@ -158,6 +158,7 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
     trafficHook.trafficPage,
     referralsHook.referralPage,
     earlyAccessHook.typeFilter,
+    earlyAccessHook.sourceFilter,
     hireRequestsHook.hireStatusFilter,
     hireRequestsHook.hireIndustryFilter,
     hireRequestsHook.hirePlacementFilter,
@@ -199,11 +200,19 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
     isDeveloper,
   })
 
+  const handleViewSourceAttendees = (identifier: string) => {
+    earlyAccessHook.setSourceFilter(identifier)
+    earlyAccessHook.setPage(1)
+    setActiveTab('EARLY_ACCESS')
+    earlyAccessHook.fetchRecords(1, earlyAccessHook.typeFilter, earlyAccessHook.search, identifier)
+  }
+
   const trafficColumns = getTrafficColumns({
     onVisitsLog: trafficHook.fetchVisitsForSource,
     onToggleActive: trafficHook.handleToggleSourceActive,
     onCopyLink: trafficHook.handleCopyLink,
     copiedId: trafficHook.copiedId,
+    onViewAttendees: handleViewSourceAttendees,
     onDelete: (row) => setDeleteTarget({ id: row.id, name: row.name, type: 'TRAFFIC_SOURCE' }),
     isDeveloper,
   })
@@ -296,6 +305,11 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
           typeFilter={earlyAccessHook.typeFilter}
           onTypeFilterChange={(type) => {
             earlyAccessHook.setTypeFilter(type)
+            earlyAccessHook.setPage(1)
+          }}
+          sourceFilter={earlyAccessHook.sourceFilter}
+          onSourceFilterChange={(source) => {
+            earlyAccessHook.setSourceFilter(source)
             earlyAccessHook.setPage(1)
           }}
           search={earlyAccessHook.search}

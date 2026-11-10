@@ -11,6 +11,7 @@ export const useEarlyAccess = (token: string) => {
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'STUDENT' | 'LANDLORD'>('ALL')
+  const [sourceFilter, setSourceFilter] = useState<string>('ALL')
   const [search, setSearch] = useState('')
   const [selectedRecord, setSelectedRecord] = useState<EarlyAccessRecord | null>(null)
 
@@ -29,11 +30,17 @@ export const useEarlyAccess = (token: string) => {
   }, [token])
 
   const fetchRecords = useCallback(
-    async (pageNum = page, currentFilter = typeFilter, currentSearch = search) => {
+    async (
+      pageNum = page,
+      currentFilter = typeFilter,
+      currentSearch = search,
+      currentSource = sourceFilter
+    ) => {
       setLoading(true)
       try {
         let url = `/admin/early-access?page=${pageNum}&limit=50`
         if (currentFilter !== 'ALL') url += `&type=${currentFilter}`
+        if (currentSource && currentSource !== 'ALL') url += `&source=${encodeURIComponent(currentSource)}`
         if (currentSearch.trim()) url += `&search=${encodeURIComponent(currentSearch.trim())}`
 
         const response = await apiService.get(url, token)
@@ -48,7 +55,7 @@ export const useEarlyAccess = (token: string) => {
         setLoading(false)
       }
     },
-    [token, page, typeFilter, search]
+    [token, page, typeFilter, search, sourceFilter]
   )
 
   return {
@@ -62,6 +69,8 @@ export const useEarlyAccess = (token: string) => {
     totalPages,
     typeFilter,
     setTypeFilter,
+    sourceFilter,
+    setSourceFilter,
     search,
     setSearch,
     selectedRecord,

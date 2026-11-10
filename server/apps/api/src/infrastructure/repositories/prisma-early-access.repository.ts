@@ -27,6 +27,7 @@ export class PrismaEarlyAccessRepository implements IEarlyAccessRepository {
         propertyCount: rawData.propertyCount ?? null,
         landlordStatus: rawData.landlordStatus ?? null,
         managementStyle: rawData.managementStyle ?? null,
+        sourceIdentifier: rawData.sourceIdentifier ?? null,
         abVariant: rawData.abVariant ? rawData.abVariant.toUpperCase() : 'A',
       },
     })
@@ -44,6 +45,7 @@ export class PrismaEarlyAccessRepository implements IEarlyAccessRepository {
       propertyCount: created.propertyCount,
       landlordStatus: created.landlordStatus,
       managementStyle: created.managementStyle,
+      sourceIdentifier: created.sourceIdentifier,
       abVariant: created.abVariant || 'A',
       createdAt: created.createdAt,
       updatedAt: created.updatedAt,
@@ -61,12 +63,22 @@ export class PrismaEarlyAccessRepository implements IEarlyAccessRepository {
     return EarlyAccessEntry.restore(record as EarlyAccessProps)
   }
 
-  async findAll(params?: { type?: string; search?: string; limit?: number; offset?: number }): Promise<{ entries: EarlyAccessEntry[]; total: number }> {
+  async findAll(params?: {
+    type?: string
+    search?: string
+    sourceIdentifier?: string
+    limit?: number
+    offset?: number
+  }): Promise<{ entries: EarlyAccessEntry[]; total: number }> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {}
 
     if (params?.type && params.type !== 'ALL') {
       where.type = params.type.toUpperCase()
+    }
+
+    if (params?.sourceIdentifier && params.sourceIdentifier !== 'ALL') {
+      where.sourceIdentifier = params.sourceIdentifier
     }
 
     if (params?.search && params.search.trim().length > 0) {
@@ -77,6 +89,7 @@ export class PrismaEarlyAccessRepository implements IEarlyAccessRepository {
         { whatsapp: { contains: query, mode: 'insensitive' } },
         { city: { contains: query, mode: 'insensitive' } },
         { interest: { contains: query, mode: 'insensitive' } },
+        { sourceIdentifier: { contains: query, mode: 'insensitive' } },
       ]
     }
 

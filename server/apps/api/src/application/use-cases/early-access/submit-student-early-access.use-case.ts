@@ -63,6 +63,7 @@ export class SubmitStudentEarlyAccessUseCase {
       city: command.city,
       ageBracket: command.ageBracket,
       experienceLevel: command.experienceLevel,
+      sourceIdentifier: command.sourceIdentifier || null,
       abVariant: command.abVariant || 'A',
       interest: combinedInterest,
     })

@@ -136,6 +136,8 @@ export const CreateTrafficSourceModal: React.FC<CreateTrafficSourceModalProps> =
                 }}
               >
                 <option value="/academy">Main Landing Page (/academy)</option>
+                <option value="/academy/webinar">Webinar Registration (/academy/webinar)</option>
+                <option value="/webinar">Direct Webinar (/webinar)</option>
                 <option value="/academy/apply">Direct Application (/academy/apply)</option>
                 <option value="/academy/scholarships">Scholarship Page (/academy/scholarships)</option>
                 <option value="/academy/landlord">Landlord Programme (/academy/landlord)</option>
@@ -160,7 +162,13 @@ export const CreateTrafficSourceModal: React.FC<CreateTrafficSourceModalProps> =
                   fontFamily: 'monospace',
                 }}
               >
-                /academy/
+                {form.targetUrl === '/webinar'
+                  ? '/webinar?ref='
+                  : form.targetUrl === '/academy/webinar'
+                  ? '/academy/webinar?ref='
+                  : form.targetUrl === '/academy/apply'
+                  ? '/academy/apply?ref='
+                  : '/academy/'}
               </span>
               <input
                 type="text"
