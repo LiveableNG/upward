@@ -156,8 +156,8 @@ export class SubmitStudentEarlyAccessUseCase {
                 <p style="margin: 0 0 6px 0;">
                   <strong>Share with your friends:</strong> Know someone who’d benefit from this? Invite them:
                 </p>
-                <a href="${whatsappCommunityUrl}" target="_blank" rel="noopener noreferrer" style="color: #d97757; font-weight: 600; text-decoration: underline; word-break: break-all;">
-                  ${whatsappCommunityUrl}
+                <a href="https://upward.goodtenants.io/academy/webinar" target="_blank" rel="noopener noreferrer" style="color: #d97757; font-weight: 600; text-decoration: underline; word-break: break-all;">
+                  https://upward.goodtenants.io/academy/webinar
                 </a>
               </div>
             </div>
