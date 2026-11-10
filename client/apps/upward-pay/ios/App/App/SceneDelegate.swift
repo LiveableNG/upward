@@ -1,8 +1,18 @@
 import UIKit
 import Capacitor
+import UserNotifications
 
 class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     var window: UIWindow?
+
+    func sceneDidBecomeActive(_ scene: UIScene) {
+        // Reset badge count whenever app scene becomes active
+        if #available(iOS 16.0, *) {
+            UNUserNotificationCenter.current().setBadgeCount(0, withCompletionHandler: nil)
+        } else {
+            UIApplication.shared.applicationIconBadgeNumber = 0
+        }
+    }
 
     func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
         guard let windowScene = scene as? UIWindowScene else { return }

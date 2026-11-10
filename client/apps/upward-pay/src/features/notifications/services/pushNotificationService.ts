@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { api } from '@/lib/api'
 import { Capacitor } from '@capacitor/core'
 import { PushNotifications } from '@capacitor/push-notifications'
+import { App } from '@capacitor/app'
 import { useRouter } from 'next/navigation'
 
 export const APP_NAVIGATE_EVENT = 'app:navigate'
@@ -26,11 +27,23 @@ export class PushNotificationService {
     return result.receive === 'granted'
   }
 
+  static async clearBadge(): Promise<void> {
+    if (!Capacitor.isNativePlatform()) return
+    try {
+      await PushNotifications.removeAllDeliveredNotifications()
+    } catch (err) {
+      console.warn('[Push] Failed to clear badge / delivered notifications:', err)
+    }
+  }
+
   static async registerDevice(): Promise<void> {
     if (!Capacitor.isNativePlatform()) return
     
     try {
-      // 1. Check existing permission status
+      // 1. Clear badge / delivered notifications on open
+      await this.clearBadge()
+
+      // 2. Check existing permission status
       const status = await this.getPermissionStatus()
       if (status !== 'granted') {
         console.warn('[Push] Registration skipped: Permission not granted')
@@ -78,6 +91,7 @@ export class PushNotificationService {
 
       // Handle incoming notifications and taps
       await PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+        PushNotificationService.clearBadge()
         const url = action.notification.data?.url
         if (url && typeof window !== 'undefined') {
           // Dispatch custom event for client-side navigation
@@ -129,6 +143,24 @@ export function usePushNotifications(isLoggedIn: boolean) {
     window.addEventListener(APP_NAVIGATE_EVENT, handleNavigate)
     return () => window.removeEventListener(APP_NAVIGATE_EVENT, handleNavigate)
   }, [router])
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return
+
+    // Immediately clear badge on mount
+    PushNotificationService.clearBadge()
+
+    // Clear badge whenever app comes to the foreground
+    const handleAppState = App.addListener('appStateChange', (state) => {
+      if (state.isActive) {
+        PushNotificationService.clearBadge()
+      }
+    })
+
+    return () => {
+      handleAppState.then((h) => h.remove()).catch(() => {})
+    }
+  }, [])
 
   useEffect(() => {
     const setup = async () => {
