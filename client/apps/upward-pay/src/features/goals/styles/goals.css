@@ -557,7 +557,7 @@
 
 @media (max-width: 540px) {
   .lifestyle-discovery__header {
-    padding: calc(var(--safe-top, 0px) + 10px) 14px 10px;
+    padding: calc(var(--safe-top, 0px) + 10px) var(--shell-px, 20px) 10px;
   }
 
   .lifestyle-discovery__top-bar {
@@ -601,7 +601,7 @@
 
 @media (max-width: 360px) {
   .lifestyle-discovery__header {
-    padding: calc(var(--safe-top, 0px) + 8px) 10px 8px;
+    padding: calc(var(--safe-top, 0px) + 8px) var(--shell-px, 16px) 8px;
   }
 
   .lifestyle-discovery__top-bar {
@@ -844,7 +844,7 @@
 
 /* Main Container */
 .lifestyle-discovery__container {
-  padding: 16px var(--shell-px);
+  padding: 16px var(--shell-px, 20px);
   max-width: 1200px;
   margin: 0 auto;
   width: 100%;
@@ -853,7 +853,7 @@
 
 @media (max-width: 540px) {
   .lifestyle-discovery__container {
-    padding: 12px 12px 24px;
+    padding: 12px var(--shell-px, 20px) 24px;
   }
 }
 
@@ -1741,7 +1741,7 @@
 
 @media (max-width: 540px) {
   .offering-detail__header {
-    padding: calc(var(--safe-top) + 10px) 12px 10px;
+    padding: calc(var(--safe-top) + 10px) var(--shell-px, 20px) 10px;
   }
 
   .offering-detail__back-btn,
@@ -1753,7 +1753,7 @@
   }
 
   .offering-detail__container {
-    padding: 12px 12px 32px;
+    padding: 12px var(--shell-px, 20px) 32px;
   }
 
   .offering-detail__layout {
@@ -3363,7 +3363,7 @@
 
 @media (max-width: 540px) {
   .orders-hub {
-    padding: calc(var(--safe-top, 0px) + 12px) 14px 60px;
+    padding: calc(var(--safe-top, 0px) + 12px) var(--shell-px, 20px) 60px;
   }
 }
 
@@ -3759,7 +3759,7 @@
 
 @media (max-width: 540px) {
   .order-tracking {
-    padding: calc(var(--safe-top, 0px) + 12px) 14px 60px;
+    padding: calc(var(--safe-top, 0px) + 12px) var(--shell-px, 20px) 60px;
   }
 }
 

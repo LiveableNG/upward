@@ -271,6 +271,7 @@
   justify-content: center;
   background: transparent;
   transition: background 0.2s ease;
+  position: relative;
 }
 
 .bottom-nav__item--active .bottom-nav__icon-pill {
