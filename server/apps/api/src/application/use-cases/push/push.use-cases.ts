@@ -17,14 +17,15 @@ export class RegisterDeviceTokenUseCase {
 
     let fcmToken = token.trim()
 
-    // If registered from iOS with a 64-hex char APNs device token, map it to an FCM token
     if (platform === 'ios' && /^[0-9a-fA-F]{64}$/.test(fcmToken)) {
       const converted = await this.pushService.convertApnsTokenToFcm(fcmToken)
       if (converted) {
+        await this.deviceTokenRepo.removeTokenByValue(fcmToken).catch(() => {})
         fcmToken = converted
       }
     }
 
+    await this.deviceTokenRepo.removeTokenByValue(fcmToken).catch(() => {})
     await this.deviceTokenRepo.upsertToken(user.id!, fcmToken, platform)
   }
 }

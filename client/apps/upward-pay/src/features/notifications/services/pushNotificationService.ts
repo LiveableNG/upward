@@ -8,6 +8,7 @@ import { App } from '@capacitor/app'
 import { useRouter } from 'next/navigation'
 
 export const APP_NAVIGATE_EVENT = 'app:navigate'
+const TOKEN_STORAGE_KEY = 'upward_device_push_token'
 let cachedToken: string | null = null
 
 export class PushNotificationService {
@@ -68,10 +69,10 @@ export class PushNotificationService {
       
       // 3. Add listeners before registering
       await PushNotifications.addListener('registration', async (token) => {
-        if (cachedToken === token.value) return
         cachedToken = token.value
-
-        console.log('[Push] Device Token Generated:', token.value) // <--- ADDED LOG FOR YOU
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(TOKEN_STORAGE_KEY, token.value)
+        }
 
         const platform = Capacitor.getPlatform()
         try {
@@ -79,7 +80,6 @@ export class PushNotificationService {
             token: token.value,
             platform,
           })
-          console.log('[Push] Token successfully sent to backend')
         } catch (err) {
           console.error('[Push] Backend token registration failed', err)
         }
@@ -110,13 +110,19 @@ export class PushNotificationService {
     if (!Capacitor.isNativePlatform()) return
     
     try {
-      if (cachedToken) {
+      const tokenToUnregister =
+        cachedToken || (typeof window !== 'undefined' ? localStorage.getItem(TOKEN_STORAGE_KEY) : null)
+
+      if (tokenToUnregister) {
         const { request } = await import('@/lib/api-client')
         await request('/user/notifications/device-token', {
           method: 'DELETE',
-          body: JSON.stringify({ token: cachedToken }),
-        })
+          body: JSON.stringify({ token: tokenToUnregister }),
+        }).catch(() => {})
         cachedToken = null
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem(TOKEN_STORAGE_KEY)
+        }
       }
       await PushNotifications.removeAllListeners()
     } catch (err) {
@@ -147,10 +153,8 @@ export function usePushNotifications(isLoggedIn: boolean) {
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return
 
-    // Immediately clear badge on mount
     PushNotificationService.clearBadge()
 
-    // Clear badge whenever app comes to the foreground
     const handleAppState = App.addListener('appStateChange', (state) => {
       if (state.isActive) {
         PushNotificationService.clearBadge()
@@ -161,6 +165,13 @@ export function usePushNotifications(isLoggedIn: boolean) {
       handleAppState.then((h) => h.remove()).catch(() => {})
     }
   }, [])
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return
+    if (!isLoggedIn) {
+      PushNotificationService.unregisterDevice()
+    }
+  }, [isLoggedIn])
 
   useEffect(() => {
     const setup = async () => {
