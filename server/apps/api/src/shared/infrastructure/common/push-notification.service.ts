@@ -4,8 +4,6 @@ import { PrismaDeviceTokenRepository } from '../prisma/repositories/prisma-devic
 @Injectable()
 export class PushNotificationService {
   private readonly logger = new Logger(PushNotificationService.name)
-  private readonly projectId = process.env.FCM_PROJECT_ID
-  private readonly clientEmail = process.env.FCM_CLIENT_EMAIL
 
   private accessToken: string | null = null
   private tokenExpiresAt = 0
@@ -14,6 +12,29 @@ export class PushNotificationService {
     @Optional()
     private readonly deviceTokenRepo?: PrismaDeviceTokenRepository,
   ) {}
+
+  /**
+   * Sanitizes string values from environment variables, stripping outer quotes and trimming whitespace.
+   */
+  private cleanEnvString(val?: string): string | null {
+    if (!val) return null
+    let cleaned = val.trim()
+    if (
+      (cleaned.startsWith('"') && cleaned.endsWith('"')) ||
+      (cleaned.startsWith("'") && cleaned.endsWith("'"))
+    ) {
+      cleaned = cleaned.slice(1, -1).trim()
+    }
+    return cleaned || null
+  }
+
+  private get projectId(): string | null {
+    return this.cleanEnvString(process.env.FCM_PROJECT_ID)
+  }
+
+  private get clientEmail(): string | null {
+    return this.cleanEnvString(process.env.FCM_CLIENT_EMAIL)
+  }
 
   /**
    * Sanitizes the private key from environment variables.
@@ -49,8 +70,11 @@ export class PushNotificationService {
 
   /** Obtain a short-lived OAuth2 token for FCM HTTP v1 */
   private async getAccessToken(): Promise<string | null> {
+    const projectId = this.projectId
+    const clientEmail = this.clientEmail
     const privateKey = this.getPrivateKey()
-    if (!this.projectId || !this.clientEmail || !privateKey) return null
+
+    if (!projectId || !clientEmail || !privateKey) return null
     if (this.accessToken && Date.now() < this.tokenExpiresAt - 60_000) return this.accessToken
 
     try {
@@ -61,7 +85,7 @@ export class PushNotificationService {
       const header = Buffer.from(JSON.stringify({ alg: 'RS256', typ: 'JWT' })).toString('base64url')
       const payload = Buffer.from(
         JSON.stringify({
-          iss: this.clientEmail,
+          iss: clientEmail,
           scope: 'https://www.googleapis.com/auth/firebase.messaging',
           aud: 'https://oauth2.googleapis.com/token',
           iat: now,
@@ -146,10 +170,13 @@ export class PushNotificationService {
     tokens: string[],
     payload: { title: string; body: string; data?: Record<string, string> },
   ): Promise<{ sent: number; failed: number }> {
+    const projectId = this.projectId
+    const clientEmail = this.clientEmail
     const privateKey = this.getPrivateKey()
+
     const missing: string[] = []
-    if (!this.projectId) missing.push('FCM_PROJECT_ID')
-    if (!this.clientEmail) missing.push('FCM_CLIENT_EMAIL')
+    if (!projectId) missing.push('FCM_PROJECT_ID')
+    if (!clientEmail) missing.push('FCM_CLIENT_EMAIL')
     if (!privateKey) missing.push('FCM_PRIVATE_KEY')
 
     if (missing.length > 0) {
@@ -163,7 +190,7 @@ export class PushNotificationService {
       throw new Error('Failed to acquire FCM OAuth2 access token')
     }
 
-    const url = `https://fcm.googleapis.com/v1/projects/${this.projectId}/messages:send`
+    const url = `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`
     let sentCount = 0
     let failedCount = 0
 
