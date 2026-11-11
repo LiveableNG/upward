@@ -254,10 +254,10 @@ export const Announcements: React.FC<AnnouncementsProps> = ({ token }) => {
 
     setSendingPush(true)
     try {
-      await apiService.post('/admin/notifications/push-broadcast', pushNotification, token)
+      const res = await apiService.post('/admin/notifications/push-broadcast', pushNotification, token)
       setShowPushModal(false)
       setPushNotification({ title: '', message: '', url: '' })
-      showToast('Push notification broadcasted to all mobile devices! 🚀')
+      showToast(res?.message || 'Push notification broadcasted to all mobile devices! 🚀')
     } catch (err: any) {
       console.error(err)
       showToast(err?.message || 'Failed to broadcast push notification', true)

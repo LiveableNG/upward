@@ -65,12 +65,25 @@ export class AdminAnnouncementsController {
     if (!dto.title || !dto.message) {
       throw new BadRequestException('Title and message are required')
     }
-    await this.notificationService.broadcastPush({
+    const result = await this.notificationService.broadcastPush({
       title: dto.title.trim(),
       message: dto.message.trim(),
       url: dto.url?.trim(),
       type: 'SYSTEM',
     })
-    return { success: true, message: 'Push notification broadcasted to all registered devices' }
+
+    if (result.totalRecipients === 0) {
+      return {
+        success: true,
+        message: 'No active mobile devices registered yet to receive notifications.',
+        ...result,
+      }
+    }
+
+    return {
+      success: true,
+      message: `Push notification broadcasted to ${result.sent} device(s)${result.failed > 0 ? ` (${result.failed} failed)` : ''}`,
+      ...result,
+    }
   }
 }

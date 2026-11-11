@@ -54,23 +54,21 @@ export class NotificationService {
     }
   }
 
-  async broadcastPush(payload: Omit<NotificationPayload, 'type'> & { type?: string }): Promise<void> {
-    try {
-      const tokens = await this.deviceTokenRepo.findAllTokens()
-      if (tokens.length > 0) {
-        await this.pushService.sendToTokens(tokens, {
-          title: payload.title,
-          body: payload.message,
-          data: {
-            type: payload.type || 'SYSTEM',
-            url: payload.url || '',
-            ...(payload.data || {}),
-          },
-        })
-      }
-    } catch (error) {
-      this.logger.error('Failed to broadcast push notification', error)
+  async broadcastPush(payload: Omit<NotificationPayload, 'type'> & { type?: string }): Promise<{ totalRecipients: number; sent: number; failed: number }> {
+    const tokens = await this.deviceTokenRepo.findAllTokens()
+    if (tokens.length === 0) {
+      return { totalRecipients: 0, sent: 0, failed: 0 }
     }
+    const result = await this.pushService.sendToTokens(tokens, {
+      title: payload.title,
+      body: payload.message,
+      data: {
+        type: payload.type || 'SYSTEM',
+        url: payload.url || '',
+        ...(payload.data || {}),
+      },
+    })
+    return { totalRecipients: tokens.length, ...result }
   }
 
   async markAsRead(notificationUuid: string): Promise<void> {

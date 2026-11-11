@@ -6,7 +6,6 @@ export class PushNotificationService {
   private readonly logger = new Logger(PushNotificationService.name)
   private readonly projectId = process.env.FCM_PROJECT_ID
   private readonly clientEmail = process.env.FCM_CLIENT_EMAIL
-  private readonly privateKey = process.env.FCM_PRIVATE_KEY?.replace(/\\n/g, '\n')
 
   private accessToken: string | null = null
   private tokenExpiresAt = 0
@@ -16,9 +15,42 @@ export class PushNotificationService {
     private readonly deviceTokenRepo?: PrismaDeviceTokenRepository,
   ) {}
 
+  /**
+   * Sanitizes the private key from environment variables.
+   * Handles surrounding quotes, literal escaped \n, \r, and multiline variations.
+   */
+  private getPrivateKey(): string | null {
+    const raw = process.env.FCM_PRIVATE_KEY
+    if (!raw) return null
+
+    let cleaned = raw.trim()
+
+    // 1. Strip surrounding double or single quotes added by cloud env editors (Vercel, AWS, Heroku)
+    if (
+      (cleaned.startsWith('"') && cleaned.endsWith('"')) ||
+      (cleaned.startsWith("'") && cleaned.endsWith("'"))
+    ) {
+      cleaned = cleaned.slice(1, -1)
+    }
+
+    // 2. Convert literal backslash-n string to real newlines
+    cleaned = cleaned.replace(/\\n/g, '\n').replace(/\\r/g, '').trim()
+
+    // 3. Second pass in case quotes were nested inside escaped strings
+    if (
+      (cleaned.startsWith('"') && cleaned.endsWith('"')) ||
+      (cleaned.startsWith("'") && cleaned.endsWith("'"))
+    ) {
+      cleaned = cleaned.slice(1, -1)
+    }
+
+    return cleaned.trim()
+  }
+
   /** Obtain a short-lived OAuth2 token for FCM HTTP v1 */
   private async getAccessToken(): Promise<string | null> {
-    if (!this.projectId || !this.clientEmail || !this.privateKey) return null
+    const privateKey = this.getPrivateKey()
+    if (!this.projectId || !this.clientEmail || !privateKey) return null
     if (this.accessToken && Date.now() < this.tokenExpiresAt - 60_000) return this.accessToken
 
     try {
@@ -40,7 +72,7 @@ export class PushNotificationService {
       const sign = createSign('RSA-SHA256')
       sign.write(`${header}.${payload}`)
       sign.end()
-      const sig = sign.sign(this.privateKey!, 'base64url')
+      const sig = sign.sign(privateKey, 'base64url')
       const jwt = `${header}.${payload}.${sig}`
 
       const resp = await fetch('https://oauth2.googleapis.com/token', {
@@ -52,13 +84,18 @@ export class PushNotificationService {
         }),
       })
 
-      const json = await resp.json() as { access_token: string }
+      if (!resp.ok) {
+        const errorText = await resp.text()
+        throw new Error(`Google OAuth2 token exchange rejected: ${resp.status} ${errorText}`)
+      }
+
+      const json = (await resp.json()) as { access_token: string }
       this.accessToken = json.access_token
       this.tokenExpiresAt = exp * 1000
       return this.accessToken
     } catch (err) {
       this.logger.error('Failed to obtain FCM access token', err)
-      return null
+      throw err
     }
   }
 
@@ -101,32 +138,39 @@ export class PushNotificationService {
     return null
   }
 
+  /**
+   * Dispatches push notifications to an array of FCM or APNs device tokens.
+   * Returns { sent, failed } counts.
+   */
   async sendToTokens(
     tokens: string[],
     payload: { title: string; body: string; data?: Record<string, string> },
-  ): Promise<void> {
-    if (!tokens.length) return
+  ): Promise<{ sent: number; failed: number }> {
+    const privateKey = this.getPrivateKey()
+    const missing: string[] = []
+    if (!this.projectId) missing.push('FCM_PROJECT_ID')
+    if (!this.clientEmail) missing.push('FCM_CLIENT_EMAIL')
+    if (!privateKey) missing.push('FCM_PRIVATE_KEY')
+
+    if (missing.length > 0) {
+      const msg = `FCM missing environment variables: ${missing.join(', ')}`
+      this.logger.error(msg)
+      throw new Error(msg)
+    }
 
     const accessToken = await this.getAccessToken()
     if (!accessToken) {
-      const missing = []
-      if (!this.projectId) missing.push('FCM_PROJECT_ID')
-      if (!this.clientEmail) missing.push('FCM_CLIENT_EMAIL')
-      if (!this.privateKey) missing.push('FCM_PRIVATE_KEY')
-
-      if (missing.length > 0) {
-        this.logger.error(`FCM missing environment variables: ${missing.join(', ')}`)
-      } else {
-        this.logger.warn('FCM not configured or token acquisition failed — push notification skipped')
-      }
-      return
+      throw new Error('Failed to acquire FCM OAuth2 access token')
     }
 
     const url = `https://fcm.googleapis.com/v1/projects/${this.projectId}/messages:send`
+    let sentCount = 0
+    let failedCount = 0
 
     await Promise.allSettled(
       tokens.map(async (rawToken) => {
         let token = rawToken.trim()
+        if (!token) return
 
         // If it is an Apple APNs 64-hex token, convert it to an FCM token first
         if (/^[0-9a-fA-F]{64}$/.test(token)) {
@@ -167,14 +211,19 @@ export class PushNotificationService {
         })
 
         if (!res.ok) {
+          failedCount++
           const err = await res.text()
           this.logger.error(`FCM send failed for token ${token.slice(0, 16)}…: ${err}`)
           if (res.status === 404 || err.includes('UNREGISTERED') || err.includes('NotRegistered')) {
             this.logger.warn(`Pruning dead/unregistered FCM token: ${token.slice(0, 16)}…`)
             await this.deviceTokenRepo?.removeTokenByValue(token).catch(() => {})
           }
+        } else {
+          sentCount++
         }
       }),
     )
+
+    return { sent: sentCount, failed: failedCount }
   }
 }
