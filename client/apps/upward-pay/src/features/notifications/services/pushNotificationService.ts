@@ -37,6 +37,22 @@ export class PushNotificationService {
     }
   }
 
+  static async openSystemSettings(): Promise<void> {
+    if (!Capacitor.isNativePlatform()) return
+    const platform = Capacitor.getPlatform()
+    if (platform === 'ios') {
+      window.location.href = 'app-settings:'
+    } else if (platform === 'android') {
+      try {
+        window.location.href =
+          'intent:#Intent;action=android.settings.APP_NOTIFICATION_SETTINGS;S.android.provider.extra.APP_PACKAGE=com.goodtenants.upward;end'
+      } catch {
+        window.location.href =
+          'intent:#Intent;action=android.settings.APPLICATION_DETAILS_SETTINGS;data=package:com.goodtenants.upward;end'
+      }
+    }
+  }
+
   static async registerDevice(): Promise<void> {
     if (!Capacitor.isNativePlatform()) return
     
@@ -158,6 +174,13 @@ export function usePushNotifications(isLoggedIn: boolean) {
     const handleAppState = App.addListener('appStateChange', (state) => {
       if (state.isActive) {
         PushNotificationService.clearBadge()
+        if (isLoggedIn) {
+          PushNotificationService.getPermissionStatus().then((status) => {
+            if (status === 'granted') {
+              PushNotificationService.registerDevice()
+            }
+          })
+        }
       }
     })
 

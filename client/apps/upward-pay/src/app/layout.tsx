@@ -6,6 +6,7 @@ import { LaunchDarklyProvider } from '@/features/premium/components/LaunchDarkly
 import Providers from './Providers'
 import { SmartAppBanner } from '@/components/common/SmartAppBanner'
 import { OfflineBanner } from '@/components/common/OfflineBanner'
+import { NotificationPromptModal } from '@/features/notifications/components/NotificationPromptModal'
 import './globals.css'
 
 const inter = Inter({
@@ -59,6 +60,7 @@ export default function RootLayout({
               <SmartAppBanner />
               <OfflineBanner />
               {children}
+              <NotificationPromptModal />
             </LaunchDarklyProvider>
           </AuthProvider>
         </Providers>
