@@ -222,11 +222,13 @@ export class PushNotificationService {
             notification: { title: payload.title, body: payload.body },
             data: payload.data ?? {},
             android: {
+              priority: 'HIGH',
               notification: {
-                icon: 'ic_notification',
                 color: '#d97757',
                 sound: 'upward_chime',
                 channel_id: 'upward_alerts',
+                notification_priority: 'PRIORITY_MAX',
+                default_vibrate_timings: true,
               },
             },
             apns: {

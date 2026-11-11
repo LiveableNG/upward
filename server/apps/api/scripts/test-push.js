@@ -107,11 +107,13 @@ async function sendPush(token, title, body, data = {}) {
       notification: { title, body },
       data,
       android: {
+        priority: 'HIGH',
         notification: {
-          icon: 'ic_notification',
           color: '#d97757',
           sound: 'upward_chime',
           channel_id: 'upward_alerts',
+          notification_priority: 'PRIORITY_MAX',
+          default_vibrate_timings: true,
         },
       },
       apns: {
