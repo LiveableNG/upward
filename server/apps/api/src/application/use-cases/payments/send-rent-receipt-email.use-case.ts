@@ -6,7 +6,6 @@ import { WhatsappService } from '../../../shared/infrastructure/whatsapp/whatsap
 import { UnifiedCommunicationService } from '../../../shared/infrastructure/communication/unified-communication.service'
 import { GenerateReceiptPdfUseCase } from './payment.use-cases'
 import { SubscriptionService, FeatureKey } from '../../../domains/subscription/subscription.service'
-import { NotificationService } from '../../../shared/infrastructure/common/notification.service'
 
 import { ReceiptPdfData } from '../../../shared/infrastructure/common/receipt/receipt.service'
 
@@ -34,7 +33,6 @@ export class SendRentReceiptEmailUseCase {
     private readonly generateReceiptPdf: GenerateReceiptPdfUseCase,
     private readonly unifiedCommService: UnifiedCommunicationService,
     private readonly subscriptionService: SubscriptionService,
-    private readonly notificationService: NotificationService,
   ) {}
 
   async execute(params: {
@@ -233,24 +231,6 @@ export class SendRentReceiptEmailUseCase {
         lineItems,
       },
     })
-
-    // Instant mobile push notification and in-app receipt
-    if (user?.id) {
-      this.notificationService
-        .notifyUser(user.id, {
-          title: 'Payment Confirmed! 🎉',
-          message: `Your payment of ${formattedAmount} for ${propertyAddress} was successful. Tap to view your official receipt.`,
-          type: 'PAYMENT',
-          url: `/dashboard/receipts?id=${tx.uuid}`,
-          data: {
-            transactionUuid: tx.uuid,
-            receiptNumber,
-          },
-        })
-        .catch((pushErr) => {
-          this.logger.warn(`Failed to dispatch receipt push notification for user ${user.id}: ${pushErr?.message || pushErr}`)
-        })
-    }
 
     return { emailSent: success, whatsappSent: success }
   }

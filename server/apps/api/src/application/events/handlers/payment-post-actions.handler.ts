@@ -7,6 +7,7 @@ import { PaymentUpdatedEvent } from '../definition/payment-updated.event'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 import { SendRentReceiptEmailUseCase } from '../../use-cases/payments/send-rent-receipt-email.use-case'
 import { UnifiedCommunicationService } from '../../../shared/infrastructure/communication/unified-communication.service'
+import { NotificationService } from '../../../shared/infrastructure/common/notification.service'
 
 @Injectable()
 export class PaymentPostActionsHandler implements OnModuleInit, OnModuleDestroy {
@@ -19,6 +20,7 @@ export class PaymentPostActionsHandler implements OnModuleInit, OnModuleDestroy 
     private readonly encryption: EncryptionService,
     private readonly sendRentReceiptEmail: SendRentReceiptEmailUseCase,
     private readonly unifiedCommService: UnifiedCommunicationService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   onModuleInit() {
@@ -43,19 +45,55 @@ export class PaymentPostActionsHandler implements OnModuleInit, OnModuleDestroy 
               })
           }
 
+          // 1. Instant Mobile Push & In-App Payment Notifications (Full & Partial Payments)
+          try {
+            const tx = await this.prisma.upward_transaction.findUnique({
+              where: { id: data.transactionId },
+            })
+            const prop = data.propertyId
+              ? await this.prisma.upward_user_property.findUnique({ where: { id: data.propertyId } })
+              : null
+
+            const paidAmount = data.rentPortion || data.amount || tx?.amount || 0
+            const currency = data.currency || tx?.currency || 'NGN'
+            const formattedAmount = `${currency} ${paidAmount.toLocaleString()}`
+            const remaining = tx?.remainingBalance ?? prop?.amountRemaining ?? 0
+            const isPartial = tx?.isPartial === true || remaining > 0
+
+            if (isPartial && remaining > 0) {
+              await this.notificationService.notifyUser(data.userId, {
+                title: 'Partial Payment Confirmed 💳',
+                message: `Received ${formattedAmount}. Remaining rent balance: ${currency} ${remaining.toLocaleString()}.`,
+                type: 'PAYMENT',
+                url: '/dashboard/transactions',
+                data: {
+                  transactionId: String(data.transactionId),
+                  transactionUuid: tx?.uuid || '',
+                  isPartial: 'true',
+                  remaining: String(remaining),
+                },
+              })
+              this.logger.log(`Dispatched Partial Payment push notification to user ${data.userId}`)
+            } else {
+              await this.notificationService.notifyUser(data.userId, {
+                title: 'Rent Payment Received! 🎉',
+                message: `Your rent payment of ${formattedAmount} was received in full. Your credit health has been updated!`,
+                type: 'PAYMENT',
+                url: '/dashboard/transactions',
+                data: {
+                  transactionId: String(data.transactionId),
+                  transactionUuid: tx?.uuid || '',
+                  isPartial: 'false',
+                },
+              })
+              this.logger.log(`Dispatched Full Rent Payment push notification to user ${data.userId}`)
+            }
+          } catch (notifErr) {
+            this.logger.error(`Failed to dispatch payment notification for user ${data.userId}:`, notifErr)
+          }
+
           if (data.rentPortion > 0 && data.propertyId) {
              const prop = await this.prisma.upward_user_property.findUnique({ where: { id: data.propertyId } })
-             if (prop && prop.amountRemaining === 0) {
-                await this.prisma.upward_notification.create({
-                  data: {
-                    userId: data.userId,
-                    title: 'Credit Score Boost!',
-                    message: `Congratulations! Your full rent payment has boosted your credit health.`,
-                    type: 'SYSTEM'
-                  }
-                })
-                this.logger.log(`Sent Credit Boost notification to user ${data.userId}`)
-             }
 
              if (prop && prop.pmId) {
                try {
