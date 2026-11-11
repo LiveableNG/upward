@@ -194,19 +194,28 @@ export class PushNotificationService {
     let sentCount = 0
     let failedCount = 0
 
-    await Promise.allSettled(
-      tokens.map(async (rawToken) => {
-        let token = rawToken.trim()
-        if (!token) return
+    // 1. Resolve and deduplicate destination tokens to prevent duplicate notifications
+    const resolvedTokens = new Set<string>()
+    for (const raw of tokens) {
+      const token = raw.trim()
+      if (!token) continue
 
-        // If it is an Apple APNs 64-hex token, convert it to an FCM token first
-        if (/^[0-9a-fA-F]{64}$/.test(token)) {
-          const fcmToken = await this.convertApnsTokenToFcm(token)
-          if (fcmToken) {
-            token = fcmToken
-          }
+      if (/^[0-9a-fA-F]{64}$/.test(token)) {
+        const fcmToken = await this.convertApnsTokenToFcm(token)
+        if (fcmToken) {
+          resolvedTokens.add(fcmToken)
+          // Asynchronously prune obsolete raw APNs token so DB doesn't retain duplicates
+          this.deviceTokenRepo?.removeTokenByValue(token).catch(() => {})
         }
+      } else {
+        resolvedTokens.add(token)
+      }
+    }
 
+    const uniqueTokens = Array.from(resolvedTokens)
+
+    await Promise.allSettled(
+      uniqueTokens.map(async (token) => {
         const body = {
           message: {
             token,

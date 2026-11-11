@@ -6,10 +6,19 @@ import {
 } from '../../../domains/notifications/notification.repository'
 import { PrismaDeviceTokenRepository } from '../prisma/repositories/prisma-device-token.repository'
 
+export type NotificationType =
+  | 'SYSTEM'
+  | 'SUPPORT'
+  | 'PAYMENT'
+  | 'RENT_REMINDER'
+  | 'VAULT_DOCUMENT'
+  | 'CREDIBILITY'
+  | (string & {})
+
 export interface NotificationPayload {
   title: string
   message: string
-  type: 'SYSTEM' | 'SUPPORT' | 'PAYMENT' | 'RENT_REMINDER'
+  type: NotificationType
   url?: string
   data?: Record<string, string>
 }

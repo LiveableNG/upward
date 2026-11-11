@@ -274,13 +274,12 @@ export class SendToTenantVaultUseCase {
 
     // In-app and push notification to the registered tenant
     if (userProperty?.userId) {
-      const pmName = `${pm.firstName} ${pm.lastName}`.trim();
       this.notificationService
         .notifyUser(userProperty.userId, {
-          title: 'New Document in Your Vault 📄',
-          message: `${pmName} added a new document (${opts.fileName}) to your Upward vault. Tap to review.`,
-          type: 'SYSTEM',
-          url: '/dashboard/documents',
+          title: 'New document in Tenant Vault',
+          message: `"${opts.fileName}" has been added to your vault by ${`${pm.firstName} ${pm.lastName}`.trim()}.`,
+          type: 'VAULT_DOCUMENT',
+          url: '/dashboard/my-home/documents',
           data: {
             documentUuid: opts.vaultUuid,
             fileName: opts.fileName,

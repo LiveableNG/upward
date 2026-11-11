@@ -8,6 +8,7 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
 import { SendRentReceiptEmailUseCase } from '../../use-cases/payments/send-rent-receipt-email.use-case'
 import { UnifiedCommunicationService } from '../../../shared/infrastructure/communication/unified-communication.service'
 import { NotificationService } from '../../../shared/infrastructure/common/notification.service'
+import { NotificationCopy } from '../../../shared/infrastructure/common/notification-copy'
 
 @Injectable()
 export class PaymentPostActionsHandler implements OnModuleInit, OnModuleDestroy {
@@ -61,11 +62,12 @@ export class PaymentPostActionsHandler implements OnModuleInit, OnModuleDestroy 
             const isPartial = tx?.isPartial === true || remaining > 0
 
             if (isPartial && remaining > 0) {
+              const copy = NotificationCopy.tenant.partialRentPaymentReceived(paidAmount, remaining, currency)
               await this.notificationService.notifyUser(data.userId, {
-                title: 'Partial Payment Confirmed 💳',
-                message: `Received ${formattedAmount}. Remaining rent balance: ${currency} ${remaining.toLocaleString()}.`,
-                type: 'PAYMENT',
-                url: '/dashboard/transactions',
+                title: copy.title,
+                message: copy.message,
+                type: copy.type,
+                url: copy.url,
                 data: {
                   transactionId: String(data.transactionId),
                   transactionUuid: tx?.uuid || '',
@@ -75,11 +77,12 @@ export class PaymentPostActionsHandler implements OnModuleInit, OnModuleDestroy 
               })
               this.logger.log(`Dispatched Partial Payment push notification to user ${data.userId}`)
             } else {
+              const copy = NotificationCopy.tenant.rentPaymentSuccessful(paidAmount, currency)
               await this.notificationService.notifyUser(data.userId, {
-                title: 'Rent Payment Received! 🎉',
-                message: `Your rent payment of ${formattedAmount} was received in full. Your credit health has been updated!`,
-                type: 'PAYMENT',
-                url: '/dashboard/transactions',
+                title: copy.title,
+                message: copy.message,
+                type: copy.type,
+                url: copy.url,
                 data: {
                   transactionId: String(data.transactionId),
                   transactionUuid: tx?.uuid || '',
@@ -143,12 +146,17 @@ export class PaymentPostActionsHandler implements OnModuleInit, OnModuleDestroy 
                    const amount = data.rentPortion || data.amount;
 
                    // 1. Create PM in-app notification
+                   const isPmPartial = prop.amountRemaining > 0
+                   const pmCopy = isPmPartial
+                     ? NotificationCopy.pm.partialRentPaymentReceived(tenantName, amount, prop.amountRemaining, unitName, propertyName, data.currency || 'NGN')
+                     : NotificationCopy.pm.rentPaymentReceived(tenantName, amount, unitName, propertyName, data.currency || 'NGN')
+
                    await this.prisma.upward_pm_notification.create({
                      data: {
                        pmId: prop.pmId,
-                       title: 'Payment Received',
-                       message: `Tenant ${tenantName} completed payment of NGN ${amount.toLocaleString()} for Unit ${unitName} at ${propertyName}.`,
-                       type: 'PAYMENT_COMPLETED',
+                       title: pmCopy.title,
+                       message: pmCopy.message,
+                       type: pmCopy.type,
                        isPopup: true, // Show popup alert
                        url: data.paymentRequestUuid ? `/payments/${data.paymentRequestUuid}` : '/payments',
                      }

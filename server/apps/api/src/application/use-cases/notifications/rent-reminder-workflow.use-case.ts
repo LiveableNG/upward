@@ -74,7 +74,7 @@ export class RentReminderWorkflowUseCase {
             userId: prop.userId,
             type: 'RENT_REMINDER',
             createdAt: { gte: startOfToday },
-            message: { contains: prop.uuid } 
+            url: { contains: prop.uuid } 
         }
     })
 
@@ -91,40 +91,40 @@ export class RentReminderWorkflowUseCase {
 
     const templates: Record<number, any> = {
       14: {
-        title: 'Rent Check-in 👋',
-        push: `Hi ${name}, just a friendly heads-up that rent for ${address} is due in 2 weeks.`,
-        inApp: `Friendly heads-up! Your rent for ${address} is due in 2 weeks. Just letting you know so you can plan ahead.`,
-        email: `Time for a check-in! Your rent for ${address} is due in two weeks. No rush, just a friendly heads-up.`,
+        title: 'Upcoming rent payment',
+        push: `Rent for ${address} is due in 14 days.`,
+        inApp: `Rent for ${address} is due in 14 days.`,
+        email: `This is an advance notice that your rent payment for ${address} is due in 14 days.`,
       },
       7: {
-        title: 'Rent Due in 7 Days 🗓️',
-        push: `Hi ${name}, your rent for ${address} is due in a week. Pay early to boost your Upward Score!`,
-        inApp: `Your rent for ${address} is due in 7 days. Remember, every on-time payment helps your Upward Score grow!`,
-        email: `Your rent for ${address} is due in one week. Start prepping your payment to keep that credit building on track!`,
+        title: 'Upcoming rent payment',
+        push: `Rent for ${address} is due in 7 days.`,
+        inApp: `Rent for ${address} is due in 7 days.`,
+        email: `This is a reminder that your rent payment for ${address} is due in 7 days.`,
       },
       3: {
-        title: '3 Days Until Rent Day 🔥',
-        push: `Quick reminder: Rent for ${address} is due in 3 days. Let's keep that payment streak alive!`,
-        inApp: `Quick reminder: Only 3 days left until rent is due for ${address}. Don't let your streak break!`,
-        email: `Don't break the streak! You have 3 days left until rent is due for ${address}. Keep up the great standing!`,
+        title: 'Rent payment reminder',
+        push: `Rent for ${address} is due in 3 days.`,
+        inApp: `Rent for ${address} is due in 3 days.`,
+        email: `Your rent payment for ${address} is due in 3 days. You can complete payment anytime through your dashboard.`,
       },
       1: {
-        title: 'It\'s Rent Day! 🎉',
-        push: `Your payment for ${address} is due today. Settle it now to stay in great standing!`,
-        inApp: `It's finally here! Rent for ${address} is due today. Tap here to pay now and maintain your Upward Score.`,
-        email: `Happy Rent Day! Your payment for ${address} is due today. Settle it easily through your dashboard to keep your score in the green.`,
+        title: 'Rent payment due today',
+        push: `Your rent payment for ${address} is due today.`,
+        inApp: `Your rent payment for ${address} is due today. Please tap to review and pay.`,
+        email: `Your rent payment for ${address} is due today. Please log in to complete your payment.`,
       },
       [-1]: {
-        title: 'Rent Past Due ⚠️',
-        push: `Hi ${name}, your rent for ${address} was due yesterday. Pay now to protect your Upward Score and streak!`,
-        inApp: `Action required: Your rent for ${address} was due yesterday. Please settle your balance today to stay in good standing.`,
-        email: `Your rent for ${address} was due yesterday. Please log in to your dashboard to complete your payment and protect your credit streak.`,
+        title: 'Rent payment past due',
+        push: `Your rent payment for ${address} was due yesterday. Please settle your outstanding balance.`,
+        inApp: `Your rent payment for ${address} was due yesterday. Please settle your outstanding balance to stay in good standing.`,
+        email: `Your rent payment for ${address} was due yesterday. Please complete your payment through your dashboard.`,
       },
       [-3]: {
-        title: 'Urgent: Rent 3 Days Past Due 🚨',
-        push: `Urgent reminder: Rent for ${address} is 3 days past due. Settle it now to avoid penalties.`,
-        inApp: `Urgent: Rent for ${address} is 3 days past due. Settle your balance now to avoid penalty fees and protect your profile.`,
-        email: `Urgent Notice: Your rent for ${address} is 3 days overdue. Avoid penalties and settle your rent easily via your Upward dashboard.`,
+        title: 'Rent payment past due',
+        push: `Your rent payment for ${address} is 3 days past due. Please settle your balance to avoid late penalties.`,
+        inApp: `Your rent payment for ${address} is 3 days past due. Please settle your balance promptly to avoid late penalties.`,
+        email: `Your rent payment for ${address} is 3 days overdue. Please log in to complete your payment and avoid penalty fees.`,
       },
     }
 
@@ -133,7 +133,7 @@ export class RentReminderWorkflowUseCase {
     // 1. Send In-App + Push via centralized NotificationService
     await this.notificationService.notifyUser(user.id, {
         title: tpl.title,
-        message: `${tpl.inApp} [Property: ${propertyUuid}]`,
+        message: tpl.push,
         type: 'RENT_REMINDER',
         url: payUrl,
         data: {

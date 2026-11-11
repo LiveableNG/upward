@@ -65,10 +65,10 @@ export class RejectCredibilityRequestUseCase {
         });
 
         await this.notificationService.notifyUser(user.id, {
-          title: 'Credibility Request Update 📋',
-          message: `Your rent verification request for ${property.location?.address || 'your property'} was declined by ${pmName}.`,
-          type: 'SYSTEM',
-          url: '/dashboard/credibility',
+          title: 'Credibility verification update',
+          message: `Your rent verification request for ${property.location?.address || 'your property'} could not be confirmed by ${pmName}.`,
+          type: 'CREDIBILITY',
+          url: '/dashboard/score-breakdown',
           data: {
             requestUuid,
           },
