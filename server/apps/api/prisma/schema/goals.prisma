@@ -31,6 +31,34 @@ enum UserGoalStatus {
   ARCHIVED
 }
 
+enum GoalProgressSource {
+  MILESTONES
+  MANUAL_PERCENT
+  TARGET_AMOUNT
+  RENT_VAULT
+  STATUS_ONLY
+}
+
+enum GoalMilestoneStatus {
+  PENDING
+  COMPLETED
+}
+
+enum GoalInterestStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  CONTACTED
+  FULFILLED
+  CLOSED
+}
+
+enum HousingAdoptionStatus {
+  PENDING
+  ACCEPTED
+  DISMISSED
+  RELEASED
+}
+
 model upward_goal_category {
   id          Int               @id @default(autoincrement())
   uuid        String            @unique @default(uuid())
@@ -45,6 +73,7 @@ model upward_goal_category {
   updatedAt   DateTime          @updatedAt
 
   goals       upward_goal[]
+  userGoals   upward_user_goal[]
 
   @@index([slug])
   @@index([status, sortOrder])
@@ -66,7 +95,7 @@ model upward_goal {
   createdAt   DateTime             @default(now())
   updatedAt   DateTime             @updatedAt
 
-  category    upward_goal_category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  category    upward_goal_category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   userGoals   upward_user_goal[]
   collections upward_goal_collection[]
   offerings   upward_goal_offering[]
@@ -77,24 +106,129 @@ model upward_goal {
 }
 
 model upward_user_goal {
-  id          Int            @id @default(autoincrement())
-  uuid        String         @unique @default(uuid())
-  userId      Int
-  goalId      Int
-  status      UserGoalStatus @default(ACTIVE)
-  targetDate  DateTime?
-  notes       String?        @db.Text
-  progressPct Int            @default(0)
-  completedAt DateTime?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  id                       Int                            @id @default(autoincrement())
+  uuid                     String                         @unique @default(uuid())
+  userId                   Int
+  goalId                   Int?
+  categoryId               Int
+  historicalTitle          String                         @db.VarChar(255)
+  customTitle              String?                        @db.VarChar(255)
+  customDescription        String?                        @db.Text
+  status                   UserGoalStatus                 @default(ACTIVE)
+  progressSource           GoalProgressSource             @default(MANUAL_PERCENT)
+  progressPct              Int                            @default(0)
+  targetDate               DateTime?
+  notes                    String?                        @db.Text
+  currentAmountMinor       BigInt?
+  targetAmountMinor        BigInt?
+  currency                 String                         @default("NGN") @db.VarChar(10)
+  completedAt              DateTime?
+  archivedAt               DateTime?
+  pausedAt                 DateTime?
 
-  user        upward_user    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  goal        upward_goal    @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  // Financial provenance snapshot fields
+  lastVerifiedBalanceMinor BigInt?
+  verifiedSourceUuid       String?                        @db.VarChar(36)
+  verifiedAt               DateTime?
+
+  // Housing domain links
+  userPropertyId           Int?
+  rentVaultId              Int?
+
+  createdAt                DateTime                       @default(now())
+  updatedAt                DateTime                       @updatedAt
+
+  user                     upward_user                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  catalogueGoal            upward_goal?                   @relation(fields: [goalId], references: [id], onDelete: Restrict)
+  category                 upward_goal_category           @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  userProperty             upward_user_property?          @relation(fields: [userPropertyId], references: [id], onDelete: Restrict)
+  rentVault                upward_rent_vault?             @relation(fields: [rentVaultId], references: [id], onDelete: Restrict)
+
+  milestones               upward_goal_milestone[]
+  interests                upward_goal_interest[]
+  housingAdoptionDecision  upward_housing_adoption_decision?
 
   @@unique([userId, goalId])
   @@index([userId, status])
-  @@index([goalId])
+  @@index([categoryId])
+  @@index([userPropertyId])
+  @@index([rentVaultId])
+}
+
+model upward_goal_milestone {
+  id          Int                 @id @default(autoincrement())
+  uuid        String              @unique @default(uuid())
+  userGoalId  Int
+  title       String              @db.VarChar(255)
+  status      GoalMilestoneStatus @default(PENDING)
+  sortOrder   Int                 @default(0)
+  targetDate  DateTime?
+  completedAt DateTime?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+
+  userGoal    upward_user_goal    @relation(fields: [userGoalId], references: [id], onDelete: Cascade)
+
+  @@index([userGoalId, sortOrder])
+  @@index([userGoalId, status])
+}
+
+model upward_goal_interest {
+  id          Int                            @id @default(autoincrement())
+  uuid        String                         @unique @default(uuid())
+  userGoalId  Int                            @unique
+  serviceType String                         @db.VarChar(100)
+  status      GoalInterestStatus             @default(SUBMITTED)
+  notes       String?                        @db.Text
+  adminNotes  String?                        @db.Text
+  version     Int                            @default(1)
+  submittedAt DateTime                       @default(now())
+  updatedAt   DateTime                       @updatedAt
+
+  userGoal    upward_user_goal               @relation(fields: [userGoalId], references: [id], onDelete: Cascade)
+  history     upward_goal_interest_history[]
+
+  @@index([status])
+  @@index([serviceType])
+}
+
+model upward_goal_interest_history {
+  id          Int                  @id @default(autoincrement())
+  uuid        String               @unique @default(uuid())
+  interestId  Int
+  version     Int
+  serviceType String               @db.VarChar(100)
+  status      GoalInterestStatus
+  notes       String?              @db.Text
+  adminNotes  String?              @db.Text
+  snapshotAt  DateTime             @default(now())
+
+  interest    upward_goal_interest @relation(fields: [interestId], references: [id], onDelete: Cascade)
+
+  @@unique([interestId, version])
+  @@index([interestId, snapshotAt])
+}
+
+model upward_housing_adoption_decision {
+  id             Int                   @id @default(autoincrement())
+  uuid           String                @unique @default(uuid())
+  userId         Int
+  userPropertyId Int?
+  rentVaultId    Int?
+  userGoalId     Int?                  @unique
+  status         HousingAdoptionStatus @default(PENDING)
+  decidedAt      DateTime?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  user           upward_user           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userProperty   upward_user_property? @relation(fields: [userPropertyId], references: [id], onDelete: Restrict)
+  rentVault      upward_rent_vault?    @relation(fields: [rentVaultId], references: [id], onDelete: Restrict)
+  userGoal       upward_user_goal?     @relation(fields: [userGoalId], references: [id], onDelete: Restrict)
+
+  @@index([userId, status])
+  @@index([userPropertyId])
+  @@index([rentVaultId])
 }
 
 model upward_goal_collection {
@@ -117,63 +251,59 @@ model upward_goal_collection {
 }
 
 model upward_commerce_vendor {
-  id          Int                  @id @default(autoincrement())
-  uuid        String               @unique @default(uuid())
-  name        String               @db.VarChar(150)
-  slug        String               @unique @db.VarChar(100)
-  logoUrl     String?              @db.VarChar(500)
-  email       String?              @db.VarChar(150)
-  phone       String?              @db.VarChar(50)
-  website     String?              @db.VarChar(255)
-  rating      Float                @default(5.0)
-  isActive    Boolean              @default(true)
+  id                      Int                  @id @default(autoincrement())
+  uuid                    String               @unique @default(uuid())
+  name                    String               @db.VarChar(150)
+  slug                    String               @unique @db.VarChar(100)
+  logoUrl                 String?              @db.VarChar(500)
+  email                   String?              @db.VarChar(150)
+  phone                   String?              @db.VarChar(50)
+  website                 String?              @db.VarChar(255)
+  rating                  Float                @default(5.0)
+  isActive                Boolean              @default(true)
   defaultDeliveryCoverage DeliveryCoverageType @default(NATIONWIDE)
   defaultDeliveryZones    String[]             @default([])
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
+  createdAt               DateTime             @default(now())
+  updatedAt               DateTime             @updatedAt
 
-  offerings   upward_offering[]
-  subOrders   upward_commerce_vendor_suborder[]
-  payables    upward_commerce_vendor_payable[]
+  offerings               upward_offering[]
+  subOrders               upward_commerce_vendor_suborder[]
+  payables                upward_commerce_vendor_payable[]
 
   @@index([slug])
   @@index([isActive])
 }
 
 model upward_offering {
-  id                 Int                  @id @default(autoincrement())
-  uuid               String               @unique @default(uuid())
-  vendorId           Int?
-  type               OfferingType
-  pricingModel       OfferingPricingModel @default(FIXED)
-  title              String               @db.VarChar(200)
-  subtitle           String?              @db.VarChar(255)
-  description        String?              @db.Text
-  currency           String               @default("NGN") @db.VarChar(10)
-  
-  price              Float?
-  minPrice           Float?
-  maxPrice           Float?
-  
-  inStock            Boolean              @default(true)
-  stockCount         Int?
-  deliveryAvailable  Boolean              @default(true)
+  id                   Int                  @id @default(autoincrement())
+  uuid                 String               @unique @default(uuid())
+  vendorId             Int?
+  type                 OfferingType
+  pricingModel         OfferingPricingModel @default(FIXED)
+  title                String               @db.VarChar(200)
+  subtitle             String?              @db.VarChar(255)
+  description          String?              @db.Text
+  currency             String               @default("NGN") @db.VarChar(10)
+  price                Float?
+  minPrice             Float?
+  maxPrice             Float?
+  inStock              Boolean              @default(true)
+  stockCount           Int?
+  deliveryAvailable    Boolean              @default(true)
   deliveryCoverageType DeliveryCoverageType @default(NATIONWIDE)
   deliveryZones        String[]             @default([])
-  leadTimeDays       Int?
-  
-  status             GoalPublishStatus    @default(DRAFT)
-  isFeatured         Boolean              @default(false)
-  createdAt          DateTime             @default(now())
-  updatedAt          DateTime             @updatedAt
+  leadTimeDays         Int?
+  status               GoalPublishStatus    @default(DRAFT)
+  isFeatured           Boolean              @default(false)
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
 
-  vendor             upward_commerce_vendor? @relation(fields: [vendorId], references: [id], onDelete: SetNull)
-  media              upward_offering_media[]
-  goalLinks          upward_goal_offering[]
-  
-  packageItems       upward_package_item[]   @relation("PackageParent")
-  partOfPackages     upward_package_item[]   @relation("PackageComponent")
-  orderItems         upward_commerce_order_item[]
+  vendor               upward_commerce_vendor? @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+  media                upward_offering_media[]
+  goalLinks            upward_goal_offering[]
+  packageItems         upward_package_item[]   @relation("PackageParent")
+  partOfPackages       upward_package_item[]   @relation("PackageComponent")
+  orderItems           upward_commerce_order_item[]
 
   @@index([type, status])
   @@index([vendorId])
@@ -234,4 +364,3 @@ model upward_goal_offering {
   @@index([offeringId])
   @@index([collectionId])
 }
-

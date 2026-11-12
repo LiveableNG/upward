@@ -150,8 +150,26 @@ describe('Goals Domain Use Cases', () => {
   describe('SetUserGoalsUseCase', () => {
     it('saves user goals successfully', async () => {
       const mockUserGoals = [
-        { uuid: 'ug-1', userId: 10, goalId: 1, status: 'ACTIVE' as const, progressPct: 0 },
-        { uuid: 'ug-2', userId: 10, goalId: 2, status: 'ACTIVE' as const, progressPct: 0 },
+        {
+          uuid: 'ug-1',
+          userId: 10,
+          goalId: 1,
+          status: 'ACTIVE' as const,
+          progressPct: 0,
+          historicalTitle: 'Goal 1',
+          progressSource: 'MANUAL_PERCENT' as const,
+          currency: 'NGN',
+        },
+        {
+          uuid: 'ug-2',
+          userId: 10,
+          goalId: 2,
+          status: 'ACTIVE' as const,
+          progressPct: 0,
+          historicalTitle: 'Goal 2',
+          progressSource: 'MANUAL_PERCENT' as const,
+          currency: 'NGN',
+        },
       ]
       mockGoalRepo.setUserGoals!.mockResolvedValue(mockUserGoals)
 
@@ -185,6 +203,9 @@ describe('Goals Domain Use Cases', () => {
         goalId: 1,
         status: 'ACTIVE' as const,
         progressPct: 20,
+        historicalTitle: 'Goal 1',
+        progressSource: 'MANUAL_PERCENT' as const,
+        currency: 'NGN',
       }
       mockGoalRepo.findUserGoal!.mockResolvedValue(existingUserGoal)
       mockGoalRepo.updateUserGoal!.mockResolvedValue({
@@ -218,6 +239,9 @@ describe('Goals Domain Use Cases', () => {
         goalId: 1,
         status: 'ACTIVE' as const,
         progressPct: 20,
+        historicalTitle: 'Goal 1',
+        progressSource: 'MANUAL_PERCENT' as const,
+        currency: 'NGN',
       }
       mockGoalRepo.findUserGoal!.mockResolvedValue(existingUserGoal)
       mockGoalRepo.removeUserGoal!.mockResolvedValue(undefined)

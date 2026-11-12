@@ -75,6 +75,7 @@ model upward_user {
   tenantNotes           upward_admin_tenant_note[]
   kycVerifications      upward_kyc_verification[]
   userGoals             upward_user_goal[]
+  housingAdoptionDecisions upward_housing_adoption_decision[]
   commerceOrders        upward_commerce_order[]
 
   @@index([email])

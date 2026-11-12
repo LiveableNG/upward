@@ -40,6 +40,8 @@ model upward_rent_vault {
   advances                upward_rent_advance[]
   settlements             upward_rent_settlement[]
   savingsScore            upward_rent_savings_score?
+  userGoals               upward_user_goal[]
+  housingAdoptions        upward_housing_adoption_decision[]
 
   @@index([userId])
   @@index([lockStatus])

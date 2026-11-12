@@ -51,6 +51,8 @@ model upward_user_property {
   pmUnit                 upward_pm_unit?                   @relation(fields: [pmUnitId], references: [id])
   subaccount             upward_paystack_subaccount?       @relation(fields: [subaccountId], references: [id])
   user                   upward_user                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userGoals              upward_user_goal[]
+  housingAdoptions       upward_housing_adoption_decision[]
 
   @@unique([platformId, externalUnitId])
   @@index([platformId, externalPropertyId])
