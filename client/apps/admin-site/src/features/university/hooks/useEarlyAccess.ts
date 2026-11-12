@@ -10,8 +10,10 @@ export const useEarlyAccess = (token: string) => {
   const [loadingStats, setLoadingStats] = useState(true)
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+  const [totalRecords, setTotalRecords] = useState(0)
   const [typeFilter, setTypeFilter] = useState<'ALL' | 'STUDENT' | 'LANDLORD'>('ALL')
   const [sourceFilter, setSourceFilter] = useState<string>('ALL')
+  const [sessionFilter, setSessionFilter] = useState<string>('ALL')
   const [search, setSearch] = useState('')
   const [selectedRecord, setSelectedRecord] = useState<EarlyAccessRecord | null>(null)
 
@@ -34,7 +36,8 @@ export const useEarlyAccess = (token: string) => {
       pageNum = page,
       currentFilter = typeFilter,
       currentSearch = search,
-      currentSource = sourceFilter
+      currentSource = sourceFilter,
+      currentSession = sessionFilter
     ) => {
       setLoading(true)
       try {
@@ -42,11 +45,13 @@ export const useEarlyAccess = (token: string) => {
         if (currentFilter !== 'ALL') url += `&type=${currentFilter}`
         if (currentSource && currentSource !== 'ALL') url += `&source=${encodeURIComponent(currentSource)}`
         if (currentSearch.trim()) url += `&search=${encodeURIComponent(currentSearch.trim())}`
+        if (currentSession && currentSession !== 'ALL') url += `&sessionDate=${encodeURIComponent(currentSession)}`
 
         const response = await apiService.get(url, token)
         if (response && response.data) {
           setRecords(response.data)
           setTotalPages(response.meta?.totalPages || 1)
+          setTotalRecords(response.meta?.total || 0)
         }
       } catch (error) {
         console.error('Failed to fetch early access records:', error)
@@ -55,7 +60,35 @@ export const useEarlyAccess = (token: string) => {
         setLoading(false)
       }
     },
-    [token, page, typeFilter, search, sourceFilter]
+    [token, page, typeFilter, search, sourceFilter, sessionFilter]
+  )
+
+  const fetchAllMatchingRecords = useCallback(
+    async (
+      currentFilter = typeFilter,
+      currentSearch = search,
+      currentSource = sourceFilter,
+      currentSession = sessionFilter
+    ): Promise<EarlyAccessRecord[]> => {
+      try {
+        let url = `/admin/early-access?page=1&limit=10000`
+        if (currentFilter !== 'ALL') url += `&type=${currentFilter}`
+        if (currentSource && currentSource !== 'ALL') url += `&source=${encodeURIComponent(currentSource)}`
+        if (currentSearch.trim()) url += `&search=${encodeURIComponent(currentSearch.trim())}`
+        if (currentSession && currentSession !== 'ALL') url += `&sessionDate=${encodeURIComponent(currentSession)}`
+
+        const response = await apiService.get(url, token)
+        if (response && response.data) {
+          return response.data as EarlyAccessRecord[]
+        }
+        return []
+      } catch (error) {
+        console.error('Failed to fetch all matching records for export:', error)
+        showToast('Failed to fetch full records for export', true)
+        return []
+      }
+    },
+    [token, typeFilter, search, sourceFilter, sessionFilter]
   )
 
   return {
@@ -67,15 +100,19 @@ export const useEarlyAccess = (token: string) => {
     page,
     setPage,
     totalPages,
+    totalRecords,
     typeFilter,
     setTypeFilter,
     sourceFilter,
     setSourceFilter,
+    sessionFilter,
+    setSessionFilter,
     search,
     setSearch,
     selectedRecord,
     setSelectedRecord,
     fetchStats,
     fetchRecords,
+    fetchAllMatchingRecords,
   }
 }

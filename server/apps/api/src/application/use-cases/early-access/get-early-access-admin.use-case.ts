@@ -9,6 +9,7 @@ export interface GetEarlyAccessEntriesQuery {
   type?: string
   search?: string
   sourceIdentifier?: string
+  sessionDate?: string
   page?: number
   limit?: number
 }
@@ -41,6 +42,7 @@ export class GetEarlyAccessEntriesUseCase {
       type: query.type,
       search: query.search,
       sourceIdentifier: query.sourceIdentifier,
+      sessionDate: query.sessionDate,
       limit,
       offset,
     })
