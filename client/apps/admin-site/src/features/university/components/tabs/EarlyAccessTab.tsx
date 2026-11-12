@@ -1,11 +1,13 @@
 import React, { useState, useMemo } from 'react'
-import { Search, Download, Video, Compass, RotateCcw } from 'lucide-react'
+import { Search, Download, Video, Compass, RotateCcw, Loader2 } from 'lucide-react'
+import { showToast } from '@upward/client-core'
 import { DataTable } from '../../../../components/common/table/DataTable'
 import type { ColumnDef } from '../../../../components/common/table/DataTable'
 import type { EarlyAccessRecord } from '../../types'
 import {
   matchesSessionFilter,
   matchesTrackFilter,
+  parseSessionAndTrack,
   exportEarlyAccessToCsv,
 } from '../../sessionExportUtils'
 
@@ -15,10 +17,14 @@ interface EarlyAccessTabProps {
   loading: boolean
   page: number
   totalPages: number
+  totalRecords?: number
   typeFilter: 'ALL' | 'STUDENT' | 'LANDLORD'
   onTypeFilterChange: (type: 'ALL' | 'STUDENT' | 'LANDLORD') => void
   sourceFilter?: string
   onSourceFilterChange?: (source: string) => void
+  sessionFilter?: string
+  onSessionFilterChange?: (session: string) => void
+  onExportAll?: () => Promise<EarlyAccessRecord[]>
   search: string
   onSearchChange: (search: string) => void
   onSearchSubmit: (e: React.FormEvent) => void
@@ -31,22 +37,58 @@ export const EarlyAccessTab: React.FC<EarlyAccessTabProps> = ({
   loading,
   page,
   totalPages,
+  totalRecords,
   typeFilter,
   onTypeFilterChange,
   sourceFilter = 'ALL',
   onSourceFilterChange,
+  sessionFilter = 'ALL',
+  onSessionFilterChange,
+  onExportAll,
   search,
   onSearchChange,
   onSearchSubmit,
   onPageChange,
 }) => {
-  const [sessionFilter, setSessionFilter] = useState<string>('ALL')
+  const [internalSessionFilter, setInternalSessionFilter] = useState<string>('ALL')
+  const activeSessionFilter = sessionFilter !== undefined ? sessionFilter : internalSessionFilter
   const [trackFilter, setTrackFilter] = useState<string>('ALL')
+  const [isExporting, setIsExporting] = useState<boolean>(false)
+
+  const handleSessionChange = (val: string) => {
+    if (onSessionFilterChange) {
+      onSessionFilterChange(val)
+    } else {
+      setInternalSessionFilter(val)
+    }
+  }
+
+  // Detect distinct webinar and session dates present in the data
+  const dynamicWebinarDates = useMemo(() => {
+    const dates = new Set<string>()
+    records.forEach((rec) => {
+      const parsed = parseSessionAndTrack({
+        interest: rec.interest,
+        sessionTime: (rec as any).sessionTime,
+        experienceLevel: rec.experienceLevel,
+      })
+      if (
+        parsed.sessionDateTime &&
+        parsed.sessionDateTime !== 'N/A' &&
+        parsed.sessionDateTime !== 'Online Live Session' &&
+        parsed.sessionDateTime !== 'Date Coming Soon' &&
+        !parsed.sessionDateTime.toLowerCase().includes('21st nov')
+      ) {
+        dates.add(parsed.sessionDateTime)
+      }
+    })
+    return Array.from(dates)
+  }, [records])
 
   // Filter records in memory based on selected session & track filters
   const filteredRecords = useMemo(() => {
     return records.filter((rec) => {
-      if (sessionFilter !== 'ALL' && !matchesSessionFilter({ interest: rec.interest, experienceLevel: rec.experienceLevel }, sessionFilter)) {
+      if (activeSessionFilter !== 'ALL' && !matchesSessionFilter({ interest: rec.interest, experienceLevel: rec.experienceLevel }, activeSessionFilter)) {
         return false
       }
       if (trackFilter !== 'ALL' && !matchesTrackFilter({ interest: rec.interest, experienceLevel: rec.experienceLevel }, trackFilter)) {
@@ -54,17 +96,55 @@ export const EarlyAccessTab: React.FC<EarlyAccessTabProps> = ({
       }
       return true
     })
-  }, [records, sessionFilter, trackFilter])
+  }, [records, activeSessionFilter, trackFilter])
 
-  const hasActiveFilters = sessionFilter !== 'ALL' || trackFilter !== 'ALL'
+  const hasActiveFilters = activeSessionFilter !== 'ALL' || trackFilter !== 'ALL'
 
   const handleResetFilters = () => {
-    setSessionFilter('ALL')
+    handleSessionChange('ALL')
     setTrackFilter('ALL')
   }
 
-  const handleExport = () => {
-    exportEarlyAccessToCsv(filteredRecords)
+  const handleExport = async () => {
+    try {
+      setIsExporting(true)
+      let exportList: EarlyAccessRecord[] = []
+
+      if (onExportAll) {
+        showToast('Fetching all matching records for full export...')
+        const allFetched = await onExportAll()
+        exportList = allFetched.filter((rec) => {
+          if (activeSessionFilter !== 'ALL' && !matchesSessionFilter({ interest: rec.interest, experienceLevel: rec.experienceLevel }, activeSessionFilter)) {
+            return false
+          }
+          if (trackFilter !== 'ALL' && !matchesTrackFilter({ interest: rec.interest, experienceLevel: rec.experienceLevel }, trackFilter)) {
+            return false
+          }
+          return true
+        })
+      } else {
+        exportList = filteredRecords
+      }
+
+      if (!exportList || exportList.length === 0) {
+        showToast('No matching records found to export', true)
+        return
+      }
+
+      const isWebinar = activeSessionFilter === 'WEBINAR_NOV_21' || activeSessionFilter.toLowerCase().includes('21st nov')
+      const customFilename = isWebinar
+        ? `Upward_Academy_Webinar_21Nov2026_${new Date().toISOString().split('T')[0]}.xls`
+        : activeSessionFilter === 'WEBINAR_ALL'
+        ? `Upward_Academy_Webinars_${new Date().toISOString().split('T')[0]}.xls`
+        : undefined
+
+      exportEarlyAccessToCsv(exportList, customFilename)
+    } catch (err: any) {
+      console.error('Export error:', err)
+      showToast('Export failed. Please try again.', true)
+    } finally {
+      setIsExporting(false)
+    }
   }
 
   return (
@@ -227,10 +307,11 @@ export const EarlyAccessTab: React.FC<EarlyAccessTabProps> = ({
               </button>
             </form>
 
-            {/* Clean CSV Export Button */}
+            {/* Full CSV/Excel Export Button */}
             <button
               type="button"
               onClick={handleExport}
+              disabled={isExporting}
               className="btn btn-primary"
               style={{
                 height: '36px',
@@ -243,12 +324,15 @@ export const EarlyAccessTab: React.FC<EarlyAccessTabProps> = ({
                 borderRadius: '8px',
                 background: 'var(--accent, #8A4A2A)',
                 color: '#fff',
-                cursor: 'pointer',
+                cursor: isExporting ? 'not-allowed' : 'pointer',
+                opacity: isExporting ? 0.75 : 1,
               }}
-              title="Export filtered records into a cleanly styled spreadsheet with brand headers and formatted columns"
+              title="Export all matching records across all pages into a cleanly styled spreadsheet"
             >
-              <Download size={14} />
-              Export Sheet ({filteredRecords.length})
+              {isExporting ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+              {isExporting
+                ? 'Exporting All...'
+                : `Export Sheet (${totalRecords !== undefined && totalRecords > 0 ? totalRecords : filteredRecords.length})`}
             </button>
           </div>
         </div>
@@ -266,28 +350,32 @@ export const EarlyAccessTab: React.FC<EarlyAccessTabProps> = ({
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)' }}>
-              <Video size={14} /> Filter Sessions:
+              <Video size={14} /> Filter Sessions / Webinars:
             </div>
 
-            {/* Attendance & Session Filter Select */}
+            {/* Attendance & Session / Webinar Filter Select */}
             <select
-              value={sessionFilter}
-              onChange={(e) => setSessionFilter(e.target.value)}
+              value={activeSessionFilter}
+              onChange={(e) => handleSessionChange(e.target.value)}
               style={{
                 height: '34px',
                 padding: '0 28px 0 10px',
                 borderRadius: '8px',
-                border: sessionFilter !== 'ALL' ? '1.5px solid #d97757' : '1px solid var(--border)',
-                background: sessionFilter !== 'ALL' ? '#fbf1ed' : '#fff',
-                color: sessionFilter !== 'ALL' ? '#9a3412' : 'var(--text-primary)',
+                border: activeSessionFilter !== 'ALL' ? '1.5px solid #d97757' : '1px solid var(--border)',
+                background: activeSessionFilter !== 'ALL' ? '#fbf1ed' : '#fff',
+                color: activeSessionFilter !== 'ALL' ? '#9a3412' : 'var(--text-primary)',
                 fontSize: '12.5px',
                 fontWeight: 600,
                 cursor: 'pointer',
               }}
             >
               <option value="ALL">All Attendance Modes & Sessions</option>
-              <optgroup label="Online Sessions (Weekly)">
-                <option value="ONLINE_ALL">Online · All Live Webinars</option>
+              <optgroup label="Academic Webinars">
+                <option value="WEBINAR_NOV_21">Webinar · Saturday 21st Nov 2026</option>
+                <option value="WEBINAR_ALL">All Academic Webinars</option>
+              </optgroup>
+              <optgroup label="Weekly Online Live Sessions">
+                <option value="ONLINE_ALL">Online · All Live Sessions</option>
                 <option value="ONLINE_TUE">Online · Tuesdays (6:00 PM)</option>
                 <option value="ONLINE_SAT">Online · Saturdays (9:00 AM)</option>
               </optgroup>
@@ -298,6 +386,13 @@ export const EarlyAccessTab: React.FC<EarlyAccessTabProps> = ({
                 <option value="PHYSICAL_LAGOS">In-Person · Lagos (Yaba Tech Hub)</option>
                 <option value="PHYSICAL_IBADAN">In-Person · Oyo / Ibadan (Bodija)</option>
               </optgroup>
+              {dynamicWebinarDates.length > 0 && (
+                <optgroup label="Other Detected Session Dates">
+                  {dynamicWebinarDates.map((d) => (
+                    <option key={d} value={`DATE:${d}`}>{d}</option>
+                  ))}
+                </optgroup>
+              )}
               <option value="NO_SESSION">No Session RSVP / None</option>
             </select>
 
@@ -345,7 +440,7 @@ export const EarlyAccessTab: React.FC<EarlyAccessTabProps> = ({
             )}
 
             <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginLeft: 'auto' }}>
-              Showing <strong>{filteredRecords.length}</strong> of {records.length} on this page
+              Showing <strong>{filteredRecords.length}</strong> of {totalRecords !== undefined && totalRecords > 0 ? totalRecords : records.length} total
             </span>
           </div>
         )}

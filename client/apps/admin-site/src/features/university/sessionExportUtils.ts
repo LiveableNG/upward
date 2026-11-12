@@ -201,7 +201,7 @@ export function parseSessionAndTrack(data: {
 }
 
 /**
- * Filter matcher for Session types
+ * Filter matcher for Session types and Academic Webinar dates
  */
 export function matchesSessionFilter(
   data: {
@@ -215,14 +215,20 @@ export function matchesSessionFilter(
   if (!filter || filter === 'ALL') return true
 
   const parsed = parseSessionAndTrack(data)
+  const fullText = `${data.interest || ''} ${data.sessionTime || ''} ${data.track || ''} ${parsed.rawSession || ''} ${parsed.sessionDateTime || ''}`.toLowerCase()
 
   switch (filter) {
+    case 'WEBINAR_NOV_21':
+    case '21st November 2026':
+      return /21st\s*november|nov\s*21|21\s*nov/i.test(fullText)
+    case 'WEBINAR_ALL':
+      return /webinar|21st\s*november/i.test(fullText)
     case 'ONLINE_ALL':
       return parsed.attendanceMode === 'Online'
     case 'ONLINE_TUE':
-      return parsed.attendanceMode === 'Online' && parsed.sessionDay === 'Tuesday'
+      return parsed.attendanceMode === 'Online' && (parsed.sessionDay === 'Tuesday' || /tuesday|tue/i.test(fullText))
     case 'ONLINE_SAT':
-      return parsed.attendanceMode === 'Online' && parsed.sessionDay === 'Saturday'
+      return parsed.attendanceMode === 'Online' && (parsed.sessionDay === 'Saturday' || /saturday|sat/i.test(fullText))
     case 'PHYSICAL_ALL':
       return parsed.attendanceMode === 'In-Person'
     case 'PHYSICAL_ABUJA':
@@ -236,7 +242,11 @@ export function matchesSessionFilter(
     case 'NO_SESSION':
       return parsed.attendanceMode === 'None'
     default:
-      return true
+      if (filter.startsWith('DATE:')) {
+        const targetDate = filter.replace('DATE:', '').toLowerCase().trim()
+        return fullText.includes(targetDate)
+      }
+      return fullText.includes(filter.toLowerCase().trim())
   }
 }
 

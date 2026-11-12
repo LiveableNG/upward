@@ -159,6 +159,7 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
     referralsHook.referralPage,
     earlyAccessHook.typeFilter,
     earlyAccessHook.sourceFilter,
+    earlyAccessHook.sessionFilter,
     hireRequestsHook.hireStatusFilter,
     hireRequestsHook.hireIndustryFilter,
     hireRequestsHook.hirePlacementFilter,
@@ -302,6 +303,7 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
           loading={earlyAccessHook.loading}
           page={earlyAccessHook.page}
           totalPages={earlyAccessHook.totalPages}
+          totalRecords={earlyAccessHook.totalRecords}
           typeFilter={earlyAccessHook.typeFilter}
           onTypeFilterChange={(type) => {
             earlyAccessHook.setTypeFilter(type)
@@ -312,6 +314,19 @@ export default function UpwardUniversity({ token, adminRole }: UpwardUniversityP
             earlyAccessHook.setSourceFilter(source)
             earlyAccessHook.setPage(1)
           }}
+          sessionFilter={earlyAccessHook.sessionFilter}
+          onSessionFilterChange={(session) => {
+            earlyAccessHook.setSessionFilter(session)
+            earlyAccessHook.setPage(1)
+          }}
+          onExportAll={() =>
+            earlyAccessHook.fetchAllMatchingRecords(
+              earlyAccessHook.typeFilter,
+              earlyAccessHook.search,
+              earlyAccessHook.sourceFilter,
+              earlyAccessHook.sessionFilter
+            )
+          }
           search={earlyAccessHook.search}
           onSearchChange={earlyAccessHook.setSearch}
           onSearchSubmit={(e) => {
