@@ -117,6 +117,18 @@ export function AddGoalModal({ isOpen, onClose }: AddGoalModalProps) {
     e.preventDefault()
     if (!customTitle.trim()) return
 
+    if (customProgressSource === 'TARGET_AMOUNT') {
+      if (!customTargetAmountMajor.trim()) {
+        toastError('Please enter a target amount')
+        return
+      }
+      const minor = majorToMinorString(customTargetAmountMajor)
+      if (BigInt(minor) <= BigInt(0)) {
+        toastError('Target amount must be greater than zero')
+        return
+      }
+    }
+
     const targetAmountMinor =
       customProgressSource === 'TARGET_AMOUNT' && customTargetAmountMajor
         ? majorToMinorString(customTargetAmountMajor)

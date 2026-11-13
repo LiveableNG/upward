@@ -53,6 +53,18 @@ export function EditGoalModal({ goal, isOpen, onClose }: EditGoalModalProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    if (isTargetAmount) {
+      if (!targetAmountMajor.trim()) {
+        toastError('Please enter a target amount')
+        return
+      }
+      const minor = majorToMinorString(targetAmountMajor)
+      if (BigInt(minor) <= BigInt(0)) {
+        toastError('Target amount must be greater than zero')
+        return
+      }
+    }
+
     const targetAmountMinor = isTargetAmount && targetAmountMajor
       ? majorToMinorString(targetAmountMajor)
       : undefined

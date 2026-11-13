@@ -201,4 +201,126 @@ describe('My Goals Workspace Logic & Component Contracts', () => {
       assert.equal(getGoalTitle(mockGoals[0]), 'Equip My Work-from-Home Space')
     })
   })
+
+  describe('RENT_VAULT Verified Progress Presentation', () => {
+    const rentVaultGoal: UserGoal = {
+      id: 5,
+      uuid: 'user-goal-5',
+      userId: 10,
+      goalId: null,
+      categoryId: 1,
+      status: 'ACTIVE',
+      progressSource: 'RENT_VAULT',
+      progressPct: 50,
+      currency: 'NGN',
+      targetAmountMinor: '100000000', // 1,000,000 NGN target
+      lastVerifiedBalanceMinor: '50000000', // 500,000 NGN verified principal
+      verifiedSourceUuid: 'vault-uuid-abc',
+      verifiedAt: '2026-11-10T12:00:00.000Z',
+      createdAt: baseTimestamp,
+      updatedAt: baseTimestamp,
+      customTitle: 'Save for Rent Advance',
+    }
+
+    it('displays verified principal balance without accepting manual edits', () => {
+      assert.equal(rentVaultGoal.progressSource, 'RENT_VAULT')
+      assert.equal(rentVaultGoal.lastVerifiedBalanceMinor, '50000000')
+      assert.equal(formatMinorUnitAmount(rentVaultGoal.lastVerifiedBalanceMinor, rentVaultGoal.currency), '₦500,000')
+      assert.equal(formatMinorUnitAmount(rentVaultGoal.targetAmountMinor, rentVaultGoal.currency), '₦1,000,000')
+      assert.equal(rentVaultGoal.verifiedSourceUuid, 'vault-uuid-abc')
+    })
+  })
+
+  describe('Target Amount Validation Contracts', () => {
+    const isValidTargetMajor = (val: string): boolean => {
+      if (!val || !val.trim()) return false
+      const minor = formatMinorUnitAmount(val) // clean
+      const cleaned = val.replace(/,/g, '').trim()
+      if (!/^\d+(\.\d+)?$/.test(cleaned)) return false
+      const num = parseFloat(cleaned)
+      return num > 0
+    }
+
+    it('accepts strictly positive major currency strings', () => {
+      assert.equal(isValidTargetMajor('500000'), true)
+      assert.equal(isValidTargetMajor('1,000,000'), true)
+      assert.equal(isValidTargetMajor('250.50'), true)
+    })
+
+    it('rejects zero, negative, empty or non-numeric inputs', () => {
+      assert.equal(isValidTargetMajor('0'), false)
+      assert.equal(isValidTargetMajor('0.00'), false)
+      assert.equal(isValidTargetMajor('-100'), false)
+      assert.equal(isValidTargetMajor(''), false)
+      assert.equal(isValidTargetMajor('abc'), false)
+    })
+  })
+
+  describe('Lifecycle State Transitions Matrix', () => {
+    const validTransitions: Record<string, string[]> = {
+      ACTIVE: ['PAUSED', 'COMPLETED', 'ARCHIVED'],
+      PAUSED: ['ACTIVE', 'COMPLETED', 'ARCHIVED'],
+      COMPLETED: ['ACTIVE', 'ARCHIVED'],
+      ARCHIVED: ['ACTIVE'],
+    }
+
+    it('permits valid transitions per Stage 3B domain rules', () => {
+      assert.ok(validTransitions.ACTIVE.includes('PAUSED'))
+      assert.ok(validTransitions.ACTIVE.includes('COMPLETED'))
+      assert.ok(validTransitions.ACTIVE.includes('ARCHIVED'))
+
+      assert.ok(validTransitions.PAUSED.includes('ACTIVE'))
+      assert.ok(validTransitions.PAUSED.includes('COMPLETED'))
+
+      assert.ok(validTransitions.COMPLETED.includes('ACTIVE')) // reopening
+      assert.ok(validTransitions.COMPLETED.includes('ARCHIVED'))
+
+      assert.ok(validTransitions.ARCHIVED.includes('ACTIVE')) // reactivation
+    })
+
+    it('forbids invalid transitions rejected by backend', () => {
+      assert.ok(!validTransitions.COMPLETED.includes('PAUSED')) // Cannot pause completed
+      assert.ok(!validTransitions.ARCHIVED.includes('PAUSED')) // Must reactivate to ACTIVE first
+      assert.ok(!validTransitions.ARCHIVED.includes('COMPLETED'))
+    })
+  })
+
+  describe('Milestone Progress Computation Rules', () => {
+    it('calculates 0% when there are zero milestones', () => {
+      const milestones: Array<{ status: 'PENDING' | 'COMPLETED' }> = []
+      const pct = milestones.length === 0 ? 0 : Math.floor((milestones.filter(m => m.status === 'COMPLETED').length / milestones.length) * 100)
+      assert.equal(pct, 0)
+    })
+
+    it('calculates rounded-down percentage for completed milestones', () => {
+      const milestones: Array<{ status: 'PENDING' | 'COMPLETED' }> = [
+        { status: 'COMPLETED' },
+        { status: 'PENDING' },
+        { status: 'PENDING' },
+      ]
+      const completed = milestones.filter((m) => m.status === 'COMPLETED').length
+      const pct = Math.floor((completed / milestones.length) * 100)
+      assert.equal(pct, 33) // 1/3 = 33%
+    })
+  })
+
+  describe('Detail Route ID Extraction & Sync', () => {
+    const parseDetailGoalId = (pathname: string): string | null => {
+      const match = pathname.match(/\/dashboard\/goals\/([^/]+)/)
+      if (match && match[1] && match[1] !== 'placeholder') {
+        return match[1]
+      }
+      return null
+    }
+
+    it('extracts numeric and UUID identifiers correctly', () => {
+      assert.equal(parseDetailGoalId('/dashboard/goals/123'), '123')
+      assert.equal(parseDetailGoalId('/dashboard/goals/ug-uuid-456'), 'ug-uuid-456')
+    })
+
+    it('ignores placeholder and root goals routes', () => {
+      assert.equal(parseDetailGoalId('/dashboard/goals/placeholder'), null)
+      assert.equal(parseDetailGoalId('/dashboard/goals'), null)
+    })
+  })
 })

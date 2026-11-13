@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import {
+  AlertCircle,
   Archive,
   Calendar,
   CheckCircle2,
@@ -42,7 +43,7 @@ interface GoalDetailModalProps {
 }
 
 export function GoalDetailModal({ goalId, isOpen, onClose }: GoalDetailModalProps) {
-  const { data: goalDetail, isLoading } = useUserGoalDetail(isOpen && goalId ? goalId : undefined)
+  const { data: goalDetail, isLoading, isError } = useUserGoalDetail(isOpen && goalId ? goalId : undefined)
 
   const activateMutation = useActivateGoal()
   const pauseMutation = usePauseGoal()
@@ -141,6 +142,35 @@ export function GoalDetailModal({ goalId, isOpen, onClose }: GoalDetailModalProp
             <Loader2 size={24} className="animate-spin" color="var(--clay)" />
             <span style={{ fontSize: 13 }}>Loading goal details...</span>
           </div>
+        ) : isError || !goal ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 220, gap: 12, textAlign: 'center', padding: '20px 16px' }}>
+            <div style={{ width: 48, height: 48, borderRadius: 24, background: 'var(--surface2)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
+              <AlertCircle size={24} />
+            </div>
+            <h4 style={{ fontSize: 16, fontWeight: 700, color: 'var(--dark)', margin: 0 }}>
+              Goal Not Found
+            </h4>
+            <p style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 320, margin: 0, lineHeight: 1.45 }}>
+              This goal could not be found, or you do not have permission to view it. It may have been archived or removed.
+            </p>
+            <button
+              type="button"
+              onClick={onClose}
+              style={{
+                marginTop: 8,
+                padding: '10px 20px',
+                borderRadius: 10,
+                background: 'var(--dark)',
+                color: '#fff',
+                fontSize: 13,
+                fontWeight: 700,
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              Return to Goals Workspace
+            </button>
+          </div>
         ) : goal ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             {/* Status & Category Pills */}
@@ -171,26 +201,28 @@ export function GoalDetailModal({ goalId, isOpen, onClose }: GoalDetailModalProp
                 </span>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setIsEditOpen(true)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  padding: '6px 12px',
-                  background: 'transparent',
-                  border: '1px solid var(--border)',
-                  borderRadius: 8,
-                  fontSize: 12.5,
-                  fontWeight: 600,
-                  color: 'var(--text)',
-                  cursor: 'pointer',
-                }}
-              >
-                <Edit3 size={13} />
-                <span>Edit</span>
-              </button>
+              {status !== 'ARCHIVED' && (
+                <button
+                  type="button"
+                  onClick={() => setIsEditOpen(true)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    padding: '6px 12px',
+                    background: 'transparent',
+                    border: '1px solid var(--border)',
+                    borderRadius: 8,
+                    fontSize: 12.5,
+                    fontWeight: 600,
+                    color: 'var(--text)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <Edit3 size={13} />
+                  <span>Edit</span>
+                </button>
+              )}
             </div>
 
             {/* Description */}
@@ -229,6 +261,29 @@ export function GoalDetailModal({ goalId, isOpen, onClose }: GoalDetailModalProp
                 </div>
               )}
 
+              {progressSource === 'RENT_VAULT' && (
+                <div style={{ fontSize: 13, color: 'var(--text-muted)', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Verified Vault Balance</span>
+                    <span style={{ fontWeight: 700, color: 'var(--text)' }}>
+                      {formatMinorUnitAmount(goal.lastVerifiedBalanceMinor, goal.currency)}
+                      {goal.targetAmountMinor && ` of ${formatMinorUnitAmount(goal.targetAmountMinor, goal.currency)}`}
+                    </span>
+                  </div>
+                  {goal.verifiedAt && (
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                      Verified from linked Rent Vault on {formatDate(goal.verifiedAt)}
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {progressSource === 'STATUS_ONLY' && (
+                <div style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
+                  This goal is tracked by lifecycle state ({status}) rather than numeric percentage.
+                </div>
+              )}
+
               {progressSource !== 'STATUS_ONLY' && (
                 <div className="user-goal-card__progress-bar" style={{ height: 8 }}>
                   <div className="user-goal-card__progress-fill" style={{ width: `${progressPct}%` }} />
@@ -255,10 +310,10 @@ export function GoalDetailModal({ goalId, isOpen, onClose }: GoalDetailModalProp
               <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)', marginBottom: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span>Action Milestones</span>
                 <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)' }}>
-                  Break goals into steps
+                  {status === 'ARCHIVED' ? 'Archived (Read-only)' : 'Break goals into steps'}
                 </span>
               </div>
-              <GoalMilestonesList goalId={goal.id} />
+              <GoalMilestonesList goalId={goal.id} readOnly={status === 'ARCHIVED'} />
             </div>
 
             {/* Lifecycle Action Bar */}
@@ -423,6 +478,37 @@ export function GoalDetailModal({ goalId, isOpen, onClose }: GoalDetailModalProp
                   <Archive size={15} />
                   <span>Archive</span>
                 </button>
+              )}
+
+              {status === 'ARCHIVED' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+                  <button
+                    type="button"
+                    onClick={handleActivate}
+                    disabled={isActionPending}
+                    style={{
+                      width: '100%',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      padding: '11px 16px',
+                      background: 'var(--clay)',
+                      border: 'none',
+                      borderRadius: 10,
+                      fontSize: 13,
+                      fontWeight: 700,
+                      color: '#fff',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <PlayCircle size={15} />
+                    <span>Reactivate Goal</span>
+                  </button>
+                  <p style={{ fontSize: 11.5, color: 'var(--text-muted)', textAlign: 'center', margin: 0 }}>
+                    This goal is archived. All progress and milestones are preserved. Reactivate to resume editing and tracking.
+                  </p>
+                </div>
               )}
             </div>
           </div>
