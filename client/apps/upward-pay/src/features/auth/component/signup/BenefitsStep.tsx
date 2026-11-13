@@ -1,41 +1,35 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { TrendingUp, Shield, PiggyBank, Target, Building2, UserPlus, LogIn } from 'lucide-react'
+import { CheckCircle2, Compass, PiggyBank, Target, UserPlus, LogIn } from 'lucide-react'
 import { UpwardLogo } from '@/components/PoweredByUpward'
 import { GoogleSignInButton } from '@/features/auth/components/GoogleSignInButton'
 import { AppleSignInButton } from '@/features/auth/components/AppleSignInButton'
 
 const BENEFITS = [
   {
-    icon: PiggyBank,
-    color: '#C2501F',
-    title: 'Save for Rent Stress-Free',
-    desc: 'Save at your own pace, earn daily returns, and get cash back on rent day.',
-  },
-  {
     icon: Target,
+    color: '#C2501F',
+    title: 'Set Goals That Matter',
+    desc: 'Plan across housing, income, career, and family — or create custom goals around your priorities.',
+  },
+  {
+    icon: CheckCircle2,
     color: '#16a34a',
-    title: 'Achieve Your Living Goals',
-    desc: '24/7 power backup, fast Wi-Fi, dream furnishings, or personal milestones. Plan what matters to you and unlock exclusive member deals.',
+    title: 'Turn Ambitions into Steps',
+    desc: 'Break every goal into clear milestones, target dates, and budgets you can track in one place.',
   },
   {
-    icon: Shield,
-    color: '#d97706',
-    title: 'Pay Rent with Zero Stress',
-    desc: 'Instant transfers to any Nigerian bank account with official payment receipts sent straight to your landlord.',
-  },
-  {
-    icon: TrendingUp,
+    icon: PiggyBank,
     color: '#0ea5e9',
-    title: 'Build a Score Landlords Love',
-    desc: 'Every on-time payment boosts your Upward Score, unlocking cheaper rent deals, bigger perks, and prime apartments.',
+    title: 'Smarter Rent & Financial Tools',
+    desc: 'Save towards rent, manage payments seamlessly, and build verified credibility along the way.',
   },
   {
-    icon: Building2,
-    color: '#6366f1',
-    title: 'Find Homes You’ll Love',
-    desc: 'Discover vetted, move-in-ready apartments with flexible payment plans designed around how you earn.',
+    icon: Compass,
+    color: '#d97706',
+    title: 'Curated Support for Your Goals',
+    desc: 'Explore vetted home upgrades, services, and resources connected to what you are working toward.',
   },
 ]
 

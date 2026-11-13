@@ -163,15 +163,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     goalsAvailable: false,
   })
 
-  const showProfileBlocker =
-    mounted &&
-    !loading &&
-    !showTermsGate &&
-    !!user &&
-    !isExperimentLoading &&
-    !shouldAutoOpenRental &&
-    ((isRequired && isRentalGated && !isExemptRoute) ||
-      (isDashboardHome && !isSetupComplete && !isDismissed))
+  // Stage 3C.4 Goals-First Redesign: do not intercept /dashboard with the legacy rental/profile setup blocker
+  const showProfileBlocker = false
 
   useEffect(() => {
     if (!loading && isLoggedIn && user && !showProfileBlocker && !showTermsGate) {

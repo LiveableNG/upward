@@ -1,0 +1,516 @@
+/* Goals Dashboard Overview (Stage 3C.4) */
+
+.dash-goals-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-bottom: 24px;
+  width: 100%;
+}
+
+/* ── 1. WELCOME SECTION ── */
+.dash-goals-welcome {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--border, #e5ddd0);
+  border-radius: 16px;
+  padding: 20px;
+  gap: 14px;
+  box-shadow: 0 2px 8px rgba(60, 40, 20, 0.04);
+}
+
+@media (min-width: 640px) {
+  .dash-goals-welcome {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    padding: 24px;
+  }
+}
+
+.dash-goals-welcome__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--clay, #c25e00);
+  background: var(--shell-tint, #fbede5);
+  padding: 4px 10px;
+  border-radius: 999px;
+  width: fit-content;
+}
+
+.dash-goals-welcome__title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--dark, #1a1714);
+  letter-spacing: -0.02em;
+  margin: 6px 0 4px;
+  line-height: 1.25;
+}
+
+@media (min-width: 640px) {
+  .dash-goals-welcome__title {
+    font-size: 26px;
+  }
+}
+
+.dash-goals-welcome__desc {
+  font-size: 14px;
+  color: var(--text-muted, #7a7268);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.dash-goals-welcome__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.dash-goals-welcome__primary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 11px 20px;
+  border-radius: 12px;
+  background: var(--clay, #c25e00);
+  color: #ffffff;
+  font-size: 13.5px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: opacity 120ms ease, transform 120ms ease;
+  white-space: nowrap;
+}
+
+.dash-goals-welcome__primary-btn:active {
+  transform: scale(0.98);
+}
+
+.dash-goals-welcome__secondary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 11px 18px;
+  border-radius: 12px;
+  background: var(--surface2, #f5efe6);
+  border: 1px solid var(--border, #e5ddd0);
+  color: var(--dark, #1a1714);
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+/* ── 2. GOALS OVERVIEW GRID ── */
+.dash-goals-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.dash-goals-section-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--dark, #1a1714);
+  letter-spacing: -0.01em;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dash-goals-section-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: var(--clay, #c25e00);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dash-goals-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 640px) {
+  .dash-goals-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .dash-goals-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.dash-goal-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--border, #e5ddd0);
+  border-radius: 14px;
+  padding: 16px;
+  gap: 12px;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+  cursor: pointer;
+}
+
+.dash-goal-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(60, 40, 20, 0.06);
+  border-color: var(--clay, #c25e00);
+}
+
+.dash-goal-card__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.dash-goal-card__cat {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--clay, #c25e00);
+  margin-bottom: 4px;
+  display: block;
+}
+
+.dash-goal-card__title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--dark, #1a1714);
+  margin: 0;
+  line-height: 1.35;
+}
+
+.dash-goal-card__desc {
+  font-size: 12.5px;
+  color: var(--text-muted, #7a7268);
+  margin: 6px 0 0;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.dash-goal-card__progress-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(0, 0, 0, 0.04);
+}
+
+.dash-goal-card__progress-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text, #1a1714);
+}
+
+.dash-goal-card__progress-bar {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface2, #f5efe6);
+  overflow: hidden;
+}
+
+.dash-goal-card__progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--clay, #c25e00);
+  transition: width 200ms ease;
+}
+
+/* ── 3. UPCOMING MILESTONES ── */
+.dash-milestones-card {
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--border, #e5ddd0);
+  border-radius: 16px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.dash-milestone-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--surface2, #f5efe6);
+  border: 1px solid var(--border, #e5ddd0);
+  gap: 12px;
+  transition: background 120ms ease;
+}
+
+.dash-milestone-item:hover {
+  background: #f0e7db;
+}
+
+.dash-milestone-check {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 1.5px solid var(--clay, #c25e00);
+  background: var(--surface, #ffffff);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.dash-milestone-check--done {
+  background: var(--clay, #c25e00);
+}
+
+.dash-milestone-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text, #1a1714);
+  flex: 1;
+  min-width: 0;
+}
+
+.dash-milestone-title--done {
+  text-decoration: line-through;
+  opacity: 0.55;
+}
+
+.dash-milestone-goal-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--clay, #c25e00);
+  background: var(--shell-tint, #fbede5);
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* ── 4. NEXT STEPS & EXPLORE ── */
+.dash-next-steps-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 640px) {
+  .dash-next-steps-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.dash-next-step-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--border, #e5ddd0);
+  border-radius: 14px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.dash-next-step-card:hover {
+  border-color: var(--clay, #c25e00);
+  transform: translateY(-1px);
+}
+
+.dash-next-step-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: var(--surface2, #f5efe6);
+  color: var(--clay, #c25e00);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.dash-next-step-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--dark, #1a1714);
+  margin: 0 0 2px;
+}
+
+.dash-next-step-desc {
+  font-size: 11.5px;
+  color: var(--text-muted, #7a7268);
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* ── 5. PREVIEW NOTICE BADGE ── */
+.dash-preview-badge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff8f0;
+  border: 1px dashed var(--clay, #c25e00);
+  border-radius: 12px;
+  padding: 10px 16px;
+  font-size: 12.5px;
+  color: var(--clay, #c25e00);
+  gap: 12px;
+}
+
+/* ── Supporting Financial Tools Section ── */
+.dash-home__finance-support {
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--border, #e5ddd0);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.dash-home__finance-support-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dash-home__finance-support-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--dark, #1a1714);
+  margin: 0 0 4px;
+}
+
+.dash-home__finance-support-desc {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-muted, #7a7268);
+  margin: 0;
+}
+
+.dash-home__finance-support-see-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: var(--surface2, #f5efe6);
+  border: 1px solid var(--border, #e5ddd0);
+  color: var(--dark, #1a1714);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 120ms ease;
+}
+
+.dash-home__finance-support-see-all:hover {
+  background: var(--shell-tint, #fbede5);
+  color: var(--clay, #c25e00);
+}
+
+.dash-home__finance-cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 640px) {
+  .dash-home__finance-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.dash-home__finance-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--surface2, #f5efe6);
+  border: 1px solid var(--border, #e5ddd0);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+
+.dash-home__finance-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(60, 40, 20, 0.06);
+}
+
+.dash-home__finance-item:active {
+  transform: scale(0.98);
+}
+
+.dash-home__finance-item-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--surface, #ffffff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(60, 40, 20, 0.05);
+}
+
+.dash-home__finance-item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.dash-home__finance-item-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--dark, #1a1714);
+  margin: 0 0 2px;
+}
+
+.dash-home__finance-item-desc {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-muted, #7a7268);
+  margin: 0;
+}
+
+.dash-home__finance-score-badge {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--clay, #c25e00);
+  background: var(--shell-tint, #fbede5);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.dash-home__finance-item-arrow {
+  color: var(--text-muted, #7a7268);
+  flex-shrink: 0;
+}

@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { GoalSelectionScreen } from '@/features/goals'
+import { GoalOnboardingFlow } from '@/features/goals/components/GoalOnboardingFlow'
 import { useAuth } from '@/features/auth/AuthContext'
 
 export default function SetupGoalsPage() {
@@ -17,11 +17,9 @@ export default function SetupGoalsPage() {
   }
 
   return (
-    <GoalSelectionScreen
-      mode="onboarding"
+    <GoalOnboardingFlow
       onComplete={() => router.push('/dashboard')}
       onSkip={handleSkip}
-      backPath="/dashboard"
     />
   )
 }

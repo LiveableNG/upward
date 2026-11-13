@@ -26,7 +26,8 @@ export function useRentalGate() {
   const toastRef = useRef(toast)
   toastRef.current = toast
 
-  const isGated = !isLoading && isRequired && !hasRentalInfo(user)
+  // Stage 3C.4 Goals-First Redesign: do not hard-gate the app behind rental setup
+  const isGated = false
 
   const notifyGated = useCallback((feature?: string) => {
     toastRef.current.info(rentalGateMessage(feature), RENTAL_GATE_TITLE)

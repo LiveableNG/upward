@@ -1872,8 +1872,117 @@
   gap: 12px;
 }
 
+/* ── Segmented Identifier Switcher (Email / Phone) ── */
+.auth-identifier-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  margin-bottom: 8px;
+  border-radius: 12px;
+  background: var(--auth-input-bg, #F6F7F9);
+  border: 1px solid var(--auth-input-border, #EDEFF2);
+}
+
+.auth-identifier-switch__tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 36px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--auth-muted, #6B7280);
+  font-family: var(--font-auth);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease, box-shadow 150ms ease, transform 100ms ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.auth-identifier-switch__tab:hover:not(.is-active) {
+  color: var(--auth-text, #111827);
+}
+
+.auth-identifier-switch__tab:active {
+  transform: scale(0.98);
+}
+
+.auth-identifier-switch__tab.is-active {
+  background: #ffffff;
+  color: var(--auth-primary, var(--clay));
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+.auth-identifier-switch__tab svg {
+  flex-shrink: 0;
+}
+
+/* ── Phone Country Prefix inside .input-with-icon ── */
+.input-country-prefix {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding-right: 10px;
+  margin-right: 2px;
+  border-right: 1px solid var(--auth-input-border, #DEE2E6);
+  font-family: var(--font-auth);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--auth-text, #111827);
+  user-select: none;
+  flex-shrink: 0;
+}
+
+/* ── Phone Verification Channel Selector (SMS / WhatsApp) ── */
+.auth-channel-selector {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 0 2px;
+}
+
+.auth-channel-selector__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--auth-muted, #6B7280);
+}
+
+.auth-channel-selector__pills {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.auth-channel-pill {
+  padding: 4px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--auth-input-border, #EDEFF2);
+  background: var(--auth-input-bg, #F6F7F9);
+  color: var(--auth-muted, #6B7280);
+  font-family: var(--font-auth);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 140ms ease;
+}
+
+.auth-channel-pill:hover:not(.is-active) {
+  border-color: var(--clay-faint);
+  color: var(--auth-text, #111827);
+}
+
+.auth-channel-pill.is-active {
+  background: var(--auth-tint, #FBEDE5);
+  border-color: var(--auth-primary, var(--clay));
+  color: var(--auth-primary, var(--clay));
+}
+
 .auth-form__field--password {
-  margin-top: 14px;
+  margin-top: 0;
 }
 
 .auth-form__link--quiet {

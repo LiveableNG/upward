@@ -5,7 +5,6 @@ import {
   Compass,
   Plus,
   Search,
-  Sparkles,
   Target,
   ArrowRight,
   Check,

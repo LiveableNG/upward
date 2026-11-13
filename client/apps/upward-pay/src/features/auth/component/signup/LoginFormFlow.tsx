@@ -12,20 +12,21 @@ import {
   Fingerprint,
   Loader2,
   AlertCircle,
-  Sparkles,
+  CheckCircle2,
   Phone,
 } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
 import { UpwardLogo } from '@/components/PoweredByUpward'
 import { useLogin } from '@/features/auth/hooks/useLogin'
 import { useToast } from '@/components/common/Toast'
+import { haptics } from '@/lib/haptics'
 import { requestOTP, loginWithOTP, checkEmail, verifyOTP } from '@/features/auth/services/authService'
 import { OTPInput } from '@/components/common/OTPInput'
 import { GoogleSignInButton } from '@/features/auth/components/GoogleSignInButton'
 import { AppleSignInButton } from '@/features/auth/components/AppleSignInButton'
 import { isValidEmail } from '@/lib/utils'
 
-type LoginMethod = 'password' | 'code' | null
+type LoginMethod = 'password' | 'code'
 
 interface LoginFormFlowProps {
   onBackToWelcome: () => void
@@ -62,7 +63,7 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
   const [phoneChannel, setPhoneChannel] = useState<'SMS' | 'WHATSAPP'>('SMS')
   const [loginPassword, setLoginPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [loginMethod, setLoginMethod] = useState<LoginMethod>(null)
+  const [loginMethod, setLoginMethod] = useState<LoginMethod>('password')
   const [step, setStep] = useState<'login' | 'otp'>('login')
   const [isRequestingOTP, setIsRequestingOTP] = useState(false)
   const [effectiveContext, setEffectiveContext] = useState<'LOGIN' | 'WAITLIST' | 'INVITE'>('LOGIN')
@@ -372,17 +373,34 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
           )}
 
           <div className="auth-form__field">
-            <div className="auth-form__label-row">
-              <label htmlFor="login-identifier">{identifierType === 'email' ? 'Email Address' : 'Phone Number'}</label>
+            <div className="auth-identifier-switch" role="tablist" aria-label="Sign in identifier method">
               <button
                 type="button"
-                className="auth-form__link auth-form__link--quiet"
+                role="tab"
+                aria-selected={identifierType === 'email'}
+                className={`auth-identifier-switch__tab ${identifierType === 'email' ? 'is-active' : ''}`}
                 onClick={() => {
-                  setIdentifierType(identifierType === 'email' ? 'phone' : 'email')
+                  haptics.selection()
+                  setIdentifierType('email')
                   setEmailExists(false)
                 }}
               >
-                Continue with {identifierType === 'email' ? 'Phone Number' : 'Email'}
+                <Mail size={14} />
+                <span>Email Address</span>
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={identifierType === 'phone'}
+                className={`auth-identifier-switch__tab ${identifierType === 'phone' ? 'is-active' : ''}`}
+                onClick={() => {
+                  haptics.selection()
+                  setIdentifierType('phone')
+                  setEmailExists(false)
+                }}
+              >
+                <Phone size={14} />
+                <span>Phone Number</span>
               </button>
             </div>
             
@@ -401,28 +419,47 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
                 {isCheckingEmail && <Loader2 className="input-spinner animate-spin" size={16} />}
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <div className="input-wrapper" style={{ position: 'relative', display: 'flex', alignItems: 'center', border: '1px solid #e2e2e2', borderRadius: '14px', padding: '0 16px', background: '#fff', transition: 'border-color 0.2s', height: '46px' }}>
-                  <span className="country-code" style={{ fontFamily: 'Plus Jakarta Sans', fontSize: '13.5px', color: '#7a7268', borderRight: '1px solid #eee', paddingRight: '8px', marginRight: '8px' }}>+234</span>
+              <div>
+                <div className="input-with-icon">
+                  <Phone size={17} />
+                  <span className="input-country-prefix">+234</span>
                   <input 
+                    id="login-phone"
                     type="tel" 
                     inputMode="numeric"
-                    placeholder="800 000 0000" 
-                    style={{ border: 'none', outline: 'none', height: '100%', width: '100%', fontFamily: 'Plus Jakarta Sans', fontSize: '13.5px', background: 'transparent' }}
+                    placeholder="803 000 0000" 
                     value={loginPhone}
                     onChange={(e) => setLoginPhone(e.target.value)}
+                    autoComplete="tel"
                     required={identifierType === 'phone'}
                   />
-                  {isCheckingEmail && <Loader2 className="input-spinner animate-spin" size={16} style={{ position: 'absolute', right: '16px' }} />}
+                  {isCheckingEmail && <Loader2 className="input-spinner animate-spin" size={16} />}
                 </div>
                 {loginMethod === 'code' && (
-                  <div style={{ display: 'flex', gap: '16px', marginTop: '12px', paddingLeft: '4px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', color: 'var(--text)' }}>
-                      <input type="radio" name="phoneChannelLogin" checked={phoneChannel === 'SMS'} onChange={() => setPhoneChannel('SMS')} style={{ accentColor: 'var(--clay)' }} /> SMS
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', color: 'var(--text)' }}>
-                      <input type="radio" name="phoneChannelLogin" checked={phoneChannel === 'WHATSAPP'} onChange={() => setPhoneChannel('WHATSAPP')} style={{ accentColor: 'var(--clay)' }} /> WhatsApp
-                    </label>
+                  <div className="auth-channel-selector">
+                    <span className="auth-channel-selector__label">Verification code via</span>
+                    <div className="auth-channel-selector__pills">
+                      <button
+                        type="button"
+                        className={`auth-channel-pill ${phoneChannel === 'SMS' ? 'is-active' : ''}`}
+                        onClick={() => {
+                          haptics.selection()
+                          setPhoneChannel('SMS')
+                        }}
+                      >
+                        SMS
+                      </button>
+                      <button
+                        type="button"
+                        className={`auth-channel-pill ${phoneChannel === 'WHATSAPP' ? 'is-active' : ''}`}
+                        onClick={() => {
+                          haptics.selection()
+                          setPhoneChannel('WHATSAPP')
+                        }}
+                      >
+                        WhatsApp
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -457,7 +494,7 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
 
             {emailExists && isWaitlist && (
               <div className="auth-field-hint auth-field-hint--accent">
-                <Sparkles size={12} /> You have priority access!{' '}
+                <CheckCircle2 size={12} /> You have priority access!{' '}
                 <button type="button" className="auth-field-hint__link" onClick={() => handleRequestOTP('WAITLIST')}>
                   Claim your account
                 </button>
@@ -467,27 +504,6 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
 
           {!isSpecialAccount && (
             <>
-              <div className="auth-method-toggle" role="radiogroup" aria-label="Sign-in method">
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={loginMethod === 'password'}
-                  className={`auth-method-toggle__option${loginMethod === 'password' ? ' is-active' : ''}`}
-                  onClick={() => setLoginMethod('password')}
-                >
-                  Password
-                </button>
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={loginMethod === 'code'}
-                  className={`auth-method-toggle__option${loginMethod === 'code' ? ' is-active' : ''}`}
-                  onClick={() => setLoginMethod('code')}
-                >
-                  Verification code
-                </button>
-              </div>
-
               {isGoogleOnly && loginMethod === 'password' && (
                 <div className="auth-field-hint auth-field-hint--accent">
                   <AlertCircle size={12} /> This account uses Google sign-in. Use the Google button above.
@@ -508,7 +524,7 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
                       type="button"
                       className="auth-form__link auth-form__link--quiet"
                       onClick={() => router.push('/forgot-password')}
-                      disabled={isBusy || !loginEmail || !emailExists}
+                      disabled={isBusy}
                     >
                       Forgot password?
                     </button>
@@ -532,13 +548,11 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
                     </button>
                   </div>
                 </div>
-              ) : loginMethod === 'code' ? (
-                <p className="auth-form-note">
-                  We&apos;ll email you a 6-digit code to sign in.
-                </p>
               ) : (
                 <p className="auth-form-note">
-                  Choose a sign-in method to continue.
+                  {identifierType === 'phone'
+                    ? `We'll send a 6-digit verification code to your phone via ${phoneChannel === 'WHATSAPP' ? 'WhatsApp' : 'SMS'}.`
+                    : "We'll email you a 6-digit verification code to sign in."}
                 </p>
               )}
 
@@ -561,6 +575,19 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
                 )}
               </button>
 
+              <button
+                type="button"
+                className="btn btn--full auth-btn-otp"
+                onClick={() => {
+                  haptics.selection()
+                  setLoginMethod(loginMethod === 'password' ? 'code' : 'password')
+                }}
+                disabled={isBusy}
+              >
+                {loginMethod === 'password'
+                  ? 'Sign in with a verification code instead'
+                  : 'Sign in with password instead'}
+              </button>
             </>
           )}
         </form>

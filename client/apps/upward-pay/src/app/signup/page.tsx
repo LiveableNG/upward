@@ -99,7 +99,7 @@ function SignupPageContent() {
       initialEmail={initialEmail}
       onBackToWelcome={() => setMode('welcome')} 
       onSignupSuccess={() => {
-        router.replace('/dashboard')
+        router.replace('/dashboard/setup/goals')
       }}
     />
   )
@@ -133,10 +133,10 @@ export default function SignupPage() {
               />
             </div>
           </div>
-          <h1>The new standard of renting.</h1>
+          <h1>Plan your goals. Build real momentum.</h1>
           <p>
-            Build your credit score, earn rewards for on-time payments, and 
-            verify your tenancy history effortlessly with Upward.
+            Set personal goals across housing, income, career, and family — backed
+            by structured action steps and practical financial tools.
           </p>
         </div>
       </div>

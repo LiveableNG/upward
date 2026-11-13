@@ -107,7 +107,7 @@ export default function FinanceDashboardPage() {
                     Score unavailable
                   </span>
                 </div>
-              ) : !isScorable || score === null ? (
+              ) : score === null ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                   <span style={{ fontSize: '16px', fontWeight: 800, color: 'var(--dark, #1a1714)', letterSpacing: '-0.01em' }}>
                     Unranked
@@ -128,8 +128,8 @@ export default function FinanceDashboardPage() {
                       </span>
                     )}
                   </div>
-                  <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--clay, #c2501f)' }}>
-                    {scoreBand ? `${scoreBand} · ` : ''}Credibility
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: isScorable ? 'var(--clay, #c2501f)' : 'var(--text-muted, #8F857A)' }}>
+                    {isScorable ? `${scoreBand ? `${scoreBand} · ` : ''}Credibility` : 'Potential Score'}
                   </span>
                 </div>
               )}

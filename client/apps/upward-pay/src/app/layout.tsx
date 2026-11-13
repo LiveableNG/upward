@@ -7,6 +7,7 @@ import Providers from './Providers'
 import { SmartAppBanner } from '@/components/common/SmartAppBanner'
 import { OfflineBanner } from '@/components/common/OfflineBanner'
 import { NotificationPromptModal } from '@/features/notifications/components/NotificationPromptModal'
+import { OnboardingGoalsProvider } from '@/features/goals/context/OnboardingGoalsContext'
 import './globals.css'
 
 const inter = Inter({
@@ -57,10 +58,12 @@ export default function RootLayout({
         <Providers>
           <AuthProvider>
             <LaunchDarklyProvider>
-              <SmartAppBanner />
-              <OfflineBanner />
-              {children}
-              <NotificationPromptModal />
+              <OnboardingGoalsProvider>
+                <SmartAppBanner />
+                <OfflineBanner />
+                {children}
+                <NotificationPromptModal />
+              </OnboardingGoalsProvider>
             </LaunchDarklyProvider>
           </AuthProvider>
         </Providers>

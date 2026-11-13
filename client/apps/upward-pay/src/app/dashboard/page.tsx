@@ -204,7 +204,7 @@ export default function DashboardPage() {
           profileCompletion={profileCompletion}
           propertyReminders={propertyReminders}
           isIdentityVerified={isIdentityVerified}
-          verificationOn={user?.verificationOn ?? true}
+          verificationOn={Boolean(user?.verificationOn)}
           isNewUser={isNewUser}
           notifCount={notifCount}
           anyOverdue={anyOverdue}

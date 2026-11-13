@@ -12,7 +12,8 @@
     "test:integration": "jest --config jest-integration.json --runInBand --passWithNoTests",
     "prisma:generate": "prisma generate --schema=prisma/schema",
     "postinstall": "prisma generate --schema=prisma/schema",
-    "db:seed": "prisma db seed --schema=prisma/schema"
+    "db:seed": "prisma db seed --schema=prisma/schema",
+    "db:seed:goals": "tsx prisma/seed-goals-catalogue.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed-admin.ts"

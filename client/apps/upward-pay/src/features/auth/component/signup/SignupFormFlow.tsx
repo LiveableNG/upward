@@ -12,10 +12,10 @@ import {
   EyeOff,
   AlertCircle,
   Loader2,
-  Sparkles,
   CheckCircle2,
   Compass,
   ChevronDown,
+  Phone,
 } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
 import { UpwardLogo } from '@/components/PoweredByUpward'
@@ -506,7 +506,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
         <div className="auth-stage__header">
           <span className="auth-form__step-badge">Step 1 of 2</span>
           <h1 className="auth-stage__title">Create your account</h1>
-          <p className="auth-stage__subtitle">Sign up in seconds to start managing your rent.</p>
+          <p className="auth-stage__subtitle">Sign up in seconds to define your goals and build momentum.</p>
         </div>
 
         <div className="auth-social-stack">
@@ -524,17 +524,36 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
           )}
 
           <div className="auth-form__field">
-            <div className="auth-form__label-row">
-              <label htmlFor="signup-identifier">{identifierType === 'email' ? 'Email Address' : 'Phone Number'}</label>
+            <div className="auth-identifier-switch" role="tablist" aria-label="Sign up identifier method">
               <button
                 type="button"
-                className="auth-form__link auth-form__link--quiet"
+                role="tab"
+                aria-selected={identifierType === 'email'}
+                className={`auth-identifier-switch__tab ${identifierType === 'email' ? 'is-active' : ''}`}
                 onClick={() => {
-                  setIdentifierType(identifierType === 'email' ? 'phone' : 'email')
+                  haptics.selection()
+                  setIdentifierType('email')
                   setEmailExists(false)
+                  setLocalError('')
                 }}
               >
-                Sign up with {identifierType === 'email' ? 'Phone Number' : 'Email'}
+                <Mail size={14} />
+                <span>Email Address</span>
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={identifierType === 'phone'}
+                className={`auth-identifier-switch__tab ${identifierType === 'phone' ? 'is-active' : ''}`}
+                onClick={() => {
+                  haptics.selection()
+                  setIdentifierType('phone')
+                  setEmailExists(false)
+                  setLocalError('')
+                }}
+              >
+                <Phone size={14} />
+                <span>Phone Number</span>
               </button>
             </div>
 
@@ -561,30 +580,52 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
                 {isCheckingEmail && <Loader2 className="input-spinner animate-spin" size={16} />}
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <div 
-                  className="input-wrapper" 
-                  style={{ position: 'relative', display: 'flex', alignItems: 'center', border: emailExists && !isInvited && !isWaitlist ? '1px solid #ff4b4b' : '1px solid #e2e2e2', borderRadius: '14px', padding: '0 16px', background: '#fff', transition: 'border-color 0.2s', height: '46px' }}
+              <div>
+                <div
+                  className={
+                    emailExists && !isInvited && !isWaitlist
+                      ? 'input-with-icon input-with-icon--error'
+                      : 'input-with-icon'
+                  }
                 >
-                  <span className="country-code" style={{ fontFamily: 'Plus Jakarta Sans', fontSize: '13.5px', color: '#7a7268', borderRight: '1px solid #eee', paddingRight: '8px', marginRight: '8px' }}>+234</span>
-                  <input 
-                    type="tel" 
+                  <Phone size={17} />
+                  <span className="input-country-prefix">+234</span>
+                  <input
+                    id="signup-phone"
+                    type="tel"
                     inputMode="numeric"
-                    placeholder="800 000 0000" 
-                    style={{ border: 'none', outline: 'none', height: '100%', width: '100%', fontFamily: 'Plus Jakarta Sans', fontSize: '13.5px', background: 'transparent' }}
+                    placeholder="803 000 0000"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
+                    autoComplete="tel"
                     required={identifierType === 'phone'}
                   />
-                  {isCheckingEmail && <Loader2 className="input-spinner animate-spin" size={16} style={{ position: 'absolute', right: '16px' }} />}
+                  {isCheckingEmail && <Loader2 className="input-spinner animate-spin" size={16} />}
                 </div>
-                <div style={{ display: 'flex', gap: '16px', marginTop: '12px', paddingLeft: '4px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', color: 'var(--text)' }}>
-                    <input type="radio" name="phoneChannelSignup" checked={phoneChannel === 'SMS'} onChange={() => setPhoneChannel('SMS')} style={{ accentColor: 'var(--clay)' }} /> SMS
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', color: 'var(--text)' }}>
-                    <input type="radio" name="phoneChannelSignup" checked={phoneChannel === 'WHATSAPP'} onChange={() => setPhoneChannel('WHATSAPP')} style={{ accentColor: 'var(--clay)' }} /> WhatsApp
-                  </label>
+                <div className="auth-channel-selector">
+                  <span className="auth-channel-selector__label">Verification code via</span>
+                  <div className="auth-channel-selector__pills">
+                    <button
+                      type="button"
+                      className={`auth-channel-pill ${phoneChannel === 'SMS' ? 'is-active' : ''}`}
+                      onClick={() => {
+                        haptics.selection()
+                        setPhoneChannel('SMS')
+                      }}
+                    >
+                      SMS
+                    </button>
+                    <button
+                      type="button"
+                      className={`auth-channel-pill ${phoneChannel === 'WHATSAPP' ? 'is-active' : ''}`}
+                      onClick={() => {
+                        haptics.selection()
+                        setPhoneChannel('WHATSAPP')
+                      }}
+                    >
+                      WhatsApp
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -618,7 +659,7 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
 
             {emailExists && isWaitlist && (
               <div className="auth-field-hint auth-field-hint--accent">
-                <Sparkles size={12} /> You have priority access!{' '}
+                <CheckCircle2 size={12} /> You have priority access!{' '}
                 <button type="button" className="auth-field-hint__link" onClick={handleWaitlistProceed}>
                   Claim your account
                 </button>
