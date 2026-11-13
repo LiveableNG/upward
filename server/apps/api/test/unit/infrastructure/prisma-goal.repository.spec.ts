@@ -652,4 +652,166 @@ describe('PrismaGoalRepository - Domain Integrity & Non-Destructive Operations',
       expect(result).toBeNull()
     })
   })
+
+  describe('Historical Snapshot Immutability (updateUserGoal)', () => {
+    it('rejects attempts to mutate historicalTitle after goal creation', async () => {
+      await expect(
+        repository.updateUserGoal(10, {
+          historicalTitle: 'New Unauthorized Title',
+        } as any),
+      ).rejects.toThrow(BadRequestException)
+
+      // Ensure no database query was issued
+      expect(mockPrisma.upward_user_goal.update).not.toHaveBeenCalled()
+    })
+
+    it('rejects attempts to mutate categoryId after goal creation', async () => {
+      await expect(
+        repository.updateUserGoal(10, {
+          categoryId: 99,
+        } as any),
+      ).rejects.toThrow(BadRequestException)
+
+      expect(mockPrisma.upward_user_goal.update).not.toHaveBeenCalled()
+    })
+
+    it('permits editing customTitle while leaving historical snapshot untouched', async () => {
+      const updatedModel = {
+        id: 10,
+        uuid: 'ug-10',
+        userId: 5,
+        goalId: null,
+        categoryId: 2,
+        historicalTitle: 'Original Initial Goal',
+        customTitle: 'Updated Personalized Title',
+        status: 'ACTIVE',
+        progressPct: 30,
+      }
+      mockPrisma.upward_user_goal.update.mockResolvedValueOnce(updatedModel)
+
+      const result = await repository.updateUserGoal(10, {
+        customTitle: 'Updated Personalized Title',
+      })
+
+      expect(mockPrisma.upward_user_goal.update).toHaveBeenCalledWith({
+        where: { id: 10 },
+        data: expect.objectContaining({
+          customTitle: 'Updated Personalized Title',
+        }),
+        include: expect.any(Object),
+      })
+      expect(result.customTitle).toBe('Updated Personalized Title')
+      expect(result.historicalTitle).toBe('Original Initial Goal')
+    })
+  })
+
+  describe('Transaction Client Propagation', () => {
+    let mockTx: any
+
+    beforeEach(() => {
+      mockTx = {
+        upward_user_goal: {
+          findMany: jest.fn(),
+          findFirst: jest.fn(),
+          findUnique: jest.fn(),
+          create: jest.fn(),
+          update: jest.fn(),
+          updateMany: jest.fn(),
+          deleteMany: jest.fn(),
+        },
+        upward_goal: {
+          findMany: jest.fn(),
+          findUnique: jest.fn(),
+        },
+        upward_goal_interest: {
+          findUnique: jest.fn(),
+          updateMany: jest.fn(),
+        },
+        upward_goal_interest_history: {
+          create: jest.fn(),
+        },
+      }
+    })
+
+    it('propagates transaction client to updateUserGoal without calling root prisma client', async () => {
+      const updatedModel = {
+        id: 20,
+        uuid: 'ug-20',
+        userId: 5,
+        goalId: 1,
+        categoryId: 2,
+        historicalTitle: 'Goal Title',
+        status: 'ACTIVE',
+        progressPct: 50,
+      }
+      mockTx.upward_user_goal.update.mockResolvedValueOnce(updatedModel)
+
+      const result = await repository.updateUserGoal(20, { progressPct: 50 }, mockTx)
+
+      // Verified: Operation executed exclusively on mockTx
+      expect(mockTx.upward_user_goal.update).toHaveBeenCalledWith({
+        where: { id: 20 },
+        data: expect.objectContaining({ progressPct: 50 }),
+        include: expect.any(Object),
+      })
+      // Verified: Root client was NOT called
+      expect(mockPrisma.upward_user_goal.update).not.toHaveBeenCalled()
+      expect(result.progressPct).toBe(50)
+    })
+
+    it('propagates transaction client to findUserGoals without calling root prisma client', async () => {
+      mockTx.upward_user_goal.findMany.mockResolvedValueOnce([
+        {
+          id: 20,
+          uuid: 'ug-20',
+          userId: 5,
+          goalId: 1,
+          categoryId: 2,
+          historicalTitle: 'Goal Title',
+          status: 'ACTIVE',
+          progressPct: 10,
+        },
+      ])
+
+      const result = await repository.findUserGoals(5, 'ACTIVE', mockTx)
+
+      expect(mockTx.upward_user_goal.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: 5, status: 'ACTIVE' },
+        }),
+      )
+      expect(mockPrisma.upward_user_goal.findMany).not.toHaveBeenCalled()
+      expect(result).toHaveLength(1)
+    })
+
+    it('executes createUserGoal within provided transaction without initiating a nested root transaction', async () => {
+      const createdModel = {
+        id: 30,
+        uuid: 'ug-30',
+        userId: 5,
+        goalId: null,
+        categoryId: 1,
+        historicalTitle: 'Custom Tx Goal',
+        customTitle: 'Custom Tx Goal',
+        status: 'ACTIVE',
+        progressPct: 0,
+      }
+      mockTx.upward_user_goal.create.mockResolvedValueOnce(createdModel)
+
+      const result = await repository.createUserGoal(
+        {
+          userId: 5,
+          categoryId: 1,
+          customTitle: 'Custom Tx Goal',
+        },
+        mockTx,
+      )
+
+      expect(mockTx.upward_user_goal.create).toHaveBeenCalled()
+      // Root $transaction should not be called because tx was already supplied
+      expect(mockPrisma.$transaction).not.toHaveBeenCalled()
+      expect(mockPrisma.upward_user_goal.create).not.toHaveBeenCalled()
+      expect(result.id).toBe(30)
+    })
+  })
 })

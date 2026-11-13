@@ -23,23 +23,22 @@ import {
   UserGoalStatus,
 } from '../../../../domains/goals/goal.repository'
 
+type PrismaDbClient = Prisma.TransactionClient | PrismaService
+
 @Injectable()
-export class PrismaGoalRepository implements GoalRepository {
+export class PrismaGoalRepository implements GoalRepository<Prisma.TransactionClient> {
   constructor(private readonly prisma: PrismaService) {}
 
-  private getClient(tx?: unknown): Prisma.TransactionClient | PrismaService {
-    if (tx) {
-      return tx as Prisma.TransactionClient
-    }
-    return this.prisma
+  private getClient(tx?: Prisma.TransactionClient): PrismaDbClient {
+    return tx || this.prisma
   }
 
   private async executeInTx<T>(
-    tx: unknown | undefined,
+    tx: Prisma.TransactionClient | undefined,
     fn: (client: Prisma.TransactionClient) => Promise<T>,
   ): Promise<T> {
     if (tx) {
-      return fn(tx as Prisma.TransactionClient)
+      return fn(tx)
     }
     return this.prisma.$transaction(async (innerTx) => fn(innerTx))
   }
@@ -119,7 +118,7 @@ export class PrismaGoalRepository implements GoalRepository {
   // Categories
   async findCategories(
     filter?: { status?: GoalPublishStatus; includeGoals?: boolean },
-    tx?: unknown,
+    tx?: Prisma.TransactionClient,
   ): Promise<GoalCategory[]> {
     const client = this.getClient(tx)
     const where: Prisma.upward_goal_categoryWhereInput = {}
@@ -148,7 +147,7 @@ export class PrismaGoalRepository implements GoalRepository {
     return categories as GoalCategory[]
   }
 
-  async findCategoryBySlug(slug: string, tx?: unknown): Promise<GoalCategory | null> {
+  async findCategoryBySlug(slug: string, tx?: Prisma.TransactionClient): Promise<GoalCategory | null> {
     const client = this.getClient(tx)
     const category = await client.upward_goal_category.findUnique({
       where: { slug },
@@ -165,7 +164,7 @@ export class PrismaGoalRepository implements GoalRepository {
     return (category as GoalCategory) || null
   }
 
-  async findCategoryByUuid(uuid: string, tx?: unknown): Promise<GoalCategory | null> {
+  async findCategoryByUuid(uuid: string, tx?: Prisma.TransactionClient): Promise<GoalCategory | null> {
     const client = this.getClient(tx)
     const category = await client.upward_goal_category.findUnique({
       where: { uuid },
@@ -178,7 +177,7 @@ export class PrismaGoalRepository implements GoalRepository {
     return (category as GoalCategory) || null
   }
 
-  async createCategory(data: Partial<GoalCategory>, tx?: unknown): Promise<GoalCategory> {
+  async createCategory(data: Partial<GoalCategory>, tx?: Prisma.TransactionClient): Promise<GoalCategory> {
     const client = this.getClient(tx)
     const created = await client.upward_goal_category.create({
       data: {
@@ -194,7 +193,11 @@ export class PrismaGoalRepository implements GoalRepository {
     return created as GoalCategory
   }
 
-  async updateCategory(id: number, data: Partial<GoalCategory>, tx?: unknown): Promise<GoalCategory> {
+  async updateCategory(
+    id: number,
+    data: Partial<GoalCategory>,
+    tx?: Prisma.TransactionClient,
+  ): Promise<GoalCategory> {
     const client = this.getClient(tx)
     const updated = await client.upward_goal_category.update({
       where: { id },
@@ -211,7 +214,7 @@ export class PrismaGoalRepository implements GoalRepository {
     return updated as GoalCategory
   }
 
-  async deleteCategory(id: number, tx?: unknown): Promise<void> {
+  async deleteCategory(id: number, tx?: Prisma.TransactionClient): Promise<void> {
     const client = this.getClient(tx)
     await client.upward_goal_category.delete({
       where: { id },
@@ -229,7 +232,7 @@ export class PrismaGoalRepository implements GoalRepository {
       skip?: number
       take?: number
     },
-    tx?: unknown,
+    tx?: Prisma.TransactionClient,
   ): Promise<{ items: Goal[]; total: number }> {
     const client = this.getClient(tx)
     const where: Prisma.upward_goalWhereInput = {}
@@ -277,7 +280,7 @@ export class PrismaGoalRepository implements GoalRepository {
   async findGoalBySlug(
     slug: string,
     options?: { includeDetails?: boolean },
-    tx?: unknown,
+    tx?: Prisma.TransactionClient,
   ): Promise<Goal | null> {
     const client = this.getClient(tx)
     const goal = await client.upward_goal.findUnique({
@@ -325,7 +328,7 @@ export class PrismaGoalRepository implements GoalRepository {
     return (goal as Goal) || null
   }
 
-  async findGoalByUuid(uuid: string, tx?: unknown): Promise<Goal | null> {
+  async findGoalByUuid(uuid: string, tx?: Prisma.TransactionClient): Promise<Goal | null> {
     const client = this.getClient(tx)
     const goal = await client.upward_goal.findUnique({
       where: { uuid },
@@ -340,7 +343,7 @@ export class PrismaGoalRepository implements GoalRepository {
     return (goal as Goal) || null
   }
 
-  async findGoalById(id: number, tx?: unknown): Promise<Goal | null> {
+  async findGoalById(id: number, tx?: Prisma.TransactionClient): Promise<Goal | null> {
     const client = this.getClient(tx)
     const goal = await client.upward_goal.findUnique({
       where: { id },
@@ -351,7 +354,7 @@ export class PrismaGoalRepository implements GoalRepository {
     return (goal as Goal) || null
   }
 
-  async createGoal(data: Partial<Goal>, tx?: unknown): Promise<Goal> {
+  async createGoal(data: Partial<Goal>, tx?: Prisma.TransactionClient): Promise<Goal> {
     const client = this.getClient(tx)
     const created = await client.upward_goal.create({
       data: {
@@ -373,7 +376,7 @@ export class PrismaGoalRepository implements GoalRepository {
     return created as Goal
   }
 
-  async updateGoal(id: number, data: Partial<Goal>, tx?: unknown): Promise<Goal> {
+  async updateGoal(id: number, data: Partial<Goal>, tx?: Prisma.TransactionClient): Promise<Goal> {
     const client = this.getClient(tx)
     const updated = await client.upward_goal.update({
       where: { id },
@@ -396,7 +399,7 @@ export class PrismaGoalRepository implements GoalRepository {
     return updated as Goal
   }
 
-  async deleteGoal(id: number, tx?: unknown): Promise<void> {
+  async deleteGoal(id: number, tx?: Prisma.TransactionClient): Promise<void> {
     const client = this.getClient(tx)
     await client.upward_goal.delete({
       where: { id },
@@ -404,7 +407,11 @@ export class PrismaGoalRepository implements GoalRepository {
   }
 
   // User Goals
-  async findUserGoals(userId: number, status?: UserGoalStatus, tx?: unknown): Promise<UserGoal[]> {
+  async findUserGoals(
+    userId: number,
+    status?: UserGoalStatus,
+    tx?: Prisma.TransactionClient,
+  ): Promise<UserGoal[]> {
     const client = this.getClient(tx)
     const where: Prisma.upward_user_goalWhereInput = { userId }
     if (status) {
@@ -439,7 +446,11 @@ export class PrismaGoalRepository implements GoalRepository {
     return userGoals.map((ug) => this.toDomainUserGoal(ug))
   }
 
-  async findUserGoal(userId: number, goalId: number, tx?: unknown): Promise<UserGoal | null> {
+  async findUserGoal(
+    userId: number,
+    goalId: number,
+    tx?: Prisma.TransactionClient,
+  ): Promise<UserGoal | null> {
     const client = this.getClient(tx)
     const userGoal = await client.upward_user_goal.findFirst({
       where: {
@@ -469,7 +480,7 @@ export class PrismaGoalRepository implements GoalRepository {
     return userGoal ? this.toDomainUserGoal(userGoal) : null
   }
 
-  async findUserGoalById(id: number, tx?: unknown): Promise<UserGoal | null> {
+  async findUserGoalById(id: number, tx?: Prisma.TransactionClient): Promise<UserGoal | null> {
     const client = this.getClient(tx)
     const userGoal = await client.upward_user_goal.findUnique({
       where: { id },
@@ -495,7 +506,7 @@ export class PrismaGoalRepository implements GoalRepository {
     return userGoal ? this.toDomainUserGoal(userGoal) : null
   }
 
-  async findUserGoalByUuid(uuid: string, tx?: unknown): Promise<UserGoal | null> {
+  async findUserGoalByUuid(uuid: string, tx?: Prisma.TransactionClient): Promise<UserGoal | null> {
     const client = this.getClient(tx)
     const userGoal = await client.upward_user_goal.findUnique({
       where: { uuid },
@@ -521,7 +532,7 @@ export class PrismaGoalRepository implements GoalRepository {
     return userGoal ? this.toDomainUserGoal(userGoal) : null
   }
 
-  async createUserGoal(data: Partial<UserGoal>, tx?: unknown): Promise<UserGoal> {
+  async createUserGoal(data: Partial<UserGoal>, tx?: Prisma.TransactionClient): Promise<UserGoal> {
     return this.executeInTx(tx, async (client) => {
       let historicalTitle = data.historicalTitle
       let categoryId = data.categoryId
@@ -586,7 +597,7 @@ export class PrismaGoalRepository implements GoalRepository {
     })
   }
 
-  async setUserGoals(userId: number, goalIds: number[], tx?: unknown): Promise<UserGoal[]> {
+  async setUserGoals(userId: number, goalIds: number[], tx?: Prisma.TransactionClient): Promise<UserGoal[]> {
     const targetSet = new Set(goalIds)
 
     return this.executeInTx(tx, async (client) => {
@@ -678,7 +689,19 @@ export class PrismaGoalRepository implements GoalRepository {
     })
   }
 
-  async updateUserGoal(id: number, data: Partial<UserGoal>, tx?: unknown): Promise<UserGoal> {
+  async updateUserGoal(
+    id: number,
+    data: Partial<UserGoal>,
+    tx?: Prisma.TransactionClient,
+  ): Promise<UserGoal> {
+    // Application-level snapshot immutability enforcement
+    if (data.historicalTitle !== undefined) {
+      throw new BadRequestException('historicalTitle is immutable once created')
+    }
+    if (data.categoryId !== undefined) {
+      throw new BadRequestException('categoryId is immutable once created')
+    }
+
     const client = this.getClient(tx)
     const updateInput: Prisma.upward_user_goalUncheckedUpdateInput = {
       ...(data.status ? { status: data.status } : {}),
@@ -719,7 +742,7 @@ export class PrismaGoalRepository implements GoalRepository {
     return this.toDomainUserGoal(updated)
   }
 
-  async removeUserGoal(userId: number, goalId: number, tx?: unknown): Promise<void> {
+  async removeUserGoal(userId: number, goalId: number, tx?: Prisma.TransactionClient): Promise<void> {
     const client = this.getClient(tx)
     await client.upward_user_goal.updateMany({
       where: {
@@ -734,7 +757,7 @@ export class PrismaGoalRepository implements GoalRepository {
     })
   }
 
-  async archiveUserGoal(id: number, tx?: unknown): Promise<UserGoal> {
+  async archiveUserGoal(id: number, tx?: Prisma.TransactionClient): Promise<UserGoal> {
     const client = this.getClient(tx)
     const updated = await client.upward_user_goal.update({
       where: { id },
@@ -756,7 +779,7 @@ export class PrismaGoalRepository implements GoalRepository {
   }
 
   // Milestones
-  async findMilestones(userGoalId: number, tx?: unknown): Promise<GoalMilestone[]> {
+  async findMilestones(userGoalId: number, tx?: Prisma.TransactionClient): Promise<GoalMilestone[]> {
     const client = this.getClient(tx)
     const milestones = await client.upward_goal_milestone.findMany({
       where: { userGoalId },
@@ -765,7 +788,7 @@ export class PrismaGoalRepository implements GoalRepository {
     return milestones as GoalMilestone[]
   }
 
-  async findMilestoneById(id: number, tx?: unknown): Promise<GoalMilestone | null> {
+  async findMilestoneById(id: number, tx?: Prisma.TransactionClient): Promise<GoalMilestone | null> {
     const client = this.getClient(tx)
     const milestone = await client.upward_goal_milestone.findUnique({
       where: { id },
@@ -773,7 +796,7 @@ export class PrismaGoalRepository implements GoalRepository {
     return (milestone as GoalMilestone) || null
   }
 
-  async createMilestone(data: Partial<GoalMilestone>, tx?: unknown): Promise<GoalMilestone> {
+  async createMilestone(data: Partial<GoalMilestone>, tx?: Prisma.TransactionClient): Promise<GoalMilestone> {
     const client = this.getClient(tx)
     const created = await client.upward_goal_milestone.create({
       data: {
@@ -791,7 +814,7 @@ export class PrismaGoalRepository implements GoalRepository {
   async updateMilestone(
     id: number,
     data: Partial<GoalMilestone>,
-    tx?: unknown,
+    tx?: Prisma.TransactionClient,
   ): Promise<GoalMilestone> {
     const client = this.getClient(tx)
     const updated = await client.upward_goal_milestone.update({
@@ -807,7 +830,7 @@ export class PrismaGoalRepository implements GoalRepository {
     return updated as GoalMilestone
   }
 
-  async deleteMilestone(id: number, tx?: unknown): Promise<void> {
+  async deleteMilestone(id: number, tx?: Prisma.TransactionClient): Promise<void> {
     const client = this.getClient(tx)
     await client.upward_goal_milestone.delete({
       where: { id },
@@ -818,7 +841,7 @@ export class PrismaGoalRepository implements GoalRepository {
   async findHousingAdoptionDecisions(
     userId: number,
     status?: HousingAdoptionStatus,
-    tx?: unknown,
+    tx?: Prisma.TransactionClient,
   ): Promise<HousingAdoptionDecision[]> {
     const client = this.getClient(tx)
     const where: Prisma.upward_housing_adoption_decisionWhereInput = { userId }
@@ -849,7 +872,7 @@ export class PrismaGoalRepository implements GoalRepository {
 
   async findHousingAdoptionDecisionById(
     id: number,
-    tx?: unknown,
+    tx?: Prisma.TransactionClient,
   ): Promise<HousingAdoptionDecision | null> {
     const client = this.getClient(tx)
     const decision = await client.upward_housing_adoption_decision.findUnique({
@@ -876,7 +899,7 @@ export class PrismaGoalRepository implements GoalRepository {
 
   async createHousingAdoptionDecision(
     data: Partial<HousingAdoptionDecision>,
-    tx?: unknown,
+    tx?: Prisma.TransactionClient,
   ): Promise<HousingAdoptionDecision> {
     const client = this.getClient(tx)
     const created = await client.upward_housing_adoption_decision.create({
@@ -910,7 +933,7 @@ export class PrismaGoalRepository implements GoalRepository {
   async updateHousingAdoptionDecision(
     id: number,
     data: Partial<HousingAdoptionDecision>,
-    tx?: unknown,
+    tx?: Prisma.TransactionClient,
   ): Promise<HousingAdoptionDecision> {
     const client = this.getClient(tx)
     const updated = await client.upward_housing_adoption_decision.update({
@@ -940,7 +963,7 @@ export class PrismaGoalRepository implements GoalRepository {
   }
 
   // Interests
-  async findInterests(userGoalId: number, tx?: unknown): Promise<GoalInterest[]> {
+  async findInterests(userGoalId: number, tx?: Prisma.TransactionClient): Promise<GoalInterest[]> {
     const client = this.getClient(tx)
     const items = await client.upward_goal_interest.findMany({
       where: { userGoalId },
@@ -954,7 +977,7 @@ export class PrismaGoalRepository implements GoalRepository {
     return items.map((i) => this.toDomainInterest(i))
   }
 
-  async findInterestById(id: number, tx?: unknown): Promise<GoalInterest | null> {
+  async findInterestById(id: number, tx?: Prisma.TransactionClient): Promise<GoalInterest | null> {
     const client = this.getClient(tx)
     const item = await client.upward_goal_interest.findUnique({
       where: { id },
@@ -967,7 +990,7 @@ export class PrismaGoalRepository implements GoalRepository {
     return item ? this.toDomainInterest(item) : null
   }
 
-  async createInterest(data: Partial<GoalInterest>, tx?: unknown): Promise<GoalInterest> {
+  async createInterest(data: Partial<GoalInterest>, tx?: Prisma.TransactionClient): Promise<GoalInterest> {
     return this.executeInTx(tx, async (client) => {
       const created = await client.upward_goal_interest.create({
         data: {
@@ -991,7 +1014,7 @@ export class PrismaGoalRepository implements GoalRepository {
     expectedVersion: number,
     data: Partial<GoalInterest>,
     adminNotes?: string | null,
-    tx?: unknown,
+    tx?: Prisma.TransactionClient,
   ): Promise<GoalInterest> {
     return this.executeInTx(tx, async (client) => {
       // 1. Fetch current record
@@ -1057,7 +1080,7 @@ export class PrismaGoalRepository implements GoalRepository {
     })
   }
 
-  async findInterestHistory(interestId: number, tx?: unknown): Promise<GoalInterestHistory[]> {
+  async findInterestHistory(interestId: number, tx?: Prisma.TransactionClient): Promise<GoalInterestHistory[]> {
     const client = this.getClient(tx)
     const items = await client.upward_goal_interest_history.findMany({
       where: { interestId },
@@ -1070,7 +1093,7 @@ export class PrismaGoalRepository implements GoalRepository {
   async findCollections(
     goalId: number,
     status?: GoalPublishStatus,
-    tx?: unknown,
+    tx?: Prisma.TransactionClient,
   ): Promise<GoalCollection[]> {
     const client = this.getClient(tx)
     const where: Prisma.upward_goal_collectionWhereInput = { goalId }
@@ -1088,7 +1111,7 @@ export class PrismaGoalRepository implements GoalRepository {
     return collections as GoalCollection[]
   }
 
-  async findCollectionByUuid(uuid: string, tx?: unknown): Promise<GoalCollection | null> {
+  async findCollectionByUuid(uuid: string, tx?: Prisma.TransactionClient): Promise<GoalCollection | null> {
     const client = this.getClient(tx)
     const collection = await client.upward_goal_collection.findUnique({
       where: { uuid },
@@ -1108,7 +1131,7 @@ export class PrismaGoalRepository implements GoalRepository {
     return (collection as GoalCollection) || null
   }
 
-  async createCollection(data: Partial<GoalCollection>, tx?: unknown): Promise<GoalCollection> {
+  async createCollection(data: Partial<GoalCollection>, tx?: Prisma.TransactionClient): Promise<GoalCollection> {
     const client = this.getClient(tx)
     const created = await client.upward_goal_collection.create({
       data: {
@@ -1127,7 +1150,7 @@ export class PrismaGoalRepository implements GoalRepository {
   async updateCollection(
     id: number,
     data: Partial<GoalCollection>,
-    tx?: unknown,
+    tx?: Prisma.TransactionClient,
   ): Promise<GoalCollection> {
     const client = this.getClient(tx)
     const updated = await client.upward_goal_collection.update({
@@ -1144,7 +1167,7 @@ export class PrismaGoalRepository implements GoalRepository {
     return updated as GoalCollection
   }
 
-  async deleteCollection(id: number, tx?: unknown): Promise<void> {
+  async deleteCollection(id: number, tx?: Prisma.TransactionClient): Promise<void> {
     const client = this.getClient(tx)
     await client.upward_goal_collection.delete({
       where: { id },
@@ -1162,7 +1185,7 @@ export class PrismaGoalRepository implements GoalRepository {
       curatorNote?: string | null
       sortOrder?: number
     },
-    tx?: unknown,
+    tx?: Prisma.TransactionClient,
   ): Promise<GoalOfferingLink> {
     const client = this.getClient(tx)
     const existing = await client.upward_goal_offering.findFirst({
@@ -1204,7 +1227,7 @@ export class PrismaGoalRepository implements GoalRepository {
     goalId: number,
     offeringId: number,
     collectionId?: number | null,
-    tx?: unknown,
+    tx?: Prisma.TransactionClient,
   ): Promise<void> {
     const client = this.getClient(tx)
     await client.upward_goal_offering.deleteMany({
@@ -1217,7 +1240,7 @@ export class PrismaGoalRepository implements GoalRepository {
   }
 
   // Analytics Overview
-  async getGoalsOverview(tx?: unknown): Promise<{
+  async getGoalsOverview(tx?: Prisma.TransactionClient): Promise<{
     totalCategories: number
     totalGoals: number
     totalActiveUserGoals: number
