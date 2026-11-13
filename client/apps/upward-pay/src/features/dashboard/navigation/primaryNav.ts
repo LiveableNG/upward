@@ -1,7 +1,7 @@
 import type { ComponentType } from 'react'
-import { Compass, Home, Target, User, Wallet } from 'lucide-react'
+import { Compass, Home, Target, User } from 'lucide-react'
 
-export type PrimaryNavKey = 'home' | 'goals' | 'explore' | 'finance' | 'profile'
+export type PrimaryNavKey = 'home' | 'goals' | 'explore' | 'profile'
 
 export interface PrimaryNavItem {
   readonly key: PrimaryNavKey
@@ -54,33 +54,6 @@ export const PRIMARY_NAV_ITEMS: readonly PrimaryNavItem[] = [
         p.startsWith('/dashboard/lifestyle/') ||
         p === '/dashboard/alliance' ||
         p.startsWith('/dashboard/alliance/')
-      )
-    },
-  },
-  {
-    key: 'finance',
-    label: 'Finance',
-    href: '/dashboard/finance',
-    icon: Wallet,
-    match: (pathname) => {
-      const p = normalizePath(pathname)
-      return (
-        p === '/dashboard/finance' ||
-        p.startsWith('/dashboard/finance/') ||
-        p === '/dashboard/pay-rent' ||
-        p.startsWith('/dashboard/pay-rent/') ||
-        p === '/dashboard/savings' ||
-        p.startsWith('/dashboard/savings/') ||
-        p === '/dashboard/transactions' ||
-        p.startsWith('/dashboard/transactions/') ||
-        p === '/dashboard/score-breakdown' ||
-        p.startsWith('/dashboard/score-breakdown/') ||
-        p === '/dashboard/deposit-balance' ||
-        p.startsWith('/dashboard/deposit-balance/') ||
-        p === '/dashboard/rent-support-insurance' ||
-        p.startsWith('/dashboard/rent-support-insurance/') ||
-        p === '/dashboard/receipts' ||
-        p.startsWith('/dashboard/receipts/')
       )
     },
   },

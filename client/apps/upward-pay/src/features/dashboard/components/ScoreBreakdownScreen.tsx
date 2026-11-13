@@ -15,7 +15,6 @@ import {
   Share2,
   Check,
   ChevronRight,
-  Sparkles,
 } from 'lucide-react'
 import { useScoreProfile } from '../services/scoreService'
 import { PayPageShell } from '@/features/dashboard/components/payment/PayPageShell'
@@ -472,7 +471,7 @@ export function ScoreBreakdownScreen() {
         <section className="score-page__records-card">
           <div className="score-page__records-info">
             <div className="score-page__records-icon">
-              <Sparkles size={20} />
+              <History size={20} />
             </div>
             <div>
               <h3>Missing past records?</h3>

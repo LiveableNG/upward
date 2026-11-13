@@ -294,46 +294,38 @@ export function ActionCarousel({
       })
     })
 
-  if (items.length === 0) {
-    if (showBenefitsUpsell) {
-      items.push({
-        type: 'benefits',
-        id: 'benefits-upsell',
-        title: 'Get Rent Protection',
-        meta: 'Activate Upward Benefits for one year',
-        actionLabel: 'View Benefits',
-        action: () => router.push('/dashboard/benefits'),
-        urgency: 'pending',
-      })
-    } else if (showKYC) {
-      items.push({
-        type: 'kyc',
-        id: 'kyc-alert',
-        title: 'Complete Your Profile',
-        meta: 'Add property details to build your score',
-        actionLabel: 'Add Property',
-        action: () => router.push('/dashboard/setup'),
-        urgency: 'pending',
-      })
-    } else {
-      items.push({
-        type: 'welcome',
-        id: 'welcome',
-        title: 'Dashboard Active',
-        meta: 'Rent tracking and credibility building are on',
-        actionLabel: 'View Profile',
-        action: () => router.push('/dashboard/me'),
-        urgency: 'neutral',
-      })
-    }
-  } else if (showBenefitsUpsell) {
+  if (showKYC) {
+    items.push({
+      type: 'kyc',
+      id: 'kyc-alert',
+      title: 'Add Your Rental Details',
+      meta: 'Add your property details to track rent and build your score',
+      actionLabel: 'Add Property',
+      action: () => router.push('/dashboard/setup/rental'),
+      urgency: 'pending',
+    })
+  }
+
+  if (showBenefitsUpsell) {
     items.push({
       type: 'benefits',
       id: 'benefits-upsell',
       title: 'Get Rent Protection',
-      meta: 'Optional annual Upward Benefits cover',
-      actionLabel: 'Protect Now',
+      meta: 'Activate Upward Benefits for one year',
+      actionLabel: 'View Benefits',
       action: () => router.push('/dashboard/benefits'),
+      urgency: items.length === 0 ? 'pending' : 'neutral',
+    })
+  }
+
+  if (items.length === 0) {
+    items.push({
+      type: 'welcome',
+      id: 'welcome',
+      title: 'Dashboard Active',
+      meta: 'Rent tracking and credibility building are on',
+      actionLabel: 'View Profile',
+      action: () => router.push('/dashboard/me'),
       urgency: 'neutral',
     })
   }
