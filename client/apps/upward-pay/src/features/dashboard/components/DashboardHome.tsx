@@ -365,12 +365,12 @@ export function DashboardHome({
           <button
             type="button"
             className="dash-home__action"
-            onClick={() => router.push('/dashboard/lifestyle')}
+            onClick={() => router.push('/dashboard/goals')}
           >
             <span className="dash-home__action-icon">
               <Target size={18} strokeWidth={2.2} />
             </span>
-            <span className="dash-home__action-lbl">Living Goals</span>
+            <span className="dash-home__action-lbl">My Goals</span>
           </button>
         </div>
       </div>

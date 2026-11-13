@@ -12,7 +12,7 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { Suspense } from 'react'
-import { useHasMyHome } from '@/features/my-home/hooks/useMyHome'
+import { PRIMARY_NAV_ITEMS } from '../navigation/primaryNav'
 
 interface DashboardHeaderProps {
 
@@ -29,7 +29,6 @@ export function DashboardHeader({
   const router = useRouter()
   const pathname = usePathname()
   const { user } = useAuth()
-  const hasMyHome = useHasMyHome()
   const [isNotifOpen, setIsNotifOpen] = useState(false)
   const [isDesktop, setIsDesktop] = useState(false)
 
@@ -127,44 +126,18 @@ export function DashboardHeader({
           )}
 
           <nav className="dashboard__header-nav">
-            {(() => {
-              const isActive = (href: string) => {
-                if (!pathname) return false
-                if (href === '/dashboard/my-home') {
-                  return pathname === href || pathname.startsWith(`${href}/`)
-                }
-                const normalizedPath = pathname.endsWith('/') ? pathname : `${pathname}/`
-                const normalizedHref = href.endsWith('/') ? href : `${href}/`
-                return normalizedPath === normalizedHref
-              }
-              const isDashboardHome = pathname === '/dashboard' || pathname === '/dashboard/'
-              const isMyHomeRoute =
-                pathname === '/dashboard/my-home' || !!pathname?.startsWith('/dashboard/my-home/')
-              const isPayRentRoute =
-                pathname === '/dashboard/pay-rent' || !!pathname?.startsWith('/dashboard/pay-rent/')
-              const isTransactionsRoute =
-                pathname === '/dashboard/transactions' || !!pathname?.startsWith('/dashboard/transactions/')
-              const isProfileRoute =
-                pathname === '/dashboard/me' || !!pathname?.startsWith('/dashboard/me/')
-              const showMarketplace =
-                process.env.NEXT_PUBLIC_ENABLE_MARKETPLACE === 'true'
+            {PRIMARY_NAV_ITEMS.map((item) => {
+              const active = item.match(pathname)
               return (
-                <>
-                  {!isDashboardHome ? (
-                    <Link href="/dashboard" className={isActive('/dashboard') ? 'active' : ''}>Home</Link>
-                  ) : null}
-                  {hasMyHome && !isMyHomeRoute && !isPayRentRoute && !isTransactionsRoute && !isProfileRoute ? (
-                    <Link href="/dashboard/my-home" className={isActive('/dashboard/my-home') ? 'active' : ''}>My Home</Link>
-                  ) : null}
-                  <Link href="/dashboard/pay-rent" className={isActive('/dashboard/pay-rent') ? 'active' : ''}>Pay Rent</Link>
-                  {showMarketplace && (
-                    <Link href="/dashboard/alliance" className={isActive('/dashboard/alliance') ? 'active' : ''}>Marketplace</Link>
-                  )}
-                  <Link href="/dashboard/transactions" className={isActive('/dashboard/transactions') ? 'active' : ''}>Transactions</Link>
-                  <Link href="/dashboard/me" className={isActive('/dashboard/me') ? 'active' : ''}>Profile</Link>
-                </>
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={active ? 'active' : ''}
+                >
+                  {item.label}
+                </Link>
               )
-            })()}
+            })}
           </nav>
 
           <div className="dashboard__header-right">

@@ -160,7 +160,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const isSetupComplete = isProfileSetupComplete(user, {
     hasGoals,
-    goalsAvailable: true,
+    goalsAvailable: false,
   })
 
   const showProfileBlocker =
@@ -198,9 +198,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const normalizedPath = (pathname || '').replace(/\/$/, '')
   const ROOT_NAV_PATHS = new Set([
     '/dashboard',
+    '/dashboard/goals',
+    '/dashboard/explore',
+    '/dashboard/finance',
+    '/dashboard/me',
+    '/dashboard/lifestyle',
+    '/dashboard/savings',
     '/dashboard/pay-rent',
     '/dashboard/transactions',
-    '/dashboard/me',
+    '/dashboard/score-breakdown',
     '/dashboard/my-home',
   ])
 

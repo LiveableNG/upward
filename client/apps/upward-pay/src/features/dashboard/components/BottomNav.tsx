@@ -3,52 +3,13 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Building2, Compass, History, Home, User } from 'lucide-react'
-import { useHasMyHome } from '@/features/my-home/hooks/useMyHome'
 import { haptics } from '@/lib/haptics'
 import { useFluidNav } from '../hooks/useFluidNav'
-
-interface NavItem {
-  label: string
-  icon: React.ComponentType<{ size?: number; strokeWidth?: number }>
-  href: string
-  requiresMyHome: boolean
-  hideOnMyHome?: boolean
-  hideOnPayRent?: boolean
-  hideOnLifestyle?: boolean
-  hideOnTransactions?: boolean
-  hideOnProfile?: boolean
-  badge?: string
-}
-
-const SIDE_NAV_ITEMS: readonly NavItem[] = [
-  { label: 'Home', icon: Home, href: '/dashboard', requiresMyHome: false },
-  {
-    label: 'My Home',
-    icon: Building2,
-    href: '/dashboard/my-home',
-    requiresMyHome: true,
-    hideOnMyHome: true,
-    hideOnPayRent: true,
-    hideOnLifestyle: true,
-    hideOnTransactions: true,
-    hideOnProfile: true,
-  },
-  {
-    label: 'Lifestyle',
-    icon: Compass,
-    href: '/dashboard/lifestyle',
-    requiresMyHome: false,
-    badge: 'NEW',
-  },
-  { label: 'Transactions', icon: History, href: '/dashboard/transactions', requiresMyHome: false },
-  { label: 'Me', icon: User, href: '/dashboard/me', requiresMyHome: false },
-]
+import { PRIMARY_NAV_ITEMS, isNavActive } from '../navigation/primaryNav'
 
 export function BottomNav() {
   const pathname = usePathname()
   const router = useRouter()
-  const hasMyHome = useHasMyHome()
   const { isFluidNav } = useFluidNav()
 
   const containerRef = useRef<HTMLDivElement>(null)
@@ -61,41 +22,15 @@ export function BottomNav() {
   const isDraggingRef = useRef(false)
   const dragTargetHrefRef = useRef<string | null>(null)
 
+  const items = PRIMARY_NAV_ITEMS
+
   const isActive = useCallback(
     (href: string) => {
-      if (!pathname) return false
-      if (href === '/dashboard/my-home' || href === '/dashboard/lifestyle') {
-        return pathname === href || pathname.startsWith(`${href}/`)
-      }
-      const normalizedPath = pathname.endsWith('/') ? pathname : `${pathname}/`
-      const normalizedHref = href.endsWith('/') ? href : `${href}/`
-      return normalizedPath === normalizedHref
+      const item = items.find((it) => it.href === href)
+      return item ? item.match(pathname) : false
     },
-    [pathname],
+    [items, pathname],
   )
-
-  const isDashboardHome = pathname === '/dashboard' || pathname === '/dashboard/'
-  const isMyHomeRoute =
-    pathname === '/dashboard/my-home' || !!pathname?.startsWith('/dashboard/my-home/')
-  const isPayRentRoute =
-    pathname === '/dashboard/pay-rent' || !!pathname?.startsWith('/dashboard/pay-rent/')
-  const isLifestyleRoute =
-    pathname === '/dashboard/lifestyle' || !!pathname?.startsWith('/dashboard/lifestyle/')
-  const isTransactionsRoute =
-    pathname === '/dashboard/transactions' || !!pathname?.startsWith('/dashboard/transactions/')
-  const isProfileRoute =
-    pathname === '/dashboard/me' || !!pathname?.startsWith('/dashboard/me/')
-
-  const items = SIDE_NAV_ITEMS.filter((item) => {
-    if ('hideOnDashboard' in item && item.hideOnDashboard) return false
-    if ('hideOnMyHome' in item && item.hideOnMyHome && isMyHomeRoute) return false
-    if ('hideOnPayRent' in item && item.hideOnPayRent && isPayRentRoute) return false
-    if ('hideOnLifestyle' in item && item.hideOnLifestyle && isLifestyleRoute) return false
-    if ('hideOnTransactions' in item && item.hideOnTransactions && isTransactionsRoute) return false
-    if ('hideOnProfile' in item && item.hideOnProfile && isProfileRoute) return false
-    if (item.requiresMyHome && !hasMyHome) return false
-    return true
-  })
 
   // Measure and align lens to active item
   const updateLensToActiveItem = useCallback(() => {

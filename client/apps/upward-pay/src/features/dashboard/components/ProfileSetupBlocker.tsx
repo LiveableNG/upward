@@ -97,7 +97,7 @@ export function ProfileSetupBlocker({ user, score, maxScore, onSkip }: ProfileSe
           {
             id: 'goals' as const,
             label: 'Lifestyle goals',
-            hint: goalsDone ? 'Completed' : 'Required',
+            hint: goalsDone ? 'Completed' : 'Optional',
             icon: Target,
             done: goalsDone,
             href: '/dashboard/setup/goals',
