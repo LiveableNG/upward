@@ -20,6 +20,7 @@ import {
   HousingAdoptionDecision,
   HousingAdoptionStatus,
   UserGoal,
+  UserGoalFilter,
   UserGoalStatus,
 } from '../../../../domains/goals/goal.repository'
 
@@ -79,6 +80,16 @@ export class PrismaGoalRepository implements GoalRepository<Prisma.TransactionCl
       interests: record.interests
         ? record.interests.map((i: any) => this.toDomainInterest(i))
         : undefined,
+      rentVault: record.rentVault
+        ? {
+            id: record.rentVault.id,
+            uuid: record.rentVault.uuid,
+            userId: record.rentVault.userId,
+            targetAmountKobo: record.rentVault.targetAmountKobo,
+            currentPrincipalKobo: record.rentVault.currentPrincipalKobo,
+            accruedYieldKobo: record.rentVault.accruedYieldKobo,
+          }
+        : null,
     }
   }
 
@@ -446,18 +457,77 @@ export class PrismaGoalRepository implements GoalRepository<Prisma.TransactionCl
     return userGoals.map((ug) => this.toDomainUserGoal(ug))
   }
 
+  async findUserGoalsPaged(
+    userId: number,
+    filter?: UserGoalFilter,
+    tx?: Prisma.TransactionClient,
+  ): Promise<{ items: UserGoal[]; total: number }> {
+    const client = this.getClient(tx)
+    const where: Prisma.upward_user_goalWhereInput = { userId }
+
+    if (filter?.status) {
+      where.status = filter.status
+    } else if (!filter?.includeArchived) {
+      where.status = { not: 'ARCHIVED' }
+    }
+
+    if (filter?.categoryId) {
+      where.categoryId = filter.categoryId
+    } else if (filter?.categorySlug) {
+      where.category = { slug: filter.categorySlug }
+    }
+
+    const [total, userGoals] = await Promise.all([
+      client.upward_user_goal.count({ where }),
+      client.upward_user_goal.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: filter?.skip ?? 0,
+        take: filter?.take ?? 20,
+        include: {
+          catalogueGoal: {
+            include: {
+              category: true,
+              _count: {
+                select: { offerings: true },
+              },
+            },
+          },
+          category: true,
+          milestones: {
+            orderBy: { sortOrder: 'asc' },
+          },
+          interests: {
+            include: {
+              history: {
+                orderBy: { version: 'desc' },
+              },
+            },
+          },
+        },
+      }),
+    ])
+
+    return {
+      items: userGoals.map((ug) => this.toDomainUserGoal(ug)),
+      total,
+    }
+  }
+
   async findUserGoal(
     userId: number,
     goalId: number,
+    includeArchived?: boolean,
     tx?: Prisma.TransactionClient,
   ): Promise<UserGoal | null> {
     const client = this.getClient(tx)
+    const where: Prisma.upward_user_goalWhereInput = {
+      userId,
+      goalId,
+      ...(includeArchived ? {} : { status: { not: 'ARCHIVED' } }),
+    }
     const userGoal = await client.upward_user_goal.findFirst({
-      where: {
-        userId,
-        goalId,
-        status: { not: 'ARCHIVED' },
-      },
+      where,
       include: {
         catalogueGoal: {
           include: {
@@ -501,6 +571,7 @@ export class PrismaGoalRepository implements GoalRepository<Prisma.TransactionCl
             },
           },
         },
+        rentVault: true,
       },
     })
     return userGoal ? this.toDomainUserGoal(userGoal) : null
@@ -527,6 +598,7 @@ export class PrismaGoalRepository implements GoalRepository<Prisma.TransactionCl
             },
           },
         },
+        rentVault: true,
       },
     })
     return userGoal ? this.toDomainUserGoal(userGoal) : null
@@ -792,6 +864,28 @@ export class PrismaGoalRepository implements GoalRepository<Prisma.TransactionCl
     const client = this.getClient(tx)
     const milestone = await client.upward_goal_milestone.findUnique({
       where: { id },
+      include: {
+        userGoal: {
+          include: {
+            milestones: true,
+          },
+        },
+      },
+    })
+    return (milestone as GoalMilestone) || null
+  }
+
+  async findMilestoneByUuid(uuid: string, tx?: Prisma.TransactionClient): Promise<GoalMilestone | null> {
+    const client = this.getClient(tx)
+    const milestone = await client.upward_goal_milestone.findUnique({
+      where: { uuid },
+      include: {
+        userGoal: {
+          include: {
+            milestones: true,
+          },
+        },
+      },
     })
     return (milestone as GoalMilestone) || null
   }

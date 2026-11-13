@@ -1,4 +1,4 @@
-import { Inject, Injectable, Optional, UnauthorizedException } from '@nestjs/common'
+import { Inject, Injectable, Optional } from '@nestjs/common'
 import {
   GOAL_REPOSITORY,
   GoalRepository,
@@ -6,6 +6,8 @@ import {
   UserGoalStatus,
 } from '../../../domains/goals/goal.repository'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
+import { GetUserGoalsQueryDto } from '../dto/user-goal.dto'
+import { resolveUserId } from './user-resolver.helper'
 
 @Injectable()
 export class GetUserGoalsUseCase {
@@ -17,18 +19,25 @@ export class GetUserGoalsUseCase {
     private readonly userRepo?: UserRepository,
   ) {}
 
-  async execute(userIdentifier: number | string, status?: UserGoalStatus): Promise<UserGoal[]> {
-    let resolvedUserId: number
-    if (typeof userIdentifier === 'number') {
-      resolvedUserId = userIdentifier
-    } else {
-      if (!this.userRepo) throw new UnauthorizedException('User repository unavailable')
-      const user = await this.userRepo.findByUuid(userIdentifier)
-      if (!user?.id) throw new UnauthorizedException('User not found')
-      resolvedUserId = user.id
+  async execute(
+    userIdentifier: number | string,
+    queryOrStatus?: UserGoalStatus | GetUserGoalsQueryDto,
+  ): Promise<{ items: UserGoal[]; total: number } | UserGoal[]> {
+    const userId = await resolveUserId(userIdentifier, this.userRepo)
+
+    if (typeof queryOrStatus === 'string' || queryOrStatus === undefined) {
+      // Legacy signature support
+      return this.goalRepo.findUserGoals(userId, queryOrStatus)
     }
 
-    return this.goalRepo.findUserGoals(resolvedUserId, status)
+    // Modern paged query
+    return this.goalRepo.findUserGoalsPaged(userId, {
+      status: queryOrStatus.status,
+      includeArchived: queryOrStatus.includeArchived,
+      categoryId: queryOrStatus.categoryId,
+      categorySlug: queryOrStatus.categorySlug,
+      skip: queryOrStatus.skip,
+      take: queryOrStatus.take,
+    })
   }
 }
-

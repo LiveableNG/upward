@@ -67,6 +67,15 @@ export interface Goal {
   }
 }
 
+export interface RentVaultSnapshot {
+  id: number
+  uuid: string
+  userId: number
+  targetAmountKobo: bigint
+  currentPrincipalKobo: bigint
+  accruedYieldKobo: bigint
+}
+
 export interface UserGoal {
   id?: number
   uuid: string
@@ -99,6 +108,7 @@ export interface UserGoal {
   category?: GoalCategory | null
   milestones?: GoalMilestone[]
   interests?: GoalInterest[]
+  rentVault?: RentVaultSnapshot | null
 }
 
 export interface GoalMilestone {
@@ -112,6 +122,16 @@ export interface GoalMilestone {
   completedAt?: Date | null
   createdAt?: Date
   updatedAt?: Date
+  userGoal?: UserGoal
+}
+
+export interface UserGoalFilter {
+  status?: UserGoalStatus
+  includeArchived?: boolean
+  categoryId?: number
+  categorySlug?: string
+  skip?: number
+  take?: number
 }
 
 export interface GoalInterest {
@@ -216,7 +236,12 @@ export interface GoalRepository<TTransaction = GoalTransactionContext> {
 
   // User Goals
   findUserGoals(userId: number, status?: UserGoalStatus, tx?: TTransaction): Promise<UserGoal[]>
-  findUserGoal(userId: number, goalId: number, tx?: TTransaction): Promise<UserGoal | null>
+  findUserGoalsPaged(
+    userId: number,
+    filter?: UserGoalFilter,
+    tx?: TTransaction,
+  ): Promise<{ items: UserGoal[]; total: number }>
+  findUserGoal(userId: number, goalId: number, includeArchived?: boolean, tx?: TTransaction): Promise<UserGoal | null>
   findUserGoalById(id: number, tx?: TTransaction): Promise<UserGoal | null>
   findUserGoalByUuid(uuid: string, tx?: TTransaction): Promise<UserGoal | null>
   createUserGoal(data: Partial<UserGoal>, tx?: TTransaction): Promise<UserGoal>
@@ -228,6 +253,7 @@ export interface GoalRepository<TTransaction = GoalTransactionContext> {
   // Milestones
   findMilestones(userGoalId: number, tx?: TTransaction): Promise<GoalMilestone[]>
   findMilestoneById(id: number, tx?: TTransaction): Promise<GoalMilestone | null>
+  findMilestoneByUuid(uuid: string, tx?: TTransaction): Promise<GoalMilestone | null>
   createMilestone(data: Partial<GoalMilestone>, tx?: TTransaction): Promise<GoalMilestone>
   updateMilestone(id: number, data: Partial<GoalMilestone>, tx?: TTransaction): Promise<GoalMilestone>
   deleteMilestone(id: number, tx?: TTransaction): Promise<void>
