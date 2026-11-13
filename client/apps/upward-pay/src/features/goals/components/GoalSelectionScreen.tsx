@@ -54,7 +54,7 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
       return userSelectedIds
     }
     const activeIds = userGoals
-      .filter((ug) => ug.status === 'ACTIVE')
+      .filter((ug): ug is typeof ug & { goalId: number } => ug.status === 'ACTIVE' && typeof ug.goalId === 'number')
       .map((ug) => ug.goalId)
     return new Set(activeIds)
   }, [userSelectedIds, userGoals])

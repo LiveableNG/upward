@@ -1,0 +1,66 @@
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+@theme {
+  /* Brand & Palette (canonical source: variables.css) */
+  --color-clay: var(--clay);
+  --color-clay-hover: var(--clay-hover);
+  --color-clay-glow: var(--clay-glow);
+  --color-clay-faint: var(--clay-faint);
+
+  --color-dark: var(--dark);
+  --color-dark-surface: var(--dark-surface);
+  --color-dark-elevated: var(--dark-elevated);
+  --color-dark-card: var(--dark-card);
+
+  --color-oat: var(--oat);
+  --color-oat-dim: var(--oat-dim);
+
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface2);
+
+  --color-border: var(--border);
+  --color-border-solid: var(--border-solid);
+
+  --color-text-main: var(--text);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-info: var(--info);
+  --color-info-bg: var(--info-bg);
+  --color-warning: var(--warning);
+  --color-error: var(--error);
+
+  /* Goal Status Semantics */
+  --color-goal-active: var(--goal-active);
+  --color-goal-active-bg: var(--goal-active-bg);
+  --color-goal-paused: var(--goal-paused);
+  --color-goal-paused-bg: var(--goal-paused-bg);
+  --color-goal-completed: var(--goal-completed);
+  --color-goal-completed-bg: var(--goal-completed-bg);
+  --color-goal-archived: var(--goal-archived);
+  --color-goal-archived-bg: var(--goal-archived-bg);
+
+  /* Typography */
+  --font-sans: var(--font);
+
+  /* Spacing: Map distinct --spacing-* tokens to existing --space-* tokens to prevent self-reference */
+  --spacing-1: var(--space-1);
+  --spacing-2: var(--space-2);
+  --spacing-3: var(--space-3);
+  --spacing-4: var(--space-4);
+  --spacing-5: var(--space-5);
+  --spacing-6: var(--space-6);
+  --spacing-8: var(--space-8);
+  --spacing-10: var(--space-10);
+  --spacing-12: var(--space-12);
+
+  /* Radii: Map distinct --radius-upward-* tokens to existing --radius-* tokens to prevent self-reference */
+  --radius-upward-sm: var(--radius-sm);
+  --radius-upward-md: var(--radius-md);
+  --radius-upward-lg: var(--radius-lg);
+  --radius-upward-xl: var(--radius-xl);
+  --radius-upward-full: var(--radius-full);
+}

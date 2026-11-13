@@ -1,5 +1,15 @@
-export type GoalStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
-export type UserGoalStatus = 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'ABANDONED' | 'ARCHIVED'
+export type GoalPublishStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
+export type GoalStatus = GoalPublishStatus // Backward-compatibility alias
+export type UserGoalStatus = 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'ARCHIVED'
+
+export type GoalProgressSource =
+  | 'MILESTONES'
+  | 'MANUAL_PERCENT'
+  | 'TARGET_AMOUNT'
+  | 'RENT_VAULT'
+  | 'STATUS_ONLY'
+
+export type GoalMilestoneStatus = 'PENDING' | 'COMPLETED'
 export type OfferingType = 'PRODUCT' | 'SERVICE' | 'BUNDLE' | 'PACKAGE'
 
 export interface CommerceVendor {
@@ -31,7 +41,7 @@ export interface GoalCategory {
   iconName?: string | null
   coverImage?: string | null
   sortOrder: number
-  status: GoalStatus
+  status: GoalPublishStatus
   goals?: Goal[]
   createdAt?: string
   updatedAt?: string
@@ -86,7 +96,7 @@ export interface GoalOffering {
   deliveryZones?: string[]
   leadTimeDays?: number | null
   isFeatured?: boolean
-  status: GoalStatus
+  status: GoalPublishStatus
   vendorId?: number | null
   vendor?: CommerceVendor
   media?: OfferingMedia[]
@@ -132,26 +142,74 @@ export interface Goal {
   heroImage?: string | null
   isFeatured?: boolean
   sortOrder: number
-  status: GoalStatus
+  status: GoalPublishStatus
   category?: GoalCategory
   offerings?: GoalOfferingLink[]
   createdAt?: string
   updatedAt?: string
 }
 
-export interface UserGoal {
+export interface GoalMilestone {
   id: number
-  uuid?: string
-  userId: number
-  goalId: number
-  status: UserGoalStatus
-  progressPct: number
+  uuid: string
+  userGoalId: number
+  title: string
+  status: GoalMilestoneStatus
+  sortOrder: number
   targetDate?: string | null
-  notes?: string | null
   completedAt?: string | null
   createdAt: string
   updatedAt: string
-  goal?: Goal
+}
+
+export interface UserGoal {
+  id: number
+  uuid: string
+  userId: number
+  goalId?: number | null
+  categoryId: number
+  historicalTitle?: string
+  customTitle?: string | null
+  customDescription?: string | null
+  status: UserGoalStatus
+  progressSource: GoalProgressSource
+  progressPct: number
+  targetDate?: string | null
+  notes?: string | null
+  currentAmountMinor?: string | null
+  targetAmountMinor?: string | null
+  currency: string
+  completedAt?: string | null
+  archivedAt?: string | null
+  pausedAt?: string | null
+  lastVerifiedBalanceMinor?: string | null
+  verifiedSourceUuid?: string | null
+  verifiedAt?: string | null
+  createdAt: string
+  updatedAt: string
+  catalogueGoal?: {
+    id: number
+    uuid: string
+    slug: string
+    title: string
+    tagline?: string | null
+    category?: {
+      id: number
+      uuid: string
+      slug: string
+      title: string
+    }
+  } | null
+  category?: {
+    id: number
+    uuid: string
+    slug: string
+    title: string
+    iconName?: string | null
+  } | null
+  milestones?: GoalMilestone[]
+  // Backward compatibility alias for legacy views
+  goal?: Goal | null
 }
 
 export interface PaginationMeta {
@@ -162,7 +220,7 @@ export interface PaginationMeta {
 
 export interface GoalListQuery {
   categoryId?: number
-  status?: GoalStatus
+  status?: GoalPublishStatus
   skip?: number
   take?: number
   search?: string
@@ -171,7 +229,7 @@ export interface GoalListQuery {
 export interface OfferingListQuery {
   goalId?: number
   type?: OfferingType
-  status?: GoalStatus
+  status?: GoalPublishStatus
   vendorId?: number
   isFeatured?: boolean
   minPrice?: number
@@ -185,17 +243,103 @@ export interface SetUserGoalsData {
   goalIds: number[]
 }
 
-export interface UpdateUserGoalData {
-  status?: UserGoalStatus
-  progressPct?: number
+export interface AdoptCatalogueGoalDto {
+  goalId: number
   targetDate?: string
   notes?: string
+  targetAmountMinor?: string | number
+  currency?: string
+  progressSource?: GoalProgressSource
+}
+
+export interface CreateCustomGoalDto {
+  customTitle: string
+  categoryId: number
+  customDescription?: string
+  targetDate?: string
+  notes?: string
+  targetAmountMinor?: string | number
+  currency?: string
+  progressSource?: GoalProgressSource
+}
+
+export interface CreateUserGoalDto {
+  goalId?: number
+  customTitle?: string
+  categoryId?: number
+  customDescription?: string
+  targetDate?: string
+  notes?: string
+  targetAmountMinor?: string | number
+  currency?: string
+  progressSource?: GoalProgressSource
+}
+
+export interface UpdateUserGoalData {
+  status?: UserGoalStatus
+  customTitle?: string
+  customDescription?: string
+  targetDate?: string
+  notes?: string
+  progressPct?: number
+  progressSource?: GoalProgressSource
+  currentAmountMinor?: string | number
+  targetAmountMinor?: string | number
+  currency?: string
   completedAt?: string
 }
 
-export function getGoalTitle(goal?: Goal | null): string {
-  if (!goal) return ''
-  return (goal.title || goal.name || '').trim()
+export interface GetUserGoalsQueryDto {
+  status?: UserGoalStatus
+  includeArchived?: boolean
+  categoryId?: number
+  categorySlug?: string
+  skip?: number
+  take?: number
+}
+
+export interface CreateGoalMilestoneDto {
+  title: string
+  targetDate?: string
+  sortOrder?: number
+}
+
+export interface UpdateGoalMilestoneDto {
+  title?: string
+  targetDate?: string
+  sortOrder?: number
+}
+
+export interface DeliveryZoneConfig {
+  id?: number
+  uuid: string
+  tag: string
+  name: string
+  state: string
+  region?: string | null
+  areasCovered?: string | null
+  isDelivering: boolean
+  deliveryFeeKobo: string
+  estimatedDeliveryDays?: string | null
+  pauseReason?: string | null
+  sortOrder: number
+}
+
+export function getGoalTitle(goalOrUserGoal?: Goal | UserGoal | null): string {
+  if (!goalOrUserGoal) return ''
+  if ('userId' in goalOrUserGoal) {
+    const ug = goalOrUserGoal as UserGoal
+    return (
+      ug.customTitle ||
+      ug.catalogueGoal?.title ||
+      ug.historicalTitle ||
+      ug.goal?.title ||
+      ug.goal?.name ||
+      ''
+    ).trim()
+  }
+  const g = goalOrUserGoal as Goal
+  return (g.title || g.name || '').trim()
 }
 
 export function getCategoryTitle(cat?: GoalCategory | null): string {

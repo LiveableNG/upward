@@ -10,7 +10,8 @@
     "cap:sync": "NEXT_OUTPUT=export next build && npx cap sync",
     "cap:open:ios": "npx cap open ios",
     "cap:open:android": "npx cap open android",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1 node --experimental-strip-types --import ./scripts/test-resolver.mjs --test \"src/features/goals/__tests__/*.test.ts\""
   },
   "dependencies": {
     "@capacitor/android": "^8.5.2",

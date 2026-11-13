@@ -213,7 +213,7 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
   const activeGoalIdsKey = useMemo(
     () =>
       userGoals
-        .filter((ug) => ug.status === 'ACTIVE')
+        .filter((ug): ug is typeof ug & { goalId: number } => ug.status === 'ACTIVE' && typeof ug.goalId === 'number')
         .map((ug) => ug.goalId)
         .sort((a, b) => a - b)
         .join(','),
@@ -222,7 +222,7 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
 
   const [draftGoalIds, setDraftGoalIds] = useState<Set<number>>(() => {
     const activeIds = userGoals
-      .filter((ug) => ug.status === 'ACTIVE')
+      .filter((ug): ug is typeof ug & { goalId: number } => ug.status === 'ACTIVE' && typeof ug.goalId === 'number')
       .map((ug) => ug.goalId)
     return new Set(activeIds)
   })
@@ -231,14 +231,14 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
   if (activeGoalIdsKey !== prevActiveGoalIdsKey) {
     setPrevActiveGoalIdsKey(activeGoalIdsKey)
     const activeIds = userGoals
-      .filter((ug) => ug.status === 'ACTIVE')
+      .filter((ug): ug is typeof ug & { goalId: number } => ug.status === 'ACTIVE' && typeof ug.goalId === 'number')
       .map((ug) => ug.goalId)
     setDraftGoalIds(new Set(activeIds))
   }
 
   const openGoalSheet = () => {
     const activeIds = userGoals
-      .filter((ug) => ug.status === 'ACTIVE')
+      .filter((ug): ug is typeof ug & { goalId: number } => ug.status === 'ACTIVE' && typeof ug.goalId === 'number')
       .map((ug) => ug.goalId)
     setDraftGoalIds(new Set(activeIds))
     setIsGoalSheetOpen(true)
@@ -488,7 +488,9 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
                             ? 'lifestyle-discovery__goal-pill--active'
                             : ''
                         }`}
-                        onClick={() => setSelectedActiveGoalId(ug.goalId)}
+                        onClick={() => {
+                          if (ug.goalId) setSelectedActiveGoalId(ug.goalId)
+                        }}
                       >
                         {gTitle}
                       </button>

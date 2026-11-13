@@ -48,6 +48,16 @@ body::-webkit-scrollbar {
   --warning: #f59e0b;
   --error: #ef4444;
 
+  /* Goal Status Semantics */
+  --goal-active: #22c55e;
+  --goal-active-bg: rgba(34, 197, 94, 0.08);
+  --goal-paused: #f59e0b;
+  --goal-paused-bg: rgba(245, 158, 11, 0.08);
+  --goal-completed: #3b82f6;
+  --goal-completed-bg: rgba(59, 130, 246, 0.08);
+  --goal-archived: #8a8a8a;
+  --goal-archived-bg: rgba(138, 138, 138, 0.08);
+
   --btn-primary-bg: linear-gradient(135deg, #d97757 0%, #c86848 100%);
   --btn-primary-hover: linear-gradient(135deg, #c86848 0%, #b85c3e 100%);
   --btn-primary-text: #ffffff;
@@ -129,6 +139,10 @@ body::-webkit-scrollbar {
   --text-muted: #8a8a8a;
   --clay-faint: rgba(217, 119, 87, 0.08);
   --success-bg: rgba(34, 197, 94, 0.12);
+  --goal-active-bg: rgba(34, 197, 94, 0.16);
+  --goal-paused-bg: rgba(245, 158, 11, 0.16);
+  --goal-completed-bg: rgba(59, 130, 246, 0.16);
+  --goal-archived-bg: rgba(138, 138, 138, 0.16);
 
   --oat: #1a1918;
   --oat-dim: #22211f;
@@ -153,6 +167,10 @@ body::-webkit-scrollbar {
     --text-muted: #8a8a8a;
     --clay-faint: rgba(217, 119, 87, 0.08);
     --success-bg: rgba(34, 197, 94, 0.12);
+    --goal-active-bg: rgba(34, 197, 94, 0.16);
+    --goal-paused-bg: rgba(245, 158, 11, 0.16);
+    --goal-completed-bg: rgba(59, 130, 246, 0.16);
+    --goal-archived-bg: rgba(138, 138, 138, 0.16);
 
     --oat: #1a1918;
     --oat-dim: #22211f;
