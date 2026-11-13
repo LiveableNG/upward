@@ -13,6 +13,7 @@ interface NavItem {
   icon: React.ComponentType<{ size?: number; strokeWidth?: number }>
   href: string
   requiresMyHome: boolean
+  hideOnDashboard?: boolean
   hideOnMyHome?: boolean
   hideOnPayRent?: boolean
   hideOnLifestyle?: boolean
@@ -28,6 +29,7 @@ const SIDE_NAV_ITEMS: readonly NavItem[] = [
     icon: Building2,
     href: '/dashboard/my-home',
     requiresMyHome: true,
+    hideOnDashboard: true,
     hideOnMyHome: true,
     hideOnPayRent: true,
     hideOnLifestyle: true,
@@ -87,7 +89,7 @@ export function BottomNav() {
     pathname === '/dashboard/me' || !!pathname?.startsWith('/dashboard/me/')
 
   const items = SIDE_NAV_ITEMS.filter((item) => {
-    if ('hideOnDashboard' in item && item.hideOnDashboard) return false
+    if (item.hideOnDashboard && isDashboardHome) return false
     if ('hideOnMyHome' in item && item.hideOnMyHome && isMyHomeRoute) return false
     if ('hideOnPayRent' in item && item.hideOnPayRent && isPayRentRoute) return false
     if ('hideOnLifestyle' in item && item.hideOnLifestyle && isLifestyleRoute) return false

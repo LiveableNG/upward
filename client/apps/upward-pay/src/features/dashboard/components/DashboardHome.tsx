@@ -28,6 +28,7 @@ import { ExclusiveHomesBrowseLink } from './exclusive-homes/ExclusiveHomesPromo'
 import { isSavingsWalletEnabled } from '../utils/savingsWallet'
 import { isProfileSetupComplete, hasRentalInfo, hasContactDetails } from '../utils/profileCompletion'
 import { RentDepositCard } from './RentDepositCard'
+import { HousingFirstHome } from './HousingFirstHome'
 import {
   LifestyleGoalsWidget,
   useTenantOrders,
@@ -206,6 +207,20 @@ export function DashboardHome({
 
   return (
     <div className="dash-home">
+      <HousingFirstHome
+        user={user}
+        credScore={credScore}
+        maxScore={maxScore}
+        pendingPaymentsCount={pendingPayments.length}
+        pendingPayments={pendingPayments}
+        gtBillsCount={gtBills.length}
+        anyOverdue={anyOverdue}
+        benefitsActive={benefitsActive}
+        benefitsEndsAt={benefitsEndsAt}
+        onOpenGoalsMockup={(cat) => router.push(cat ? `/dashboard/goals-mockup?cat=${cat}` : '/dashboard/goals-mockup')}
+      />
+
+      <div className="desktop-only" style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '14px' }}>
       {!isProfileSetupComplete(user) && (
         <button
           type="button"
@@ -483,6 +498,7 @@ export function DashboardHome({
             })}
           </div>
         )}
+      </div>
       </div>
     </div>
   )

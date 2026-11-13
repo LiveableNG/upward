@@ -1,0 +1,933 @@
+/* ── Housing-First Home Redesign Styles (BEM) ── */
+/* Matched exactly to approved prototype & meeting specifications */
+
+.housing-first-home {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 0 24px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 1. Quick Alert Chips Row */
+.alert-row {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  width: 100%;
+  box-sizing: border-box;
+  padding-bottom: 2px;
+}
+
+.alert-row::-webkit-scrollbar {
+  display: none;
+}
+
+.alert-chip {
+  flex: 0 0 236px;
+  max-width: calc(100vw - 48px);
+  min-width: 0;
+  box-sizing: border-box;
+  border-radius: 14px;
+  padding: 10px 12px;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: transform 0.1s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.alert-chip:active {
+  transform: scale(0.98);
+}
+
+.alert-chip--critical {
+  background: #fdecee;
+  border-color: rgba(239, 68, 68, 0.18);
+}
+
+.alert-chip--protect {
+  background: var(--bg, #ffffff);
+  border-color: var(--shell-border, #f0e9df);
+}
+
+.alert-chip__title {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text, #111);
+  line-height: 1.25;
+}
+
+.alert-chip--critical .alert-chip__title {
+  color: #b42318;
+}
+
+.alert-chip__meta {
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: var(--text-secondary, #4a4642);
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.alert-chip--critical .alert-chip__meta {
+  color: #c2473e;
+}
+
+.alert-chip__cta {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--clay, #c2501f);
+}
+
+.alert-chip--critical .alert-chip__cta {
+  color: #b42318;
+}
+
+/* 2. Main Housing Accordion Card */
+.housing-acc {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--bg, #ffffff);
+  border: 1px solid var(--shell-border, #f0e9df);
+  border-radius: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: all 0.25s ease;
+}
+
+.housing-acc__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 14px 14px 10px;
+  box-sizing: border-box;
+}
+
+.housing-acc__titles {
+  min-width: 0;
+  flex: 1;
+}
+
+.housing-acc__title {
+  font-family: var(--font-auth, inherit);
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+  color: var(--text, #111);
+  margin: 0;
+}
+
+.housing-acc__tag {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 5px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--clay, #c2501f);
+  background: var(--shell-tint, #fbede5);
+  border: 1px solid rgba(194, 80, 31, 0.22);
+  border-radius: 999px;
+  padding: 2.5px 8px;
+  line-height: 1.2;
+}
+
+.housing-acc__controls {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.housing-acc__ctrl {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid var(--shell-border, #f0e9df);
+  background: var(--oat, #faf9f5);
+  color: var(--text-secondary, #4a4642);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.15s ease, background 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.housing-acc__ctrl:active {
+  transform: scale(0.94);
+}
+
+.housing-acc__ctrl.is-active {
+  background: var(--shell-tint, #fbede5);
+  color: var(--clay, #c2501f);
+}
+
+/* 3. Action Tiles (3 equal columns) */
+.housing-acc__actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  padding: 0 10px 10px;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.quick-action {
+  min-width: 0;
+  width: 100%;
+  padding: 8px 2px 6px;
+  min-height: 64px;
+  border-radius: 14px;
+  border: 1px solid var(--shell-border, #f0e9df);
+  background: var(--oat, #faf9f5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-family: inherit;
+  color: var(--text, #111);
+  cursor: pointer;
+  box-sizing: border-box;
+  text-decoration: none;
+  transition: transform 0.12s ease, border-color 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.quick-action:active {
+  transform: scale(0.96);
+  border-color: var(--clay, #c2501f);
+}
+
+.quick-action__icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--clay-faint, rgba(217, 119, 87, 0.08));
+  color: var(--clay, #c2501f);
+  flex-shrink: 0;
+}
+
+.quick-action__lbl {
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  padding: 0 2px;
+}
+
+/* 4. Score Banner (Rich rust/clay) */
+.score-pill {
+  width: calc(100% - 20px);
+  margin: 0 10px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  border: none;
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: var(--skin-primary, #c2501f);
+  color: #fff;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 8px 18px -8px rgba(194, 80, 31, 0.45);
+  box-sizing: border-box;
+  min-width: 0;
+  transition: transform 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.score-pill:active {
+  transform: scale(0.98);
+}
+
+.score-pill__left {
+  min-width: 0;
+  flex: 1;
+}
+
+.score-pill__label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  opacity: 0.88;
+  line-height: 1.1;
+}
+
+.score-pill__value {
+  font-family: var(--font-auth, inherit);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+  margin-top: 2px;
+  color: #fff;
+}
+
+.score-pill__value span {
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.82;
+}
+
+.score-pill__meta {
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.9;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.score-pill__ring {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.score-pill__ring-inner {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--skin-primary, #c2501f);
+}
+
+/* 5. Rent Savings Vault Card */
+.vault-card {
+  width: calc(100% - 20px);
+  margin: 0 10px 10px;
+  background: var(--oat, #faf9f5);
+  border: 1px solid var(--shell-border, #f0e9df);
+  border-radius: 14px;
+  padding: 12px 12px 10px;
+  box-sizing: border-box;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+  cursor: pointer;
+  min-width: 0;
+  transition: transform 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.vault-card:active {
+  transform: scale(0.995);
+}
+
+.vault-card__top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.vault-card__amount {
+  font-family: var(--font-auth, inherit);
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text, #111);
+}
+
+.vault-card__target {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted, #8a8a8a);
+}
+
+.vault-card__pct {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--clay, #c2501f);
+}
+
+.vault-card__track {
+  height: 6px;
+  border-radius: 99px;
+  background: #e8e2da;
+  overflow: hidden;
+  margin: 8px 0;
+  width: 100%;
+}
+
+.vault-card__fill {
+  height: 100%;
+  border-radius: 99px;
+  background: var(--clay, #c2501f);
+  transition: width 0.3s ease;
+}
+
+.vault-card__meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted, #8a8a8a);
+}
+
+.vault-card__yield {
+  color: #15803d;
+}
+
+/* 6. Housing Link Rows (My Home, Prepare towards owning, etc.) */
+.housing-link {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: none;
+  border-top: 1px solid var(--shell-border, #f0e9df);
+  background: transparent;
+  font-family: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  box-sizing: border-box;
+  min-width: 0;
+  transition: background 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.housing-link:active {
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.housing-link__ico {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--clay-faint, rgba(217, 119, 87, 0.08));
+  color: var(--clay, #c2501f);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.housing-link__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.housing-link__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text, #111);
+  margin: 0;
+  line-height: 1.25;
+}
+
+.housing-link__desc {
+  font-size: 11px;
+  color: var(--text-muted, #8a8a8a);
+  margin: 2px 0 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.25;
+}
+
+.housing-link__chev {
+  margin-left: auto;
+  color: var(--shell-muted, #a9a096);
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+/* Expanded Full View Elements */
+.score-full {
+  background: var(--skin-primary, #c2501f);
+  border-radius: 16px;
+  padding: 16px;
+  color: #fff;
+  box-shadow: 0 14px 28px -12px rgba(194, 80, 31, 0.5);
+  border: none;
+  width: calc(100% - 20px);
+  margin: 0 10px 10px;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.score-full__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.score-full__eyebrow {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 700;
+  opacity: 0.88;
+}
+
+.score-full__value-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 5px;
+  margin-top: 4px;
+}
+
+.score-full__value {
+  font-size: 34px;
+  font-weight: 800;
+  line-height: 0.95;
+  font-family: var(--font-auth, inherit);
+}
+
+.score-full__max {
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.82;
+  margin-bottom: 3px;
+}
+
+.score-full__sub {
+  font-size: 12px;
+  font-weight: 600;
+  opacity: 0.9;
+  margin-top: 4px;
+}
+
+.score-full__pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  background: rgba(255, 255, 255, 0.18);
+  padding: 4px 10px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+
+.score-full__ring {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.score-full__ring-inner {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  background: var(--skin-primary, #c2501f);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  text-align: center;
+  padding: 0 4px;
+}
+
+.home-ad {
+  margin: 10px 10px 12px;
+  background: #f6f1ea;
+  border: 1px solid var(--shell-border, #f0e9df);
+  border-radius: 14px;
+  padding: 12px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  box-sizing: border-box;
+}
+
+.home-ad__art {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(160deg, #f3e6d6, #e8d7c4);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  place-items: center;
+  font-size: 14px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.home-ad__body {
+  min-width: 0;
+  flex: 1;
+}
+
+.home-ad__kicker {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--shell-ink-muted, #7a7268);
+}
+
+.home-ad__title {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin-top: 1px;
+  color: var(--text, #111);
+}
+
+.home-ad__desc {
+  font-size: 11px;
+  color: var(--text-muted, #8a8a8a);
+  line-height: 1.3;
+  margin-top: 2px;
+}
+
+.home-ad__btn {
+  margin-top: 6px;
+  border: none;
+  background: var(--bg, #fff);
+  color: var(--clay, #c2501f);
+  border: 1px solid rgba(194, 80, 31, 0.28);
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 11px;
+  border-radius: 999px;
+  padding: 4px 9px;
+  cursor: pointer;
+}
+
+/* 7. "Also on Upward" Section */
+.more-areas {
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+.more-areas__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 2px;
+  margin-bottom: 2px;
+}
+
+.more-areas__label {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text, #111);
+  letter-spacing: -0.01em;
+}
+
+.more-areas__links {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.more-areas__link-btn {
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--clay, #c2501f);
+  cursor: pointer;
+  padding: 0;
+  transition: opacity 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.more-areas__link-btn:active {
+  opacity: 0.7;
+}
+
+.goal-card {
+  background: var(--bg, #ffffff);
+  border: 1px solid var(--shell-border, #f0e9df);
+  border-radius: 14px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  transition: transform 0.12s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.goal-card:active {
+  transform: scale(0.995);
+}
+
+.goal-card__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.goal-card__title {
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text, #111);
+  margin: 0;
+  line-height: 1.25;
+}
+
+.goal-card__desc {
+  font-size: 11.5px;
+  color: var(--text-muted, #8a8a8a);
+  margin: 2px 0 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 8. Super-Narrow Responsiveness (down to 320px) */
+@media (max-width: 360px) {
+  .alert-chip {
+    flex: 0 0 216px;
+    padding: 8px 10px;
+  }
+
+  .housing-acc__head {
+    padding: 10px 10px 8px;
+  }
+
+  .housing-acc__title {
+    font-size: 17px;
+  }
+
+  .housing-acc__actions {
+    gap: 4px;
+    padding: 0 8px 8px;
+  }
+
+  .quick-action {
+    padding: 6px 1px 5px;
+    min-height: 58px;
+  }
+
+  .quick-action__icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .quick-action__lbl {
+    font-size: 10.5px;
+  }
+
+  .score-pill {
+    width: calc(100% - 16px);
+    margin: 0 8px 8px;
+    padding: 8px 10px;
+  }
+
+  .score-pill__value {
+    font-size: 16px;
+  }
+
+  .vault-card {
+    width: calc(100% - 16px);
+    margin: 0 8px 8px;
+    padding: 10px 10px 8px;
+  }
+
+  .vault-card__amount {
+    font-size: 15px;
+  }
+
+  .housing-link {
+    padding: 8px 10px;
+  }
+}
+
+/* 9. All Goals Screen ("More you can work toward") */
+.all-goals-page {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 16px 16px 40px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.all-goals-page__topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  margin-bottom: 6px;
+}
+
+.all-goals-page__back-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1.5px solid var(--shell-border, #f0e9df);
+  background: var(--bg, #ffffff);
+  color: var(--text, #111);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  flex: 0 0 38px;
+  transition: transform 0.1s ease;
+  -webkit-tap-highlight-color: transparent;
+  padding: 0;
+}
+
+.all-goals-page__back-btn:active {
+  transform: scale(0.94);
+}
+
+.all-goals-page__title {
+  font-family: var(--font-auth, inherit);
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: -0.02em;
+  color: var(--text, #111);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.all-goals-page__subhead {
+  font-size: 13px;
+  color: var(--text-muted, #8a8a8a);
+  line-height: 1.45;
+  margin: 0 0 16px;
+}
+
+.all-goals-page__list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.all-goals-page__card {
+  background: var(--bg, #ffffff);
+  border: 1px solid var(--shell-border, #f0e9df);
+  border-radius: 14px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  transition: transform 0.12s ease, border-color 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.all-goals-page__card:active {
+  transform: scale(0.995);
+  border-color: var(--clay, #c2501f);
+}
+
+.all-goals-page__card-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.all-goals-page__card-title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text, #111);
+  margin: 0;
+  line-height: 1.25;
+}
+
+.all-goals-page__card-desc {
+  font-size: 11.5px;
+  color: var(--text-muted, #8a8a8a);
+  margin: 2px 0 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.all-goals-page__new-btn {
+  margin-top: 16px;
+  width: 100%;
+  padding: 13px 16px;
+  background: var(--bg, #ffffff);
+  border: 1px solid var(--shell-border, #f0e9df);
+  border-radius: 14px;
+  color: var(--text, #111);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: center;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  transition: transform 0.12s ease, border-color 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.all-goals-page__new-btn:active {
+  transform: scale(0.99);
+  border-color: var(--clay, #c2501f);
+}
+
+@media (max-width: 360px) {
+  .all-goals-page {
+    padding: 12px 10px 32px;
+  }
+  .all-goals-page__title {
+    font-size: 18px;
+  }
+  .all-goals-page__card {
+    padding: 8px 10px;
+  }
+}

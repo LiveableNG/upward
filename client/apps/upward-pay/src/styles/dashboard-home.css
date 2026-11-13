@@ -6,11 +6,28 @@
   }
 }
 
+@media (max-width: 360px) {
+  .dashboard--proto-home .mobile-header-sticky {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+}
+
 .dash-home {
-  padding: 0 var(--space-5) 22px;
+  padding: 0 16px 24px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+@media (max-width: 360px) {
+  .dash-home {
+    padding: 0 10px 24px;
+  }
 }
 
 .dash-home__benefits-card {
