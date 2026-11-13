@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   CreditCard,
@@ -9,20 +9,44 @@ import {
   History,
   ShieldCheck,
   ChevronRight,
-  Wallet,
 } from 'lucide-react'
 import { useScoreProfile } from '@/features/dashboard/services/scoreService'
 import { usePendingPayments } from '@/features/dashboard/hooks/useDashboard'
+import { useAuth } from '@/features/auth/AuthContext'
 
 export default function FinanceDashboardPage() {
   const router = useRouter()
-  const { data: scoreProfile } = useScoreProfile()
-  const { data: pendingPayments = [] } = usePendingPayments()
+  const { user } = useAuth()
+  const {
+    data: scoreProfile,
+    isLoading: isScoreLoading,
+    isError: isScoreError,
+  } = useScoreProfile()
+  const {
+    data: rawPending,
+    isLoading: isPendingLoading,
+    isError: isPendingError,
+  } = usePendingPayments()
 
   const scoreData = scoreProfile?.data
-  const credScore = scoreData?.score ?? 0
-  const maxScore = scoreData?.maxScore ?? 850
-  const pendingCount = pendingPayments.length
+  const isScorable = scoreData?.isScorable ?? false
+  const score = typeof scoreData?.score === 'number' && scoreData.score > 0 ? scoreData.score : null
+  const maxScore = typeof scoreData?.maxScore === 'number' && scoreData.maxScore > 0 ? scoreData.maxScore : null
+  const scoreBand = scoreData?.band ? scoreData.band.toUpperCase() : null
+
+  // Deduplicate and filter pending invoices according to active tenancy rules
+  const pendingInvoices = useMemo(() => {
+    return (rawPending || []).filter((p: { type?: string; userPropertyUuid?: string }) => {
+      if (p.type === 'refund_alert') return false
+      if (!p.userPropertyUuid) return true
+      const prop = user?.properties?.find(
+        (pr) => pr.uuid === p.userPropertyUuid,
+      )
+      return !prop?.isPastTenancy
+    })
+  }, [rawPending, user?.properties])
+
+  const pendingCount = pendingInvoices.length
 
   return (
     <div className="profile-page dashboard--nav-offset">
@@ -37,7 +61,7 @@ export default function FinanceDashboardPage() {
         </header>
 
         <div className="profile-page__body" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {/* Quick Metrics Bar */}
+          {/* Quick Metrics Bar — real verified figures only */}
           <div
             style={{
               display: 'grid',
@@ -45,6 +69,7 @@ export default function FinanceDashboardPage() {
               gap: '12px',
             }}
           >
+            {/* Metric 1: Rent Credibility Score */}
             <button
               type="button"
               onClick={() => router.push('/dashboard/score-breakdown')}
@@ -57,26 +82,60 @@ export default function FinanceDashboardPage() {
                 cursor: 'pointer',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '4px',
+                gap: '6px',
                 boxShadow: '0 1px 2px rgba(60, 40, 20, 0.04)',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted, #8F857A)' }}>
-                  Upward Score
+                  Rent Score
                 </span>
                 <ChevronRight size={14} style={{ color: 'var(--text-muted, #8F857A)' }} />
               </div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                <span style={{ fontSize: '22px', fontWeight: 800, color: 'var(--dark, #1a1714)', letterSpacing: '-0.02em' }}>
-                  {credScore}
-                </span>
-                <span style={{ fontSize: '12px', color: 'var(--text-muted, #8F857A)' }}>
-                  / {maxScore}
-                </span>
-              </div>
+
+              {isScoreLoading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '4px 0' }}>
+                  <div className="animate-pulse" style={{ width: '60px', height: '24px', background: 'var(--shell-tint, #fbede5)', borderRadius: '6px' }} />
+                  <div className="animate-pulse" style={{ width: '80px', height: '12px', background: 'var(--shell-tint, #fbede5)', borderRadius: '4px' }} />
+                </div>
+              ) : isScoreError || !scoreData ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <span style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-muted, #8F857A)' }}>
+                    —
+                  </span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted, #8F857A)' }}>
+                    Score unavailable
+                  </span>
+                </div>
+              ) : !isScorable || score === null ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <span style={{ fontSize: '16px', fontWeight: 800, color: 'var(--dark, #1a1714)', letterSpacing: '-0.01em' }}>
+                    Unranked
+                  </span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted, #8F857A)' }}>
+                    Pay rent to activate
+                  </span>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                    <span style={{ fontSize: '22px', fontWeight: 800, color: 'var(--dark, #1a1714)', letterSpacing: '-0.02em' }}>
+                      {score}
+                    </span>
+                    {maxScore && (
+                      <span style={{ fontSize: '12px', color: 'var(--text-muted, #8F857A)' }}>
+                        / {maxScore}
+                      </span>
+                    )}
+                  </div>
+                  <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--clay, #c2501f)' }}>
+                    {scoreBand ? `${scoreBand} · ` : ''}Credibility
+                  </span>
+                </div>
+              )}
             </button>
 
+            {/* Metric 2: Pending Invoices */}
             <button
               type="button"
               onClick={() => router.push('/dashboard/pay-rent')}
@@ -89,24 +148,50 @@ export default function FinanceDashboardPage() {
                 cursor: 'pointer',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '4px',
+                gap: '6px',
                 boxShadow: '0 1px 2px rgba(60, 40, 20, 0.04)',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text-muted, #8F857A)' }}>
-                  Pending Invoices
+                  Pending Rent
                 </span>
                 <ChevronRight size={14} style={{ color: 'var(--text-muted, #8F857A)' }} />
               </div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                <span style={{ fontSize: '22px', fontWeight: 800, color: pendingCount > 0 ? 'var(--clay, #c2501f)' : 'var(--dark, #1a1714)', letterSpacing: '-0.02em' }}>
-                  {pendingCount}
-                </span>
-                <span style={{ fontSize: '12px', color: 'var(--text-muted, #8F857A)' }}>
-                  {pendingCount === 1 ? 'due' : 'due'}
-                </span>
-              </div>
+
+              {isPendingLoading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '4px 0' }}>
+                  <div className="animate-pulse" style={{ width: '40px', height: '24px', background: 'var(--shell-tint, #fbede5)', borderRadius: '6px' }} />
+                  <div className="animate-pulse" style={{ width: '70px', height: '12px', background: 'var(--shell-tint, #fbede5)', borderRadius: '4px' }} />
+                </div>
+              ) : isPendingError ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <span style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-muted, #8F857A)' }}>
+                    —
+                  </span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted, #8F857A)' }}>
+                    Data unavailable
+                  </span>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                    <span
+                      style={{
+                        fontSize: '22px',
+                        fontWeight: 800,
+                        color: pendingCount > 0 ? 'var(--clay, #c2501f)' : 'var(--dark, #1a1714)',
+                        letterSpacing: '-0.02em',
+                      }}
+                    >
+                      {pendingCount}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted, #8F857A)' }}>
+                    {pendingCount === 0 ? 'All caught up' : pendingCount === 1 ? '1 invoice due' : `${pendingCount} invoices due`}
+                  </span>
+                </div>
+              )}
             </button>
           </div>
 
@@ -180,7 +265,7 @@ export default function FinanceDashboardPage() {
                   <TrendingUp size={18} strokeWidth={2.2} />
                 </span>
                 <span className="profile-page__menu-text">
-                  <span className="profile-page__menu-title">Score Breakdown</span>
+                  <span className="profile-page__menu-title">Rent Credibility Score</span>
                   <span className="profile-page__menu-desc">
                     Monitor on-time streaks, rating factors, and landlord credibility
                   </span>

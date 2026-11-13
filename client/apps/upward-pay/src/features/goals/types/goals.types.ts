@@ -193,6 +193,7 @@ export interface UserGoal {
     slug: string
     title: string
     tagline?: string | null
+    description?: string | null
     category?: {
       id: number
       uuid: string
@@ -342,9 +343,11 @@ export function getGoalTitle(goalOrUserGoal?: Goal | UserGoal | null): string {
   return (g.title || g.name || '').trim()
 }
 
-export function getCategoryTitle(cat?: GoalCategory | null): string {
+export function getCategoryTitle(
+  cat?: GoalCategory | { title?: string; name?: string } | null
+): string {
   if (!cat) return ''
-  return (cat.title || cat.name || '').trim()
+  return (cat.title || ('name' in cat && cat.name ? cat.name : '') || '').trim()
 }
 
 export function isVendorVerified(vendor?: CommerceVendor | null): boolean {
