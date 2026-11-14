@@ -6,7 +6,11 @@ import { formatCurrency } from '@/lib/utils'
 import { type PendingPayment } from '../types'
 import { isSelfInitiatedPayment } from './payment/paymentOrigin'
 import type { GtActivityBill } from '@/features/my-home/hooks/useMyHome'
-import type { TenantOrderSummaryDto } from '@/features/goals'
+import {
+  type TenantOrderSummaryDto,
+  type GoalOffering,
+  usePublicOfferings,
+} from '@/features/goals'
 
 interface ActionCarouselProps {
   pendingPayments: PendingPayment[]
@@ -21,6 +25,7 @@ interface ActionCarouselProps {
   activeOrder?: TenantOrderSummaryDto | null
   activeOrders?: TenantOrderSummaryDto[]
   unpaidOrder?: TenantOrderSummaryDto | null
+  promotedOffering?: GoalOffering | null
 }
 
 type Urgency = 'critical' | 'pending' | 'neutral'
@@ -33,6 +38,8 @@ interface ActionItem {
   actionLabel: string
   action: () => void
   urgency: Urgency
+  badgePill?: string
+  backgroundImageUrl?: string
 }
 
 function formatShortDue(date: string | Date | undefined): string {
@@ -132,8 +139,16 @@ export function ActionCarousel({
   activeOrder,
   activeOrders,
   unpaidOrder,
+  promotedOffering,
 }: ActionCarouselProps) {
   const router = useRouter()
+  const { data: publicOfferings } = usePublicOfferings()
+
+  const activePromo =
+    promotedOffering !== undefined
+      ? promotedOffering
+      : publicOfferings?.find((o) => (o.status === 'PUBLISHED' || !o.status) && o.isPromoted)
+
   const items: ActionItem[] = []
 
   const effectiveActiveOrders = activeOrders ?? (activeOrder ? [activeOrder] : [])
@@ -294,46 +309,65 @@ export function ActionCarousel({
       })
     })
 
-  if (items.length === 0) {
-    if (showBenefitsUpsell) {
-      items.push({
-        type: 'benefits',
-        id: 'benefits-upsell',
-        title: 'Get Rent Protection',
-        meta: 'Activate Upward Benefits for one year',
-        actionLabel: 'View Benefits',
-        action: () => router.push('/dashboard/benefits'),
-        urgency: 'pending',
-      })
-    } else if (showKYC) {
-      items.push({
-        type: 'kyc',
-        id: 'kyc-alert',
-        title: 'Complete Your Profile',
-        meta: 'Add property details to build your score',
-        actionLabel: 'Add Property',
-        action: () => router.push('/dashboard/setup'),
-        urgency: 'pending',
-      })
-    } else {
-      items.push({
-        type: 'welcome',
-        id: 'welcome',
-        title: 'Dashboard Active',
-        meta: 'Rent tracking and credibility building are on',
-        actionLabel: 'View Profile',
-        action: () => router.push('/dashboard/me'),
-        urgency: 'neutral',
-      })
-    }
-  } else if (showBenefitsUpsell) {
+  if (showKYC) {
+    items.push({
+      type: 'kyc',
+      id: 'kyc-alert',
+      title: 'Add Your Rental Details',
+      meta: 'Add your property details to track rent and build your score',
+      actionLabel: 'Add Property',
+      action: () => router.push('/dashboard/setup/rental'),
+      urgency: 'pending',
+    })
+  }
+
+  if (activePromo) {
+    const promoCover =
+      activePromo.promoCoverImage ||
+      activePromo.media?.find((m) => m.isPrimary)?.mediaUrl ||
+      activePromo.media?.[0]?.mediaUrl ||
+      activePromo.imageUrl ||
+      'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=900&q=80'
+
+    const promoTarget = activePromo.uuid || activePromo.slug || String(activePromo.id)
+
+    items.push({
+      type: 'promoted_bundle_ad',
+      id: `promo-bundle-${activePromo.id || activePromo.uuid}`,
+      title: activePromo.promoTitle || activePromo.title,
+      meta:
+        activePromo.promoSubtitle ||
+        activePromo.subtitle ||
+        activePromo.description ||
+        'Curated essentials bundle for tenants',
+      actionLabel: 'Explore Bundle',
+      action: () => router.push(`/dashboard/lifestyle?id=${encodeURIComponent(promoTarget)}`),
+      urgency: 'neutral',
+      badgePill: activePromo.promoBadge || 'FEATURED BUNDLE',
+      backgroundImageUrl: promoCover,
+    })
+  }
+
+  if (showBenefitsUpsell) {
     items.push({
       type: 'benefits',
       id: 'benefits-upsell',
       title: 'Get Rent Protection',
-      meta: 'Optional annual Upward Benefits cover',
-      actionLabel: 'Protect Now',
+      meta: 'Activate Upward Benefits for one year',
+      actionLabel: 'View Benefits',
       action: () => router.push('/dashboard/benefits'),
+      urgency: items.length === 0 ? 'pending' : 'neutral',
+    })
+  }
+
+  if (items.length === 0) {
+    items.push({
+      type: 'welcome',
+      id: 'welcome',
+      title: 'Dashboard Active',
+      meta: 'Rent tracking and credibility building are on',
+      actionLabel: 'View Profile',
+      action: () => router.push('/dashboard/me'),
       urgency: 'neutral',
     })
   }
@@ -350,7 +384,16 @@ export function ActionCarousel({
       {items.map((item) => (
         <article
           key={item.id}
-          className={`activity-alerts__item activity-alerts__item--${item.urgency} ${item.type.startsWith('live_order') ? 'activity-alerts__item--live-order' : ''} ${item.type === 'unpaid_order' ? 'activity-alerts__item--unpaid-order' : ''}`}
+          className={`activity-alerts__item activity-alerts__item--${item.urgency} ${item.type.startsWith('live_order') ? 'activity-alerts__item--live-order' : ''} ${item.type === 'unpaid_order' ? 'activity-alerts__item--unpaid-order' : ''} ${item.type === 'promoted_bundle_ad' ? 'activity-alerts__item--ad-bg' : ''}`}
+          style={
+            item.backgroundImageUrl
+              ? {
+                  backgroundImage: `linear-gradient(95deg, rgba(20, 16, 13, 0.90) 0%, rgba(26, 20, 16, 0.76) 55%, rgba(26, 20, 16, 0.40) 100%), url(${item.backgroundImageUrl})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                }
+              : undefined
+          }
           onClick={item.action}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
@@ -362,6 +405,9 @@ export function ActionCarousel({
           tabIndex={0}
         >
           <div className="activity-alerts__body">
+            {item.badgePill && (
+              <span className="activity-alerts__ad-pill">{item.badgePill}</span>
+            )}
             <div className="activity-alerts__header-row">
               {(item.type === 'live_order' || item.type === 'live_order_multiple') && (
                 <span

@@ -217,6 +217,9 @@ export function DashboardHome({
         pendingPaymentsCount={pendingPayments.length}
         pendingPayments={pendingPayments}
         gtBillsCount={gtBills.length}
+        gtBills={gtBills}
+        activeOrders={activeOrders}
+        unpaidOrder={unpaidOrder}
         anyOverdue={anyOverdue}
         benefitsActive={benefitsActive}
         benefitsEndsAt={benefitsEndsAt}

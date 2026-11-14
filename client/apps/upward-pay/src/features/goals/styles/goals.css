@@ -5319,3 +5319,200 @@
   line-height: 1.4;
   margin: 0;
 }
+
+/* ==========================================================================
+   Activity Alerts: Featured Ad & Promo Bundle
+   ========================================================================== */
+
+.activity-alerts__item--ad-bg {
+  position: relative;
+  overflow: hidden;
+  background-size: cover !important;
+  background-position: center !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  border-left-color: var(--clay, #c2501f) !important;
+  color: #ffffff !important;
+}
+
+.activity-alerts__item--ad-bg .activity-alerts__title {
+  color: #ffffff !important;
+}
+
+.activity-alerts__item--ad-bg .activity-alerts__meta {
+  color: rgba(255, 255, 255, 0.88) !important;
+}
+
+.activity-alerts__item--ad-bg .activity-alerts__cta {
+  color: #ffd6be !important;
+  font-weight: 800;
+}
+
+.activity-alerts__ad-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #ffffff;
+  margin-bottom: 5px;
+  width: fit-content;
+}
+
+/* ==========================================================================
+   Lifestyle & Perks: E-Commerce Spotlight Hero & Promoted Offerings
+   ========================================================================== */
+
+.lifestyle-discovery__spotlight {
+  position: relative;
+  overflow: hidden;
+  border-radius: 18px;
+  background-size: cover;
+  background-position: center;
+  margin: 0 var(--shell-px, 20px) 18px;
+  max-width: 1200px;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 4px 20px rgba(20, 16, 13, 0.12);
+  transition: transform 120ms ease-out, box-shadow 150ms ease;
+}
+
+@media (min-width: 1240px) {
+  .lifestyle-discovery__spotlight {
+    margin: 0 auto 20px;
+  }
+}
+
+.lifestyle-discovery__spotlight:active {
+  transform: scale(0.99);
+}
+
+.lifestyle-discovery__spotlight-content {
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: #ffffff;
+  max-width: 680px;
+}
+
+@media (max-width: 540px) {
+  .lifestyle-discovery__spotlight-content {
+    padding: 16px 18px;
+    gap: 6px;
+  }
+}
+
+.lifestyle-discovery__spotlight-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #ffffff;
+  width: fit-content;
+}
+
+.lifestyle-discovery__spotlight-title {
+  margin: 0;
+  font-size: clamp(18px, 3.5vw, 24px);
+  font-weight: 800;
+  line-height: 1.25;
+  color: #ffffff;
+  letter-spacing: -0.01em;
+}
+
+.lifestyle-discovery__spotlight-desc {
+  margin: 0;
+  font-size: clamp(12.5px, 2.2vw, 14px);
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.88);
+}
+
+.lifestyle-discovery__spotlight-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.lifestyle-discovery__spotlight-price {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: clamp(16px, 3vw, 19px);
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.lifestyle-discovery__spotlight-pricing-model {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.72);
+  text-transform: capitalize;
+}
+
+.lifestyle-discovery__spotlight-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 9999px;
+  background: #ffffff;
+  color: #1a1714;
+  border: none;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 100ms ease, background 150ms ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
+}
+
+.lifestyle-discovery__spotlight-btn:active {
+  transform: scale(0.96);
+}
+
+/* Offering Card: Promoted E-Commerce Elevation */
+.offering-card--promoted {
+  border-color: rgba(194, 80, 31, 0.35);
+  box-shadow: 0 2px 10px rgba(194, 80, 31, 0.08);
+}
+
+.offering-card--promoted:hover {
+  border-color: var(--clay, #c2501f);
+  box-shadow: 0 4px 16px rgba(194, 80, 31, 0.14);
+}
+
+.offering-card__promo-pill {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  background: var(--clay, #c2501f);
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}

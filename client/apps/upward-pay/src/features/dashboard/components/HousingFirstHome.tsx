@@ -18,6 +18,10 @@ import { type PendingPayment } from '../types'
 import { useRentVault } from '@/features/savings/hooks/useRentSavings'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { useUserGoals } from '@/features/goals/hooks/useGoals'
+import { ActionCarousel } from './ActionCarousel'
+import { isProfileSetupComplete, hasRentalInfo } from '../utils/profileCompletion'
+import type { GtActivityBill } from '@/features/my-home/hooks/useMyHome'
+import type { TenantOrderSummaryDto } from '@/features/goals'
 
 interface HousingFirstHomeProps {
   user: UserProfile
@@ -28,7 +32,10 @@ interface HousingFirstHomeProps {
   isScorable?: boolean
   pendingPaymentsCount: number
   pendingPayments?: PendingPayment[]
-  gtBillsCount: number
+  gtBillsCount?: number
+  gtBills?: GtActivityBill[]
+  activeOrders?: TenantOrderSummaryDto[]
+  unpaidOrder?: TenantOrderSummaryDto | null
   anyOverdue: boolean
   benefitsActive: boolean
   benefitsEndsAt?: string | null
@@ -128,6 +135,9 @@ export function HousingFirstHome({
   pendingPaymentsCount,
   pendingPayments = [],
   gtBillsCount,
+  gtBills = [],
+  activeOrders,
+  unpaidOrder,
   anyOverdue,
   benefitsActive,
   benefitsEndsAt,
@@ -219,43 +229,24 @@ export function HousingFirstHome({
     setHousingMode((prev) => (prev === 'full' ? 'default' : 'full'))
   }
 
+  const hasRental = Boolean(user?.properties && user.properties.length > 0) || hasRentalInfo(user)
+
   return (
     <div className="housing-first-home">
-      {/* 1. Quick Action Banners (Horizontal scrolling row) */}
-      <div className="alert-row" aria-label="Alerts">
-        {hasOutstandingPayment && (
-          <button
-            type="button"
-            className="alert-chip alert-chip--critical"
-            onClick={() => router.push('/dashboard/pay-rent')}
-          >
-            <div className="alert-chip__title">Outstanding Payment</div>
-            <div className="alert-chip__meta">
-              {pendingAmountFormatted} past due · Due {pendingDueDate}
-            </div>
-            <div className="alert-chip__cta">Pay Now →</div>
-          </button>
-        )}
-
-        <button
-          type="button"
-          className="alert-chip alert-chip--protect"
-          onClick={() => router.push('/dashboard/benefits')}
-        >
-          <div className="alert-chip__title">
-            {benefitsActive ? "You're covered" : 'Add account protection'}
-          </div>
-          <div className="alert-chip__meta">
-            {benefitsActive
-              ? benefitsEndsAt
-                ? `Renews ${formatDate(benefitsEndsAt)} · View benefits`
-                : 'Annual cover active for your Upward account'
-              : 'Annual cover for your home and savings'}
-          </div>
-          <div className="alert-chip__cta">
-            {benefitsActive ? 'View Benefits →' : 'Activate →'}
-          </div>
-        </button>
+      {/* 1. Action Alerts Carousel (Live orders, bills, KYC, bundles) */}
+      <div className="dash-home__activity-center activity-center" style={{ width: '100%' }}>
+        <ActionCarousel
+          pendingPayments={pendingPayments}
+          gtBills={gtBills}
+          showKYC={!hasRental}
+          rentReminders={[]}
+          isIdentityVerified={user?.verificationOn === false || Boolean(user?.isVerified)}
+          skin="proto"
+          showBenefitsUpsell={!benefitsActive}
+          benefitsEndsAt={benefitsEndsAt}
+          activeOrders={activeOrders}
+          unpaidOrder={unpaidOrder}
+        />
       </div>
 
       {/* 2. Main Accordion Card: "Making housing easier" */}
@@ -460,29 +451,6 @@ export function HousingFirstHome({
                   </span>
                   <span className="housing-link__chev">›</span>
                 </button>
-
-                <div className="home-ad">
-                  <div className="home-ad__art" aria-hidden="true">
-                    <span>🧹</span>
-                    <span>🧽</span>
-                    <span>🪣</span>
-                    <span>🧻</span>
-                  </div>
-                  <div className="home-ad__body">
-                    <div className="home-ad__kicker">For your home</div>
-                    <div className="home-ad__title">Home refresh package</div>
-                    <div className="home-ad__desc">
-                      Carpet, mop, sponges, kitchen towels and more, delivered together.
-                    </div>
-                    <button
-                      type="button"
-                      className="home-ad__btn"
-                      onClick={() => router.push('/dashboard/lifestyle')}
-                    >
-                      I&apos;m interested
-                    </button>
-                  </div>
-                </div>
               </>
             )}
           </div>

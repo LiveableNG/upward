@@ -135,6 +135,34 @@ export class CreateOfferingDto {
   @IsOptional()
   isFeatured?: boolean
 
+  @IsBoolean()
+  @IsOptional()
+  isPromoted?: boolean
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  promoBadge?: string
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(150)
+  promoTitle?: string
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(255)
+  promoSubtitle?: string
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(500)
+  promoCoverImage?: string
+
+  @IsInt()
+  @IsOptional()
+  promoPriority?: number
+
   @IsArray()
   @IsOptional()
   @ValidateNested({ each: true })
@@ -232,6 +260,34 @@ export class UpdateOfferingDto {
   @IsOptional()
   isFeatured?: boolean
 
+  @IsBoolean()
+  @IsOptional()
+  isPromoted?: boolean
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  promoBadge?: string
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(150)
+  promoTitle?: string
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(255)
+  promoSubtitle?: string
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(500)
+  promoCoverImage?: string
+
+  @IsInt()
+  @IsOptional()
+  promoPriority?: number
+
   @IsString()
   @IsOptional()
   slug?: string
@@ -284,6 +340,11 @@ export class OfferingQueryDto {
   @IsOptional()
   @Type(() => Boolean)
   isFeatured?: boolean
+
+  @IsBoolean()
+  @IsOptional()
+  @Type(() => Boolean)
+  isPromoted?: boolean
 
   @IsNumber()
   @IsOptional()

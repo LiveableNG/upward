@@ -21,6 +21,7 @@ export class GetOfferingsUseCase {
       status,
       vendorId: query?.vendorId,
       isFeatured: query?.isFeatured,
+      isPromoted: query?.isPromoted,
       minPrice: query?.minPrice,
       maxPrice: query?.maxPrice,
       search: query?.search,

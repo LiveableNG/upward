@@ -37,6 +37,12 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
   const [mediaUrl, setMediaUrl] = useState('')
   const [isPublished, setIsPublished] = useState(true)
   const [isFeatured, setIsFeatured] = useState(false)
+  const [isPromoted, setIsPromoted] = useState(false)
+  const [promoBadge, setPromoBadge] = useState('')
+  const [promoTitle, setPromoTitle] = useState('')
+  const [promoSubtitle, setPromoSubtitle] = useState('')
+  const [promoCoverImage, setPromoCoverImage] = useState('')
+  const [promoPriority, setPromoPriority] = useState<number | ''>(0)
   const [selectedGoalIds, setSelectedGoalIds] = useState<number[]>([])
   const [submitting, setSubmitting] = useState(false)
 
@@ -59,6 +65,12 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
       
       setIsPublished(offering.isPublished ?? (offering as any).status === 'PUBLISHED')
       setIsFeatured(offering.isFeatured ?? false)
+      setIsPromoted(offering.isPromoted ?? false)
+      setPromoBadge(offering.promoBadge ?? '')
+      setPromoTitle(offering.promoTitle ?? '')
+      setPromoSubtitle(offering.promoSubtitle ?? '')
+      setPromoCoverImage(offering.promoCoverImage ?? '')
+      setPromoPriority(offering.promoPriority ?? 0)
 
       const initialGoalIds = offering.goalLinks?.map((gl) => gl.goalId) || []
       setSelectedGoalIds(initialGoalIds)
@@ -77,6 +89,12 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
       setMediaUrl('')
       setIsPublished(true)
       setIsFeatured(false)
+      setIsPromoted(false)
+      setPromoBadge('')
+      setPromoTitle('')
+      setPromoSubtitle('')
+      setPromoCoverImage('')
+      setPromoPriority(0)
       setSelectedGoalIds([])
     }
   }, [offering, isOpen])
@@ -115,6 +133,12 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
           media,
           isPublished,
           isFeatured,
+          isPromoted,
+          promoBadge: promoBadge.trim() || undefined,
+          promoTitle: promoTitle.trim() || undefined,
+          promoSubtitle: promoSubtitle.trim() || undefined,
+          promoCoverImage: promoCoverImage.trim() || undefined,
+          promoPriority: promoPriority === '' ? 0 : Number(promoPriority),
         },
         selectedGoalIds,
       )
@@ -398,6 +422,108 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
               Featured
             </label>
           </div>
+        </div>
+
+        {/* Promotion & Ad Spotlight Settings */}
+        <div
+          style={{
+            border: '1px solid var(--border)',
+            borderRadius: '8px',
+            padding: '12px 14px',
+            background: isPromoted ? 'rgba(var(--accent-rgb, 194, 80, 31), 0.04)' : 'var(--surface2)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '10px',
+            marginTop: '4px',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <input
+                type="checkbox"
+                id="offering-promoted"
+                checked={isPromoted}
+                onChange={(e) => setIsPromoted(e.target.checked)}
+                style={{ width: '16px', height: '16px', accentColor: 'var(--accent)' }}
+              />
+              <label htmlFor="offering-promoted" style={{ fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}>
+                Promote as Spotlight / Ad
+              </label>
+            </div>
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+              Surfaces in Activity Center & Lifestyle Spotlight
+            </span>
+          </div>
+
+          {isPromoted && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '4px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>
+                    Promo Badge Label
+                  </label>
+                  <input
+                    type="text"
+                    className="input"
+                    value={promoBadge}
+                    onChange={(e) => setPromoBadge(e.target.value)}
+                    placeholder="e.g. FEATURED BUNDLE or LIMITED PROMO"
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>
+                    Spotlight Ranking Priority
+                  </label>
+                  <input
+                    type="number"
+                    className="input"
+                    value={promoPriority}
+                    onChange={(e) => setPromoPriority(e.target.value === '' ? '' : Number(e.target.value))}
+                    placeholder="0"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>
+                  Headline Override (optional)
+                </label>
+                <input
+                  type="text"
+                  className="input"
+                  value={promoTitle}
+                  onChange={(e) => setPromoTitle(e.target.value)}
+                  placeholder={title || 'Prepare Your Home for the New Year'}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>
+                  Teaser / Description Override (optional)
+                </label>
+                <input
+                  type="text"
+                  className="input"
+                  value={promoSubtitle}
+                  onChange={(e) => setPromoSubtitle(e.target.value)}
+                  placeholder={subtitle || 'Curated essentials bundle for tenants'}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, marginBottom: '4px' }}>
+                  Cover Image URL (optional - defaults to primary media)
+                </label>
+                <input
+                  type="url"
+                  className="input"
+                  value={promoCoverImage}
+                  onChange={(e) => setPromoCoverImage(e.target.value)}
+                  placeholder={mediaUrl || 'https://...'}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         <div

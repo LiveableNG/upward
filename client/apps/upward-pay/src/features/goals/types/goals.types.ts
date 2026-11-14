@@ -112,6 +112,12 @@ export interface GoalOffering {
   deliveryZones?: string[]
   leadTimeDays?: number | null
   isFeatured?: boolean
+  isPromoted?: boolean
+  promoBadge?: string | null
+  promoTitle?: string | null
+  promoSubtitle?: string | null
+  promoCoverImage?: string | null
+  promoPriority?: number
   status: GoalStatus
   vendorId?: number | null
   vendor?: CommerceVendor

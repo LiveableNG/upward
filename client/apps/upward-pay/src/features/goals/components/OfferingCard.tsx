@@ -9,6 +9,7 @@ import {
   ShoppingBag,
   Truck,
   ArrowUpRight,
+  Sparkles,
 } from 'lucide-react'
 import {
   isVendorVerified,
@@ -96,7 +97,7 @@ export const OfferingCard: React.FC<OfferingCardProps> = ({
 
   return (
     <article
-      className={`offering-card ${isGoalMatch ? 'offering-card--recommended' : ''}`}
+      className={`offering-card ${isGoalMatch ? 'offering-card--recommended' : ''} ${offering.isPromoted ? 'offering-card--promoted' : ''}`}
       onClick={() => onClick?.(offering)}
       tabIndex={0}
       role="button"
@@ -122,6 +123,14 @@ export const OfferingCard: React.FC<OfferingCardProps> = ({
           <div className="offering-card__placeholder">
             <TypeIcon size={32} strokeWidth={1.6} />
           </div>
+        )}
+
+        {/* Promo / Sponsored Badge */}
+        {offering.isPromoted && (
+          <span className="offering-card__promo-pill">
+            <Sparkles size={10} strokeWidth={2.4} />
+            <span>{offering.promoBadge || 'FEATURED BUNDLE'}</span>
+          </span>
         )}
 
         {/* Type Badge */}

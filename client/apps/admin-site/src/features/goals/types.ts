@@ -103,6 +103,12 @@ export interface Offering {
   isDeliverable: boolean
   isPublished: boolean
   isFeatured: boolean
+  isPromoted?: boolean
+  promoBadge?: string | null
+  promoTitle?: string | null
+  promoSubtitle?: string | null
+  promoCoverImage?: string | null
+  promoPriority?: number
   vendor?: CommerceVendor | null
   media?: OfferingMedia[]
   packageItems?: PackageItemComponent[]

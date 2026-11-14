@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../prisma.service'
 import {
+  FindOfferingsFilter,
   GoalPublishStatus,
   Offering,
   OfferingMedia,
@@ -13,18 +14,7 @@ import {
 export class PrismaOfferingRepository implements OfferingRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findOfferings(filter?: {
-    goalId?: number
-    type?: OfferingType
-    status?: GoalPublishStatus
-    vendorId?: number
-    isFeatured?: boolean
-    minPrice?: number
-    maxPrice?: number
-    search?: string
-    skip?: number
-    take?: number
-  }): Promise<{ items: Offering[]; total: number }> {
+  async findOfferings(filter?: FindOfferingsFilter): Promise<{ items: Offering[]; total: number }> {
     const where: any = {}
 
     if (filter?.goalId) {
@@ -36,6 +26,7 @@ export class PrismaOfferingRepository implements OfferingRepository {
     if (filter?.status) where.status = filter.status
     if (filter?.vendorId) where.vendorId = filter.vendorId
     if (filter?.isFeatured !== undefined) where.isFeatured = filter.isFeatured
+    if (filter?.isPromoted !== undefined) where.isPromoted = filter.isPromoted
 
     if (filter?.minPrice !== undefined || filter?.maxPrice !== undefined) {
       where.OR = [
@@ -65,7 +56,7 @@ export class PrismaOfferingRepository implements OfferingRepository {
     const [items, total] = await Promise.all([
       this.prisma.upward_offering.findMany({
         where,
-        orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }],
+        orderBy: [{ isPromoted: 'desc' }, { promoPriority: 'desc' }, { isFeatured: 'desc' }, { createdAt: 'desc' }],
         skip: filter?.skip,
         take: filter?.take,
         include: {
@@ -175,6 +166,12 @@ export class PrismaOfferingRepository implements OfferingRepository {
         leadTimeDays: data.leadTimeDays,
         status: data.status ?? 'DRAFT',
         isFeatured: data.isFeatured ?? false,
+        isPromoted: data.isPromoted ?? false,
+        promoBadge: data.promoBadge,
+        promoTitle: data.promoTitle,
+        promoSubtitle: data.promoSubtitle,
+        promoCoverImage: data.promoCoverImage,
+        promoPriority: data.promoPriority ?? 0,
         ...(media && media.length > 0
           ? {
               media: {
@@ -253,6 +250,12 @@ export class PrismaOfferingRepository implements OfferingRepository {
         ...(data.leadTimeDays !== undefined ? { leadTimeDays: data.leadTimeDays } : {}),
         ...(data.status ? { status: data.status } : {}),
         ...(data.isFeatured !== undefined ? { isFeatured: data.isFeatured } : {}),
+        ...(data.isPromoted !== undefined ? { isPromoted: data.isPromoted } : {}),
+        ...(data.promoBadge !== undefined ? { promoBadge: data.promoBadge } : {}),
+        ...(data.promoTitle !== undefined ? { promoTitle: data.promoTitle } : {}),
+        ...(data.promoSubtitle !== undefined ? { promoSubtitle: data.promoSubtitle } : {}),
+        ...(data.promoCoverImage !== undefined ? { promoCoverImage: data.promoCoverImage } : {}),
+        ...(data.promoPriority !== undefined ? { promoPriority: data.promoPriority } : {}),
       },
       include: {
         vendor: true,

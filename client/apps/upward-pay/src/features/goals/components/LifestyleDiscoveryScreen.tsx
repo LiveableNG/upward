@@ -27,6 +27,7 @@ import {
   Utensils,
   Bed,
   Loader2,
+  Sparkles,
 } from 'lucide-react'
 import {
   useGoalCategories,
@@ -39,7 +40,7 @@ import {
   getRecommendedOfferings,
   type RecommendedOfferingItem,
 } from '../utils/recommendationEngine'
-import { OfferingCard } from './OfferingCard'
+import { OfferingCard, formatOfferingPrice } from './OfferingCard'
 import {
   getGoalTitle,
   getCategoryTitle,
@@ -294,6 +295,11 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
       searchQuery,
     })
   }, [offerings, userGoals, categories, selectedActiveGoalId, selectedType, searchQuery])
+
+  // Promoted / Spotlight bundle (E-Commerce Featured Hero)
+  const spotlightOffering = useMemo<GoalOffering | undefined>(() => {
+    return offerings.find((o) => (o.status === 'PUBLISHED' || !o.status) && o.isPromoted)
+  }, [offerings])
 
   const handleOfferingClick = (offering: GoalOffering) => {
     const identifier = offering.uuid || offering.slug || String(offering.id)
@@ -657,6 +663,68 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
               )}
             </div>
           )}
+
+        {/* E-Commerce Spotlight / Promoted Ad Hero */}
+        {!isLoading && spotlightOffering && !searchQuery && selectedType === 'ALL' && selectedActiveGoalId === 'ALL' && (
+          <div
+            className="lifestyle-discovery__spotlight"
+            onClick={() => handleOfferingClick(spotlightOffering)}
+            tabIndex={0}
+            role="button"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                handleOfferingClick(spotlightOffering)
+              }
+            }}
+            style={{
+              backgroundImage: `linear-gradient(95deg, rgba(20, 16, 13, 0.90) 0%, rgba(26, 20, 16, 0.76) 55%, rgba(26, 20, 16, 0.40) 100%), url(${
+                spotlightOffering.promoCoverImage ||
+                spotlightOffering.media?.find((m) => m.isPrimary)?.mediaUrl ||
+                spotlightOffering.media?.[0]?.mediaUrl ||
+                spotlightOffering.imageUrl ||
+                'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=1200&q=80'
+              })`,
+            }}
+          >
+            <div className="lifestyle-discovery__spotlight-content">
+              <span className="lifestyle-discovery__spotlight-pill">
+                <Sparkles size={11} strokeWidth={2.4} />
+                <span>{spotlightOffering.promoBadge || 'FEATURED BUNDLE'}</span>
+              </span>
+              <h2 className="lifestyle-discovery__spotlight-title">
+                {spotlightOffering.promoTitle || spotlightOffering.title}
+              </h2>
+              <p className="lifestyle-discovery__spotlight-desc">
+                {spotlightOffering.promoSubtitle ||
+                  spotlightOffering.subtitle ||
+                  spotlightOffering.description ||
+                  'Curated package for your home'}
+              </p>
+              <div className="lifestyle-discovery__spotlight-footer">
+                <div className="lifestyle-discovery__spotlight-price">
+                  <span>{formatOfferingPrice(spotlightOffering)}</span>
+                  {spotlightOffering.pricingModel && spotlightOffering.pricingModel !== 'FIXED' && (
+                    <span className="lifestyle-discovery__spotlight-pricing-model">
+                      {spotlightOffering.pricingModel.toLowerCase().replace('_', ' ')}
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="lifestyle-discovery__spotlight-btn"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleOfferingClick(spotlightOffering)
+                  }}
+                >
+                  <span>Explore Bundle</span>
+                  <ArrowRight size={14} />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Offerings Grid */}
         {!isLoading && displayItems.length > 0 && (

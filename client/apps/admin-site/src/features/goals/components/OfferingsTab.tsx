@@ -104,6 +104,22 @@ export const OfferingsTab: React.FC<OfferingsTabProps> = ({
                     <Star size={13} fill="#f59e0b" color="#f59e0b" />
                   </span>
                 )}
+                {offering.isPromoted && (
+                  <span
+                    style={{
+                      fontSize: '10px',
+                      fontWeight: 800,
+                      padding: '1px 6px',
+                      borderRadius: '4px',
+                      background: 'rgba(217, 119, 87, 0.15)',
+                      color: 'var(--accent)',
+                      border: '1px solid rgba(217, 119, 87, 0.3)',
+                    }}
+                    title={`Spotlight Ad (${offering.promoBadge || 'Promoted'})`}
+                  >
+                    {offering.promoBadge || 'SPOTLIGHT'}
+                  </span>
+                )}
               </div>
               <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                 /{offering.slug}

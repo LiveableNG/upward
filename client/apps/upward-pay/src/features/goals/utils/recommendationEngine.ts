@@ -56,6 +56,9 @@ export function getRecommendationExplanation(
   offering: GoalOffering,
   _matchedGoalName?: string,
 ): string {
+  if (offering.isPromoted) {
+    return offering.promoBadge || 'Featured bundle'
+  }
   if (offering.isFeatured) {
     return 'Featured perk'
   }
@@ -127,6 +130,11 @@ export function getRecommendedOfferings(
     let matchedGoalName: string | undefined
     let matchedCategoryName: string | undefined
     let isGoalMatch = false
+
+    // 0. Promoted / Sponsored Ad offerings (Top E-Commerce Rank)
+    if (offering.isPromoted) {
+      priority += 200 + (offering.promoPriority || 0)
+    }
 
     // 1. Check if offering links to the specifically requested goal (top priority)
     if (activeGoalId !== undefined && isOfferingLinkedToGoal(offering, activeGoalId)) {

@@ -202,6 +202,12 @@ model upward_offering {
   
   status             GoalPublishStatus    @default(DRAFT)
   isFeatured         Boolean              @default(false)
+  isPromoted         Boolean              @default(false)
+  promoBadge         String?              @db.VarChar(50)
+  promoTitle         String?              @db.VarChar(150)
+  promoSubtitle      String?              @db.VarChar(255)
+  promoCoverImage    String?              @db.VarChar(500)
+  promoPriority      Int                  @default(0)
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt
 
@@ -215,6 +221,7 @@ model upward_offering {
 
   @@index([type, status])
   @@index([vendorId])
+  @@index([isPromoted, status])
 }
 
 model upward_offering_media {
