@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import '@/features/dashboard/styles/goals-dashboard.css'
 import {
   ArrowLeft,
@@ -24,7 +24,7 @@ import {
 } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useScoreProfile } from '@/features/dashboard/services/scoreService'
-import { getPublicWebUrl, copyTextToClipboard } from '@/lib/utils'
+import { useHasMyHome } from '@/features/my-home/hooks/useMyHome'
 import { useToast } from '@/components/common/Toast'
 import { haptics } from '@/lib/haptics'
 import {
@@ -126,30 +126,38 @@ export function UpwardGoalsInteractiveView({
   const router = useRouter()
   const { user } = useAuth()
   const { data: scoreProfile } = useScoreProfile()
+  const hasMyHome = useHasMyHome()
   const toast = useToast()
   const firstName = user?.firstName || 'there'
 
   const scoreData = scoreProfile?.data
   const credScore = scoreData?.score || 500
   const maxScore = scoreData?.maxScore || 900
-  const lowerBand = (scoreData?.band || '').toLowerCase()
-  const scoreTone =
-    lowerBand.includes('strong') || lowerBand.includes('good') || lowerBand.includes('excellent') || credScore >= 700
-      ? 'good'
-      : lowerBand.includes('risk') || lowerBand.includes('poor') || (scoreData?.isScorable && credScore < 500)
-        ? 'risk'
-        : 'building'
+  const scoreProgressPct = Math.min(100, Math.max(8, Math.round((credScore / maxScore) * 100)))
+  const hasCycles = (scoreData?.cycles?.length || 0) > 0 || Boolean(scoreData?.isScorable)
 
-  const handleShareProfile = async () => {
-    const identifier = user?.profileSlug || user?.uuid || 'me'
-    const url = getPublicWebUrl(`/profile/${identifier}`)
-    const ok = await copyTextToClipboard(url)
-    if (ok) {
-      haptics.success()
-      toast.success('Your rent credibility profile link has been copied.', 'Profile Link Copied')
-    } else {
-      router.push('/dashboard/score-breakdown')
+  const { scoreStandingLabel, scoreTone } = (() => {
+    if (!hasCycles && credScore === 500) {
+      return { scoreStandingLabel: 'Starting out', scoreTone: 'starting' as const }
     }
+    if (credScore >= 800) {
+      return { scoreStandingLabel: 'Elite tenant', scoreTone: 'good' as const }
+    }
+    if (credScore >= 700) {
+      return { scoreStandingLabel: 'Strong', scoreTone: 'good' as const }
+    }
+    if (credScore >= 600) {
+      return { scoreStandingLabel: 'Improving', scoreTone: 'building' as const }
+    }
+    if (credScore >= 500) {
+      return { scoreStandingLabel: 'Risky', scoreTone: 'risk' as const }
+    }
+    return { scoreStandingLabel: 'High risk', scoreTone: 'risk' as const }
+  })()
+
+  const handleShareProfile = () => {
+    haptics.selection()
+    router.push('/dashboard/kyc')
   }
 
   const {
@@ -166,7 +174,31 @@ export function UpwardGoalsInteractiveView({
     getCategoryProgress,
   } = useUpwardGoalsStore()
 
-  const [screen, setScreen] = useState<SubScreen>({ type: 'list' })
+  const searchParams = useSearchParams()
+
+  const resolveScreenFromParams = (): SubScreen => {
+    if (mode !== 'workspace') return { type: 'list' }
+    const catParam = (searchParams?.get('category') ||
+      (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('category') : null)) as GoalCategoryId | null
+    const screenParam =
+      searchParams?.get('screen') ||
+      (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('screen') : null)
+    const goalIdParam =
+      searchParams?.get('goalId') ||
+      (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('goalId') : null)
+
+    if (screenParam === 'home-refresh') return { type: 'home-refresh' }
+    if (screenParam === 'custom-form') return { type: 'custom-goal-form' }
+    if (screenParam === 'custom-detail' && goalIdParam) return { type: 'custom-goal-detail', goalId: goalIdParam }
+    if (catParam === 'housing') return { type: 'housing-hub' }
+    if (catParam === 'save_money') return { type: 'save-money' }
+    if (catParam && ['income', 'career', 'children'].includes(catParam)) {
+      return { type: 'category-question', categoryId: catParam }
+    }
+    return { type: 'list' }
+  }
+
+  const [screen, setScreen] = useState<SubScreen>(() => resolveScreenFromParams())
 
   // Custom goal form state
   const [cgTitle, setCgTitle] = useState('')
@@ -203,28 +235,25 @@ export function UpwardGoalsInteractiveView({
     }
   }, [screen.type, mode])
 
-  // Deep-link from Dashboard into Goals Page (/dashboard/goals?category=... or ?screen=...)
+  // Sync screen if searchParams change while mounted on /dashboard/goals; redirect bare /dashboard/goals to /dashboard
   useEffect(() => {
-    if (mode !== 'workspace' || typeof window === 'undefined') return
-    const params = new URLSearchParams(window.location.search)
-    const catParam = params.get('category') as GoalCategoryId | null
-    const screenParam = params.get('screen')
-    const goalIdParam = params.get('goalId')
-
-    if (screenParam === 'home-refresh') {
-      setScreen({ type: 'home-refresh' })
-    } else if (screenParam === 'custom-form') {
-      setScreen({ type: 'custom-goal-form' })
-    } else if (screenParam === 'custom-detail' && goalIdParam) {
-      setScreen({ type: 'custom-goal-detail', goalId: goalIdParam })
-    } else if (catParam === 'housing') {
-      setScreen({ type: 'housing-hub' })
-    } else if (catParam === 'save_money') {
-      setScreen({ type: 'save-money' })
-    } else if (catParam && ['income', 'career', 'children'].includes(catParam)) {
-      setScreen({ type: 'category-question', categoryId: catParam })
+    if (mode !== 'workspace') return
+    const nextScreen = resolveScreenFromParams()
+    if (nextScreen.type !== 'list') {
+      setScreen(nextScreen)
+    } else {
+      router.replace('/dashboard')
     }
-  }, [mode])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, searchParams])
+
+  const handleBackToDashboard = () => {
+    if (mode === 'workspace') {
+      router.push('/dashboard')
+    } else {
+      setScreen({ type: 'list' })
+    }
+  }
 
   const handleToggleGoal = (categoryId: GoalCategoryId, goalId: string) => {
     haptics.selection()
@@ -239,7 +268,7 @@ export function UpwardGoalsInteractiveView({
     }
     haptics.success()
     toast.success('Your goals have been updated.', 'Saved')
-    setScreen({ type: 'list' })
+    handleBackToDashboard()
   }
 
   const getNextMilestoneForCategory = (categoryId: GoalCategoryId): string | null => {
@@ -280,10 +309,14 @@ export function UpwardGoalsInteractiveView({
     })
     haptics.success()
     toast.success(`Added "${cgTitle.trim()}" to your goals.`, 'Custom Goal Created')
-    setScreen({ type: 'list' })
+    handleBackToDashboard()
   }
 
   const resetAndOpenCustomForm = () => {
+    if (mode === 'dashboard') {
+      router.push('/dashboard/goals?screen=custom-form')
+      return
+    }
     setCgTitle('')
     setCgDesc('')
     setCgTimeline('6 months')
@@ -441,7 +474,7 @@ export function UpwardGoalsInteractiveView({
         `Saved ${store.homeRefreshSelectedItems.length} items in your Home Refresh bundle.`,
         'Home Refresh Package',
       )
-      setScreen({ type: 'list' })
+      handleBackToDashboard()
     }
 
     return (
@@ -450,7 +483,7 @@ export function UpwardGoalsInteractiveView({
           <button
             type="button"
             className="upward-goals-flow__back-btn"
-            onClick={() => setScreen({ type: 'list' })}
+            onClick={handleBackToDashboard}
           >
             <ArrowLeft size={16} />
           </button>
@@ -532,7 +565,7 @@ export function UpwardGoalsInteractiveView({
           <button
             type="button"
             className="upward-goals-flow__back-btn"
-            onClick={() => setScreen({ type: 'list' })}
+            onClick={handleBackToDashboard}
           >
             <ArrowLeft size={16} />
           </button>
@@ -543,15 +576,30 @@ export function UpwardGoalsInteractiveView({
         <div className="upward-goals-flow__cred-card">
           <div className="upward-goals-flow__cred-top">
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <div style={{ marginBottom: 10 }}>
                 <button
                   type="button"
-                  className={`upward-goals-flow__cred-score-badge upward-goals-flow__cred-score-badge--${scoreTone}`}
+                  className={`upward-goals-flow__cred-score-indicator upward-goals-flow__cred-score-indicator--${scoreTone}`}
                   onClick={() => router.push('/dashboard/score-breakdown')}
                 >
-                  <span className="upward-goals-flow__cred-score-dot" />
-                  <span>Score {credScore}/{maxScore}</span>
-                  <ChevronRight size={12} />
+                  <div className="upward-goals-flow__cred-score-row">
+                    <span className="upward-goals-flow__cred-score-label">Rent Score</span>
+                    <span className="upward-goals-flow__cred-score-nums">
+                      <strong>{credScore}</strong>
+                      <small>/ {maxScore}</small>
+                    </span>
+                    <span className="upward-goals-flow__cred-score-status">
+                      <span className="upward-goals-flow__cred-score-dot" aria-hidden="true" />
+                      <span>{scoreStandingLabel}</span>
+                    </span>
+                    <ChevronRight size={13} className="upward-goals-flow__cred-score-chev" />
+                  </div>
+                  <div className="upward-goals-flow__cred-score-track" aria-hidden="true">
+                    <span
+                      className="upward-goals-flow__cred-score-fill"
+                      style={{ width: `${scoreProgressPct}%` }}
+                    />
+                  </div>
                 </button>
               </div>
               <h3 style={{ fontSize: 16, fontWeight: 800, margin: '0 0 2px', color: 'var(--text)' }}>
@@ -564,7 +612,7 @@ export function UpwardGoalsInteractiveView({
             <CircularRing pct={pct} size={56} />
           </div>
 
-          <div className="upward-goals-flow__cred-actions">
+          <div className={`upward-goals-flow__cred-actions${hasMyHome ? ' upward-goals-flow__cred-actions--four' : ''}`}>
             <button
               type="button"
               className="upward-goals-flow__cred-btn"
@@ -589,6 +637,16 @@ export function UpwardGoalsInteractiveView({
               <Receipt size={14} color="var(--clay)" />
               <span>Transactions</span>
             </button>
+            {hasMyHome && (
+              <button
+                type="button"
+                className="upward-goals-flow__cred-btn"
+                onClick={() => router.push('/dashboard/my-home')}
+              >
+                <Home size={14} color="var(--clay)" />
+                <span>My Home</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -730,9 +788,9 @@ export function UpwardGoalsInteractiveView({
               <button
                 type="button"
                 className="btn btn--primary btn--full"
-                onClick={() => setScreen({ type: 'list' })}
+                onClick={handleBackToDashboard}
               >
-                Back to goals
+                Back to dashboard
               </button>
             </div>
           </div>
@@ -758,7 +816,7 @@ export function UpwardGoalsInteractiveView({
           <button
             type="button"
             className="upward-goals-flow__back-btn"
-            onClick={() => setScreen({ type: 'list' })}
+            onClick={handleBackToDashboard}
           >
             <ArrowLeft size={16} />
           </button>
@@ -769,7 +827,7 @@ export function UpwardGoalsInteractiveView({
             onClick={() => {
               haptics.success()
               toast.success('Spend preferences saved.', 'Saved')
-              setScreen({ type: 'list' })
+              handleBackToDashboard()
             }}
           >
             <Check size={14} />
@@ -963,9 +1021,9 @@ export function UpwardGoalsInteractiveView({
               <button
                 type="button"
                 className="btn btn--primary btn--full"
-                onClick={() => setScreen({ type: 'list' })}
+                onClick={handleBackToDashboard}
               >
-                Back to goals
+                Back to dashboard
               </button>
             </div>
           </div>
@@ -979,7 +1037,7 @@ export function UpwardGoalsInteractiveView({
           <button
             type="button"
             className="upward-goals-flow__back-btn"
-            onClick={() => setScreen({ type: 'list' })}
+            onClick={handleBackToDashboard}
           >
             <ArrowLeft size={16} />
           </button>
@@ -1193,9 +1251,9 @@ export function UpwardGoalsInteractiveView({
               <button
                 type="button"
                 className="btn btn--primary btn--full"
-                onClick={() => setScreen({ type: 'list' })}
+                onClick={handleBackToDashboard}
               >
-                Back to goals
+                Back to dashboard
               </button>
             </div>
           </div>
@@ -1209,7 +1267,7 @@ export function UpwardGoalsInteractiveView({
           <button
             type="button"
             className="upward-goals-flow__back-btn"
-            onClick={() => setScreen({ type: 'list' })}
+            onClick={handleBackToDashboard}
           >
             <ArrowLeft size={16} />
           </button>
@@ -1383,7 +1441,7 @@ export function UpwardGoalsInteractiveView({
           <button
             type="button"
             className="upward-goals-flow__back-btn"
-            onClick={() => setScreen({ type: 'list' })}
+            onClick={handleBackToDashboard}
           >
             <ArrowLeft size={16} />
           </button>
@@ -1392,7 +1450,7 @@ export function UpwardGoalsInteractiveView({
             type="button"
             onClick={() => {
               removeCustomGoal(goal.id)
-              setScreen({ type: 'list' })
+              handleBackToDashboard()
             }}
             style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
             aria-label="Delete custom goal"
@@ -1456,20 +1514,26 @@ export function UpwardGoalsInteractiveView({
   }
 
   // ── MAIN SCREEN: CATEGORIES + DEFAULT HOUSING + HOME REFRESH ADVERT + CUSTOM GOALS ──
+  if (mode === 'workspace' && screen.type === 'list') {
+    return null
+  }
+
   const housingCategory = UPWARD_GOAL_CATEGORIES.find((c) => c.id === 'housing')!
   const otherCategories = UPWARD_GOAL_CATEGORIES.filter((c) => c.id !== 'housing')
   const housingPct = getCategoryProgress('housing', rentSavedPct)
   const housingNextStep = getNextMilestoneForCategory('housing')
 
-  // On Dashboard: show only configured/active categories so the dashboard stays clean and focused
-  const displayedOtherCategories =
-    mode === 'dashboard'
-      ? otherCategories.filter((cat) => {
-          const selectedCount = (store.selectedByCategory[cat.id] || []).length
-          const pct = getCategoryProgress(cat.id)
-          return selectedCount > 0 || pct > 0
-        })
-      : otherCategories
+  // Show all personal goal categories, ranked with In-Progress categories first
+  const displayedOtherCategories = [...otherCategories].sort((a, b) => {
+    const aCount = (store.selectedByCategory[a.id] || []).length
+    const bCount = (store.selectedByCategory[b.id] || []).length
+    const aPct = getCategoryProgress(a.id)
+    const bPct = getCategoryProgress(b.id)
+    const aStarted = aCount > 0 || aPct > 0 ? 1 : 0
+    const bStarted = bCount > 0 || bPct > 0 ? 1 : 0
+    if (bStarted !== aStarted) return bStarted - aStarted
+    return bPct - aPct
+  })
 
   return (
     <div className="upward-goals-flow">
@@ -1497,35 +1561,20 @@ export function UpwardGoalsInteractiveView({
       {mode !== 'onboarding' && (
         <div className="upward-goals-flow__section-header">
           <div>
-            <h2 className="upward-goals-flow__section-title">
-              {mode === 'dashboard' ? 'Other Goals & Offers' : 'Your Goals'}
-            </h2>
+            <h2 className="upward-goals-flow__section-title">Your Goals</h2>
             <p className="upward-goals-flow__section-sub">
-              {mode === 'dashboard'
-                ? 'Personal goals and seasonal home bundles'
-                : 'Select and configure what you are working towards'}
+              Tap any category to configure your personal goals
             </p>
           </div>
-          {mode === 'dashboard' ? (
+          {hasSelectedAtLeastOneGoal && (
             <button
               type="button"
               className="upward-goals-flow__new-goal-pill"
-              onClick={() => router.push('/dashboard/goals')}
+              onClick={resetAndOpenCustomForm}
             >
-              <span>Manage goals</span>
-              <ChevronRight size={14} />
+              <Plus size={15} />
+              <span>Custom goal</span>
             </button>
-          ) : (
-            hasSelectedAtLeastOneGoal && (
-              <button
-                type="button"
-                className="upward-goals-flow__new-goal-pill"
-                onClick={resetAndOpenCustomForm}
-              >
-                <Plus size={15} />
-                <span>Custom goal</span>
-              </button>
-            )
           )}
         </div>
       )}
@@ -1553,53 +1602,6 @@ export function UpwardGoalsInteractiveView({
             <CircularRing pct={housingPct} size={52} />
           </button>
         )}
-
-        {/* HOME REFRESH PACKAGES ADVERT BANNER (Warm Light App Theme) */}
-        <div
-          className="upward-goals-flow__refresh-advert"
-          onClick={() => router.push('/dashboard/lifestyle?id=6c9895cf-46b0-4753-99b3-eb1f10f825f4')}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault()
-              router.push('/dashboard/lifestyle?id=6c9895cf-46b0-4753-99b3-eb1f10f825f4')
-            }
-          }}
-        >
-          <div className="upward-goals-flow__refresh-advert-media">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=900&q=80"
-              alt="New Year Home Refresh Package"
-              className="upward-goals-flow__refresh-advert-img"
-              loading="lazy"
-            />
-            <div className="upward-goals-flow__refresh-advert-badge">
-              <Package size={12} />
-              <span>NEW YEAR HOME REFRESH PACKAGE</span>
-            </div>
-          </div>
-          <div className="upward-goals-flow__refresh-advert-body">
-            <h4>Prepare your home for the new year</h4>
-            <p>
-              Curated marketplace bundles: room &amp; bathroom carpets, footmats, mop, broom, brush, sponge, kitchen towels &amp; cutlery.
-            </p>
-            <div className="upward-goals-flow__refresh-advert-actions">
-              <button
-                type="button"
-                className="upward-goals-flow__refresh-cta-primary"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  router.push('/dashboard/lifestyle?id=6c9895cf-46b0-4753-99b3-eb1f10f825f4')
-                }}
-              >
-                <span>Explore Bundle</span>
-                <ArrowRight size={13} />
-              </button>
-            </div>
-          </div>
-        </div>
 
         {/* 2. USER'S CUSTOM GOALS (if any) */}
         {store.customGoals.map((cg: CustomGoalEntry) => {
@@ -1632,7 +1634,7 @@ export function UpwardGoalsInteractiveView({
                     : ''}
                   {done}/{cg.actions.length} steps completed
                 </p>
-                {mode === 'dashboard' && nextAction && (
+                {nextAction && (
                   <div className="upward-goals-flow__goal-milestone-row">
                     <Target size={13} color="var(--clay)" />
                     <span>Next step: {nextAction}</span>
@@ -1644,7 +1646,7 @@ export function UpwardGoalsInteractiveView({
           )
         })}
 
-        {/* 3. OTHER PERSONAL GOAL CATEGORIES */}
+        {/* 3. OTHER PERSONAL GOAL CATEGORIES (Ranked with In-Progress first) */}
         {displayedOtherCategories.map((cat) => {
           const selectedCount = (store.selectedByCategory[cat.id] || []).length
           const pct = getCategoryProgress(cat.id)
@@ -1687,7 +1689,7 @@ export function UpwardGoalsInteractiveView({
                 </div>
                 <h3>{cat.title}</h3>
                 <p>{getCategorySubtitle(cat.id)}</p>
-                {mode === 'dashboard' && nextStep && (
+                {nextStep && (
                   <div className="upward-goals-flow__goal-milestone-row">
                     <Target size={13} color="var(--clay)" />
                     <span>Next step: {nextStep}</span>
@@ -1700,27 +1702,16 @@ export function UpwardGoalsInteractiveView({
         })}
       </div>
 
-      {/* 4. FOOTER ACTION (Dashboard routes to /dashboard/goals; Workspace/Onboarding opens custom goal creator) */}
-      {mode === 'dashboard' ? (
+      {/* 4. FOOTER ACTION (Opens custom goal creator) */}
+      {hasSelectedAtLeastOneGoal && (
         <button
           type="button"
           className="upward-goals-flow__custom-link"
-          onClick={() => router.push('/dashboard/goals')}
+          onClick={resetAndOpenCustomForm}
         >
           <Plus size={15} />
-          <span>Add or configure goals</span>
+          <span>Create a custom goal</span>
         </button>
-      ) : (
-        hasSelectedAtLeastOneGoal && (
-          <button
-            type="button"
-            className="upward-goals-flow__custom-link"
-            onClick={resetAndOpenCustomForm}
-          >
-            <Plus size={15} />
-            <span>Create a custom goal</span>
-          </button>
-        )
       )}
 
       {/* 5. WORKSPACE MILESTONE CHECKLIST (When in /dashboard/goals workspace mode) */}

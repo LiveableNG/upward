@@ -110,7 +110,8 @@ export default function DashboardPage() {
   })
 
   const firstName = user.firstName || 'User'
-  const isNewUser = !hasRentalInfo(user)
+  const scoreProps = scoreProfile?.data?.properties || []
+  const isNewUser = !hasRentalInfo(user) && scoreProps.length === 0
   const isIdentityVerified = user.isIdentityVerified || false
   const totalPaid = (completedPayments || []).reduce((sum: number, p: any) => sum + p.amount, 0)
   const currency = completedPayments?.[0]?.currency || 'NGN'

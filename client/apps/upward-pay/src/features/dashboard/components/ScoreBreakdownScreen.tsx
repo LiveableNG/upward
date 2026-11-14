@@ -1,7 +1,8 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import '@/features/dashboard/styles/goals-dashboard.css'
 import {
   TrendingUp,
   History,
@@ -62,6 +63,14 @@ export function ScoreBreakdownScreen() {
   const { success, error: toastError } = useToast()
   const [copied, setCopied] = useState(false)
 
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    document.body.classList.add('hide-subscreen-nav')
+    return () => {
+      document.body.classList.remove('hide-subscreen-nav')
+    }
+  }, [])
+
   const handleCopyLink = async () => {
     const p = scoreProfile?.data?.profile
     const identifier = p?.profileSlug || p?.uuid
@@ -95,12 +104,19 @@ export function ScoreBreakdownScreen() {
   const verificationOn = profile?.verificationOn ?? true
   const isVerified = (verificationOn === false || !!profile?.isIdentityVerified) && paidPaymentsCount > 0 && hasVerifiedPmProperty || properties.some((p: any) => p.isVerified)
 
+  const scoreStandingLabel = (() => {
+    if (!isScorable && paidPaymentsCount === 0 && score === 500) return 'Starting out'
+    if (score >= 800) return 'Elite tenant'
+    if (score >= 700) return 'Strong'
+    if (score >= 600) return 'Improving'
+    if (score >= 500) return isScorable ? 'Risky' : 'Starting out'
+    return 'High risk'
+  })()
+
   const getRankColor = () => {
-    if (!isScorable || !isVerified) return '#928e89'
-    if (rank === 'A') return 'var(--clay)'
-    if (rank === 'B') return 'var(--success)'
-    if (rank === 'C') return 'var(--info)'
-    if (rank === 'D') return 'var(--warning)'
+    if (!isScorable && paidPaymentsCount === 0 && score === 500) return 'var(--clay)'
+    if (score >= 700) return 'var(--success)'
+    if (score >= 600) return 'var(--warning)'
     return 'var(--error)'
   }
 
@@ -273,8 +289,7 @@ export function ScoreBreakdownScreen() {
 
             <div className="score-page__rank-pill">
               <div className="score-page__rank-dot" />
-              <strong>{rank || '—'}</strong>
-              <span>{band ? band.toUpperCase() : 'NOT SCORABLE'}</span>
+              <span>{scoreStandingLabel}</span>
             </div>
           </div>
 

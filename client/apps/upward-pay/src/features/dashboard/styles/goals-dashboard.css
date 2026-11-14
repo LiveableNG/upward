@@ -1287,51 +1287,122 @@
 .dash-home__housing-hero-top {
   display: flex;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
-.dash-home__housing-score-badge {
+.dash-home__housing-score-indicator {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 6px 10px 7px;
+  border-radius: 10px;
+  background: rgba(20, 12, 8, 0.16);
+  border: 1px solid rgba(250, 249, 245, 0.16);
+  color: #faf9f5;
+  font-family: var(--font-auth, 'Plus Jakarta Sans', var(--font));
+  cursor: pointer;
+  text-align: left;
+  transition: transform 100ms ease-out, background 140ms ease, border-color 140ms ease;
+}
+
+.dash-home__housing-score-indicator:hover {
+  background: rgba(20, 12, 8, 0.24);
+  border-color: rgba(250, 249, 245, 0.28);
+}
+
+.dash-home__housing-score-indicator:active {
+  transform: scale(0.98);
+}
+
+.dash-home__housing-score-row {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.dash-home__housing-score-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(250, 249, 245, 0.72);
+}
+
+.dash-home__housing-score-nums {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-home__housing-score-nums strong {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: #faf9f5;
+  line-height: 1;
+}
+
+.dash-home__housing-score-nums small {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(250, 249, 245, 0.68);
+  line-height: 1;
+}
+
+.dash-home__housing-score-status {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  color: #ffffff;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  white-space: nowrap;
-  cursor: pointer;
-  transition: transform 100ms ease-out, background 120ms ease;
-}
-
-.dash-home__housing-score-badge:hover {
-  background: rgba(0, 0, 0, 0.28);
-}
-
-.dash-home__housing-score-badge:active {
-  transform: scale(0.96);
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(250, 249, 245, 0.84);
+  padding-left: 6px;
+  border-left: 1px solid rgba(250, 249, 245, 0.2);
 }
 
 .dash-home__housing-score-dot {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   flex-shrink: 0;
-  background: #fbbf24;
-  box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.28);
+  background: #f5d0a9;
 }
 
-.dash-home__housing-score-badge--good .dash-home__housing-score-dot {
-  background: #4ade80;
-  box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.28);
+.dash-home__housing-score-indicator--good .dash-home__housing-score-dot {
+  background: #86efac;
 }
 
-.dash-home__housing-score-badge--risk .dash-home__housing-score-dot {
-  background: #f87171;
-  box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.32);
+.dash-home__housing-score-indicator--building .dash-home__housing-score-dot {
+  background: #fde68a;
+}
+
+.dash-home__housing-score-indicator--risk .dash-home__housing-score-dot {
+  background: #fca5a5;
+}
+
+.dash-home__housing-score-chev {
+  color: rgba(250, 249, 245, 0.65);
+  flex-shrink: 0;
+  align-self: center;
+  margin-left: -2px;
+}
+
+.dash-home__housing-score-track {
+  width: 100%;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(250, 249, 245, 0.2);
+  overflow: hidden;
+}
+
+.dash-home__housing-score-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: #faf9f5;
+  transition: width 240ms ease;
 }
 
 .dash-home__housing-hero-body {
@@ -1388,6 +1459,10 @@
   padding-top: 4px;
 }
 
+.dash-home__housing-hero-actions--three {
+  grid-template-columns: repeat(3, 1fr);
+}
+
 .dash-home__housing-action-btn {
   display: inline-flex;
   align-items: center;
@@ -1437,52 +1512,118 @@ body.hide-subscreen-nav .dashboard__header--desktop {
   gap: 12px;
 }
 
-.upward-goals-flow__cred-score-badge {
+.upward-goals-flow__cred-score-indicator {
   display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: 8px;
-  background: var(--surface, #f7f7f7);
-  border: 1px solid var(--border-solid, #e2ddd7);
-  color: var(--text, #0a0a0f);
-  font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
+  flex-direction: column;
+  gap: 5px;
+  padding: 6px 10px 7px;
+  border-radius: 10px;
+  background: var(--oat, #faf9f5);
+  border: 1px solid var(--shell-border, #f0e9df);
+  color: var(--dark, #141413);
+  font-family: var(--font-auth, 'Plus Jakarta Sans', var(--font));
   cursor: pointer;
-  transition: transform 100ms ease-out, border-color 120ms ease;
+  text-align: left;
+  transition: transform 100ms ease-out, border-color 140ms ease;
 }
 
-.upward-goals-flow__cred-score-badge:active {
-  transform: scale(0.96);
+.upward-goals-flow__cred-score-indicator:hover {
+  border-color: rgba(194, 80, 31, 0.35);
+}
+
+.upward-goals-flow__cred-score-indicator:active {
+  transform: scale(0.98);
+}
+
+.upward-goals-flow__cred-score-row {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.upward-goals-flow__cred-score-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--shell-ink-muted, #7a7268);
+}
+
+.upward-goals-flow__cred-score-nums {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.upward-goals-flow__cred-score-nums strong {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--dark, #141413);
+  line-height: 1;
+}
+
+.upward-goals-flow__cred-score-nums small {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--shell-ink-muted, #7a7268);
+  line-height: 1;
+}
+
+.upward-goals-flow__cred-score-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary, #4a4642);
+  padding-left: 6px;
+  border-left: 1px solid var(--border-solid, #e2ddd7);
 }
 
 .upward-goals-flow__cred-score-dot {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   flex-shrink: 0;
-  background: #f59e0b;
+  background: var(--clay, #c2501f);
 }
 
-.upward-goals-flow__cred-score-badge--good {
-  background: rgba(34, 197, 94, 0.08);
-  border-color: rgba(34, 197, 94, 0.25);
-  color: #15803d;
+.upward-goals-flow__cred-score-indicator--good .upward-goals-flow__cred-score-dot {
+  background: #16a34a;
 }
 
-.upward-goals-flow__cred-score-badge--good .upward-goals-flow__cred-score-dot {
-  background: #22c55e;
+.upward-goals-flow__cred-score-indicator--building .upward-goals-flow__cred-score-dot {
+  background: #d97706;
 }
 
-.upward-goals-flow__cred-score-badge--risk {
-  background: rgba(239, 68, 68, 0.08);
-  border-color: rgba(239, 68, 68, 0.25);
-  color: #b91c1c;
+.upward-goals-flow__cred-score-indicator--risk .upward-goals-flow__cred-score-dot {
+  background: #dc2626;
 }
 
-.upward-goals-flow__cred-score-badge--risk .upward-goals-flow__cred-score-dot {
-  background: #ef4444;
+.upward-goals-flow__cred-score-chev {
+  color: var(--shell-ink-muted, #7a7268);
+  flex-shrink: 0;
+  align-self: center;
+  margin-left: -2px;
+}
+
+.upward-goals-flow__cred-score-track {
+  width: 100%;
+  height: 3px;
+  border-radius: 999px;
+  background: #ebe4da;
+  overflow: hidden;
+}
+
+.upward-goals-flow__cred-score-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--clay, #c2501f);
+  transition: width 240ms ease;
 }
 
 .upward-goals-flow__cred-actions {
@@ -1491,6 +1632,10 @@ body.hide-subscreen-nav .dashboard__header--desktop {
   gap: 7px;
   padding-top: 10px;
   border-top: 1px solid var(--shell-border, #f0e9df);
+}
+
+.upward-goals-flow__cred-actions--four {
+  grid-template-columns: repeat(2, 1fr);
 }
 
 .upward-goals-flow__cred-btn {
@@ -1516,6 +1661,52 @@ body.hide-subscreen-nav .dashboard__header--desktop {
 
 .upward-goals-flow__cred-btn:active {
   transform: scale(0.97);
+}
+
+/* ── Featured Ad Card in Activity Center (Image Background) ── */
+.activity-alerts__item--ad-bg {
+  position: relative;
+  overflow: hidden;
+  background-image: linear-gradient(
+      95deg,
+      rgba(20, 16, 13, 0.88) 0%,
+      rgba(26, 20, 16, 0.72) 55%,
+      rgba(26, 20, 16, 0.35) 100%
+    ),
+    url('https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=900&q=80') !important;
+  background-size: cover !important;
+  background-position: center !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  color: #ffffff !important;
+}
+
+.activity-alerts__item--ad-bg .activity-alerts__title {
+  color: #ffffff !important;
+}
+
+.activity-alerts__item--ad-bg .activity-alerts__meta {
+  color: rgba(255, 255, 255, 0.86) !important;
+}
+
+.activity-alerts__item--ad-bg .activity-alerts__cta {
+  color: #ffd6be !important;
+  font-weight: 800;
+}
+
+.activity-alerts__ad-pill {
+  display: inline-block;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: #ffffff;
+  margin-bottom: 4px;
+  width: fit-content;
 }
 
 

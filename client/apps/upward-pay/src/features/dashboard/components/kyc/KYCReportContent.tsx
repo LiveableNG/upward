@@ -64,6 +64,14 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
     if (Capacitor.isNativePlatform()) {
       setIsApp(true)
     }
+    if (typeof document !== 'undefined') {
+      document.body.classList.add('hide-subscreen-nav')
+    }
+    return () => {
+      if (typeof document !== 'undefined') {
+        document.body.classList.remove('hide-subscreen-nav')
+      }
+    }
   }, [])
   
   const privateProfile = useScoreProfile()
@@ -104,7 +112,7 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
       <PayPageShell
         title="Credibility Profile"
         showBack
-        onBack={() => router.push('/dashboard')}
+        onBack={() => router.back()}
       >
         <KYCReportSkeleton />
       </PayPageShell>
@@ -119,13 +127,19 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
   const isVerified = (verificationOn === false || !!profile.isIdentityVerified) && paidPaymentsCount > 0 && hasVerifiedPmProperty
   const initials = profile.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2)
 
+  const scoreStandingLabel = (() => {
+    if (!isScorable && paidPaymentsCount === 0 && score === 500) return 'Starting out'
+    if (score >= 800) return 'Elite tenant'
+    if (score >= 700) return 'Strong'
+    if (score >= 600) return 'Improving'
+    if (score >= 500) return isScorable ? 'Risky' : 'Starting out'
+    return 'High risk'
+  })()
+
   const getRankColor = () => {
-    if (!isScorable) return isPublic ? '#c2501f' : '#928e89'
-    if (!isVerified && !isPublic) return '#928e89'
-    if (rank === 'A') return '#d97757'
-    if (rank === 'B') return '#22c55e'
-    if (rank === 'C') return '#3b82f6'
-    if (rank === 'D') return '#f59e0b'
+    if (!isScorable && paidPaymentsCount === 0 && score === 500) return '#d97757'
+    if (score >= 700) return '#22c55e'
+    if (score >= 600) return '#f59e0b'
     return '#ef4444'
   }
 
@@ -209,7 +223,7 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
                 </div>
                 <div className="kyc-report__score-tier">
                   <Star size={12} fill={getRankColor()} color={getRankColor()} />
-                  {isScorable ? `Tier: ${rank} (${band})` : 'New profile building history'}
+                  {scoreStandingLabel}
                 </div>
               </div>
               <div className="kyc-report__score-gauge">
@@ -388,7 +402,7 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
       title="Credibility Profile"
       subtitle="Your rent credibility score and verified tenancy portfolio."
       showBack
-      onBack={() => router.push('/dashboard')}
+      onBack={() => router.back()}
       rightElement={shareHeaderButton}
       footer={
         !isApp ? (

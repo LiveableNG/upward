@@ -6,16 +6,27 @@ export const PHONE_REGEX = /^\+?\d{7,15}$/
 export function hasRentalInfo(user: UserProfile | null | undefined): boolean {
   if (!user) return false
 
-  const hasProperties = user.properties && user.properties.length > 0
-  const firstProp = hasProperties ? user.properties![0] : null
+  const properties = user.properties || []
+  if (properties.length > 0) {
+    const hasValidProperty = properties.some(
+      (prop) =>
+        !prop.isPastTenancy &&
+        Boolean(
+          prop.id ||
+            prop.uuid ||
+            prop.address ||
+            prop.location?.address ||
+            prop.location?.area ||
+            prop.rentEndDate ||
+            prop.rentAmount ||
+            prop.externalUnitId,
+        ),
+    )
+    if (hasValidProperty) return true
+    return properties.length > 0
+  }
 
-  return !!(
-    hasProperties &&
-    firstProp?.location?.area &&
-    firstProp?.location?.state &&
-    firstProp?.location?.country &&
-    firstProp?.rentEndDate
-  )
+  return Boolean(user.address && user.rentEndDate)
 }
 
 export function hasPhone(user: UserProfile | null | undefined): boolean {

@@ -306,6 +306,16 @@ export function ActionCarousel({
     })
   }
 
+  items.push({
+    type: 'home_refresh_ad',
+    id: 'home-refresh-ad',
+    title: 'Prepare Your Home for the New Year',
+    meta: 'New Year Home Refresh · Curated carpets, footmats, towels & cleaning bundle',
+    actionLabel: 'Explore Bundle',
+    action: () => router.push('/dashboard/lifestyle?id=6c9895cf-46b0-4753-99b3-eb1f10f825f4'),
+    urgency: 'neutral',
+  })
+
   if (showBenefitsUpsell) {
     items.push({
       type: 'benefits',
@@ -342,7 +352,7 @@ export function ActionCarousel({
       {items.map((item) => (
         <article
           key={item.id}
-          className={`activity-alerts__item activity-alerts__item--${item.urgency} ${item.type.startsWith('live_order') ? 'activity-alerts__item--live-order' : ''} ${item.type === 'unpaid_order' ? 'activity-alerts__item--unpaid-order' : ''}`}
+          className={`activity-alerts__item activity-alerts__item--${item.urgency} ${item.type.startsWith('live_order') ? 'activity-alerts__item--live-order' : ''} ${item.type === 'unpaid_order' ? 'activity-alerts__item--unpaid-order' : ''} ${item.type === 'home_refresh_ad' ? 'activity-alerts__item--ad-bg' : ''}`}
           onClick={item.action}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
@@ -354,6 +364,9 @@ export function ActionCarousel({
           tabIndex={0}
         >
           <div className="activity-alerts__body">
+            {item.type === 'home_refresh_ad' && (
+              <span className="activity-alerts__ad-pill">FEATURED BUNDLE</span>
+            )}
             <div className="activity-alerts__header-row">
               {(item.type === 'live_order' || item.type === 'live_order_multiple') && (
                 <span

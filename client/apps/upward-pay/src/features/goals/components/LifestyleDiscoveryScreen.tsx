@@ -440,6 +440,54 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
 
       {/* Main Content */}
       <main className="lifestyle-discovery__container">
+        {/* Featured New Year Home Refresh Package Banner */}
+        <div
+          className="upward-goals-flow__refresh-advert"
+          style={{ marginBottom: 20 }}
+          onClick={() => router.push('/dashboard/lifestyle?id=6c9895cf-46b0-4753-99b3-eb1f10f825f4')}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault()
+              router.push('/dashboard/lifestyle?id=6c9895cf-46b0-4753-99b3-eb1f10f825f4')
+            }
+          }}
+        >
+          <div className="upward-goals-flow__refresh-advert-media">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=900&q=80"
+              alt="New Year Home Refresh Package"
+              className="upward-goals-flow__refresh-advert-img"
+              loading="lazy"
+            />
+            <div className="upward-goals-flow__refresh-advert-badge">
+              <Package size={12} />
+              <span>NEW YEAR HOME REFRESH PACKAGE</span>
+            </div>
+          </div>
+          <div className="upward-goals-flow__refresh-advert-body">
+            <h4>Prepare your home for the new year</h4>
+            <p>
+              Curated marketplace bundles: room &amp; bathroom carpets, footmats, mop, broom, brush, sponge, kitchen towels &amp; cutlery.
+            </p>
+            <div className="upward-goals-flow__refresh-advert-actions">
+              <button
+                type="button"
+                className="upward-goals-flow__refresh-cta-primary"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  router.push('/dashboard/lifestyle?id=6c9895cf-46b0-4753-99b3-eb1f10f825f4')
+                }}
+              >
+                <span>Explore Bundle</span>
+                <ArrowRight size={13} />
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* Contextual Moving Alliance Banner (Kept for future enablement) */}
         {showAllianceBanner && (
           <section className="lifestyle-discovery__alliance-bar">

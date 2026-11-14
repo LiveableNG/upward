@@ -191,7 +191,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const normalizedPath = (pathname || '').replace(/\/$/, '')
   const ROOT_NAV_PATHS = new Set([
     '/dashboard',
-    '/dashboard/goals',
     '/dashboard/explore',
     '/dashboard/finance',
     '/dashboard/me',
@@ -199,8 +198,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     '/dashboard/savings',
     '/dashboard/pay-rent',
     '/dashboard/transactions',
-    '/dashboard/score-breakdown',
-    '/dashboard/my-home',
   ])
 
   const isRootTab = ROOT_NAV_PATHS.has(normalizedPath)

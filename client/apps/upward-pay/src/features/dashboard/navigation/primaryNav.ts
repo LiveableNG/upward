@@ -1,7 +1,7 @@
 import type { ComponentType } from 'react'
-import { Compass, Home, Target, User } from 'lucide-react'
+import { Compass, Home, User } from 'lucide-react'
 
-export type PrimaryNavKey = 'home' | 'goals' | 'explore' | 'profile'
+export type PrimaryNavKey = 'home' | 'explore' | 'profile'
 
 export interface PrimaryNavItem {
   readonly key: PrimaryNavKey
@@ -27,17 +27,7 @@ export const PRIMARY_NAV_ITEMS: readonly PrimaryNavItem[] = [
     icon: Home,
     match: (pathname) => {
       const p = normalizePath(pathname)
-      return p === '/dashboard'
-    },
-  },
-  {
-    key: 'goals',
-    label: 'My Goals',
-    href: '/dashboard/goals',
-    icon: Target,
-    match: (pathname) => {
-      const p = normalizePath(pathname)
-      return p === '/dashboard/goals' || p.startsWith('/dashboard/goals/')
+      return p === '/dashboard' || p === '/dashboard/goals' || p.startsWith('/dashboard/goals/')
     },
   },
   {

@@ -33,6 +33,17 @@ export function RequestRecordsScreen() {
   const [expandedReqs, setExpandedReqs] = useState<Record<string, boolean>>({})
 
   React.useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.body.classList.add('hide-subscreen-nav')
+    }
+    return () => {
+      if (typeof document !== 'undefined') {
+        document.body.classList.remove('hide-subscreen-nav')
+      }
+    }
+  }, [])
+
+  React.useEffect(() => {
     const fetchHistory = async () => {
       try {
         const data = await api.getCredibilityRequests()
@@ -113,7 +124,7 @@ export function RequestRecordsScreen() {
         title="Request Records"
         subtitle="Bring verified tenancy history into your credibility profile."
         showBack
-        onBack={() => router.push('/dashboard')}
+        onBack={() => router.push('/dashboard/score-breakdown')}
       >
         <div className="req-main">
           <div className="req-success">
@@ -123,8 +134,8 @@ export function RequestRecordsScreen() {
               We have sent a secure email request to your landlord or manager. Once records are
               submitted, your credibility profile and Upward Score will update automatically.
             </p>
-            <button className="btn btn--primary req-success__btn" onClick={() => router.push('/dashboard')}>
-              Return to Dashboard
+            <button className="btn btn--primary req-success__btn" onClick={() => router.push('/dashboard/score-breakdown')}>
+              Return to Score Breakdown
             </button>
           </div>
         </div>
@@ -137,7 +148,7 @@ export function RequestRecordsScreen() {
       title="Request Records"
       subtitle="Request verified past tenancy records to strengthen your profile."
       showBack
-      onBack={() => router.push('/dashboard')}
+      onBack={() => router.push('/dashboard/score-breakdown')}
     >
       <div className="req-main">
         <div className="req-banner">
@@ -315,7 +326,7 @@ export function RequestRecordsScreen() {
             )}
 
             <div className="req-footer">
-              <button className="btn btn--outline" onClick={() => router.push('/dashboard')}>Cancel</button>
+              <button className="btn btn--outline" onClick={() => router.push('/dashboard/score-breakdown')}>Cancel</button>
               <button
                 className="btn btn--primary"
                 onClick={handleCreateRequest}

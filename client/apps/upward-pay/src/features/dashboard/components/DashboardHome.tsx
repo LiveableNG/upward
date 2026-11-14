@@ -14,7 +14,7 @@ import {
   Target,
   X,
 } from 'lucide-react'
-import { useHasMyHome, useMyHomeProperties, useAllPendingBills } from '@/features/my-home/hooks/useMyHome'
+import { useHasMyHome, useAllPendingBills } from '@/features/my-home/hooks/useMyHome'
 import { formatCurrency, formatDate, formatTime } from '@/lib/utils'
 import { AppleIcon, PlayStoreIcon } from '@/components/StoreIcons'
 import { type CompletedPayment, type PendingPayment } from '../types'
@@ -89,8 +89,6 @@ export function DashboardHome({
 }: DashboardHomeProps) {
   const router = useRouter()
   const hasMyHome = useHasMyHome()
-  const myHomeProperties = useMyHomeProperties()
-  const myHomePreview = myHomeProperties[0]?.unitName || myHomeProperties[0]?.label
   const { bills: gtBills } = useAllPendingBills()
   const { store: goalsStore, getCategoryProgress } = useUpwardGoalsStore()
 
@@ -105,13 +103,29 @@ export function DashboardHome({
       ? `${housingPct}% progress · ${housingTitles.slice(0, 2).join(', ')}${housingTitles.length > 2 ? ` +${housingTitles.length - 2}` : ''}`
       : `${housingPct}% saved towards your next rent`
 
-  const lowerBand = (band || '').toLowerCase()
-  const scoreTone =
-    lowerBand.includes('strong') || lowerBand.includes('good') || lowerBand.includes('excellent') || credScore >= 700
-      ? 'good'
-      : lowerBand.includes('risk') || lowerBand.includes('poor') || (isScorable && credScore < 500)
-        ? 'risk'
-        : 'building'
+  const displayScore = credScore > 0 ? credScore : 500
+  const displayMaxScore = maxScore > 0 ? maxScore : 900
+  const scoreProgressPct = Math.min(100, Math.max(8, Math.round((displayScore / displayMaxScore) * 100)))
+  const hasPaymentActivity = completedPayments.length > 0 || isScorable
+
+  const { scoreStandingLabel, scoreTone } = (() => {
+    if (!hasPaymentActivity && displayScore === 500) {
+      return { scoreStandingLabel: 'Starting out', scoreTone: 'starting' as const }
+    }
+    if (displayScore >= 800) {
+      return { scoreStandingLabel: 'Elite tenant', scoreTone: 'good' as const }
+    }
+    if (displayScore >= 700) {
+      return { scoreStandingLabel: 'Strong', scoreTone: 'good' as const }
+    }
+    if (displayScore >= 600) {
+      return { scoreStandingLabel: 'Improving', scoreTone: 'building' as const }
+    }
+    if (displayScore >= 500) {
+      return { scoreStandingLabel: 'Risky', scoreTone: 'risk' as const }
+    }
+    return { scoreStandingLabel: 'High risk', scoreTone: 'risk' as const }
+  })()
 
   const { data: tenantOrdersData } = useTenantOrders({ take: 10 })
   const { activeOrders, unpaidOrder } = useMemo(() => {
@@ -182,41 +196,13 @@ export function DashboardHome({
 
   const recent = completedPayments.slice(0, 3)
 
-  const showActivityCenter =
-    activeOrders.length > 0 ||
-    Boolean(unpaidOrder) ||
-    pendingPayments.length > 0 ||
-    gtBills.length > 0 ||
-    !benefitsActive ||
-    isNewUser ||
-    propertyReminders.length > 0 ||
-    (verificationOn && !isIdentityVerified)
+  const showActivityCenter = true
 
   const activityCritical =
     anyOverdue || gtBills.some((bill) => bill.proof_status?.toLowerCase() === 'rejected')
 
   return (
     <div className="dash-home">
-      {hasMyHome && (
-        <button
-          type="button"
-          className="dash-home__benefits-card dash-home__benefits-card--tenancy"
-          onClick={() => router.push('/dashboard/my-home')}
-        >
-          <span className="dash-home__benefits-card-icon">
-            <Building2 size={18} />
-          </span>
-          <span className="dash-home__benefits-card-body">
-            <span className="dash-home__benefits-card-title">My Home</span>
-            <span className="dash-home__benefits-card-desc">
-              {myHomePreview
-                ? `${myHomePreview} · Complaints, visitors, bills & documents`
-                : 'Complaints, visitors, bills, and documents for your tenancy'}
-            </span>
-          </span>
-          <ChevronRight size={18} className="dash-home__benefits-card-chevron" />
-        </button>
-      )}
       {showActivityCenter && (
         <div className={`dash-home__activity-center activity-center ${activityCritical ? 'activity-center--critical' : ''}`}>
           <div className="activity-center__header">
@@ -263,15 +249,30 @@ export function DashboardHome({
               <div className="dash-home__housing-hero-top">
                 <button
                   type="button"
-                  className={`dash-home__housing-score-badge dash-home__housing-score-badge--${scoreTone}`}
+                  className={`dash-home__housing-score-indicator dash-home__housing-score-indicator--${scoreTone}`}
                   onClick={(e) => {
                     e.stopPropagation()
                     router.push('/dashboard/score-breakdown')
                   }}
                 >
-                  <span className="dash-home__housing-score-dot" />
-                  <span>Score {credScore}/{maxScore}</span>
-                  <ChevronRight size={12} />
+                  <div className="dash-home__housing-score-row">
+                    <span className="dash-home__housing-score-label">Rent Score</span>
+                    <span className="dash-home__housing-score-nums">
+                      <strong>{displayScore}</strong>
+                      <small>/ {displayMaxScore}</small>
+                    </span>
+                    <span className="dash-home__housing-score-status">
+                      <span className="dash-home__housing-score-dot" aria-hidden="true" />
+                      <span>{scoreStandingLabel}</span>
+                    </span>
+                    <ChevronRight size={13} className="dash-home__housing-score-chev" />
+                  </div>
+                  <div className="dash-home__housing-score-track" aria-hidden="true">
+                    <span
+                      className="dash-home__housing-score-fill"
+                      style={{ width: `${scoreProgressPct}%` }}
+                    />
+                  </div>
                 </button>
               </div>
               <h2 className="dash-home__housing-hero-title">{housingCat.title}</h2>
@@ -297,7 +298,7 @@ export function DashboardHome({
           </div>
 
           <div
-            className="dash-home__housing-hero-actions"
+            className={`dash-home__housing-hero-actions${hasMyHome ? ' dash-home__housing-hero-actions--three' : ''}`}
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -316,6 +317,16 @@ export function DashboardHome({
               <PiggyBank size={16} strokeWidth={2.2} />
               <span>Save Rent</span>
             </button>
+            {hasMyHome && (
+              <button
+                type="button"
+                className="dash-home__housing-action-btn"
+                onClick={() => router.push('/dashboard/my-home')}
+              >
+                <Building2 size={16} strokeWidth={2.2} />
+                <span>My Home</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
