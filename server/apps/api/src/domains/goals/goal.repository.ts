@@ -1,5 +1,31 @@
 export type GoalPublishStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
 export type UserGoalStatus = 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'ARCHIVED'
+export type GoalTargetType =
+  | 'AMOUNT'
+  | 'DEADLINE'
+  | 'HYBRID'
+  | 'CHECKLIST_ACTIONS'
+  | 'RECURRING_HABIT'
+  | 'VERIFICATION'
+
+export interface GoalActionTemplate {
+  id?: number
+  uuid: string
+  goalId: number
+  title: string
+  description?: string | null
+  sortOrder: number
+  isRequired: boolean
+  createdAt?: Date
+  updatedAt?: Date
+}
+
+export interface UserGoalAction {
+  id: string
+  label: string
+  done: boolean
+  sortOrder: number
+}
 
 export interface GoalCategory {
   id?: number
@@ -32,11 +58,15 @@ export interface Goal {
   sortOrder: number
   status: GoalPublishStatus
   isFeatured: boolean
+  targetType?: GoalTargetType
+  defaultDurationDays?: number | null
+  suggestedAmountKobo?: bigint | null
   createdAt?: Date
   updatedAt?: Date
   category?: GoalCategory
   collections?: GoalCollection[]
   offerings?: any[]
+  actionTemplates?: GoalActionTemplate[]
   _count?: {
     userGoals?: number
     offerings?: number
@@ -47,7 +77,15 @@ export interface UserGoal {
   id?: number
   uuid: string
   userId: number
-  goalId: number
+  goalId?: number | null
+  categorySlug?: string | null
+  title?: string | null
+  icon?: string | null
+  targetType?: GoalTargetType
+  durationDays?: number | null
+  targetAmountKobo?: bigint | null
+  savedAmountKobo?: bigint
+  actions?: UserGoalAction[] | any
   status: UserGoalStatus
   targetDate?: Date | null
   notes?: string | null
@@ -119,9 +157,19 @@ export interface GoalRepository {
   // User Goals
   findUserGoals(userId: number, status?: UserGoalStatus): Promise<UserGoal[]>
   findUserGoal(userId: number, goalId: number): Promise<UserGoal | null>
+  findUserGoalByUuid(uuid: string): Promise<UserGoal | null>
   setUserGoals(userId: number, goalIds: number[]): Promise<UserGoal[]>
+  createCustomUserGoal(userId: number, data: Partial<UserGoal>): Promise<UserGoal>
   updateUserGoal(id: number, data: Partial<UserGoal>): Promise<UserGoal>
+  toggleUserGoalAction(userId: number, userGoalUuid: string, actionId: string): Promise<UserGoal>
   removeUserGoal(userId: number, goalId: number): Promise<void>
+  removeUserGoalByUuid(userId: number, uuid: string): Promise<void>
+
+  // Action Templates (Admin)
+  findActionTemplates(goalId: number): Promise<GoalActionTemplate[]>
+  createActionTemplate(data: Partial<GoalActionTemplate>): Promise<GoalActionTemplate>
+  updateActionTemplate(id: number, data: Partial<GoalActionTemplate>): Promise<GoalActionTemplate>
+  deleteActionTemplate(id: number): Promise<void>
 
   // Collections
   findCollections(goalId: number, status?: GoalPublishStatus): Promise<GoalCollection[]>

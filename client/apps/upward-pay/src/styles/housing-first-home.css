@@ -931,3 +931,218 @@
     padding: 8px 10px;
   }
 }
+
+/* Native Goal Modals */
+.goal-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.48);
+  backdrop-filter: blur(2px);
+  z-index: 1300;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0;
+}
+
+@media (min-width: 600px) {
+  .goal-modal-overlay {
+    align-items: center;
+    padding: 20px;
+  }
+}
+
+.goal-modal {
+  width: 100%;
+  max-width: 480px;
+  max-height: 90dvh;
+  background: var(--bg, #ffffff);
+  border-radius: 24px 24px 0 0;
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: slideUpModal 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (min-width: 600px) {
+  .goal-modal {
+    border-radius: 20px;
+    max-height: 85dvh;
+  }
+}
+
+@keyframes slideUpModal {
+  from {
+    transform: translateY(24px);
+    opacity: 0.8;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.goal-modal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid var(--shell-border, #f0e9df);
+}
+
+.goal-modal__title {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text, #111);
+  margin: 0;
+}
+
+.goal-modal__close {
+  background: transparent;
+  border: none;
+  font-size: 20px;
+  color: var(--text-muted, #8a8a8a);
+  cursor: pointer;
+  padding: 4px 8px;
+  line-height: 1;
+}
+
+.goal-modal__body {
+  padding: 16px 20px 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.goal-modal__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.goal-modal__label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted, #8a8a8a);
+}
+
+.goal-modal__input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px 14px;
+  border: 1.5px solid var(--shell-border, #f0e9df);
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text, #111);
+  background: var(--bg, #ffffff);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.goal-modal__input:focus {
+  border-color: var(--clay, #c2501f);
+}
+
+.goal-modal__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.goal-modal__chip {
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--shell-border, #f0e9df);
+  background: var(--bg, #ffffff);
+  color: var(--text, #111);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.goal-modal__chip--active {
+  background: var(--clay, #c2501f);
+  color: #ffffff;
+  border-color: var(--clay, #c2501f);
+}
+
+.goal-modal__action-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--shell-tint, #fcfbf9);
+  border: 1px solid var(--shell-border, #f0e9df);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.goal-modal__action-check {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--shell-border, #d8d0c5);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  background: #ffffff;
+  transition: all 0.15s ease;
+}
+
+.goal-modal__action-row.is-done .goal-modal__action-check {
+  background: var(--clay, #c2501f);
+  border-color: var(--clay, #c2501f);
+}
+
+.goal-modal__action-label {
+  font-size: 13.5px;
+  color: var(--text, #111);
+  font-weight: 500;
+  flex: 1;
+}
+
+.goal-modal__action-row.is-done .goal-modal__action-label {
+  text-decoration: line-through;
+  color: var(--text-muted, #8a8a8a);
+}
+
+.goal-modal__submit {
+  width: 100%;
+  padding: 13px 16px;
+  background: var(--clay, #c2501f);
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.12s ease;
+  margin-top: 4px;
+}
+
+.goal-modal__submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.goal-modal__delete-btn {
+  background: transparent;
+  border: none;
+  color: #dc2626;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px;
+  text-align: center;
+  margin-top: 4px;
+}

@@ -23,10 +23,14 @@ import { GetUserGoalsUseCase } from './goals/use-cases/get-user-goals.use-case'
 import { SetUserGoalsUseCase } from './goals/use-cases/set-user-goals.use-case'
 import { UpdateUserGoalUseCase } from './goals/use-cases/update-user-goal.use-case'
 import { RemoveUserGoalUseCase } from './goals/use-cases/remove-user-goal.use-case'
+import { CreateCustomGoalUseCase } from './goals/use-cases/create-custom-goal.use-case'
+import { ToggleGoalActionUseCase } from './goals/use-cases/toggle-goal-action.use-case'
+import { SubmitGoalQuestionnaireUseCase } from './goals/use-cases/submit-goal-questionnaire.use-case'
 import { GetOfferingsUseCase } from './goals/use-cases/get-offerings.use-case'
 import { GetOfferingDetailUseCase } from './goals/use-cases/get-offering-detail.use-case'
 import { AdminManageCategoriesUseCase } from './goals/use-cases/admin/admin-manage-categories.use-case'
 import { AdminManageGoalsUseCase } from './goals/use-cases/admin/admin-manage-goals.use-case'
+import { AdminManageActionTemplatesUseCase } from './goals/use-cases/admin/admin-manage-action-templates.use-case'
 import { AdminManageCollectionsUseCase } from './goals/use-cases/admin/admin-manage-collections.use-case'
 import { AdminManageOfferingsUseCase } from './goals/use-cases/admin/admin-manage-offerings.use-case'
 import { AdminManageVendorsUseCase } from './goals/use-cases/admin/admin-manage-vendors.use-case'
@@ -1150,10 +1154,14 @@ const UseCases: any[] = [
   SetUserGoalsUseCase,
   UpdateUserGoalUseCase,
   RemoveUserGoalUseCase,
+  CreateCustomGoalUseCase,
+  ToggleGoalActionUseCase,
+  SubmitGoalQuestionnaireUseCase,
   GetOfferingsUseCase,
   GetOfferingDetailUseCase,
   AdminManageCategoriesUseCase,
   AdminManageGoalsUseCase,
+  AdminManageActionTemplatesUseCase,
   AdminManageCollectionsUseCase,
   AdminManageOfferingsUseCase,
   AdminManageVendorsUseCase,

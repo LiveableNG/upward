@@ -19,13 +19,16 @@ import { AdminManageCollectionsUseCase } from '../../../application/goals/use-ca
 import { AdminManageOfferingsUseCase } from '../../../application/goals/use-cases/admin/admin-manage-offerings.use-case'
 import { AdminManageVendorsUseCase } from '../../../application/goals/use-cases/admin/admin-manage-vendors.use-case'
 import { AdminGetGoalsOverviewUseCase } from '../../../application/goals/use-cases/admin/admin-get-goals-overview.use-case'
+import { AdminManageActionTemplatesUseCase } from '../../../application/goals/use-cases/admin/admin-manage-action-templates.use-case'
 import {
   CreateGoalCategoryDto,
   UpdateGoalCategoryDto,
 } from '../../../application/goals/dto/goal-category.dto'
 import {
+  CreateActionTemplateDto,
   CreateGoalDto,
   GoalQueryDto,
+  UpdateActionTemplateDto,
   UpdateGoalDto,
 } from '../../../application/goals/dto/goal.dto'
 import {
@@ -54,6 +57,7 @@ export class AdminGoalsController {
     private readonly manageOfferingsUseCase: AdminManageOfferingsUseCase,
     private readonly manageVendorsUseCase: AdminManageVendorsUseCase,
     private readonly getOverviewUseCase: AdminGetGoalsOverviewUseCase,
+    private readonly manageActionTemplatesUseCase: AdminManageActionTemplatesUseCase,
   ) {}
 
   // 1. Overview KPIs
@@ -127,6 +131,41 @@ export class AdminGoalsController {
   async deleteGoal(@Param('id') id: string) {
     await this.manageGoalsUseCase.delete(Number(id))
     return { message: 'Goal deleted successfully' }
+  }
+
+  // 3b. Action Templates
+  @Get(':goalId/actions')
+  @HttpCode(HttpStatus.OK)
+  async listActionTemplates(@Param('goalId') goalId: string) {
+    const data = await this.manageActionTemplatesUseCase.list(Number(goalId))
+    return { data }
+  }
+
+  @Post(':goalId/actions')
+  @HttpCode(HttpStatus.CREATED)
+  async createActionTemplate(
+    @Param('goalId') goalId: string,
+    @Body() dto: CreateActionTemplateDto,
+  ) {
+    const data = await this.manageActionTemplatesUseCase.create(Number(goalId), dto)
+    return { data, message: 'Action template created successfully' }
+  }
+
+  @Patch('actions/:actionId')
+  @HttpCode(HttpStatus.OK)
+  async updateActionTemplate(
+    @Param('actionId') actionId: string,
+    @Body() dto: UpdateActionTemplateDto,
+  ) {
+    const data = await this.manageActionTemplatesUseCase.update(Number(actionId), dto)
+    return { data, message: 'Action template updated successfully' }
+  }
+
+  @Delete('actions/:actionId')
+  @HttpCode(HttpStatus.OK)
+  async deleteActionTemplate(@Param('actionId') actionId: string) {
+    await this.manageActionTemplatesUseCase.delete(Number(actionId))
+    return { message: 'Action template deleted successfully' }
   }
 
   // 4. Collections & Linkings

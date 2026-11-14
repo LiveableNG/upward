@@ -16,6 +16,9 @@ import {
   setUserGoals,
   updateUserGoal,
   removeUserGoal,
+  createCustomGoal,
+  submitGoalQuestionnaire,
+  toggleGoalAction,
 } from '../services/goalsService'
 import {
   getCachedUserGoals,
@@ -30,6 +33,8 @@ import type {
   OfferingListQuery,
   SetUserGoalsData,
   UpdateUserGoalData,
+  CreateCustomGoalInput,
+  SubmitQuestionnaireInput,
   PaginationMeta,
 } from '../types/goals.types'
 
@@ -252,6 +257,101 @@ export function useRemoveUserGoal() {
       const current = queryClient.getQueryData<UserGoal[]>(['user-goals', userKey])
       if (current) {
         const next = current.filter((ug) => ug.goalId !== goalId)
+        queryClient.setQueryData(['user-goals', userKey], next)
+        if (user?.id) {
+          setCachedUserGoals(user.id, next)
+        }
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-goals'] })
+    },
+  })
+}
+
+export function useCreateCustomGoal() {
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
+  const userKey = user?.uuid || user?.id || 'anonymous'
+
+  return useMutation({
+    mutationFn: (data: CreateCustomGoalInput) => createCustomGoal(data),
+    onSuccess: (newGoal) => {
+      const current = queryClient.getQueryData<UserGoal[]>(['user-goals', userKey]) || []
+      const next = [newGoal, ...current]
+      queryClient.setQueryData(['user-goals', userKey], next)
+      if (user?.id) {
+        setCachedUserGoals(user.id, next)
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-goals'] })
+    },
+  })
+}
+
+export function useSubmitQuestionnaire() {
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
+  const userKey = user?.uuid || user?.id || 'anonymous'
+
+  return useMutation({
+    mutationFn: (data: SubmitQuestionnaireInput) => submitGoalQuestionnaire(data),
+    onSuccess: (newGoal) => {
+      const current = queryClient.getQueryData<UserGoal[]>(['user-goals', userKey]) || []
+      const next = [newGoal, ...current.filter((g) => g.id !== newGoal.id)]
+      queryClient.setQueryData(['user-goals', userKey], next)
+      if (user?.id) {
+        setCachedUserGoals(user.id, next)
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-goals'] })
+    },
+  })
+}
+
+export function useToggleGoalAction() {
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
+  const userKey = user?.uuid || user?.id || 'anonymous'
+
+  return useMutation({
+    mutationFn: ({ goalUuid, actionId }: { goalUuid: string; actionId: string }) =>
+      toggleGoalAction(goalUuid, actionId),
+    onMutate: async ({ goalUuid, actionId }) => {
+      await queryClient.cancelQueries({ queryKey: ['user-goals'] })
+      const previous = queryClient.getQueryData<UserGoal[]>(['user-goals', userKey])
+      if (previous) {
+        const optimistic = previous.map((ug) => {
+          if (ug.uuid === goalUuid && ug.actions) {
+            const nextActions = ug.actions.map((act) =>
+              act.id === actionId ? { ...act, done: !act.done } : act,
+            )
+            const doneCount = nextActions.filter((a) => a.done).length
+            const progressPct =
+              nextActions.length > 0 ? Math.round((doneCount / nextActions.length) * 100) : ug.progressPct
+            return {
+              ...ug,
+              actions: nextActions,
+              progressPct,
+            }
+          }
+          return ug
+        })
+        queryClient.setQueryData(['user-goals', userKey], optimistic)
+      }
+      return { previous }
+    },
+    onError: (_err, _vars, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['user-goals', userKey], context.previous)
+      }
+    },
+    onSuccess: (updated) => {
+      const current = queryClient.getQueryData<UserGoal[]>(['user-goals', userKey])
+      if (current) {
+        const next = current.map((ug) => (ug.id === updated.id || ug.uuid === updated.uuid ? updated : ug))
         queryClient.setQueryData(['user-goals', userKey], next)
         if (user?.id) {
           setCachedUserGoals(user.id, next)

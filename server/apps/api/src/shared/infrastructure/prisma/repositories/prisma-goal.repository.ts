@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../prisma.service'
 import {
   Goal,
+  GoalActionTemplate,
   GoalCategory,
   GoalCollection,
   GoalOfferingLink,
@@ -10,6 +11,7 @@ import {
   UserGoal,
   UserGoalStatus,
 } from '../../../../domains/goals/goal.repository'
+import { calculateGoalProgress } from '../../../../domains/goals/timeline.calculator'
 
 @Injectable()
 export class PrismaGoalRepository implements GoalRepository {
@@ -326,12 +328,16 @@ export class PrismaGoalRepository implements GoalRepository {
         where: { userId },
         select: { goalId: true },
       })
-      const existingGoalIds = new Set(existing.map((e) => e.goalId))
+      const existingGoalIds = new Set(
+        existing
+          .map((e) => e.goalId)
+          .filter((id): id is number => id !== null),
+      )
 
       // Identify goals to remove (unselected)
       const toRemove = existing
         .map((e) => e.goalId)
-        .filter((id) => !targetSet.has(id))
+        .filter((id): id is number => id !== null && !targetSet.has(id))
 
       if (toRemove.length > 0) {
         await tx.upward_user_goal.deleteMany({
@@ -389,9 +395,144 @@ export class PrismaGoalRepository implements GoalRepository {
     return updated as UserGoal
   }
 
+  async findUserGoalByUuid(uuid: string): Promise<UserGoal | null> {
+    const userGoal = await this.prisma.upward_user_goal.findUnique({
+      where: { uuid },
+      include: {
+        goal: {
+          include: { category: true },
+        },
+      },
+    })
+    return (userGoal as any) || null
+  }
+
+  async createCustomUserGoal(userId: number, data: Partial<UserGoal>): Promise<UserGoal> {
+    const progress = calculateGoalProgress({
+      targetType: data.targetType,
+      actions: data.actions,
+      savedKobo: data.savedAmountKobo,
+      targetKobo: data.targetAmountKobo,
+    })
+
+    const created = await this.prisma.upward_user_goal.create({
+      data: {
+        userId,
+        goalId: data.goalId || null,
+        categorySlug: data.categorySlug || null,
+        title: data.title || null,
+        icon: data.icon || null,
+        targetType: (data.targetType as any) || 'CHECKLIST_ACTIONS',
+        durationDays: data.durationDays || null,
+        targetAmountKobo: data.targetAmountKobo || null,
+        savedAmountKobo: data.savedAmountKobo || BigInt(0),
+        actions: (data.actions as any) || null,
+        status: data.status || 'ACTIVE',
+        targetDate: data.targetDate || null,
+        notes: data.notes || null,
+        progressPct: progress,
+      },
+      include: {
+        goal: {
+          include: { category: true },
+        },
+      },
+    })
+
+    return created as any
+  }
+
+  async toggleUserGoalAction(userId: number, userGoalUuid: string, actionId: string): Promise<UserGoal> {
+    const userGoal = await this.prisma.upward_user_goal.findFirst({
+      where: { uuid: userGoalUuid, userId },
+    })
+
+    if (!userGoal) {
+      throw new Error(`User goal not found: ${userGoalUuid}`)
+    }
+
+    const currentActions = Array.isArray(userGoal.actions) ? (userGoal.actions as any[]) : []
+    const updatedActions = currentActions.map((action: any) => {
+      if (action.id === actionId) {
+        return { ...action, done: !action.done }
+      }
+      return action
+    })
+
+    const progress = calculateGoalProgress({
+      targetType: userGoal.targetType as any,
+      actions: updatedActions,
+      savedKobo: userGoal.savedAmountKobo,
+      targetKobo: userGoal.targetAmountKobo,
+    })
+
+    const updated = await this.prisma.upward_user_goal.update({
+      where: { id: userGoal.id },
+      data: {
+        actions: updatedActions,
+        progressPct: progress,
+        completedAt: progress === 100 ? new Date() : null,
+      },
+      include: {
+        goal: {
+          include: { category: true },
+        },
+      },
+    })
+
+    return updated as any
+  }
+
   async removeUserGoal(userId: number, goalId: number): Promise<void> {
     await this.prisma.upward_user_goal.deleteMany({
       where: { userId, goalId },
+    })
+  }
+
+  async removeUserGoalByUuid(userId: number, uuid: string): Promise<void> {
+    await this.prisma.upward_user_goal.deleteMany({
+      where: { userId, uuid },
+    })
+  }
+
+  // Action Templates (Admin)
+  async findActionTemplates(goalId: number): Promise<GoalActionTemplate[]> {
+    const items = await this.prisma.upward_goal_action_template.findMany({
+      where: { goalId },
+      orderBy: { sortOrder: 'asc' },
+    })
+    return items as GoalActionTemplate[]
+  }
+
+  async createActionTemplate(data: Partial<GoalActionTemplate>): Promise<GoalActionTemplate> {
+    const created = await this.prisma.upward_goal_action_template.create({
+      data: {
+        goalId: data.goalId!,
+        title: data.title!,
+        description: data.description || null,
+        sortOrder: data.sortOrder || 0,
+        isRequired: data.isRequired || false,
+      },
+    })
+    return created as GoalActionTemplate
+  }
+
+  async updateActionTemplate(id: number, data: Partial<GoalActionTemplate>): Promise<GoalActionTemplate> {
+    const updated = await this.prisma.upward_goal_action_template.update({
+      where: { id },
+      data: {
+        ...(data.title ? { title: data.title } : {}),
+        ...(data.description !== undefined ? { description: data.description } : {}),
+        ...(data.sortOrder !== undefined ? { sortOrder: data.sortOrder } : {}),
+        ...(data.isRequired !== undefined ? { isRequired: data.isRequired } : {}),
+      },
+    })
+    return updated as GoalActionTemplate
+  }
+
+  async deleteActionTemplate(id: number): Promise<void> {
+    await this.prisma.upward_goal_action_template.delete({
+      where: { id },
     })
   }
 
@@ -536,20 +677,21 @@ export class PrismaGoalRepository implements GoalRepository {
       this.prisma.upward_user_goal.groupBy({
         by: ['goalId'],
         _count: { goalId: true },
-        where: { status: 'ACTIVE' },
+        where: { status: 'ACTIVE', goalId: { not: null } },
         orderBy: { _count: { goalId: 'desc' } },
         take: 5,
       }),
     ])
 
-    const goalIds = grouped.map((g) => g.goalId)
+    const validGrouped = grouped.filter((g): g is typeof g & { goalId: number } => g.goalId !== null)
+    const goalIds = validGrouped.map((g) => g.goalId)
     const goals = await this.prisma.upward_goal.findMany({
       where: { id: { in: goalIds } },
       select: { id: true, title: true },
     })
     const goalTitleMap = new Map(goals.map((g) => [g.id, g.title]))
 
-    const topGoals = grouped.map((g) => ({
+    const topGoals = validGrouped.map((g) => ({
       goalId: g.goalId,
       title: goalTitleMap.get(g.goalId) || 'Unknown Goal',
       count: g._count.goalId,

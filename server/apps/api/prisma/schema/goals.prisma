@@ -31,6 +31,15 @@ enum UserGoalStatus {
   ARCHIVED
 }
 
+enum GoalTargetType {
+  AMOUNT
+  DEADLINE
+  HYBRID
+  CHECKLIST_ACTIONS
+  RECURRING_HABIT
+  VERIFICATION
+}
+
 model upward_goal_category {
   id          Int               @id @default(autoincrement())
   uuid        String            @unique @default(uuid())
@@ -51,50 +60,79 @@ model upward_goal_category {
 }
 
 model upward_goal {
-  id          Int                  @id @default(autoincrement())
-  uuid        String               @unique @default(uuid())
-  categoryId  Int
-  slug        String               @unique @db.VarChar(100)
-  title       String               @db.VarChar(150)
-  tagline     String?              @db.VarChar(255)
-  description String?              @db.Text
-  iconName    String?              @db.VarChar(50)
-  heroImage   String?              @db.VarChar(500)
-  sortOrder   Int                  @default(0)
-  status      GoalPublishStatus    @default(DRAFT)
-  isFeatured  Boolean              @default(false)
-  createdAt   DateTime             @default(now())
-  updatedAt   DateTime             @updatedAt
+  id                  Int                  @id @default(autoincrement())
+  uuid                String               @unique @default(uuid())
+  categoryId          Int
+  slug                String               @unique @db.VarChar(100)
+  title               String               @db.VarChar(150)
+  tagline             String?              @db.VarChar(255)
+  description         String?              @db.Text
+  iconName            String?              @db.VarChar(50)
+  heroImage           String?              @db.VarChar(500)
+  sortOrder           Int                  @default(0)
+  status              GoalPublishStatus    @default(DRAFT)
+  isFeatured          Boolean              @default(false)
+  targetType          GoalTargetType       @default(CHECKLIST_ACTIONS)
+  defaultDurationDays Int?                 // Normalized timeline duration in days (e.g. 180 for 6m, 365 for 1y)
+  suggestedAmountKobo BigInt?              // Suggested savings target in kobo (e.g. 230000000 for ₦2.3m)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 
-  category    upward_goal_category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  userGoals   upward_user_goal[]
-  collections upward_goal_collection[]
-  offerings   upward_goal_offering[]
+  category            upward_goal_category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  userGoals           upward_user_goal[]
+  collections         upward_goal_collection[]
+  offerings           upward_goal_offering[]
+  actionTemplates     upward_goal_action_template[]
 
   @@index([categoryId])
   @@index([slug])
   @@index([status, sortOrder])
 }
 
-model upward_user_goal {
-  id          Int            @id @default(autoincrement())
-  uuid        String         @unique @default(uuid())
-  userId      Int
+model upward_goal_action_template {
+  id          Int         @id @default(autoincrement())
+  uuid        String      @unique @default(uuid())
   goalId      Int
-  status      UserGoalStatus @default(ACTIVE)
-  targetDate  DateTime?
-  notes       String?        @db.Text
-  progressPct Int            @default(0)
-  completedAt DateTime?
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  title       String      @db.VarChar(200)
+  description String?     @db.Text
+  sortOrder   Int         @default(0)
+  isRequired  Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
-  user        upward_user    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  goal        upward_goal    @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  goal        upward_goal @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@index([goalId, sortOrder])
+}
+
+model upward_user_goal {
+  id                  Int            @id @default(autoincrement())
+  uuid                String         @unique @default(uuid())
+  userId              Int
+  goalId              Int?           // Optional for custom goals
+  categorySlug        String?        @db.VarChar(50)
+  title               String?        @db.VarChar(150) // Custom goal title
+  icon                String?        @db.VarChar(50)  // Custom icon/emoji e.g. 📚, 💼
+  targetType          GoalTargetType @default(CHECKLIST_ACTIONS)
+  durationDays        Int?           // Normalized duration in days (e.g. 180 for 6 months)
+  targetAmountKobo    BigInt?        // Target amount in kobo (e.g. 230000000 for ₦2.3m)
+  savedAmountKobo     BigInt         @default(0)
+  actions             Json?          // Array of action steps: [{ id, label, done, sortOrder }]
+  status              UserGoalStatus @default(ACTIVE)
+  targetDate          DateTime?
+  notes               String?        @db.Text
+  progressPct         Int            @default(0)
+  completedAt         DateTime?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  user                upward_user    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  goal                upward_goal?   @relation(fields: [goalId], references: [id], onDelete: Cascade)
 
   @@unique([userId, goalId])
   @@index([userId, status])
   @@index([goalId])
+  @@index([userId, categorySlug])
 }
 
 model upward_goal_collection {

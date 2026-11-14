@@ -77,6 +77,58 @@ export class CreateGoalDto {
   @IsBoolean()
   @IsOptional()
   isPublished?: boolean
+
+  @IsEnum(['AMOUNT', 'DEADLINE', 'HYBRID', 'CHECKLIST_ACTIONS', 'RECURRING_HABIT', 'VERIFICATION'])
+  @IsOptional()
+  targetType?: any
+
+  @IsInt()
+  @IsOptional()
+  @Min(1)
+  defaultDurationDays?: number
+
+  @IsOptional()
+  suggestedAmountKobo?: number | string | bigint
+}
+
+export class CreateActionTemplateDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(200)
+  title!: string
+
+  @IsString()
+  @IsOptional()
+  description?: string
+
+  @IsInt()
+  @IsOptional()
+  @Min(0)
+  sortOrder?: number
+
+  @IsBoolean()
+  @IsOptional()
+  isRequired?: boolean
+}
+
+export class UpdateActionTemplateDto {
+  @IsString()
+  @IsOptional()
+  @MaxLength(200)
+  title?: string
+
+  @IsString()
+  @IsOptional()
+  description?: string
+
+  @IsInt()
+  @IsOptional()
+  @Min(0)
+  sortOrder?: number
+
+  @IsBoolean()
+  @IsOptional()
+  isRequired?: boolean
 }
 
 export class UpdateGoalDto {
@@ -145,6 +197,18 @@ export class UpdateGoalDto {
   @IsBoolean()
   @IsOptional()
   isPublished?: boolean
+
+  @IsEnum(['AMOUNT', 'DEADLINE', 'HYBRID', 'CHECKLIST_ACTIONS', 'RECURRING_HABIT', 'VERIFICATION'])
+  @IsOptional()
+  targetType?: any
+
+  @IsInt()
+  @IsOptional()
+  @Min(1)
+  defaultDurationDays?: number
+
+  @IsOptional()
+  suggestedAmountKobo?: number | string | bigint
 }
 
 export class GoalQueryDto {

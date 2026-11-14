@@ -211,13 +211,16 @@ export function DashboardHome({
         user={user}
         credScore={credScore}
         maxScore={maxScore}
+        rank={rank}
+        band={band}
+        isScorable={isScorable}
         pendingPaymentsCount={pendingPayments.length}
         pendingPayments={pendingPayments}
         gtBillsCount={gtBills.length}
         anyOverdue={anyOverdue}
         benefitsActive={benefitsActive}
         benefitsEndsAt={benefitsEndsAt}
-        onOpenGoalsMockup={(cat) => router.push(cat ? `/dashboard/goals-mockup?cat=${cat}` : '/dashboard/goals-mockup')}
+        onOpenGoals={(cat) => router.push(cat ? `/dashboard/goals?cat=${cat}` : '/dashboard/goals')}
       />
 
       <div className="desktop-only" style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '14px' }}>

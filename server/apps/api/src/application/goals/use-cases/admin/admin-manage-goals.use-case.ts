@@ -22,9 +22,12 @@ export class AdminManageGoalsUseCase {
     const iconName = dto.iconName || dto.icon
     const heroImage = dto.heroImage || dto.coverImageUrl
     const status = dto.status || (dto.isPublished !== undefined ? (dto.isPublished ? 'PUBLISHED' : 'DRAFT') : undefined)
-    const { subtitle, icon, coverImageUrl, tags, isPublished, ...rest } = dto
+    const { subtitle, icon, coverImageUrl, tags, isPublished, suggestedAmountKobo, ...rest } = dto
     return this.goalRepo.createGoal({
       ...rest,
+      suggestedAmountKobo: suggestedAmountKobo !== undefined && suggestedAmountKobo !== null
+        ? BigInt(suggestedAmountKobo)
+        : undefined,
       tagline,
       iconName,
       heroImage,
@@ -39,6 +42,9 @@ export class AdminManageGoalsUseCase {
     if (dto.coverImageUrl && !dto.heroImage) patch.heroImage = dto.coverImageUrl
     if (dto.isPublished !== undefined && !dto.status) {
       patch.status = dto.isPublished ? 'PUBLISHED' : 'DRAFT'
+    }
+    if (dto.suggestedAmountKobo !== undefined && dto.suggestedAmountKobo !== null) {
+      patch.suggestedAmountKobo = BigInt(dto.suggestedAmountKobo)
     }
     delete patch.subtitle
     delete patch.icon

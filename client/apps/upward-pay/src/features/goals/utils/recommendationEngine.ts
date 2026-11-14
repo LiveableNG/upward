@@ -79,7 +79,7 @@ export function getRecommendedOfferings(
   // Active user goals map: goalId -> goal
   const activeUserGoalMap = new Map<number, { name: string; categoryName?: string }>()
   userGoals.forEach((ug) => {
-    if (ug.status === 'ACTIVE' && ug.goal) {
+    if (ug.status === 'ACTIVE' && ug.goal && typeof ug.goalId === 'number') {
       activeUserGoalMap.set(ug.goalId, {
         name: getGoalTitle(ug.goal),
         categoryName: getCategoryTitle(ug.goal.category),

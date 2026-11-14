@@ -17,23 +17,27 @@ import { type UserProfile } from '@/features/auth/types'
 import { type PendingPayment } from '../types'
 import { useRentVault } from '@/features/savings/hooks/useRentSavings'
 import { formatCurrency, formatDate } from '@/lib/utils'
+import { useUserGoals } from '@/features/goals/hooks/useGoals'
 
 interface HousingFirstHomeProps {
   user: UserProfile
   credScore: number
   maxScore: number
+  rank?: string
+  band?: string
+  isScorable?: boolean
   pendingPaymentsCount: number
   pendingPayments?: PendingPayment[]
   gtBillsCount: number
   anyOverdue: boolean
   benefitsActive: boolean
   benefitsEndsAt?: string | null
-  onOpenGoalsMockup: (initialCategory?: string) => void
+  onOpenGoals?: (initialCategory?: string) => void
 }
 
 function renderScoreRing(score: number, maxScore: number, size = 42) {
   const max = maxScore || 900
-  const val = score || 500
+  const val = score || 0
   const pct = Math.min(100, Math.max(4, Math.round((val / max) * 100)))
 
   return (
@@ -118,40 +122,94 @@ export function HousingFirstHome({
   user,
   credScore,
   maxScore,
+  rank,
+  band,
+  isScorable,
   pendingPaymentsCount,
   pendingPayments = [],
   gtBillsCount,
   anyOverdue,
   benefitsActive,
   benefitsEndsAt,
-  onOpenGoalsMockup,
+  onOpenGoals,
 }: HousingFirstHomeProps) {
   const router = useRouter()
   const { data: vault } = useRentVault()
+  const { data: userGoals } = useUserGoals()
+
+  const displayGoals = React.useMemo(() => {
+    if (userGoals && userGoals.length > 0) {
+      const nonHousing = userGoals.filter(
+        (g) => (g.categorySlug || g.goal?.category?.slug) !== 'housing',
+      )
+      if (nonHousing.length > 0) {
+        return nonHousing.slice(0, 3).map((g) => {
+          const title = (g.icon ? `${g.icon} ` : '') + (g.title || g.goal?.title || 'Goal')
+          const cat = g.categorySlug || g.goal?.category?.title || g.goal?.category?.name || 'Upward Goal'
+          let subtitle = cat
+          if (g.durationDays) {
+            const months = Math.round(g.durationDays / 30)
+            subtitle += months >= 1 ? ` · ${months} months` : ` · ${g.durationDays} days`
+          } else if (g.targetAmountKobo) {
+            const amt = Number(g.targetAmountKobo) / 100
+            subtitle += ` · ₦${Math.round(amt).toLocaleString('en-NG')}`
+          }
+          return {
+            id: String(g.id || g.uuid),
+            title,
+            subtitle,
+            pct: g.progressPct || 0,
+            categorySlug: g.categorySlug || g.goal?.category?.slug || 'all',
+          }
+        })
+      }
+    }
+    return []
+  }, [userGoals])
 
   // Housing section modes: 'default' | 'compact' | 'full'
   const [housingMode, setHousingMode] = useState<'default' | 'compact' | 'full'>('default')
 
   const targetRent = vault?.target_amount_kobo
     ? vault.target_amount_kobo / 100
-    : 4000000
+    : user.properties?.[0]?.rentAmount
+      ? Number(user.properties[0].rentAmount)
+      : 0
   const currentSaved = vault?.current_balance_kobo
     ? vault.current_balance_kobo / 100
-    : 463636
+    : 0
   const vaultPct =
-    targetRent > 0 ? Math.min(100, Math.round((currentSaved / targetRent) * 100)) : 12
+    vault?.target_completion_percentage !== undefined && vault?.target_completion_percentage !== null
+      ? Math.round(vault.target_completion_percentage)
+      : targetRent > 0
+        ? Math.min(100, Math.round((currentSaved / targetRent) * 100))
+        : 0
+
+  const accruedYieldFormatted = vault?.accrued_yield_kobo
+    ? `+${formatCurrency(vault.accrued_yield_kobo / 100, 'NGN')} returns accrued`
+    : '+₦0 returns accrued'
+
+  const daysLeftFormatted =
+    vault?.days_remaining !== undefined && vault?.days_remaining !== null
+      ? `${vault.days_remaining} days left`
+      : vault?.days_to_unlock !== undefined && vault?.days_to_unlock !== null
+        ? `${vault.days_to_unlock} days left`
+        : targetRent > 0
+          ? 'Rent goal active'
+          : 'Set target'
 
   // Determine top pending payment details for outstanding payment alert chip
-  const firstPending = pendingPayments[0]
+  const firstPending = pendingPayments && pendingPayments.length > 0 ? pendingPayments[0] : null
+  const hasOutstandingPayment = !!firstPending
   const pendingAmount = firstPending
-    ? (firstPending.total_amount ?? (firstPending as any).amount ?? 4000000)
-    : 4000000
+    ? (firstPending.total_amount ?? (firstPending as any).amount ?? 0)
+    : 0
   const pendingAmountFormatted = firstPending
     ? formatCurrency(pendingAmount, firstPending.currency || 'NGN')
-    : '₦4,000,000'
+    : ''
   const pendingDueDate = firstPending?.due_date
     ? formatDate(firstPending.due_date)
-    : '4 Nov'
+    : ''
 
   const toggleCollapse = () => {
     setHousingMode((prev) => (prev === 'compact' ? 'default' : 'compact'))
@@ -165,17 +223,19 @@ export function HousingFirstHome({
     <div className="housing-first-home">
       {/* 1. Quick Action Banners (Horizontal scrolling row) */}
       <div className="alert-row" aria-label="Alerts">
-        <button
-          type="button"
-          className="alert-chip alert-chip--critical"
-          onClick={() => router.push('/dashboard/pay-rent')}
-        >
-          <div className="alert-chip__title">Outstanding Payment</div>
-          <div className="alert-chip__meta">
-            {pendingAmountFormatted} past due · Due {pendingDueDate}
-          </div>
-          <div className="alert-chip__cta">Pay Now →</div>
-        </button>
+        {hasOutstandingPayment && (
+          <button
+            type="button"
+            className="alert-chip alert-chip--critical"
+            onClick={() => router.push('/dashboard/pay-rent')}
+          >
+            <div className="alert-chip__title">Outstanding Payment</div>
+            <div className="alert-chip__meta">
+              {pendingAmountFormatted} past due · Due {pendingDueDate}
+            </div>
+            <div className="alert-chip__cta">Pay Now →</div>
+          </button>
+        )}
 
         <button
           type="button"
@@ -190,7 +250,7 @@ export function HousingFirstHome({
               ? benefitsEndsAt
                 ? `Renews ${formatDate(benefitsEndsAt)} · View benefits`
                 : 'Annual cover active for your Upward account'
-              : 'Annual cover for your Upward account'}
+              : 'Annual cover for your home and savings'}
           </div>
           <div className="alert-chip__cta">
             {benefitsActive ? 'View Benefits →' : 'Activate →'}
@@ -285,13 +345,13 @@ export function HousingFirstHome({
             <div className="score-pill__left">
               <div className="score-pill__label">UPWARD SCORE</div>
               <div className="score-pill__value">
-                {credScore || 500} <span>/ {maxScore || 900}</span>
+                {credScore || 0} <span>/ {maxScore || 900}</span>
               </div>
               <div className="score-pill__meta">
-                Rent Payment Score · Not scoreable yet
+                Rent Payment Score · {isScorable ? `${rank || 'Good'} standing` : 'Not scoreable yet'}
               </div>
             </div>
-            {renderScoreRing(credScore || 500, maxScore || 900, 42)}
+            {renderScoreRing(credScore || 0, maxScore || 900, 42)}
           </button>
         )}
 
@@ -309,7 +369,7 @@ export function HousingFirstHome({
                   <div>
                     <div className="score-full__eyebrow">UPWARD SCORE</div>
                     <div className="score-full__value-row">
-                      <span className="score-full__value">{credScore || 500}</span>
+                      <span className="score-full__value">{credScore || 0}</span>
                       <span className="score-full__max">/ {maxScore || 900}</span>
                     </div>
                     <div className="score-full__sub">Rent Payment Score</div>
@@ -317,7 +377,7 @@ export function HousingFirstHome({
                   </div>
                   <div className="score-full__ring">
                     <div className="score-full__ring-inner">
-                      <span>Not scoreable yet</span>
+                      <span>{isScorable ? `${rank || 'Good'} standing` : 'Not scoreable yet'}</span>
                     </div>
                   </div>
                 </div>
@@ -345,8 +405,8 @@ export function HousingFirstHome({
                 <div className="vault-card__fill" style={{ width: `${vaultPct}%` }} />
               </div>
               <div className="vault-card__meta">
-                <span className="vault-card__yield">+₦0 returns accrued</span>
-                <span>355 days left</span>
+                <span className="vault-card__yield">{accruedYieldFormatted}</span>
+                <span>{daysLeftFormatted}</span>
               </div>
             </button>
 
@@ -374,7 +434,7 @@ export function HousingFirstHome({
                 <button
                   type="button"
                   className="housing-link"
-                  onClick={() => onOpenGoalsMockup('lifestyle')}
+                  onClick={() => router.push('/dashboard/lifestyle')}
                 >
                   <span className="housing-link__ico">
                     <Home size={16} strokeWidth={2} />
@@ -445,38 +505,43 @@ export function HousingFirstHome({
               <button
                 type="button"
                 className="more-areas__link-btn"
-                onClick={() => onOpenGoalsMockup('custom')}
+                onClick={() => router.push('/dashboard/goals?new=true')}
               >
                 + New goal
               </button>
             </div>
           </div>
 
-          {/* Goal 1: Learn a skill (100%) */}
-          <button
-            type="button"
-            className="goal-card"
-            onClick={() => onOpenGoalsMockup('career')}
-          >
-            <div className="goal-card__body">
-              <h3 className="goal-card__title">📚 Learn a skill</h3>
-              <p className="goal-card__desc">Career &amp; professional · 6 months</p>
-            </div>
-            {renderGoalRing(100, 40)}
-          </button>
-
-          {/* Goal 2: Start a business (0%) */}
-          <button
-            type="button"
-            className="goal-card"
-            onClick={() => onOpenGoalsMockup('income')}
-          >
-            <div className="goal-card__body">
-              <h3 className="goal-card__title">💼 Start a business</h3>
-              <p className="goal-card__desc">Income · ₦0 of ₦2,300,000</p>
-            </div>
-            {renderGoalRing(0, 40)}
-          </button>
+          {displayGoals.length > 0 ? (
+            displayGoals.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className="goal-card"
+                onClick={() => router.push('/dashboard/goals')}
+              >
+                <div className="goal-card__body">
+                  <h3 className="goal-card__title">{item.title}</h3>
+                  <p className="goal-card__desc">{item.subtitle}</p>
+                </div>
+                {renderGoalRing(item.pct, 40)}
+              </button>
+            ))
+          ) : (
+            <button
+              type="button"
+              className="goal-card"
+              onClick={() => router.push('/dashboard/goals?new=true')}
+            >
+              <div className="goal-card__body">
+                <h3 className="goal-card__title">Explore other goals</h3>
+                <p className="goal-card__desc">Set targets for wellness, career, or smart living</p>
+              </div>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--clay, #c2501f)', paddingRight: '8px' }}>
+                + Add goal
+              </span>
+            </button>
+          )}
         </section>
       )}
     </div>

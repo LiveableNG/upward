@@ -100,7 +100,7 @@ export function ProfileSetupBlocker({ user, score, maxScore, onSkip }: ProfileSe
             hint: goalsDone ? 'Completed' : 'Review Prototype',
             icon: Target,
             done: goalsDone,
-            href: '/dashboard/goals-mockup',
+            href: '/dashboard/goals',
           },
         ]
       : []),

@@ -2,6 +2,32 @@ export type GoalStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
 export type UserGoalStatus = 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'ABANDONED' | 'ARCHIVED'
 export type OfferingType = 'PRODUCT' | 'SERVICE' | 'BUNDLE' | 'PACKAGE'
 
+export type GoalTargetType =
+  | 'AMOUNT'
+  | 'DEADLINE'
+  | 'HYBRID'
+  | 'CHECKLIST_ACTIONS'
+  | 'RECURRING_HABIT'
+  | 'VERIFICATION'
+
+export interface GoalActionTemplate {
+  id: number
+  goalId: number
+  title: string
+  description?: string | null
+  sortOrder: number
+  isRequired: boolean
+  createdAt?: string
+  updatedAt?: string
+}
+
+export interface UserGoalAction {
+  id: string
+  label: string
+  done: boolean
+  sortOrder?: number
+}
+
 export interface CommerceVendor {
   id: number
   uuid?: string
@@ -130,11 +156,15 @@ export interface Goal {
   description?: string | null
   iconName?: string | null
   heroImage?: string | null
+  targetType?: GoalTargetType
+  defaultDurationDays?: number | null
+  suggestedAmountKobo?: string | number | null
   isFeatured?: boolean
   sortOrder: number
   status: GoalStatus
   category?: GoalCategory
   offerings?: GoalOfferingLink[]
+  actionTemplates?: GoalActionTemplate[]
   createdAt?: string
   updatedAt?: string
 }
@@ -143,7 +173,15 @@ export interface UserGoal {
   id: number
   uuid?: string
   userId: number
-  goalId: number
+  goalId?: number | null
+  categorySlug?: string | null
+  title?: string | null
+  icon?: string | null
+  targetType?: GoalTargetType
+  durationDays?: number | null
+  targetAmountKobo?: string | number | null
+  savedAmountKobo?: string | number | null
+  actions?: UserGoalAction[] | null
   status: UserGoalStatus
   progressPct: number
   targetDate?: string | null
@@ -191,6 +229,26 @@ export interface UpdateUserGoalData {
   targetDate?: string
   notes?: string
   completedAt?: string
+}
+
+export interface CreateCustomGoalInput {
+  title: string
+  categorySlug?: string
+  icon?: string
+  targetType?: GoalTargetType
+  durationDays?: number
+  durationWeeks?: number
+  targetAmountKobo?: string | number
+  actions?: string[]
+}
+
+export interface SubmitQuestionnaireInput {
+  categorySlug: string
+  goalSlug?: string
+  answers: Record<string, any>
+  durationDays?: number
+  durationWeeks?: number
+  targetAmountKobo?: string | number
 }
 
 export function getGoalTitle(goal?: Goal | null): string {

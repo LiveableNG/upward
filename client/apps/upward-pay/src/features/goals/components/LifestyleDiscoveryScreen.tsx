@@ -182,7 +182,11 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
 
   // Active user goals
   const activeUserGoals = useMemo(
-    () => userGoals.filter((ug) => ug.status === 'ACTIVE' && ug.goal),
+    () =>
+      userGoals.filter(
+        (ug): ug is typeof ug & { goalId: number } =>
+          ug.status === 'ACTIVE' && typeof ug.goalId === 'number' && !!ug.goal,
+      ),
     [userGoals],
   )
   const hasSelectedGoals = activeUserGoals.length > 0
@@ -213,7 +217,7 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
   const activeGoalIdsKey = useMemo(
     () =>
       userGoals
-        .filter((ug) => ug.status === 'ACTIVE')
+        .filter((ug): ug is typeof ug & { goalId: number } => ug.status === 'ACTIVE' && typeof ug.goalId === 'number')
         .map((ug) => ug.goalId)
         .sort((a, b) => a - b)
         .join(','),
@@ -222,25 +226,25 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
 
   const [draftGoalIds, setDraftGoalIds] = useState<Set<number>>(() => {
     const activeIds = userGoals
-      .filter((ug) => ug.status === 'ACTIVE')
+      .filter((ug): ug is typeof ug & { goalId: number } => ug.status === 'ACTIVE' && typeof ug.goalId === 'number')
       .map((ug) => ug.goalId)
-    return new Set(activeIds)
+    return new Set<number>(activeIds)
   })
 
   const [prevActiveGoalIdsKey, setPrevActiveGoalIdsKey] = useState(activeGoalIdsKey)
   if (activeGoalIdsKey !== prevActiveGoalIdsKey) {
     setPrevActiveGoalIdsKey(activeGoalIdsKey)
     const activeIds = userGoals
-      .filter((ug) => ug.status === 'ACTIVE')
+      .filter((ug): ug is typeof ug & { goalId: number } => ug.status === 'ACTIVE' && typeof ug.goalId === 'number')
       .map((ug) => ug.goalId)
-    setDraftGoalIds(new Set(activeIds))
+    setDraftGoalIds(new Set<number>(activeIds))
   }
 
   const openGoalSheet = () => {
     const activeIds = userGoals
-      .filter((ug) => ug.status === 'ACTIVE')
+      .filter((ug): ug is typeof ug & { goalId: number } => ug.status === 'ACTIVE' && typeof ug.goalId === 'number')
       .map((ug) => ug.goalId)
-    setDraftGoalIds(new Set(activeIds))
+    setDraftGoalIds(new Set<number>(activeIds))
     setIsGoalSheetOpen(true)
   }
 
