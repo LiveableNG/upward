@@ -158,27 +158,43 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
 
   const isQueryGoalsOpen = searchParams?.get('goals') === 'open'
   const queryGoalId = searchParams?.get('goalId')
+  const queryGoalSlug = searchParams?.get('goal')
+  const queryCategorySlug = searchParams?.get('category') || searchParams?.get('cat')
   const parsedQueryGoalId = queryGoalId ? Number(queryGoalId) : null
 
-  const [isGoalSheetOpen, setIsGoalSheetOpen] = useState(() => isQueryGoalsOpen)
-  const [selectedActiveGoalId, setSelectedActiveGoalId] = useState<number | 'ALL'>(() =>
-    parsedQueryGoalId && !isNaN(parsedQueryGoalId) ? parsedQueryGoalId : 'ALL',
-  )
+  // Flat list of all system goals from published categories
+  const allSystemGoals = useMemo(() => {
+    return categories.flatMap((cat) =>
+      (cat.goals || []).map((g) => ({
+        ...g,
+        categorySlug: cat.slug,
+        categoryTitle: cat.title || cat.name,
+      })),
+    )
+  }, [categories])
 
-  const [prevQueryGoalsOpen, setPrevQueryGoalsOpen] = useState(isQueryGoalsOpen)
-  if (isQueryGoalsOpen !== prevQueryGoalsOpen) {
-    setPrevQueryGoalsOpen(isQueryGoalsOpen)
-    if (isQueryGoalsOpen) {
-      setIsGoalSheetOpen(true)
-    }
-  }
-
-  const [prevQueryGoalId, setPrevQueryGoalId] = useState(queryGoalId)
-  if (queryGoalId !== prevQueryGoalId) {
-    setPrevQueryGoalId(queryGoalId)
+  const initialGoalId = useMemo<number | 'ALL'>(() => {
     if (parsedQueryGoalId && !isNaN(parsedQueryGoalId)) {
-      setSelectedActiveGoalId(parsedQueryGoalId)
+      return parsedQueryGoalId
     }
+    if (queryGoalSlug && allSystemGoals.length > 0) {
+      const match = allSystemGoals.find((g) => g.slug === queryGoalSlug)
+      if (match) return match.id
+    }
+    if (queryCategorySlug && allSystemGoals.length > 0) {
+      const match = allSystemGoals.find((g) => g.categorySlug === queryCategorySlug)
+      if (match) return match.id
+    }
+    return 'ALL'
+  }, [parsedQueryGoalId, queryGoalSlug, queryCategorySlug, allSystemGoals])
+
+  const [isGoalSheetOpen, setIsGoalSheetOpen] = useState(() => isQueryGoalsOpen)
+  const [selectedActiveGoalId, setSelectedActiveGoalId] = useState<number | 'ALL'>(initialGoalId)
+
+  const [prevInitialGoalId, setPrevInitialGoalId] = useState(initialGoalId)
+  if (initialGoalId !== prevInitialGoalId) {
+    setPrevInitialGoalId(initialGoalId)
+    setSelectedActiveGoalId(initialGoalId)
   }
 
   // Active user goals
@@ -323,9 +339,9 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
               <ArrowLeft size={16} />
             </button>
             <div className="lifestyle-discovery__title-group">
-              <h1 className="lifestyle-discovery__title">Lifestyle & Perks</h1>
+              <h1 className="lifestyle-discovery__title">Explore & Perks</h1>
               <p className="lifestyle-discovery__subtitle">
-                Verified services, packages, and home essentials for tenants
+                Verified packages, home essentials, and services for tenants
               </p>
             </div>
           </div>
@@ -345,26 +361,6 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
               {activeOrdersCount > 0 && (
                 <span className="lifestyle-discovery__goals-badge">
                   {activeOrdersCount}
-                </span>
-              )}
-            </button>
-
-            <button
-              type="button"
-              className={`lifestyle-discovery__goals-trigger ${
-                hasSelectedGoals ? 'lifestyle-discovery__goals-trigger--active' : ''
-              }`}
-              onClick={openGoalSheet}
-              aria-label="Select and edit lifestyle goals"
-            >
-              <SlidersHorizontal size={14} />
-              <span className="lifestyle-discovery__goals-text">
-                {!hasSelectedGoals && <span className="lifestyle-discovery__goals-prefix">Set </span>}
-                Goals
-              </span>
-              {hasSelectedGoals && (
-                <span className="lifestyle-discovery__goals-badge">
-                  {activeUserGoals.length}
                 </span>
               )}
             </button>
@@ -470,69 +466,40 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
 
       {/* Main Content */}
       <main className="lifestyle-discovery__container">
-        {/* Compact Goal Filter / Personalization Strip */}
-        {!isUserGoalsLoading && (
-          <div className="lifestyle-discovery__context-strip">
-            {hasSelectedGoals ? (
-              <div className="lifestyle-discovery__goal-scroll-wrap">
-                <div className="lifestyle-discovery__goal-pills-row">
+        {/* Universal Goals / Categories Filter Strip */}
+        <div className="lifestyle-discovery__context-strip">
+          <div className="lifestyle-discovery__goal-scroll-wrap">
+            <div className="lifestyle-discovery__goal-pills-row">
+              <button
+                type="button"
+                className={`lifestyle-discovery__goal-pill ${
+                  selectedActiveGoalId === 'ALL'
+                    ? 'lifestyle-discovery__goal-pill--active'
+                    : ''
+                }`}
+                onClick={() => setSelectedActiveGoalId('ALL')}
+              >
+                All Perks
+              </button>
+              {allSystemGoals.map((g) => {
+                const gTitle = getGoalTitle(g) || g.title
+                const isActive = selectedActiveGoalId === g.id
+                return (
                   <button
+                    key={g.id}
                     type="button"
                     className={`lifestyle-discovery__goal-pill ${
-                      selectedActiveGoalId === 'ALL'
-                        ? 'lifestyle-discovery__goal-pill--active'
-                        : ''
+                      isActive ? 'lifestyle-discovery__goal-pill--active' : ''
                     }`}
-                    onClick={() => setSelectedActiveGoalId('ALL')}
+                    onClick={() => setSelectedActiveGoalId(isActive ? 'ALL' : g.id)}
                   >
-                    All For You
+                    {gTitle}
                   </button>
-                  {activeUserGoals.map((ug) => {
-                    const gTitle = getGoalTitle(ug.goal) || `Goal #${ug.goalId}`
-                    return (
-                      <button
-                        key={ug.goalId}
-                        type="button"
-                        className={`lifestyle-discovery__goal-pill ${
-                          selectedActiveGoalId === ug.goalId
-                            ? 'lifestyle-discovery__goal-pill--active'
-                            : ''
-                        }`}
-                        onClick={() => setSelectedActiveGoalId(ug.goalId)}
-                      >
-                        {gTitle}
-                      </button>
-                    )
-                  })}
-                  <button
-                    type="button"
-                    className="lifestyle-discovery__goal-edit-link"
-                    onClick={openGoalSheet}
-                  >
-                    Edit goals
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="lifestyle-discovery__nudge-bar">
-                <div className="lifestyle-discovery__nudge-text">
-                  <Target size={15} className="lifestyle-discovery__nudge-icon" />
-                  <span>
-                    Select your home & lifestyle goals to tailor recommendations.
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  className="lifestyle-discovery__nudge-action"
-                  onClick={openGoalSheet}
-                >
-                  <span>Choose goals</span>
-                  <ArrowRight size={13} />
-                </button>
-              </div>
-            )}
+                )
+              })}
+            </div>
           </div>
-        )}
+        </div>
 
         {/* Contextual Moving Alliance Banner (Kept for future enablement) */}
         {showAllianceBanner && (
@@ -563,13 +530,8 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
         <div className="lifestyle-discovery__section-header">
           <h2 className="lifestyle-discovery__section-title">
             {selectedActiveGoalId !== 'ALL'
-              ? getGoalTitle(
-                  activeUserGoals.find((g) => g.goalId === selectedActiveGoalId)
-                    ?.goal,
-                ) || 'Recommended for You'
-              : hasSelectedGoals
-                ? 'Curated for You'
-                : 'Explore Perks'}
+              ? allSystemGoals.find((g) => g.id === selectedActiveGoalId)?.title || 'Curated for You'
+              : 'Explore Perks'}
           </h2>
           {!isLoading && (
             <span className="lifestyle-discovery__count-badge">
@@ -639,10 +601,14 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
                 <>
                   <ShoppingBag size={30} className="lifestyle-discovery__empty-icon" />
                   <h3 className="lifestyle-discovery__empty-title">
-                    No matching items found
+                    {selectedActiveGoalId !== 'ALL'
+                      ? 'No perks linked to this goal yet'
+                      : 'No matching items found'}
                   </h3>
                   <p className="lifestyle-discovery__empty-desc">
-                    Try clearing your search or switching categories.
+                    {selectedActiveGoalId !== 'ALL'
+                      ? 'We are curating verified packages and merchants for this goal. Check back soon or browse all available perks.'
+                      : 'Try clearing your search or switching categories.'}
                   </p>
                   {(searchQuery ||
                     selectedType !== 'ALL' ||
@@ -656,7 +622,7 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
                         setSelectedActiveGoalId('ALL')
                       }}
                     >
-                      Reset Filters
+                      View All Perks
                     </button>
                   )}
                 </>

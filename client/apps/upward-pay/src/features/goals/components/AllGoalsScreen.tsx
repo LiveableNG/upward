@@ -246,7 +246,15 @@ export function AllGoalsScreen() {
               key={ug.id || ug.uuid}
               type="button"
               className="all-goals-page__card"
-              onClick={() => setActiveDetailGoal(ug)}
+              onClick={() => {
+                if (ug.goalId) {
+                  router.push(`/dashboard/lifestyle?goalId=${ug.goalId}`)
+                } else if (ug.categorySlug) {
+                  router.push(`/dashboard/lifestyle?category=${ug.categorySlug}`)
+                } else {
+                  router.push('/dashboard/lifestyle')
+                }
+              }}
             >
               <div className="all-goals-page__card-body">
                 <h2 className="all-goals-page__card-title">{title}</h2>

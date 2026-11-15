@@ -142,38 +142,41 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // Do not force-redirect away from dashboard on fresh signup so user sees the setup blocker welcome screen
   const shouldAutoOpenRental = false
 
-  useEffect(() => {
-    if (loading || !user?.uuid || !isRentalGated || showTermsGate || isExemptRoute) return
-
-    if (!isDashboardHome) {
-      notifyGated()
-      router.replace('/dashboard')
-    }
-  }, [
-    loading,
-    user?.uuid,
-    isRentalGated,
-    showTermsGate,
-    isExemptRoute,
-    isDashboardHome,
-    notifyGated,
-    router,
-  ])
+  // Temporarily commented out rental gate redirect
+  // useEffect(() => {
+  //   if (loading || !user?.uuid || !isRentalGated || showTermsGate || isExemptRoute) return
+  //
+  //   if (!isDashboardHome) {
+  //     notifyGated()
+  //     router.replace('/dashboard')
+  //   }
+  // }, [
+  //   loading,
+  //   user?.uuid,
+  //   isRentalGated,
+  //   showTermsGate,
+  //   isExemptRoute,
+  //   isDashboardHome,
+  //   notifyGated,
+  //   router,
+  // ])
 
   const isSetupComplete = isProfileSetupComplete(user, {
     hasGoals,
     goalsAvailable: true,
   })
 
-  const showProfileBlocker =
-    mounted &&
-    !loading &&
-    !showTermsGate &&
-    !!user &&
-    !isExperimentLoading &&
-    !shouldAutoOpenRental &&
-    ((isRequired && isRentalGated && !isExemptRoute) ||
-      (isDashboardHome && !isSetupComplete && !isDismissed))
+  // Temporarily commented out profile setup blocker after signup/signin
+  // const showProfileBlocker =
+  //   mounted &&
+  //   !loading &&
+  //   !showTermsGate &&
+  //   !!user &&
+  //   !isExperimentLoading &&
+  //   !shouldAutoOpenRental &&
+  //   ((isRequired && isRentalGated && !isExemptRoute) ||
+  //     (isDashboardHome && !isSetupComplete && !isDismissed))
+  const showProfileBlocker = false
 
   useEffect(() => {
     if (!loading && isLoggedIn && user && !showProfileBlocker && !showTermsGate) {
@@ -200,6 +203,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const normalizedPath = (pathname || '').replace(/\/$/, '')
   const ROOT_NAV_PATHS = new Set([
     '/dashboard',
+    '/dashboard/lifestyle',
     '/dashboard/pay-rent',
     '/dashboard/transactions',
     '/dashboard/me',
@@ -210,14 +214,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const hideBottomNav =
     !isRootTab ||
-    !!showProfileBlocker ||
-    isRentalGated
+    !!showProfileBlocker
+    // || isRentalGated
 
   return (
     <div className={`dashboard-layout${showProfileBlocker || showTermsGate ? ' dashboard-layout--blocker' : ''}${hideBottomNav ? ' dashboard-layout--no-bottom-nav' : ''}`}>
       {showTermsGate && (
         <TermsAcceptanceModal onAccepted={() => window.location.reload()} />
       )}
+      {/* ProfileSetupBlocker temporarily commented out
       {showProfileBlocker && user && (
         <ProfileSetupBlocker
           user={user}
@@ -227,6 +232,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           onSkip={handleSkipBlocker}
         />
       )}
+      */}
       {/* Desktop Global Header */}
       {!showProfileBlocker && (
         <div className="desktop-only">

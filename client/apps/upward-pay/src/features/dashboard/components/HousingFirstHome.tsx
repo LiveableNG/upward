@@ -22,7 +22,7 @@ import { formatCurrency, formatDate, formatTime } from '@/lib/utils'
 import { useUserGoals } from '@/features/goals/hooks/useGoals'
 import { ActionCarousel } from './ActionCarousel'
 import { hasRentalInfo } from '../utils/profileCompletion'
-import type { GtActivityBill } from '@/features/my-home/hooks/useMyHome'
+import { useHasMyHome, type GtActivityBill } from '@/features/my-home/hooks/useMyHome'
 import type { TenantOrderSummaryDto } from '@/features/goals'
 import { AppleIcon, PlayStoreIcon } from '@/components/StoreIcons'
 
@@ -149,6 +149,7 @@ export function HousingFirstHome({
   onOpenGoals,
 }: HousingFirstHomeProps) {
   const router = useRouter()
+  const hasMyHome = useHasMyHome()
   const { data: vault } = useRentVault()
   const { data: userGoals } = useUserGoals()
 
@@ -171,6 +172,7 @@ export function HousingFirstHome({
           }
           return {
             id: String(g.id || g.uuid),
+            goalId: g.goalId,
             title,
             subtitle,
             pct: g.progressPct || 0,
@@ -397,7 +399,13 @@ export function HousingFirstHome({
                     <button
                       type="button"
                       className="housing-goal-card"
-                      onClick={() => router.push('/dashboard/goals')}
+                      onClick={() =>
+                        router.push(
+                          displayGoals[0].goalId
+                            ? `/dashboard/lifestyle?goalId=${displayGoals[0].goalId}`
+                            : `/dashboard/lifestyle?category=${displayGoals[0].categorySlug}`,
+                        )
+                      }
                     >
                       <div className="housing-goal-card__body">
                         <span className="housing-goal-card__tag">
@@ -427,23 +435,25 @@ export function HousingFirstHome({
                 </div>
               )}
 
-              {/* My Home row */}
-              <button
-                type="button"
-                className="housing-link"
-                onClick={() => router.push('/dashboard/my-home')}
-              >
-                <span className="housing-link__ico">
-                  <Home size={16} strokeWidth={2} />
-                </span>
-                <span className="housing-link__body">
-                  <h3 className="housing-link__title">My Home</h3>
-                  <p className="housing-link__desc">
-                    Complaints, visitors, bills and documents
-                  </p>
-                </span>
-                <span className="housing-link__chev">›</span>
-              </button>
+              {/* My Home row (external property tenancies only) */}
+              {hasMyHome && (
+                <button
+                  type="button"
+                  className="housing-link"
+                  onClick={() => router.push('/dashboard/my-home')}
+                >
+                  <span className="housing-link__ico">
+                    <Home size={16} strokeWidth={2} />
+                  </span>
+                  <span className="housing-link__body">
+                    <h3 className="housing-link__title">My Home</h3>
+                    <p className="housing-link__desc">
+                      Complaints, visitors, bills and documents
+                    </p>
+                  </span>
+                  <span className="housing-link__chev">›</span>
+                </button>
+              )}
 
               {/* Additional links when in Full mode */}
               {housingMode === 'full' && (
@@ -451,7 +461,7 @@ export function HousingFirstHome({
                   <button
                     type="button"
                     className="housing-link"
-                    onClick={() => router.push('/dashboard/lifestyle')}
+                    onClick={() => router.push('/dashboard/lifestyle?goal=prepare-towards-owning-a-home')}
                   >
                     <span className="housing-link__ico">
                       <Home size={16} strokeWidth={2} />
@@ -466,7 +476,7 @@ export function HousingFirstHome({
                   <button
                     type="button"
                     className="housing-link"
-                    onClick={() => router.push('/dashboard/lifestyle')}
+                    onClick={() => router.push('/dashboard/lifestyle?goal=save-towards-or-buy-furniture')}
                   >
                     <span className="housing-link__ico">
                       <Home size={16} strokeWidth={2} />
@@ -513,7 +523,13 @@ export function HousingFirstHome({
                     key={item.id}
                     type="button"
                     className="goal-card"
-                    onClick={() => router.push('/dashboard/goals')}
+                    onClick={() =>
+                      router.push(
+                        item.goalId
+                          ? `/dashboard/lifestyle?goalId=${item.goalId}`
+                          : `/dashboard/lifestyle?category=${item.categorySlug}`,
+                      )
+                    }
                   >
                     <div className="goal-card__body">
                       <span className="goal-card__tag">
@@ -600,7 +616,7 @@ export function HousingFirstHome({
       {/* ── Sidebar Column (Right on Desktop, Top Carousel on Mobile via CSS) ── */}
       <aside className="housing-first-home__sidebar">
         {/* 1. Action Alerts Carousel (Live orders, bills, KYC, bundles) */}
-        <div className="housing-activity-center activity-center" style={{ width: '100%' }}>
+        <div className="dash-home__activity-center housing-activity-center activity-center" style={{ width: '100%' }}>
           <ActionCarousel
             pendingPayments={pendingPayments}
             gtBills={gtBills}

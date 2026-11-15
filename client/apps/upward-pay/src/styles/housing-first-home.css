@@ -5,11 +5,25 @@
   width: 100%;
   max-width: 480px;
   margin: 0 auto;
-  padding: 0 0 24px;
+  padding: 0 var(--space-5, 20px) 24px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  font-family: var(--font-auth);
+}
+
+.housing-first-home button,
+.housing-first-home input,
+.housing-first-home select,
+.housing-first-home textarea {
+  font-family: inherit;
+}
+
+@media (max-width: 360px) {
+  .housing-first-home {
+    padding: 0 12px 24px;
+  }
 }
 
 .housing-first-home__main {
