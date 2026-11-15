@@ -3,25 +3,28 @@
 import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  CreditCard,
-  PiggyBank,
-  ShieldCheck,
   Home,
   ChevronUp,
   ChevronDown,
   ChevronRight,
   Maximize2,
   Minimize2,
+  ShieldCheck,
+  Receipt,
+  ArrowUpRight,
+  ArrowDownRight,
+  Smartphone,
 } from 'lucide-react'
 import { type UserProfile } from '@/features/auth/types'
-import { type PendingPayment } from '../types'
+import { type PendingPayment, type CompletedPayment } from '../types'
 import { useRentVault } from '@/features/savings/hooks/useRentSavings'
-import { formatCurrency, formatDate } from '@/lib/utils'
+import { formatCurrency, formatDate, formatTime } from '@/lib/utils'
 import { useUserGoals } from '@/features/goals/hooks/useGoals'
 import { ActionCarousel } from './ActionCarousel'
-import { isProfileSetupComplete, hasRentalInfo } from '../utils/profileCompletion'
+import { hasRentalInfo } from '../utils/profileCompletion'
 import type { GtActivityBill } from '@/features/my-home/hooks/useMyHome'
 import type { TenantOrderSummaryDto } from '@/features/goals'
+import { AppleIcon, PlayStoreIcon } from '@/components/StoreIcons'
 
 interface HousingFirstHomeProps {
   user: UserProfile
@@ -32,6 +35,7 @@ interface HousingFirstHomeProps {
   isScorable?: boolean
   pendingPaymentsCount: number
   pendingPayments?: PendingPayment[]
+  completedPayments?: CompletedPayment[]
   gtBillsCount?: number
   gtBills?: GtActivityBill[]
   activeOrders?: TenantOrderSummaryDto[]
@@ -73,7 +77,7 @@ function renderScoreRing(score: number, maxScore: number, size = 42) {
   )
 }
 
-function renderGoalRing(pct: number, size = 40) {
+function renderGoalRing(pct: number, size = 38) {
   const strokeWidth = 3.5
   const radius = (size - strokeWidth) / 2
   const circ = 2 * Math.PI * radius
@@ -134,6 +138,7 @@ export function HousingFirstHome({
   isScorable,
   pendingPaymentsCount,
   pendingPayments = [],
+  completedPayments = [],
   gtBillsCount,
   gtBills = [],
   activeOrders,
@@ -188,6 +193,10 @@ export function HousingFirstHome({
   const currentSaved = vault?.current_balance_kobo
     ? vault.current_balance_kobo / 100
     : 0
+
+  // State Separation: Pre-Saving (State A) vs Active Saving Traction (State B)
+  const hasStartedSaving = Boolean(vault && currentSaved > 0)
+
   const vaultPct =
     vault?.target_completion_percentage !== undefined && vault?.target_completion_percentage !== null
       ? Math.round(vault.target_completion_percentage)
@@ -208,19 +217,6 @@ export function HousingFirstHome({
           ? 'Rent goal active'
           : 'Set target'
 
-  // Determine top pending payment details for outstanding payment alert chip
-  const firstPending = pendingPayments && pendingPayments.length > 0 ? pendingPayments[0] : null
-  const hasOutstandingPayment = !!firstPending
-  const pendingAmount = firstPending
-    ? (firstPending.total_amount ?? (firstPending as any).amount ?? 0)
-    : 0
-  const pendingAmountFormatted = firstPending
-    ? formatCurrency(pendingAmount, firstPending.currency || 'NGN')
-    : ''
-  const pendingDueDate = firstPending?.due_date
-    ? formatDate(firstPending.due_date)
-    : ''
-
   const toggleCollapse = () => {
     setHousingMode((prev) => (prev === 'compact' ? 'default' : 'compact'))
   }
@@ -230,288 +226,457 @@ export function HousingFirstHome({
   }
 
   const hasRental = Boolean(user?.properties && user.properties.length > 0) || hasRentalInfo(user)
+  const recentPayments = completedPayments.slice(0, 4)
 
   return (
     <div className="housing-first-home">
-      {/* 1. Action Alerts Carousel (Live orders, bills, KYC, bundles) */}
-      <div className="dash-home__activity-center activity-center" style={{ width: '100%' }}>
-        <ActionCarousel
-          pendingPayments={pendingPayments}
-          gtBills={gtBills}
-          showKYC={!hasRental}
-          rentReminders={[]}
-          isIdentityVerified={user?.verificationOn === false || Boolean(user?.isIdentityVerified)}
-          skin="proto"
-          showBenefitsUpsell={!benefitsActive}
-          benefitsEndsAt={benefitsEndsAt}
-          activeOrders={activeOrders}
-          unpaidOrder={unpaidOrder}
-        />
-      </div>
-
-      {/* 2. Main Accordion Card: "Making housing easier" */}
-      <section
-        className={`housing-acc housing-acc--${housingMode}`}
-        aria-label="Housing"
-      >
-        <div className="housing-acc__head">
-          <div className="housing-acc__titles">
-            <h1 className="housing-acc__title">Making housing easier</h1>
-            <span className="housing-acc__tag">Housing goals</span>
-          </div>
-          <div className="housing-acc__controls">
-            <button
-              type="button"
-              className="housing-acc__ctrl"
-              onClick={toggleCollapse}
-              aria-label={housingMode === 'compact' ? 'Show more' : 'Show less'}
-              title={housingMode === 'compact' ? 'Show more' : 'Show less'}
-            >
-              {housingMode === 'compact' ? (
-                <ChevronDown size={16} strokeWidth={2} />
-              ) : (
-                <ChevronUp size={16} strokeWidth={2} />
-              )}
-            </button>
-            <button
-              type="button"
-              className={`housing-acc__ctrl ${housingMode === 'full' ? 'is-active' : ''}`}
-              onClick={toggleExpand}
-              aria-label={housingMode === 'full' ? 'Exit full screen' : 'Expand housing'}
-              title={housingMode === 'full' ? 'Exit full screen' : 'Expand housing'}
-            >
-              {housingMode === 'full' ? (
-                <Minimize2 size={15} strokeWidth={2} />
-              ) : (
-                <Maximize2 size={15} strokeWidth={2} />
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* 3 Action Tiles: Pay Rent | Save Rent | Insurance */}
-        <div className="housing-acc__actions">
-          <button
-            type="button"
-            className="quick-action"
-            onClick={() => router.push('/dashboard/pay-rent')}
-          >
-            <span className="quick-action__icon">
-              <CreditCard size={18} strokeWidth={2} />
-            </span>
-            <span className="quick-action__lbl">Pay Rent</span>
-          </button>
-
-          <button
-            type="button"
-            className="quick-action"
-            onClick={() => router.push('/dashboard/savings')}
-          >
-            <span className="quick-action__icon">
-              <PiggyBank size={18} strokeWidth={2} />
-            </span>
-            <span className="quick-action__lbl">Save Rent</span>
-          </button>
-
-          <button
-            type="button"
-            className="quick-action"
-            onClick={() => router.push('/dashboard/benefits')}
-          >
-            <span className="quick-action__icon">
-              <ShieldCheck size={18} strokeWidth={2} />
-            </span>
-            <span className="quick-action__lbl">Insurance</span>
-          </button>
-        </div>
-
-        {/* Upward Score Banner (Orange/Clay) in default / compact mode */}
-        {housingMode !== 'full' && (
-          <button
-            type="button"
-            className="score-pill"
-            onClick={() => router.push('/dashboard/score-breakdown')}
-            aria-label="View score breakdown"
-          >
-            <div className="score-pill__left">
-              <div className="score-pill__label">UPWARD SCORE</div>
-              <div className="score-pill__value">
-                {credScore || 0} <span>/ {maxScore || 900}</span>
-              </div>
-              <div className="score-pill__meta">
-                Rent Payment Score · {isScorable ? `${rank || 'Good'} standing` : 'Not scoreable yet'}
-              </div>
+      {/* ── Main Column (Left on Desktop, Natural Flow on Mobile) ── */}
+      <div className="housing-first-home__main">
+        {/* Main Accordion Card: "Making housing easier" or "Home & Lifestyle Goals" */}
+        <section
+          className={`housing-acc housing-acc--${housingMode}`}
+          aria-label="Housing"
+        >
+          <div className="housing-acc__head">
+            <div className="housing-acc__titles">
+              <h1 className="housing-acc__title">
+                {hasStartedSaving ? 'Making housing easier' : 'Home & Lifestyle Goals'}
+              </h1>
+              <span className="housing-acc__tag">
+                {hasStartedSaving ? 'Housing goals' : 'Housing goals'}
+              </span>
             </div>
-            {renderScoreRing(credScore || 0, maxScore || 900, 42)}
-          </button>
-        )}
-
-        {/* Accordion Body: Vault Progress + My Home + Full Links */}
-        {housingMode !== 'compact' && (
-          <div className="housing-acc__body">
-            {/* Full Score Banner (Shown in full mode) */}
-            {housingMode === 'full' && (
+            <div className="housing-acc__controls">
               <button
                 type="button"
-                className="score-full"
-                onClick={() => router.push('/dashboard/score-breakdown')}
+                className="housing-acc__ctrl"
+                onClick={toggleCollapse}
+                aria-label={housingMode === 'compact' ? 'Show more' : 'Show less'}
+                title={housingMode === 'compact' ? 'Show more' : 'Show less'}
               >
-                <div className="score-full__top">
-                  <div>
-                    <div className="score-full__eyebrow">UPWARD SCORE</div>
-                    <div className="score-full__value-row">
-                      <span className="score-full__value">{credScore || 0}</span>
-                      <span className="score-full__max">/ {maxScore || 900}</span>
-                    </div>
-                    <div className="score-full__sub">Rent Payment Score</div>
-                    <span className="score-full__pill">View breakdown ›</span>
-                  </div>
-                  <div className="score-full__ring">
-                    <div className="score-full__ring-inner">
-                      <span>{isScorable ? `${rank || 'Good'} standing` : 'Not scoreable yet'}</span>
-                    </div>
-                  </div>
-                </div>
-              </button>
-            )}
-
-            {/* Rent Savings Progress Card */}
-            <button
-              type="button"
-              className="vault-card"
-              onClick={() => router.push('/dashboard/savings')}
-            >
-              <div className="vault-card__top">
-                <div>
-                  <span className="vault-card__amount">
-                    {formatCurrency(currentSaved, 'NGN')}
-                  </span>
-                  <span className="vault-card__target">
-                    {' '}of {formatCurrency(targetRent, 'NGN')}
-                  </span>
-                </div>
-                <span className="vault-card__pct">{vaultPct}%</span>
-              </div>
-              <div className="vault-card__track">
-                <div className="vault-card__fill" style={{ width: `${vaultPct}%` }} />
-              </div>
-              <div className="vault-card__meta">
-                <span className="vault-card__yield">{accruedYieldFormatted}</span>
-                <span>{daysLeftFormatted}</span>
-              </div>
-            </button>
-
-            {/* My Home row */}
-            <button
-              type="button"
-              className="housing-link"
-              onClick={() => router.push('/dashboard/my-home')}
-            >
-              <span className="housing-link__ico">
-                <Home size={16} strokeWidth={2} />
-              </span>
-              <span className="housing-link__body">
-                <h3 className="housing-link__title">My Home</h3>
-                <p className="housing-link__desc">
-                  Complaints, visitors, bills and documents
-                </p>
-              </span>
-              <span className="housing-link__chev">›</span>
-            </button>
-
-            {/* Additional links when in Full mode */}
-            {housingMode === 'full' && (
-              <>
-                <button
-                  type="button"
-                  className="housing-link"
-                  onClick={() => router.push('/dashboard/lifestyle')}
-                >
-                  <span className="housing-link__ico">
-                    <Home size={16} strokeWidth={2} />
-                  </span>
-                  <span className="housing-link__body">
-                    <h3 className="housing-link__title">Prepare towards owning a home</h3>
-                    <p className="housing-link__desc">Education, events and a cooperative path</p>
-                  </span>
-                  <span className="housing-link__chev">›</span>
-                </button>
-
-                <button
-                  type="button"
-                  className="housing-link"
-                  onClick={() => router.push('/dashboard/lifestyle')}
-                >
-                  <span className="housing-link__ico">
-                    <Home size={16} strokeWidth={2} />
-                  </span>
-                  <span className="housing-link__body">
-                    <h3 className="housing-link__title">Save towards or buy furniture</h3>
-                    <p className="housing-link__desc">Furnish your apartment from the marketplace</p>
-                  </span>
-                  <span className="housing-link__chev">›</span>
-                </button>
-              </>
-            )}
-          </div>
-        )}
-      </section>
-
-      {/* 3. Also on Upward Section (Directly below housing accordion) */}
-      {housingMode !== 'full' && (
-        <section className="more-areas" aria-label="Other goals">
-          <div className="more-areas__head">
-            <span className="more-areas__label">Also on Upward</span>
-            <div className="more-areas__links">
-              <button
-                type="button"
-                className="more-areas__link-btn"
-                onClick={() => router.push('/dashboard/goals')}
-              >
-                See all
+                {housingMode === 'compact' ? (
+                  <ChevronDown size={16} strokeWidth={2} />
+                ) : (
+                  <ChevronUp size={16} strokeWidth={2} />
+                )}
               </button>
               <button
                 type="button"
-                className="more-areas__link-btn"
-                onClick={() => router.push('/dashboard/goals?new=true')}
+                className={`housing-acc__ctrl ${housingMode === 'full' ? 'is-active' : ''}`}
+                onClick={toggleExpand}
+                aria-label={housingMode === 'full' ? 'Exit full screen' : 'Expand housing'}
+                title={housingMode === 'full' ? 'Exit full screen' : 'Expand housing'}
               >
-                + New goal
+                {housingMode === 'full' ? (
+                  <Minimize2 size={15} strokeWidth={2} />
+                ) : (
+                  <Maximize2 size={15} strokeWidth={2} />
+                )}
               </button>
             </div>
           </div>
 
-          {displayGoals.length > 0 ? (
-            displayGoals.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className="goal-card"
-                onClick={() => router.push('/dashboard/goals')}
-              >
-                <div className="goal-card__body">
-                  <h3 className="goal-card__title">{item.title}</h3>
-                  <p className="goal-card__desc">{item.subtitle}</p>
-                </div>
-                {renderGoalRing(item.pct, 40)}
-              </button>
-            ))
-          ) : (
+          {/* Upward Score Banner (Clay/Rust) in default / compact mode */}
+          {housingMode !== 'full' && (
             <button
               type="button"
-              className="goal-card"
-              onClick={() => router.push('/dashboard/goals?new=true')}
+              className="score-pill"
+              onClick={() => router.push('/dashboard/score-breakdown')}
+              aria-label="View score breakdown"
             >
-              <div className="goal-card__body">
-                <h3 className="goal-card__title">Explore other goals</h3>
-                <p className="goal-card__desc">Set targets for wellness, career, or smart living</p>
+              <div className="score-pill__left">
+                <div className="score-pill__label">UPWARD SCORE</div>
+                <div className="score-pill__value">
+                  {credScore || 500} <span>/ {maxScore || 900}</span>
+                </div>
+                <div className="score-pill__meta">
+                  Rent Payment Score · {isScorable ? `${rank || 'Good'} standing` : 'Not scoreable yet'}
+                </div>
               </div>
-              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--clay, #c2501f)', paddingRight: '8px' }}>
-                + Add goal
-              </span>
+              {renderScoreRing(credScore || 500, maxScore || 900, 42)}
             </button>
           )}
+
+          {/* Accordion Body: Conditional State A (Pre-Saving) vs State B (Active Saving Traction) */}
+          {housingMode !== 'compact' && (
+            <div className="housing-acc__body">
+              {/* Full Score Banner (Shown in full mode) */}
+              {housingMode === 'full' && (
+                <button
+                  type="button"
+                  className="score-full"
+                  onClick={() => router.push('/dashboard/score-breakdown')}
+                >
+                  <div className="score-full__top">
+                    <div>
+                      <div className="score-full__eyebrow">UPWARD SCORE</div>
+                      <div className="score-full__value-row">
+                        <span className="score-full__value">{credScore || 500}</span>
+                        <span className="score-full__max">/ {maxScore || 900}</span>
+                      </div>
+                      <div className="score-full__sub">Rent Payment Score</div>
+                      <span className="score-full__pill">View breakdown ›</span>
+                    </div>
+                    <div className="score-full__ring">
+                      <div className="score-full__ring-inner">
+                        <span>{isScorable ? `${rank || 'Good'} standing` : 'Not scoreable yet'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </button>
+              )}
+
+              {/* ── STATE A: User Has NOT Started Saving (Advertise 2 Home Goals in Goal Description Mode) ── */}
+              {!hasStartedSaving && (
+                <div className="housing-acc__goals-mode" aria-label="Featured Home Goals">
+                  {/* Goal 1: Save towards your next rent */}
+                  <button
+                    type="button"
+                    className="housing-goal-card"
+                    onClick={() => router.push('/dashboard/savings')}
+                  >
+                    <div className="housing-goal-card__body">
+                      <span className="housing-goal-card__tag">SAVE RENT</span>
+                      <h3 className="housing-goal-card__title">Save towards your next rent</h3>
+                      <p className="housing-goal-card__desc">
+                        Earn up to 14.5% daily yield and lock away rent before due date
+                      </p>
+                    </div>
+                    {renderGoalRing(0, 38)}
+                  </button>
+
+                  {/* Goal 2: Home refresh package for 2027 */}
+                  <button
+                    type="button"
+                    className="housing-goal-card"
+                    onClick={() => router.push('/dashboard/lifestyle?id=home-refresh-2027')}
+                  >
+                    <div className="housing-goal-card__body">
+                      <span className="housing-goal-card__tag">HOME REFRESH</span>
+                      <h3 className="housing-goal-card__title">Home refresh package for 2027</h3>
+                      <p className="housing-goal-card__desc">
+                        Curated carpets, footmats, towels & apartment renewal kits
+                      </p>
+                    </div>
+                    {renderGoalRing(0, 38)}
+                  </button>
+                </div>
+              )}
+
+              {/* ── STATE B: User IS Saving (Show Savings Traction + Traction on Second Goal) ── */}
+              {hasStartedSaving && (
+                <div className="housing-acc__traction-mode" aria-label="Savings Traction">
+                  {/* Rent Savings Traction Card */}
+                  <button
+                    type="button"
+                    className="vault-card"
+                    onClick={() => router.push('/dashboard/savings')}
+                  >
+                    <div className="vault-card__top">
+                      <div>
+                        <span className="vault-card__amount">
+                          {formatCurrency(currentSaved, 'NGN')}
+                        </span>
+                        <span className="vault-card__target">
+                          {' '}of {formatCurrency(targetRent, 'NGN')}
+                        </span>
+                      </div>
+                      <span className="vault-card__pct">{vaultPct}%</span>
+                    </div>
+                    <div className="vault-card__track">
+                      <div className="vault-card__fill" style={{ width: `${vaultPct}%` }} />
+                    </div>
+                    <div className="vault-card__meta">
+                      <span className="vault-card__yield">{accruedYieldFormatted}</span>
+                      <span>{daysLeftFormatted}</span>
+                    </div>
+                  </button>
+
+                  {/* Traction on Second Active Goal (or prompt to set next milestone) */}
+                  {displayGoals.length > 0 ? (
+                    <button
+                      type="button"
+                      className="housing-goal-card"
+                      onClick={() => router.push('/dashboard/goals')}
+                    >
+                      <div className="housing-goal-card__body">
+                        <span className="housing-goal-card__tag">
+                          {displayGoals[0].categorySlug.replace(/-/g, ' ').toUpperCase()}
+                        </span>
+                        <h3 className="housing-goal-card__title">{displayGoals[0].title}</h3>
+                        <p className="housing-goal-card__desc">{displayGoals[0].subtitle}</p>
+                      </div>
+                      {renderGoalRing(displayGoals[0].pct, 38)}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="housing-goal-card"
+                      onClick={() => router.push('/dashboard/goals?new=true')}
+                    >
+                      <div className="housing-goal-card__body">
+                        <span className="housing-goal-card__tag">NEXT MILESTONE</span>
+                        <h3 className="housing-goal-card__title">Explore other goals</h3>
+                        <p className="housing-goal-card__desc">
+                          Set targets for career, business, or lifestyle
+                        </p>
+                      </div>
+                      <span className="housing-goal-card__action">+ Add goal</span>
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* My Home row */}
+              <button
+                type="button"
+                className="housing-link"
+                onClick={() => router.push('/dashboard/my-home')}
+              >
+                <span className="housing-link__ico">
+                  <Home size={16} strokeWidth={2} />
+                </span>
+                <span className="housing-link__body">
+                  <h3 className="housing-link__title">My Home</h3>
+                  <p className="housing-link__desc">
+                    Complaints, visitors, bills and documents
+                  </p>
+                </span>
+                <span className="housing-link__chev">›</span>
+              </button>
+
+              {/* Additional links when in Full mode */}
+              {housingMode === 'full' && (
+                <>
+                  <button
+                    type="button"
+                    className="housing-link"
+                    onClick={() => router.push('/dashboard/lifestyle')}
+                  >
+                    <span className="housing-link__ico">
+                      <Home size={16} strokeWidth={2} />
+                    </span>
+                    <span className="housing-link__body">
+                      <h3 className="housing-link__title">Prepare towards owning a home</h3>
+                      <p className="housing-link__desc">Education, events and a cooperative path</p>
+                    </span>
+                    <span className="housing-link__chev">›</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="housing-link"
+                    onClick={() => router.push('/dashboard/lifestyle')}
+                  >
+                    <span className="housing-link__ico">
+                      <Home size={16} strokeWidth={2} />
+                    </span>
+                    <span className="housing-link__body">
+                      <h3 className="housing-link__title">Save towards or buy furniture</h3>
+                      <p className="housing-link__desc">Furnish your apartment from the marketplace</p>
+                    </span>
+                    <span className="housing-link__chev">›</span>
+                  </button>
+                </>
+              )}
+            </div>
+          )}
         </section>
-      )}
+
+        {/* Also on Upward Section (Other goals hub) */}
+        {housingMode !== 'full' && (
+          <section className="more-areas" aria-label="Other goals">
+            <div className="more-areas__head">
+              <span className="more-areas__label">Also on Upward</span>
+              <div className="more-areas__links">
+                <button
+                  type="button"
+                  className="more-areas__link-btn"
+                  onClick={() => router.push('/dashboard/goals')}
+                >
+                  See all
+                </button>
+                <button
+                  type="button"
+                  className="more-areas__link-btn"
+                  onClick={() => router.push('/dashboard/goals?new=true')}
+                >
+                  + New goal
+                </button>
+              </div>
+            </div>
+
+            {displayGoals.length > 0 ? (
+              <div className="more-areas__grid">
+                {displayGoals.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className="goal-card"
+                    onClick={() => router.push('/dashboard/goals')}
+                  >
+                    <div className="goal-card__body">
+                      <span className="goal-card__tag">
+                        {item.categorySlug.replace(/-/g, ' ').toUpperCase()}
+                      </span>
+                      <h3 className="goal-card__title">{item.title}</h3>
+                      <p className="goal-card__desc">{item.subtitle}</p>
+                    </div>
+                    {renderGoalRing(item.pct, 38)}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="goal-card"
+                onClick={() => router.push('/dashboard/goals?new=true')}
+              >
+                <div className="goal-card__body">
+                  <span className="goal-card__tag">EXPLORE</span>
+                  <h3 className="goal-card__title">Explore other goals</h3>
+                  <p className="goal-card__desc">Set targets for wellness, career, or smart living</p>
+                </div>
+                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--clay, #c2501f)', paddingRight: '8px' }}>
+                  + Add goal
+                </span>
+              </button>
+            )}
+          </section>
+        )}
+
+        {/* Recent Activity (Rendered on desktop or below goals) */}
+        {recentPayments.length > 0 && (
+          <section className="housing-recent" aria-label="Recent Activity">
+            <div className="housing-recent__head">
+              <h2 className="housing-recent__title">Recent Activity</h2>
+              <button
+                type="button"
+                className="housing-recent__link"
+                onClick={() => router.push('/dashboard/transactions')}
+              >
+                View all →
+              </button>
+            </div>
+            <div className="housing-recent__list">
+              {recentPayments.map((tx) => {
+                const isCredit = tx.type === 'credit'
+                return (
+                  <button
+                    key={tx.uuid}
+                    type="button"
+                    className="housing-recent__item"
+                    onClick={() => router.push(`/dashboard/receipts?id=${tx.uuid}`)}
+                  >
+                    <span
+                      className={`housing-recent__icon ${
+                        isCredit ? 'housing-recent__icon--credit' : 'housing-recent__icon--debit'
+                      }`}
+                    >
+                      {isCredit ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
+                    </span>
+                    <span className="housing-recent__info">
+                      <div className="housing-recent__name">{tx.company_name}</div>
+                      <div className="housing-recent__meta">
+                        {tx.channel || 'Paystack'} · {formatDate(tx.paid_at)} · {formatTime(tx.paid_at)}
+                      </div>
+                    </span>
+                    <span
+                      className={`housing-recent__amount ${
+                        isCredit ? 'housing-recent__amount--credit' : ''
+                      }`}
+                    >
+                      {isCredit ? '+' : '-'}
+                      {formatCurrency(tx.amount, tx.currency)}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </section>
+        )}
+      </div>
+
+      {/* ── Sidebar Column (Right on Desktop, Top Carousel on Mobile via CSS) ── */}
+      <aside className="housing-first-home__sidebar">
+        {/* 1. Action Alerts Carousel (Live orders, bills, KYC, bundles) */}
+        <div className="dash-home__activity-center activity-center" style={{ width: '100%' }}>
+          <ActionCarousel
+            pendingPayments={pendingPayments}
+            gtBills={gtBills}
+            showKYC={!hasRental}
+            rentReminders={[]}
+            isIdentityVerified={user?.verificationOn === false || Boolean(user?.isIdentityVerified)}
+            skin="proto"
+            showBenefitsUpsell={!benefitsActive}
+            benefitsEndsAt={benefitsEndsAt}
+            activeOrders={activeOrders}
+            unpaidOrder={unpaidOrder}
+          />
+        </div>
+
+        {/* 2. Desktop-Only Extra Sidebar Widgets */}
+        <div className="housing-first-home__sidebar-extra">
+          {/* Rent Protection & Upward Benefits Status Card */}
+          <div className="sidebar-widget sidebar-widget--benefits">
+            <div className="sidebar-widget__head">
+              <span className="sidebar-widget__icon">
+                <ShieldCheck size={18} strokeWidth={2.2} />
+              </span>
+              <div>
+                <h4 className="sidebar-widget__title">Rent Protection</h4>
+                <p className="sidebar-widget__desc">
+                  {benefitsActive
+                    ? benefitsEndsAt
+                      ? `Active coverage through ${formatDate(benefitsEndsAt)}`
+                      : 'Active protection enabled'
+                    : 'Annual cover for rent security & unexpected disruptions'}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              className="sidebar-widget__action-btn"
+              onClick={() => router.push('/dashboard/benefits')}
+            >
+              {benefitsActive ? 'Manage Protection' : 'Activate Protection →'}
+            </button>
+          </div>
+
+          {/* Upward Mobile App Download Promo */}
+          <div className="sidebar-widget sidebar-widget--app">
+            <div className="sidebar-widget__head">
+              <span className="sidebar-widget__icon sidebar-widget__icon--app">
+                <Smartphone size={18} />
+              </span>
+              <div>
+                <h4 className="sidebar-widget__title">Get the Upward App</h4>
+                <p className="sidebar-widget__desc">Manage rent and build credit on the go.</p>
+              </div>
+            </div>
+            <div className="sidebar-widget__store-row">
+              <a
+                href="https://apps.apple.com/us/app/upwardpay/id6807898152"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="sidebar-widget__store-btn"
+              >
+                <AppleIcon size={14} />
+                <span>App Store</span>
+              </a>
+              <a
+                href="https://play.google.com/store/apps/details?id=com.goodtenants.upward"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="sidebar-widget__store-btn"
+              >
+                <PlayStoreIcon size={14} colored />
+                <span>Play Store</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </aside>
     </div>
   )
 }

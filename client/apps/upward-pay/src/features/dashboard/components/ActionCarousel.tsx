@@ -144,10 +144,27 @@ export function ActionCarousel({
   const router = useRouter()
   const { data: publicOfferings } = usePublicOfferings()
 
+  const defaultHomeRefreshPromo: GoalOffering = {
+    id: 2027,
+    uuid: 'home-refresh-2027',
+    name: 'Prepare Your Home for the New Year',
+    slug: 'home-refresh-2027',
+    type: 'PRODUCT',
+    priceKobo: 0,
+    currency: 'NGN',
+    status: 'PUBLISHED',
+    isPromoted: true,
+    promoBadge: 'FEATURED BUNDLE',
+    promoTitle: 'Prepare Your Home for the New Year',
+    promoSubtitle: 'New Year Home Refresh · Curated carpets, footmats, towels & apartment renewal kits for 2027',
+    promoCoverImage:
+      'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=900&q=80',
+  } as unknown as GoalOffering
+
   const activePromo =
     promotedOffering !== undefined
       ? promotedOffering
-      : publicOfferings?.find((o) => (o.status === 'PUBLISHED' || !o.status) && o.isPromoted)
+      : (publicOfferings?.find((o) => (o.status === 'PUBLISHED' || !o.status) && o.isPromoted) || defaultHomeRefreshPromo)
 
   const items: ActionItem[] = []
 
@@ -370,6 +387,16 @@ export function ActionCarousel({
       action: () => router.push('/dashboard/me'),
       urgency: 'neutral',
     })
+  }
+
+  // If there are no critical alerts (e.g. no overdue rent), elevate the Home Refresh / Promoted Bundle card to the front
+  const hasCriticalAlert = items.some((item) => item.urgency === 'critical')
+  if (!hasCriticalAlert) {
+    const promoIdx = items.findIndex((item) => item.type === 'promoted_bundle_ad')
+    if (promoIdx > 0) {
+      const [promoItem] = items.splice(promoIdx, 1)
+      items.unshift(promoItem)
+    }
   }
 
   const rootClass = skin === 'proto' ? 'activity-alerts activity-alerts--proto' : 'activity-alerts'
