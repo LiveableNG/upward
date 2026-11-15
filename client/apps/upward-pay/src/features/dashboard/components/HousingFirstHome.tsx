@@ -600,7 +600,7 @@ export function HousingFirstHome({
       {/* ── Sidebar Column (Right on Desktop, Top Carousel on Mobile via CSS) ── */}
       <aside className="housing-first-home__sidebar">
         {/* 1. Action Alerts Carousel (Live orders, bills, KYC, bundles) */}
-        <div className="dash-home__activity-center activity-center" style={{ width: '100%' }}>
+        <div className="housing-activity-center activity-center" style={{ width: '100%' }}>
           <ActionCarousel
             pendingPayments={pendingPayments}
             gtBills={gtBills}

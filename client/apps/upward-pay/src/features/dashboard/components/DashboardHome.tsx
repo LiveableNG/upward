@@ -134,26 +134,24 @@ export function DashboardHome({
   }
 
   return (
-    <div className="dash-home">
-      <HousingFirstHome
-        user={user}
-        credScore={credScore}
-        maxScore={maxScore}
-        rank={rank}
-        band={band}
-        isScorable={isScorable}
-        pendingPaymentsCount={pendingPayments.length}
-        pendingPayments={pendingPayments}
-        completedPayments={completedPayments}
-        gtBillsCount={gtBills.length}
-        gtBills={gtBills}
-        activeOrders={activeOrders}
-        unpaidOrder={unpaidOrder}
-        anyOverdue={anyOverdue}
-        benefitsActive={benefitsActive}
-        benefitsEndsAt={benefitsEndsAt}
-        onOpenGoals={(cat) => router.push(cat ? `/dashboard/goals?cat=${cat}` : '/dashboard/goals')}
-      />
-    </div>
+    <HousingFirstHome
+      user={user}
+      credScore={credScore}
+      maxScore={maxScore}
+      rank={rank}
+      band={band}
+      isScorable={isScorable}
+      pendingPaymentsCount={pendingPayments.length}
+      pendingPayments={pendingPayments}
+      completedPayments={completedPayments}
+      gtBillsCount={gtBills.length}
+      gtBills={gtBills}
+      activeOrders={activeOrders}
+      unpaidOrder={unpaidOrder}
+      anyOverdue={anyOverdue}
+      benefitsActive={benefitsActive}
+      benefitsEndsAt={benefitsEndsAt}
+      onOpenGoals={(cat) => router.push(cat ? `/dashboard/goals?cat=${cat}` : '/dashboard/goals')}
+    />
   )
 }
