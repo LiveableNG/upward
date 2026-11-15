@@ -37,7 +37,7 @@ const SIDE_NAV_ITEMS: readonly NavItem[] = [
     hideOnProfile: true,
   },
   {
-    label: 'Lifestyle',
+    label: 'Explore',
     icon: Compass,
     href: '/dashboard/lifestyle',
     requiresMyHome: false,

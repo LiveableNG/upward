@@ -201,6 +201,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const normalizedPath = (pathname || '').replace(/\/$/, '')
   const ROOT_NAV_PATHS = new Set([
     '/dashboard',
+    '/dashboard/lifestyle',
     '/dashboard/pay-rent',
     '/dashboard/transactions',
     '/dashboard/me',

@@ -172,6 +172,7 @@ export function HousingFirstHome({
           }
           return {
             id: String(g.id || g.uuid),
+            goalId: g.goalId,
             title,
             subtitle,
             pct: g.progressPct || 0,
@@ -398,7 +399,13 @@ export function HousingFirstHome({
                     <button
                       type="button"
                       className="housing-goal-card"
-                      onClick={() => router.push('/dashboard/goals')}
+                      onClick={() =>
+                        router.push(
+                          displayGoals[0].goalId
+                            ? `/dashboard/lifestyle?goalId=${displayGoals[0].goalId}`
+                            : `/dashboard/lifestyle?category=${displayGoals[0].categorySlug}`,
+                        )
+                      }
                     >
                       <div className="housing-goal-card__body">
                         <span className="housing-goal-card__tag">
@@ -454,7 +461,7 @@ export function HousingFirstHome({
                   <button
                     type="button"
                     className="housing-link"
-                    onClick={() => router.push('/dashboard/lifestyle')}
+                    onClick={() => router.push('/dashboard/lifestyle?goal=prepare-towards-owning-a-home')}
                   >
                     <span className="housing-link__ico">
                       <Home size={16} strokeWidth={2} />
@@ -469,7 +476,7 @@ export function HousingFirstHome({
                   <button
                     type="button"
                     className="housing-link"
-                    onClick={() => router.push('/dashboard/lifestyle')}
+                    onClick={() => router.push('/dashboard/lifestyle?goal=save-towards-or-buy-furniture')}
                   >
                     <span className="housing-link__ico">
                       <Home size={16} strokeWidth={2} />
@@ -516,7 +523,13 @@ export function HousingFirstHome({
                     key={item.id}
                     type="button"
                     className="goal-card"
-                    onClick={() => router.push('/dashboard/goals')}
+                    onClick={() =>
+                      router.push(
+                        item.goalId
+                          ? `/dashboard/lifestyle?goalId=${item.goalId}`
+                          : `/dashboard/lifestyle?category=${item.categorySlug}`,
+                      )
+                    }
                   >
                     <div className="goal-card__body">
                       <span className="goal-card__tag">
