@@ -78,10 +78,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { isGated: isRentalGated, notifyGated } = useRentalGate()
   const hasRental = hasRentalInfo(user)
 
-  // Session-scoped skip state: skipping setup only applies for the active session
+  // Skip state: check session and local storage
   const isSkippedInStorage =
     typeof window !== 'undefined' && user?.uuid
-      ? sessionStorage.getItem(`upward_profile_setup_skipped_${user.uuid}`) === 'true'
+      ? (sessionStorage.getItem(`upward_profile_setup_skipped_${user.uuid}`) === 'true' ||
+         localStorage.getItem(`upward_profile_setup_skipped_${user.uuid}`) === 'true')
       : false
 
   const isDismissed = isRequired ? false : (blockerDismissed || isSkippedInStorage)
@@ -89,6 +90,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const handleSkipBlocker = () => {
     if (typeof window !== 'undefined' && user?.uuid) {
       sessionStorage.setItem(`upward_profile_setup_skipped_${user.uuid}`, 'true')
+      localStorage.setItem(`upward_profile_setup_skipped_${user.uuid}`, 'true')
     }
     setBlockerDismissed(true)
   }
