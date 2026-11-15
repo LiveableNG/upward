@@ -240,7 +240,7 @@ export function HousingFirstHome({
           gtBills={gtBills}
           showKYC={!hasRental}
           rentReminders={[]}
-          isIdentityVerified={user?.verificationOn === false || Boolean(user?.isVerified)}
+          isIdentityVerified={user?.verificationOn === false || Boolean(user?.isIdentityVerified)}
           skin="proto"
           showBenefitsUpsell={!benefitsActive}
           benefitsEndsAt={benefitsEndsAt}

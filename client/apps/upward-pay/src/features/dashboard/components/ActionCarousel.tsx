@@ -334,7 +334,7 @@ export function ActionCarousel({
     items.push({
       type: 'promoted_bundle_ad',
       id: `promo-bundle-${activePromo.id || activePromo.uuid}`,
-      title: activePromo.promoTitle || activePromo.title,
+      title: activePromo.promoTitle || activePromo.title || activePromo.name || 'Featured Bundle',
       meta:
         activePromo.promoSubtitle ||
         activePromo.subtitle ||
