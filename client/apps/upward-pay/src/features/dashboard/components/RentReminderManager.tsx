@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
-import { RentReminderBanner } from './RentReminderBanner'
 import { RentReminderPopup } from './RentReminderPopup'
 
 export interface RentReminderAlert {
@@ -86,14 +85,7 @@ export function RentReminderManager() {
 
   return (
     <>
-      <div className="rent-reminder-banner-wrap">
-        <RentReminderBanner
-          alert={alert}
-          onDismiss={handleDismissBanner}
-          onPayNow={handlePayNow}
-        />
-      </div>
-
+      {/* Top banner removed: redundant with Activity Center / Action Carousel and blocked by Capacitor status bar */}
       {showPopup && (
         <RentReminderPopup
           alert={alert}

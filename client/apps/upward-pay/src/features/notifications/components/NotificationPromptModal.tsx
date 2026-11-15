@@ -63,7 +63,6 @@ export function NotificationPromptModal() {
           setPermissionStatus(status)
           if (status === 'granted') {
             PushNotificationService.registerDevice()
-            success('Push notifications enabled')
             handleClose()
           }
         })
@@ -77,7 +76,7 @@ export function NotificationPromptModal() {
       window.removeEventListener(OPEN_NOTIFICATION_PROMPT_EVENT, handleForceOpen)
       handleAppState.then((h) => h.remove()).catch(() => {})
     }
-  }, [user, checkStatusAndEvaluate, success])
+  }, [user, checkStatusAndEvaluate])
 
   const handleClose = () => {
     if (isClosing) return
