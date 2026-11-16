@@ -346,6 +346,60 @@ export function HousingFirstHome({
             </div>
           </div>
 
+          {/* Compact View: Shows at least one home goal (Save rent is the most important) */}
+          {housingMode === 'compact' && (
+            <div className="housing-acc__compact-goal">
+              {hasStartedSaving ? (
+                <button
+                  type="button"
+                  className="vault-card"
+                  onClick={() => router.push('/dashboard/savings')}
+                  style={{ marginBottom: '10px' }}
+                >
+                  <div className="vault-card__top">
+                    <div>
+                      <span className="vault-card__amount">
+                        {formatCurrency(currentSaved, 'NGN')}
+                      </span>
+                      <span className="vault-card__target">
+                        {' '}of {formatCurrency(targetRent, 'NGN')}
+                      </span>
+                    </div>
+                    <span className="vault-card__pct">{vaultPct}%</span>
+                  </div>
+                  <div className="vault-card__track">
+                    <div className="vault-card__fill" style={{ width: `${vaultPct}%` }} />
+                  </div>
+                  <div className="vault-card__meta">
+                    <span className="vault-card__yield">
+                      {accruedYieldFormatted}
+                      {vault?.is_rent_protec ? ' • Protected' : ''}
+                    </span>
+                    <span>{daysLeftFormatted}</span>
+                  </div>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="housing-goal-card"
+                  onClick={() => router.push('/dashboard/savings')}
+                  style={{ marginBottom: '10px' }}
+                >
+                  <div className="housing-goal-card__body">
+                    <span className="housing-goal-card__tag">
+                      {vault?.is_rent_protec ? 'RENT PROTEC • PROTECTED' : 'SAVE RENT'}
+                    </span>
+                    <h3 className="housing-goal-card__title">Pay less for my next rent</h3>
+                    <p className="housing-goal-card__desc">
+                      Build up savings towards my upcoming rent.
+                    </p>
+                  </div>
+                  {renderGoalRing(0, 38)}
+                </button>
+              )}
+            </div>
+          )}
+
           {/* Accordion Body: Conditional State A (Pre-Saving) vs State B (Active Saving Traction) */}
           {housingMode !== 'compact' && (
             <div className="housing-acc__body">
