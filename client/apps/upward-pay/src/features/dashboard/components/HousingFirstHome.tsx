@@ -23,7 +23,7 @@ import { useUserGoals } from '@/features/goals/hooks/useGoals'
 import { ActionCarousel } from './ActionCarousel'
 import { hasRentalInfo } from '../utils/profileCompletion'
 import { useHasMyHome, type GtActivityBill } from '@/features/my-home/hooks/useMyHome'
-import type { TenantOrderSummaryDto } from '@/features/goals'
+import type { TenantOrderSummaryDto, UserGoal } from '@/features/goals'
 import { AppleIcon, PlayStoreIcon } from '@/components/StoreIcons'
 
 interface HousingFirstHomeProps {
@@ -157,7 +157,7 @@ export function HousingFirstHome({
   const appGoals = React.useMemo(() => {
     const active = (userGoals || []).filter((ug) => ug.status === 'ACTIVE')
 
-    const matchCategory = (ug: any, slugs: string[]) => {
+    const matchCategory = (ug: UserGoal, slugs: string[]) => {
       const s = (ug.categorySlug || ug.goal?.category?.slug || '').toLowerCase()
       const gSlug = (ug.goal?.slug || '').toLowerCase()
       return slugs.includes(s) || slugs.includes(gSlug)
@@ -168,7 +168,7 @@ export function HousingFirstHome({
     const childrenGoal = active.find((ug) => matchCategory(ug, ['children', 'other', 'family', 'goals-for-my-children']))
     const payLessGoal = active.find((ug) => matchCategory(ug, ['pay-less', 'expenses', 'laundry', 'grocery']))
 
-    const formatSubtitle = (goal: any, defaultText: string) => {
+    const formatSubtitle = (goal: UserGoal | null | undefined, defaultText: string) => {
       if (!goal) return defaultText
       const title = (goal.icon ? `${goal.icon} ` : '') + (goal.title || goal.goal?.title || defaultText)
       if (goal.progressPct && goal.progressPct > 0) {
