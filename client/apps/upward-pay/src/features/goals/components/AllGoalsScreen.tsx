@@ -37,7 +37,7 @@ const QUESTIONNAIRE_CONFIGS: Record<'fitness' | 'career' | 'income' | 'custom', 
   fitness: {
     id: 'fitness',
     title: 'Health & fitness goals',
-    intro: 'Pick what fits best. We will use this to shape your milestones and recommendations.',
+    intro: 'Pick your focus area or enter your own goal below.',
     label: 'What is your main health or fitness goal?',
     options: [
       'Lose weight',
@@ -45,13 +45,12 @@ const QUESTIONNAIRE_CONFIGS: Record<'fitness' | 'career' | 'income' | 'custom', 
       'Stay consistent with exercise',
       'Improve my diet and nutrition',
       'Prepare for a fitness event or run',
-      'Something else',
     ],
   },
   career: {
     id: 'career',
     title: 'Career & professional goals',
-    intro: 'Tell us where you want to grow professionally this year.',
+    intro: 'Pick where you want to grow professionally this year.',
     label: 'What do you want to achieve?',
     options: [
       'Pass a professional certification exam',
@@ -59,7 +58,6 @@ const QUESTIONNAIRE_CONFIGS: Record<'fitness' | 'career' | 'income' | 'custom', 
       'Transition into a new career role',
       'Get promoted at my current workplace',
       'Build a stronger professional network',
-      'Something else',
     ],
     extras: {
       'Pass a professional certification exam': {
@@ -71,7 +69,7 @@ const QUESTIONNAIRE_CONFIGS: Record<'fitness' | 'career' | 'income' | 'custom', 
   income: {
     id: 'income',
     title: 'Income goals',
-    intro: 'Tell us how you want to grow your income in 2027.',
+    intro: 'Pick how you want to grow your income in 2027.',
     label: 'What is your primary income goal?',
     options: [
       'Start a side business',
@@ -79,23 +77,19 @@ const QUESTIONNAIRE_CONFIGS: Record<'fitness' | 'career' | 'income' | 'custom', 
       'Add a second stream of income',
       'Save towards an emergency or investment fund',
       'Start investing more seriously',
-      'Something else',
     ],
   },
   custom: {
     id: 'custom',
-    title: 'Another goal',
-    intro: 'What would you really like to achieve, aside from the categories already on your goals screen?',
+    title: 'Set a goal',
+    intro: 'Pick a goal idea or enter your own, then add the steps to complete it.',
     label: 'What is your goal?',
     options: [
       'Goals for my children',
       'A family goal',
       'Buy a car',
       'Travel abroad',
-      'Something not listed here',
     ],
-    notesLabel: 'Describe the goal, and any first actions you want to take.',
-    notesRequired: false,
   },
 }
 
@@ -139,13 +133,6 @@ function renderPrototypeRing(pct: number, size = 52) {
       <div className="proto-goals__ring-pct">{clamped}%</div>
     </div>
   )
-}
-
-function getTimeGreeting(): string {
-  const hour = new Date().getHours()
-  if (hour < 12) return 'Good morning'
-  if (hour < 17) return 'Good afternoon'
-  return 'Good evening'
 }
 
 function resolveQueryCategory(
@@ -218,6 +205,9 @@ export function AllGoalsScreen() {
     setSelectedOption(null)
     setSelectedExtra(null)
     setNotesText('')
+    setActionsList([])
+    setCurrentActionText('')
+    setNewTimelineDays(180)
     setSavedGoalLabel(null)
   }, [])
 
@@ -339,7 +329,7 @@ export function AllGoalsScreen() {
     }
   }
 
-  const fitnessCard = getCategoryCardState('fitness', '10% progress · Build healthy habits')
+  const fitnessCard = getCategoryCardState('fitness', 'Build healthy habits & fitness routines')
   const careerCard = getCategoryCardState('career', 'Certifications, skills & career growth')
   const incomeCard = getCategoryCardState('income', 'Grow your income in 2027')
 
@@ -355,35 +345,60 @@ export function AllGoalsScreen() {
   const handleSubmitQuestionnaire = async () => {
     if (!activeCategory) return
     const q = QUESTIONNAIRE_CONFIGS[activeCategory]
-    const chosen = selectedOption || notesText.trim()
+    const chosen = notesText.trim() || selectedOption
 
     if (!chosen) {
-      toastError('Pick an option or tell us in your own words first.')
+      toastError('Pick a goal option or enter your own goal first.')
       return
     }
 
     const extraDef = q.extras && selectedOption ? q.extras[selectedOption] : undefined
-    if (extraDef && !selectedExtra) {
+    if (extraDef && !selectedExtra && !notesText.trim()) {
       toastError('Please pick which certification you are working towards.')
       return
     }
 
     let finalSelection = chosen
-    if (activeCategory === 'career' && selectedExtra) {
+    if (activeCategory === 'career' && selectedExtra && !notesText.trim()) {
       finalSelection = `Interested in ${selectedExtra}`
-    } else if (notesText.trim() && selectedOption === 'Something else') {
-      finalSelection = notesText.trim()
-    } else if (notesText.trim() && selectedOption === 'Something not listed here') {
-      finalSelection = notesText.trim()
+    }
+
+    // Collect user-created action steps (including any pending text in the step input)
+    const pendingStep = currentActionText.trim()
+    const finalActions =
+      pendingStep && !actionsList.includes(pendingStep)
+        ? [...actionsList, pendingStep]
+        : actionsList
+
+    if (activeCategory === 'custom' && finalActions.length === 0) {
+      toastError('Add at least one action step to help you complete this goal.')
+      return
     }
 
     try {
-      await submitQuestionnaireMutation.mutateAsync({
-        categorySlug: activeCategory === 'custom' ? 'other' : activeCategory,
-        questionTitle: q.title,
-        selectedOption: finalSelection,
-        durationDays: 180,
-      })
+      if (activeCategory === 'custom' || finalActions.length > 0) {
+        const iconMap: Record<string, string> = {
+          fitness: '💪',
+          career: '📚',
+          income: '💼',
+          custom: '🎯',
+        }
+        await createGoalMutation.mutateAsync({
+          title: finalSelection,
+          categorySlug: activeCategory === 'custom' ? 'other' : activeCategory,
+          icon: iconMap[activeCategory] || '🎯',
+          targetType: 'CHECKLIST_ACTIONS',
+          durationDays: newTimelineDays,
+          actions: finalActions,
+        })
+      } else {
+        await submitQuestionnaireMutation.mutateAsync({
+          categorySlug: activeCategory,
+          questionTitle: q.title,
+          selectedOption: finalSelection,
+          durationDays: newTimelineDays,
+        })
+      }
       setSavedGoalLabel(selectedExtra || finalSelection)
       success('Goal added to your plan')
     } catch (err: unknown) {
@@ -469,10 +484,12 @@ export function AllGoalsScreen() {
     }
   }
 
-  // ── SUB-SCREEN: QUESTIONNAIRE (Matches Prototype #screen-questionnaire) ──
+  // ── SUB-SCREEN: QUESTIONNAIRE / CUSTOM GOAL BUILDER ──
   if (activeCategory) {
     const q = QUESTIONNAIRE_CONFIGS[activeCategory]
     const extraDef = q.extras && selectedOption ? q.extras[selectedOption] : undefined
+    const isSavingGoal =
+      submitQuestionnaireMutation.isPending || createGoalMutation.isPending
 
     return (
       <div className="proto-goals">
@@ -495,7 +512,7 @@ export function AllGoalsScreen() {
             <div className="proto-goals__section-label">{q.label}</div>
             <div className="proto-goals__q-options">
               {q.options.map((opt) => {
-                const isSelected = selectedOption === opt
+                const isSelected = selectedOption === opt && !notesText.trim()
                 return (
                   <button
                     key={opt}
@@ -503,6 +520,7 @@ export function AllGoalsScreen() {
                     className={`proto-goals__opt ${isSelected ? 'is-on' : ''}`}
                     onClick={() => {
                       setSelectedOption(opt)
+                      setNotesText('')
                       setSelectedExtra(null)
                     }}
                   >
@@ -512,7 +530,7 @@ export function AllGoalsScreen() {
               })}
             </div>
 
-            {extraDef && (
+            {extraDef && !notesText.trim() && (
               <div className="proto-goals__q-extra">
                 <div className="proto-goals__section-label">{extraDef.label}</div>
                 <div className="proto-goals__q-options">
@@ -531,27 +549,112 @@ export function AllGoalsScreen() {
             )}
 
             <label className="proto-goals__section-label" htmlFor="proto-q-notes">
-              {q.notesLabel || 'Anything else we should know?'}
+              Or enter your own goal
             </label>
-            <textarea
+            <input
               id="proto-q-notes"
-              className="proto-goals__field"
+              type="text"
+              className="goal-modal__input"
               value={notesText}
-              onChange={(e) => setNotesText(e.target.value)}
+              onChange={(e) => {
+                setNotesText(e.target.value)
+                if (e.target.value.trim()) {
+                  setSelectedOption(null)
+                  setSelectedExtra(null)
+                }
+              }}
               placeholder={
-                q.notesLabel
-                  ? 'Type your goal, and a few actions you want to take'
-                  : 'Optional — tell us in your own words'
+                activeCategory === 'custom'
+                  ? 'e.g. Learn to fly a plane'
+                  : 'Type your goal in your own words'
               }
             />
+
+            {/* User-Created Action Steps Builder */}
+            <div className="proto-goals__section-label">
+              Steps to complete this goal
+              {activeCategory !== 'custom' ? ' (Optional)' : ''}
+            </div>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+              <input
+                type="text"
+                className="goal-modal__input"
+                placeholder="Add a step (e.g. Book ground school lessons)"
+                value={currentActionText}
+                onChange={(e) => setCurrentActionText(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    handleAddActionItem()
+                  }
+                }}
+              />
+              <button
+                type="button"
+                className="goal-modal__chip goal-modal__chip--active"
+                style={{ flexShrink: 0, padding: '0 14px' }}
+                onClick={handleAddActionItem}
+              >
+                <Plus size={15} style={{ display: 'inline', verticalAlign: '-2px' }} /> Add
+              </button>
+            </div>
+
+            {actionsList.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '14px' }}>
+                {actionsList.map((act, i) => (
+                  <div
+                    key={i}
+                    className="goal-modal__action-row"
+                    style={{ justifyContent: 'space-between' }}
+                  >
+                    <span className="goal-modal__action-label">
+                      {i + 1}. {act}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveActionItem(i)}
+                      aria-label={`Remove step ${i + 1}`}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'var(--text-muted, #8a8a8a)',
+                        cursor: 'pointer',
+                        padding: '2px 4px',
+                      }}
+                    >
+                      <X size={15} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="proto-goals__section-label">Timeline</div>
+            <div className="goal-modal__chips" style={{ marginBottom: '18px' }}>
+              {[
+                { label: '30 days', days: 30 },
+                { label: '3 months', days: 90 },
+                { label: '6 months', days: 180 },
+                { label: '1 year', days: 365 },
+              ].map((t) => (
+                <button
+                  key={t.days}
+                  type="button"
+                  className={`goal-modal__chip ${newTimelineDays === t.days ? 'goal-modal__chip--active' : ''}`}
+                  onClick={() => setNewTimelineDays(t.days)}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
 
             <button
               type="button"
               className="proto-goals__btn-primary"
               onClick={handleSubmitQuestionnaire}
-              disabled={submitQuestionnaireMutation.isPending}
+              disabled={isSavingGoal}
             >
-              {submitQuestionnaireMutation.isPending ? 'Saving...' : 'Save this'}
+              {isSavingGoal ? 'Saving...' : 'Save this'}
             </button>
           </div>
         ) : (
@@ -561,7 +664,7 @@ export function AllGoalsScreen() {
             </div>
             <h2 className="proto-goals__thanks-title">Thank you, {firstName}</h2>
             <p className="proto-goals__thanks-copy">
-              “{savedGoalLabel}” has been added to your goals. We&apos;ll show you the next steps to get there.
+              “{savedGoalLabel}” has been added to your goals. You can check off your steps as you complete them.
             </p>
             <div className="proto-goals__stack-btns">
               <button
@@ -581,11 +684,8 @@ export function AllGoalsScreen() {
   // ── MAIN SCREEN: YOUR GOALS (Matches Prototype Screenshot) ──
   return (
     <div className="proto-goals">
-      {/* Greeting & Page Heading */}
+      {/* Page Heading */}
       <div className="proto-goals__hello">
-        <div className="proto-goals__greet">
-          {getTimeGreeting()}, {firstName}
-        </div>
         <h1 className="proto-goals__title">Your goals</h1>
       </div>
 
@@ -697,11 +797,6 @@ export function AllGoalsScreen() {
       >
         Suggest a different goal
       </button>
-
-      {/* Coming soon banner */}
-      <div className="proto-goals__soon">
-        <strong>Coming soon:</strong> See how others are progressing towards their goals.
-      </div>
 
       {/* DETAIL & ACTIONS MODAL FOR ACTIVE GOALS */}
       {activeDetailGoal && (

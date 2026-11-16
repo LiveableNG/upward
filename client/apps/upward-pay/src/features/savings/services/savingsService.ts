@@ -97,6 +97,7 @@ export interface VaultTransactionItem {
 export interface RentVaultData {
   vault_id: string
   lock_status: string
+  cadence?: 'DAILY' | 'WEEKLY' | 'MONTHLY'
   current_balance_kobo: number
   principal_kobo: number
   vault_principal_kobo?: number
@@ -109,6 +110,14 @@ export interface RentVaultData {
   target_completion_percentage: number
   contractual_due_date: string
   unlock_date: string
+  pay_less_projection?: {
+    cadence: 'DAILY' | 'WEEKLY' | 'MONTHLY'
+    periodic_deposit_kobo: number
+    number_of_payments: number
+    total_tenant_contribution_kobo: number
+    projected_yield_kobo: number
+    rent_discount_pct: number
+  } | null
   dedicated_account: {
     bank_name: string
     account_number: string
@@ -211,11 +220,65 @@ export async function getMyRentVault(): Promise<RentVaultData> {
   return res.data
 }
 
-export async function consentToSavings() {
+export async function consentToSavings(cadence?: 'DAILY' | 'WEEKLY' | 'MONTHLY') {
   const res = await request<{ status: string; message: string }>('/rent-vaults/consent', {
     method: 'POST',
+    body: JSON.stringify(cadence ? { cadence } : {}),
   })
   return res
+}
+
+/**
+ * Work-backwards compound yield calculator (14.5% p.a. compounded daily)
+ * Computes how much the tenant contributes out of pocket ("Pay Less")
+ * and how much the 14.5% ARM interest contributes to complete 100% of the rent.
+ */
+export function calculatePayLessPlan(
+  targetRentNaira: number,
+  runwayDays: number,
+  cadence: 'DAILY' | 'WEEKLY' | 'MONTHLY' = 'MONTHLY',
+  initialSavedNaira = 0,
+) {
+  const days = Math.max(1, Math.round(runwayDays))
+  const dailyRate = 0.145 / 365
+  const fvInitial = initialSavedNaira * Math.pow(1 + dailyRate, days)
+  const deficit = Math.max(0, targetRentNaira - fvInitial)
+
+  let stepDays = 30
+  if (cadence === 'DAILY') {
+    stepDays = 1
+  } else if (cadence === 'WEEKLY') {
+    stepDays = 7
+  } else {
+    stepDays = days <= 45 ? Math.max(1, Math.floor(days / 2)) : 30
+  }
+
+  const numberOfPayments = Math.max(1, Math.floor(days / stepDays))
+
+  let denominator = 0
+  for (let j = 1; j <= numberOfPayments; j++) {
+    const exponent = Math.max(0, days - j * stepDays)
+    denominator += Math.pow(1 + dailyRate, exponent)
+  }
+
+  const periodicDepositNaira =
+    deficit > 0 && denominator > 0 ? Math.ceil(deficit / denominator) : 0
+  const totalPeriodicContributionNaira = periodicDepositNaira * numberOfPayments
+  const totalTenantContributionNaira = initialSavedNaira + totalPeriodicContributionNaira
+  const projectedYieldNaira = Math.max(0, targetRentNaira - totalTenantContributionNaira)
+  const rentDiscountPct =
+    targetRentNaira > 0
+      ? Math.round((projectedYieldNaira / targetRentNaira) * 1000) / 10
+      : 0
+
+  return {
+    cadence,
+    periodicDepositNaira,
+    numberOfPayments,
+    totalTenantContributionNaira,
+    projectedYieldNaira,
+    rentDiscountPct,
+  }
 }
 
 export async function disburseEmergencyAdvance(
@@ -295,6 +358,7 @@ export interface OnboardInvestorPayload {
   settlement_bank_name?: string
   target_amount?: number
   rent_due_date?: string
+  cadence?: 'DAILY' | 'WEEKLY' | 'MONTHLY'
 }
 
 export async function getSavingsOnboardingPrefill(): Promise<SavingsOnboardingPrefillData> {

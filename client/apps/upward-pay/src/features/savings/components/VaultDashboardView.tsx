@@ -17,12 +17,14 @@ import { formatCurrency } from '@/lib/utils'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
 import { FundVaultModal } from './FundVaultModal'
-import type { VaultTransactionItem } from '../services/savingsService'
+import { calculatePayLessPlan, type VaultTransactionItem } from '../services/savingsService'
+import { useConsentToSavings } from '../hooks/useRentSavings'
 
 interface VaultDashboardViewProps {
   vault: {
     vault_id: string
     lock_status: string
+    cadence?: 'DAILY' | 'WEEKLY' | 'MONTHLY'
     current_balance_kobo: number
     principal_kobo: number
     vault_principal_kobo?: number
@@ -35,6 +37,14 @@ interface VaultDashboardViewProps {
     target_completion_percentage: number
     contractual_due_date: string
     unlock_date: string
+    pay_less_projection?: {
+      cadence: 'DAILY' | 'WEEKLY' | 'MONTHLY'
+      periodic_deposit_kobo: number
+      number_of_payments: number
+      total_tenant_contribution_kobo: number
+      projected_yield_kobo: number
+      rent_discount_pct: number
+    } | null
     dedicated_account?: {
       bank_name: string
       account_number: string
@@ -62,9 +72,13 @@ interface VaultDashboardViewProps {
 export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboardViewProps) {
   const [showFundModal, setShowFundModal] = useState(false)
   const [copiedAccount, setCopiedAccount] = useState(false)
+  const [activeCadence, setActiveCadence] = useState<'DAILY' | 'WEEKLY' | 'MONTHLY'>(
+    () => vault.cadence || vault.pay_less_projection?.cadence || 'MONTHLY',
+  )
 
   const { user } = useAuth()
   const { success: toastSuccess } = useToast()
+  const consentMutation = useConsentToSavings()
   const [nowTimestamp] = useState(() => Date.now())
   const activeProperty = (user?.properties || []).find(
     (p: { isPastTenancy?: boolean; rentAmount?: number; rentEndDate?: string }) =>
@@ -86,6 +100,31 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
   const accruedYieldNaira = vault.accrued_yield_kobo / 100
   const dailyRate = vault.daily_yield_rate || 0.145 / 365
   const estimatedDailyAddNaira = currentBalanceNaira * dailyRate
+
+  // Compute live "Pay Less" breakdown based on current balance and chosen cadence
+  const payLessPlan = calculatePayLessPlan(
+    targetAmountNaira,
+    Math.max(1, daysRemaining),
+    activeCadence,
+    currentBalanceNaira,
+  )
+  const totalOutOfPocketNaira =
+    vaultPrincipalNaira +
+    depositBalanceNaira +
+    payLessPlan.periodicDepositNaira * payLessPlan.numberOfPayments
+  const totalInterestCoveredNaira = Math.max(
+    accruedYieldNaira,
+    targetAmountNaira - totalOutOfPocketNaira,
+  )
+  const cadenceUnitLabel =
+    activeCadence === 'DAILY' ? 'day' : activeCadence === 'WEEKLY' ? 'wk' : 'mo'
+
+  const handleCadenceChange = async (nextCadence: 'DAILY' | 'WEEKLY' | 'MONTHLY') => {
+    setActiveCadence(nextCadence)
+    try {
+      await consentMutation.mutateAsync(nextCadence)
+    } catch {}
+  }
 
   const targetCompletionPercentage =
     targetAmountNaira > 0
@@ -155,27 +194,72 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
           </div>
         </div>
 
+        {/* Frequency Switcher (Daily / Weekly / Monthly) */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 8,
+            flexWrap: 'wrap',
+          }}
+        >
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+            Savings Frequency:
+          </span>
+          <div style={{ display: 'inline-flex', gap: 6 }}>
+            {(
+              [
+                { id: 'DAILY' as const, label: 'Daily' },
+                { id: 'WEEKLY' as const, label: 'Weekly' },
+                { id: 'MONTHLY' as const, label: 'Monthly' },
+              ]
+            ).map((freq) => {
+              const isSelected = activeCadence === freq.id
+              return (
+                <button
+                  key={freq.id}
+                  type="button"
+                  onClick={() => handleCadenceChange(freq.id)}
+                  style={{
+                    padding: '5px 10px',
+                    borderRadius: '999px',
+                    border: `1.5px solid ${isSelected ? 'var(--clay)' : 'var(--border)'}`,
+                    background: isSelected ? 'var(--clay-faint)' : 'var(--bg)',
+                    color: isSelected ? 'var(--clay)' : 'var(--text-secondary)',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {freq.label}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
         <div className="vault-dashboard__breakdown-grid">
           <div className="vault-dashboard__breakdown-item">
-            <span className="vault-dashboard__breakdown-label">Principal</span>
+            <span className="vault-dashboard__breakdown-label">
+              Save ({activeCadence.toLowerCase()})
+            </span>
             <span className="vault-dashboard__breakdown-val">
-              {formatCurrency(vaultPrincipalNaira, 'NGN')}
+              {formatCurrency(payLessPlan.periodicDepositNaira, 'NGN')}/{cadenceUnitLabel}
             </span>
           </div>
-          {depositBalanceNaira > 0 && (
-            <div className="vault-dashboard__breakdown-item">
-              <span className="vault-dashboard__breakdown-label">Deposit Credit</span>
-              <span className="vault-dashboard__breakdown-val">
-                {formatCurrency(depositBalanceNaira, 'NGN')}
-              </span>
-            </div>
-          )}
           <div className="vault-dashboard__breakdown-item">
-            <span className="vault-dashboard__breakdown-label">Returns (14.5% p.a.)</span>
+            <span className="vault-dashboard__breakdown-label">You Only Pay (Pay Less)</span>
+            <span className="vault-dashboard__breakdown-val">
+              {formatCurrency(totalOutOfPocketNaira, 'NGN')}
+            </span>
+          </div>
+          <div className="vault-dashboard__breakdown-item">
+            <span className="vault-dashboard__breakdown-label">Interest Completes (14.5% p.a.)</span>
             <span className="vault-dashboard__breakdown-val vault-dashboard__breakdown-val--yield">
-              +{formatCurrency(accruedYieldNaira, 'NGN')}
+              +{formatCurrency(totalInterestCoveredNaira, 'NGN')}
               <span className="vault-dashboard__yield-sub">
-                +{formatCurrency(estimatedDailyAddNaira, 'NGN')}/day
+                +{formatCurrency(accruedYieldNaira, 'NGN')} earned ({formatCurrency(estimatedDailyAddNaira, 'NGN')}/day)
               </span>
             </span>
           </div>
@@ -342,6 +426,8 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
       <FundVaultModal
         isOpen={showFundModal}
         onClose={() => setShowFundModal(false)}
+        recommendedAmountNaira={payLessPlan.periodicDepositNaira}
+        cadence={activeCadence}
         dedicatedAccount={vault.dedicated_account}
       />
     </div>

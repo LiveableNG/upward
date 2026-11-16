@@ -94,9 +94,15 @@ export class RentVaultController {
   @UseGuards(JwtAuthGuard)
   @Post('consent')
   @HttpCode(HttpStatus.OK)
-  async consentToSavings(@Req() req: any) {
+  async consentToSavings(
+    @Req() req: any,
+    @Body() body?: { cadence?: 'DAILY' | 'WEEKLY' | 'MONTHLY' },
+  ) {
     const userId = await this.getNumericUserId(req)
     await this.userRepo.update(userId, { savingsWalletEnabled: true })
+    if (body?.cadence && ['DAILY', 'WEEKLY', 'MONTHLY'].includes(body.cadence)) {
+      await this.getMyVaultUseCase.updateCadence(userId, body.cadence)
+    }
     return {
       status: 'success',
       message: 'Rent savings consent recorded successfully',

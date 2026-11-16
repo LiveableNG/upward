@@ -79,6 +79,10 @@ export class OnboardSavingsInvestorDto {
   @IsOptional()
   @IsString()
   rent_due_date?: string
+
+  @IsOptional()
+  @IsIn(['DAILY', 'WEEKLY', 'MONTHLY'])
+  cadence?: 'DAILY' | 'WEEKLY' | 'MONTHLY'
 }
 
 function cleanName(name: string): string {
@@ -599,6 +603,10 @@ export class OnboardSavingsInvestorUseCase {
         )
       }
 
+      if (dto.cadence) {
+        updateData.cadence = dto.cadence
+      }
+
       await this.prisma.upward_rent_vault.update({
         where: { id: activeVault.id },
         data: updateData,
@@ -616,7 +624,7 @@ export class OnboardSavingsInvestorUseCase {
           targetAmountKobo,
           currentPrincipalKobo: 0n,
           accruedYieldKobo: 0n,
-          cadence: 'MONTHLY',
+          cadence: dto.cadence || 'MONTHLY',
           contractualDueDate: resolvedDueDate,
           unlockDate: resolvedUnlockDate,
           lockStatus: 'LOCKED',

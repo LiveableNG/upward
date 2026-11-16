@@ -114,7 +114,8 @@ export function useOnboardSavingsInvestor() {
 export function useConsentToSavings() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: () => savingsService.consentToSavings(),
+    mutationFn: (cadence?: 'DAILY' | 'WEEKLY' | 'MONTHLY') =>
+      savingsService.consentToSavings(cadence),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user'] })
       queryClient.invalidateQueries({ queryKey: RENT_VAULT_QUERY_KEY })

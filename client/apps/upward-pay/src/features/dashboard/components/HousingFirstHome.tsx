@@ -206,9 +206,17 @@ export function HousingFirstHome({
         ? Math.min(100, Math.round((currentSaved / targetRent) * 100))
         : 0
 
+  const projectedInterestTotal = vault?.pay_less_projection?.projected_yield_kobo
+    ? vault.pay_less_projection.projected_yield_kobo / 100
+    : 0
+
   const accruedYieldFormatted = vault?.accrued_yield_kobo
-    ? `+${formatCurrency(vault.accrued_yield_kobo / 100, 'NGN')} returns accrued`
-    : '+₦0 returns accrued'
+    ? projectedInterestTotal > 0
+      ? `+${formatCurrency(vault.accrued_yield_kobo / 100, 'NGN')} earned · Interest covers ${formatCurrency(projectedInterestTotal, 'NGN')}`
+      : `+${formatCurrency(vault.accrued_yield_kobo / 100, 'NGN')} returns accrued`
+    : projectedInterestTotal > 0
+      ? `Interest covers ${formatCurrency(projectedInterestTotal, 'NGN')} so you pay less`
+      : '+₦0 returns accrued'
 
   const daysLeftFormatted =
     vault?.days_remaining !== undefined && vault?.days_remaining !== null
@@ -341,7 +349,7 @@ export function HousingFirstHome({
                       <span className="housing-goal-card__tag">SAVE RENT</span>
                       <h3 className="housing-goal-card__title">Save towards your next rent</h3>
                       <p className="housing-goal-card__desc">
-                        Earn up to 14.5% daily yield and lock away rent before due date
+                        Save consistently and pay less — 14.5% p.a. interest completes your rent
                       </p>
                     </div>
                     {renderGoalRing(0, 38)}

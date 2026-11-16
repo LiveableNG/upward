@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from '@/lib/utils'
 import { useSimulateRentSavings } from '../hooks/useRentSavings'
+import { calculatePayLessPlan } from '../services/savingsService'
 import { useAuth } from '@/features/auth/AuthContext'
 
 interface RentCalculatorViewProps {
@@ -65,11 +66,11 @@ export function RentCalculatorView({ onProceedToSetup, onOpenKycModal }: RentCal
   }
 
   const targetAmountNaira = parseCurrencyInput(targetAmountRaw) || 2_400_000
+  const [selectedCadence, setSelectedCadence] = useState<'DAILY' | 'WEEKLY' | 'MONTHLY'>('MONTHLY')
 
   const simulateMutation = useSimulateRentSavings()
   const mutateSimulate = simulateMutation.mutate
 
-  // Always simulate on MONTHLY cadence (no confusing daily/weekly tabs)
   useEffect(() => {
     if (!targetAmountNaira || !contractualDueDate) return
 
@@ -77,14 +78,19 @@ export function RentCalculatorView({ onProceedToSetup, onOpenKycModal }: RentCal
       target_amount_kobo: Math.round(targetAmountNaira * 100),
       contractual_due_date: contractualDueDate,
       initial_deposit_kobo: 0,
-      cadence: 'MONTHLY',
+      cadence: selectedCadence,
     })
 
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem(
           'upward_savings_rent_plan',
-          JSON.stringify({ userId: user?.id, rentAmount: targetAmountNaira, dueDate: contractualDueDate }),
+          JSON.stringify({
+            userId: user?.id,
+            rentAmount: targetAmountNaira,
+            dueDate: contractualDueDate,
+            cadence: selectedCadence,
+          }),
         )
         const rawDraft = localStorage.getItem('upward_setup_draft')
         if (rawDraft) {
@@ -102,23 +108,35 @@ export function RentCalculatorView({ onProceedToSetup, onOpenKycModal }: RentCal
         }
       } catch {}
     }
-  }, [targetAmountNaira, contractualDueDate, mutateSimulate])
+  }, [targetAmountNaira, contractualDueDate, selectedCadence, mutateSimulate, user?.id])
 
   const simData = simulateMutation.data
-  const periodicDepositNaira = simData
-    ? simData.periodic_deposit_kobo / 100
-    : Math.round(targetAmountNaira / 11)
-  const projectedYieldNaira = simData
-    ? simData.projected_yield_kobo / 100
-    : Math.round(targetAmountNaira * 0.145 * (343 / 365) * 0.5)
   const daysRemaining = simData
     ? simData.days_remaining
     : Math.max(
-        0,
+        1,
         Math.ceil(
           (new Date(contractualDueDate).getTime() - nowTimestamp) / (1000 * 60 * 60 * 24),
         ),
       )
+
+  const localPlan = calculatePayLessPlan(targetAmountNaira, daysRemaining, selectedCadence)
+  const periodicDepositNaira = simData
+    ? simData.periodic_deposit_kobo / 100
+    : localPlan.periodicDepositNaira
+  const totalTenantContributionNaira = simData
+    ? simData.total_tenant_contribution_kobo / 100
+    : localPlan.totalTenantContributionNaira
+  const projectedYieldNaira = simData
+    ? simData.projected_yield_kobo / 100
+    : localPlan.projectedYieldNaira
+
+  const cadenceUnitLabel =
+    selectedCadence === 'DAILY'
+      ? 'day'
+      : selectedCadence === 'WEEKLY'
+        ? 'wk'
+        : 'mo'
 
   const formattedDueDate = contractualDueDate
     ? new Date(contractualDueDate).toLocaleDateString('en-GB', {
@@ -137,7 +155,7 @@ export function RentCalculatorView({ onProceedToSetup, onOpenKycModal }: RentCal
     onProceedToSetup({
       targetAmountKobo: Math.round(targetAmountNaira * 100),
       contractualDueDate,
-      cadence: 'MONTHLY',
+      cadence: selectedCadence,
       periodicDepositKobo: Math.round(periodicDepositNaira * 100),
     })
   }
@@ -162,33 +180,39 @@ export function RentCalculatorView({ onProceedToSetup, onOpenKycModal }: RentCal
 
           <div className="vault-dashboard__amounts">
             <span className="vault-dashboard__balance-caption">
-              Target Rent to Pay Early
+              Target Rent (Pay Less with Interest)
             </span>
             <span className="vault-dashboard__current-balance">
               {formatCurrency(targetAmountNaira, 'NGN')}
             </span>
             <span className="vault-dashboard__target-label">
-              Due on {formattedDueDate} • Payable 30 days early
+              Due on {formattedDueDate} • You only contribute {formatCurrency(totalTenantContributionNaira, 'NGN')}
             </span>
           </div>
 
-          {/* Clean 2-column breakdown: Monthly Savings & ARM Earnings */}
+          {/* 3-Column Pay Less Breakdown */}
           <div className="vault-dashboard__breakdown-grid">
             <div className="vault-dashboard__breakdown-item">
-              <span className="vault-dashboard__breakdown-label">Save Each Month</span>
+              <span className="vault-dashboard__breakdown-label">Save ({selectedCadence.toLowerCase()})</span>
               <span className="vault-dashboard__breakdown-val">
-                {formatCurrency(periodicDepositNaira, 'NGN')}/mo
+                {formatCurrency(periodicDepositNaira, 'NGN')}/{cadenceUnitLabel}
               </span>
             </div>
             <div className="vault-dashboard__breakdown-item">
-              <span className="vault-dashboard__breakdown-label">Returns from ARM (14.5% p.a.)</span>
+              <span className="vault-dashboard__breakdown-label">You Only Pay</span>
+              <span className="vault-dashboard__breakdown-val">
+                {formatCurrency(totalTenantContributionNaira, 'NGN')}
+              </span>
+            </div>
+            <div className="vault-dashboard__breakdown-item">
+              <span className="vault-dashboard__breakdown-label">Interest Covers (14.5% p.a.)</span>
               <span className="vault-dashboard__breakdown-val vault-dashboard__breakdown-val--yield">
                 +{formatCurrency(projectedYieldNaira, 'NGN')}
               </span>
             </div>
           </div>
 
-          {/* Cashback reward note */}
+          {/* Pay Less note */}
           <div
             style={{
               display: 'flex',
@@ -204,7 +228,7 @@ export function RentCalculatorView({ onProceedToSetup, onOpenKycModal }: RentCal
           >
             <Gift size={16} color="var(--clay)" style={{ flexShrink: 0 }} />
             <span>
-              <strong>Rent Cashback:</strong> Save regularly every month and receive cash back directly on rent day.
+              <strong>Pay Less for Rent:</strong> Save consistently and your 14.5% p.a. interest pays the remaining {formatCurrency(projectedYieldNaira, 'NGN')} of your rent.
             </span>
           </div>
         </div>
@@ -265,18 +289,59 @@ export function RentCalculatorView({ onProceedToSetup, onOpenKycModal }: RentCal
         <div className="rent-savings__central-cta-box" onClick={(e) => e.stopPropagation()}>
           <div className="vault-setup__badge">
             <TrendingUp size={12} color="var(--clay)" />
-            <span>Powered by ARM</span>
+            <span>Powered by ARM • 14.5% p.a.</span>
           </div>
 
           <h3 className="rent-savings__central-title">
-            {isKycVerified ? 'Your Rent Savings Plan is Ready' : 'Complete Verification to Save'}
+            {isKycVerified ? 'Pay Less for Your Next Rent' : 'Save Consistently & Pay Less'}
           </h3>
 
           <p className="rent-savings__central-desc">
-            {isKycVerified
-              ? 'Save monthly to pay your rent early, earn 14.5% annual returns, and get cash back on rent day.'
-              : 'Verify your identity once to start saving toward rent and earn daily compound returns.'}
+            Save {formatCurrency(periodicDepositNaira, 'NGN')}/{cadenceUnitLabel} — you only contribute{' '}
+            <strong>{formatCurrency(totalTenantContributionNaira, 'NGN')}</strong> and your{' '}
+            <strong>+{formatCurrency(projectedYieldNaira, 'NGN')}</strong> interest completes the rest of your{' '}
+            {formatCurrency(targetAmountNaira, 'NGN')} rent.
           </p>
+
+          {/* Frequency Selector (Daily / Weekly / Monthly) */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: 6,
+              width: '100%',
+              margin: '8px 0 12px',
+            }}
+          >
+            {(
+              [
+                { id: 'DAILY' as const, label: 'Daily' },
+                { id: 'WEEKLY' as const, label: 'Weekly' },
+                { id: 'MONTHLY' as const, label: 'Monthly' },
+              ]
+            ).map((freq) => {
+              const isActive = selectedCadence === freq.id
+              return (
+                <button
+                  key={freq.id}
+                  type="button"
+                  onClick={() => setSelectedCadence(freq.id)}
+                  style={{
+                    padding: '7px 6px',
+                    borderRadius: '8px',
+                    border: `1.5px solid ${isActive ? 'var(--clay)' : 'var(--border)'}`,
+                    background: isActive ? 'var(--clay-faint)' : 'var(--bg)',
+                    color: isActive ? 'var(--clay)' : 'var(--text)',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {freq.label}
+                </button>
+              )
+            })}
+          </div>
 
           <button
             type="button"
@@ -291,7 +356,7 @@ export function RentCalculatorView({ onProceedToSetup, onOpenKycModal }: RentCal
             ) : (
               <>
                 <ShieldCheck size={18} />
-                <span>Verify Now</span>
+                <span>Verify &amp; Start Saving</span>
               </>
             )}
           </button>

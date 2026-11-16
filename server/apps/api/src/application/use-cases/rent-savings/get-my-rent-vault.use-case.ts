@@ -21,6 +21,16 @@ export class GetMyRentVaultUseCase {
     private readonly prisma?: PrismaService,
   ) {}
 
+  async updateCadence(userId: number, cadence: 'DAILY' | 'WEEKLY' | 'MONTHLY') {
+    const vault = await this.rentVaultRepo.findActiveByUserId(userId)
+    if (vault && this.prisma) {
+      await this.prisma.upward_rent_vault.update({
+        where: { id: vault.id },
+        data: { cadence, preferredFundingMethod: 'DVA' },
+      })
+    }
+  }
+
   async execute(userId: number) {
     const vault = await this.rentVaultRepo.findActiveByUserId(userId)
     if (!vault) {
@@ -148,11 +158,58 @@ export class GetMyRentVaultUseCase {
     const goalPoints = Math.min(50, Math.round(goalRatio * 50))
     const totalScore = Math.min(100, consistencyPoints + goalPoints)
 
+    const resolvedCadence = (
+      ['DAILY', 'WEEKLY', 'MONTHLY'].includes(vault.cadence) ? vault.cadence : 'MONTHLY'
+    ) as 'DAILY' | 'WEEKLY' | 'MONTHLY'
+
+    let payLessProjection = {
+      cadence: resolvedCadence,
+      periodic_deposit_kobo: 0,
+      number_of_payments: 0,
+      total_tenant_contribution_kobo: Number(combinedPrincipalKobo),
+      projected_yield_kobo: Number(vault.accruedYieldKobo),
+      rent_discount_pct: 0,
+    }
+
+    if (daysRemaining > 0 && vault.targetAmountKobo > 0n) {
+      try {
+        const sim = RentSavingsCalculatorEngine.simulate({
+          targetAmountKobo: vault.targetAmountKobo,
+          contractualDueDate: vault.contractualDueDate,
+          initialDepositKobo: currentBalanceKobo,
+          cadence: resolvedCadence,
+          asOfDate: now,
+        })
+        const remainingPrincipalKobo = Number(sim.periodicDepositKobo * BigInt(sim.numberOfPayments))
+        const totalTenantContributionKobo = Number(combinedPrincipalKobo) + remainingPrincipalKobo
+        const projectedYieldKobo = Math.max(
+          Number(vault.accruedYieldKobo),
+          targetAmountNum - totalTenantContributionKobo,
+        )
+        const rentDiscountPct =
+          targetAmountNum > 0
+            ? Math.round((projectedYieldKobo / targetAmountNum) * 1000) / 10
+            : 0
+
+        payLessProjection = {
+          cadence: resolvedCadence,
+          periodic_deposit_kobo: Number(sim.periodicDepositKobo),
+          number_of_payments: sim.numberOfPayments,
+          total_tenant_contribution_kobo: totalTenantContributionKobo,
+          projected_yield_kobo: projectedYieldKobo,
+          rent_discount_pct: rentDiscountPct,
+        }
+      } catch {
+        // Fallback if due date has passed
+      }
+    }
+
     return {
       status: 'success',
       data: {
         vault_id: vault.uuid,
         lock_status: currentLockStatus,
+        cadence: resolvedCadence,
         current_balance_kobo: Number(currentBalanceKobo),
         principal_kobo: Number(combinedPrincipalKobo),
         vault_principal_kobo: Number(vault.currentPrincipalKobo),
@@ -165,6 +222,7 @@ export class GetMyRentVaultUseCase {
         target_completion_percentage: targetCompletionPercentage,
         contractual_due_date: vault.contractualDueDate.toISOString().split('T')[0],
         unlock_date: vault.unlockDate.toISOString().split('T')[0],
+        pay_less_projection: payLessProjection,
         dedicated_account: vault.dvaAccountNumber
           ? {
               bank_name: vault.dvaBankName,
