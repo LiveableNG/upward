@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ChevronLeft, Plus, Check, Trash2, ArrowRight, X } from 'lucide-react'
+import { ChevronLeft, Plus, Check, Trash2, ArrowRight, X, Home } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import {
   useUserGoals,
@@ -838,15 +838,138 @@ export function AllGoalsScreen() {
             <p className="proto-goals__thanks-copy">
               “{savedGoalLabel}” has been added to your goals. You can check off your steps as you complete them.
             </p>
+
+            {/* Quick Actions: Help them go home or back to all goals */}
             <div className="proto-goals__stack-btns">
               <button
                 type="button"
                 className="proto-goals__btn-primary"
-                onClick={() => setActiveCategory(null)}
+                onClick={() => router.push('/dashboard')}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
               >
-                Back to goals
+                <Home size={17} /> Go to Home
+              </button>
+              <button
+                type="button"
+                className="proto-goals__btn-secondary"
+                onClick={() => {
+                  setSavedGoalLabel(null)
+                  setActiveCategory(null)
+                }}
+              >
+                Back to all goals
               </button>
             </div>
+
+            {/* Show other goals in this category so they can easily add */}
+            {(() => {
+              const currentCatGoals = goalsByCategory[activeCategory] || []
+              const existingTitles = new Set(
+                currentCatGoals.map((ug) => (ug.title || ug.goal?.title || '').toLowerCase().trim()),
+              )
+              if (savedGoalLabel) {
+                existingTitles.add(savedGoalLabel.toLowerCase().trim())
+              }
+
+              const remainingOptions = (q.options || []).filter(
+                (opt) => !existingTitles.has(opt.toLowerCase().trim()),
+              )
+
+              const countInCat = currentCatGoals.length
+              const canAddMore = countInCat < 3
+
+              const allCategories: Array<{ id: CategoryKey; title: string; icon: string }> = [
+                { id: 'housing', title: 'Home & lifestyle', icon: '🏠' },
+                { id: 'income', title: 'Income & financial', icon: '💼' },
+                { id: 'career', title: 'Career & growth', icon: '📚' },
+                { id: 'pay-less', title: 'Pay less for stuff', icon: '🏷️' },
+                { id: 'children', title: "Children's development", icon: '👶' },
+                { id: 'custom', title: 'Set custom goal', icon: '🎯' },
+              ]
+              const otherCategories = allCategories.filter((c) => c.id !== activeCategory)
+
+              const handleQuickAdd = async (opt: string) => {
+                if (countInCat >= 3) {
+                  toastError(`You can select up to 3 goals in ${q.title}.`)
+                  return
+                }
+                if (q.extras && q.extras[opt]) {
+                  setSavedGoalLabel(null)
+                  setSelectedOption(opt)
+                  setSelectedExtra(null)
+                  return
+                }
+                try {
+                  await submitQuestionnaireMutation.mutateAsync({
+                    categorySlug: activeCategory,
+                    questionTitle: q.title,
+                    selectedOption: opt,
+                    durationDays: 90,
+                  })
+                  setSavedGoalLabel(opt)
+                  success(`“${opt}” added to your goals`)
+                } catch (err: unknown) {
+                  const msg = err instanceof Error ? err.message : 'Failed to save goal'
+                  toastError(msg)
+                }
+              }
+
+              return (
+                <div className="proto-goals__quick-section">
+                  <div className="proto-goals__quick-header">
+                    <h3 className="proto-goals__quick-title">
+                      {canAddMore ? `More ${q.title}` : `${q.title} limit reached`}
+                    </h3>
+                    <span className="proto-goals__quick-counter">
+                      {Math.min(3, countInCat)}/3 selected
+                    </span>
+                  </div>
+
+                  {canAddMore && remainingOptions.length > 0 ? (
+                    <div className="proto-goals__quick-list">
+                      {remainingOptions.slice(0, 4).map((opt) => (
+                        <div
+                          key={opt}
+                          className="proto-goals__quick-item"
+                          onClick={() => handleQuickAdd(opt)}
+                          role="button"
+                          tabIndex={0}
+                        >
+                          <span className="proto-goals__quick-item-label">{opt}</span>
+                          <span className="proto-goals__quick-item-btn">
+                            <Plus size={13} /> Add
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : !canAddMore ? (
+                    <p style={{ fontSize: '13px', color: 'var(--text-muted, #7a7268)', margin: '0 0 12px', lineHeight: 1.4 }}>
+                      You have selected the maximum of 3 goals in this category. Explore other categories below:
+                    </p>
+                  ) : null}
+
+                  {/* Explore other categories to easily add more goals */}
+                  <div style={{ marginTop: '20px' }}>
+                    <div className="proto-goals__quick-header" style={{ marginBottom: '8px' }}>
+                      <h3 className="proto-goals__quick-title">Explore other goal categories</h3>
+                    </div>
+                    <div className="proto-goals__quick-cat-grid">
+                      {otherCategories.map((otherCat) => (
+                        <button
+                          key={otherCat.id}
+                          type="button"
+                          className="proto-goals__quick-cat-card"
+                          onClick={() => openQuestionnaire(otherCat.id)}
+                        >
+                          <span style={{ fontSize: '16px' }}>{otherCat.icon}</span>
+                          <span>{otherCat.title}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )
+            })()}
           </div>
         )}
       </div>

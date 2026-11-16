@@ -1538,6 +1538,139 @@
 
 .proto-goals__stack-btns {
   margin-top: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.proto-goals__btn-secondary {
+  width: 100%;
+  border: 1px solid var(--shell-border, #e5dfd7);
+  border-radius: 12px;
+  height: 50px;
+  background: var(--surface, #ffffff);
+  color: var(--text, #1a1714);
+  font-family: var(--font-auth, inherit);
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  letter-spacing: -0.01em;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.proto-goals__btn-secondary:active {
+  background: var(--oat, #f8f6f2);
+  border-color: var(--clay, #c2501f);
+}
+
+.proto-goals__quick-section {
+  text-align: left;
+  margin-top: 28px;
+  padding-top: 22px;
+  border-top: 1px solid var(--shell-border, #f0e9df);
+}
+
+.proto-goals__quick-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.proto-goals__quick-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--text, #1a1714);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.proto-goals__quick-counter {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--clay, #c2501f);
+  background: var(--shell-tint, #fbede5);
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+.proto-goals__quick-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.proto-goals__quick-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: #ffffff;
+  border: 1px solid var(--shell-border, #f0e9df);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.1s ease, border-color 0.15s ease, background 0.15s ease;
+  text-align: left;
+}
+
+.proto-goals__quick-item:active {
+  transform: scale(0.99);
+  background: var(--oat, #faf9f5);
+  border-color: var(--clay, #c2501f);
+}
+
+.proto-goals__quick-item-label {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text, #1a1714);
+  line-height: 1.35;
+  flex: 1;
+  padding-right: 8px;
+}
+
+.proto-goals__quick-item-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--clay, #c2501f);
+  background: var(--shell-tint, #fbede5);
+  padding: 4px 10px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.proto-goals__quick-cat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.proto-goals__quick-cat-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #ffffff;
+  border: 1px solid var(--shell-border, #f0e9df);
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text, #1a1714);
+  text-align: left;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.proto-goals__quick-cat-card:active {
+  border-color: var(--clay, #c2501f);
+  background: var(--shell-tint, #fbede5);
 }
 
 /* Legacy All Goals Screen ("More you can work toward") */
