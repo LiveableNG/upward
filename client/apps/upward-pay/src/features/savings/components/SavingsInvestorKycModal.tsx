@@ -303,19 +303,6 @@ export function SavingsInvestorKycModal({
   const remainingToPayStep4 = Math.max(0, dynamicPlanStep4.totalTenantContributionNaira - numericFundAmount)
   const interestStep4 = dynamicPlanStep4.projectedYieldNaira
 
-  const step4PercentPresets =
-    targetRent > 0
-      ? [
-          { label: '10%', amount: Math.round(targetRent * 0.1) },
-          { label: '25% (Recommended)', amount: Math.round(targetRent * 0.25) },
-          { label: '50%', amount: Math.round(targetRent * 0.5) },
-          { label: 'Full Rent', amount: targetRent },
-        ]
-      : FUNDING_PRESETS.map((p) => ({
-          label: p >= 1_000_000 ? `₦${p / 1_000_000}M` : `₦${p / 1_000}k`,
-          amount: p,
-        }))
-
   const dvaToShow = createdDva ||
     vault?.dedicated_account || {
       bank_name: 'Wema Bank',
@@ -447,14 +434,14 @@ export function SavingsInvestorKycModal({
       }}
       title={
         step === 4
-          ? 'Fund Your Rent Vault'
+          ? 'Make a Deposit'
           : step === 3
             ? 'Pay Less for Your Next Rent'
             : 'Identity Verification'
       }
       subtitle={
         step === 4
-          ? 'Transfer to your personal rent account'
+          ? undefined
           : step === 3
             ? `Earn ${savingsAnnualRatePct}% p.a. returns and let interest complete your rent`
             : 'Required by CBN & SEC • backed by ARM'
@@ -1156,230 +1143,138 @@ export function SavingsInvestorKycModal({
         )}
 
         {step === 4 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '4px 0 8px' }}>
             {/* Amount to Fund */}
-            <div className="rent-calculator__field" style={{ margin: 0 }}>
-              <label
-                className="rent-calculator__label"
-                style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)' }}
-              >
-                Amount to Transfer ({selectedFrequency === 'FLEXIBLE' ? 'flexible target' : `${cadenceUnitLabel} target`})
-              </label>
-              <div className="rent-calculator__input-wrapper">
-                <span className="rent-calculator__input-prefix" style={{ fontWeight: 700 }}>
+            <div>
+              <div className="vault-sandbox-card__input-wrapper" style={{ height: 44 }}>
+                <span className="vault-sandbox-card__currency-prefix" style={{ fontSize: '1.2rem', fontWeight: 700 }}>
                   ₦
                 </span>
                 <input
                   type="text"
                   inputMode="numeric"
-                  className="rent-calculator__input"
-                  placeholder="e.g. 100,000"
+                  className="vault-sandbox-card__input"
+                  placeholder="e.g. 1,000,000"
                   value={fundAmount}
                   onChange={(e) => {
                     const digits = e.target.value.replace(/\D/g, '')
                     setCustomFundAmount(digits ? Number(digits).toLocaleString() : '')
                   }}
-                  style={{ height: 44, fontSize: '1rem', fontWeight: 700 }}
+                  style={{ height: 44, fontSize: '1.2rem', fontWeight: 700 }}
                 />
               </div>
 
-              {/* Preset Chips */}
-              <div className="vault-sandbox-card__chips" style={{ marginTop: 6 }}>
-                {step4PercentPresets.map((preset) => (
-                  <button
-                    key={preset.label}
-                    type="button"
-                    className={`vault-sandbox-card__chip ${
-                      fundAmount.replace(/,/g, '') === String(preset.amount)
-                        ? 'vault-sandbox-card__chip--active'
-                        : ''
-                    }`}
-                    onClick={() => setCustomFundAmount(preset.amount.toLocaleString())}
-                  >
-                    {preset.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Dynamic Benefit Pitch Card */}
-            {numericFundAmount > 0 && targetRent > 0 && (
-              <div
-                style={{
-                  padding: '12px 14px',
-                  borderRadius: '12px',
-                  background: '#fffaf7',
-                  border: '1.5px solid rgba(194, 80, 31, 0.22)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 8,
-                  boxShadow: '0 2px 8px rgba(194, 80, 31, 0.04)',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
-                  <div
-                    style={{
-                      width: 26,
-                      height: 26,
-                      borderRadius: 8,
-                      background: 'rgba(194, 80, 31, 0.12)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                      marginTop: 1,
-                    }}
-                  >
-                    <TrendingUp size={15} color="var(--clay)" />
-                  </div>
-                  <div style={{ fontSize: '0.8125rem', lineHeight: 1.45, color: 'var(--text)' }}>
-                    If you pay <strong>{formatCurrency(numericFundAmount, 'NGN')}</strong> today, you only pay{' '}
-                    <strong style={{ color: 'var(--clay)' }}>
-                      {formatCurrency(remainingToPayStep4, 'NGN')}
-                    </strong>{' '}
-                    for the remaining part of the year.
-                  </div>
-                </div>
-
+              {/* Punchy 1-line benefit pitch */}
+              {numericFundAmount > 0 && targetRent > 0 && (
                 <div
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    paddingTop: 8,
-                    borderTop: '1px solid rgba(194, 80, 31, 0.12)',
-                    fontSize: '0.75rem',
+                    fontSize: '0.8125rem',
+                    color: 'var(--text-secondary)',
+                    lineHeight: 1.4,
+                    marginTop: 6,
+                    padding: '0 2px',
                   }}
                 >
-                  <span style={{ color: 'var(--text-muted)' }}>Compound interest earned:</span>
-                  <strong style={{ color: '#059669', fontSize: '0.8125rem' }}>
-                    +{formatCurrency(interestStep4, 'NGN')}
-                  </strong>
+                  Pay <strong>{formatCurrency(numericFundAmount, 'NGN')}</strong> today, then only{' '}
+                  <strong style={{ color: 'var(--clay)' }}>
+                    {formatCurrency(remainingToPayStep4, 'NGN')}
+                  </strong>{' '}
+                  for the rest of the year{' '}
+                  <span style={{ color: '#059669', fontWeight: 600 }}>
+                    (+{formatCurrency(interestStep4, 'NGN')} interest)
+                  </span>.
+                </div>
+              )}
+            </div>
+
+            {/* Compact Personal Rent Account Card */}
+            <div
+              style={{
+                padding: '10px 14px',
+                borderRadius: '12px',
+                background: 'var(--surface2, #fbf9f6)',
+                border: '1px solid var(--border-solid, #eee7df)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12,
+              }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--text)', letterSpacing: '0.02em', lineHeight: 1.2 }}>
+                  {dvaToShow.account_number}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {dvaToShow.bank_name || 'Wema Bank'} · {dvaToShow.account_name}
                 </div>
               </div>
-            )}
+              <button
+                type="button"
+                className={`vault-dva-card__copy-btn ${copiedAccount ? 'vault-dva-card__copy-btn--copied' : ''}`}
+                style={{ padding: '6px 12px', fontSize: '0.75rem', height: 32, flexShrink: 0 }}
+                onClick={() => {
+                  navigator.clipboard.writeText(dvaToShow.account_number)
+                  setCopiedAccount(true)
+                  toastSuccess('Account number copied!')
+                  setTimeout(() => setCopiedAccount(false), 2000)
+                }}
+              >
+                {copiedAccount ? (
+                  <>
+                    <Check size={13} /> Copied
+                  </>
+                ) : (
+                  <>
+                    <Copy size={13} /> Copy
+                  </>
+                )}
+              </button>
+            </div>
 
-            {/* Personal Rent Account (Bank Transfer) */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div className="vault-dva-card" style={{ margin: 0 }}>
-                <div className="vault-dva-card__header">
-                  <span className="vault-dva-card__title">Personal Rent Account</span>
-                  <span className="vault-dva-card__badge">
-                    <Zap size={11} /> Instant Credit
-                  </span>
-                </div>
-                <div className="vault-dva-card__number-row">
-                  <div className="vault-dva-card__number-block">
-                    <span className="vault-dva-card__number-label">Account Number</span>
-                    <span className="vault-dva-card__number">{dvaToShow.account_number}</span>
-                  </div>
-                  <button
-                    type="button"
-                    className={`vault-dva-card__copy-btn ${
-                      copiedAccount ? 'vault-dva-card__copy-btn--copied' : ''
-                    }`}
-                    onClick={() => {
-                      navigator.clipboard.writeText(dvaToShow.account_number)
-                      setCopiedAccount(true)
-                      toastSuccess('Account number copied!')
-                      setTimeout(() => setCopiedAccount(false), 2000)
-                    }}
-                    title="Copy Account Number"
-                  >
-                    {copiedAccount ? (
-                      <>
-                        <Check size={14} /> Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy size={14} /> Copy
-                      </>
-                    )}
-                  </button>
-                </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 2 }}>
+              <button
+                type="button"
+                className="vault-btn-primary"
+                onClick={handleBankTransferConfirm}
+                style={{ height: 44 }}
+              >
+                <CheckCircle2 size={16} />
+                <span>I Have Transferred</span>
+              </button>
 
-                <div className="vault-dva-card__meta-list">
-                  <div className="vault-dva-card__meta-row">
-                    <span className="vault-dva-card__meta-label">Bank Name</span>
-                    <span className="vault-dva-card__meta-value">
-                      {dvaToShow.bank_name || 'Wema Bank'}
-                    </span>
-                  </div>
-                  <div className="vault-dva-card__meta-row">
-                    <span className="vault-dva-card__meta-label">Account Name</span>
-                    <span className="vault-dva-card__meta-value">{dvaToShow.account_name}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
+              <div style={{ textAlign: 'center', marginTop: 2 }}>
                 <button
                   type="button"
-                  className="vault-btn-primary"
-                  onClick={handleBankTransferConfirm}
-                  style={{ height: 44 }}
-                >
-                  <span>I Have Transferred</span>
-                  <ArrowRight size={16} />
-                </button>
-                <button
-                  type="button"
-                  className="vault-btn-secondary"
                   onClick={() => {
-                    navigator.clipboard.writeText(
-                      `Account Number: ${dvaToShow.account_number}\nBank: ${dvaToShow.bank_name || 'Wema Bank'}\nAccount Name: ${dvaToShow.account_name}\nAmount: ₦${numericFundAmount.toLocaleString()}`,
-                    )
-                    setCopiedDetails(true)
-                    toastSuccess('Account details copied!')
-                    setTimeout(() => setCopiedDetails(false), 2000)
+                    if (typeof window !== 'undefined') {
+                      try {
+                        sessionStorage.setItem('upward_dismissed_initial_deposit_prompt', 'true')
+                      } catch {}
+                    }
+                    onSuccess()
+                    onClose()
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-muted, #94a3b8)',
+                    fontSize: '0.6875rem',
+                    fontWeight: 400,
+                    opacity: 0.35,
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    padding: '4px 8px',
+                    transition: 'opacity 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.opacity = '0.7'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.opacity = '0.35'
                   }}
                 >
-                  {copiedDetails ? (
-                    <>
-                      <Check size={14} />
-                      <span>Copied!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy size={14} />
-                      <span>Copy Details</span>
-                    </>
-                  )}
+                  I&apos;ll fund later
                 </button>
-                <div style={{ textAlign: 'center', marginTop: 4 }}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (typeof window !== 'undefined') {
-                        try {
-                          sessionStorage.setItem('upward_dismissed_initial_deposit_prompt', 'true')
-                        } catch {}
-                      }
-                      onSuccess()
-                      onClose()
-                    }}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: 'var(--text-muted, #94a3b8)',
-                      fontSize: '0.6875rem',
-                      fontWeight: 400,
-                      opacity: 0.35,
-                      cursor: 'pointer',
-                      textDecoration: 'underline',
-                      padding: '4px 8px',
-                      transition: 'opacity 0.15s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.opacity = '0.7'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.opacity = '0.35'
-                    }}
-                  >
-                    I&apos;ll fund later
-                  </button>
-                </div>
               </div>
             </div>
           </div>

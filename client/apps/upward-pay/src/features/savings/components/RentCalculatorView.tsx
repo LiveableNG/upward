@@ -277,13 +277,6 @@ export function RentCalculatorView({
   )
   const successProjectedYieldNaira = successDynamicPlan.projectedYieldNaira
 
-  const successPercentPresets = [
-    { label: '10%', amount: Math.round(previewRentAmount * 0.1) },
-    { label: '25% (Recommended)', amount: Math.round(previewRentAmount * 0.25) },
-    { label: '50%', amount: Math.round(previewRentAmount * 0.5) },
-    { label: 'Full Rent', amount: previewRentAmount },
-  ]
-
   const effectiveTotalTarget = totalTenantContributionNaira + projectedYieldNaira
   const contributionPct =
     effectiveTotalTarget > 0
@@ -482,7 +475,7 @@ export function RentCalculatorView({
               ? 'Pay Less for Your Next Rent'
               : stage === 'KYC'
                 ? 'Activate Rent Account'
-                : 'Make Your Initial Deposit'
+                : 'Make a Deposit'
         }
         subtitle={
           stage === 'RENT_INPUT'
@@ -491,7 +484,7 @@ export function RentCalculatorView({
               ? 'Save less and let compound interest help pay your upcoming rent.'
               : stage === 'KYC'
                 ? 'Link your BVN to generate your personal rent account.'
-                : 'Deposit 25% today to lock in compound interest towards your rent.'
+                : undefined
         }
         icon={
           stage === 'RENT_INPUT' ? (
@@ -1174,31 +1167,11 @@ export function RentCalculatorView({
 
         {/* Stage 4: Account Created & Dedicated Account Details */}
         {stage === 'SUCCESS' && createdDva && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {/* Amount input */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '4px 0 8px' }}>
+            {/* Compact Amount input */}
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <label
-                  htmlFor="initial-deposit-amount"
-                  style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)' }}
-                >
-                  Initial Deposit Amount
-                </label>
-                <span
-                  style={{
-                    fontSize: '0.6875rem',
-                    fontWeight: 600,
-                    color: 'var(--clay)',
-                    background: 'rgba(194, 80, 31, 0.08)',
-                    padding: '2px 8px',
-                    borderRadius: 999,
-                  }}
-                >
-                  25% of rent recommended
-                </span>
-              </div>
-              <div className="vault-sandbox-card__input-wrapper" style={{ height: 46 }}>
-                <span className="vault-sandbox-card__currency-prefix" style={{ fontSize: '1.25rem', fontWeight: 700 }}>
+              <div className="vault-sandbox-card__input-wrapper" style={{ height: 44 }}>
+                <span className="vault-sandbox-card__currency-prefix" style={{ fontSize: '1.2rem', fontWeight: 700 }}>
                   ₦
                 </span>
                 <input
@@ -1206,7 +1179,7 @@ export function RentCalculatorView({
                   type="text"
                   inputMode="numeric"
                   className="vault-sandbox-card__input"
-                  style={{ fontSize: '1.25rem', fontWeight: 700 }}
+                  style={{ fontSize: '1.2rem', fontWeight: 700 }}
                   placeholder="e.g. 1,000,000"
                   value={initialDepositRaw}
                   onChange={(e) => {
@@ -1216,200 +1189,63 @@ export function RentCalculatorView({
                 />
               </div>
 
-              {/* Quick preset chips */}
-              <div className="vault-sandbox-card__chips" style={{ marginTop: 8 }}>
-                {successPercentPresets.map((preset) => (
-                  <button
-                    key={preset.label}
-                    type="button"
-                    className={`vault-sandbox-card__chip ${
-                      initialDepositRaw === formatCurrencyInput(preset.amount)
-                        ? 'vault-sandbox-card__chip--active'
-                        : ''
-                    }`}
-                    onClick={() => setInitialDepositRaw(formatCurrencyInput(preset.amount))}
-                  >
-                    {preset.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Dynamic Benefit Pitch Card */}
-            {parsedSuccessDeposit > 0 && previewRentAmount > 0 && (
-              <div
-                style={{
-                  padding: '12px 14px',
-                  borderRadius: '12px',
-                  background: '#fffaf7',
-                  border: '1.5px solid rgba(194, 80, 31, 0.22)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 8,
-                  boxShadow: '0 2px 8px rgba(194, 80, 31, 0.04)',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
-                  <div
-                    style={{
-                      width: 26,
-                      height: 26,
-                      borderRadius: 8,
-                      background: 'rgba(194, 80, 31, 0.12)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                      marginTop: 1,
-                    }}
-                  >
-                    <TrendingUp size={15} color="var(--clay)" />
-                  </div>
-                  <div style={{ fontSize: '0.8125rem', lineHeight: 1.45, color: 'var(--text)' }}>
-                    If you pay <strong>{formatCurrency(parsedSuccessDeposit, 'NGN')}</strong> today, you only pay{' '}
-                    <strong style={{ color: 'var(--clay)' }}>
-                      {formatCurrency(successRemainingToPayNaira, 'NGN')}
-                    </strong>{' '}
-                    for the remaining part of the year.
-                  </div>
-                </div>
-
+              {/* Punchy 1-line benefit pitch */}
+              {parsedSuccessDeposit > 0 && previewRentAmount > 0 && (
                 <div
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    paddingTop: 8,
-                    borderTop: '1px solid rgba(194, 80, 31, 0.12)',
-                    fontSize: '0.75rem',
+                    fontSize: '0.8125rem',
+                    color: 'var(--text-secondary)',
+                    lineHeight: 1.4,
+                    marginTop: 6,
+                    padding: '0 2px',
                   }}
                 >
-                  <span style={{ color: 'var(--text-muted)' }}>Compound interest earned:</span>
-                  <strong style={{ color: '#059669', fontSize: '0.8125rem' }}>
-                    +{formatCurrency(successProjectedYieldNaira, 'NGN')}
-                  </strong>
+                  Pay <strong>{formatCurrency(parsedSuccessDeposit, 'NGN')}</strong> today, then only{' '}
+                  <strong style={{ color: 'var(--clay)' }}>{formatCurrency(successRemainingToPayNaira, 'NGN')}</strong> for the rest of the year{' '}
+                  <span style={{ color: '#059669', fontWeight: 600 }}>
+                    (+{formatCurrency(successProjectedYieldNaira, 'NGN')} interest)
+                  </span>.
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
-            {/* Personal Rent Bank Account Details */}
+            {/* Compact Account Card */}
             <div
               style={{
-                padding: '16px',
+                padding: '10px 14px',
                 borderRadius: '12px',
-                background: 'rgba(217, 119, 87, 0.05)',
-                border: '1.5px solid var(--clay)',
+                background: 'var(--surface2, #fbf9f6)',
+                border: '1px solid var(--border-solid, #eee7df)',
                 display: 'flex',
-                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'space-between',
                 gap: 12,
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Landmark size={20} color="var(--clay)" />
-                <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text)' }}>
-                  Personal Rent Bank Account
-                </span>
-                <span
-                  style={{
-                    marginLeft: 'auto',
-                    fontSize: '0.625rem',
-                    fontWeight: 700,
-                    padding: '2px 6px',
-                    borderRadius: '4px',
-                    background: 'rgba(16, 185, 129, 0.15)',
-                    color: '#10b981',
-                    textTransform: 'uppercase',
-                  }}
-                >
-                  Active
-                </span>
-              </div>
-
-              <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Bank Name</span>
-                <div style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text)' }}>
-                  {createdDva.bank_name || 'Wema Bank'}
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--text)', letterSpacing: '0.02em', lineHeight: 1.2 }}>
+                  {createdDva.account_number}
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {createdDva.bank_name || 'Wema Bank'} · {createdDva.account_name}
                 </div>
               </div>
-
-              <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Account Number</span>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    marginTop: 2,
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: '1.375rem',
-                      fontWeight: 800,
-                      color: 'var(--clay)',
-                      letterSpacing: '0.04em',
-                    }}
-                  >
-                    {createdDva.account_number}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => handleCopyAccountNumber(createdDva.account_number)}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      padding: '6px 12px',
-                      borderRadius: '8px',
-                      background: 'var(--surface)',
-                      border: '1px solid var(--border)',
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                      color: 'var(--text)',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {copiedAccount ? (
-                      <>
-                        <Check size={14} color="#10b981" />
-                        <span style={{ color: '#10b981' }}>Copied</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy size={14} />
-                        <span>Copy</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Account Name</span>
-                <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text)' }}>
-                  {createdDva.account_name}
-                </div>
-              </div>
-            </div>
-
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '10px 14px',
-                borderRadius: '10px',
-                background: 'var(--surface)',
-                border: '1px solid var(--border)',
-                fontSize: '0.75rem',
-                color: 'var(--text-secondary)',
-                lineHeight: 1.4,
-              }}
-            >
-              <CheckCircle2 size={16} color="#10b981" style={{ flexShrink: 0 }} />
-              <span>
-                Transfer from any banking app. Every deposit earns compound interest daily towards your rent.
-              </span>
+              <button
+                type="button"
+                className={`vault-dva-card__copy-btn ${copiedAccount ? 'vault-dva-card__copy-btn--copied' : ''}`}
+                style={{ padding: '6px 12px', fontSize: '0.75rem', height: 32, flexShrink: 0 }}
+                onClick={() => handleCopyAccountNumber(createdDva.account_number)}
+              >
+                {copiedAccount ? (
+                  <>
+                    <Check size={13} /> Copied
+                  </>
+                ) : (
+                  <>
+                    <Copy size={13} /> Copy
+                  </>
+                )}
+              </button>
             </div>
           </div>
         )}

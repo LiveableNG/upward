@@ -5,10 +5,8 @@ import {
   Copy,
   Check,
   Landmark,
-  Zap,
   CheckCircle2,
   Loader2,
-  TrendingUp,
 } from 'lucide-react'
 import { useToast } from '@/components/common/Toast'
 import { BottomSheetModal } from '@/components/common/BottomSheetModal'
@@ -54,7 +52,7 @@ export function FundVaultModal({
   currentBalanceNaira = 0,
   isInitialDeposit = false,
 }: FundVaultModalProps) {
-  const [copiedField, setCopiedField] = useState<'account' | 'all' | null>(null)
+  const [copiedField, setCopiedField] = useState<'account' | null>(null)
 
   const defaultInitialAmount =
     targetAmountNaira && targetAmountNaira > 0 && (isInitialDeposit || currentBalanceNaira === 0)
@@ -114,10 +112,10 @@ export function FundVaultModal({
   const accountNumber = dedicatedAccount?.account_number || '9012345678'
   const accountName = dedicatedAccount?.account_name || 'Upward Rent Savings'
 
-  const handleCopy = (text: string, field: 'account' | 'all') => {
+  const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text)
-    setCopiedField(field)
-    toastSuccess('Account details copied to clipboard!')
+    setCopiedField('account')
+    toastSuccess('Account number copied!')
     setTimeout(() => setCopiedField(null), 2500)
   }
 
@@ -134,7 +132,7 @@ export function FundVaultModal({
         accountNumber,
         amountKobo,
       })
-      toastSuccess(`Instant deposit of ${formatCurrency(rawNumber, 'NGN')} credited to your vault!`)
+      toastSuccess(`Deposit of ${formatCurrency(rawNumber, 'NGN')} credited to your vault!`)
       if (typeof window !== 'undefined') {
         try {
           sessionStorage.setItem('upward_dismissed_initial_deposit_prompt', 'true')
@@ -160,7 +158,6 @@ export function FundVaultModal({
     }, 1500)
   }
 
-  // Dynamic calculations for deposit impact
   const parsedDepositAmount = Number(customAmount.replace(/,/g, '')) || 0
   const effectiveTargetRent = targetAmountNaira || 2_500_000
   const effectiveRunwayDays = Math.max(1, daysRemaining || 330)
@@ -191,61 +188,19 @@ export function FundVaultModal({
   )
   const projectedInterestNaira = dynamicPlan.projectedYieldNaira
 
-  const percentPresets =
-    effectiveTargetRent > 0
-      ? [
-          { label: '10%', amount: Math.round(effectiveTargetRent * 0.1) },
-          { label: '25% (Recommended)', amount: Math.round(effectiveTargetRent * 0.25) },
-          { label: '50%', amount: Math.round(effectiveTargetRent * 0.5) },
-          { label: 'Full Rent', amount: effectiveTargetRent },
-        ]
-      : [
-          { label: '₦50k', amount: 50_000 },
-          { label: '₦100k', amount: 100_000 },
-          { label: '₦250k', amount: 250_000 },
-          { label: '₦500k', amount: 500_000 },
-        ]
-
   return (
     <BottomSheetModal
       isOpen={isOpen}
       onClose={handleClose}
-      title={isInitialDeposit || currentBalanceNaira === 0 ? 'Make Your Initial Deposit' : 'Add Money to Rent Savings'}
-      subtitle={
-        isInitialDeposit || currentBalanceNaira === 0
-          ? 'Deposit 25% today to lock in compound interest towards your rent.'
-          : `Earns ${effectiveRatePct}% returns every year so you pay less for rent.`
-      }
-      icon={<Landmark size={20} />}
+      title="Make a Deposit"
+      icon={<Landmark size={20} color="var(--clay)" />}
       maxWidth="480px"
     >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '4px 0 12px' }}>
-        {/* Amount input */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '4px 0 8px' }}>
+        {/* Compact Amount Input */}
         <div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-            <label
-              htmlFor="quick-save-amount"
-              style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)' }}
-            >
-              {isInitialDeposit || currentBalanceNaira === 0 ? 'Initial Deposit Amount' : `Amount to Transfer (${cadence.toLowerCase()} target)`}
-            </label>
-            {(isInitialDeposit || currentBalanceNaira === 0) && (
-              <span
-                style={{
-                  fontSize: '0.6875rem',
-                  fontWeight: 600,
-                  color: 'var(--clay)',
-                  background: 'rgba(194, 80, 31, 0.08)',
-                  padding: '2px 8px',
-                  borderRadius: 999,
-                }}
-              >
-                25% of rent recommended
-              </span>
-            )}
-          </div>
-          <div className="vault-sandbox-card__input-wrapper" style={{ height: 46 }}>
-            <span className="vault-sandbox-card__currency-prefix" style={{ fontSize: '1.25rem', fontWeight: 700 }}>
+          <div className="vault-sandbox-card__input-wrapper" style={{ height: 44 }}>
+            <span className="vault-sandbox-card__currency-prefix" style={{ fontSize: '1.2rem', fontWeight: 700 }}>
               ₦
             </span>
             <input
@@ -253,7 +208,7 @@ export function FundVaultModal({
               type="text"
               inputMode="numeric"
               className="vault-sandbox-card__input"
-              style={{ fontSize: '1.25rem', fontWeight: 700 }}
+              style={{ fontSize: '1.2rem', fontWeight: 700 }}
               placeholder="e.g. 1,000,000"
               value={customAmount}
               onChange={(e) => {
@@ -263,131 +218,71 @@ export function FundVaultModal({
             />
           </div>
 
-          {/* Quick preset chips */}
-          <div className="vault-sandbox-card__chips" style={{ marginTop: 8 }}>
-            {percentPresets.map((preset) => (
-              <button
-                key={preset.label}
-                type="button"
-                className={`vault-sandbox-card__chip ${
-                  customAmount.replace(/,/g, '') === String(preset.amount)
-                    ? 'vault-sandbox-card__chip--active'
-                    : ''
-                }`}
-                onClick={() => setCustomAmount(preset.amount.toLocaleString())}
-              >
-                {preset.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Dynamic Benefit Pitch Card */}
-        {parsedDepositAmount > 0 && effectiveTargetRent > 0 && (
-          <div
-            style={{
-              padding: '12px 14px',
-              borderRadius: '12px',
-              background: '#fffaf7',
-              border: '1.5px solid rgba(194, 80, 31, 0.22)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 8,
-              boxShadow: '0 2px 8px rgba(194, 80, 31, 0.04)',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
-              <div
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: 8,
-                  background: 'rgba(194, 80, 31, 0.12)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  marginTop: 1,
-                }}
-              >
-                <TrendingUp size={15} color="var(--clay)" />
-              </div>
-              <div style={{ fontSize: '0.8125rem', lineHeight: 1.45, color: 'var(--text)' }}>
-                If you pay <strong>{formatCurrency(parsedDepositAmount, 'NGN')}</strong> today, you only pay{' '}
-                <strong style={{ color: 'var(--clay)' }}>
-                  {formatCurrency(remainingToPayNaira, 'NGN')}
-                </strong>{' '}
-                for the remaining part of the year.
-              </div>
-            </div>
-
+          {/* Punchy 1-line benefit pitch */}
+          {parsedDepositAmount > 0 && effectiveTargetRent > 0 && (
             <div
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                paddingTop: 8,
-                borderTop: '1px solid rgba(194, 80, 31, 0.12)',
-                fontSize: '0.75rem',
+                fontSize: '0.8125rem',
+                color: 'var(--text-secondary)',
+                lineHeight: 1.4,
+                marginTop: 6,
+                padding: '0 2px',
               }}
             >
-              <span style={{ color: 'var(--text-muted)' }}>Compound interest earned:</span>
-              <strong style={{ color: '#059669', fontSize: '0.8125rem' }}>
-                +{formatCurrency(projectedInterestNaira, 'NGN')}
-              </strong>
+              Pay <strong>{formatCurrency(parsedDepositAmount, 'NGN')}</strong> today, then only{' '}
+              <strong style={{ color: 'var(--clay)' }}>{formatCurrency(remainingToPayNaira, 'NGN')}</strong> for the rest of the year{' '}
+              <span style={{ color: '#059669', fontWeight: 600 }}>
+                (+{formatCurrency(projectedInterestNaira, 'NGN')} interest)
+              </span>.
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
-        {/* Personal Rent Account Details */}
-        <div className="vault-dva-card" style={{ margin: 0 }}>
-          <div className="vault-dva-card__header">
-            <span className="vault-dva-card__title">Personal Rent Account</span>
-            <span className="vault-dva-card__badge">
-              <Zap size={11} /> Instant Credit
-            </span>
-          </div>
-          <div className="vault-dva-card__number-row">
-            <div className="vault-dva-card__number-block">
-              <span className="vault-dva-card__number-label">Account Number</span>
-              <span className="vault-dva-card__number">{accountNumber}</span>
+        {/* Compact Account Card */}
+        <div
+          style={{
+            padding: '10px 14px',
+            borderRadius: '12px',
+            background: 'var(--surface2, #fbf9f6)',
+            border: '1px solid var(--border-solid, #eee7df)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+          }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--text)', letterSpacing: '0.02em', lineHeight: 1.2 }}>
+              {accountNumber}
             </div>
-            <button
-              type="button"
-              className={`vault-dva-card__copy-btn ${
-                copiedField === 'account' ? 'vault-dva-card__copy-btn--copied' : ''
-              }`}
-              onClick={() => handleCopy(accountNumber, 'account')}
-            >
-              {copiedField === 'account' ? (
-                <>
-                  <Check size={14} /> Copied!
-                </>
-              ) : (
-                <>
-                  <Copy size={14} /> Copy
-                </>
-              )}
-            </button>
-          </div>
-
-          <div className="vault-dva-card__meta-list">
-            <div className="vault-dva-card__meta-row">
-              <span className="vault-dva-card__meta-label">Bank Name</span>
-              <span className="vault-dva-card__meta-value">{bankName}</span>
-            </div>
-            <div className="vault-dva-card__meta-row">
-              <span className="vault-dva-card__meta-label">Account Name</span>
-              <span className="vault-dva-card__meta-value">{accountName}</span>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {bankName} · {accountName}
             </div>
           </div>
+          <button
+            type="button"
+            className={`vault-dva-card__copy-btn ${copiedField === 'account' ? 'vault-dva-card__copy-btn--copied' : ''}`}
+            style={{ padding: '6px 12px', fontSize: '0.75rem', height: 32, flexShrink: 0 }}
+            onClick={() => handleCopy(accountNumber)}
+          >
+            {copiedField === 'account' ? (
+              <>
+                <Check size={13} /> Copied
+              </>
+            ) : (
+              <>
+                <Copy size={13} /> Copy
+              </>
+            )}
+          </button>
         </div>
 
         {/* Action Buttons */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 2 }}>
           <button
             type="button"
             className="vault-btn-primary"
+            style={{ height: 44 }}
             onClick={handleIHavePaid}
             disabled={hasPaidNotified}
           >
@@ -401,20 +296,20 @@ export function FundVaultModal({
               className="vault-btn-secondary"
               onClick={handleDeposit}
               disabled={simulateMutation.isPending}
-              style={{ fontSize: '0.75rem' }}
+              style={{ fontSize: '0.75rem', height: 36 }}
             >
               {simulateMutation.isPending ? (
                 <>
-                  <Loader2 size={14} className="animate-spin" /> Simulating Transfer...
+                  <Loader2 size={13} className="animate-spin" /> Simulating Transfer...
                 </>
               ) : (
-                <span>Simulate Instant Bank Transfer (₦{customAmount || '0'})</span>
+                <span>Simulate Instant Transfer (₦{customAmount || '0'})</span>
               )}
             </button>
           )}
 
           {/* Quiet Skip Link: faint, unobtrusive text link as hard to see as possible */}
-          <div style={{ textAlign: 'center', marginTop: 4 }}>
+          <div style={{ textAlign: 'center', marginTop: 2 }}>
             <button
               type="button"
               onClick={handleQuietSkip}
