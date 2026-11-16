@@ -1,5 +1,26 @@
 /* Upward Rent Savings & Lock (V1) - Premium Design System */
 
+.rent-savings-view,
+.rent-savings,
+.rent-calculator {
+  font-family: var(--font-auth, var(--font));
+}
+
+.rent-savings-view button,
+.rent-savings-view input,
+.rent-savings-view select,
+.rent-savings-view textarea,
+.rent-savings button,
+.rent-savings input,
+.rent-savings select,
+.rent-savings textarea,
+.rent-calculator button,
+.rent-calculator input,
+.rent-calculator select,
+.rent-calculator textarea {
+  font-family: inherit;
+}
+
 .rent-savings {
   width: 100%;
   max-width: 640px;

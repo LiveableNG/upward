@@ -23,6 +23,15 @@
   width: 100%;
   max-width: 400px;
   overflow: hidden;
+  font-family: var(--font-auth, var(--font));
+}
+
+.modal-card button,
+.modal-card input,
+.modal-card select,
+.modal-card textarea {
+  font-family: inherit;
+}
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
   animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
