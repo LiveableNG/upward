@@ -15,6 +15,7 @@ import { RentCalculatorView } from './RentCalculatorView'
 import { VaultSetupFlow } from './VaultSetupFlow'
 import { VaultDashboardView } from './VaultDashboardView'
 import { SettlementHubView } from './SettlementHubView'
+import { type SavingsCadence } from '../services/savingsService'
 import '@/styles/savings-v1.css'
 
 export function RentSavingsMainView() {
@@ -25,7 +26,7 @@ export function RentSavingsMainView() {
   const [simulationConfig, setSimulationConfig] = useState<{
     targetAmountKobo: number
     contractualDueDate: string
-    cadence: 'DAILY' | 'WEEKLY' | 'MONTHLY'
+    cadence: SavingsCadence
     periodicDepositKobo: number
   } | null>(null)
 

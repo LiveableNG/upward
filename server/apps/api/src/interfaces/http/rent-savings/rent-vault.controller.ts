@@ -96,12 +96,22 @@ export class RentVaultController {
   @HttpCode(HttpStatus.OK)
   async consentToSavings(
     @Req() req: any,
-    @Body() body?: { cadence?: 'DAILY' | 'WEEKLY' | 'MONTHLY' },
+    @Body()
+    body?: {
+      cadence?: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY'
+      product_option?: 'SAVE_AND_EARN' | 'RENT_PROTEC'
+      plan_pattern?: 'EQUAL' | 'INITIAL_DEPOSIT' | 'STEP_UP' | 'ACCELERATED'
+      initial_deposit_kobo?: number
+    },
   ) {
     const userId = await this.getNumericUserId(req)
     await this.userRepo.update(userId, { savingsWalletEnabled: true })
-    if (body?.cadence && ['DAILY', 'WEEKLY', 'MONTHLY'].includes(body.cadence)) {
-      await this.getMyVaultUseCase.updateCadence(userId, body.cadence)
+    if (body?.cadence && ['DAILY', 'WEEKLY', 'MONTHLY', 'QUARTERLY'].includes(body.cadence)) {
+      await this.getMyVaultUseCase.updateCadence(userId, body.cadence, {
+        productOption: body.product_option,
+        planPattern: body.plan_pattern,
+        initialDepositKobo: body.initial_deposit_kobo,
+      })
     }
     return {
       status: 'success',

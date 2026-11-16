@@ -408,8 +408,11 @@ model upward_savings_config {
 model upward_platform_rate_config {
   id                   Int      @id @default(autoincrement())
   key                  String   @unique @default("GLOBAL")
-  savingsAnnualRatePct Float    @default(14.5)
+  savingsAnnualRatePct Float    @default(14.0)
+  rentProtecRatePct    Float    @default(10.0)
   insurancePremiumPct  Float    @default(2.0)
+  rentProtecMinMonths  Int      @default(6)
+  maxSavingsMonths     Int      @default(11)
   updatedByAdminId     String?
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt

@@ -1,4 +1,4 @@
-import { Injectable, Inject, Logger, BadRequestException, NotFoundException } from '@nestjs/common'
+import { Injectable, Inject, Logger, BadRequestException, NotFoundException, Optional } from '@nestjs/common'
 import { IsEmail, IsIn, IsNotEmpty, IsNumber, IsOptional, IsString, Matches } from 'class-validator'
 import { Type } from 'class-transformer'
 import * as crypto from 'crypto'
@@ -12,6 +12,7 @@ import {
   ASSET_MANAGEMENT_PROVIDER,
 } from '../../../domains/rent-savings/asset-management.provider'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
+import { PlatformRatesService } from '../../../shared/infrastructure/common/platform-rates.service'
 
 export class OnboardSavingsInvestorDto {
   @IsOptional()
@@ -81,8 +82,21 @@ export class OnboardSavingsInvestorDto {
   rent_due_date?: string
 
   @IsOptional()
-  @IsIn(['DAILY', 'WEEKLY', 'MONTHLY'])
-  cadence?: 'DAILY' | 'WEEKLY' | 'MONTHLY'
+  @IsIn(['DAILY', 'WEEKLY', 'MONTHLY', 'QUARTERLY'])
+  cadence?: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY'
+
+  @IsOptional()
+  @IsIn(['SAVE_AND_EARN', 'RENT_PROTEC'])
+  product_option?: 'SAVE_AND_EARN' | 'RENT_PROTEC'
+
+  @IsOptional()
+  @IsIn(['EQUAL', 'INITIAL_DEPOSIT', 'STEP_UP', 'ACCELERATED'])
+  plan_pattern?: 'EQUAL' | 'INITIAL_DEPOSIT' | 'STEP_UP' | 'ACCELERATED'
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  initial_deposit_kobo?: number
 }
 
 function cleanName(name: string): string {
@@ -148,6 +162,7 @@ export class OnboardSavingsInvestorUseCase {
     @Inject(PAYMENT_GATEWAY) private readonly paymentGateway: IPaymentGateway,
     @Inject(ASSET_MANAGEMENT_PROVIDER)
     private readonly assetManagementProvider: IAssetManagementProvider,
+    @Optional() private readonly platformRates?: PlatformRatesService,
   ) {}
 
   async getOnboardingPrefill(userId: number) {
@@ -606,6 +621,19 @@ export class OnboardSavingsInvestorUseCase {
       if (dto.cadence) {
         updateData.cadence = dto.cadence
       }
+      const platformRates = this.platformRates ? await this.platformRates.getRates() : null
+      const chosenOption = dto.product_option || 'SAVE_AND_EARN'
+      updateData.productOption = chosenOption
+      updateData.planPattern = dto.plan_pattern || 'INITIAL_DEPOSIT'
+      if (dto.initial_deposit_kobo !== undefined) {
+        updateData.initialDepositKobo = BigInt(Math.max(0, Math.round(dto.initial_deposit_kobo)))
+      }
+      updateData.appliedAnnualRatePct =
+        chosenOption === 'RENT_PROTEC'
+          ? (platformRates?.rentProtecRatePct ?? 10.0)
+          : (platformRates?.savingsAnnualRatePct ?? 14.0)
+      updateData.insurancePremiumPct =
+        chosenOption === 'RENT_PROTEC' ? (platformRates?.insurancePremiumPct ?? 2.0) : 0
 
       await this.prisma.upward_rent_vault.update({
         where: { id: activeVault.id },
@@ -617,6 +645,8 @@ export class OnboardSavingsInvestorUseCase {
     } else {
       // Auto-provision rent vault for the verified investor
       const targetAmountKobo = BigInt(Math.round(resolvedRent * 100))
+      const platformRates = this.platformRates ? await this.platformRates.getRates() : null
+      const chosenOption = dto.product_option || 'SAVE_AND_EARN'
 
       const newVault = await this.prisma.upward_rent_vault.create({
         data: {
@@ -625,6 +655,17 @@ export class OnboardSavingsInvestorUseCase {
           currentPrincipalKobo: 0n,
           accruedYieldKobo: 0n,
           cadence: dto.cadence || 'MONTHLY',
+          productOption: chosenOption,
+          planPattern: dto.plan_pattern || 'INITIAL_DEPOSIT',
+          initialDepositKobo: dto.initial_deposit_kobo
+            ? BigInt(Math.max(0, Math.round(dto.initial_deposit_kobo)))
+            : 0n,
+          appliedAnnualRatePct:
+            chosenOption === 'RENT_PROTEC'
+              ? (platformRates?.rentProtecRatePct ?? 10.0)
+              : (platformRates?.savingsAnnualRatePct ?? 14.0),
+          insurancePremiumPct:
+            chosenOption === 'RENT_PROTEC' ? (platformRates?.insurancePremiumPct ?? 2.0) : 0,
           contractualDueDate: resolvedDueDate,
           unlockDate: resolvedUnlockDate,
           lockStatus: 'LOCKED',

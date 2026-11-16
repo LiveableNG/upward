@@ -18,14 +18,24 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
 import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
 import { FundVaultModal } from './FundVaultModal'
-import { calculatePayLessPlan, type VaultTransactionItem } from '../services/savingsService'
+import {
+  calculatePayLessPlan,
+  type SavingsCadence,
+  type SavingsPlanPattern,
+  type SavingsProductOption,
+  type VaultTransactionItem,
+} from '../services/savingsService'
 import { useConsentToSavings } from '../hooks/useRentSavings'
 
 interface VaultDashboardViewProps {
   vault: {
     vault_id: string
     lock_status: string
-    cadence?: 'DAILY' | 'WEEKLY' | 'MONTHLY'
+    cadence?: SavingsCadence
+    product_option?: SavingsProductOption
+    plan_pattern?: SavingsPlanPattern
+    is_rent_protec?: boolean
+    insurance_premium_pct?: number
     current_balance_kobo: number
     principal_kobo: number
     vault_principal_kobo?: number
@@ -74,9 +84,11 @@ interface VaultDashboardViewProps {
 export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboardViewProps) {
   const [showFundModal, setShowFundModal] = useState(false)
   const [copiedAccount, setCopiedAccount] = useState(false)
-  const [activeCadence, setActiveCadence] = useState<'DAILY' | 'WEEKLY' | 'MONTHLY'>(
-    () => vault.cadence || vault.pay_less_projection?.cadence || 'MONTHLY',
-  )
+  const [activeCadence, setActiveCadence] = useState<'WEEKLY' | 'MONTHLY' | 'QUARTERLY'>(() => {
+    const initial = vault.cadence || vault.pay_less_projection?.cadence
+    if (initial === 'WEEKLY' || initial === 'QUARTERLY') return initial
+    return 'MONTHLY'
+  })
 
   const { user } = useAuth()
   const { success: toastSuccess } = useToast()
@@ -101,7 +113,8 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
 
   const { rates: platformRates } = usePlatformRates()
   const savingsAnnualRatePct =
-    vault.annual_yield_rate_pct ?? platformRates.savingsAnnualRatePct
+    vault.annual_yield_rate_pct ??
+    (vault.is_rent_protec ? platformRates.rentProtecRatePct : platformRates.savingsAnnualRatePct)
   const accruedYieldNaira = vault.accrued_yield_kobo / 100
   const dailyRate = vault.daily_yield_rate || (savingsAnnualRatePct / 100) / 365
   const estimatedDailyAddNaira = currentBalanceNaira * dailyRate
@@ -113,6 +126,13 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
     activeCadence,
     currentBalanceNaira,
     savingsAnnualRatePct,
+    {
+      productOption: vault.product_option || (vault.is_rent_protec ? 'RENT_PROTEC' : 'SAVE_AND_EARN'),
+      planPattern: vault.plan_pattern || 'INITIAL_DEPOSIT',
+      maxMonths: platformRates.maxSavingsMonths,
+      minRentProtecMonths: platformRates.rentProtecMinMonths,
+      insurancePremiumPct: vault.insurance_premium_pct ?? platformRates.insurancePremiumPct,
+    },
   )
   const totalOutOfPocketNaira =
     vaultPrincipalNaira +
@@ -123,12 +143,12 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
     targetAmountNaira - totalOutOfPocketNaira,
   )
   const cadenceUnitLabel =
-    activeCadence === 'DAILY' ? 'day' : activeCadence === 'WEEKLY' ? 'wk' : 'mo'
+    activeCadence === 'WEEKLY' ? 'wk' : activeCadence === 'QUARTERLY' ? 'qtr' : 'mo'
 
-  const handleCadenceChange = async (nextCadence: 'DAILY' | 'WEEKLY' | 'MONTHLY') => {
+  const handleCadenceChange = async (nextCadence: 'WEEKLY' | 'MONTHLY' | 'QUARTERLY') => {
     setActiveCadence(nextCadence)
     try {
-      await consentMutation.mutateAsync(nextCadence)
+      await consentMutation.mutateAsync({ cadence: nextCadence })
     } catch {}
   }
 
@@ -171,7 +191,23 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
               Powered by <strong>Asset &amp; Resource Management Holding Company (ARM)</strong>
             </span>
           </div>
-          <span className="vault-dashboard__countdown-pill">{daysRemaining} Days Left</span>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            {vault.is_rent_protec && (
+              <span
+                style={{
+                  padding: '3px 8px',
+                  borderRadius: 999,
+                  background: '#ECFDF5',
+                  color: '#047857',
+                  fontSize: '0.6875rem',
+                  fontWeight: 700,
+                }}
+              >
+                Rent Protec • Protected
+              </span>
+            )}
+            <span className="vault-dashboard__countdown-pill">{daysRemaining} Days Left</span>
+          </div>
         </div>
 
         <div className="vault-dashboard__amounts">
@@ -216,9 +252,9 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
           <div style={{ display: 'inline-flex', gap: 6 }}>
             {(
               [
-                { id: 'DAILY' as const, label: 'Daily' },
                 { id: 'WEEKLY' as const, label: 'Weekly' },
                 { id: 'MONTHLY' as const, label: 'Monthly' },
+                { id: 'QUARTERLY' as const, label: 'Quarterly' },
               ]
             ).map((freq) => {
               const isSelected = activeCadence === freq.id
@@ -272,6 +308,27 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
             </span>
           </div>
         </div>
+
+        {(payLessPlan.requiredInitialDepositNaira > 0 && currentBalanceNaira < payLessPlan.requiredInitialDepositNaira) && (
+          <div
+            style={{
+              marginTop: 8,
+              padding: '8px 10px',
+              borderRadius: 8,
+              background: 'var(--clay-faint)',
+              fontSize: '0.75rem',
+              color: 'var(--text)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
+            <span>Recommended initial deposit:</span>
+            <strong style={{ color: 'var(--clay)' }}>
+              {formatCurrency(payLessPlan.requiredInitialDepositNaira, 'NGN')}
+            </strong>
+          </div>
+        )}
 
         <div className="vault-dashboard__actions">
           <button

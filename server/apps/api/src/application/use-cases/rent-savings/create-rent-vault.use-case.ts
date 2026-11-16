@@ -29,7 +29,7 @@ export class CreateRentVaultDto {
   contractual_due_date!: string
 
   @IsNotEmpty()
-  @IsIn(['DAILY', 'WEEKLY', 'MONTHLY'])
+  @IsIn(['DAILY', 'WEEKLY', 'MONTHLY', 'QUARTERLY'])
   cadence!: CadenceType
 
   @IsNotEmpty()

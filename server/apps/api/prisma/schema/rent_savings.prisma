@@ -5,7 +5,12 @@ model upward_rent_vault {
   targetAmountKobo        BigInt
   currentPrincipalKobo    BigInt                           @default(0)
   accruedYieldKobo        BigInt                           @default(0)
-  cadence                 String                           @default("MONTHLY") // DAILY, WEEKLY, MONTHLY
+  cadence                 String                           @default("MONTHLY") // WEEKLY, MONTHLY, QUARTERLY
+  productOption           String                           @default("SAVE_AND_EARN") // SAVE_AND_EARN, RENT_PROTEC
+  planPattern             String                           @default("INITIAL_DEPOSIT") // EQUAL, INITIAL_DEPOSIT, STEP_UP, ACCELERATED
+  initialDepositKobo      BigInt                           @default(0)
+  appliedAnnualRatePct    Float                            @default(14.0)
+  insurancePremiumPct     Float                            @default(0)
   contractualDueDate      DateTime
   unlockDate              DateTime                         // Strictly contractualDueDate - 30 days
   lockStatus              String                           @default("LOCKED")  // LOCKED, SETTLEMENT_READY, SETTLED, BROKEN_OUT

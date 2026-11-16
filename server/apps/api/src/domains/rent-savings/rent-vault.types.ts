@@ -1,4 +1,6 @@
-export type CadenceType = 'DAILY' | 'WEEKLY' | 'MONTHLY'
+export type CadenceType = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY'
+export type SavingsProductOption = 'SAVE_AND_EARN' | 'RENT_PROTEC'
+export type SavingsPlanPattern = 'EQUAL' | 'INITIAL_DEPOSIT' | 'STEP_UP' | 'ACCELERATED'
 export type LockStatusType = 'LOCKED' | 'SETTLEMENT_READY' | 'SETTLED' | 'BROKEN_OUT'
 export type FundingMethodType = 'DVA' | 'CARD_TOKEN' | 'DIRECT_DEBIT'
 export type AdvanceStatusType = 'ACTIVE' | 'REPAID' | 'DEFAULTED' | 'OFFSET_AT_SETTLEMENT'
@@ -21,6 +23,11 @@ export interface RentVault {
   currentPrincipalKobo: bigint
   accruedYieldKobo: bigint
   cadence: CadenceType
+  productOption?: SavingsProductOption
+  planPattern?: SavingsPlanPattern
+  initialDepositKobo?: bigint
+  appliedAnnualRatePct?: number
+  insurancePremiumPct?: number
   contractualDueDate: Date
   unlockDate: Date
   lockStatus: LockStatusType

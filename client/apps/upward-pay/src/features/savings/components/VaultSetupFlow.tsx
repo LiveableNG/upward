@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { useCreateRentVault } from '../hooks/useRentSavings'
-import { calculatePayLessPlan } from '../services/savingsService'
+import { calculatePayLessPlan, type SavingsCadence } from '../services/savingsService'
 import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/features/auth/AuthContext'
 import { SavingsInvestorKycModal } from './SavingsInvestorKycModal'
@@ -19,7 +19,7 @@ interface VaultSetupFlowProps {
   initialConfig: {
     targetAmountKobo: number
     contractualDueDate: string
-    cadence: 'DAILY' | 'WEEKLY' | 'MONTHLY'
+    cadence: SavingsCadence
     periodicDepositKobo: number
   }
   onBack: () => void
@@ -27,7 +27,7 @@ interface VaultSetupFlowProps {
 }
 
 export function VaultSetupFlow({ initialConfig, onBack, onSuccess }: VaultSetupFlowProps) {
-  const [selectedCadence, setSelectedCadence] = useState<'DAILY' | 'WEEKLY' | 'MONTHLY'>(
+  const [selectedCadence, setSelectedCadence] = useState<SavingsCadence>(
     initialConfig.cadence || 'MONTHLY',
   )
   const [agreeToLock, setAgreeToLock] = useState<boolean>(false)

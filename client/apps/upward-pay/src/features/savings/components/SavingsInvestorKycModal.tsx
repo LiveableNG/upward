@@ -24,7 +24,11 @@ import {
   useRentVault,
   useSavingsOnboardingPrefill,
 } from '../hooks/useRentSavings'
-import { calculatePayLessPlan } from '../services/savingsService'
+import {
+  calculatePayLessPlan,
+  type SavingsPlanPattern,
+  type SavingsProductOption,
+} from '../services/savingsService'
 import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
 import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/features/auth/AuthContext'
@@ -199,8 +203,15 @@ export function SavingsInvestorKycModal({
   } | null>(null)
   const [copiedAccount, setCopiedAccount] = useState(false)
   const [copiedDetails, setCopiedDetails] = useState(false)
-  const [selectedCadence, setSelectedCadence] = useState<'DAILY' | 'WEEKLY' | 'MONTHLY'>(
-    () => vault?.cadence || 'MONTHLY',
+  const [selectedCadence, setSelectedCadence] = useState<'WEEKLY' | 'MONTHLY' | 'QUARTERLY'>(() => {
+    if (vault?.cadence === 'WEEKLY' || vault?.cadence === 'QUARTERLY') return vault.cadence
+    return 'MONTHLY'
+  })
+  const [selectedProductOption, setSelectedProductOption] = useState<SavingsProductOption>(
+    () => vault?.product_option || 'RENT_PROTEC',
+  )
+  const [selectedPlanPattern, setSelectedPlanPattern] = useState<SavingsPlanPattern>(
+    () => vault?.plan_pattern || 'INITIAL_DEPOSIT',
   )
   const [customFundAmount, setCustomFundAmount] = useState<string | null>(null)
 
@@ -224,22 +235,37 @@ export function SavingsInvestorKycModal({
 
   // Work-backwards compound yield calculation ("Pay Less" plan)
   const { rates: platformRates } = usePlatformRates()
-  const savingsAnnualRatePct = platformRates.savingsAnnualRatePct
+  const isRentProtecEligible = runwayDays >= (platformRates.rentProtecMinMonths || 6) * 28
+  const activeProductOption: SavingsProductOption =
+    selectedProductOption === 'RENT_PROTEC' && !isRentProtecEligible
+      ? 'SAVE_AND_EARN'
+      : selectedProductOption
+  const savingsAnnualRatePct =
+    activeProductOption === 'RENT_PROTEC'
+      ? platformRates.rentProtecRatePct
+      : platformRates.savingsAnnualRatePct
   const payLessPlan = calculatePayLessPlan(
     targetRent,
     runwayDays,
     selectedCadence,
     0,
     savingsAnnualRatePct,
+    {
+      productOption: activeProductOption,
+      planPattern: selectedPlanPattern,
+      maxMonths: platformRates.maxSavingsMonths,
+      minRentProtecMonths: platformRates.rentProtecMinMonths,
+      insurancePremiumPct: platformRates.insurancePremiumPct,
+    },
   )
   const periodicTarget = payLessPlan.periodicDepositNaira
   const totalTenantContribution = payLessPlan.totalTenantContributionNaira
   const estimatedYield = payLessPlan.projectedYieldNaira
   const cadenceUnitLabel =
-    selectedCadence === 'DAILY'
-      ? 'day'
-      : selectedCadence === 'WEEKLY'
-        ? 'week'
+    selectedCadence === 'WEEKLY'
+      ? 'week'
+      : selectedCadence === 'QUARTERLY'
+        ? 'quarter'
         : 'month'
 
   const fundAmount =
@@ -322,6 +348,12 @@ export function SavingsInvestorKycModal({
         target_amount: manualRentTarget || prefill?.target_rent || 2400000,
         rent_due_date: manualDueDate || prefill?.rent_due_date || undefined,
         cadence: selectedCadence,
+        product_option: activeProductOption,
+        plan_pattern: selectedPlanPattern,
+        initial_deposit_kobo:
+          payLessPlan.requiredInitialDepositNaira > 0
+            ? payLessPlan.requiredInitialDepositNaira * 100
+            : undefined,
       })
 
       const dva = res?.dedicated_account
@@ -784,7 +816,107 @@ export function SavingsInvestorKycModal({
               </div>
             </div>
 
-            {/* Savings Frequency Selector (Daily / Weekly / Monthly) */}
+            {/* 1. Product Option Selector FIRST (Rent Protec vs Save & Earn) */}
+            <div>
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  color: 'var(--text)',
+                  display: 'block',
+                  marginBottom: 6,
+                }}
+              >
+                Choose your savings plan
+              </span>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: 8,
+                }}
+              >
+                <button
+                  type="button"
+                  disabled={!isRentProtecEligible}
+                  onClick={() => {
+                    setSelectedProductOption('RENT_PROTEC')
+                    setCustomFundAmount(null)
+                  }}
+                  style={{
+                    padding: '10px 12px',
+                    borderRadius: '10px',
+                    border: `1.5px solid ${activeProductOption === 'RENT_PROTEC' ? 'var(--clay)' : 'var(--border)'}`,
+                    background:
+                      activeProductOption === 'RENT_PROTEC'
+                        ? 'var(--clay-faint)'
+                        : 'var(--surface)',
+                    color: 'var(--text)',
+                    textAlign: 'left',
+                    cursor: isRentProtecEligible ? 'pointer' : 'not-allowed',
+                    opacity: isRentProtecEligible ? 1 : 0.55,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 4,
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
+                    <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: activeProductOption === 'RENT_PROTEC' ? 'var(--clay)' : 'var(--text)' }}>
+                      Rent Protec
+                    </span>
+                    <span style={{ fontSize: '0.625rem', fontWeight: 700, padding: '2px 6px', borderRadius: 10, background: 'var(--clay)', color: '#fff' }}>
+                      Recommended
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#059669' }}>
+                    {platformRates.rentProtecRatePct}% p.a. + Insurance
+                  </span>
+                  <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', lineHeight: 1.3 }}>
+                    Includes AXA rent protection ({platformRates.insurancePremiumPct}%) & Rent Bridge access
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedProductOption('SAVE_AND_EARN')
+                    setCustomFundAmount(null)
+                  }}
+                  style={{
+                    padding: '10px 12px',
+                    borderRadius: '10px',
+                    border: `1.5px solid ${activeProductOption === 'SAVE_AND_EARN' ? 'var(--clay)' : 'var(--border)'}`,
+                    background:
+                      activeProductOption === 'SAVE_AND_EARN'
+                        ? 'var(--clay-faint)'
+                        : 'var(--surface)',
+                    color: 'var(--text)',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 4,
+                  }}
+                >
+                  <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: activeProductOption === 'SAVE_AND_EARN' ? 'var(--clay)' : 'var(--text)' }}>
+                    Save & Earn
+                  </span>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#059669' }}>
+                    {platformRates.savingsAnnualRatePct}% p.a. Full Return
+                  </span>
+                  <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', lineHeight: 1.3 }}>
+                    Maximum yield on your rent savings, no insurance cover
+                  </span>
+                </button>
+              </div>
+              {!isRentProtecEligible && (
+                <p style={{ fontSize: '0.6875rem', color: '#B45309', margin: '6px 0 0', lineHeight: 1.35 }}>
+                  Rent Protec requires at least {platformRates.rentProtecMinMonths} months remaining to your rent due date. Save & Earn is active for your timeline.
+                </p>
+              )}
+            </div>
+
+            {/* 2. Savings Frequency Selector (Weekly / Monthly / Quarterly) */}
             <div>
               <span
                 style={{
@@ -806,9 +938,9 @@ export function SavingsInvestorKycModal({
               >
                 {(
                   [
-                    { id: 'DAILY' as const, label: 'Daily' },
                     { id: 'WEEKLY' as const, label: 'Weekly' },
                     { id: 'MONTHLY' as const, label: 'Monthly' },
+                    { id: 'QUARTERLY' as const, label: 'Quarterly' },
                   ]
                 ).map((freq) => {
                   const isActive = selectedCadence === freq.id
@@ -834,6 +966,62 @@ export function SavingsInvestorKycModal({
                       }}
                     >
                       {freq.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* 3. Contribution Schedule Pattern */}
+            <div>
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  color: 'var(--text)',
+                  display: 'block',
+                  marginBottom: 6,
+                }}
+              >
+                Contribution pattern
+              </span>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3, 1fr)',
+                  gap: 8,
+                }}
+              >
+                {(
+                  [
+                    { id: 'INITIAL_DEPOSIT' as const, label: 'Initial + Steady' },
+                    { id: 'STEP_UP' as const, label: 'Start Low & Step-Up' },
+                    { id: 'EQUAL' as const, label: 'Equal Deposits' },
+                  ]
+                ).map((pat) => {
+                  const isActive = selectedPlanPattern === pat.id
+                  return (
+                    <button
+                      key={pat.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedPlanPattern(pat.id)
+                        setCustomFundAmount(null)
+                      }}
+                      style={{
+                        padding: '8px 6px',
+                        borderRadius: '10px',
+                        border: `1.5px solid ${isActive ? 'var(--clay)' : 'var(--border)'}`,
+                        background: isActive ? 'var(--clay-faint)' : 'var(--surface)',
+                        color: isActive ? 'var(--clay)' : 'var(--text)',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                        textAlign: 'center',
+                      }}
+                    >
+                      {pat.label}
                     </button>
                   )
                 })}
@@ -936,6 +1124,35 @@ export function SavingsInvestorKycModal({
                 </div>
               </div>
 
+              {payLessPlan.requiredInitialDepositNaira > 0 && (
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '8px 10px',
+                    borderRadius: 8,
+                    background: 'var(--clay-faint)',
+                    fontSize: '0.75rem',
+                  }}
+                >
+                  <span style={{ fontWeight: 600, color: 'var(--text)' }}>
+                    {activeProductOption === 'RENT_PROTEC'
+                      ? 'Required starting deposit (mid-lease):'
+                      : 'Recommended initial deposit:'}
+                  </span>
+                  <span style={{ fontWeight: 800, color: 'var(--clay)' }}>
+                    {formatCurrency(payLessPlan.requiredInitialDepositNaira, 'NGN')}
+                  </span>
+                </div>
+              )}
+
+              {selectedPlanPattern === 'STEP_UP' && payLessPlan.lastPeriodDepositNaira > payLessPlan.firstPeriodDepositNaira && (
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0 }}>
+                  Step-up schedule: start at <strong>{formatCurrency(payLessPlan.firstPeriodDepositNaira, 'NGN')}</strong> and grow gradually to <strong>{formatCurrency(payLessPlan.lastPeriodDepositNaira, 'NGN')}</strong> / {cadenceUnitLabel}.
+                </p>
+              )}
+
               <p
                 style={{
                   fontSize: '0.75rem',
@@ -944,7 +1161,7 @@ export function SavingsInvestorKycModal({
                   lineHeight: 1.45,
                 }}
               >
-                Save consistently and pay <strong>{formatCurrency(estimatedYield, 'NGN')} less</strong> out of pocket — your {savingsAnnualRatePct}% p.a. interest completes the remaining balance by {earlySettlementDateStr}.
+                Save consistently and pay <strong>{formatCurrency(estimatedYield, 'NGN')} less</strong> out of pocket — your {savingsAnnualRatePct}% p.a. interest{activeProductOption === 'RENT_PROTEC' ? ' + Rent Protec cover' : ''} completes the remaining balance by {earlySettlementDateStr} (max {platformRates.maxSavingsMonths} months).
               </p>
             </div>
 
@@ -953,7 +1170,15 @@ export function SavingsInvestorKycModal({
               className="vault-btn-primary"
               onClick={async () => {
                 try {
-                  await consentMutation.mutateAsync(selectedCadence)
+                  await consentMutation.mutateAsync({
+                    cadence: selectedCadence,
+                    product_option: activeProductOption,
+                    plan_pattern: selectedPlanPattern,
+                    initial_deposit_kobo:
+                      payLessPlan.requiredInitialDepositNaira > 0
+                        ? payLessPlan.requiredInitialDepositNaira * 100
+                        : undefined,
+                  })
                   await refreshUser()
                 } catch {}
                 setStep(4)

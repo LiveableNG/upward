@@ -2,18 +2,28 @@ import { request } from '@/lib/api-client'
 
 export interface PlatformRates {
   savingsAnnualRatePct: number
+  rentProtecRatePct: number
   insurancePremiumPct: number
+  rentProtecMinMonths: number
+  maxSavingsMonths: number
   savingsAnnualRateDecimal: number
+  rentProtecRateDecimal: number
   savingsDailyRate: number
+  rentProtecDailyRate: number
   insurancePremiumRateDecimal: number
   updatedAt: string | null
 }
 
 export const DEFAULT_PLATFORM_RATES: PlatformRates = {
-  savingsAnnualRatePct: 14.5,
+  savingsAnnualRatePct: 14.0,
+  rentProtecRatePct: 10.0,
   insurancePremiumPct: 2.0,
-  savingsAnnualRateDecimal: 0.145,
-  savingsDailyRate: 0.145 / 365,
+  rentProtecMinMonths: 6,
+  maxSavingsMonths: 11,
+  savingsAnnualRateDecimal: 0.14,
+  rentProtecRateDecimal: 0.1,
+  savingsDailyRate: 0.14 / 365,
+  rentProtecDailyRate: 0.1 / 365,
   insurancePremiumRateDecimal: 0.02,
   updatedAt: null,
 }

@@ -252,11 +252,9 @@ export function HousingFirstHome({
           <div className="housing-acc__head">
             <div className="housing-acc__titles">
               <h1 className="housing-acc__title">
-                {hasStartedSaving ? 'Making housing easier' : 'Home & Lifestyle Goals'}
+                {hasStartedSaving ? 'Making housing easier' : 'Make life easier'}
               </h1>
-              <span className="housing-acc__tag">
-                {hasStartedSaving ? 'Housing goals' : 'Housing goals'}
-              </span>
+              <span className="housing-acc__tag">All My Lifestyle</span>
             </div>
             <div className="housing-acc__controls">
               <button
@@ -338,36 +336,22 @@ export function HousingFirstHome({
                 </button>
               )}
 
-              {/* ── STATE A: User Has NOT Started Saving (Advertise 2 Home Goals in Goal Description Mode) ── */}
+              {/* ── STATE A: User Has NOT Started Saving ── */}
               {!hasStartedSaving && (
                 <div className="housing-acc__goals-mode" aria-label="Featured Home Goals">
-                  {/* Goal 1: Save towards your next rent */}
+                  {/* Goal 1: Pay less for my next rent */}
                   <button
                     type="button"
                     className="housing-goal-card"
                     onClick={() => router.push('/dashboard/savings')}
                   >
                     <div className="housing-goal-card__body">
-                      <span className="housing-goal-card__tag">SAVE RENT</span>
-                      <h3 className="housing-goal-card__title">Save towards your next rent</h3>
+                      <span className="housing-goal-card__tag">
+                        {vault?.is_rent_protec ? 'RENT PROTEC • PROTECTED' : 'SAVE RENT'}
+                      </span>
+                      <h3 className="housing-goal-card__title">Pay less for my next rent</h3>
                       <p className="housing-goal-card__desc">
-                        Save consistently and pay less — {platformRates.savingsAnnualRatePct}% p.a. interest completes your rent
-                      </p>
-                    </div>
-                    {renderGoalRing(0, 38)}
-                  </button>
-
-                  {/* Goal 2: Home refresh package for 2027 */}
-                  <button
-                    type="button"
-                    className="housing-goal-card"
-                    onClick={() => router.push('/dashboard/lifestyle?id=home-refresh-2027')}
-                  >
-                    <div className="housing-goal-card__body">
-                      <span className="housing-goal-card__tag">HOME REFRESH</span>
-                      <h3 className="housing-goal-card__title">Home refresh package for 2027</h3>
-                      <p className="housing-goal-card__desc">
-                        Curated carpets, footmats, towels & apartment renewal kits
+                        Save consistently and pay less — {platformRates.savingsAnnualRatePct}% p.a. or Rent Protec ({platformRates.rentProtecRatePct}% + Insurance)
                       </p>
                     </div>
                     {renderGoalRing(0, 38)}
@@ -399,7 +383,10 @@ export function HousingFirstHome({
                       <div className="vault-card__fill" style={{ width: `${vaultPct}%` }} />
                     </div>
                     <div className="vault-card__meta">
-                      <span className="vault-card__yield">{accruedYieldFormatted}</span>
+                      <span className="vault-card__yield">
+                        {accruedYieldFormatted}
+                        {vault?.is_rent_protec ? ' • Protected' : ''}
+                      </span>
                       <span>{daysLeftFormatted}</span>
                     </div>
                   </button>
@@ -643,31 +630,31 @@ export function HousingFirstHome({
 
         {/* 2. Desktop-Only Extra Sidebar Widgets */}
         <div className="housing-first-home__sidebar-extra">
-          {/* Rent Protection & Upward Benefits Status Card */}
-          <div className="sidebar-widget sidebar-widget--benefits">
-            <div className="sidebar-widget__head">
-              <span className="sidebar-widget__icon">
-                <ShieldCheck size={18} strokeWidth={2.2} />
-              </span>
-              <div>
-                <h4 className="sidebar-widget__title">Rent Protection</h4>
-                <p className="sidebar-widget__desc">
-                  {benefitsActive
-                    ? benefitsEndsAt
+          {/* Rent Protection Status (Lives inside Rent Protec) */}
+          {(vault?.is_rent_protec || benefitsActive) && (
+            <div className="sidebar-widget sidebar-widget--benefits">
+              <div className="sidebar-widget__head">
+                <span className="sidebar-widget__icon">
+                  <ShieldCheck size={18} strokeWidth={2.2} />
+                </span>
+                <div>
+                  <h4 className="sidebar-widget__title">Rent Protec • Protected</h4>
+                  <p className="sidebar-widget__desc">
+                    {benefitsEndsAt
                       ? `Active coverage through ${formatDate(benefitsEndsAt)}`
-                      : 'Active protection enabled'
-                    : 'Annual cover for rent security & unexpected disruptions'}
-                </p>
+                      : 'AXA rent protection active with your Rent Protec vault'}
+                  </p>
+                </div>
               </div>
+              <button
+                type="button"
+                className="sidebar-widget__action-btn"
+                onClick={() => router.push('/dashboard/savings')}
+              >
+                View Rent Protec
+              </button>
             </div>
-            <button
-              type="button"
-              className="sidebar-widget__action-btn"
-              onClick={() => router.push('/dashboard/benefits')}
-            >
-              {benefitsActive ? 'Manage Protection' : 'Activate Protection →'}
-            </button>
-          </div>
+          )}
 
           {/* Upward Mobile App Download Promo */}
           <div className="sidebar-widget sidebar-widget--app">

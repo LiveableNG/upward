@@ -3,22 +3,33 @@ import { PrismaService } from '../prisma/prisma.service';
 
 export interface PlatformRatesSnapshot {
   savingsAnnualRatePct: number;
+  rentProtecRatePct: number;
   insurancePremiumPct: number;
+  rentProtecMinMonths: number;
+  maxSavingsMonths: number;
   savingsAnnualRateDecimal: number;
+  rentProtecRateDecimal: number;
   savingsDailyRate: number;
+  rentProtecDailyRate: number;
   insurancePremiumRateDecimal: number;
   updatedAt: string | null;
 }
 
-const DEFAULT_SAVINGS_ANNUAL_RATE_PCT = 14.5;
+const DEFAULT_SAVINGS_ANNUAL_RATE_PCT = 14.0;
+const DEFAULT_RENT_PROTEC_RATE_PCT = 10.0;
 const DEFAULT_INSURANCE_PREMIUM_PCT = 2.0;
+const DEFAULT_RENT_PROTEC_MIN_MONTHS = 6;
+const DEFAULT_MAX_SAVINGS_MONTHS = 11;
 const GLOBAL_KEY = 'GLOBAL';
 const LEGACY_SAVINGS_CONFIG_KEY = 'GLOBAL_DAILY_INTEREST';
 
 @Injectable()
 export class PlatformRatesService implements OnModuleInit {
   private cachedSavingsAnnualRatePct = DEFAULT_SAVINGS_ANNUAL_RATE_PCT;
+  private cachedRentProtecRatePct = DEFAULT_RENT_PROTEC_RATE_PCT;
   private cachedInsurancePremiumPct = DEFAULT_INSURANCE_PREMIUM_PCT;
+  private cachedRentProtecMinMonths = DEFAULT_RENT_PROTEC_MIN_MONTHS;
+  private cachedMaxSavingsMonths = DEFAULT_MAX_SAVINGS_MONTHS;
   private cachedUpdatedAt: Date | null = null;
 
   constructor(private readonly prisma: PrismaService) {}
@@ -34,34 +45,52 @@ export class PlatformRatesService implements OnModuleInit {
       });
       if (record) {
         this.cachedSavingsAnnualRatePct = record.savingsAnnualRatePct;
+        this.cachedRentProtecRatePct = record.rentProtecRatePct;
         this.cachedInsurancePremiumPct = record.insurancePremiumPct;
+        this.cachedRentProtecMinMonths = record.rentProtecMinMonths;
+        this.cachedMaxSavingsMonths = record.maxSavingsMonths;
         this.cachedUpdatedAt = record.updatedAt;
       } else {
         const created = await this.prisma.upward_platform_rate_config.create({
           data: {
             key: GLOBAL_KEY,
             savingsAnnualRatePct: DEFAULT_SAVINGS_ANNUAL_RATE_PCT,
+            rentProtecRatePct: DEFAULT_RENT_PROTEC_RATE_PCT,
             insurancePremiumPct: DEFAULT_INSURANCE_PREMIUM_PCT,
+            rentProtecMinMonths: DEFAULT_RENT_PROTEC_MIN_MONTHS,
+            maxSavingsMonths: DEFAULT_MAX_SAVINGS_MONTHS,
           },
         });
         this.cachedSavingsAnnualRatePct = created.savingsAnnualRatePct;
+        this.cachedRentProtecRatePct = created.rentProtecRatePct;
         this.cachedInsurancePremiumPct = created.insurancePremiumPct;
+        this.cachedRentProtecMinMonths = created.rentProtecMinMonths;
+        this.cachedMaxSavingsMonths = created.maxSavingsMonths;
         this.cachedUpdatedAt = created.updatedAt;
       }
     } catch {
       this.cachedSavingsAnnualRatePct = DEFAULT_SAVINGS_ANNUAL_RATE_PCT;
+      this.cachedRentProtecRatePct = DEFAULT_RENT_PROTEC_RATE_PCT;
       this.cachedInsurancePremiumPct = DEFAULT_INSURANCE_PREMIUM_PCT;
+      this.cachedRentProtecMinMonths = DEFAULT_RENT_PROTEC_MIN_MONTHS;
+      this.cachedMaxSavingsMonths = DEFAULT_MAX_SAVINGS_MONTHS;
     }
   }
 
   getCachedRates(): PlatformRatesSnapshot {
     const savingsAnnualRateDecimal = this.cachedSavingsAnnualRatePct / 100;
+    const rentProtecRateDecimal = this.cachedRentProtecRatePct / 100;
     const insurancePremiumRateDecimal = this.cachedInsurancePremiumPct / 100;
     return {
       savingsAnnualRatePct: this.cachedSavingsAnnualRatePct,
+      rentProtecRatePct: this.cachedRentProtecRatePct,
       insurancePremiumPct: this.cachedInsurancePremiumPct,
+      rentProtecMinMonths: this.cachedRentProtecMinMonths,
+      maxSavingsMonths: this.cachedMaxSavingsMonths,
       savingsAnnualRateDecimal,
+      rentProtecRateDecimal,
       savingsDailyRate: savingsAnnualRateDecimal / 365,
+      rentProtecDailyRate: rentProtecRateDecimal / 365,
       insurancePremiumRateDecimal,
       updatedAt: this.cachedUpdatedAt ? this.cachedUpdatedAt.toISOString() : null,
     };
@@ -74,7 +103,10 @@ export class PlatformRatesService implements OnModuleInit {
       });
       if (record) {
         this.cachedSavingsAnnualRatePct = record.savingsAnnualRatePct;
+        this.cachedRentProtecRatePct = record.rentProtecRatePct;
         this.cachedInsurancePremiumPct = record.insurancePremiumPct;
+        this.cachedRentProtecMinMonths = record.rentProtecMinMonths;
+        this.cachedMaxSavingsMonths = record.maxSavingsMonths;
         this.cachedUpdatedAt = record.updatedAt;
       }
     } catch {
@@ -85,7 +117,10 @@ export class PlatformRatesService implements OnModuleInit {
 
   async updateRates(params: {
     savingsAnnualRatePct?: number;
+    rentProtecRatePct?: number;
     insurancePremiumPct?: number;
+    rentProtecMinMonths?: number;
+    maxSavingsMonths?: number;
     updatedByAdminId?: string;
   }): Promise<PlatformRatesSnapshot> {
     const current = await this.getRates();
@@ -94,16 +129,37 @@ export class PlatformRatesService implements OnModuleInit {
       params.savingsAnnualRatePct !== undefined
         ? Number(params.savingsAnnualRatePct)
         : current.savingsAnnualRatePct;
+    const nextRentProtecPct =
+      params.rentProtecRatePct !== undefined
+        ? Number(params.rentProtecRatePct)
+        : current.rentProtecRatePct;
     const nextInsurancePct =
       params.insurancePremiumPct !== undefined
         ? Number(params.insurancePremiumPct)
         : current.insurancePremiumPct;
+    const nextMinMonths =
+      params.rentProtecMinMonths !== undefined
+        ? Math.round(Number(params.rentProtecMinMonths))
+        : current.rentProtecMinMonths;
+    const nextMaxMonths =
+      params.maxSavingsMonths !== undefined
+        ? Math.round(Number(params.maxSavingsMonths))
+        : current.maxSavingsMonths;
 
     if (!Number.isFinite(nextSavingsPct) || nextSavingsPct < 0 || nextSavingsPct > 100) {
-      throw new BadRequestException('Savings annual rate must be between 0% and 100%');
+      throw new BadRequestException('Save & Earn annual rate must be between 0% and 100%');
+    }
+    if (!Number.isFinite(nextRentProtecPct) || nextRentProtecPct < 0 || nextRentProtecPct > 100) {
+      throw new BadRequestException('Rent Protec annual rate must be between 0% and 100%');
     }
     if (!Number.isFinite(nextInsurancePct) || nextInsurancePct < 0 || nextInsurancePct > 100) {
       throw new BadRequestException('Insurance premium percentage must be between 0% and 100%');
+    }
+    if (!Number.isFinite(nextMinMonths) || nextMinMonths < 1 || nextMinMonths > 12) {
+      throw new BadRequestException('Rent Protec minimum advance months must be between 1 and 12');
+    }
+    if (!Number.isFinite(nextMaxMonths) || nextMaxMonths < 1 || nextMaxMonths > 11) {
+      throw new BadRequestException('Max savings horizon must be between 1 and 11 months');
     }
 
     const updated = await this.prisma.upward_platform_rate_config.upsert({
@@ -111,17 +167,22 @@ export class PlatformRatesService implements OnModuleInit {
       create: {
         key: GLOBAL_KEY,
         savingsAnnualRatePct: nextSavingsPct,
+        rentProtecRatePct: nextRentProtecPct,
         insurancePremiumPct: nextInsurancePct,
+        rentProtecMinMonths: nextMinMonths,
+        maxSavingsMonths: nextMaxMonths,
         updatedByAdminId: params.updatedByAdminId || null,
       },
       update: {
         savingsAnnualRatePct: nextSavingsPct,
+        rentProtecRatePct: nextRentProtecPct,
         insurancePremiumPct: nextInsurancePct,
+        rentProtecMinMonths: nextMinMonths,
+        maxSavingsMonths: nextMaxMonths,
         updatedByAdminId: params.updatedByAdminId || null,
       },
     });
 
-    // Keep legacy wallet savings config synchronized
     try {
       const dailyRate = nextSavingsPct / 100 / 365;
       await this.prisma.upward_savings_config.upsert({
@@ -141,7 +202,10 @@ export class PlatformRatesService implements OnModuleInit {
     }
 
     this.cachedSavingsAnnualRatePct = updated.savingsAnnualRatePct;
+    this.cachedRentProtecRatePct = updated.rentProtecRatePct;
     this.cachedInsurancePremiumPct = updated.insurancePremiumPct;
+    this.cachedRentProtecMinMonths = updated.rentProtecMinMonths;
+    this.cachedMaxSavingsMonths = updated.maxSavingsMonths;
     this.cachedUpdatedAt = updated.updatedAt;
 
     return this.getCachedRates();

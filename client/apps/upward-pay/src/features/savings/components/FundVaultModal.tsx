@@ -14,13 +14,14 @@ import {
 import { useToast } from '@/components/common/Toast'
 import { formatCurrency } from '@/lib/utils'
 import { useSimulateVaultDeposit } from '../hooks/useRentSavings'
+import { type SavingsCadence } from '../services/savingsService'
 import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
 
 interface FundVaultModalProps {
   isOpen: boolean
   onClose: () => void
   recommendedAmountNaira?: number
-  cadence?: 'DAILY' | 'WEEKLY' | 'MONTHLY'
+  cadence?: SavingsCadence
   dedicatedAccount?: {
     bank_name: string
     account_number: string

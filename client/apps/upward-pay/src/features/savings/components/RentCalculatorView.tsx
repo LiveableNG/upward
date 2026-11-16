@@ -12,14 +12,19 @@ import {
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from '@/lib/utils'
 import { useSimulateRentSavings } from '../hooks/useRentSavings'
 import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
-import { calculatePayLessPlan } from '../services/savingsService'
+import {
+  calculatePayLessPlan,
+  type SavingsCadence,
+  type SavingsPlanPattern,
+  type SavingsProductOption,
+} from '../services/savingsService'
 import { useAuth } from '@/features/auth/AuthContext'
 
 interface RentCalculatorViewProps {
   onProceedToSetup: (config: {
     targetAmountKobo: number
     contractualDueDate: string
-    cadence: 'DAILY' | 'WEEKLY' | 'MONTHLY'
+    cadence: SavingsCadence
     periodicDepositKobo: number
   }) => void
   onOpenKycModal?: () => void
@@ -42,15 +47,17 @@ export function RentCalculatorView({ onProceedToSetup, onOpenKycModal }: RentCal
   )
 
   const [targetAmountRaw, setTargetAmountRaw] = useState<string>(() =>
-    activeProperty?.rentAmount ? formatCurrencyInput(activeProperty.rentAmount) : '2,400,000',
+    activeProperty?.rentAmount ? formatCurrencyInput(activeProperty.rentAmount) : '',
+  )
+  const [propertyAddress, setPropertyAddress] = useState<string>(
+    () => activeProperty?.address || '',
   )
   const [nowTimestamp] = useState(() => Date.now())
   const [contractualDueDate, setContractualDueDate] = useState<string>(() => {
     if (activeProperty?.rentEndDate) {
       return activeProperty.rentEndDate.split('T')[0]
     }
-    const defaultDate = new Date(Date.now() + 343 * 24 * 60 * 60 * 1000)
-    return defaultDate.toISOString().split('T')[0]
+    return ''
   })
 
   const [prevPropertyId, setPrevPropertyId] = useState<number | string | undefined>(
@@ -61,16 +68,40 @@ export function RentCalculatorView({ onProceedToSetup, onOpenKycModal }: RentCal
     if (activeProperty?.rentAmount) {
       setTargetAmountRaw(formatCurrencyInput(activeProperty.rentAmount))
     }
+    if (activeProperty?.address) {
+      setPropertyAddress(activeProperty.address)
+    }
     if (activeProperty?.rentEndDate) {
       setContractualDueDate(activeProperty.rentEndDate.split('T')[0])
     }
   }
 
-  const targetAmountNaira = parseCurrencyInput(targetAmountRaw) || 2_400_000
-  const [selectedCadence, setSelectedCadence] = useState<'DAILY' | 'WEEKLY' | 'MONTHLY'>('MONTHLY')
+  const targetAmountNaira = parseCurrencyInput(targetAmountRaw) || 0
+  const hasRentDetails = Boolean(
+    activeProperty?.rentAmount ||
+      (propertyAddress.trim() && targetAmountNaira > 0 && contractualDueDate),
+  )
+  const [selectedCadence, setSelectedCadence] = useState<'WEEKLY' | 'MONTHLY' | 'QUARTERLY'>('MONTHLY')
+  const [selectedProductOption, setSelectedProductOption] = useState<SavingsProductOption>('RENT_PROTEC')
+  const [selectedPlanPattern, setSelectedPlanPattern] = useState<SavingsPlanPattern>('INITIAL_DEPOSIT')
 
   const simulateMutation = useSimulateRentSavings()
   const mutateSimulate = simulateMutation.mutate
+
+  const { rates: platformRates } = usePlatformRates()
+  const rawDaysRemaining = contractualDueDate
+    ? Math.max(
+        1,
+        Math.ceil(
+          (new Date(contractualDueDate).getTime() - nowTimestamp) / (1000 * 60 * 60 * 24),
+        ),
+      )
+    : 330
+  const isRentProtecEligible = rawDaysRemaining >= (platformRates.rentProtecMinMonths || 6) * 28
+  const activeProductOption: SavingsProductOption =
+    selectedProductOption === 'RENT_PROTEC' && !isRentProtecEligible
+      ? 'SAVE_AND_EARN'
+      : selectedProductOption
 
   useEffect(() => {
     if (!targetAmountNaira || !contractualDueDate) return
@@ -80,6 +111,8 @@ export function RentCalculatorView({ onProceedToSetup, onOpenKycModal }: RentCal
       contractual_due_date: contractualDueDate,
       initial_deposit_kobo: 0,
       cadence: selectedCadence,
+      product_option: activeProductOption,
+      plan_pattern: selectedPlanPattern,
     })
 
     if (typeof window !== 'undefined') {
@@ -88,15 +121,21 @@ export function RentCalculatorView({ onProceedToSetup, onOpenKycModal }: RentCal
           'upward_savings_rent_plan',
           JSON.stringify({
             userId: user?.id,
+            address: propertyAddress.trim() || undefined,
             rentAmount: targetAmountNaira,
             dueDate: contractualDueDate,
             cadence: selectedCadence,
+            productOption: activeProductOption,
+            planPattern: selectedPlanPattern,
           }),
         )
         const rawDraft = localStorage.getItem('upward_setup_draft')
         if (rawDraft) {
           const parsedDraft = JSON.parse(rawDraft)
           if (parsedDraft?.formData) {
+            if (propertyAddress.trim()) {
+              parsedDraft.formData.address = propertyAddress.trim()
+            }
             parsedDraft.formData.rentAmount = targetAmountNaira.toLocaleString()
             parsedDraft.formData.rentEndDate = contractualDueDate
             parsedDraft.formData.rentStartDate = new Date(
@@ -109,21 +148,26 @@ export function RentCalculatorView({ onProceedToSetup, onOpenKycModal }: RentCal
         }
       } catch {}
     }
-  }, [targetAmountNaira, contractualDueDate, selectedCadence, mutateSimulate, user?.id])
+  }, [
+    targetAmountNaira,
+    contractualDueDate,
+    propertyAddress,
+    selectedCadence,
+    activeProductOption,
+    selectedPlanPattern,
+    mutateSimulate,
+    user?.id,
+  ])
 
   const simData = simulateMutation.data
-  const { rates: platformRates } = usePlatformRates()
+  const defaultRatePct =
+    activeProductOption === 'RENT_PROTEC'
+      ? platformRates.rentProtecRatePct
+      : platformRates.savingsAnnualRatePct
   const savingsAnnualRatePct = simData?.net_annual_yield_rate
     ? Math.round(simData.net_annual_yield_rate * 1000) / 10
-    : platformRates.savingsAnnualRatePct
-  const daysRemaining = simData
-    ? simData.days_remaining
-    : Math.max(
-        1,
-        Math.ceil(
-          (new Date(contractualDueDate).getTime() - nowTimestamp) / (1000 * 60 * 60 * 24),
-        ),
-      )
+    : defaultRatePct
+  const daysRemaining = simData ? simData.days_remaining : rawDaysRemaining
 
   const localPlan = calculatePayLessPlan(
     targetAmountNaira,
@@ -131,6 +175,13 @@ export function RentCalculatorView({ onProceedToSetup, onOpenKycModal }: RentCal
     selectedCadence,
     0,
     savingsAnnualRatePct,
+    {
+      productOption: activeProductOption,
+      planPattern: selectedPlanPattern,
+      maxMonths: platformRates.maxSavingsMonths,
+      minRentProtecMonths: platformRates.rentProtecMinMonths,
+      insurancePremiumPct: platformRates.insurancePremiumPct,
+    },
   )
   const periodicDepositNaira = simData
     ? simData.periodic_deposit_kobo / 100
@@ -143,10 +194,10 @@ export function RentCalculatorView({ onProceedToSetup, onOpenKycModal }: RentCal
     : localPlan.projectedYieldNaira
 
   const cadenceUnitLabel =
-    selectedCadence === 'DAILY'
-      ? 'day'
-      : selectedCadence === 'WEEKLY'
-        ? 'wk'
+    selectedCadence === 'WEEKLY'
+      ? 'wk'
+      : selectedCadence === 'QUARTERLY'
+        ? 'qtr'
         : 'mo'
 
   const formattedDueDate = contractualDueDate
@@ -241,7 +292,7 @@ export function RentCalculatorView({ onProceedToSetup, onOpenKycModal }: RentCal
           >
             <Gift size={16} color="var(--clay)" style={{ flexShrink: 0 }} />
             <span>
-              <strong>Pay Less for Rent:</strong> Save consistently and your 14.5% p.a. interest pays the remaining {formatCurrency(projectedYieldNaira, 'NGN')} of your rent.
+              <strong>Pay Less for Rent:</strong> Save consistently and your {savingsAnnualRatePct}% p.a. interest pays the remaining {formatCurrency(projectedYieldNaira, 'NGN')} of your rent.
             </span>
           </div>
         </div>
@@ -302,7 +353,10 @@ export function RentCalculatorView({ onProceedToSetup, onOpenKycModal }: RentCal
         <div className="rent-savings__central-cta-box" onClick={(e) => e.stopPropagation()}>
           <div className="vault-setup__badge">
             <TrendingUp size={12} color="var(--clay)" />
-            <span>Powered by ARM • 14.5% p.a.</span>
+            <span>
+              Powered by ARM • {savingsAnnualRatePct}% p.a.
+              {activeProductOption === 'RENT_PROTEC' ? ' • Rent Protec' : ''}
+            </span>
           </div>
 
           <h3 className="rent-savings__central-title">
@@ -316,21 +370,72 @@ export function RentCalculatorView({ onProceedToSetup, onOpenKycModal }: RentCal
             {formatCurrency(targetAmountNaira, 'NGN')} rent.
           </p>
 
-          {/* Frequency Selector (Daily / Weekly / Monthly) */}
+          {/* 1. Product Option Selector FIRST */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: 6,
+              width: '100%',
+              margin: '6px 0 8px',
+            }}
+          >
+            <button
+              type="button"
+              disabled={!isRentProtecEligible}
+              onClick={() => setSelectedProductOption('RENT_PROTEC')}
+              style={{
+                padding: '8px 10px',
+                borderRadius: '8px',
+                border: `1.5px solid ${activeProductOption === 'RENT_PROTEC' ? 'var(--clay)' : 'var(--border)'}`,
+                background: activeProductOption === 'RENT_PROTEC' ? 'var(--clay-faint)' : 'var(--bg)',
+                color: activeProductOption === 'RENT_PROTEC' ? 'var(--clay)' : 'var(--text)',
+                textAlign: 'left',
+                cursor: isRentProtecEligible ? 'pointer' : 'not-allowed',
+                opacity: isRentProtecEligible ? 1 : 0.55,
+              }}
+            >
+              <div style={{ fontSize: '0.75rem', fontWeight: 800 }}>Rent Protec</div>
+              <div style={{ fontSize: '0.6875rem', color: '#059669', fontWeight: 700 }}>
+                {platformRates.rentProtecRatePct}% + Insurance
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedProductOption('SAVE_AND_EARN')}
+              style={{
+                padding: '8px 10px',
+                borderRadius: '8px',
+                border: `1.5px solid ${activeProductOption === 'SAVE_AND_EARN' ? 'var(--clay)' : 'var(--border)'}`,
+                background: activeProductOption === 'SAVE_AND_EARN' ? 'var(--clay-faint)' : 'var(--bg)',
+                color: activeProductOption === 'SAVE_AND_EARN' ? 'var(--clay)' : 'var(--text)',
+                textAlign: 'left',
+                cursor: 'pointer',
+              }}
+            >
+              <div style={{ fontSize: '0.75rem', fontWeight: 800 }}>Save & Earn</div>
+              <div style={{ fontSize: '0.6875rem', color: '#059669', fontWeight: 700 }}>
+                {platformRates.savingsAnnualRatePct}% Full Return
+              </div>
+            </button>
+          </div>
+
+          {/* 2. Frequency Selector (Weekly / Monthly / Quarterly) */}
           <div
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(3, 1fr)',
               gap: 6,
               width: '100%',
-              margin: '8px 0 12px',
+              margin: '0 0 8px',
             }}
           >
             {(
               [
-                { id: 'DAILY' as const, label: 'Daily' },
                 { id: 'WEEKLY' as const, label: 'Weekly' },
                 { id: 'MONTHLY' as const, label: 'Monthly' },
+                { id: 'QUARTERLY' as const, label: 'Quarterly' },
               ]
             ).map((freq) => {
               const isActive = selectedCadence === freq.id
@@ -351,6 +456,46 @@ export function RentCalculatorView({ onProceedToSetup, onOpenKycModal }: RentCal
                   }}
                 >
                   {freq.label}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* 3. Contribution Pattern */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: 6,
+              width: '100%',
+              margin: '0 0 12px',
+            }}
+          >
+            {(
+              [
+                { id: 'INITIAL_DEPOSIT' as const, label: 'Initial + Steady' },
+                { id: 'STEP_UP' as const, label: 'Step-Up' },
+                { id: 'EQUAL' as const, label: 'Equal' },
+              ]
+            ).map((pat) => {
+              const isActive = selectedPlanPattern === pat.id
+              return (
+                <button
+                  key={pat.id}
+                  type="button"
+                  onClick={() => setSelectedPlanPattern(pat.id)}
+                  style={{
+                    padding: '6px 4px',
+                    borderRadius: '8px',
+                    border: `1.5px solid ${isActive ? 'var(--clay)' : 'var(--border)'}`,
+                    background: isActive ? 'var(--clay-faint)' : 'var(--bg)',
+                    color: isActive ? 'var(--clay)' : 'var(--text-secondary)',
+                    fontSize: '0.6875rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  {pat.label}
                 </button>
               )
             })}

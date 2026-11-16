@@ -34,12 +34,22 @@ export class AdminFeesController {
   @Put('rates')
   @Post('rates')
   async updatePlatformRates(
-    @Body() body: { savingsAnnualRatePct?: number; insurancePremiumPct?: number },
+    @Body()
+    body: {
+      savingsAnnualRatePct?: number
+      rentProtecRatePct?: number
+      insurancePremiumPct?: number
+      rentProtecMinMonths?: number
+      maxSavingsMonths?: number
+    },
     @Req() req: any,
   ) {
     const data = await this.platformRatesService.updateRates({
       savingsAnnualRatePct: body.savingsAnnualRatePct,
+      rentProtecRatePct: body.rentProtecRatePct,
       insurancePremiumPct: body.insurancePremiumPct,
+      rentProtecMinMonths: body.rentProtecMinMonths,
+      maxSavingsMonths: body.maxSavingsMonths,
       updatedByAdminId: req.user?.id || req.user?.sub,
     })
     return { success: true, data }

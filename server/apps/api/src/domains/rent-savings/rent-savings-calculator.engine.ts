@@ -1,22 +1,40 @@
-import { CadenceType } from './rent-vault.types'
+import {
+  CadenceType,
+  SavingsPlanPattern,
+  SavingsProductOption,
+} from './rent-vault.types'
 
 export interface SimulationInput {
   targetAmountKobo: bigint
   contractualDueDate: Date
   initialDepositKobo?: bigint
   cadence: CadenceType
+  productOption?: SavingsProductOption
+  planPattern?: SavingsPlanPattern
   monthlyIncomeKobo?: bigint
   asOfDate?: Date
   annualNetYieldRate?: number
+  maxSavingsMonths?: number
+  rentProtecMinMonths?: number
+  insurancePremiumPct?: number
 }
 
 export interface SimulationResult {
   daysRemaining: number
+  monthsRemaining: number
   periodicDepositKobo: bigint
+  firstPeriodDepositKobo: bigint
+  lastPeriodDepositKobo: bigint
+  requiredInitialDepositKobo: bigint
   numberOfPayments: number
   totalTenantContributionKobo: bigint
   projectedYieldKobo: bigint
   netAnnualYieldRate: number
+  productOption: SavingsProductOption
+  planPattern: SavingsPlanPattern
+  isRentProtecEligible: boolean
+  rentProtecIneligibilityReason?: string
+  insurancePremiumKobo: bigint
   affordability: {
     rentToIncomeRatio: number
     isOverThreshold: boolean
@@ -52,57 +70,124 @@ export class RentSavingsCalculatorEngine {
    */
   public static simulate(input: SimulationInput): SimulationResult {
     const today = input.asOfDate || new Date()
-    const daysRemaining = this.calculateDaysRemaining(input.contractualDueDate, today)
+    const rawDaysRemaining = this.calculateDaysRemaining(input.contractualDueDate, today)
 
-    if (daysRemaining <= 0) {
+    if (rawDaysRemaining <= 0) {
       throw new Error('Contractual due date must be strictly in the future.')
     }
 
-    const initialDeposit = Number(input.initialDepositKobo || 0n)
+    const maxMonths = Math.min(11, Math.max(1, input.maxSavingsMonths ?? 11))
+    const minRentProtecMonths = Math.max(1, input.rentProtecMinMonths ?? 6)
+    const productOption: SavingsProductOption = input.productOption ?? 'SAVE_AND_EARN'
+    const planPattern: SavingsPlanPattern = input.planPattern ?? 'INITIAL_DEPOSIT'
+
+    // Cap effective savings horizon at <= 11 months (Kunle spec: max 10-11 months, never 12)
+    const rawMonths = Math.max(1, Math.floor(rawDaysRemaining / 30))
+    const monthsRemaining = Math.min(maxMonths, rawMonths)
+    const daysRemaining = Math.min(rawDaysRemaining, maxMonths * 30)
+
+    const isRentProtecEligible = rawDaysRemaining >= minRentProtecMonths * 28
+    const rentProtecIneligibilityReason = !isRentProtecEligible
+      ? `Rent Protec requires at least ${minRentProtecMonths} months before your rent due date.`
+      : undefined
+
     const targetAmount = Number(input.targetAmountKobo)
     const effectiveAnnualYield =
-      input.annualNetYieldRate !== undefined && Number.isFinite(input.annualNetYieldRate) && input.annualNetYieldRate >= 0
+      input.annualNetYieldRate !== undefined &&
+      Number.isFinite(input.annualNetYieldRate) &&
+      input.annualNetYieldRate >= 0
         ? input.annualNetYieldRate
-        : this.ANNUAL_NET_YIELD
-    const effectiveDailyRate = effectiveAnnualYield / this.DAYS_IN_YEAR
+        : productOption === 'RENT_PROTEC'
+          ? 0.1
+          : 0.14
 
-    // Future value of initial deposit
-    const fvInitial = initialDeposit * Math.pow(1 + effectiveDailyRate, daysRemaining)
+    // Exact monthly effective rate: r_m = (1 + r_a)^(1/12) - 1 (Section 3.4)
+    const monthlyRate = Math.pow(1 + effectiveAnnualYield, 1 / 12) - 1
+
+    // Required initial deposit when starting mid-lease or choosing INITIAL_DEPOSIT / RENT_PROTEC
+    const missedMonths = Math.max(0, maxMonths - monthsRemaining)
+    const forcedDepositRatio =
+      productOption === 'RENT_PROTEC' && missedMonths > 0
+        ? Math.min(0.45, Math.max(0.15, (missedMonths / maxMonths) * 0.5))
+        : planPattern === 'INITIAL_DEPOSIT'
+          ? 0.2
+          : 0
+    const requiredInitialDepositNum = Math.round(targetAmount * forcedDepositRatio)
+    const providedInitialDeposit = Number(input.initialDepositKobo || 0n)
+    const effectiveInitialDeposit =
+      providedInitialDeposit > 0
+        ? Math.max(
+            providedInitialDeposit,
+            productOption === 'RENT_PROTEC' ? requiredInitialDepositNum : 0,
+          )
+        : planPattern === 'INITIAL_DEPOSIT' || productOption === 'RENT_PROTEC'
+          ? requiredInitialDepositNum
+          : 0
+
+    // Number of contribution periods based on cadence within <= 11-month window
+    let numberOfPayments = monthsRemaining
+    let periodRate = monthlyRate
+    if (input.cadence === 'WEEKLY') {
+      numberOfPayments = Math.max(1, Math.min(maxMonths * 4, Math.floor(daysRemaining / 7)))
+      periodRate = Math.pow(1 + effectiveAnnualYield, 1 / 52) - 1
+    } else if (input.cadence === 'QUARTERLY') {
+      numberOfPayments = Math.max(1, Math.floor(monthsRemaining / 3))
+      periodRate = Math.pow(1 + effectiveAnnualYield, 1 / 4) - 1
+    } else if (input.cadence === 'DAILY') {
+      numberOfPayments = Math.max(1, daysRemaining)
+      periodRate = Math.pow(1 + effectiveAnnualYield, 1 / 365) - 1
+    } else {
+      numberOfPayments = Math.max(1, Math.min(maxMonths, monthsRemaining))
+      periodRate = monthlyRate
+    }
+
+    // FV of initial deposit: S_0 * (1 + r)^n
+    const fvInitial = effectiveInitialDeposit * Math.pow(1 + periodRate, numberOfPayments)
     const deficit = Math.max(0, targetAmount - fvInitial)
 
-    let cadenceStepDays = 30
-    if (input.cadence === 'DAILY') {
-      cadenceStepDays = 1
-    } else if (input.cadence === 'WEEKLY') {
-      cadenceStepDays = 7
-    } else {
-      // MONTHLY: adapt to runway length
-      if (daysRemaining <= 45) {
-        cadenceStepDays = Math.max(1, Math.floor(daysRemaining / 2))
+    // Compute weights w_i for each contribution period i = 1..n (end-of-period compounding)
+    const weights: number[] = []
+    for (let i = 1; i <= numberOfPayments; i++) {
+      if (planPattern === 'STEP_UP') {
+        // Start lower and increase by ~8% per step
+        const stepFactor = input.cadence === 'WEEKLY' ? 0.02 : 0.08
+        weights.push(Math.pow(1 + stepFactor, i - 1))
+      } else if (planPattern === 'ACCELERATED') {
+        // Front-load early contributions so more capital compounds longer
+        const taperFactor = input.cadence === 'WEEKLY' ? 0.015 : 0.06
+        weights.push(Math.max(0.4, 1 - taperFactor * (i - 1)))
       } else {
-        cadenceStepDays = 30
+        weights.push(1)
       }
     }
 
-    const numberOfPayments = Math.max(1, Math.floor(daysRemaining / cadenceStepDays))
-
-    // Sum of compound discount factors: sum_{j=1}^{k} (1 + r)^{N - j * Delta_d}
-    let denominator = 0
-    for (let j = 1; j <= numberOfPayments; j++) {
-      const exponent = Math.max(0, daysRemaining - j * cadenceStepDays)
-      denominator += Math.pow(1 + effectiveDailyRate, exponent)
+    let weightedDiscountSum = 0
+    for (let i = 1; i <= numberOfPayments; i++) {
+      const periodsRemaining = Math.max(0, numberOfPayments - i)
+      const w = weights[i - 1] ?? 1
+      weightedDiscountSum += w * Math.pow(1 + periodRate, periodsRemaining)
     }
 
-    const periodicPaymentNum = deficit > 0 && denominator > 0 ? Math.ceil(deficit / denominator) : 0
-    const periodicDepositKobo = BigInt(Math.max(0, periodicPaymentNum))
-    const totalPeriodicContribution = periodicDepositKobo * BigInt(numberOfPayments)
-    const totalTenantContributionKobo = (input.initialDepositKobo || 0n) + totalPeriodicContribution
+    const basePayment =
+      deficit > 0 && weightedDiscountSum > 0 ? Math.ceil(deficit / weightedDiscountSum) : 0
+    const schedulePayments = weights.map((w) => Math.max(0, Math.ceil(basePayment * w)))
+    const firstPeriodDepositNum = schedulePayments[0] ?? 0
+    const lastPeriodDepositNum = schedulePayments[schedulePayments.length - 1] ?? 0
+    const totalPeriodicContributionNum = schedulePayments.reduce((sum, p) => sum + p, 0)
 
-    // Projected yield
+    const periodicDepositKobo = BigInt(firstPeriodDepositNum)
+    const totalTenantContributionKobo = BigInt(
+      effectiveInitialDeposit + totalPeriodicContributionNum,
+    )
+
     const projectedYieldKobo =
       input.targetAmountKobo > totalTenantContributionKobo
         ? input.targetAmountKobo - totalTenantContributionKobo
         : 0n
+
+    const insurancePct =
+      productOption === 'RENT_PROTEC' ? (input.insurancePremiumPct ?? 2.0) : 0
+    const insurancePremiumKobo = BigInt(Math.round(targetAmount * (insurancePct / 100)))
 
     // Affordability calculation
     let rentToIncomeRatio = 0
@@ -111,13 +196,14 @@ export class RentSavingsCalculatorEngine {
 
     if (input.monthlyIncomeKobo && input.monthlyIncomeKobo > 0n) {
       const monthlyIncomeNum = Number(input.monthlyIncomeKobo)
-      // Normalize periodic payment to monthly equivalent
       const monthlyPaymentEquivalent =
         input.cadence === 'DAILY'
-          ? periodicPaymentNum * 30
+          ? firstPeriodDepositNum * 30
           : input.cadence === 'WEEKLY'
-            ? periodicPaymentNum * 4.33
-            : periodicPaymentNum
+            ? firstPeriodDepositNum * 4.33
+            : input.cadence === 'QUARTERLY'
+              ? firstPeriodDepositNum / 3
+              : firstPeriodDepositNum
 
       rentToIncomeRatio = Math.round((monthlyPaymentEquivalent / monthlyIncomeNum) * 1000) / 1000
       if (rentToIncomeRatio > 0.5) {
@@ -129,11 +215,20 @@ export class RentSavingsCalculatorEngine {
 
     return {
       daysRemaining,
+      monthsRemaining,
       periodicDepositKobo,
+      firstPeriodDepositKobo: BigInt(firstPeriodDepositNum),
+      lastPeriodDepositKobo: BigInt(lastPeriodDepositNum),
+      requiredInitialDepositKobo: BigInt(effectiveInitialDeposit),
       numberOfPayments,
       totalTenantContributionKobo,
       projectedYieldKobo,
       netAnnualYieldRate: effectiveAnnualYield,
+      productOption,
+      planPattern,
+      isRentProtecEligible,
+      rentProtecIneligibilityReason,
+      insurancePremiumKobo,
       affordability: {
         rentToIncomeRatio,
         isOverThreshold,

@@ -17,8 +17,11 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
   const [loading, setLoading] = useState(true)
 
   // Platform Rates State
-  const [savingsRatePct, setSavingsRatePct] = useState('14.5')
+  const [savingsRatePct, setSavingsRatePct] = useState('14')
+  const [rentProtecRatePct, setRentProtecRatePct] = useState('10')
   const [insurancePremiumPct, setInsurancePremiumPct] = useState('2')
+  const [rentProtecMinMonths, setRentProtecMinMonths] = useState('6')
+  const [maxSavingsMonths, setMaxSavingsMonths] = useState('11')
   const [ratesLoading, setRatesLoading] = useState(true)
   const [savingRates, setSavingRates] = useState(false)
   const [ratesUpdatedAt, setRatesUpdatedAt] = useState<string | null>(null)
@@ -53,8 +56,17 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
         if (data.savingsAnnualRatePct !== undefined) {
           setSavingsRatePct(String(data.savingsAnnualRatePct))
         }
+        if (data.rentProtecRatePct !== undefined) {
+          setRentProtecRatePct(String(data.rentProtecRatePct))
+        }
         if (data.insurancePremiumPct !== undefined) {
           setInsurancePremiumPct(String(data.insurancePremiumPct))
+        }
+        if (data.rentProtecMinMonths !== undefined) {
+          setRentProtecMinMonths(String(data.rentProtecMinMonths))
+        }
+        if (data.maxSavingsMonths !== undefined) {
+          setMaxSavingsMonths(String(data.maxSavingsMonths))
         }
         setRatesUpdatedAt(data.updatedAt || null)
       }
@@ -68,14 +80,29 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
   const handleSaveRates = async (e: React.FormEvent) => {
     e.preventDefault()
     const parsedSavings = parseFloat(savingsRatePct)
+    const parsedRentProtec = parseFloat(rentProtecRatePct)
     const parsedInsurance = parseFloat(insurancePremiumPct)
+    const parsedMinMonths = parseInt(rentProtecMinMonths, 10)
+    const parsedMaxMonths = parseInt(maxSavingsMonths, 10)
 
     if (!Number.isFinite(parsedSavings) || parsedSavings < 0 || parsedSavings > 100) {
-      showToast('Savings annual rate must be between 0% and 100%', true)
+      showToast('Save & Earn annual rate must be between 0% and 100%', true)
+      return
+    }
+    if (!Number.isFinite(parsedRentProtec) || parsedRentProtec < 0 || parsedRentProtec > 100) {
+      showToast('Rent Protec annual rate must be between 0% and 100%', true)
       return
     }
     if (!Number.isFinite(parsedInsurance) || parsedInsurance < 0 || parsedInsurance > 100) {
       showToast('Insurance premium percentage must be between 0% and 100%', true)
+      return
+    }
+    if (!Number.isFinite(parsedMinMonths) || parsedMinMonths < 1 || parsedMinMonths > 12) {
+      showToast('Rent Protec minimum months must be between 1 and 12', true)
+      return
+    }
+    if (!Number.isFinite(parsedMaxMonths) || parsedMaxMonths < 1 || parsedMaxMonths > 11) {
+      showToast('Max savings horizon must be between 1 and 11 months', true)
       return
     }
 
@@ -85,7 +112,10 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
         '/admin/fees/rates',
         {
           savingsAnnualRatePct: parsedSavings,
+          rentProtecRatePct: parsedRentProtec,
           insurancePremiumPct: parsedInsurance,
+          rentProtecMinMonths: parsedMinMonths,
+          maxSavingsMonths: parsedMaxMonths,
         },
         token,
       )
@@ -284,7 +314,7 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
                   marginBottom: '6px',
                 }}
               >
-                Rent Savings Annual Rate (% p.a.)
+                Save & Earn Rate (% p.a.)
               </label>
               <input
                 type="number"
@@ -309,7 +339,32 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
                   marginBottom: '6px',
                 }}
               >
-                Insurance Premium (% of Annual Rent)
+                Rent Protec Rate (% p.a.)
+              </label>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                max="100"
+                value={rentProtecRatePct}
+                onChange={(e) => setRentProtecRatePct(e.target.value)}
+                className="input"
+                disabled={ratesLoading || savingRates}
+                required
+              />
+            </div>
+
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  color: 'var(--text-secondary)',
+                  marginBottom: '6px',
+                }}
+              >
+                Insurance Premium (% of Rent)
               </label>
               <input
                 type="number"
@@ -318,6 +373,56 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
                 max="100"
                 value={insurancePremiumPct}
                 onChange={(e) => setInsurancePremiumPct(e.target.value)}
+                className="input"
+                disabled={ratesLoading || savingRates}
+                required
+              />
+            </div>
+
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  color: 'var(--text-secondary)',
+                  marginBottom: '6px',
+                }}
+              >
+                Rent Protec Min Months (X_min)
+              </label>
+              <input
+                type="number"
+                step="1"
+                min="1"
+                max="12"
+                value={rentProtecMinMonths}
+                onChange={(e) => setRentProtecMinMonths(e.target.value)}
+                className="input"
+                disabled={ratesLoading || savingRates}
+                required
+              />
+            </div>
+
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  color: 'var(--text-secondary)',
+                  marginBottom: '6px',
+                }}
+              >
+                Max Savings Horizon (Months)
+              </label>
+              <input
+                type="number"
+                step="1"
+                min="1"
+                max="11"
+                value={maxSavingsMonths}
+                onChange={(e) => setMaxSavingsMonths(e.target.value)}
                 className="input"
                 disabled={ratesLoading || savingRates}
                 required

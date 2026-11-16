@@ -355,8 +355,8 @@ export const PRODUCTION_GOAL_CATEGORIES: GoalCategorySeed[] = [
   },
   {
     slug: 'other',
-    title: 'Personal & custom goals',
-    description: 'Family milestones, mobility, travel, and personal projects.',
+    title: 'Children development',
+    description: 'Family milestones, education, mobility, and personal projects.',
     iconName: 'Target',
     sortOrder: 5,
     goals: [
@@ -474,6 +474,10 @@ async function main() {
 
   for (const catData of PRODUCTION_GOAL_CATEGORIES) {
     const { goals, ...categoryFields } = catData
+    const categoryStatus =
+      categoryFields.slug === 'fitness'
+        ? GoalPublishStatus.DRAFT
+        : GoalPublishStatus.PUBLISHED
 
     const category = await prisma.upward_goal_category.upsert({
       where: { slug: categoryFields.slug },
@@ -482,7 +486,7 @@ async function main() {
         description: categoryFields.description,
         iconName: categoryFields.iconName,
         sortOrder: categoryFields.sortOrder,
-        status: GoalPublishStatus.PUBLISHED,
+        status: categoryStatus,
       },
       create: {
         slug: categoryFields.slug,
@@ -490,7 +494,7 @@ async function main() {
         description: categoryFields.description,
         iconName: categoryFields.iconName,
         sortOrder: categoryFields.sortOrder,
-        status: GoalPublishStatus.PUBLISHED,
+        status: categoryStatus,
       },
     })
 
