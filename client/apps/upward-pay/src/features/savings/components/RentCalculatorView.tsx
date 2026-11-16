@@ -1197,13 +1197,13 @@ export function RentCalculatorView({
                     padding: '0 2px',
                   }}
                 >
-                  Pay <strong>{formatCurrency(parsedSuccessDeposit, 'NGN')}</strong> today, then save at least{' '}
+                  Pay <strong>{formatCurrency(parsedSuccessDeposit, 'NGN')}</strong> today, then deposit at least{' '}
                   <strong style={{ color: 'var(--clay)' }}>
                     {formatCurrency(successPeriodicDepositNaira, 'NGN')}
                   </strong>{' '}
                   monthly for the rest of the year{' '}
                   <span style={{ color: '#059669', fontWeight: 600 }}>
-                    (+{formatCurrency(successProjectedYieldNaira, 'NGN')} interest)
+                    (interest covers +{formatCurrency(successProjectedYieldNaira, 'NGN')})
                   </span>.
                 </div>
               )}

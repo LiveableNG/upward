@@ -1175,13 +1175,13 @@ export function SavingsInvestorKycModal({
                     padding: '0 2px',
                   }}
                 >
-                  Pay <strong>{formatCurrency(numericFundAmount, 'NGN')}</strong> today, then save at least{' '}
+                  Pay <strong>{formatCurrency(numericFundAmount, 'NGN')}</strong> today, then deposit at least{' '}
                   <strong style={{ color: 'var(--clay)' }}>
                     {formatCurrency(periodicDepositStep4, 'NGN')}
                   </strong>{' '}
                   monthly for the rest of the year{' '}
                   <span style={{ color: '#059669', fontWeight: 600 }}>
-                    (+{formatCurrency(interestStep4, 'NGN')} interest)
+                    (interest covers +{formatCurrency(interestStep4, 'NGN')})
                   </span>.
                 </div>
               )}

@@ -226,13 +226,13 @@ export function FundVaultModal({
                 padding: '0 2px',
               }}
             >
-              Pay <strong>{formatCurrency(parsedDepositAmount, 'NGN')}</strong> today, then save at least{' '}
+              Pay <strong>{formatCurrency(parsedDepositAmount, 'NGN')}</strong> today, then deposit at least{' '}
               <strong style={{ color: 'var(--clay)' }}>
                 {formatCurrency(monthlyDepositNaira, 'NGN')}
               </strong>{' '}
               monthly for the rest of the year{' '}
               <span style={{ color: '#059669', fontWeight: 600 }}>
-                (+{formatCurrency(projectedInterestNaira, 'NGN')} interest)
+                (interest covers +{formatCurrency(projectedInterestNaira, 'NGN')})
               </span>.
             </div>
           )}
