@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ChevronLeft, Plus, Check, Trash2, ArrowRight, X, Home } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Check, Trash2, ArrowRight, X, Home } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import {
   useUserGoals,
@@ -501,21 +501,13 @@ export function AllGoalsScreen() {
     const list = goalsByCategory[catKey] || []
     if (list.length > 0) {
       const primary = list[0]
-      const rawPct = Math.round(
-        list.reduce((acc, g) => acc + (g.progressPct || 0), 0) / list.length,
-      )
-      const pct = rawPct > 0 ? rawPct : 5
       const rawTitle = primary.title || primary.goal?.title || defaultSubtitle
-      const subtitle =
-        rawPct > 0
-          ? `${rawTitle} · ${rawPct}% progress`
-          : rawTitle
       return {
         hasGoal: true,
-        badge: 'IN PROGRESS' as const,
+        badge: 'ACTIVE' as const,
         badgeClass: 'proto-goals__badge--live',
-        pct,
-        subtitle,
+        pct: 0,
+        subtitle: rawTitle,
         primaryGoal: primary,
       }
     }
@@ -723,14 +715,13 @@ export function AllGoalsScreen() {
                         tabIndex={0}
                       >
                         <div className="proto-goals__active-card-left">
-                          {renderPrototypeRing(pct, 38)}
+                          <span style={{ fontSize: '22px', flexShrink: 0 }}>{ug.icon || '🎯'}</span>
                           <div>
                             <div className="proto-goals__active-card-title">
                               {ug.icon ? `${ug.icon} ` : ''}{title}
                             </div>
                             <div className="proto-goals__active-card-sub">
-                              {pct > 0 ? `${pct}% completed` : 'In progress'}
-                              {ug.durationDays ? ` · ${ug.durationDays} days target` : ''}
+                              Active{ug.durationDays ? ` · ${ug.durationDays} days target` : ''}
                             </div>
                           </div>
                         </div>
@@ -1063,7 +1054,7 @@ export function AllGoalsScreen() {
             <h3 className="proto-goals__card-title">Home &amp; lifestyle goals</h3>
             <p className="proto-goals__card-desc">{housingCard.subtitle}</p>
           </div>
-          {renderPrototypeRing(housingCard.pct, 52)}
+          <ChevronRight size={18} color="var(--text-muted, #8a8a8a)" />
         </button>
 
         {/* 2. Income & financial goals */}
@@ -1081,7 +1072,7 @@ export function AllGoalsScreen() {
             <h3 className="proto-goals__card-title">Income &amp; financial goals</h3>
             <p className="proto-goals__card-desc">{incomeCard.subtitle}</p>
           </div>
-          {renderPrototypeRing(incomeCard.pct, 52)}
+          <ChevronRight size={18} color="var(--text-muted, #8a8a8a)" />
         </button>
 
         {/* 3. Career & professional development */}
@@ -1099,7 +1090,7 @@ export function AllGoalsScreen() {
             <h3 className="proto-goals__card-title">Career &amp; professional development</h3>
             <p className="proto-goals__card-desc">{careerCard.subtitle}</p>
           </div>
-          {renderPrototypeRing(careerCard.pct, 52)}
+          <ChevronRight size={18} color="var(--text-muted, #8a8a8a)" />
         </button>
 
         {/* 4. Pay less for stuff */}
@@ -1117,7 +1108,7 @@ export function AllGoalsScreen() {
             <h3 className="proto-goals__card-title">Pay less for stuff</h3>
             <p className="proto-goals__card-desc">{payLessCard.subtitle}</p>
           </div>
-          {renderPrototypeRing(payLessCard.pct, 52)}
+          <ChevronRight size={18} color="var(--text-muted, #8a8a8a)" />
         </button>
 
         {/* 5. Children development */}
@@ -1135,12 +1126,11 @@ export function AllGoalsScreen() {
             <h3 className="proto-goals__card-title">Children&#39;s development</h3>
             <p className="proto-goals__card-desc">{childrenCard.subtitle}</p>
           </div>
-          {renderPrototypeRing(childrenCard.pct, 52)}
+          <ChevronRight size={18} color="var(--text-muted, #8a8a8a)" />
         </button>
 
         {/* 6. Any Additional Custom Goals */}
         {goalsByCategory.custom.map((ug) => {
-          const pct = ug.progressPct || 5
           const title = ug.title || ug.goal?.title || 'Personal goal'
           return (
             <button
@@ -1152,7 +1142,7 @@ export function AllGoalsScreen() {
               <div className="proto-goals__copy">
                 <div className="proto-goals__kicker-row">
                   <span className="proto-goals__badge proto-goals__badge--live">
-                    IN PROGRESS
+                    ACTIVE
                   </span>
                 </div>
                 <h3 className="proto-goals__card-title">{title}</h3>
@@ -1160,7 +1150,7 @@ export function AllGoalsScreen() {
                   {ug.notes || 'Personal milestone'}
                 </p>
               </div>
-              {renderPrototypeRing(pct, 52)}
+              <ChevronRight size={18} color="var(--text-muted, #8a8a8a)" />
             </button>
           )
         })}
@@ -1184,9 +1174,9 @@ export function AllGoalsScreen() {
           <div className="goal-modal" onClick={(e) => e.stopPropagation()}>
             <div className="goal-modal__head">
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                {renderPrototypeRing(activeDetailGoal.progressPct || 0, 38)}
+                <span style={{ fontSize: '24px', lineHeight: 1 }}>{activeDetailGoal.icon || '🎯'}</span>
                 <h2 className="goal-modal__title">
-                  {activeDetailGoal.icon} {activeDetailGoal.title || activeDetailGoal.goal?.title}
+                  {activeDetailGoal.title || activeDetailGoal.goal?.title}
                 </h2>
               </div>
               <button
@@ -1205,10 +1195,7 @@ export function AllGoalsScreen() {
                 <label className="goal-modal__label">Status</label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
                   <span className="proto-goals__badge proto-goals__badge--live">
-                    {activeDetailGoal.status || 'IN PROGRESS'}
-                  </span>
-                  <span style={{ fontSize: '13.5px', color: 'var(--text-secondary)' }}>
-                    {activeDetailGoal.progressPct ? `${activeDetailGoal.progressPct}% progress` : 'Active'}
+                    ACTIVE
                   </span>
                 </div>
               </div>
