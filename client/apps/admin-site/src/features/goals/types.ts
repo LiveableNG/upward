@@ -18,6 +18,17 @@ export interface GoalCategory {
   }
 }
 
+export interface GoalActionTemplate {
+  id: number
+  uuid: string
+  goalId: number
+  title: string
+  description?: string | null
+  sortOrder: number
+  isRequired: boolean
+  isActive: boolean
+}
+
 export interface Goal {
   id: number
   uuid: string
@@ -29,12 +40,14 @@ export interface Goal {
   coverImageUrl?: string | null
   tags?: string[]
   sortOrder: number
+  status?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
   isPublished: boolean
   isFeatured: boolean
   categoryId: number
-  category?: GoalCategory
+  category?: GoalCategory & { title?: string }
   collections?: GoalCollection[]
   offerings?: GoalOfferingLink[]
+  actionTemplates?: GoalActionTemplate[]
   _count?: {
     userGoals?: number
     offerings?: number

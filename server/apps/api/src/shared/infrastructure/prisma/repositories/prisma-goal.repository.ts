@@ -142,6 +142,10 @@ export class PrismaGoalRepository implements GoalRepository {
         take: filter?.take,
         include: {
           category: true,
+          actionTemplates: {
+            ...(filter?.status === 'PUBLISHED' ? { where: { isActive: true } } : {}),
+            orderBy: { sortOrder: 'asc' },
+          },
           offerings: {
             include: {
               offering: {
@@ -167,6 +171,10 @@ export class PrismaGoalRepository implements GoalRepository {
       where: { slug },
       include: {
         category: true,
+        actionTemplates: {
+          where: { isActive: true },
+          orderBy: { sortOrder: 'asc' },
+        },
         ...(options?.includeDetails
           ? {
               collections: {
@@ -213,6 +221,9 @@ export class PrismaGoalRepository implements GoalRepository {
       where: { uuid },
       include: {
         category: true,
+        actionTemplates: {
+          orderBy: { sortOrder: 'asc' },
+        },
         collections: true,
         _count: {
           select: { userGoals: true, offerings: true },
@@ -512,6 +523,7 @@ export class PrismaGoalRepository implements GoalRepository {
         description: data.description || null,
         sortOrder: data.sortOrder || 0,
         isRequired: data.isRequired || false,
+        isActive: data.isActive ?? true,
       },
     })
     return created as GoalActionTemplate
@@ -525,6 +537,7 @@ export class PrismaGoalRepository implements GoalRepository {
         ...(data.description !== undefined ? { description: data.description } : {}),
         ...(data.sortOrder !== undefined ? { sortOrder: data.sortOrder } : {}),
         ...(data.isRequired !== undefined ? { isRequired: data.isRequired } : {}),
+        ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
       },
     })
     return updated as GoalActionTemplate

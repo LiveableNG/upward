@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common'
+import { BadRequestException, Inject, Injectable } from '@nestjs/common'
 import {
   GOAL_REPOSITORY,
   Goal,
@@ -21,7 +21,12 @@ export class AdminManageGoalsUseCase {
     const tagline = dto.tagline || dto.subtitle
     const iconName = dto.iconName || dto.icon
     const heroImage = dto.heroImage || dto.coverImageUrl
-    const status = dto.status || (dto.isPublished !== undefined ? (dto.isPublished ? 'PUBLISHED' : 'DRAFT') : undefined)
+    const categories = await this.goalRepo.findCategories()
+    const targetCategory = categories.find((c) => c.id === dto.categoryId)
+    const isHousing = targetCategory?.slug === 'housing'
+    const status = isHousing
+      ? 'PUBLISHED'
+      : dto.status || (dto.isPublished !== undefined ? (dto.isPublished ? 'PUBLISHED' : 'DRAFT') : undefined)
     const { subtitle, icon, coverImageUrl, tags, isPublished, suggestedAmountKobo, ...rest } = dto
     return this.goalRepo.createGoal({
       ...rest,
@@ -36,12 +41,17 @@ export class AdminManageGoalsUseCase {
   }
 
   async update(id: number, dto: UpdateGoalDto): Promise<Goal> {
+    const existing = await this.goalRepo.findGoalById(id)
+    const isHousing = existing?.category?.slug === 'housing'
     const patch: any = { ...dto }
     if (dto.subtitle && !dto.tagline) patch.tagline = dto.subtitle
     if (dto.icon && !dto.iconName) patch.iconName = dto.icon
     if (dto.coverImageUrl && !dto.heroImage) patch.heroImage = dto.coverImageUrl
     if (dto.isPublished !== undefined && !dto.status) {
       patch.status = dto.isPublished ? 'PUBLISHED' : 'DRAFT'
+    }
+    if (isHousing && patch.status && patch.status !== 'PUBLISHED') {
+      throw new BadRequestException('Housing goals are always active and cannot be disabled.')
     }
     if (dto.suggestedAmountKobo !== undefined && dto.suggestedAmountKobo !== null) {
       patch.suggestedAmountKobo = BigInt(dto.suggestedAmountKobo)

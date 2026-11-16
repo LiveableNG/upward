@@ -27,6 +27,7 @@ import {
   OfferingModal,
   PackageItemsModal,
   GoalOfferingsModal,
+  GoalActionsModal,
   VendorModal,
   DeleteGoalItemModal,
 } from '../features/goals'
@@ -121,6 +122,10 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
     updateGoal,
     deleteGoal,
     togglePublishGoal,
+    fetchGoalActions,
+    createGoalAction,
+    updateGoalAction,
+    deleteGoalAction,
     fetchGoalCollections,
     createCollection,
     deleteCollection,
@@ -193,6 +198,8 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
   const [packageOffering, setPackageOffering] = useState<Offering | null>(null)
   const [goalOfferingsModalOpen, setGoalOfferingsModalOpen] = useState(false)
   const [goalForOfferings, setGoalForOfferings] = useState<Goal | null>(null)
+  const [goalActionsModalOpen, setGoalActionsModalOpen] = useState(false)
+  const [goalForActions, setGoalForActions] = useState<Goal | null>(null)
   const [vendorModalOpen, setVendorModalOpen] = useState(false)
   const [editingVendor, setEditingVendor] = useState<CommerceVendor | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
@@ -443,6 +450,10 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
           onManageCollections={(g) => {
             setGoalForOfferings(g)
             setGoalOfferingsModalOpen(true)
+          }}
+          onManageActions={(g) => {
+            setGoalForActions(g)
+            setGoalActionsModalOpen(true)
           }}
           onDeleteGoal={(g) => {
             setDeleteTarget({ type: 'GOAL', id: g.id, title: g.title })
@@ -710,6 +721,16 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
         onDeleteCollection={deleteCollection}
         onLinkOffering={linkOfferingToGoal}
         onUnlinkOffering={unlinkOfferingFromGoal}
+      />
+
+      <GoalActionsModal
+        isOpen={goalActionsModalOpen}
+        onClose={() => setGoalActionsModalOpen(false)}
+        goal={goalForActions}
+        fetchGoalActions={fetchGoalActions}
+        onCreateAction={createGoalAction}
+        onUpdateAction={updateGoalAction}
+        onDeleteAction={deleteGoalAction}
       />
 
       <VendorModal

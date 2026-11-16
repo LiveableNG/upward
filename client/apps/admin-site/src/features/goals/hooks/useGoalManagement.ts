@@ -4,6 +4,7 @@ import { showToast } from '@upward/client-core'
 import type {
   GoalCategory,
   Goal,
+  GoalActionTemplate,
   GoalCollection,
   Offering,
   CommerceVendor,
@@ -238,7 +239,57 @@ export function useGoalManagement(token?: string) {
   }
 
   const togglePublishGoal = async (goal: Goal) => {
-    await updateGoal(goal.id, { isPublished: !goal.isPublished })
+    if (goal.category?.slug === 'housing') {
+      showToast('Housing goals are always active and cannot be disabled', true)
+      return
+    }
+    const isCurrentlyActive = goal.status ? goal.status === 'PUBLISHED' : !!goal.isPublished
+    const nextActive = !isCurrentlyActive
+    await updateGoal(goal.id, {
+      status: nextActive ? 'PUBLISHED' : 'DRAFT',
+      isPublished: nextActive,
+    })
+  }
+
+  // Predefined Goal Actions
+  const fetchGoalActions = useCallback(
+    async (goalId: number): Promise<GoalActionTemplate[]> => {
+      try {
+        const res = await apiService.get(`/admin/goals/${goalId}/actions`, token)
+        return res?.data || []
+      } catch (err: unknown) {
+        const msg = (err as Error)?.message || 'Failed to fetch predefined actions'
+        showToast(msg, true)
+        return []
+      }
+    },
+    [token],
+  )
+
+  const createGoalAction = async (
+    goalId: number,
+    data: { title: string; sortOrder?: number; isActive?: boolean },
+  ) => {
+    const res = await apiService.post(`/admin/goals/${goalId}/actions`, data, token)
+    showToast('Predefined action added')
+    await fetchGoals(goalsPage)
+    return res?.data as GoalActionTemplate
+  }
+
+  const updateGoalAction = async (
+    actionId: number,
+    data: { title?: string; sortOrder?: number; isActive?: boolean },
+  ) => {
+    const res = await apiService.patch(`/admin/goals/actions/${actionId}`, data, token)
+    showToast('Predefined action updated')
+    await fetchGoals(goalsPage)
+    return res?.data as GoalActionTemplate
+  }
+
+  const deleteGoalAction = async (actionId: number) => {
+    await apiService.delete(`/admin/goals/actions/${actionId}`, token)
+    showToast('Predefined action removed')
+    await fetchGoals(goalsPage)
   }
 
   // Goal Collection & Offering Linking
@@ -462,6 +513,10 @@ export function useGoalManagement(token?: string) {
     updateGoal,
     deleteGoal,
     togglePublishGoal,
+    fetchGoalActions,
+    createGoalAction,
+    updateGoalAction,
+    deleteGoalAction,
     fetchGoalCollections,
     createCollection,
     updateCollection,

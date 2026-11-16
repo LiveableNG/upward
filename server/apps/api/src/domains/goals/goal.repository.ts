@@ -16,6 +16,7 @@ export interface GoalActionTemplate {
   description?: string | null
   sortOrder: number
   isRequired: boolean
+  isActive?: boolean
   createdAt?: Date
   updatedAt?: Date
 }

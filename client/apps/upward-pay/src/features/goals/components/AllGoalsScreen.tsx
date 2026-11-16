@@ -7,6 +7,7 @@ import { useAuth } from '@/features/auth/AuthContext'
 import {
   useUserGoals,
   useGoalCategories,
+  useGoalsList,
   useCreateCustomGoal,
   useSubmitQuestionnaire,
   useToggleGoalAction,
@@ -156,6 +157,7 @@ export function AllGoalsScreen() {
 
   const { data: userGoals = [] } = useUserGoals()
   const { data: categories = [] } = useGoalCategories()
+  const { data: catalogGoalsData } = useGoalsList({ status: 'PUBLISHED', take: 100 })
   const { data: tenantOrdersData } = useTenantOrders({ take: 10 })
 
   const createGoalMutation = useCreateCustomGoal()
@@ -487,9 +489,34 @@ export function AllGoalsScreen() {
   // ── SUB-SCREEN: QUESTIONNAIRE / CUSTOM GOAL BUILDER ──
   if (activeCategory) {
     const q = QUESTIONNAIRE_CONFIGS[activeCategory]
+    const targetSlug = activeCategory === 'custom' ? 'other' : activeCategory
+    const dbGoalsForCat = (catalogGoalsData?.data || []).filter(
+      (g) => g.category?.slug === targetSlug,
+    )
+    const dbOptions = dbGoalsForCat
+      .map((g) => g.title)
+      .filter((t): t is string => Boolean(t))
+    const effectiveOptions = dbOptions.length > 0 ? dbOptions : q.options
     const extraDef = q.extras && selectedOption ? q.extras[selectedOption] : undefined
     const isSavingGoal =
       submitQuestionnaireMutation.isPending || createGoalMutation.isPending
+
+    const handleSelectQuestionnaireOption = (opt: string) => {
+      setSelectedOption(opt)
+      setNotesText('')
+      setSelectedExtra(null)
+      const matchedDbGoal = dbGoalsForCat.find(
+        (g) => (g.title || '').toLowerCase() === opt.toLowerCase(),
+      )
+      if (matchedDbGoal?.actionTemplates && matchedDbGoal.actionTemplates.length > 0) {
+        setActionsList(matchedDbGoal.actionTemplates.map((t) => t.title))
+      } else {
+        setActionsList([])
+      }
+      if (matchedDbGoal?.defaultDurationDays) {
+        setNewTimelineDays(matchedDbGoal.defaultDurationDays)
+      }
+    }
 
     return (
       <div className="proto-goals">
@@ -517,7 +544,7 @@ export function AllGoalsScreen() {
                   : 'proto-goals__q-options'
               }
             >
-              {q.options.map((opt) => {
+              {effectiveOptions.map((opt) => {
                 const isSelected = selectedOption === opt && !notesText.trim()
                 return (
                   <button
@@ -526,11 +553,7 @@ export function AllGoalsScreen() {
                     className={`${
                       activeCategory === 'custom' ? 'proto-goals__tag' : 'proto-goals__opt'
                     } ${isSelected ? 'is-on' : ''}`}
-                    onClick={() => {
-                      setSelectedOption(opt)
-                      setNotesText('')
-                      setSelectedExtra(null)
-                    }}
+                    onClick={() => handleSelectQuestionnaireOption(opt)}
                   >
                     {opt}
                   </button>

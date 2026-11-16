@@ -109,6 +109,10 @@ export class CreateActionTemplateDto {
   @IsBoolean()
   @IsOptional()
   isRequired?: boolean
+
+  @IsBoolean()
+  @IsOptional()
+  isActive?: boolean
 }
 
 export class UpdateActionTemplateDto {
@@ -129,6 +133,10 @@ export class UpdateActionTemplateDto {
   @IsBoolean()
   @IsOptional()
   isRequired?: boolean
+
+  @IsBoolean()
+  @IsOptional()
+  isActive?: boolean
 }
 
 export class UpdateGoalDto {

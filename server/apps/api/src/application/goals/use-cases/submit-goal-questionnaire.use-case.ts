@@ -9,6 +9,7 @@ import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.rep
 import { SubmitGoalQuestionnaireDto } from '../dto/user-goal.dto'
 import { computeTargetDate } from '../../../domains/goals/timeline.calculator'
 import { randomUUID } from 'crypto'
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 
 const DEFAULT_SUGGESTED_ACTIONS: Record<string, string[]> = {
   fitness: [
@@ -49,6 +50,8 @@ export class SubmitGoalQuestionnaireUseCase {
     @Optional()
     @Inject(USER_REPOSITORY)
     private readonly userRepo?: UserRepository,
+    @Optional()
+    private readonly prisma?: PrismaService,
   ) {}
 
   async execute(
@@ -72,11 +75,32 @@ export class SubmitGoalQuestionnaireUseCase {
     const durationDays = dto.durationDays || 180 // default 6 months
     const targetDate = computeTargetDate(new Date(), durationDays)
 
-    const actionLabels = DEFAULT_SUGGESTED_ACTIONS[dto.categorySlug] || [
-      'Set a milestone target date',
-      'Track weekly progress',
-      'Achieve milestone',
-    ]
+    let actionLabels: string[] = []
+    if (this.prisma) {
+      const matchedGoal = await this.prisma.upward_goal.findFirst({
+        where: {
+          title: { equals: dto.selectedOption, mode: 'insensitive' },
+          category: { slug: dto.categorySlug },
+        },
+        include: {
+          actionTemplates: {
+            where: { isActive: true },
+            orderBy: { sortOrder: 'asc' },
+          },
+        },
+      })
+      if (matchedGoal?.actionTemplates && matchedGoal.actionTemplates.length > 0) {
+        actionLabels = matchedGoal.actionTemplates.map((t) => t.title)
+      }
+    }
+
+    if (actionLabels.length === 0) {
+      actionLabels = DEFAULT_SUGGESTED_ACTIONS[dto.categorySlug] || [
+        'Set a milestone target date',
+        'Track weekly progress',
+        'Achieve milestone',
+      ]
+    }
 
     const initialActions: UserGoalAction[] = actionLabels.map((label, index) => ({
       id: `act-${randomUUID().slice(0, 8)}`,

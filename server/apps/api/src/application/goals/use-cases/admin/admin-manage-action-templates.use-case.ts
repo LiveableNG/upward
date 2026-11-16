@@ -27,6 +27,7 @@ export class AdminManageActionTemplatesUseCase {
       description: dto.description || null,
       sortOrder: dto.sortOrder || 0,
       isRequired: dto.isRequired || false,
+      isActive: dto.isActive ?? true,
     })
   }
 
