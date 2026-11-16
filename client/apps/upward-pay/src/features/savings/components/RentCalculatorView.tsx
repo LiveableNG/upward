@@ -106,11 +106,7 @@ export function RentCalculatorView({
       handleFinish()
       return
     }
-    if (!hasSavedRent && !rentConfirmed) {
-      router.push('/dashboard')
-    } else {
-      setDrawerOpen(false)
-    }
+    router.push('/dashboard')
   }
 
   const targetAmountNaira = parseCurrencyInput(targetAmountRaw) || 0
