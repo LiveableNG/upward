@@ -261,6 +261,7 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
         </div>
       )}
 
+      {/* Savings Score Card (Commented out)
       <div className="vault-score-card">
         <div className="vault-score-card__header">
           <div className="vault-score-card__title">
@@ -295,6 +296,7 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
           <ChevronRight size={14} className="vault-score-card__explainer-chevron" />
         </Link>
       </div>
+      */}
 
       <div className="vault-ledger">
         <div className="vault-ledger__header">
