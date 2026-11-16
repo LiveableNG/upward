@@ -257,6 +257,77 @@ const QUESTIONNAIRE_CONFIGS: Record<CategoryKey, CategoryQuestionConfig> = {
   },
 }
 
+const GOAL_DESCRIPTIONS: Record<string, string> = {
+  // Home & lifestyle goals (Doc Section A)
+  'Pay my rent now': 'Make my rent payment through Upward.',
+  'Pay less for my next rent': 'Build up savings towards my upcoming rent.',
+  'Move to a new apartment (coming soon)': 'Plan and save towards moving into a new home; indicate where I want to move.',
+  'Buy a house': 'Start preparing financially to buy a house in the future.',
+  'Prepare for the new year': 'Prepare your home with curated essentials & home refresh packages.',
+  'Improve my home feel': 'Improve the look and feel of my home with furniture and decoration.',
+  'Improve remote work productivity': 'Make my home more suitable for work and everyday productivity.',
+  'Travel': 'Plan and save towards travel, getaways, and vacation experiences.',
+  'Gift someone': 'Plan gifts for birthdays, Christmas, and special occasions.',
+
+  // Income & financial goals (Doc Section B)
+  'Get a promotion': 'Get promoted in the coming year to increase my income.',
+  'Start a side hustle': 'Find an additional source of income outside my main job.',
+  'Start freelancing': 'Offer professional services to clients independently.',
+  'Get a remote international job': 'Earn income by working remotely for an international employer.',
+  'Monetise my skills': 'Earn money from skills I already possess.',
+  'Grow my existing income': 'Increase what I currently earn.',
+  'Get my first source of income': 'Start earning, particularly early in your career.',
+  'Start investing': 'Begin investing towards long-term financial security.',
+  'Save more money': 'Improve my ability to save and build financial reserves.',
+  'Reduce my expenses': 'Spend less and find ways to reduce costs.',
+  'Relocate abroad': 'Explore relocating to another country as an economic goal.',
+  'Save towards an important family occasion': 'Save towards milestone family celebrations and events.',
+  'Pay off my debts': 'Reduce or clear outstanding debts.',
+
+  // Career & professional development (Doc Section C)
+  'Get my first job': 'Secure my first employment opportunity.',
+  'Get an internship': 'Gain practical experience in a chosen field.',
+  'Change my career': 'Move from my current career into another field.',
+  'Switch career to tech': 'Transition into the technology industry.',
+  'Get promoted to management': 'Progress into a management or leadership role.',
+  'Start my own business': 'Build a small or medium-sized business.',
+  'Improve my leadership skills': 'Develop the skills needed to lead people and teams.',
+  'Improve my presentation skills': 'Communicate clearly and present with impact.',
+  'Improve my speaking skills': 'Become a better and more confident speaker.',
+  'Get a mentor/coach': 'Connect with experienced guidance to accelerate growth.',
+  'Become a better salesperson': 'Improve ability to communicate, persuade, and sell.',
+  'Improve my professional appearance': 'Upgrade professional wardrobe and presentation.',
+  'Start working remotely': 'Find an opportunity to work remotely.',
+  'Improve my remote-work setup': 'Create a more suitable, work-friendly space.',
+  'Get a professional certification': 'Prepare for and obtain a recognized qualification.',
+  'Get a professional licence': 'Obtain a licence required to practise in a profession.',
+  'Take a professional examination': 'Prepare for a specific professional exam.',
+  'Get a master\'s degree': 'Plan and prepare for postgraduate studies.',
+  'Grow my professional career': 'Become established and progress in my chosen profession.',
+  'Grow my business career': 'Develop and advance my entrepreneurial career.',
+
+  // Pay less for stuff (Doc Section D)
+  'Laundry': 'Spend less on dry cleaning and laundry services.',
+  'Grocery': 'Bulk buying and regular grocery savings.',
+  'Housing': 'Share space or optimize housing utility bills.',
+  'Commute': 'Save on transportation and daily transit costs.',
+  'Electricity & utilities': 'Reduce energy bills and recurring utility costs.',
+
+  // Children development (Doc Section E)
+  'Improve my child\'s mathematics': 'Help my child become better at mathematics.',
+  'Improve my child\'s English': 'Help my child improve their English skills.',
+  'Improve my child\'s speaking skills': 'Help my child become a better speaker.',
+  'Introduce my child to programming and technology': 'Enrol my child in coding classes and digital skills.',
+  'Improve my child\'s digital skills': 'Teach useful computer and digital literacy.',
+  'Prepare my child for entrance examinations': 'Support preparation for school entrance exams.',
+  'Develop my child\'s leadership skills': 'Help my child develop confidence and leadership.',
+  'Get my child involved in sports': 'Enrol in a sports club or lawn tennis.',
+  'Help my child learn piano': 'Enrol in piano and instrumental music lessons.',
+  'Develop my child’s musical ability beyond piano': 'Enrol in music and vocal lessons.',
+  'Help my child learn martial arts': 'Enrol in karate or martial arts classes.',
+  'Improve my child\'s creative skills': 'Support drawing, painting, crafts, and creativity.',
+}
+
 function renderPrototypeRing(pct: number, size = 52) {
   const center = size / 2
   const radius = center - 5
@@ -463,12 +534,7 @@ export function AllGoalsScreen() {
   const childrenCard = getCategoryCardState('children', 'Skills, educational interests & activities')
 
   const handleCategoryCardClick = (catId: CategoryKey) => {
-    const list = goalsByCategory[catId] || []
-    if (list.length > 0) {
-      setActiveDetailGoal(list[0])
-    } else {
-      openQuestionnaire(catId)
-    }
+    openQuestionnaire(catId)
   }
 
   const handleSubmitQuestionnaire = async () => {
@@ -579,10 +645,9 @@ export function AllGoalsScreen() {
     const dbGoalsForCat = (catalogGoalsData?.data || []).filter(
       (g) => g.category?.slug === targetSlug,
     )
-    const dbOptions = dbGoalsForCat
-      .map((g) => g.title)
-      .filter((t): t is string => Boolean(t))
-    const effectiveOptions = dbOptions.length > 0 ? dbOptions : q.options
+    const effectiveOptions = q.options
+    const activeGoalsInThisCat = goalsByCategory[activeCategory] || []
+    const canAddMore = activeGoalsInThisCat.length < 3
     const extraDef = q.extras && selectedOption ? q.extras[selectedOption] : undefined
     const isSavingGoal =
       submitQuestionnaireMutation.isPending || createGoalMutation.isPending
@@ -617,7 +682,50 @@ export function AllGoalsScreen() {
           <div className="proto-goals__q-form">
             <p className="proto-goals__subhead">{q.intro}</p>
 
-            <div className="proto-goals__section-label">{q.label}</div>
+            {/* Active Goals in this Category */}
+            {activeGoalsInThisCat.length > 0 && (
+              <div className="proto-goals__active-group">
+                <div className="proto-goals__section-label">
+                  Your Active Goals ({activeGoalsInThisCat.length}/3)
+                </div>
+                <div className="proto-goals__active-list">
+                  {activeGoalsInThisCat.map((ug) => {
+                    const title = ug.title || ug.goal?.title || 'Goal'
+                    const pct = ug.progressPct ?? 0
+                    return (
+                      <div
+                        key={ug.id || ug.uuid}
+                        className="proto-goals__active-card"
+                        onClick={() => setActiveDetailGoal(ug)}
+                        role="button"
+                        tabIndex={0}
+                      >
+                        <div className="proto-goals__active-card-left">
+                          {renderPrototypeRing(pct, 38)}
+                          <div>
+                            <div className="proto-goals__active-card-title">
+                              {ug.icon ? `${ug.icon} ` : ''}{title}
+                            </div>
+                            <div className="proto-goals__active-card-sub">
+                              {pct > 0 ? `${pct}% completed` : 'In progress'}
+                              {ug.durationDays ? ` · ${ug.durationDays} days target` : ''}
+                            </div>
+                          </div>
+                        </div>
+                        <span className="proto-goals__active-card-arrow">
+                          View update ›
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div className="proto-goals__section-label">
+              {q.label} {activeGoalsInThisCat.length > 0 ? `(${activeGoalsInThisCat.length}/3 selected)` : ''}
+            </div>
+
             <div
               className={
                 activeCategory === 'custom'
@@ -626,17 +734,49 @@ export function AllGoalsScreen() {
               }
             >
               {effectiveOptions.map((opt) => {
+                const matchedActive = activeGoalsInThisCat.find((ug) => {
+                  const t = (ug.title || ug.goal?.title || '').toLowerCase().trim()
+                  const o = opt.toLowerCase().trim()
+                  return t === o || t.includes(o) || o.includes(t)
+                })
+                const isActive = Boolean(matchedActive)
                 const isSelected = selectedOption === opt && !notesText.trim()
+                const desc = GOAL_DESCRIPTIONS[opt]
+
                 return (
                   <button
                     key={opt}
                     type="button"
                     className={`${
                       activeCategory === 'custom' ? 'proto-goals__tag' : 'proto-goals__opt'
-                    } ${isSelected ? 'is-on' : ''}`}
-                    onClick={() => handleSelectQuestionnaireOption(opt)}
+                    } ${isSelected ? 'is-on' : ''} ${isActive ? 'proto-goals__opt--active' : ''}`}
+                    onClick={() => {
+                      if (isActive && matchedActive) {
+                        setActiveDetailGoal(matchedActive)
+                      } else if (!canAddMore && !isActive) {
+                        toastError('You have reached the maximum of 3 goals in this category.')
+                      } else {
+                        handleSelectQuestionnaireOption(opt)
+                      }
+                    }}
                   >
-                    {opt}
+                    <div className="proto-goals__opt-header">
+                      <span className="proto-goals__opt-title">{opt}</span>
+                      {isActive && (
+                        <span
+                          className="proto-goals__badge proto-goals__badge--live"
+                          style={{ fontSize: '11px', padding: '2px 8px' }}
+                        >
+                          Active {matchedActive?.progressPct ? `· ${matchedActive.progressPct}%` : ''}
+                        </span>
+                      )}
+                      {!isActive && isSelected && (
+                        <span style={{ fontSize: '11px', color: 'var(--clay)', fontWeight: 700 }}>
+                          Selected
+                        </span>
+                      )}
+                    </div>
+                    {desc && <p className="proto-goals__opt-desc">{desc}</p>}
                   </button>
                 )
               })}
@@ -1019,6 +1159,19 @@ export function AllGoalsScreen() {
             </div>
 
             <div className="goal-modal__body">
+              {/* Goal Status & Progress update */}
+              <div className="goal-modal__field">
+                <label className="goal-modal__label">Status</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                  <span className="proto-goals__badge proto-goals__badge--live">
+                    {activeDetailGoal.status || 'IN PROGRESS'}
+                  </span>
+                  <span style={{ fontSize: '13.5px', color: 'var(--text-secondary)' }}>
+                    {activeDetailGoal.progressPct ? `${activeDetailGoal.progressPct}% progress` : 'Active'}
+                  </span>
+                </div>
+              </div>
+
               {activeDetailGoal.targetAmountKobo && (
                 <div className="goal-modal__field">
                   <label className="goal-modal__label">Savings Target</label>
@@ -1047,25 +1200,7 @@ export function AllGoalsScreen() {
                 </div>
               )}
 
-              <button
-                type="button"
-                className="goal-modal__submit"
-                onClick={() => {
-                  const cat = (
-                    activeDetailGoal.categorySlug ||
-                    activeDetailGoal.goal?.category?.slug ||
-                    ''
-                  ).toLowerCase()
-                  setActiveDetailGoal(null)
-                  if (cat) {
-                    router.push(`/dashboard/lifestyle?category=${cat}`)
-                  } else {
-                    router.push('/dashboard/lifestyle')
-                  }
-                }}
-              >
-                Explore packages for this goal <ArrowRight size={15} style={{ display: 'inline', verticalAlign: '-2px' }} />
-              </button>
+              {/* Actions disabled/removed for now per instructions */}
 
               {activeDetailGoal.id && (
                 <button
