@@ -23,10 +23,6 @@ export function RentSavingsMainView() {
   const [viewMode, setViewMode] = useState<'DASHBOARD' | 'SETTLEMENT'>('DASHBOARD')
   const [showKycModal, setShowKycModal] = useState<boolean>(false)
 
-  React.useEffect(() => {
-    refreshUser().catch(() => {})
-  }, [refreshUser])
-
   const activeProperty = (user?.properties || []).find(
     (p: { isPastTenancy?: boolean; rentAmount?: number; rentEndDate?: string }) =>
       !p.isPastTenancy && p.rentAmount,

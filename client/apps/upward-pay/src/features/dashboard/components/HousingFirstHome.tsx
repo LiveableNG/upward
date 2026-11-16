@@ -416,7 +416,7 @@ export function HousingFirstHome({
                       <span className="housing-goal-card__tag">
                         {pendingPaymentsCount > 0 ? 'PAYMENT DUE' : 'PAY RENT'}
                       </span>
-                      <h3 className="housing-goal-card__title">Pay rent</h3>
+                      <h3 className="housing-goal-card__title">Pay my rent now</h3>
                       <p className="housing-goal-card__desc">
                         {nextPendingPayment
                           ? `${formatCurrency(nextPendingPayment.total_amount, 'NGN')} due · Instant receipt`

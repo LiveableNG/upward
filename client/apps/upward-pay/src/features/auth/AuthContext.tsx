@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react'
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react'
 import { type UserProfile } from './types'
 import { getMe, logout as authLogout } from './services/authService'
 import { useQueryClient } from '@tanstack/react-query'
@@ -130,7 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user?.uuid, queryClient])
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     try {
       const profile = await getMe()
       setUser(profile)
@@ -158,7 +158,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     const initSession = async () => {
