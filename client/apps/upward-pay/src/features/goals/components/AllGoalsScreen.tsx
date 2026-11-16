@@ -718,7 +718,7 @@ export function AllGoalsScreen() {
                           <span style={{ fontSize: '22px', flexShrink: 0 }}>{ug.icon || '🎯'}</span>
                           <div>
                             <div className="proto-goals__active-card-title">
-                              {ug.icon ? `${ug.icon} ` : ''}{title}
+                              {title}
                             </div>
                             <div className="proto-goals__active-card-sub">
                               Active{ug.durationDays ? ` · ${ug.durationDays} days target` : ''}
@@ -726,7 +726,7 @@ export function AllGoalsScreen() {
                           </div>
                         </div>
                         <span className="proto-goals__active-card-arrow">
-                          View update ›
+                          Manage ›
                         </span>
                       </div>
                     )
@@ -1173,11 +1173,16 @@ export function AllGoalsScreen() {
         >
           <div className="goal-modal" onClick={(e) => e.stopPropagation()}>
             <div className="goal-modal__head">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ fontSize: '24px', lineHeight: 1 }}>{activeDetailGoal.icon || '🎯'}</span>
-                <h2 className="goal-modal__title">
-                  {activeDetailGoal.title || activeDetailGoal.goal?.title}
-                </h2>
+              <div>
+                <span style={{ fontSize: '11px', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--text-muted, #8a8a8a)', display: 'block', marginBottom: '4px' }}>
+                  Goal Details
+                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '22px', lineHeight: 1 }}>{activeDetailGoal.icon || '🎯'}</span>
+                  <h2 className="goal-modal__title" style={{ margin: 0 }}>
+                    {activeDetailGoal.title || activeDetailGoal.goal?.title}
+                  </h2>
+                </div>
               </div>
               <button
                 type="button"
@@ -1190,7 +1195,7 @@ export function AllGoalsScreen() {
             </div>
 
             <div className="goal-modal__body">
-              {/* Goal Status & Progress update */}
+              {/* Goal Status */}
               <div className="goal-modal__field">
                 <label className="goal-modal__label">Status</label>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
@@ -1199,6 +1204,21 @@ export function AllGoalsScreen() {
                   </span>
                 </div>
               </div>
+
+              {/* Goal Objective / Description */}
+              {(() => {
+                const goalTitle = (activeDetailGoal.title || activeDetailGoal.goal?.title || '').trim()
+                const desc = GOAL_DESCRIPTIONS[goalTitle] || activeDetailGoal.goal?.description
+                if (!desc) return null
+                return (
+                  <div className="goal-modal__field">
+                    <label className="goal-modal__label">Objective</label>
+                    <p style={{ fontSize: '13.5px', color: 'var(--text-secondary, #666)', margin: '2px 0 0', lineHeight: 1.45 }}>
+                      {desc}
+                    </p>
+                  </div>
+                )
+              })()}
 
               {activeDetailGoal.targetAmountKobo && (
                 <div className="goal-modal__field">
@@ -1213,7 +1233,7 @@ export function AllGoalsScreen() {
               {activeDetailGoal.durationDays && (
                 <div className="goal-modal__field">
                   <label className="goal-modal__label">Timeline</label>
-                  <p style={{ fontSize: '13.5px', color: 'var(--text-muted, #8a8a8a)', margin: '2px 0 0' }}>
+                  <p style={{ fontSize: '13.5px', color: 'var(--text, #0a0a0f)', margin: '2px 0 0', fontWeight: 500 }}>
                     {activeDetailGoal.durationDays} days target window
                   </p>
                 </div>
@@ -1221,24 +1241,37 @@ export function AllGoalsScreen() {
 
               {activeDetailGoal.notes && (
                 <div className="goal-modal__field">
-                  <label className="goal-modal__label">Notes</label>
-                  <p style={{ fontSize: '13.5px', color: 'var(--text-secondary)', margin: '2px 0 0' }}>
+                  <label className="goal-modal__label">Notes &amp; Preferences</label>
+                  <p style={{ fontSize: '13.5px', color: 'var(--text-secondary, #666)', margin: '2px 0 0', lineHeight: 1.45 }}>
                     {activeDetailGoal.notes}
                   </p>
                 </div>
               )}
 
-              {/* Actions disabled/removed for now per instructions */}
+              {activeDetailGoal.createdAt && (
+                <div className="goal-modal__field">
+                  <label className="goal-modal__label">Started</label>
+                  <p style={{ fontSize: '13px', color: 'var(--text-muted, #8a8a8a)', margin: '2px 0 0' }}>
+                    {new Date(activeDetailGoal.createdAt).toLocaleDateString('en-GB', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </p>
+                </div>
+              )}
 
               {activeDetailGoal.id && (
-                <button
-                  type="button"
-                  className="goal-modal__delete-btn"
-                  onClick={() => handleDeleteGoal(activeDetailGoal.id)}
-                >
-                  <Trash2 size={14} style={{ display: 'inline', marginRight: '6px', verticalAlign: '-2px' }} />
-                  Remove this goal
-                </button>
+                <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--shell-border, #f0e9df)' }}>
+                  <button
+                    type="button"
+                    className="goal-modal__delete-btn"
+                    onClick={() => handleDeleteGoal(activeDetailGoal.id)}
+                  >
+                    <Trash2 size={14} style={{ display: 'inline', marginRight: '6px', verticalAlign: '-2px' }} />
+                    Remove this goal
+                  </button>
+                </div>
               )}
             </div>
           </div>
