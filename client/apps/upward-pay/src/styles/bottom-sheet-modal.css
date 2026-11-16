@@ -182,8 +182,9 @@
 
 .sheet-modal__footer {
   padding: 14px 20px;
-  border-top: 1px solid var(--border);
-  background: var(--surface);
+  padding-bottom: max(16px, calc(env(safe-area-inset-bottom) + 12px));
+  border-top: 1px solid var(--shell-border, #f0e9df);
+  background: var(--bg, #ffffff);
   display: flex;
   align-items: center;
   justify-content: flex-end;
