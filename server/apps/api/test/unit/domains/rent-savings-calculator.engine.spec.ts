@@ -4,11 +4,11 @@ describe('RentSavingsCalculatorEngine', () => {
   const baseDate = new Date('2026-01-01T00:00:00Z')
 
   describe('Work-Backwards Runway Calculations', () => {
-    it('M-03: should calculate 12-month runway (365 days) for ₦2.4M target', () => {
+    it('M-03: should calculate 11-month runway (330 days) with T-30 release for ₦2.4M target', () => {
       const dueDate = new Date('2027-01-01T00:00:00Z') // 365 days
       const targetAmountKobo = 240_000_000n // ₦2,400,000
 
-      // Monthly option (~12 payments)
+      // Monthly option (max 11 payments because rent released 30 days before due date)
       const monthlyRes = RentSavingsCalculatorEngine.simulate({
         targetAmountKobo,
         contractualDueDate: dueDate,
@@ -16,38 +16,36 @@ describe('RentSavingsCalculatorEngine', () => {
         asOfDate: baseDate,
       })
 
-      expect(monthlyRes.daysRemaining).toBe(365)
-      expect(monthlyRes.numberOfPayments).toBe(12)
-      // Expect periodic deposit to be around ₦180k - ₦185k (18,000,000 - 18,500,000 kobo)
-      expect(Number(monthlyRes.periodicDepositKobo)).toBeGreaterThan(17_500_000)
-      expect(Number(monthlyRes.periodicDepositKobo)).toBeLessThan(19_000_000)
+      expect(monthlyRes.daysRemaining).toBe(330)
+      expect(monthlyRes.numberOfPayments).toBe(11)
+      // Expect periodic deposit to be around ₦200k - ₦215k
+      expect(Number(monthlyRes.periodicDepositKobo)).toBeGreaterThan(19_500_000)
+      expect(Number(monthlyRes.periodicDepositKobo)).toBeLessThan(22_000_000)
 
-      // Weekly option
+      // Weekly option (11 * 4 = 44 payments)
       const weeklyRes = RentSavingsCalculatorEngine.simulate({
         targetAmountKobo,
         contractualDueDate: dueDate,
         cadence: 'WEEKLY',
         asOfDate: baseDate,
       })
-      expect(weeklyRes.numberOfPayments).toBe(52)
-      // Around ₦40k - ₦43k (4,000,000 - 4,300,000 kobo)
-      expect(Number(weeklyRes.periodicDepositKobo)).toBeGreaterThan(3_900_000)
-      expect(Number(weeklyRes.periodicDepositKobo)).toBeLessThan(4_300_000)
+      expect(weeklyRes.numberOfPayments).toBe(44)
+      expect(Number(weeklyRes.periodicDepositKobo)).toBeGreaterThan(4_500_000)
+      expect(Number(weeklyRes.periodicDepositKobo)).toBeLessThan(5_500_000)
 
-      // Daily option
+      // Daily option (330 payments)
       const dailyRes = RentSavingsCalculatorEngine.simulate({
         targetAmountKobo,
         contractualDueDate: dueDate,
         cadence: 'DAILY',
         asOfDate: baseDate,
       })
-      expect(dailyRes.numberOfPayments).toBe(365)
-      // Around ₦5,600 - ₦6,000 (560,000 - 600,000 kobo)
-      expect(Number(dailyRes.periodicDepositKobo)).toBeGreaterThan(550_000)
-      expect(Number(dailyRes.periodicDepositKobo)).toBeLessThan(620_000)
+      expect(dailyRes.numberOfPayments).toBe(330)
+      expect(Number(dailyRes.periodicDepositKobo)).toBeGreaterThan(600_000)
+      expect(Number(dailyRes.periodicDepositKobo)).toBeLessThan(750_000)
     })
 
-    it('M-04: should calculate 6-month runway (180 days) for ₦2.4M target', () => {
+    it('M-04: should calculate 5-month runway (150 days) with T-30 release for ₦2.4M target', () => {
       const dueDate = new Date('2026-06-30T00:00:00Z') // 180 days
       const targetAmountKobo = 240_000_000n
 
@@ -58,14 +56,14 @@ describe('RentSavingsCalculatorEngine', () => {
         asOfDate: baseDate,
       })
 
-      expect(res.daysRemaining).toBe(180)
-      expect(res.numberOfPayments).toBe(6)
-      // Around ₦375k - ₦390k (37,500,000 - 39,000,000 kobo)
-      expect(Number(res.periodicDepositKobo)).toBeGreaterThan(37_000_000)
-      expect(Number(res.periodicDepositKobo)).toBeLessThan(39_500_000)
+      expect(res.daysRemaining).toBe(150)
+      expect(res.numberOfPayments).toBe(5)
+      // Around ₦450k - ₦480k (45,000,000 - 48,000,000 kobo)
+      expect(Number(res.periodicDepositKobo)).toBeGreaterThan(44_000_000)
+      expect(Number(res.periodicDepositKobo)).toBeLessThan(49_000_000)
     })
 
-    it('M-05: should calculate 3-month runway (87 days) for ₦1.2M target', () => {
+    it('M-05: should calculate 57-day runway with T-30 release for ₦1.2M target', () => {
       const dueDate = new Date('2026-03-29T00:00:00Z') // 87 days
       const targetAmountKobo = 120_000_000n
 
@@ -76,14 +74,12 @@ describe('RentSavingsCalculatorEngine', () => {
         asOfDate: baseDate,
       })
 
-      expect(res.daysRemaining).toBe(87)
-      expect(res.numberOfPayments).toBe(2)
-      // Around ₦580k - ₦600k for 2 payments
-      expect(Number(res.periodicDepositKobo)).toBeGreaterThan(55_000_000)
-      expect(Number(res.periodicDepositKobo)).toBeLessThan(61_000_000)
+      expect(res.daysRemaining).toBe(57)
+      expect(res.numberOfPayments).toBe(1)
+      expect(Number(res.periodicDepositKobo)).toBeGreaterThan(100_000_000)
     })
 
-    it('M-06: should calculate 45-day runway for ₦1.2M target across 2 payments', () => {
+    it('M-06: should calculate 15-day runway with T-30 release for ₦1.2M target', () => {
       const dueDate = new Date('2026-02-15T00:00:00Z') // 45 days
       const targetAmountKobo = 120_000_000n
 
@@ -94,10 +90,9 @@ describe('RentSavingsCalculatorEngine', () => {
         asOfDate: baseDate,
       })
 
-      expect(res.daysRemaining).toBe(45)
-      expect(res.numberOfPayments).toBe(2)
-      expect(Number(res.periodicDepositKobo)).toBeGreaterThan(57_000_000)
-      expect(Number(res.periodicDepositKobo)).toBeLessThan(61_000_000)
+      expect(res.daysRemaining).toBe(15)
+      expect(res.numberOfPayments).toBe(1)
+      expect(Number(res.periodicDepositKobo)).toBeGreaterThan(100_000_000)
     })
 
     it('M-07: should trigger affordability alert when monthly deposit exceeds 50% income', () => {

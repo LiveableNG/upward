@@ -588,6 +588,21 @@
   line-height: 1.25;
 }
 
+.housing-link__badge-alert {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 999px;
+  padding: 1.5px 6px;
+  line-height: 1.2;
+}
+
 .housing-link__desc {
   font-size: 11px;
   color: var(--text-muted, #8a8a8a);

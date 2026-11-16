@@ -37,6 +37,15 @@ export class CreateRentVaultDto {
   preferred_funding_method!: FundingMethodType
 
   @IsOptional()
+  @IsIn(['SAVE_AND_EARN', 'RENT_PROTEC'])
+  product_option?: 'SAVE_AND_EARN' | 'RENT_PROTEC'
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  initial_deposit_kobo?: number
+
+  @IsOptional()
   @IsNumber()
   @Min(1)
   @Max(31)
@@ -134,6 +143,8 @@ export class CreateRentVaultUseCase {
       userId,
       targetAmountKobo,
       cadence: dto.cadence,
+      productOption: dto.product_option || 'SAVE_AND_EARN',
+      initialDepositKobo: dto.initial_deposit_kobo ? BigInt(Math.round(dto.initial_deposit_kobo)) : 0n,
       contractualDueDate: dueDate,
       unlockDate,
       lockStatus: 'LOCKED',

@@ -6,11 +6,9 @@ import {
   Home,
   ChevronUp,
   ChevronDown,
-  ChevronRight,
   Maximize2,
   Minimize2,
   ShieldCheck,
-  Receipt,
   ArrowUpRight,
   ArrowDownRight,
   Smartphone,
@@ -155,35 +153,80 @@ export function HousingFirstHome({
   const { rates: platformRates } = usePlatformRates()
   const { data: userGoals } = useUserGoals()
 
-  const displayGoals = React.useMemo(() => {
-    if (userGoals && userGoals.length > 0) {
-      const nonHousing = userGoals.filter(
-        (g) => (g.categorySlug || g.goal?.category?.slug) !== 'housing',
-      )
-      if (nonHousing.length > 0) {
-        return nonHousing.slice(0, 3).map((g) => {
-          const title = (g.icon ? `${g.icon} ` : '') + (g.title || g.goal?.title || 'Goal')
-          const cat = g.categorySlug || g.goal?.category?.title || g.goal?.category?.name || 'Upward Goal'
-          let subtitle = cat
-          if (g.durationDays) {
-            const months = Math.round(g.durationDays / 30)
-            subtitle += months >= 1 ? ` · ${months} months` : ` · ${g.durationDays} days`
-          } else if (g.targetAmountKobo) {
-            const amt = Number(g.targetAmountKobo) / 100
-            subtitle += ` · ₦${Math.round(amt).toLocaleString('en-NG')}`
-          }
-          return {
-            id: String(g.id || g.uuid),
-            goalId: g.goalId,
-            title,
-            subtitle,
-            pct: g.progressPct || 0,
-            categorySlug: g.categorySlug || g.goal?.category?.slug || 'all',
-          }
-        })
-      }
+  const appGoals = React.useMemo(() => {
+    const active = (userGoals || []).filter((ug) => ug.status === 'ACTIVE')
+
+    const matchCategory = (ug: any, slugs: string[]) => {
+      const s = (ug.categorySlug || ug.goal?.category?.slug || '').toLowerCase()
+      const gSlug = (ug.goal?.slug || '').toLowerCase()
+      return slugs.includes(s) || slugs.includes(gSlug)
     }
-    return []
+
+    const incomeGoal = active.find((ug) => matchCategory(ug, ['income', 'start-a-business']))
+    const careerGoal = active.find((ug) => matchCategory(ug, ['career', 'work-growth', 'learn-a-skill']))
+    const childrenGoal = active.find((ug) => matchCategory(ug, ['other', 'children', 'family', 'goals-for-my-children']))
+
+    const formatSubtitle = (goal: any, defaultText: string) => {
+      if (!goal) return defaultText
+      const title = (goal.icon ? `${goal.icon} ` : '') + (goal.title || goal.goal?.title || defaultText)
+      if (goal.progressPct && goal.progressPct > 0) {
+        return `${title} · ${goal.progressPct}% done`
+      }
+      return title
+    }
+
+    const coreCategories = [
+      {
+        id: 'income',
+        tag: 'INCOME & FINANCIAL',
+        title: 'Income & financial goals',
+        desc: formatSubtitle(incomeGoal, 'Grow revenue, build reserves & invest'),
+        pct: incomeGoal?.progressPct ?? 0,
+        hasGoal: Boolean(incomeGoal),
+        href: '/dashboard/goals?category=income',
+      },
+      {
+        id: 'career',
+        tag: 'CAREER',
+        title: 'Career & professional',
+        desc: formatSubtitle(careerGoal, 'Certifications, skills & career growth'),
+        pct: careerGoal?.progressPct ?? 0,
+        hasGoal: Boolean(careerGoal),
+        href: '/dashboard/goals?category=career',
+      },
+      {
+        id: 'children',
+        tag: 'CHILDREN DEVELOPMENT',
+        title: 'Children development',
+        desc: formatSubtitle(childrenGoal, 'School fees, skills & family milestones'),
+        pct: childrenGoal?.progressPct ?? 0,
+        hasGoal: Boolean(childrenGoal),
+        href: '/dashboard/goals?category=other',
+      },
+    ]
+
+    // Any other custom goals created by the user (excluding housing and lifestyle)
+    const coreIds = new Set([incomeGoal?.id, careerGoal?.id, childrenGoal?.id].filter(Boolean))
+    const extraCustom = active
+      .filter((ug) => {
+        const s = (ug.categorySlug || ug.goal?.category?.slug || '').toLowerCase()
+        if (s === 'housing' || s === 'lifestyle' || s === 'home-utilities') return false
+        return !coreIds.has(ug.id)
+      })
+      .map((ug) => {
+        const title = (ug.icon ? `${ug.icon} ` : '') + (ug.title || ug.goal?.title || 'Custom Goal')
+        return {
+          id: String(ug.id || ug.uuid),
+          tag: (ug.categorySlug || 'PERSONAL').replace(/-/g, ' ').toUpperCase(),
+          title,
+          desc: ug.notes || 'Personal milestone · Tap to view steps',
+          pct: ug.progressPct ?? 5,
+          hasGoal: true,
+          href: '/dashboard/goals',
+        }
+      })
+
+    return { coreCategories, extraCustom }
   }, [userGoals])
 
   // Housing section modes: 'default' | 'compact' | 'full'
@@ -239,6 +282,7 @@ export function HousingFirstHome({
 
   const hasRental = Boolean(user?.properties && user.properties.length > 0) || hasRentalInfo(user)
   const recentPayments = completedPayments.slice(0, 4)
+  const pendingGtBillsCount = (gtBillsCount ?? 0) || gtBills.length
 
   return (
     <div className="housing-first-home">
@@ -252,9 +296,8 @@ export function HousingFirstHome({
           <div className="housing-acc__head">
             <div className="housing-acc__titles">
               <h1 className="housing-acc__title">
-                {hasStartedSaving ? 'Making housing easier' : 'Make life easier'}
+                {hasStartedSaving ? 'Making housing easier' : 'Make housing easier'}
               </h1>
-              <span className="housing-acc__tag">All My Lifestyle</span>
             </div>
             <div className="housing-acc__controls">
               <button
@@ -286,8 +329,8 @@ export function HousingFirstHome({
             </div>
           </div>
 
-          {/* Upward Score Banner (Clay/Rust) in default / compact mode */}
-          {housingMode !== 'full' && (
+          {/* Compact View: Shows score pill when housing accordion is collapsed */}
+          {housingMode === 'compact' && (
             <button
               type="button"
               className="score-pill"
@@ -310,32 +353,6 @@ export function HousingFirstHome({
           {/* Accordion Body: Conditional State A (Pre-Saving) vs State B (Active Saving Traction) */}
           {housingMode !== 'compact' && (
             <div className="housing-acc__body">
-              {/* Full Score Banner (Shown in full mode) */}
-              {housingMode === 'full' && (
-                <button
-                  type="button"
-                  className="score-full"
-                  onClick={() => router.push('/dashboard/score-breakdown')}
-                >
-                  <div className="score-full__top">
-                    <div>
-                      <div className="score-full__eyebrow">UPWARD SCORE</div>
-                      <div className="score-full__value-row">
-                        <span className="score-full__value">{credScore || 500}</span>
-                        <span className="score-full__max">/ {maxScore || 900}</span>
-                      </div>
-                      <div className="score-full__sub">Rent Payment Score</div>
-                      <span className="score-full__pill">View breakdown ›</span>
-                    </div>
-                    <div className="score-full__ring">
-                      <div className="score-full__ring-inner">
-                        <span>{isScorable ? `${rank || 'Good'} standing` : 'Not scoreable yet'}</span>
-                      </div>
-                    </div>
-                  </div>
-                </button>
-              )}
-
               {/* ── STATE A: User Has NOT Started Saving ── */}
               {!hasStartedSaving && (
                 <div className="housing-acc__goals-mode" aria-label="Featured Home Goals">
@@ -351,7 +368,7 @@ export function HousingFirstHome({
                       </span>
                       <h3 className="housing-goal-card__title">Pay less for my next rent</h3>
                       <p className="housing-goal-card__desc">
-                        Save consistently and pay less — {platformRates.savingsAnnualRatePct}% p.a. or Rent Protec ({platformRates.rentProtecRatePct}% + Insurance)
+                        Earn returns so you pay less — {platformRates.savingsAnnualRatePct}% p.a. or Rent Protec ({platformRates.rentProtecRatePct}% + Insurance)
                       </p>
                     </div>
                     {renderGoalRing(0, 38)}
@@ -392,47 +409,48 @@ export function HousingFirstHome({
                   </button>
 
                   {/* Traction on Second Active Goal (or prompt to set next milestone) */}
-                  {displayGoals.length > 0 ? (
-                    <button
-                      type="button"
-                      className="housing-goal-card"
-                      onClick={() =>
-                        router.push(
-                          displayGoals[0].categorySlug === 'lifestyle'
-                            ? '/dashboard/lifestyle'
-                            : '/dashboard/goals',
-                        )
-                      }
-                    >
-                      <div className="housing-goal-card__body">
-                        <span className="housing-goal-card__tag">
-                          {displayGoals[0].categorySlug.replace(/-/g, ' ').toUpperCase()}
-                        </span>
-                        <h3 className="housing-goal-card__title">{displayGoals[0].title}</h3>
-                        <p className="housing-goal-card__desc">{displayGoals[0].subtitle}</p>
-                      </div>
-                      {renderGoalRing(displayGoals[0].pct, 38)}
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      className="housing-goal-card"
-                      onClick={() => router.push('/dashboard/goals')}
-                    >
-                      <div className="housing-goal-card__body">
-                        <span className="housing-goal-card__tag">NEXT MILESTONE</span>
-                        <h3 className="housing-goal-card__title">Explore other goals</h3>
-                        <p className="housing-goal-card__desc">
-                          Set targets for career, business, or lifestyle
-                        </p>
-                      </div>
-                      <span className="housing-goal-card__action">+ Add goal</span>
-                    </button>
-                  )}
+                  {(() => {
+                    const activeGoal =
+                      appGoals.coreCategories.find((c) => c.hasGoal) || appGoals.extraCustom[0]
+                    if (activeGoal) {
+                      return (
+                        <button
+                          type="button"
+                          className="housing-goal-card"
+                          onClick={() => router.push(activeGoal.href)}
+                        >
+                          <div className="housing-goal-card__body">
+                            <span className="housing-goal-card__tag">
+                              {activeGoal.tag}
+                            </span>
+                            <h3 className="housing-goal-card__title">{activeGoal.title}</h3>
+                            <p className="housing-goal-card__desc">{activeGoal.desc}</p>
+                          </div>
+                          {renderGoalRing(activeGoal.pct, 38)}
+                        </button>
+                      )
+                    }
+                    return (
+                      <button
+                        type="button"
+                        className="housing-goal-card"
+                        onClick={() => router.push('/dashboard/goals')}
+                      >
+                        <div className="housing-goal-card__body">
+                          <span className="housing-goal-card__tag">NEXT MILESTONE</span>
+                          <h3 className="housing-goal-card__title">Explore other goals</h3>
+                          <p className="housing-goal-card__desc">
+                            Set targets for career, business, or family milestones
+                          </p>
+                        </div>
+                        <span className="housing-goal-card__action">+ Add goal</span>
+                      </button>
+                    )
+                  })()}
                 </div>
               )}
 
-              {/* My Home row (external property tenancies only) */}
+              {/* My Home row (Service Charge, Bills, Complaints, Visitors, Documents) */}
               {hasMyHome && (
                 <button
                   type="button"
@@ -443,18 +461,71 @@ export function HousingFirstHome({
                     <Home size={16} strokeWidth={2} />
                   </span>
                   <span className="housing-link__body">
-                    <h3 className="housing-link__title">My Home</h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <h3 className="housing-link__title">My Home</h3>
+                      {pendingGtBillsCount > 0 && (
+                        <span className="housing-link__badge-alert">
+                          {pendingGtBillsCount} pending {pendingGtBillsCount > 1 ? 'bills' : 'bill'}
+                        </span>
+                      )}
+                    </div>
                     <p className="housing-link__desc">
-                      Complaints, visitors, bills and documents
+                      {pendingGtBillsCount > 0
+                        ? `${pendingGtBillsCount} service charge bill${pendingGtBillsCount > 1 ? 's' : ''} to pay · Complaints, visitors & documents`
+                        : 'Service charge, complaints, visitors, bills and documents'}
                     </p>
                   </span>
                   <span className="housing-link__chev">›</span>
                 </button>
               )}
 
-              {/* Additional links when in Full mode */}
+              {/* Upward Score Banner (Supporting status below primary home actions in default mode) */}
+              {housingMode === 'default' && (
+                <button
+                  type="button"
+                  className="score-pill"
+                  onClick={() => router.push('/dashboard/score-breakdown')}
+                  aria-label="View score breakdown"
+                >
+                  <div className="score-pill__left">
+                    <div className="score-pill__label">UPWARD SCORE</div>
+                    <div className="score-pill__value">
+                      {credScore || 500} <span>/ {maxScore || 900}</span>
+                    </div>
+                    <div className="score-pill__meta">
+                      Rent Payment Score · {isScorable ? `${rank || 'Good'} standing` : 'Not scoreable yet'}
+                    </div>
+                  </div>
+                  {renderScoreRing(credScore || 500, maxScore || 900, 42)}
+                </button>
+              )}
+
+              {/* Full Score Banner (Shown in full mode) */}
               {housingMode === 'full' && (
                 <>
+                  <button
+                    type="button"
+                    className="score-full"
+                    onClick={() => router.push('/dashboard/score-breakdown')}
+                  >
+                    <div className="score-full__top">
+                      <div>
+                        <div className="score-full__eyebrow">UPWARD SCORE</div>
+                        <div className="score-full__value-row">
+                          <span className="score-full__value">{credScore || 500}</span>
+                          <span className="score-full__max">/ {maxScore || 900}</span>
+                        </div>
+                        <div className="score-full__sub">Rent Payment Score</div>
+                        <span className="score-full__pill">View breakdown ›</span>
+                      </div>
+                      <div className="score-full__ring">
+                        <div className="score-full__ring-inner">
+                          <span>{isScorable ? `${rank || 'Good'} standing` : 'Not scoreable yet'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+
                   <button
                     type="button"
                     className="housing-link"
@@ -499,13 +570,6 @@ export function HousingFirstHome({
                 <button
                   type="button"
                   className="more-areas__link-btn"
-                  onClick={() => router.push('/dashboard/goals')}
-                >
-                  See all
-                </button>
-                <button
-                  type="button"
-                  className="more-areas__link-btn"
                   onClick={() => router.push('/dashboard/goals?new=true')}
                 >
                   + New goal
@@ -513,48 +577,43 @@ export function HousingFirstHome({
               </div>
             </div>
 
-            {displayGoals.length > 0 ? (
-              <div className="more-areas__grid">
-                {displayGoals.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    className="goal-card"
-                    onClick={() =>
-                      router.push(
-                        item.categorySlug === 'lifestyle'
-                          ? '/dashboard/lifestyle'
-                          : '/dashboard/goals',
-                      )
-                    }
-                  >
-                    <div className="goal-card__body">
-                      <span className="goal-card__tag">
-                        {item.categorySlug.replace(/-/g, ' ').toUpperCase()}
-                      </span>
-                      <h3 className="goal-card__title">{item.title}</h3>
-                      <p className="goal-card__desc">{item.subtitle}</p>
-                    </div>
-                    {renderGoalRing(item.pct, 38)}
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <button
-                type="button"
-                className="goal-card"
-                onClick={() => router.push('/dashboard/goals')}
-              >
-                <div className="goal-card__body">
-                  <span className="goal-card__tag">EXPLORE</span>
-                  <h3 className="goal-card__title">Explore other goals</h3>
-                  <p className="goal-card__desc">Set targets for wellness, career, or smart living</p>
-                </div>
-                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--clay, #c2501f)', paddingRight: '8px' }}>
-                  + Add goal
-                </span>
-              </button>
-            )}
+            <div className="more-areas__grid">
+              {appGoals.coreCategories.map((cat) => (
+                <button
+                  key={cat.tag}
+                  type="button"
+                  className="goal-card"
+                  onClick={() => router.push(cat.href)}
+                >
+                  <div className="goal-card__body">
+                    <span className="goal-card__tag">{cat.tag}</span>
+                    <h3 className="goal-card__title">{cat.title}</h3>
+                    <p className="goal-card__desc">{cat.desc}</p>
+                  </div>
+                  {cat.hasGoal ? (
+                    renderGoalRing(cat.pct, 38)
+                  ) : (
+                    <span className="housing-link__chev">›</span>
+                  )}
+                </button>
+              ))}
+
+              {appGoals.extraCustom.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  className="goal-card"
+                  onClick={() => router.push(item.href)}
+                >
+                  <div className="goal-card__body">
+                    <span className="goal-card__tag">{item.tag}</span>
+                    <h3 className="goal-card__title">{item.title}</h3>
+                    <p className="goal-card__desc">{item.desc}</p>
+                  </div>
+                  {renderGoalRing(item.pct, 38)}
+                </button>
+              ))}
+            </div>
           </section>
         )}
 

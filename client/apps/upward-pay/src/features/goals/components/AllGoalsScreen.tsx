@@ -13,12 +13,11 @@ import {
   useToggleGoalAction,
   useRemoveUserGoal,
 } from '../hooks/useGoals'
-import { useTenantOrders } from '../hooks/useCommerceOrders'
 import { type UserGoal, type GoalTargetType } from '../types/goals.types'
 import { useToast } from '@/components/common/Toast'
 
 interface CategoryQuestionConfig {
-  id: 'fitness' | 'career' | 'income' | 'custom'
+  id: 'income' | 'career' | 'children' | 'fitness' | 'custom'
   title: string
   intro: string
   label: string
@@ -34,18 +33,21 @@ interface CategoryQuestionConfig {
   notesRequired?: boolean
 }
 
-const QUESTIONNAIRE_CONFIGS: Record<'fitness' | 'career' | 'income' | 'custom', CategoryQuestionConfig> = {
-  fitness: {
-    id: 'fitness',
-    title: 'Health & fitness goals',
-    intro: 'Pick your focus area or enter your own goal below.',
-    label: 'What is your main health or fitness goal?',
+const QUESTIONNAIRE_CONFIGS: Record<
+  'income' | 'career' | 'children' | 'fitness' | 'custom',
+  CategoryQuestionConfig
+> = {
+  income: {
+    id: 'income',
+    title: 'Income & financial goals',
+    intro: 'Pick how you want to grow your income and reserves.',
+    label: 'What is your primary income goal?',
     options: [
-      'Lose weight',
-      'Build muscle or strength',
-      'Stay consistent with exercise',
-      'Improve my diet and nutrition',
-      'Prepare for a fitness event or run',
+      'Start a business',
+      'Grow my existing business revenue',
+      'Add a second stream of income',
+      'Save towards an emergency or investment fund',
+      'Start investing more seriously',
     ],
   },
   career: {
@@ -67,17 +69,31 @@ const QUESTIONNAIRE_CONFIGS: Record<'fitness' | 'career' | 'income' | 'custom', 
       },
     },
   },
-  income: {
-    id: 'income',
-    title: 'Income goals',
-    intro: 'Pick how you want to grow your income in 2027.',
-    label: 'What is your primary income goal?',
+  children: {
+    id: 'children',
+    title: 'Children development',
+    intro: 'School fees, skills, family milestones & future planning.',
+    label: 'What is your primary milestone or goal?',
     options: [
-      'Start a side business',
-      'Grow my existing business revenue',
-      'Add a second stream of income',
-      'Save towards an emergency or investment fund',
-      'Start investing more seriously',
+      'Goals for my children',
+      'A family goal',
+      'School fees and education fund',
+      'Extracurriculars and skills development',
+      'Buy a family car',
+      'Travel abroad',
+    ],
+  },
+  fitness: {
+    id: 'fitness',
+    title: 'Health & fitness goals',
+    intro: 'Pick your focus area or enter your own goal below.',
+    label: 'What is your main health or fitness goal?',
+    options: [
+      'Lose weight',
+      'Build muscle or strength',
+      'Stay consistent with exercise',
+      'Improve my diet and nutrition',
+      'Prepare for a fitness event or run',
     ],
   },
   custom: {
@@ -87,6 +103,7 @@ const QUESTIONNAIRE_CONFIGS: Record<'fitness' | 'career' | 'income' | 'custom', 
     label: 'What is your goal?',
     options: [
       'Goals for my children',
+      'Health & fitness goal',
       'A family goal',
       'Buy a car',
       'Travel abroad',
@@ -139,11 +156,12 @@ function renderPrototypeRing(pct: number, size = 52) {
 function resolveQueryCategory(
   isNew: boolean,
   cat: string | null,
-): 'fitness' | 'career' | 'income' | 'custom' | null {
+): 'income' | 'career' | 'children' | 'fitness' | 'custom' | null {
   if (isNew || cat === 'custom') return 'custom'
-  if (cat === 'fitness' || cat === 'wellness-lifestyle') return 'fitness'
-  if (cat === 'career' || cat === 'work-growth') return 'career'
   if (cat === 'income') return 'income'
+  if (cat === 'career' || cat === 'work-growth') return 'career'
+  if (cat === 'other' || cat === 'children' || cat === 'family') return 'children'
+  if (cat === 'fitness' || cat === 'wellness-lifestyle') return 'fitness'
   return null
 }
 
@@ -158,7 +176,6 @@ export function AllGoalsScreen() {
   const { data: userGoals = [] } = useUserGoals()
   const { data: categories = [] } = useGoalCategories()
   const { data: catalogGoalsData } = useGoalsList({ status: 'PUBLISHED', take: 100 })
-  const { data: tenantOrdersData } = useTenantOrders({ take: 10 })
 
   const createGoalMutation = useCreateCustomGoal()
   const submitQuestionnaireMutation = useSubmitQuestionnaire()
@@ -170,9 +187,9 @@ export function AllGoalsScreen() {
   const initialQueryCat = resolveQueryCategory(isNewParam, catParam)
 
   // Active sub-screen state: 'home' | 'questionnaire' | 'detail' | 'custom-modal'
-  const [activeCategory, setActiveCategory] = useState<'fitness' | 'career' | 'income' | 'custom' | null>(
-    initialQueryCat,
-  )
+  const [activeCategory, setActiveCategory] = useState<
+    'income' | 'career' | 'children' | 'fitness' | 'custom' | null
+  >(initialQueryCat)
   const [selectedOption, setSelectedOption] = useState<string | null>(null)
   const [selectedExtra, setSelectedExtra] = useState<string | null>(null)
   const [notesText, setNotesText] = useState('')
@@ -195,23 +212,26 @@ export function AllGoalsScreen() {
 
   // Custom goal modal form state
   const [newTitle, setNewTitle] = useState('')
-  const [newCatSlug, setNewCatSlug] = useState('lifestyle')
+  const [newCatSlug, setNewCatSlug] = useState('income')
   const [newIcon, setNewIcon] = useState('🎯')
   const [newTimelineDays, setNewTimelineDays] = useState(90)
   const [newTargetAmount, setNewTargetAmount] = useState('')
   const [actionsList, setActionsList] = useState<string[]>([])
   const [currentActionText, setCurrentActionText] = useState('')
 
-  const openQuestionnaire = useCallback((catId: 'fitness' | 'career' | 'income' | 'custom') => {
-    setActiveCategory(catId)
-    setSelectedOption(null)
-    setSelectedExtra(null)
-    setNotesText('')
-    setActionsList([])
-    setCurrentActionText('')
-    setNewTimelineDays(180)
-    setSavedGoalLabel(null)
-  }, [])
+  const openQuestionnaire = useCallback(
+    (catId: 'income' | 'career' | 'children' | 'fitness' | 'custom') => {
+      setActiveCategory(catId)
+      setSelectedOption(null)
+      setSelectedExtra(null)
+      setNotesText('')
+      setActionsList([])
+      setCurrentActionText('')
+      setNewTimelineDays(180)
+      setSavedGoalLabel(null)
+    },
+    [],
+  )
 
   // Redirect ?cat=lifestyle straight to /dashboard/lifestyle
   useEffect(() => {
@@ -230,74 +250,42 @@ export function AllGoalsScreen() {
       return slugs.includes(s) || slugs.includes(gSlug)
     }
 
-    const lifestyleGoals = active.filter(
-      (ug) =>
-        matchCategory(ug, ['lifestyle', 'home-refresh-package']) &&
-        (ug.goal?.slug || '') !== 'healthy-living-lifestyle',
-    )
-    const fitnessGoals = active.filter((ug) =>
-      matchCategory(ug, ['fitness', 'health-fitness', 'wellness-lifestyle', 'healthy-living-lifestyle']),
+    const incomeGoals = active.filter((ug) =>
+      matchCategory(ug, ['income', 'start-a-business']),
     )
     const careerGoals = active.filter((ug) =>
       matchCategory(ug, ['career', 'work-growth', 'learn-a-skill']),
     )
-    const incomeGoals = active.filter((ug) =>
-      matchCategory(ug, ['income', 'start-a-business']),
+    const childrenGoals = active.filter((ug) =>
+      matchCategory(ug, ['other', 'children', 'family', 'goals-for-my-children']),
+    )
+    const fitnessGoals = active.filter((ug) =>
+      matchCategory(ug, ['fitness', 'health-fitness', 'wellness-lifestyle', 'healthy-living-lifestyle']),
     )
 
     const coreIds = new Set(
-      [...lifestyleGoals, ...fitnessGoals, ...careerGoals, ...incomeGoals].map(
+      [...incomeGoals, ...careerGoals, ...childrenGoals, ...fitnessGoals].map(
         (g) => g.id || g.uuid,
       ),
     )
 
     const otherCustomGoals = active.filter((ug) => {
       const s = (ug.categorySlug || ug.goal?.category?.slug || '').toLowerCase()
-      if (s === 'housing' || s === 'home-utilities') return false
+      if (s === 'housing' || s === 'lifestyle' || s === 'home-utilities') return false
       return !coreIds.has(ug.id || ug.uuid)
     })
 
     return {
-      lifestyle: lifestyleGoals,
-      fitness: fitnessGoals,
-      career: careerGoals,
       income: incomeGoals,
+      career: careerGoals,
+      children: childrenGoals,
+      fitness: fitnessGoals,
       custom: otherCustomGoals,
     }
   }, [userGoals])
 
-  // Active commerce orders count for lifestyle traction
-  const activeOrdersCount = useMemo(() => {
-    const orders = tenantOrdersData?.orders || []
-    return orders.filter((ord) => !['CANCELLED', 'REFUNDED'].includes(ord.status)).length
-  }, [tenantOrdersData])
-
-  // Compute card metrics for each prototype category
-  const lifestyleCardData = useMemo(() => {
-    const list = goalsByCategory.lifestyle
-    if (list.length > 0) {
-      const primary = list[0]
-      const pct = Math.max(
-        5,
-        Math.round(list.reduce((acc, g) => acc + (g.progressPct || 0), 0) / list.length),
-      )
-      const sub = primary.title || primary.goal?.title || 'Travel more'
-      return { pct, subtitle: sub }
-    }
-    if (activeOrdersCount > 0) {
-      return {
-        pct: 15,
-        subtitle: `${activeOrdersCount} active lifestyle package${activeOrdersCount > 1 ? 's' : ''}`,
-      }
-    }
-    return {
-      pct: 5,
-      subtitle: 'Home refresh, wellness & everyday perks',
-    }
-  }, [goalsByCategory.lifestyle, activeOrdersCount])
-
   const getCategoryCardState = (
-    catKey: 'fitness' | 'career' | 'income',
+    catKey: 'income' | 'career' | 'children' | 'fitness',
     defaultSubtitle: string,
   ) => {
     const list = goalsByCategory[catKey]
@@ -309,7 +297,7 @@ export function AllGoalsScreen() {
       const pct = rawPct > 0 ? rawPct : 5
       const rawTitle = primary.title || primary.goal?.title || defaultSubtitle
       const subtitle =
-        catKey === 'fitness' && rawPct > 0
+        rawPct > 0
           ? `${rawTitle} · ${rawPct}% progress`
           : rawTitle
       return {
@@ -331,11 +319,12 @@ export function AllGoalsScreen() {
     }
   }
 
-  const fitnessCard = getCategoryCardState('fitness', 'Build healthy habits & fitness routines')
+  const incomeCard = getCategoryCardState('income', 'Grow revenue, build reserves & invest')
   const careerCard = getCategoryCardState('career', 'Certifications, skills & career growth')
-  const incomeCard = getCategoryCardState('income', 'Grow your income in 2027')
+  const childrenCard = getCategoryCardState('children', 'School fees, skills & family milestones')
+  const fitnessCard = getCategoryCardState('fitness', 'Build healthy habits & fitness routines')
 
-  const handleCategoryCardClick = (catId: 'fitness' | 'career' | 'income') => {
+  const handleCategoryCardClick = (catId: 'income' | 'career' | 'children' | 'fitness') => {
     const list = goalsByCategory[catId]
     if (list.length > 0) {
       setActiveDetailGoal(list[0])
@@ -378,16 +367,22 @@ export function AllGoalsScreen() {
     }
 
     try {
+      const targetCategorySlug =
+        activeCategory === 'children' || activeCategory === 'custom'
+          ? 'other'
+          : activeCategory
+
       if (activeCategory === 'custom' || finalActions.length > 0) {
         const iconMap: Record<string, string> = {
-          fitness: '💪',
-          career: '📚',
           income: '💼',
+          career: '📚',
+          children: '👶',
+          fitness: '💪',
           custom: '🎯',
         }
         await createGoalMutation.mutateAsync({
           title: finalSelection,
-          categorySlug: activeCategory === 'custom' ? 'other' : activeCategory,
+          categorySlug: targetCategorySlug,
           icon: iconMap[activeCategory] || '🎯',
           targetType: 'CHECKLIST_ACTIONS',
           durationDays: newTimelineDays,
@@ -395,7 +390,7 @@ export function AllGoalsScreen() {
         })
       } else {
         await submitQuestionnaireMutation.mutateAsync({
-          categorySlug: activeCategory,
+          categorySlug: targetCategorySlug,
           questionTitle: q.title,
           selectedOption: finalSelection,
           durationDays: newTimelineDays,
@@ -489,7 +484,10 @@ export function AllGoalsScreen() {
   // ── SUB-SCREEN: QUESTIONNAIRE / CUSTOM GOAL BUILDER ──
   if (activeCategory) {
     const q = QUESTIONNAIRE_CONFIGS[activeCategory]
-    const targetSlug = activeCategory === 'custom' ? 'other' : activeCategory
+    const targetSlug =
+      activeCategory === 'custom' || activeCategory === 'children'
+        ? 'other'
+        : activeCategory
     const dbGoalsForCat = (catalogGoalsData?.data || []).filter(
       (g) => g.category?.slug === targetSlug,
     )
@@ -722,44 +720,28 @@ export function AllGoalsScreen() {
 
       {/* Goal Category Cards List */}
       <div className="proto-goals__list">
-        {/* 1. TOP FEATURED CARD: Lifestyle goals -> Click leads to /dashboard/lifestyle */}
+        {/* 1. Income & financial goals */}
         <button
           type="button"
-          className="proto-goals__card proto-goals__card--active-cat"
-          onClick={() => router.push('/dashboard/lifestyle')}
+          className={`proto-goals__card ${incomeCard.hasGoal ? 'proto-goals__card--active-cat' : ''}`}
+          onClick={() => handleCategoryCardClick('income')}
         >
           <div className="proto-goals__copy">
             <div className="proto-goals__kicker-row">
-              <span className="proto-goals__badge proto-goals__badge--live">ACTIVE</span>
-            </div>
-            <h3 className="proto-goals__card-title">Lifestyle goals</h3>
-            <p className="proto-goals__card-desc">{lifestyleCardData.subtitle}</p>
-          </div>
-          {renderPrototypeRing(lifestyleCardData.pct, 52)}
-        </button>
-
-        {/* 2. Health & fitness goals */}
-        <button
-          type="button"
-          className="proto-goals__card"
-          onClick={() => handleCategoryCardClick('fitness')}
-        >
-          <div className="proto-goals__copy">
-            <div className="proto-goals__kicker-row">
-              <span className={`proto-goals__badge ${fitnessCard.badgeClass}`}>
-                {fitnessCard.badge}
+              <span className={`proto-goals__badge ${incomeCard.badgeClass}`}>
+                {incomeCard.badge}
               </span>
             </div>
-            <h3 className="proto-goals__card-title">Health &amp; fitness goals</h3>
-            <p className="proto-goals__card-desc">{fitnessCard.subtitle}</p>
+            <h3 className="proto-goals__card-title">Income &amp; financial goals</h3>
+            <p className="proto-goals__card-desc">{incomeCard.subtitle}</p>
           </div>
-          {renderPrototypeRing(fitnessCard.pct, 52)}
+          {renderPrototypeRing(incomeCard.pct, 52)}
         </button>
 
-        {/* 3. Career & professional goals */}
+        {/* 2. Career & professional goals */}
         <button
           type="button"
-          className="proto-goals__card"
+          className={`proto-goals__card ${careerCard.hasGoal ? 'proto-goals__card--active-cat' : ''}`}
           onClick={() => handleCategoryCardClick('career')}
         >
           <div className="proto-goals__copy">
@@ -774,22 +756,40 @@ export function AllGoalsScreen() {
           {renderPrototypeRing(careerCard.pct, 52)}
         </button>
 
-        {/* 4. Income goals */}
+        {/* 3. Children development */}
         <button
           type="button"
-          className="proto-goals__card"
-          onClick={() => handleCategoryCardClick('income')}
+          className={`proto-goals__card ${childrenCard.hasGoal ? 'proto-goals__card--active-cat' : ''}`}
+          onClick={() => handleCategoryCardClick('children')}
         >
           <div className="proto-goals__copy">
             <div className="proto-goals__kicker-row">
-              <span className={`proto-goals__badge ${incomeCard.badgeClass}`}>
-                {incomeCard.badge}
+              <span className={`proto-goals__badge ${childrenCard.badgeClass}`}>
+                {childrenCard.badge}
               </span>
             </div>
-            <h3 className="proto-goals__card-title">Income goals</h3>
-            <p className="proto-goals__card-desc">{incomeCard.subtitle}</p>
+            <h3 className="proto-goals__card-title">Children development</h3>
+            <p className="proto-goals__card-desc">{childrenCard.subtitle}</p>
           </div>
-          {renderPrototypeRing(incomeCard.pct, 52)}
+          {renderPrototypeRing(childrenCard.pct, 52)}
+        </button>
+
+        {/* 4. Health & fitness goals */}
+        <button
+          type="button"
+          className={`proto-goals__card ${fitnessCard.hasGoal ? 'proto-goals__card--active-cat' : ''}`}
+          onClick={() => handleCategoryCardClick('fitness')}
+        >
+          <div className="proto-goals__copy">
+            <div className="proto-goals__kicker-row">
+              <span className={`proto-goals__badge ${fitnessCard.badgeClass}`}>
+                {fitnessCard.badge}
+              </span>
+            </div>
+            <h3 className="proto-goals__card-title">Health &amp; fitness goals</h3>
+            <p className="proto-goals__card-desc">{fitnessCard.subtitle}</p>
+          </div>
+          {renderPrototypeRing(fitnessCard.pct, 52)}
         </button>
 
         {/* 5. Any Additional Custom Goals */}

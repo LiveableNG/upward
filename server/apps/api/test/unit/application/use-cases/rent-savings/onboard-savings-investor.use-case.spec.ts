@@ -156,6 +156,8 @@ describe('OnboardSavingsInvestorUseCase', () => {
       next_of_kin_name: 'Amaka Okonkwo',
       next_of_kin_relationship: 'Spouse',
       next_of_kin_phone: '08099887766',
+      target_amount: 2500000,
+      rent_due_date: '2027-10-15',
       settlement_bank_code: '058',
       settlement_account_number: '0123456789',
       settlement_account_name: 'Chinedu Okonkwo',
@@ -197,6 +199,8 @@ describe('OnboardSavingsInvestorUseCase', () => {
       next_of_kin_name: 'Amaka Okonkwo',
       next_of_kin_relationship: 'Spouse',
       next_of_kin_phone: '08099887766',
+      target_amount: 2500000,
+      rent_due_date: '2027-10-15',
     })
 
     expect(result.status).toBe('success')

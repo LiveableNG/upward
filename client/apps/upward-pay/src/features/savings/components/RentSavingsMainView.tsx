@@ -15,7 +15,8 @@ import { RentCalculatorView } from './RentCalculatorView'
 import { VaultSetupFlow } from './VaultSetupFlow'
 import { VaultDashboardView } from './VaultDashboardView'
 import { SettlementHubView } from './SettlementHubView'
-import { type SavingsCadence } from '../services/savingsService'
+import { type SavingsCadence, type SavingsProductOption } from '../services/savingsService'
+import { readSavingsRentPlan } from '../utils/savingsRentPlan'
 import '@/styles/savings-v1.css'
 
 export function RentSavingsMainView() {
@@ -28,10 +29,15 @@ export function RentSavingsMainView() {
     contractualDueDate: string
     cadence: SavingsCadence
     periodicDepositKobo: number
+    productOption?: SavingsProductOption
   } | null>(null)
 
   const [viewMode, setViewMode] = useState<'DASHBOARD' | 'SETTLEMENT'>('DASHBOARD')
   const [showKycModal, setShowKycModal] = useState<boolean>(false)
+
+  React.useEffect(() => {
+    refreshUser().catch(() => {})
+  }, [refreshUser])
 
   const activeProperty = (user?.properties || []).find(
     (p: { isPastTenancy?: boolean; rentAmount?: number; rentEndDate?: string }) =>
@@ -84,9 +90,9 @@ export function RentSavingsMainView() {
   const isVaultActive =
     vault && vault.lock_status !== 'SETTLED' && vault.lock_status !== 'BROKEN_OUT'
 
-  const isKycRequired = Boolean(user && !user.isIdentityVerified)
+  const isKycRequired = Boolean(user && !user.isIdentityVerified && !vault?.vault_id)
   const hasConsented = Boolean(
-    user?.savingsWalletEnabled || (vault && vault.current_balance_kobo > 0),
+    user?.savingsWalletEnabled || isVaultActive || (vault && vault.current_balance_kobo > 0),
   )
   const shouldBlurActivities = (isKycRequired || !hasConsented) && Boolean(isVaultActive)
 
@@ -94,7 +100,7 @@ export function RentSavingsMainView() {
   const renderKycBanner = () => {
     if (!user || !isVaultActive) return null
 
-    if (!user.isIdentityVerified) {
+    if (isKycRequired) {
       return (
         <div className="savings-kyc-banner">
           <div className="savings-kyc-banner__icon">
@@ -171,6 +177,7 @@ export function RentSavingsMainView() {
                 setStep('SETUP')
               }}
               onOpenKycModal={() => setShowKycModal(true)}
+              isKycModalOpen={showKycModal}
             />
           )}
         </>
@@ -244,10 +251,13 @@ export function RentSavingsMainView() {
         onSuccess={async () => {
           await refreshUser()
           await refetch()
-          const targetKobo = (activeProperty?.rentAmount || 2_400_000) * 100
+          const plan = readSavingsRentPlan()
+          const rentNaira = activeProperty?.rentAmount || Number(plan?.rentAmount) || 0
           const dueDate = activeProperty?.rentEndDate
             ? activeProperty.rentEndDate.split('T')[0]
-            : new Date(Date.now() + 343 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+            : plan?.dueDate || ''
+          if (!rentNaira || !dueDate) return
+          const targetKobo = rentNaira * 100
           setSimulationConfig({
             targetAmountKobo: targetKobo,
             contractualDueDate: dueDate,

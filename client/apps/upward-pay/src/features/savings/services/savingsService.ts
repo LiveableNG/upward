@@ -19,6 +19,8 @@ export interface CreateVaultPayload {
   contractual_due_date: string
   cadence: SavingsCadence
   preferred_funding_method: 'DVA' | 'CARD_TOKEN' | 'DIRECT_DEBIT'
+  product_option?: SavingsProductOption
+  initial_deposit_kobo?: number
   payday_day_of_month?: number
   card_authorization_code?: string
 }
@@ -282,27 +284,23 @@ export function calculatePayLessPlan(
   const productOption: SavingsProductOption = options?.productOption ?? 'SAVE_AND_EARN'
   const planPattern: SavingsPlanPattern = options?.planPattern ?? 'INITIAL_DEPOSIT'
 
+  // Active savings horizon capped at <= 11 months (strictly releases 30 days before due date).
   const rawDays = Math.max(1, Math.round(runwayDays))
   const monthsRemaining = Math.min(maxMonths, Math.max(1, Math.floor(rawDays / 30)))
   const days = Math.min(rawDays, maxMonths * 30)
-  const isRentProtecEligible = rawDays >= minRentProtecMonths * 28
+  const isRentProtecEligible = rawDays >= (minRentProtecMonths - 1) * 28
 
   const annualRateDecimal = annualRatePct / 100
   const missedMonths = Math.max(0, maxMonths - monthsRemaining)
   const forcedDepositRatio =
     productOption === 'RENT_PROTEC' && missedMonths > 0
       ? Math.min(0.45, Math.max(0.15, (missedMonths / maxMonths) * 0.5))
-      : planPattern === 'INITIAL_DEPOSIT'
-        ? 0.2
-        : 0
+      : 0
   const requiredInitialDepositNaira = Math.round(targetRentNaira * forcedDepositRatio)
   const effectiveInitialNaira =
     initialSavedNaira > 0
-      ? Math.max(
-          initialSavedNaira,
-          productOption === 'RENT_PROTEC' ? requiredInitialDepositNaira : 0,
-        )
-      : planPattern === 'INITIAL_DEPOSIT' || productOption === 'RENT_PROTEC'
+      ? initialSavedNaira
+      : productOption === 'RENT_PROTEC'
         ? requiredInitialDepositNaira
         : 0
 

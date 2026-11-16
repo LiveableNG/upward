@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { readSavingsRentPlan, type SavingsRentPlan } from '@/features/savings/utils/savingsRentPlan'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import {
   ArrowRight,
@@ -106,17 +107,10 @@ export function RentalFormView() {
   useEffect(() => {
     if (isEdit || hasPrefilledRef.current) return
 
-    let savingsPlan: { userId?: number; rentAmount?: number | string; dueDate?: string; address?: string } | null = null
-    if (typeof window !== 'undefined') {
-      try {
-        const raw = localStorage.getItem('upward_savings_rent_plan')
-        if (raw) {
-          const parsed = JSON.parse(raw)
-          if (!parsed.userId || (user?.id && parsed.userId === user.id)) {
-            savingsPlan = parsed
-          }
-        }
-      } catch {}
+    let savingsPlan: SavingsRentPlan | null = null
+    const storedPlan = readSavingsRentPlan()
+    if (storedPlan && (!storedPlan.userId || (user?.id && storedPlan.userId === user.id))) {
+      savingsPlan = storedPlan
     }
 
     const patch: Partial<typeof draft.formData> = {}

@@ -1784,10 +1784,12 @@ select.rent-calculator__input:focus {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-end;
   padding: 0;
   cursor: pointer;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(15, 13, 11, 0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   border-radius: var(--radius-lg, 18px);
   box-sizing: border-box;
 }
@@ -1821,18 +1823,45 @@ select.rent-calculator__input:focus {
 .rent-savings__central-cta-box {
   background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg, 18px);
-  padding: 26px 22px;
-  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.14);
+  border-radius: 24px 24px 0 0;
+  padding: 18px 20px calc(24px + env(safe-area-inset-bottom, 12px));
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.22);
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
   width: 100%;
-  max-width: 100%;
+  max-width: 520px;
   gap: 12px;
   box-sizing: border-box;
-  animation: fadeIn 0.25s ease-out;
+  animation: sheetModalUp 280ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.rent-savings__drawer-handle {
+  width: 36px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--border-solid, #d5cec5);
+  margin: -6px auto 6px;
+  flex-shrink: 0;
+}
+
+@media (min-width: 641px) {
+  .rent-savings__gated-overlay {
+    padding: var(--space-4, 16px);
+    justify-content: center;
+  }
+
+  .rent-savings__central-cta-box {
+    border-radius: var(--radius-lg, 18px);
+    padding: 26px 24px;
+    box-shadow: 0 16px 44px rgba(0, 0, 0, 0.16);
+    animation: fadeIn 0.25s ease-out;
+  }
+
+  .rent-savings__drawer-handle {
+    display: none;
+  }
 }
 
 .rent-savings__central-title {
@@ -1863,7 +1892,13 @@ select.rent-calculator__input:focus {
 
 @media (max-width: 640px) {
   .rent-savings__gated-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
     padding: 0;
+    align-items: center;
+    justify-content: flex-end;
+    background: rgba(0, 0, 0, 0.45);
   }
 
   .rent-savings__gated-badge {
@@ -1874,11 +1909,13 @@ select.rent-calculator__input:focus {
   }
 
   .rent-savings__central-cta-box {
-    padding: 22px 18px;
+    padding: 16px 18px calc(24px + env(safe-area-inset-bottom, 12px));
     width: 100%;
-    max-width: 100%;
-    border-radius: var(--radius-lg, 18px);
+    max-width: 500px;
+    border-radius: 24px 24px 0 0;
+    border-bottom: none;
     gap: 10px;
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.28);
   }
 
   .rent-savings__central-title {
@@ -1895,4 +1932,274 @@ select.rent-calculator__input:focus {
     padding: 12px 18px;
     font-size: 0.875rem;
   }
+}
+
+/* Rent calculator CTA form: sections, fields, plan options */
+.rent-calculator__input {
+  font-family: inherit;
+}
+
+.rent-calculator__input:disabled,
+.rent-savings__central-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.rent-calculator__section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4, 16px);
+  text-align: left;
+}
+
+.rent-calculator__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rent-calculator__hint {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.rent-calculator__options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* ── Big Select Tabs for Savings Plans (Upward Theme) ── */
+.savings-plan-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.savings-plan-tabs__tab {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 14px 14px;
+  border-radius: 12px;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: inherit;
+  text-align: left;
+  gap: 4px;
+}
+
+.savings-plan-tabs__tab:hover:not(:disabled) {
+  border-color: rgba(217, 119, 87, 0.4);
+  background: #fdfdfd;
+}
+
+.savings-plan-tabs__tab:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.savings-plan-tabs__tab--active {
+  background: var(--clay-faint);
+  border-color: var(--clay);
+  box-shadow: 0 4px 14px rgba(217, 119, 87, 0.12);
+}
+
+.savings-plan-tabs__title {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.25;
+}
+
+.savings-plan-tabs__tab--active .savings-plan-tabs__title {
+  color: var(--clay);
+}
+
+.savings-plan-tabs__rate {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  line-height: 1.3;
+}
+
+.savings-plan-tabs__tab--active .savings-plan-tabs__rate {
+  color: var(--clay-hover, #c46648);
+}
+
+/* ── Minimal Explainer Beneath Tabs ── */
+.savings-plan-explainer {
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--surface2, #efefef);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  animation: explainerFadeIn 0.2s ease both;
+}
+
+@keyframes explainerFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.savings-plan-explainer__icon {
+  flex-shrink: 0;
+  color: var(--clay);
+}
+
+/* ── Savings Cadence / Frequency Selector ── */
+.savings-cadence-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 6px;
+}
+
+@media (max-width: 380px) {
+  .savings-cadence-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.savings-cadence-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 6px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: inherit;
+  text-align: center;
+}
+
+.savings-cadence-btn:hover {
+  border-color: rgba(217, 119, 87, 0.4);
+  background: #fdfdfd;
+}
+
+.savings-cadence-btn--active {
+  background: var(--clay-faint);
+  border-color: var(--clay);
+  color: var(--clay);
+  box-shadow: 0 2px 8px rgba(217, 119, 87, 0.1);
+}
+
+.rent-calculator__option {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md, 12px);
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.rent-calculator__option:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.rent-calculator__option--active {
+  background: var(--clay-faint);
+  border-color: var(--clay);
+}
+
+.rent-calculator__option-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.rent-calculator__option--active .rent-calculator__option-title {
+  color: var(--clay);
+}
+
+.rent-calculator__option-rate {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.rent-calculator__option-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 4px;
+}
+
+.rent-calculator__option-desc {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  line-height: 1.35;
+  margin: 4px 0 0 0;
+}
+
+.rent-calculator__option-tag {
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--clay);
+  color: #fff;
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.rent-savings__central-cta-box {
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.rent-savings__central-cta-box::-webkit-scrollbar {
+  display: none;
+}
+
+@media (max-width: 380px) {
+  .rent-calculator__options {
+    grid-template-columns: 1fr;
+  }
+}
+
+.rent-calculator__empty-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--clay-faint);
+  color: var(--clay);
 }

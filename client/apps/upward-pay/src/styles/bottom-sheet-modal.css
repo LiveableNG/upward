@@ -144,6 +144,7 @@
   flex-shrink: 0;
 }
 
+.sheet-modal__back,
 .sheet-modal__close {
   background: var(--surface2, #f5f5f5);
   border: 1px solid var(--border);
@@ -159,10 +160,12 @@
   flex-shrink: 0;
 }
 
+.sheet-modal__back:hover,
 .sheet-modal__close:hover {
   background: var(--border-solid, #e5e5e5);
 }
 
+.sheet-modal__back:active,
 .sheet-modal__close:active {
   transform: scale(0.92);
 }

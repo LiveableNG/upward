@@ -1,13 +1,17 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
-import { X } from 'lucide-react'
+import { X, ArrowLeft } from 'lucide-react'
 import '@/styles/bottom-sheet-modal.css'
+
+const emptySubscribe = () => () => {}
 
 export interface BottomSheetModalProps {
   isOpen: boolean
   onClose: () => void
+  onBack?: () => void
+  showBack?: boolean
   title?: React.ReactNode
   subtitle?: React.ReactNode
   icon?: React.ReactNode
@@ -37,6 +41,8 @@ const resolveMaxWidth = (width?: string | number | 'sm' | 'md' | 'lg' | 'xl'): s
 export function BottomSheetModal({
   isOpen,
   onClose,
+  onBack,
+  showBack,
   title,
   subtitle,
   icon,
@@ -52,13 +58,13 @@ export function BottomSheetModal({
   closeOnOverlayClick = true,
   closeOnEscape = true,
 }: BottomSheetModalProps) {
-  const [mounted, setMounted] = useState(false)
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  )
   const [keyboardOffset, setKeyboardOffset] = useState(0)
   const [availableHeight, setAvailableHeight] = useState<number | null>(null)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   useEffect(() => {
     if (!isOpen) return
@@ -251,9 +257,19 @@ export function BottomSheetModal({
           />
         )}
 
-        {(title || subtitle || showClose || headerActions || icon) && (
+        {(title || subtitle || showClose || showBack || headerActions || icon) && (
           <div className="sheet-modal__header">
             <div className="sheet-modal__header-left">
+              {Boolean(showBack) && (
+                <button
+                  type="button"
+                  className="sheet-modal__back"
+                  onClick={onBack || onClose}
+                  aria-label="Go back"
+                >
+                  <ArrowLeft size={16} />
+                </button>
+              )}
               {icon && <div className="sheet-modal__icon">{icon}</div>}
               <div className="sheet-modal__title-wrap">
                 {title && (

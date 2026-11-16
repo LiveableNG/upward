@@ -81,10 +81,12 @@ export class RentSavingsCalculatorEngine {
     const productOption: SavingsProductOption = input.productOption ?? 'SAVE_AND_EARN'
     const planPattern: SavingsPlanPattern = input.planPattern ?? 'INITIAL_DEPOSIT'
 
-    // Cap effective savings horizon at <= 11 months (Kunle spec: max 10-11 months, never 12)
-    const rawMonths = Math.max(1, Math.floor(rawDaysRemaining / 30))
+    // Rent is released strictly 30 days before contractual due date.
+    // Therefore, the maximum active savings horizon is (due date - 30 days), capped at <= 11 months (Kunle spec: user cannot save for 12 months).
+    const savingsDaysRemaining = Math.max(1, rawDaysRemaining - 30)
+    const rawMonths = Math.max(1, Math.floor(savingsDaysRemaining / 30))
     const monthsRemaining = Math.min(maxMonths, rawMonths)
-    const daysRemaining = Math.min(rawDaysRemaining, maxMonths * 30)
+    const daysRemaining = Math.min(savingsDaysRemaining, maxMonths * 30)
 
     const isRentProtecEligible = rawDaysRemaining >= minRentProtecMonths * 28
     const rentProtecIneligibilityReason = !isRentProtecEligible
@@ -104,23 +106,18 @@ export class RentSavingsCalculatorEngine {
     // Exact monthly effective rate: r_m = (1 + r_a)^(1/12) - 1 (Section 3.4)
     const monthlyRate = Math.pow(1 + effectiveAnnualYield, 1 / 12) - 1
 
-    // Required initial deposit when starting mid-lease or choosing INITIAL_DEPOSIT / RENT_PROTEC
+    // Required initial deposit when starting mid-lease or choosing RENT_PROTEC
     const missedMonths = Math.max(0, maxMonths - monthsRemaining)
     const forcedDepositRatio =
       productOption === 'RENT_PROTEC' && missedMonths > 0
         ? Math.min(0.45, Math.max(0.15, (missedMonths / maxMonths) * 0.5))
-        : planPattern === 'INITIAL_DEPOSIT'
-          ? 0.2
-          : 0
+        : 0
     const requiredInitialDepositNum = Math.round(targetAmount * forcedDepositRatio)
     const providedInitialDeposit = Number(input.initialDepositKobo || 0n)
     const effectiveInitialDeposit =
       providedInitialDeposit > 0
-        ? Math.max(
-            providedInitialDeposit,
-            productOption === 'RENT_PROTEC' ? requiredInitialDepositNum : 0,
-          )
-        : planPattern === 'INITIAL_DEPOSIT' || productOption === 'RENT_PROTEC'
+        ? providedInitialDeposit
+        : productOption === 'RENT_PROTEC'
           ? requiredInitialDepositNum
           : 0
 

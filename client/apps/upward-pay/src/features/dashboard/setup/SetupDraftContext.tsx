@@ -3,6 +3,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/features/auth/AuthContext'
+import { readSavingsRentPlan } from '@/features/savings/utils/savingsRentPlan'
 import {
   type SetupDraft,
   type SetupMode,
@@ -32,14 +33,14 @@ export function SetupDraftProvider({ children }: { children: React.ReactNode }) 
   const hydratedKey = useRef<string | null>(null)
 
   const [draft, setDraftState] = useState<SetupDraft>(() => {
+    const userPlan = readSavingsRentPlan() // also purges legacy placeholder rent before the draft loads
     const stored = loadSetupDraft()
     const initialDraft = stored ? { ...stored, mode: stored.mode || mode } : createEmptyDraft(mode)
 
     if (typeof window !== 'undefined' && mode === 'onboarding') {
       try {
-        const rawPlan = localStorage.getItem('upward_savings_rent_plan')
-        if (rawPlan) {
-          const plan = JSON.parse(rawPlan)
+        if (userPlan) {
+          const plan = userPlan
           const isPlanForUser = !plan.userId || (user?.id && plan.userId === user.id)
           if (isPlanForUser) {
             if (plan.rentAmount && (!initialDraft.formData.rentAmount || initialDraft.formData.rentAmount === '0')) {

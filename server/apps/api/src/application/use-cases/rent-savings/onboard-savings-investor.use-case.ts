@@ -250,22 +250,15 @@ export class OnboardSavingsInvestorUseCase {
         : null) ||
       null
 
-    const defaultRentAmount = 2400000
-    const defaultDueDate = new Date(Date.now() + 343 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .split('T')[0]
-
     const effectiveTargetRent = latestVault
       ? Number(latestVault.targetAmountKobo) / 100
-      : activeProp?.rentAmount || (latestKyc?.status === 'VERIFIED' ? defaultRentAmount : null)
+      : activeProp?.rentAmount || null
 
     const effectiveDueDate = latestVault?.contractualDueDate
       ? new Date(latestVault.contractualDueDate).toISOString().split('T')[0]
       : activeProp?.rentEndDate
         ? new Date(activeProp.rentEndDate).toISOString().split('T')[0]
-        : latestKyc?.status === 'VERIFIED'
-          ? defaultDueDate
-          : null
+        : null
 
     return {
       status: 'success',
@@ -322,18 +315,7 @@ export class OnboardSavingsInvestorUseCase {
                 landlord_bank_name: null,
                 landlord_account_number: null,
               }
-            : latestKyc?.status === 'VERIFIED'
-              ? {
-                  uuid: 'savings-draft',
-                  rent_amount: defaultRentAmount,
-                  rent_end_date: defaultDueDate,
-                  address: latestKyc.nextOfKinAddress || null,
-                  landlord_name: null,
-                  landlord_bank_code: null,
-                  landlord_bank_name: null,
-                  landlord_account_number: null,
-                }
-              : null,
+            : null,
       },
     }
   }
@@ -442,6 +424,7 @@ export class OnboardSavingsInvestorUseCase {
 
     await this.userRepository.update(userId, {
       isIdentityVerified: true,
+      savingsWalletEnabled: true,
       ...(user.dateOfBirth ? {} : returnedDob ? { dateOfBirth: returnedDob } : {}),
       ...(user.gender ? {} : normalizedGender ? { gender: normalizedGender } : {}),
     })
@@ -579,16 +562,14 @@ export class OnboardSavingsInvestorUseCase {
         })
       : null
 
-    const resolvedRent =
-      dto.target_amount ||
-      activeProperty?.rentAmount ||
-      2400000
-
-    const resolvedDueDate = dto.rent_due_date
-      ? new Date(dto.rent_due_date)
-      : activeProperty?.rentEndDate
-        ? new Date(activeProperty.rentEndDate)
-        : new Date(Date.now() + 343 * 24 * 60 * 60 * 1000)
+    const resolvedRent = dto.target_amount || activeProperty?.rentAmount
+    const resolvedDueDateRaw = dto.rent_due_date || activeProperty?.rentEndDate
+    if (!resolvedRent || !resolvedDueDateRaw) {
+      throw new BadRequestException(
+        'Rent amount and rent due date are required to start saving.',
+      )
+    }
+    const resolvedDueDate = new Date(resolvedDueDateRaw)
 
     const resolvedUnlockDate = new Date(resolvedDueDate.getTime() - 30 * 24 * 60 * 60 * 1000)
 

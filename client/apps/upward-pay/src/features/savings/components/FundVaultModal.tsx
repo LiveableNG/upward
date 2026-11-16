@@ -1,9 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useSyncExternalStore } from 'react'
-import { createPortal } from 'react-dom'
 import {
-  X,
   Copy,
   Check,
   Landmark,
@@ -12,6 +10,7 @@ import {
   Loader2,
 } from 'lucide-react'
 import { useToast } from '@/components/common/Toast'
+import { BottomSheetModal } from '@/components/common/BottomSheetModal'
 import { formatCurrency } from '@/lib/utils'
 import { useSimulateVaultDeposit } from '../hooks/useRentSavings'
 import { type SavingsCadence } from '../services/savingsService'
@@ -116,44 +115,16 @@ export function FundVaultModal({
     }, 1500)
   }
 
-  return createPortal(
-    <div className="vault-modal-overlay" onClick={handleClose}>
-      <div
-        className="vault-modal-card"
-        onClick={(e) => e.stopPropagation()}
-        style={{ maxWidth: 480 }}
-      >
-        <div className="vault-modal-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                background: 'var(--clay-faint, rgba(200, 107, 73, 0.1))',
-                color: 'var(--clay)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Landmark size={20} />
-            </div>
-            <div>
-              <span className="vault-modal-title" style={{ fontSize: '1.0625rem', fontWeight: 700 }}>
-                Add Money to Rent Savings
-              </span>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>
-                Earns {platformRates.savingsAnnualRatePct}% returns every year so you pay less for rent
-              </p>
-            </div>
-          </div>
-          <button type="button" className="vault-modal-close" onClick={handleClose}>
-            <X size={20} />
-          </button>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+  return (
+    <BottomSheetModal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title="Add Money to Rent Savings"
+      subtitle={`Earns ${platformRates.savingsAnnualRatePct}% returns every year so you pay less for rent`}
+      icon={<Landmark size={20} />}
+      maxWidth="480px"
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '4px 0 12px' }}>
           {/* Amount input */}
           <div>
             <label htmlFor="quick-save-amount" style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>
@@ -269,8 +240,6 @@ export function FundVaultModal({
             )}
           </div>
         </div>
-      </div>
-    </div>,
-    document.body,
+    </BottomSheetModal>
   )
 }

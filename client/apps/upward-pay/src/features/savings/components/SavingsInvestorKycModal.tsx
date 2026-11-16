@@ -1,9 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useSyncExternalStore } from 'react'
-import { createPortal } from 'react-dom'
 import {
-  X,
   Lock,
   ShieldCheck,
   ArrowRight,
@@ -26,13 +24,16 @@ import {
 } from '../hooks/useRentSavings'
 import {
   calculatePayLessPlan,
+  type SavingsCadence,
   type SavingsPlanPattern,
   type SavingsProductOption,
 } from '../services/savingsService'
 import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
 import { useToast } from '@/components/common/Toast'
+import { BottomSheetModal } from '@/components/common/BottomSheetModal'
+import { readSavingsRentPlan } from '@/features/savings/utils/savingsRentPlan'
 import { useAuth } from '@/features/auth/AuthContext'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from '@/lib/utils'
 
 interface SavingsInvestorKycModalProps {
   isOpen: boolean
@@ -117,28 +118,11 @@ export function SavingsInvestorKycModal({
   const [nextOfKinPhone, setNextOfKinPhone] = useState('')
 
   const [manualRentTarget, setManualRentTarget] = useState<number>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const raw = localStorage.getItem('upward_savings_rent_plan')
-        if (raw) {
-          const parsed = JSON.parse(raw)
-          if (parsed.rentAmount) return Number(parsed.rentAmount)
-        }
-      } catch {}
-    }
-    return 0
+    const plan = readSavingsRentPlan()
+    return plan?.rentAmount ? Number(plan.rentAmount) : 0
   })
   const [manualDueDate, setManualDueDate] = useState<string>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const raw = localStorage.getItem('upward_savings_rent_plan')
-        if (raw) {
-          const parsed = JSON.parse(raw)
-          if (parsed.dueDate) return parsed.dueDate
-        }
-      } catch {}
-    }
-    return ''
+    return readSavingsRentPlan()?.dueDate || ''
   })
 
   const [prevPrefill, setPrevPrefill] = useState<typeof prefill | null>(null)
@@ -172,6 +156,7 @@ export function SavingsInvestorKycModal({
         const rawPlan = localStorage.getItem('upward_savings_rent_plan')
         const plan = rawPlan ? JSON.parse(rawPlan) : {}
         plan.userId = user?.id
+        plan.source = 'user'
         if (manualRentTarget > 0) plan.rentAmount = manualRentTarget
         if (manualDueDate) plan.dueDate = manualDueDate
         localStorage.setItem('upward_savings_rent_plan', JSON.stringify(plan))
@@ -203,16 +188,21 @@ export function SavingsInvestorKycModal({
   } | null>(null)
   const [copiedAccount, setCopiedAccount] = useState(false)
   const [copiedDetails, setCopiedDetails] = useState(false)
-  const [selectedCadence, setSelectedCadence] = useState<'WEEKLY' | 'MONTHLY' | 'QUARTERLY'>(() => {
-    if (vault?.cadence === 'WEEKLY' || vault?.cadence === 'QUARTERLY') return vault.cadence
+  const [selectedFrequency, setSelectedFrequency] = useState<
+    'DAILY' | 'WEEKLY' | 'MONTHLY' | 'FLEXIBLE'
+  >(() => {
+    if (vault?.cadence === 'DAILY' || vault?.cadence === 'WEEKLY') return vault.cadence
     return 'MONTHLY'
   })
+  const selectedCadence: SavingsCadence =
+    selectedFrequency === 'FLEXIBLE' ? 'MONTHLY' : selectedFrequency
   const [selectedProductOption, setSelectedProductOption] = useState<SavingsProductOption>(
     () => vault?.product_option || 'RENT_PROTEC',
   )
-  const [selectedPlanPattern, setSelectedPlanPattern] = useState<SavingsPlanPattern>(
-    () => vault?.plan_pattern || 'INITIAL_DEPOSIT',
-  )
+  const [startAmountRaw, setStartAmountRaw] = useState<string>('')
+  const startAmountNaira = parseCurrencyInput(startAmountRaw) || 0
+  // No manual pattern: what the user starts with today becomes the initial deposit.
+  const planPattern: SavingsPlanPattern = startAmountNaira > 0 ? 'INITIAL_DEPOSIT' : 'EQUAL'
   const [customFundAmount, setCustomFundAmount] = useState<string | null>(null)
 
   const [formError, setFormError] = useState<string | null>(null)
@@ -220,8 +210,8 @@ export function SavingsInvestorKycModal({
   const onboardMutation = useOnboardSavingsInvestor()
   const { success: toastSuccess, error: toastError } = useToast()
 
-  const targetRent = activeProperty?.rentAmount || manualRentTarget || 2400000
-  const targetDueDate = activeProperty?.rentEndDate || manualDueDate || '2027-10-15'
+  const targetRent = activeProperty?.rentAmount || manualRentTarget || 0
+  const targetDueDate = activeProperty?.rentEndDate || manualDueDate || ''
   const runwayDays = Math.max(
     1,
     Math.ceil((new Date(targetDueDate).getTime() - nowTimestamp) / (1000 * 60 * 60 * 24)),
@@ -248,25 +238,44 @@ export function SavingsInvestorKycModal({
     targetRent,
     runwayDays,
     selectedCadence,
-    0,
+    startAmountNaira,
     savingsAnnualRatePct,
     {
       productOption: activeProductOption,
-      planPattern: selectedPlanPattern,
+      planPattern,
       maxMonths: platformRates.maxSavingsMonths,
       minRentProtecMonths: platformRates.rentProtecMinMonths,
       insurancePremiumPct: platformRates.insurancePremiumPct,
     },
   )
+  const minStartNaira =
+    activeProductOption === 'RENT_PROTEC'
+      ? calculatePayLessPlan(
+          targetRent,
+          runwayDays,
+          selectedCadence,
+          0,
+          savingsAnnualRatePct,
+          {
+            productOption: 'RENT_PROTEC',
+            planPattern: 'EQUAL',
+            maxMonths: platformRates.maxSavingsMonths,
+            minRentProtecMonths: platformRates.rentProtecMinMonths,
+            insurancePremiumPct: platformRates.insurancePremiumPct,
+          },
+        ).requiredInitialDepositNaira
+      : 0
   const periodicTarget = payLessPlan.periodicDepositNaira
   const totalTenantContribution = payLessPlan.totalTenantContributionNaira
   const estimatedYield = payLessPlan.projectedYieldNaira
   const cadenceUnitLabel =
-    selectedCadence === 'WEEKLY'
-      ? 'week'
-      : selectedCadence === 'QUARTERLY'
-        ? 'quarter'
-        : 'month'
+    selectedFrequency === 'DAILY'
+      ? 'day'
+      : selectedFrequency === 'WEEKLY'
+        ? 'week'
+        : selectedFrequency === 'FLEXIBLE'
+          ? 'flexible'
+          : 'month'
 
   const fundAmount =
     customFundAmount ??
@@ -345,11 +354,11 @@ export function SavingsInvestorKycModal({
         settlement_account_number: prefill?.settlement_account_number || undefined,
         settlement_account_name: prefill?.settlement_account_name || undefined,
         settlement_bank_name: prefill?.settlement_bank_name || undefined,
-        target_amount: manualRentTarget || prefill?.target_rent || 2400000,
-        rent_due_date: manualDueDate || prefill?.rent_due_date || undefined,
+        target_amount: targetRent,
+        rent_due_date: targetDueDate || undefined,
         cadence: selectedCadence,
         product_option: activeProductOption,
-        plan_pattern: selectedPlanPattern,
+        plan_pattern: planPattern,
         initial_deposit_kobo:
           payLessPlan.requiredInitialDepositNaira > 0
             ? payLessPlan.requiredInitialDepositNaira * 100
@@ -360,14 +369,16 @@ export function SavingsInvestorKycModal({
       if (dva) {
         setCreatedDva(dva)
       } else {
+        const fallbackAccSuffix = nowTimestamp.toString().slice(-8)
         setCreatedDva({
           bank_name: 'Wema Bank',
-          account_number: '02' + Math.floor(10000000 + Math.random() * 90000000),
+          account_number: `02${fallbackAccSuffix}`,
           account_name: `Upward / ${user?.firstName || 'Tenant'} ${user?.lastName || ''}`.trim(),
         })
       }
       setStep(3)
       toastSuccess('Investor profile verified and dedicated Wema account ready!')
+      refreshUser().catch(() => {})
     } catch (err: unknown) {
       const error = err as { message?: string }
       const msg =
@@ -377,71 +388,57 @@ export function SavingsInvestorKycModal({
     }
   }
 
+  const handleBack = () => {
+    if (step === 4) {
+      setStep(3)
+    } else if (step === 2) {
+      setStep(1)
+    } else if (step === 3 && !user?.isIdentityVerified) {
+      setStep(2)
+    } else {
+      onClose()
+    }
+  }
+
   const isLoading = onboardMutation.isPending
 
   if (!isOpen || !isClient || typeof document === 'undefined') return null
 
-  return createPortal(
-    <div className="vault-modal-overlay" onClick={isLoading ? undefined : onClose}>
-      <div
-        className="vault-modal-card"
-        onClick={(e) => e.stopPropagation()}
-        style={{ maxWidth: 520 }}
-      >
-        <div className="vault-modal-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: '8px',
-                background: 'var(--clay-faint)',
-                color: 'var(--clay)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              {step === 4 ? (
-                <Landmark size={18} />
-              ) : step === 3 ? (
-                <TrendingUp size={18} />
-              ) : (
-                <ShieldCheck size={18} />
-              )}
-            </div>
-            <div>
-              <span className="vault-modal-title" style={{ fontSize: '1.0625rem' }}>
-                {step === 4
-                  ? 'Fund Your Rent Vault'
-                  : step === 3
-                    ? 'Pay Less for Your Next Rent'
-                    : 'Identity Verification'}
-              </span>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>
-                {step === 4
-                  ? 'Transfer to your personal rent account'
-                  : step === 3
-                    ? `Save consistently and let ${savingsAnnualRatePct}% p.a. interest complete your rent`
-                    : 'Required by CBN & SEC • backed by ARM'}
-              </p>
-            </div>
-          </div>
-          {!isLoading && (
-            <button
-              type="button"
-              className="vault-modal-close"
-              onClick={() => {
-                if (step >= 3) onSuccess()
-                onClose()
-              }}
-            >
-              <X size={20} />
-            </button>
-          )}
-        </div>
-
-        <div style={{ display: 'flex', gap: 6, marginBottom: 20 }}>
+  return (
+    <BottomSheetModal
+      isOpen={isOpen}
+      onClose={() => {
+        if (step >= 3) onSuccess()
+        onClose()
+      }}
+      title={
+        step === 4
+          ? 'Fund Your Rent Vault'
+          : step === 3
+            ? 'Pay Less for Your Next Rent'
+            : 'Identity Verification'
+      }
+      subtitle={
+        step === 4
+          ? 'Transfer to your personal rent account'
+          : step === 3
+            ? `Earn ${savingsAnnualRatePct}% p.a. returns and let interest complete your rent`
+            : 'Required by CBN & SEC • backed by ARM'
+      }
+      icon={
+        step === 4 ? (
+          <Landmark size={18} />
+        ) : step === 3 ? (
+          <TrendingUp size={18} />
+        ) : (
+          <ShieldCheck size={18} />
+        )
+      }
+      maxWidth="520px"
+      closeOnOverlayClick={!isLoading}
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '4px 0 12px' }}>
+        <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
           {[1, 2, 3, 4].map((s) => (
             <div
               key={s}
@@ -824,99 +821,77 @@ export function SavingsInvestorKycModal({
                   fontWeight: 700,
                   color: 'var(--text)',
                   display: 'block',
-                  marginBottom: 6,
+                  marginBottom: 8,
                 }}
               >
                 Choose your savings plan
               </span>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: 8,
-                }}
-              >
+              <div className="savings-plan-tabs" role="tablist">
                 <button
                   type="button"
+                  role="tab"
+                  aria-selected={activeProductOption === 'RENT_PROTEC'}
                   disabled={!isRentProtecEligible}
                   onClick={() => {
                     setSelectedProductOption('RENT_PROTEC')
                     setCustomFundAmount(null)
                   }}
-                  style={{
-                    padding: '10px 12px',
-                    borderRadius: '10px',
-                    border: `1.5px solid ${activeProductOption === 'RENT_PROTEC' ? 'var(--clay)' : 'var(--border)'}`,
-                    background:
-                      activeProductOption === 'RENT_PROTEC'
-                        ? 'var(--clay-faint)'
-                        : 'var(--surface)',
-                    color: 'var(--text)',
-                    textAlign: 'left',
-                    cursor: isRentProtecEligible ? 'pointer' : 'not-allowed',
-                    opacity: isRentProtecEligible ? 1 : 0.55,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 4,
-                  }}
+                  className={`savings-plan-tabs__tab ${
+                    activeProductOption === 'RENT_PROTEC' ? 'savings-plan-tabs__tab--active' : ''
+                  }`}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
-                    <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: activeProductOption === 'RENT_PROTEC' ? 'var(--clay)' : 'var(--text)' }}>
-                      Rent Protec
-                    </span>
-                    <span style={{ fontSize: '0.625rem', fontWeight: 700, padding: '2px 6px', borderRadius: 10, background: 'var(--clay)', color: '#fff' }}>
-                      Recommended
-                    </span>
-                  </div>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#059669' }}>
+                  <span className="savings-plan-tabs__title">Rent Protec</span>
+                  <span className="savings-plan-tabs__rate">
                     {platformRates.rentProtecRatePct}% p.a. + Insurance
-                  </span>
-                  <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', lineHeight: 1.3 }}>
-                    Includes AXA rent protection ({platformRates.insurancePremiumPct}%) & Rent Bridge access
                   </span>
                 </button>
 
                 <button
                   type="button"
+                  role="tab"
+                  aria-selected={activeProductOption === 'SAVE_AND_EARN'}
                   onClick={() => {
                     setSelectedProductOption('SAVE_AND_EARN')
                     setCustomFundAmount(null)
                   }}
-                  style={{
-                    padding: '10px 12px',
-                    borderRadius: '10px',
-                    border: `1.5px solid ${activeProductOption === 'SAVE_AND_EARN' ? 'var(--clay)' : 'var(--border)'}`,
-                    background:
-                      activeProductOption === 'SAVE_AND_EARN'
-                        ? 'var(--clay-faint)'
-                        : 'var(--surface)',
-                    color: 'var(--text)',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 4,
-                  }}
+                  className={`savings-plan-tabs__tab ${
+                    activeProductOption === 'SAVE_AND_EARN' ? 'savings-plan-tabs__tab--active' : ''
+                  }`}
                 >
-                  <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: activeProductOption === 'SAVE_AND_EARN' ? 'var(--clay)' : 'var(--text)' }}>
-                    Save & Earn
-                  </span>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#059669' }}>
-                    {platformRates.savingsAnnualRatePct}% p.a. Full Return
-                  </span>
-                  <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', lineHeight: 1.3 }}>
-                    Maximum yield on your rent savings, no insurance cover
+                  <span className="savings-plan-tabs__title">Save &amp; Earn</span>
+                  <span className="savings-plan-tabs__rate">
+                    {platformRates.savingsAnnualRatePct}% p.a. Return
                   </span>
                 </button>
               </div>
+
+              {/* Minimal 1-line Explainer Beneath Tabs */}
+              <div className="savings-plan-explainer">
+                {activeProductOption === 'RENT_PROTEC' ? (
+                  <>
+                    <ShieldCheck size={16} className="savings-plan-explainer__icon" />
+                    <span>
+                      Earn {platformRates.rentProtecRatePct}% p.a. returns with AXA rent protection against job loss or illness.
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <TrendingUp size={16} className="savings-plan-explainer__icon" />
+                    <span>
+                      Earn full {platformRates.savingsAnnualRatePct}% p.a. compound returns directly towards your rent. Pure savings.
+                    </span>
+                  </>
+                )}
+              </div>
+
               {!isRentProtecEligible && (
-                <p style={{ fontSize: '0.6875rem', color: '#B45309', margin: '6px 0 0', lineHeight: 1.35 }}>
-                  Rent Protec requires at least {platformRates.rentProtecMinMonths} months remaining to your rent due date. Save & Earn is active for your timeline.
+                <p style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', margin: '6px 0 0', lineHeight: 1.35 }}>
+                  Rent Protec requires at least {platformRates.rentProtecMinMonths} months before your rent is due.
                 </p>
               )}
             </div>
 
-            {/* 2. Savings Frequency Selector (Weekly / Monthly / Quarterly) */}
+            {/* 2. Savings Frequency Selector (Daily / Weekly / Monthly / Flexible) */}
             <div>
               <span
                 style={{
@@ -929,52 +904,44 @@ export function SavingsInvestorKycModal({
               >
                 How often do you want to save?
               </span>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(3, 1fr)',
-                  gap: 8,
-                }}
-              >
+              <div className="savings-cadence-grid">
                 {(
                   [
+                    { id: 'DAILY' as const, label: 'Daily' },
                     { id: 'WEEKLY' as const, label: 'Weekly' },
                     { id: 'MONTHLY' as const, label: 'Monthly' },
-                    { id: 'QUARTERLY' as const, label: 'Quarterly' },
+                    { id: 'FLEXIBLE' as const, label: 'Flexible' },
                   ]
                 ).map((freq) => {
-                  const isActive = selectedCadence === freq.id
+                  const isActive = selectedFrequency === freq.id
                   return (
                     <button
                       key={freq.id}
                       type="button"
                       onClick={() => {
-                        setSelectedCadence(freq.id)
+                        setSelectedFrequency(freq.id)
                         setCustomFundAmount(null)
                       }}
-                      style={{
-                        padding: '9px 8px',
-                        borderRadius: '10px',
-                        border: `1.5px solid ${isActive ? 'var(--clay)' : 'var(--border)'}`,
-                        background: isActive ? 'var(--clay-faint)' : 'var(--surface)',
-                        color: isActive ? 'var(--clay)' : 'var(--text)',
-                        fontSize: '0.8125rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease',
-                        textAlign: 'center',
-                      }}
+                      className={`savings-cadence-btn ${
+                        isActive ? 'savings-cadence-btn--active' : ''
+                      }`}
                     >
                       {freq.label}
                     </button>
                   )
                 })}
               </div>
+              {selectedFrequency === 'FLEXIBLE' && (
+                <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', margin: '6px 0 0', display: 'block', lineHeight: 1.35 }}>
+                  Save anytime via bank transfer at your own pace. Daily compound interest still applies.
+                </span>
+              )}
             </div>
 
             {/* 3. Contribution Schedule Pattern */}
             <div>
-              <span
+              <label
+                htmlFor="savings-start-amount"
                 style={{
                   fontSize: '0.75rem',
                   fontWeight: 700,
@@ -983,49 +950,29 @@ export function SavingsInvestorKycModal({
                   marginBottom: 6,
                 }}
               >
-                Contribution pattern
-              </span>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(3, 1fr)',
-                  gap: 8,
-                }}
-              >
-                {(
-                  [
-                    { id: 'INITIAL_DEPOSIT' as const, label: 'Initial + Steady' },
-                    { id: 'STEP_UP' as const, label: 'Start Low & Step-Up' },
-                    { id: 'EQUAL' as const, label: 'Equal Deposits' },
-                  ]
-                ).map((pat) => {
-                  const isActive = selectedPlanPattern === pat.id
-                  return (
-                    <button
-                      key={pat.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedPlanPattern(pat.id)
-                        setCustomFundAmount(null)
-                      }}
-                      style={{
-                        padding: '8px 6px',
-                        borderRadius: '10px',
-                        border: `1.5px solid ${isActive ? 'var(--clay)' : 'var(--border)'}`,
-                        background: isActive ? 'var(--clay-faint)' : 'var(--surface)',
-                        color: isActive ? 'var(--clay)' : 'var(--text)',
-                        fontSize: '0.75rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease',
-                        textAlign: 'center',
-                      }}
-                    >
-                      {pat.label}
-                    </button>
-                  )
-                })}
+                How much do you want to start with today?
+              </label>
+              <div className="rent-calculator__input-wrapper">
+                <span className="rent-calculator__input-prefix">₦</span>
+                <input
+                  id="savings-start-amount"
+                  type="text"
+                  inputMode="numeric"
+                  className="rent-calculator__input"
+                  placeholder={minStartNaira > 0 ? minStartNaira.toLocaleString() : '50,000'}
+                  value={startAmountRaw}
+                  onChange={(e) => {
+                    const num = parseCurrencyInput(e.target.value)
+                    setStartAmountRaw(num ? formatCurrencyInput(num) : '')
+                    setCustomFundAmount(null)
+                  }}
+                />
               </div>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: 6 }}>
+                {activeProductOption === 'RENT_PROTEC' && minStartNaira > 0
+                  ? `Rent Protec minimum to start: ${formatCurrency(minStartNaira, 'NGN')}. You can start with more.`
+                  : 'Start with any amount. Your regular deposits adjust to cover the rest.'}
+              </span>
             </div>
 
             {/* Pay Less Breakdown Card */}
@@ -1057,7 +1004,9 @@ export function SavingsInvestorKycModal({
                       letterSpacing: '0.04em',
                     }}
                   >
-                    Recommended {selectedCadence.toLowerCase()} savings
+                    {selectedFrequency === 'FLEXIBLE'
+                      ? 'Flexible savings target'
+                      : `Recommended ${cadenceUnitLabel} savings`}
                   </span>
                   <div
                     style={{
@@ -1069,16 +1018,18 @@ export function SavingsInvestorKycModal({
                     }}
                   >
                     {formatCurrency(periodicTarget, 'NGN')}
-                    <span
-                      style={{
-                        fontSize: '0.8125rem',
-                        fontWeight: 600,
-                        color: 'var(--text-muted)',
-                        marginLeft: 4,
-                      }}
-                    >
-                      / {cadenceUnitLabel}
-                    </span>
+                    {selectedFrequency !== 'FLEXIBLE' && (
+                      <span
+                        style={{
+                          fontSize: '0.8125rem',
+                          fontWeight: 600,
+                          color: 'var(--text-muted)',
+                          marginLeft: 4,
+                        }}
+                      >
+                        / {cadenceUnitLabel}
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -1124,35 +1075,6 @@ export function SavingsInvestorKycModal({
                 </div>
               </div>
 
-              {payLessPlan.requiredInitialDepositNaira > 0 && (
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '8px 10px',
-                    borderRadius: 8,
-                    background: 'var(--clay-faint)',
-                    fontSize: '0.75rem',
-                  }}
-                >
-                  <span style={{ fontWeight: 600, color: 'var(--text)' }}>
-                    {activeProductOption === 'RENT_PROTEC'
-                      ? 'Required starting deposit (mid-lease):'
-                      : 'Recommended initial deposit:'}
-                  </span>
-                  <span style={{ fontWeight: 800, color: 'var(--clay)' }}>
-                    {formatCurrency(payLessPlan.requiredInitialDepositNaira, 'NGN')}
-                  </span>
-                </div>
-              )}
-
-              {selectedPlanPattern === 'STEP_UP' && payLessPlan.lastPeriodDepositNaira > payLessPlan.firstPeriodDepositNaira && (
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0 }}>
-                  Step-up schedule: start at <strong>{formatCurrency(payLessPlan.firstPeriodDepositNaira, 'NGN')}</strong> and grow gradually to <strong>{formatCurrency(payLessPlan.lastPeriodDepositNaira, 'NGN')}</strong> / {cadenceUnitLabel}.
-                </p>
-              )}
-
               <p
                 style={{
                   fontSize: '0.75rem',
@@ -1173,7 +1095,7 @@ export function SavingsInvestorKycModal({
                   await consentMutation.mutateAsync({
                     cadence: selectedCadence,
                     product_option: activeProductOption,
-                    plan_pattern: selectedPlanPattern,
+                    plan_pattern: planPattern,
                     initial_deposit_kobo:
                       payLessPlan.requiredInitialDepositNaira > 0
                         ? payLessPlan.requiredInitialDepositNaira * 100
@@ -1207,7 +1129,7 @@ export function SavingsInvestorKycModal({
                 className="rent-calculator__label"
                 style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)' }}
               >
-                Amount to Transfer ({selectedCadence.toLowerCase()} target)
+                Amount to Transfer ({selectedFrequency === 'FLEXIBLE' ? 'flexible target' : `${cadenceUnitLabel} target`})
               </label>
               <div className="rent-calculator__input-wrapper">
                 <span className="rent-calculator__input-prefix" style={{ fontWeight: 700 }}>
@@ -1338,7 +1260,6 @@ export function SavingsInvestorKycModal({
           </div>
         )}
       </div>
-    </div>,
-    document.body,
+    </BottomSheetModal>
   )
 }

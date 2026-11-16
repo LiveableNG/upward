@@ -18,6 +18,8 @@ import {
   Sparkles,
 } from 'lucide-react'
 import { useScoreProfile } from '../services/scoreService'
+import { ShareScorePreviewModal } from './share/ShareScorePreviewModal'
+import { useAuth } from '@/features/auth/AuthContext'
 import { PayPageShell } from '@/features/dashboard/components/payment/PayPageShell'
 import { formatCurrency, getPublicWebUrl, copyTextToClipboard } from '@/lib/utils'
 import { useToast } from '@/components/common/Toast'
@@ -59,9 +61,21 @@ function ScoreBreakdownSkeleton() {
 
 export function ScoreBreakdownScreen() {
   const router = useRouter()
+  const { user } = useAuth()
   const { data: scoreProfile, isLoading } = useScoreProfile()
   const { success, error: toastError } = useToast()
   const [copied, setCopied] = useState(false)
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false)
+
+  const handleShareClick = () => {
+    const p = scoreProfile?.data?.profile
+    const identifier = p?.profileSlug || p?.uuid || user?.uuid
+    if (!identifier) {
+      router.push('/dashboard/kyc')
+      return
+    }
+    setIsShareModalOpen(true)
+  }
 
   const handleCopyLink = async () => {
     const p = scoreProfile?.data?.profile
@@ -288,11 +302,11 @@ export function ScoreBreakdownScreen() {
               <button
                 type="button"
                 className="score-page__share-btn"
-                onClick={handleCopyLink}
+                onClick={handleShareClick}
                 aria-label="Share public score link"
               >
-                {copied ? <Check size={14} /> : <Share2 size={14} />}
-                <span>{copied ? 'Copied!' : 'Share Score'}</span>
+                <Share2 size={14} />
+                <span>Share Score</span>
               </button>
             </div>
 
@@ -489,7 +503,142 @@ export function ScoreBreakdownScreen() {
             <ChevronRight size={14} className="score-page__records-arrow" />
           </button>
         </section>
+
+        {/* Scoring Actions Section */}
+        <section className="score-page__section" aria-label="Ways to improve score">
+          <div className="score-page__section-header">
+            <p className="score-page__section-label">Ways to Improve Your Score</p>
+            <span className="score-page__section-badge">Scoring Actions</span>
+          </div>
+
+          <div className="score-page__actions-grid">
+            <div
+              className="score-page__action-card"
+              onClick={() => router.push('/dashboard/pay-rent')}
+              role="button"
+              tabIndex={0}
+            >
+              <div className="score-page__action-top">
+                <div className="score-page__action-icon">
+                  <Clock size={18} />
+                </div>
+                <span className="score-page__action-badge score-page__action-badge--clay">
+                  High Impact
+                </span>
+              </div>
+              <strong className="score-page__action-title">Pay rent on time</strong>
+              <p className="score-page__action-desc">
+                Paying on or before your due date builds payment timeliness and maintains your streak.
+              </p>
+              <div className="score-page__action-footer">
+                <span>Pay Rent</span>
+                <ChevronRight size={14} />
+              </div>
+            </div>
+
+            <div
+              className="score-page__action-card"
+              onClick={() => router.push('/dashboard/savings')}
+              role="button"
+              tabIndex={0}
+            >
+              <div className="score-page__action-top">
+                <div className="score-page__action-icon">
+                  <TrendingUp size={18} />
+                </div>
+                <span className="score-page__action-badge score-page__action-badge--success">
+                  +100 pts bonus
+                </span>
+              </div>
+              <strong className="score-page__action-title">Start a Rent Savings Plan</strong>
+              <p className="score-page__action-desc">
+                Lock regular deposits towards your next rent to earn compound returns and up to 100 bonus points.
+              </p>
+              <div className="score-page__action-footer">
+                <span>Start Saving</span>
+                <ChevronRight size={14} />
+              </div>
+            </div>
+
+            <div
+              className="score-page__action-card"
+              onClick={() => router.push('/dashboard/request-records')}
+              role="button"
+              tabIndex={0}
+            >
+              <div className="score-page__action-top">
+                <div className="score-page__action-icon">
+                  <History size={18} />
+                </div>
+                <span className="score-page__action-badge score-page__action-badge--info">
+                  Tenure Boost
+                </span>
+              </div>
+              <strong className="score-page__action-title">Add past tenancy records</strong>
+              <p className="score-page__action-desc">
+                Verify historical payments from previous tenancies to lengthen your tenure history.
+              </p>
+              <div className="score-page__action-footer">
+                <span>Add Past Records</span>
+                <ChevronRight size={14} />
+              </div>
+            </div>
+
+            {!isVerified && (
+              <div
+                className="score-page__action-card"
+                onClick={() => router.push('/dashboard/setup')}
+                role="button"
+                tabIndex={0}
+              >
+                <div className="score-page__action-top">
+                  <div className="score-page__action-icon">
+                    <ShieldCheck size={18} />
+                  </div>
+                  <span className="score-page__action-badge score-page__action-badge--warning">
+                    Required
+                  </span>
+                </div>
+                <strong className="score-page__action-title">Verify identity &amp; lease</strong>
+                <p className="score-page__action-desc">
+                  Link with your landlord or PM to convert your potential score into an official verified rating.
+                </p>
+                <div className="score-page__action-footer">
+                  <span>Verify Now</span>
+                  <ChevronRight size={14} />
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
       </div>
+
+      <ShareScorePreviewModal
+        open={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+        cardProps={{
+          name: profile?.name || `${user?.firstName || 'Tenant'} ${user?.lastName || ''}`.trim(),
+          initials: (profile?.name || `${user?.firstName || 'Tenant'} ${user?.lastName || ''}`.trim())
+            .split(' ')
+            .map((n) => n[0])
+            .join('')
+            .slice(0, 2)
+            .toUpperCase() || 'U',
+          profilePic: profile?.profilePic || null,
+          score: score || 500,
+          maxScore: safeMaxScore,
+          rank: rank || 'A',
+          band: band || 'Good',
+          isScorable,
+          onTimePct: Math.round(metrics?.ptPercentage || 0),
+          longestStreak: metrics?.longestStreak || 0,
+          profileRef: `UPW-${String(profile?.profileSlug || profile?.uuid || user?.uuid || 'score').slice(0, 8).toUpperCase()}`,
+          rankColor: getRankColor(),
+          profileUuid: profile?.profileSlug || profile?.uuid || user?.uuid || '',
+        }}
+        onShared={() => success('Score shared successfully!')}
+        onError={(msg) => toastError(msg)}
+      />
     </PayPageShell>
   )
 }
