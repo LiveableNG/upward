@@ -221,7 +221,7 @@ export function HousingFirstHome({
     const extraCustom = active
       .filter((ug) => {
         const s = (ug.categorySlug || ug.goal?.category?.slug || '').toLowerCase()
-        if (s === 'housing' || s === 'lifestyle' || s === 'home-utilities') return false
+        if (s === 'housing' || s === 'home-utilities') return false
         return !coreIds.has(ug.id)
       })
       .map((ug) => {
@@ -557,14 +557,14 @@ export function HousingFirstHome({
                   <button
                     type="button"
                     className="housing-link"
-                    onClick={() => router.push('/dashboard/lifestyle?goal=prepare-towards-owning-a-home')}
+                    onClick={() => router.push('/dashboard/lifestyle?goal=buy-a-house')}
                   >
                     <span className="housing-link__ico">
                       <Home size={16} strokeWidth={2} />
                     </span>
                     <span className="housing-link__body">
-                      <h3 className="housing-link__title">Prepare towards owning a home</h3>
-                      <p className="housing-link__desc">Education, events and a cooperative path</p>
+                      <h3 className="housing-link__title">Buy a house</h3>
+                      <p className="housing-link__desc">Start preparing financially to buy a house</p>
                     </span>
                     <span className="housing-link__chev">›</span>
                   </button>
@@ -572,14 +572,14 @@ export function HousingFirstHome({
                   <button
                     type="button"
                     className="housing-link"
-                    onClick={() => router.push('/dashboard/lifestyle?goal=save-towards-or-buy-furniture')}
+                    onClick={() => router.push('/dashboard/lifestyle?goal=improve-my-home-feel')}
                   >
                     <span className="housing-link__ico">
                       <Home size={16} strokeWidth={2} />
                     </span>
                     <span className="housing-link__body">
-                      <h3 className="housing-link__title">Save towards or buy furniture</h3>
-                      <p className="housing-link__desc">Furnish your apartment from the marketplace</p>
+                      <h3 className="housing-link__title">Improve my home feel</h3>
+                      <p className="housing-link__desc">Furniture, decoration and space improvements</p>
                     </span>
                     <span className="housing-link__chev">›</span>
                   </button>

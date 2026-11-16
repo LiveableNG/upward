@@ -22,7 +22,6 @@ export type CategoryKey =
   | 'career'
   | 'pay-less'
   | 'children'
-  | 'fitness'
   | 'custom'
 
 interface CategoryQuestionConfig {
@@ -258,19 +257,6 @@ const QUESTIONNAIRE_CONFIGS: Record<CategoryKey, CategoryQuestionConfig> = {
       'Suggest a new goal category',
     ],
   },
-  fitness: {
-    id: 'fitness',
-    title: 'Health & fitness goals',
-    intro: 'Pick your focus area or enter your own goal below.',
-    label: 'What is your main health or fitness goal?',
-    options: [
-      'Lose weight',
-      'Build muscle or strength',
-      'Stay consistent with exercise',
-      'Improve my diet and nutrition',
-      'Prepare for a fitness event or run',
-    ],
-  },
 }
 
 function renderPrototypeRing(pct: number, size = 52) {
@@ -324,8 +310,7 @@ function resolveQueryCategory(
   if (cat === 'income') return 'income'
   if (cat === 'career' || cat === 'work-growth') return 'career'
   if (cat === 'pay-less' || cat === 'expenses' || cat === 'laundry' || cat === 'grocery') return 'pay-less'
-  if (cat === 'other' || cat === 'children' || cat === 'family') return 'children'
-  if (cat === 'fitness' || cat === 'wellness-lifestyle') return 'fitness'
+  if (cat === 'children' || cat === 'family') return 'children'
   return null
 }
 
@@ -409,23 +394,20 @@ export function AllGoalsScreen() {
       matchCategory(ug, ['housing', 'home-lifestyle', 'home', 'lifestyle']),
     )
     const incomeGoals = active.filter((ug) =>
-      matchCategory(ug, ['income', 'start-a-business']),
+      matchCategory(ug, ['income']),
     )
     const careerGoals = active.filter((ug) =>
-      matchCategory(ug, ['career', 'work-growth', 'learn-a-skill']),
+      matchCategory(ug, ['career', 'work-growth']),
     )
     const payLessGoals = active.filter((ug) =>
       matchCategory(ug, ['pay-less', 'expenses', 'laundry', 'grocery']),
     )
     const childrenGoals = active.filter((ug) =>
-      matchCategory(ug, ['children', 'other', 'family', 'goals-for-my-children']),
-    )
-    const fitnessGoals = active.filter((ug) =>
-      matchCategory(ug, ['fitness', 'health-fitness', 'wellness-lifestyle', 'healthy-living-lifestyle']),
+      matchCategory(ug, ['children', 'family', 'goals-for-my-children']),
     )
 
     const coreIds = new Set(
-      [...housingGoals, ...incomeGoals, ...careerGoals, ...payLessGoals, ...childrenGoals, ...fitnessGoals].map(
+      [...housingGoals, ...incomeGoals, ...careerGoals, ...payLessGoals, ...childrenGoals].map(
         (g) => g.id || g.uuid,
       ),
     )
@@ -442,7 +424,6 @@ export function AllGoalsScreen() {
       career: careerGoals,
       'pay-less': payLessGoals,
       children: childrenGoals,
-      fitness: fitnessGoals,
       custom: otherCustomGoals,
     }
   }, [userGoals])
@@ -487,7 +468,6 @@ export function AllGoalsScreen() {
   const careerCard = getCategoryCardState('career', 'Certifications, skills & career growth')
   const payLessCard = getCategoryCardState('pay-less', 'Cut laundry, groceries & commute expenses')
   const childrenCard = getCategoryCardState('children', 'School fees, skills & family milestones')
-  const fitnessCard = getCategoryCardState('fitness', 'Build healthy habits & fitness routines')
 
   const handleCategoryCardClick = (catId: CategoryKey) => {
     const list = goalsByCategory[catId] || []
@@ -532,17 +512,15 @@ export function AllGoalsScreen() {
     }
 
     try {
-      const targetCategorySlug =
-        activeCategory === 'children' || activeCategory === 'custom'
-          ? 'other'
-          : activeCategory
+      const targetCategorySlug = activeCategory
 
       if (activeCategory === 'custom' || finalActions.length > 0) {
         const iconMap: Record<string, string> = {
+          housing: '🏠',
           income: '💼',
           career: '📚',
+          'pay-less': '🏷️',
           children: '👶',
-          fitness: '💪',
           custom: '🎯',
         }
         await createGoalMutation.mutateAsync({
@@ -1096,9 +1074,7 @@ export function AllGoalsScreen() {
                     ''
                   ).toLowerCase()
                   setActiveDetailGoal(null)
-                  if (cat === 'fitness') {
-                    router.push('/dashboard/lifestyle?goal=healthy-living-lifestyle')
-                  } else if (cat === 'career' || cat === 'income') {
+                  if (cat) {
                     router.push(`/dashboard/lifestyle?category=${cat}`)
                   } else {
                     router.push('/dashboard/lifestyle')

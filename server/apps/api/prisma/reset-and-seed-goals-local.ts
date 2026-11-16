@@ -177,7 +177,7 @@ async function main() {
       promoPriority: 100,
       mediaUrl:
         'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=800&auto=format&fit=crop&q=80',
-      goalSlug: 'home-refresh-package',
+      goalSlug: 'prepare-for-the-new-year',
     },
     {
       title: 'Apartment Move-In Starter Furniture Pack',
@@ -193,7 +193,7 @@ async function main() {
       isPromoted: false,
       mediaUrl:
         'https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&auto=format&fit=crop&q=80',
-      goalSlug: 'save-towards-or-buy-furniture',
+      goalSlug: 'improve-my-home-feel',
     },
     {
       title: 'Minimalist Living Room Accent Armchair',
@@ -209,7 +209,7 @@ async function main() {
       isPromoted: false,
       mediaUrl:
         'https://images.unsplash.com/photo-1580481077194-c8c740683072?w=800&auto=format&fit=crop&q=80',
-      goalSlug: 'save-towards-or-buy-furniture',
+      goalSlug: 'improve-my-home-feel',
     },
     {
       title: 'Modern 4-Seater Compact Dining Set',
@@ -225,7 +225,7 @@ async function main() {
       isPromoted: false,
       mediaUrl:
         'https://images.unsplash.com/photo-1617806118233-18e1de247200?w=800&auto=format&fit=crop&q=80',
-      goalSlug: 'save-towards-or-buy-furniture',
+      goalSlug: 'improve-my-home-feel',
     },
     {
       title: 'Cooperative Homeownership Assessment & Starter Pack',
@@ -241,7 +241,7 @@ async function main() {
       isPromoted: false,
       mediaUrl:
         'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800&auto=format&fit=crop&q=80',
-      goalSlug: 'prepare-towards-owning-a-home',
+      goalSlug: 'buy-a-house',
     },
     {
       title: 'Tenant Legal Advisory & Property Search Audit',
@@ -257,7 +257,7 @@ async function main() {
       isPromoted: false,
       mediaUrl:
         'https://images.unsplash.com/photo-1450133064473-71024230f91b?w=800&auto=format&fit=crop&q=80',
-      goalSlug: 'prepare-towards-owning-a-home',
+      goalSlug: 'buy-a-house',
     },
 
     // ── Career & Professional Goals (Learn a Skill) ──
@@ -423,7 +423,7 @@ async function main() {
       isPromoted: false,
       mediaUrl:
         'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=800&auto=format&fit=crop&q=80',
-      goalSlug: 'home-refresh-package',
+      goalSlug: 'prepare-for-the-new-year',
     },
     {
       title: 'Apartment Fumigation & Pest Shield Service',
@@ -439,7 +439,7 @@ async function main() {
       isPromoted: false,
       mediaUrl:
         'https://images.unsplash.com/photo-1628177142898-93e36e4e3a50?w=800&auto=format&fit=crop&q=80',
-      goalSlug: 'home-refresh-package',
+      goalSlug: 'prepare-for-the-new-year',
     },
     {
       title: '1kVA Smart Lithium Inverter Backup Pack',
@@ -455,7 +455,7 @@ async function main() {
       isPromoted: false,
       mediaUrl:
         'https://images.unsplash.com/photo-1509391365360-2e959784a276?w=800&auto=format&fit=crop&q=80',
-      goalSlug: 'healthy-living-lifestyle',
+      goalSlug: 'improve-remote-work-productivity',
     },
     {
       title: 'Farm-Fresh Weekly Healthy Meal Box',
@@ -471,23 +471,23 @@ async function main() {
       isPromoted: false,
       mediaUrl:
         'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800&auto=format&fit=crop&q=80',
-      goalSlug: 'healthy-living-lifestyle',
+      goalSlug: 'grocery-regular-staples',
     },
     {
-      title: 'Gym & Fitness Network All-Access Monthly Pass',
-      subtitle: 'Unlimited access to 25+ partner gyms and swimming pools across Lagos',
+      title: 'City Commute & Transportation Fuel Voucher Pack',
+      subtitle: 'Prepaid fuel, bus, and ride-hailing credit with 10% monthly savings',
       description:
-        'Card-free mobile check-in at premier wellness facilities. Includes complimentary fitness assessment.',
+        'Discounted commute credit across major transit providers. Cut your daily travel costs.',
       type: OfferingType.SERVICE,
       pricingModel: OfferingPricingModel.FIXED,
-      price: 45000,
+      price: 35000,
       currency: 'NGN',
       vendorId: vendorCurated.id,
       isFeatured: false,
       isPromoted: false,
       mediaUrl:
         'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&auto=format&fit=crop&q=80',
-      goalSlug: 'healthy-living-lifestyle',
+      goalSlug: 'commute-transportation-savings',
     },
   ]
 
