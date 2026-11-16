@@ -286,7 +286,7 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
         </div>
 
         <p className="vault-score-card__explainer">
-          Shows how much your savings activity contributes to your <strong>Upward Score</strong>. Regular deposits and target progress directly boost your tenant rating.
+          How savings activity contributes to your Upward Score.
         </p>
       </div>
 
