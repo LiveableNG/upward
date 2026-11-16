@@ -6,7 +6,7 @@ export type EmploymentType =
   | 'informal'
   | 'unemployed'
 
-export type RsiEnrolmentStatus = 'submitted' | 'pending_activation'
+export type RsiEnrolmentStatus = 'active' | 'submitted' | 'pending_activation'
 
 export type RsiEnrolmentFormData = {
   propertyUuid: string
@@ -27,6 +27,8 @@ export type RsiEnrolmentRecord = {
   submittedAt: string
   termsVersion: string
   status: RsiEnrolmentStatus
+  premiumPaid?: number
+  paymentReference?: string
   form: RsiEnrolmentFormData
 }
 

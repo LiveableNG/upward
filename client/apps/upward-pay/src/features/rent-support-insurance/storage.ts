@@ -19,11 +19,20 @@ export function getRsiEnrolment(propertyUuid: string): RsiEnrolmentRecord | null
   )
 }
 
-export function saveRsiEnrolment(form: RsiEnrolmentFormData): RsiEnrolmentRecord {
+export function saveRsiEnrolment(
+  form: RsiEnrolmentFormData,
+  options?: {
+    status?: RsiEnrolmentRecord['status']
+    premiumPaid?: number
+    paymentReference?: string
+  },
+): RsiEnrolmentRecord {
   const record: RsiEnrolmentRecord = {
     submittedAt: new Date().toISOString(),
     termsVersion: RSI_TERMS_VERSION,
-    status: 'pending_activation',
+    status: options?.status || (options?.paymentReference ? 'active' : 'pending_activation'),
+    premiumPaid: options?.premiumPaid,
+    paymentReference: options?.paymentReference,
     form,
   }
   if (typeof window !== 'undefined') {

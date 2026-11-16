@@ -3,7 +3,7 @@ import type { EmploymentType } from './types'
 export const RSI_PRODUCT_NAME = 'Rent Support Insurance'
 export const RSI_TERMS_VERSION = '2026-07-15'
 export const RSI_STORAGE_KEY = 'upward_rsi_enrolment'
-export const RSI_ANNUAL_RATE = 0.012
+export const RSI_ANNUAL_RATE = 0.02
 export const RSI_MAX_SUM_ASSURED = 20_000_000
 export const RSI_MAX_ENTRY_AGE = 60
 export const RSI_INTRO_PERIOD_DAYS = 30
@@ -41,7 +41,7 @@ export const RSI_EXCLUSIONS = [
 export const RSI_KEY_LIMITS = [
   { label: 'Maximum sum assured', value: '₦20,000,000' },
   { label: 'Maximum entry age', value: '60 years' },
-  { label: 'Annual premium rate', value: '1.20% of sum assured (paid by landlord)' },
+  { label: 'Annual premium rate', value: '2% of annual rent' },
   { label: 'Introductory period', value: '30 days (accidental death exempt)' },
   { label: 'Loss of job waiting period', value: '30 days after unemployment' },
   { label: 'Maximum loss-of-job benefit', value: '5 months’ rent' },

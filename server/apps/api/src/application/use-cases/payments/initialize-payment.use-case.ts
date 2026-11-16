@@ -106,7 +106,9 @@ export class InitializePaymentUseCase {
     const excludeBenefits = data.metadata?.excludeBenefits === true
     const isBenefitsOnly =
       data.metadata?.paymentKind === 'BENEFITS_SUBSCRIPTION' ||
-      data.metadata?.type === 'BENEFITS_SUBSCRIPTION'
+      data.metadata?.type === 'BENEFITS_SUBSCRIPTION' ||
+      data.metadata?.paymentKind === 'RENT_SUPPORT_INSURANCE' ||
+      data.metadata?.type === 'RENT_SUPPORT_INSURANCE'
     const activeBenefitsFee = (rates.benefitsPaid || excludeBenefits) ? 0 : rates.benefitsFee
     flatFee = isBenefitsOnly ? 0 : rates.transactionFee + activeBenefitsFee
     const forcePaystack = isBenefitsOnly || data.metadata?.forcePaystack === true
@@ -229,7 +231,7 @@ export class InitializePaymentUseCase {
       amount: finalAmountToPay,
       reference: `PAY-${randomUUID()}`,
       metadata,
-      channels: ['bank', 'bank_transfer']
+      channels: isBenefitsOnly ? ['card', 'bank', 'bank_transfer', 'ussd'] : ['bank', 'bank_transfer']
     })
 
     return {

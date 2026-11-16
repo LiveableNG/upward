@@ -8,12 +8,19 @@ import { calculateAnnualPremium, parseAnnualRent } from '../utils'
 
 interface InsuranceStatusViewProps {
   enrolment: RsiEnrolmentRecord
+  paying?: boolean
+  onPayPending?: () => void
   onReEnrol?: () => void
 }
 
-export function InsuranceStatusView({ enrolment, onReEnrol }: InsuranceStatusViewProps) {
+export function InsuranceStatusView({
+  enrolment,
+  paying = false,
+  onPayPending,
+  onReEnrol,
+}: InsuranceStatusViewProps) {
   const annualRent = parseAnnualRent(enrolment.form.annualRent)
-  const premium = calculateAnnualPremium(annualRent)
+  const premium = enrolment.premiumPaid || calculateAnnualPremium(annualRent)
   const employmentLabel =
     EMPLOYMENT_TYPE_OPTIONS.find((option) => option.value === enrolment.form.employmentType)
       ?.label || enrolment.form.employmentType
@@ -30,7 +37,7 @@ export function InsuranceStatusView({ enrolment, onReEnrol }: InsuranceStatusVie
           </strong>
           <p>
             {enrolment.status === 'pending_activation'
-              ? 'Waiting for landlord premium payment and policy inception.'
+              ? 'Complete the 2% annual premium payment to activate your policy.'
               : `${RSI_PRODUCT_NAME} is active on your tenancy.`}
           </p>
         </div>
@@ -52,9 +59,15 @@ export function InsuranceStatusView({ enrolment, onReEnrol }: InsuranceStatusVie
             <dd>{formatCurrency(annualRent)}</dd>
           </div>
           <div className="rsi-flow__summary-row">
-            <dt>Annual premium</dt>
+            <dt>Annual premium (2%)</dt>
             <dd>{formatCurrency(premium)}</dd>
           </div>
+          {enrolment.paymentReference ? (
+            <div className="rsi-flow__summary-row">
+              <dt>Reference</dt>
+              <dd>{enrolment.paymentReference}</dd>
+            </div>
+          ) : null}
           <div className="rsi-flow__summary-row">
             <dt>Employment type</dt>
             <dd>{employmentLabel}</dd>
@@ -65,6 +78,19 @@ export function InsuranceStatusView({ enrolment, onReEnrol }: InsuranceStatusVie
           </div>
         </dl>
       </section>
+
+      {enrolment.status === 'pending_activation' && onPayPending && premium > 0 ? (
+        <div className="rsi-flow__step-cta">
+          <button
+            type="button"
+            className="pay-flow__cta"
+            disabled={paying}
+            onClick={onPayPending}
+          >
+            {paying ? 'Processing payment…' : `Pay ${formatCurrency(premium)} to activate`}
+          </button>
+        </div>
+      ) : null}
 
       {onReEnrol ? (
         <div className="rsi-flow__dev-note">
