@@ -236,27 +236,41 @@ export function useRemoveUserGoal() {
   const userKey = user?.uuid || user?.id || 'anonymous'
 
   return useMutation({
-    mutationFn: (goalId: number) => removeUserGoal(goalId),
-    onMutate: async (goalId: number) => {
+    mutationFn: (identifier: number | string) => removeUserGoal(identifier),
+    onMutate: async (identifier: number | string) => {
       await queryClient.cancelQueries({ queryKey: ['user-goals'] })
       const previous = queryClient.getQueryData<UserGoal[]>(['user-goals', userKey])
 
       if (previous) {
-        const optimistic = previous.filter((ug) => ug.goalId !== goalId)
+        const optimistic = previous.filter(
+          (ug) =>
+            ug.id !== identifier &&
+            ug.goalId !== identifier &&
+            ug.uuid !== identifier &&
+            String(ug.id) !== String(identifier) &&
+            String(ug.goalId) !== String(identifier),
+        )
         queryClient.setQueryData(['user-goals', userKey], optimistic)
       }
 
       return { previous }
     },
-    onError: (_err, _goalId, context) => {
+    onError: (_err, _identifier, context) => {
       if (context?.previous) {
         queryClient.setQueryData(['user-goals', userKey], context.previous)
       }
     },
-    onSuccess: (_res, goalId) => {
+    onSuccess: (_res, identifier) => {
       const current = queryClient.getQueryData<UserGoal[]>(['user-goals', userKey])
       if (current) {
-        const next = current.filter((ug) => ug.goalId !== goalId)
+        const next = current.filter(
+          (ug) =>
+            ug.id !== identifier &&
+            ug.goalId !== identifier &&
+            ug.uuid !== identifier &&
+            String(ug.id) !== String(identifier) &&
+            String(ug.goalId) !== String(identifier),
+        )
         queryClient.setQueryData(['user-goals', userKey], next)
         if (user?.id) {
           setCachedUserGoals(user.id, next)

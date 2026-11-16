@@ -119,7 +119,7 @@ export class UserGoalsController {
   ) {
     const userUuid = req.user?.id || req.user?.sub
     if (!userUuid) throw new UnauthorizedException('Authentication required')
-    await this.removeUserGoalUseCase.execute(userUuid, Number(goalId))
+    await this.removeUserGoalUseCase.execute(userUuid, isNaN(Number(goalId)) ? goalId : Number(goalId))
     this.eventBus.publish(new UserGoalsUpdatedEvent(userUuid, req.user?.uuid || String(userUuid)))
     return { success: true, message: 'Goal removed successfully' }
   }

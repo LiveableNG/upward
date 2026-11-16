@@ -628,10 +628,9 @@ export function AllGoalsScreen() {
     }
   }
 
-  const handleDeleteGoal = async (id: number) => {
-    if (!confirm('Are you sure you want to remove this goal?')) return
+  const handleDeleteGoal = async (idOrUuid: number | string) => {
     try {
-      await removeGoalMutation.mutateAsync(id)
+      await removeGoalMutation.mutateAsync(idOrUuid)
       success('Goal removed')
       setActiveDetailGoal(null)
     } catch {
@@ -736,15 +735,16 @@ export function AllGoalsScreen() {
               </div>
             )}
 
-            {activeDetailGoal.id && (
+            {(activeDetailGoal.id || activeDetailGoal.uuid) && (
               <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid var(--shell-border, #f0e9df)' }}>
                 <button
                   type="button"
                   className="goal-modal__delete-btn"
-                  onClick={() => handleDeleteGoal(activeDetailGoal.id)}
+                  onClick={() => handleDeleteGoal(activeDetailGoal.id || activeDetailGoal.uuid || '')}
+                  disabled={removeGoalMutation.isPending}
                 >
                   <Trash2 size={14} style={{ display: 'inline', marginRight: '6px', verticalAlign: '-2px' }} />
-                  Remove this goal
+                  {removeGoalMutation.isPending ? 'Removing...' : 'Remove this goal'}
                 </button>
               </div>
             )}

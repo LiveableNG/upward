@@ -516,7 +516,13 @@ export class PrismaGoalRepository implements GoalRepository {
 
   async removeUserGoal(userId: number, goalId: number): Promise<void> {
     await this.prisma.upward_user_goal.deleteMany({
-      where: { userId, goalId },
+      where: {
+        userId,
+        OR: [
+          { goalId },
+          { id: goalId },
+        ],
+      },
     })
   }
 
