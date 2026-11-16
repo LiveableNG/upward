@@ -799,23 +799,23 @@ export function RentCalculatorView({
                       fontWeight: 700,
                       padding: '2px 6px',
                       borderRadius: '4px',
-                      background: 'rgba(16, 185, 129, 0.15)',
-                      color: '#10b981',
+                      background: 'var(--surface2)',
+                      color: 'var(--text-muted)',
                       textTransform: 'uppercase',
                       letterSpacing: '0.04em',
                     }}
                   >
-                    Max Return
+                    No Insurance
                   </span>
                   <span
                     style={{
                       fontSize: '0.75rem',
                       fontWeight: 600,
-                      color: '#10b981',
+                      color: 'var(--text-secondary)',
                       marginTop: 2,
                     }}
                   >
-                    14% p.a. Full Return
+                    14% p.a. · Savings Only
                   </span>
                 </button>
               </div>
@@ -839,7 +839,7 @@ export function RentCalculatorView({
                   </span>
                 ) : (
                   <span>
-                    14% p.a. maximum compound return to pay down as much of your upcoming rent as possible.
+                    14% p.a. returns, but includes no protection if you face unexpected job loss or illness.
                   </span>
                 )}
               </div>
