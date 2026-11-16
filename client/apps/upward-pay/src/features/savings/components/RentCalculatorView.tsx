@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Calendar,
   TrendingUp,
@@ -76,20 +77,25 @@ export function RentCalculatorView({
     }
   }
 
+  const router = useRouter()
   const [drawerOpen, setDrawerOpen] = useState(true)
   const [rentConfirmed, setRentConfirmed] = useState(false)
   const hasSavedRent = Boolean(activeProperty?.rentAmount && activeProperty?.rentEndDate)
   const hasRentDetails = hasSavedRent || rentConfirmed
 
+  const handleCloseDrawer = () => {
+    if (!hasSavedRent && !rentConfirmed) {
+      router.push('/dashboard')
+    } else {
+      setDrawerOpen(false)
+    }
+  }
+
   const targetAmountNaira = parseCurrencyInput(targetAmountRaw) || 0
   const tomorrow = new Date(nowTimestamp + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   const canConfirmRent =
     targetAmountNaira > 0 && Boolean(contractualDueDate) && contractualDueDate >= tomorrow
-  const [selectedFrequency, setSelectedFrequency] = useState<
-    'DAILY' | 'WEEKLY' | 'MONTHLY' | 'FLEXIBLE'
-  >('MONTHLY')
-  const selectedCadence: SavingsCadence =
-    selectedFrequency === 'FLEXIBLE' ? 'MONTHLY' : selectedFrequency
+  const selectedCadence: SavingsCadence = 'MONTHLY'
   const [selectedProductOption, setSelectedProductOption] = useState<SavingsProductOption>('RENT_PROTEC')
   const planPattern: SavingsPlanPattern = 'INITIAL_DEPOSIT'
 
@@ -201,24 +207,6 @@ export function RentCalculatorView({
     ? simData.projected_yield_kobo / 100
     : localPlan.projectedYieldNaira
 
-  const cadenceUnitLabel =
-    selectedFrequency === 'DAILY'
-      ? 'day'
-      : selectedFrequency === 'WEEKLY'
-        ? 'week'
-        : selectedFrequency === 'FLEXIBLE'
-          ? 'flexible'
-          : 'month'
-
-  const cadenceShortLabel =
-    selectedFrequency === 'DAILY'
-      ? 'day'
-      : selectedFrequency === 'WEEKLY'
-        ? 'wk'
-        : selectedFrequency === 'FLEXIBLE'
-          ? 'flex'
-          : 'mo'
-
   const formattedDueDate = contractualDueDate
     ? new Date(contractualDueDate).toLocaleDateString('en-GB', {
         day: 'numeric',
@@ -243,93 +231,89 @@ export function RentCalculatorView({
 
   return (
     <div className="rent-savings__gated-container">
-      {/* Blurred Preview Card */}
-      <div
-        className="rent-savings__gated-content rent-savings__gated-content--blurred"
-        onClick={() => setDrawerOpen(true)}
-        role="button"
-        tabIndex={0}
-        aria-label="Open Rent Savings Drawer"
-        style={{ cursor: 'pointer' }}
-      >
-        <div className="vault-dashboard__hero">
-          <div className="vault-dashboard__top-row">
-            <div className="vault-arm-badge">
-              <ShieldCheck size={14} className="vault-arm-badge__icon" />
+      {/* Preview Card: Only show if user has supplied/confirmed rent details */}
+      {hasRentDetails && (
+        <div
+          className="rent-savings__gated-content"
+          onClick={() => setDrawerOpen(true)}
+          role="button"
+          tabIndex={0}
+          aria-label="Open Rent Savings Drawer"
+          style={{ cursor: 'pointer' }}
+        >
+          <div className="vault-dashboard__hero">
+            <div className="vault-dashboard__top-row">
+              <div className="vault-arm-badge">
+                <ShieldCheck size={14} className="vault-arm-badge__icon" />
+                <span>
+                  Powered by <strong>Asset &amp; Resource Management Holding Company (ARM)</strong>
+                </span>
+              </div>
+              <span className="vault-dashboard__countdown-pill">
+                <Calendar size={12} />
+                <span>{daysRemaining || 343} Days to Rent Day</span>
+              </span>
+            </div>
+
+            <div className="vault-dashboard__amounts">
+              <span className="vault-dashboard__balance-caption">
+                Target Rent (Pay Less with Interest)
+              </span>
+              <span className="vault-dashboard__current-balance">
+                {formatCurrency(previewRentAmount, 'NGN')}
+              </span>
+              <span className="vault-dashboard__target-label">
+                Due {formattedDueDate} • You only contribute {formatCurrency(totalTenantContributionNaira, 'NGN')}
+              </span>
+            </div>
+
+            {/* 3-Column Pay Less Breakdown */}
+            <div className="vault-dashboard__breakdown-grid">
+              <div className="vault-dashboard__breakdown-item">
+                <span className="vault-dashboard__breakdown-label">Deposit Schedule</span>
+                <span className="vault-dashboard__breakdown-val">Flexible</span>
+              </div>
+              <div className="vault-dashboard__breakdown-item">
+                <span className="vault-dashboard__breakdown-label">You Only Pay</span>
+                <span className="vault-dashboard__breakdown-val">
+                  {formatCurrency(totalTenantContributionNaira, 'NGN')}
+                </span>
+              </div>
+              <div className="vault-dashboard__breakdown-item">
+                <span className="vault-dashboard__breakdown-label">
+                  Interest Covers ({savingsAnnualRatePct}% p.a.)
+                </span>
+                <span className="vault-dashboard__breakdown-val vault-dashboard__breakdown-val--yield">
+                  +{formatCurrency(projectedYieldNaira, 'NGN')}
+                </span>
+              </div>
+            </div>
+
+            {/* Pay Less note */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '10px 14px',
+                borderRadius: '10px',
+                background: 'rgba(217, 119, 87, 0.06)',
+                border: '1px solid rgba(217, 119, 87, 0.15)',
+                fontSize: '0.75rem',
+                color: 'var(--text-secondary)',
+              }}
+            >
+              <Gift size={16} color="var(--clay)" style={{ flexShrink: 0 }} />
               <span>
-                Powered by <strong>Asset &amp; Resource Management Holding Company (ARM)</strong>
+                <strong>Pay Less for Rent:</strong> Earn {savingsAnnualRatePct}% p.a. returns and let interest pay the remaining {formatCurrency(projectedYieldNaira, 'NGN')} of your rent.
               </span>
             </div>
-            <span className="vault-dashboard__countdown-pill">
-              <Calendar size={12} />
-              <span>{daysRemaining || 343} Days to Rent Day</span>
-            </span>
-          </div>
-
-          <div className="vault-dashboard__amounts">
-            <span className="vault-dashboard__balance-caption">
-              Target Rent (Pay Less with Interest)
-            </span>
-            <span className="vault-dashboard__current-balance">
-              {formatCurrency(previewRentAmount, 'NGN')}
-            </span>
-            <span className="vault-dashboard__target-label">
-              Due {formattedDueDate} • You only contribute {formatCurrency(totalTenantContributionNaira, 'NGN')}
-            </span>
-          </div>
-
-          {/* 3-Column Pay Less Breakdown */}
-          <div className="vault-dashboard__breakdown-grid">
-            <div className="vault-dashboard__breakdown-item">
-              <span className="vault-dashboard__breakdown-label">
-                {selectedFrequency === 'FLEXIBLE' ? 'Schedule' : `Save (${cadenceUnitLabel})`}
-              </span>
-              <span className="vault-dashboard__breakdown-val">
-                {selectedFrequency === 'FLEXIBLE'
-                  ? 'Flexible'
-                  : `${formatCurrency(periodicDepositNaira, 'NGN')}/${cadenceShortLabel}`}
-              </span>
-            </div>
-            <div className="vault-dashboard__breakdown-item">
-              <span className="vault-dashboard__breakdown-label">You Only Pay</span>
-              <span className="vault-dashboard__breakdown-val">
-                {formatCurrency(totalTenantContributionNaira, 'NGN')}
-              </span>
-            </div>
-            <div className="vault-dashboard__breakdown-item">
-              <span className="vault-dashboard__breakdown-label">
-                Interest Covers ({savingsAnnualRatePct}% p.a.)
-              </span>
-              <span className="vault-dashboard__breakdown-val vault-dashboard__breakdown-val--yield">
-                +{formatCurrency(projectedYieldNaira, 'NGN')}
-              </span>
-            </div>
-          </div>
-
-          {/* Pay Less note */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              padding: '10px 14px',
-              borderRadius: '10px',
-              background: 'rgba(217, 119, 87, 0.06)',
-              border: '1px solid rgba(217, 119, 87, 0.15)',
-              fontSize: '0.75rem',
-              color: 'var(--text-secondary)',
-            }}
-          >
-            <Gift size={16} color="var(--clay)" style={{ flexShrink: 0 }} />
-            <span>
-              <strong>Pay Less for Rent:</strong> Earn {savingsAnnualRatePct}% p.a. returns and let interest pay the remaining {formatCurrency(projectedYieldNaira, 'NGN')} of your rent.
-            </span>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Button to reopen drawer if user closed it */}
-      {!isModalVisible && (
+      {/* Button to reopen drawer if user closed it after supplying rent details */}
+      {hasRentDetails && !isModalVisible && (
         <div style={{ textAlign: 'center', marginTop: 20 }}>
           <button
             type="button"
@@ -337,7 +321,7 @@ export function RentCalculatorView({
             style={{ maxWidth: 320, margin: '0 auto' }}
             onClick={() => setDrawerOpen(true)}
           >
-            {hasRentDetails ? 'View Savings Plan' : 'Calculate Savings Plan'}
+            View Savings Plan
           </button>
         </div>
       )}
@@ -345,7 +329,7 @@ export function RentCalculatorView({
       {/* Bottom Drawer */}
       <BottomSheetModal
         isOpen={isModalVisible}
-        onClose={() => setDrawerOpen(false)}
+        onClose={handleCloseDrawer}
         onBack={hasRentDetails && !hasSavedRent ? () => setRentConfirmed(false) : undefined}
         showClose={true}
         showHandle={true}
@@ -445,13 +429,9 @@ export function RentCalculatorView({
                     Target: <strong style={{ color: 'var(--text)' }}>{formatCurrency(targetAmountNaira, 'NGN')}</strong> due{' '}
                     <strong style={{ color: 'var(--text)' }}>{formattedDueDate}</strong>
                   </div>
-                  {periodicDepositNaira > 0 && projectedYieldNaira > 0 && (
+                  {projectedYieldNaira > 0 && (
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>
-                      {selectedFrequency === 'FLEXIBLE' ? (
-                        <>Save at your own pace · +{formatCurrency(projectedYieldNaira, 'NGN')} interest covers remainder</>
-                      ) : (
-                        <>{formatCurrency(periodicDepositNaira, 'NGN')}/{cadenceShortLabel} · +{formatCurrency(projectedYieldNaira, 'NGN')} interest covers remainder</>
-                      )}
+                      Save flexibly · +{formatCurrency(projectedYieldNaira, 'NGN')} interest covers remainder
                     </div>
                   )}
                 </div>
@@ -531,40 +511,6 @@ export function RentCalculatorView({
                 <span className="rent-calculator__hint" style={{ marginTop: 6 }}>
                   Rent Protec needs at least {platformRates.rentProtecMinMonths} months before your
                   rent is due.
-                </span>
-              )}
-            </div>
-
-            {/* Savings Frequency Selector */}
-            <div className="rent-calculator__field" style={{ marginTop: 14 }}>
-              <span className="rent-calculator__label">Savings frequency</span>
-              <div className="savings-cadence-grid" role="group" aria-label="Savings frequency">
-                {(
-                  [
-                    { id: 'DAILY' as const, label: 'Daily' },
-                    { id: 'WEEKLY' as const, label: 'Weekly' },
-                    { id: 'MONTHLY' as const, label: 'Monthly' },
-                    { id: 'FLEXIBLE' as const, label: 'Flexible' },
-                  ]
-                ).map((freq) => {
-                  const isActive = selectedFrequency === freq.id
-                  return (
-                    <button
-                      key={freq.id}
-                      type="button"
-                      onClick={() => setSelectedFrequency(freq.id)}
-                      className={`savings-cadence-btn ${
-                        isActive ? 'savings-cadence-btn--active' : ''
-                      }`}
-                    >
-                      {freq.label}
-                    </button>
-                  )
-                })}
-              </div>
-              {selectedFrequency === 'FLEXIBLE' && (
-                <span className="rent-calculator__hint" style={{ marginTop: 6, display: 'block' }}>
-                  Save anytime via bank transfer at your own pace. Daily compound interest still applies.
                 </span>
               )}
             </div>

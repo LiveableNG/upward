@@ -36,16 +36,7 @@ const START_PRESETS = [50_000, 100_000, 250_000, 500_000]
 
 export function VaultSetupFlow({ initialConfig, onBack, onSuccess }: VaultSetupFlowProps) {
   const productOption: SavingsProductOption = initialConfig.productOption || 'RENT_PROTEC'
-  const [selectedFrequency, setSelectedFrequency] = useState<
-    'DAILY' | 'WEEKLY' | 'MONTHLY' | 'FLEXIBLE'
-  >(() => {
-    if (initialConfig.cadence === 'DAILY' || initialConfig.cadence === 'WEEKLY') {
-      return initialConfig.cadence
-    }
-    return 'MONTHLY'
-  })
-  const selectedCadence: SavingsCadence =
-    selectedFrequency === 'FLEXIBLE' ? 'MONTHLY' : selectedFrequency
+  const selectedCadence: SavingsCadence = initialConfig.cadence || 'MONTHLY'
   const [startAmountRaw, setStartAmountRaw] = useState<string>('50,000')
   const [agreeToLock, setAgreeToLock] = useState<boolean>(false)
   const [isKycModalOpen, setIsKycModalOpen] = useState<boolean>(false)
@@ -87,24 +78,6 @@ export function VaultSetupFlow({ initialConfig, onBack, onSuccess }: VaultSetupF
       insurancePremiumPct: platformRates.insurancePremiumPct,
     },
   )
-
-  const cadenceUnitLabel =
-    selectedFrequency === 'DAILY'
-      ? 'day'
-      : selectedFrequency === 'WEEKLY'
-        ? 'week'
-        : selectedFrequency === 'FLEXIBLE'
-          ? 'flexible'
-          : 'month'
-
-  const cadenceShortLabel =
-    selectedFrequency === 'DAILY'
-      ? 'day'
-      : selectedFrequency === 'WEEKLY'
-        ? 'wk'
-        : selectedFrequency === 'FLEXIBLE'
-          ? 'flex'
-          : 'mo'
 
   const executeVaultCreation = async () => {
     await createVaultMutation.mutateAsync({
@@ -246,73 +219,9 @@ export function VaultSetupFlow({ initialConfig, onBack, onSuccess }: VaultSetupF
               )
             })}
           </div>
-
-          <span
-            style={{
-              fontSize: '0.75rem',
-              color: 'var(--text-muted)',
-              display: 'block',
-              marginTop: 6,
-              lineHeight: 1.4,
-            }}
-          >
-            Start with any amount today. Your regular deposits adjust to cover the rest.
-          </span>
         </div>
 
-        {/* Frequency Selection: Daily / Weekly / Monthly / Flexible */}
-        <div style={{ marginTop: 14, marginBottom: 16 }}>
-          <span
-            style={{
-              fontSize: '0.8125rem',
-              fontWeight: 700,
-              color: 'var(--text)',
-              display: 'block',
-              marginBottom: 8,
-            }}
-          >
-            Choose your savings frequency
-          </span>
-          <div className="savings-cadence-grid">
-            {(
-              [
-                { id: 'DAILY' as const, label: 'Daily' },
-                { id: 'WEEKLY' as const, label: 'Weekly' },
-                { id: 'MONTHLY' as const, label: 'Monthly' },
-                { id: 'FLEXIBLE' as const, label: 'Flexible' },
-              ]
-            ).map((freq) => {
-              const isActive = selectedFrequency === freq.id
-              return (
-                <button
-                  key={freq.id}
-                  type="button"
-                  onClick={() => setSelectedFrequency(freq.id)}
-                  className={`savings-cadence-btn ${
-                    isActive ? 'savings-cadence-btn--active' : ''
-                  }`}
-                >
-                  {freq.label}
-                </button>
-              )
-            })}
-          </div>
-          {selectedFrequency === 'FLEXIBLE' && (
-            <span
-              style={{
-                fontSize: '0.75rem',
-                color: 'var(--text-muted)',
-                display: 'block',
-                marginTop: 6,
-                lineHeight: 1.4,
-              }}
-            >
-              Save anytime via bank transfer at your own pace. Daily compound interest still applies.
-            </span>
-          )}
-        </div>
-
-        {/* Pay Less Breakdown Card */}
+        {/* Clean 2-Stat Summary Card */}
         <div
           style={{
             padding: '14px 16px',
@@ -322,139 +231,56 @@ export function VaultSetupFlow({ initialConfig, onBack, onSuccess }: VaultSetupF
             display: 'flex',
             flexDirection: 'column',
             gap: 10,
-            marginBottom: 16,
+            marginBottom: 14,
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div>
-              <span
-                style={{
-                  fontSize: '0.6875rem',
-                  fontWeight: 700,
-                  color: 'var(--text-muted)',
-                  textTransform: 'uppercase',
-                }}
-              >
-                {selectedFrequency === 'FLEXIBLE'
-                  ? 'Flexible Deposits'
-                  : `Save Every ${cadenceUnitLabel} (${payLessPlan.numberOfPayments} payments)`}
-              </span>
-              <div style={{ fontSize: '1.375rem', fontWeight: 800, color: 'var(--clay)', marginTop: 2 }}>
-                {selectedFrequency === 'FLEXIBLE' ? (
-                  'At Your Own Pace'
-                ) : (
-                  <>
-                    {formatCurrency(payLessPlan.periodicDepositNaira, 'NGN')}
-                    <span
-                      style={{
-                        fontSize: '0.8125rem',
-                        fontWeight: 600,
-                        color: 'var(--text-muted)',
-                        marginLeft: 4,
-                      }}
-                    >
-                      / {cadenceShortLabel}
-                    </span>
-                  </>
-                )}
-              </div>
-            </div>
-            <span className="vault-setup__badge">
-              <TrendingUp size={12} /> {annualRatePct}% p.a.
-            </span>
-          </div>
-
           <div
             style={{
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
-              gap: 8,
-              paddingTop: 8,
-              borderTop: '1px solid var(--border)',
+              gap: 12,
             }}
           >
             <div>
-              <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', display: 'block' }}>
-                You Only Contribute
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>
+                You Contribute
               </span>
-              <span style={{ fontSize: '0.9375rem', fontWeight: 800, color: 'var(--text)' }}>
+              <span style={{ fontSize: '1.0625rem', fontWeight: 800, color: 'var(--text)', marginTop: 2, display: 'block' }}>
                 {formatCurrency(payLessPlan.totalTenantContributionNaira, 'NGN')}
               </span>
             </div>
-            <div>
-              <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', display: 'block' }}>
-                Completed by Interest
+            <div style={{ textAlign: 'right' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>
+                Interest Covers ({annualRatePct}% p.a.)
               </span>
-              <span style={{ fontSize: '0.9375rem', fontWeight: 800, color: '#059669' }}>
+              <span style={{ fontSize: '1.0625rem', fontWeight: 800, color: '#059669', marginTop: 2, display: 'block' }}>
                 +{formatCurrency(payLessPlan.projectedYieldNaira, 'NGN')}
               </span>
             </div>
           </div>
 
-          {initialDepositNaira > 0 && (
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '6px 10px',
-                borderRadius: '8px',
-                background: 'var(--clay-faint)',
-                fontSize: '0.75rem',
-              }}
-            >
-              <span style={{ fontWeight: 600, color: 'var(--text)' }}>Starting Deposit Today:</span>
-              <strong style={{ color: 'var(--clay)', fontWeight: 800 }}>
-                {formatCurrency(initialDepositNaira, 'NGN')}
-              </strong>
-            </div>
-          )}
-
-          <p
+          <div
             style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              paddingTop: 8,
+              borderTop: '1px solid var(--border)',
               fontSize: '0.75rem',
               color: 'var(--text-secondary)',
-              margin: 0,
-              lineHeight: 1.45,
             }}
           >
-            Earn {annualRatePct}% p.a. returns and let interest pay the remaining{' '}
-            <strong>{formatCurrency(payLessPlan.projectedYieldNaira, 'NGN')}</strong> of your rent.
-          </p>
-        </div>
-
-        {/* Dedicated Personal Rent Account Method */}
-        <div className="vault-setup__method-options">
-          <div className="vault-setup__option vault-setup__option--active">
-            <Landmark size={22} color="var(--clay)" style={{ flexShrink: 0, marginTop: 2 }} />
-            <div className="vault-setup__option-content" style={{ width: '100%' }}>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 8,
-                  flexWrap: 'wrap',
-                }}
-              >
-                <span className="vault-setup__option-title">Personal Rent Bank Account</span>
-                <span className="vault-setup__badge">Zero Direct Debit Fees</span>
-              </div>
-              <span className="vault-setup__option-desc">
-                Transfer {formatCurrency(initialDepositNaira > 0 ? initialDepositNaira : payLessPlan.periodicDepositNaira, 'NGN')}{' '}
-                to start, then {formatCurrency(payLessPlan.periodicDepositNaira, 'NGN')} every{' '}
-                {cadenceUnitLabel} ({payLessPlan.numberOfPayments} payments) from your bank app.
-              </span>
-            </div>
+            <Landmark size={15} color="var(--clay)" style={{ flexShrink: 0 }} />
+            <span>Personal Rent Bank Account · Zero direct debit fees</span>
           </div>
         </div>
 
-        {/* Rent Lock Agreement */}
-        <div className="vault-setup__lock-notice">
-          <Lock size={18} color="var(--clay)" style={{ flexShrink: 0, marginTop: 2 }} />
-          <div>
-            <strong>Rent Lock Agreement:</strong> Funds saved here are locked safely towards your rent until 30 days before your rent day so you don&apos;t spend it on other things. Your savings earn {annualRatePct}% returns every year, added daily.
-          </div>
+        {/* Rent Lock Notice */}
+        <div className="vault-setup__lock-notice" style={{ marginTop: 0, padding: '10px 12px' }}>
+          <Lock size={15} color="var(--clay)" style={{ flexShrink: 0, marginTop: 1 }} />
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+            Funds are locked safely towards rent until 30 days before your rent day.
+          </span>
         </div>
 
         <label
@@ -462,7 +288,7 @@ export function VaultSetupFlow({ initialConfig, onBack, onSuccess }: VaultSetupF
             display: 'flex',
             alignItems: 'center',
             gap: 10,
-            marginTop: 18,
+            marginTop: 14,
             fontSize: '0.8125rem',
             color: 'var(--text-secondary)',
             cursor: 'pointer',
@@ -472,20 +298,20 @@ export function VaultSetupFlow({ initialConfig, onBack, onSuccess }: VaultSetupF
             type="checkbox"
             checked={agreeToLock}
             onChange={(e) => setAgreeToLock(e.target.checked)}
-            style={{ width: 18, height: 18, accentColor: 'var(--clay)' }}
+            style={{ width: 18, height: 18, accentColor: 'var(--clay)', cursor: 'pointer' }}
           />
-          <span>I understand and agree to lock my rent savings until rent day.</span>
+          <span>I agree to lock my rent savings until rent day.</span>
         </label>
 
         <button
           type="button"
           className="vault-btn-primary"
-          style={{ marginTop: 20, width: '100%' }}
+          style={{ marginTop: 16, width: '100%' }}
           onClick={handleCreate}
           disabled={!agreeToLock || createVaultMutation.isPending}
         >
           {createVaultMutation.isPending ? (
-            'Activating Your Rent Plan...'
+            'Activating...'
           ) : (
             <>
               <span>Confirm</span>
