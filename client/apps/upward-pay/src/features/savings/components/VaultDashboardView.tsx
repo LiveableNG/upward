@@ -16,6 +16,7 @@ import {
 import { formatCurrency } from '@/lib/utils'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
+import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
 import { FundVaultModal } from './FundVaultModal'
 import { calculatePayLessPlan, type VaultTransactionItem } from '../services/savingsService'
 import { useConsentToSavings } from '../hooks/useRentSavings'
@@ -30,6 +31,7 @@ interface VaultDashboardViewProps {
     vault_principal_kobo?: number
     deposit_balance_kobo?: number
     accrued_yield_kobo: number
+    annual_yield_rate_pct?: number
     daily_yield_rate: number
     days_to_unlock: number
     days_remaining: number
@@ -97,8 +99,11 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
       )
     : vault.days_remaining
 
+  const { rates: platformRates } = usePlatformRates()
+  const savingsAnnualRatePct =
+    vault.annual_yield_rate_pct ?? platformRates.savingsAnnualRatePct
   const accruedYieldNaira = vault.accrued_yield_kobo / 100
-  const dailyRate = vault.daily_yield_rate || 0.145 / 365
+  const dailyRate = vault.daily_yield_rate || (savingsAnnualRatePct / 100) / 365
   const estimatedDailyAddNaira = currentBalanceNaira * dailyRate
 
   // Compute live "Pay Less" breakdown based on current balance and chosen cadence
@@ -107,6 +112,7 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
     Math.max(1, daysRemaining),
     activeCadence,
     currentBalanceNaira,
+    savingsAnnualRatePct,
   )
   const totalOutOfPocketNaira =
     vaultPrincipalNaira +
@@ -255,7 +261,9 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
             </span>
           </div>
           <div className="vault-dashboard__breakdown-item">
-            <span className="vault-dashboard__breakdown-label">Interest Completes (14.5% p.a.)</span>
+            <span className="vault-dashboard__breakdown-label">
+              Interest Completes ({savingsAnnualRatePct}% p.a.)
+            </span>
             <span className="vault-dashboard__breakdown-val vault-dashboard__breakdown-val--yield">
               +{formatCurrency(totalInterestCoveredNaira, 'NGN')}
               <span className="vault-dashboard__yield-sub">
@@ -367,7 +375,7 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
         {transactions.length === 0 ? (
           <div className="vault-ledger__empty">
             No savings or deposit transactions yet. Transfer to your dedicated account to start
-            earning 14.5% p.a. daily interest.
+            earning {savingsAnnualRatePct}% p.a. daily interest.
           </div>
         ) : (
           <div className="vault-ledger__list">

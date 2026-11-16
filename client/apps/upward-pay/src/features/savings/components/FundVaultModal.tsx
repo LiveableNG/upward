@@ -14,6 +14,7 @@ import {
 import { useToast } from '@/components/common/Toast'
 import { formatCurrency } from '@/lib/utils'
 import { useSimulateVaultDeposit } from '../hooks/useRentSavings'
+import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
 
 interface FundVaultModalProps {
   isOpen: boolean
@@ -45,6 +46,7 @@ export function FundVaultModal({
   const [hasPaidNotified, setHasPaidNotified] = useState(false)
 
   const { success: toastSuccess, error: toastError } = useToast()
+  const { rates: platformRates } = usePlatformRates()
   const simulateMutation = useSimulateVaultDeposit()
 
   const isClient = useSyncExternalStore(
@@ -141,7 +143,7 @@ export function FundVaultModal({
                 Add Money to Rent Savings
               </span>
               <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>
-                Earns 14.5% returns every year so you pay less for rent
+                Earns {platformRates.savingsAnnualRatePct}% returns every year so you pay less for rent
               </p>
             </div>
           </div>

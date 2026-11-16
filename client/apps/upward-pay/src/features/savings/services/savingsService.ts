@@ -103,6 +103,7 @@ export interface RentVaultData {
   vault_principal_kobo?: number
   deposit_balance_kobo?: number
   accrued_yield_kobo: number
+  annual_yield_rate_pct?: number
   daily_yield_rate: number
   days_to_unlock: number
   days_remaining: number
@@ -238,9 +239,10 @@ export function calculatePayLessPlan(
   runwayDays: number,
   cadence: 'DAILY' | 'WEEKLY' | 'MONTHLY' = 'MONTHLY',
   initialSavedNaira = 0,
+  annualRatePct = 14.5,
 ) {
   const days = Math.max(1, Math.round(runwayDays))
-  const dailyRate = 0.145 / 365
+  const dailyRate = (annualRatePct / 100) / 365
   const fvInitial = initialSavedNaira * Math.pow(1 + dailyRate, days)
   const deficit = Math.max(0, targetRentNaira - fvInitial)
 

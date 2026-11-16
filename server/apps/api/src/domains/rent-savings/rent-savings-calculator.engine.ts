@@ -7,6 +7,7 @@ export interface SimulationInput {
   cadence: CadenceType
   monthlyIncomeKobo?: bigint
   asOfDate?: Date
+  annualNetYieldRate?: number
 }
 
 export interface SimulationResult {
@@ -59,9 +60,14 @@ export class RentSavingsCalculatorEngine {
 
     const initialDeposit = Number(input.initialDepositKobo || 0n)
     const targetAmount = Number(input.targetAmountKobo)
+    const effectiveAnnualYield =
+      input.annualNetYieldRate !== undefined && Number.isFinite(input.annualNetYieldRate) && input.annualNetYieldRate >= 0
+        ? input.annualNetYieldRate
+        : this.ANNUAL_NET_YIELD
+    const effectiveDailyRate = effectiveAnnualYield / this.DAYS_IN_YEAR
 
     // Future value of initial deposit
-    const fvInitial = initialDeposit * Math.pow(1 + this.DAILY_RATE, daysRemaining)
+    const fvInitial = initialDeposit * Math.pow(1 + effectiveDailyRate, daysRemaining)
     const deficit = Math.max(0, targetAmount - fvInitial)
 
     let cadenceStepDays = 30
@@ -84,7 +90,7 @@ export class RentSavingsCalculatorEngine {
     let denominator = 0
     for (let j = 1; j <= numberOfPayments; j++) {
       const exponent = Math.max(0, daysRemaining - j * cadenceStepDays)
-      denominator += Math.pow(1 + this.DAILY_RATE, exponent)
+      denominator += Math.pow(1 + effectiveDailyRate, exponent)
     }
 
     const periodicPaymentNum = deficit > 0 && denominator > 0 ? Math.ceil(deficit / denominator) : 0
@@ -127,7 +133,7 @@ export class RentSavingsCalculatorEngine {
       numberOfPayments,
       totalTenantContributionKobo,
       projectedYieldKobo,
-      netAnnualYieldRate: this.ANNUAL_NET_YIELD,
+      netAnnualYieldRate: effectiveAnnualYield,
       affordability: {
         rentToIncomeRatio,
         isOverThreshold,

@@ -22,16 +22,20 @@ export function getRsiEnrolment(propertyUuid: string): RsiEnrolmentRecord | null
 export function saveRsiEnrolment(
   form: RsiEnrolmentFormData,
   options?: {
+    uuid?: string
     status?: RsiEnrolmentRecord['status']
     premiumPaid?: number
+    premiumRatePct?: number
     paymentReference?: string
   },
 ): RsiEnrolmentRecord {
   const record: RsiEnrolmentRecord = {
+    uuid: options?.uuid,
     submittedAt: new Date().toISOString(),
     termsVersion: RSI_TERMS_VERSION,
     status: options?.status || (options?.paymentReference ? 'active' : 'pending_activation'),
     premiumPaid: options?.premiumPaid,
+    premiumRatePct: options?.premiumRatePct,
     paymentReference: options?.paymentReference,
     form,
   }

@@ -25,6 +25,7 @@ import {
   useSavingsOnboardingPrefill,
 } from '../hooks/useRentSavings'
 import { calculatePayLessPlan } from '../services/savingsService'
+import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
 import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/features/auth/AuthContext'
 import { formatCurrency } from '@/lib/utils'
@@ -222,7 +223,15 @@ export function SavingsInvestorKycModal({
   })
 
   // Work-backwards compound yield calculation ("Pay Less" plan)
-  const payLessPlan = calculatePayLessPlan(targetRent, runwayDays, selectedCadence)
+  const { rates: platformRates } = usePlatformRates()
+  const savingsAnnualRatePct = platformRates.savingsAnnualRatePct
+  const payLessPlan = calculatePayLessPlan(
+    targetRent,
+    runwayDays,
+    selectedCadence,
+    0,
+    savingsAnnualRatePct,
+  )
   const periodicTarget = payLessPlan.periodicDepositNaira
   const totalTenantContribution = payLessPlan.totalTenantContributionNaira
   const estimatedYield = payLessPlan.projectedYieldNaira
@@ -381,7 +390,7 @@ export function SavingsInvestorKycModal({
                 {step === 4
                   ? 'Transfer to your personal rent account'
                   : step === 3
-                    ? 'Save consistently and let 14.5% p.a. interest complete your rent'
+                    ? `Save consistently and let ${savingsAnnualRatePct}% p.a. interest complete your rent`
                     : 'Required by CBN & SEC • backed by ARM'}
               </p>
             </div>
@@ -935,7 +944,7 @@ export function SavingsInvestorKycModal({
                   lineHeight: 1.45,
                 }}
               >
-                Save consistently and pay <strong>{formatCurrency(estimatedYield, 'NGN')} less</strong> out of pocket — your 14.5% p.a. interest completes the remaining balance by {earlySettlementDateStr}.
+                Save consistently and pay <strong>{formatCurrency(estimatedYield, 'NGN')} less</strong> out of pocket — your {savingsAnnualRatePct}% p.a. interest completes the remaining balance by {earlySettlementDateStr}.
               </p>
             </div>
 

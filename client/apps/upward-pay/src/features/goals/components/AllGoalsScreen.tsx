@@ -510,14 +510,22 @@ export function AllGoalsScreen() {
             <p className="proto-goals__subhead">{q.intro}</p>
 
             <div className="proto-goals__section-label">{q.label}</div>
-            <div className="proto-goals__q-options">
+            <div
+              className={
+                activeCategory === 'custom'
+                  ? 'proto-goals__q-tags'
+                  : 'proto-goals__q-options'
+              }
+            >
               {q.options.map((opt) => {
                 const isSelected = selectedOption === opt && !notesText.trim()
                 return (
                   <button
                     key={opt}
                     type="button"
-                    className={`proto-goals__opt ${isSelected ? 'is-on' : ''}`}
+                    className={`${
+                      activeCategory === 'custom' ? 'proto-goals__tag' : 'proto-goals__opt'
+                    } ${isSelected ? 'is-on' : ''}`}
                     onClick={() => {
                       setSelectedOption(opt)
                       setNotesText('')

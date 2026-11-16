@@ -9,10 +9,14 @@ import {
 } from '../constants'
 
 interface InsuranceDetailsStepProps {
+  premiumRatePct?: number
   onContinue: () => void
 }
 
-export function InsuranceDetailsStep({ onContinue }: InsuranceDetailsStepProps) {
+export function InsuranceDetailsStep({
+  premiumRatePct = 2,
+  onContinue,
+}: InsuranceDetailsStepProps) {
   return (
     <div className="rsi-flow">
       <div className="rsi-flow__hero">
@@ -57,7 +61,11 @@ export function InsuranceDetailsStep({ onContinue }: InsuranceDetailsStepProps) 
           {RSI_KEY_LIMITS.map((item) => (
             <div key={item.label} className="rsi-flow__limit-row">
               <dt>{item.label}</dt>
-              <dd>{item.value}</dd>
+              <dd>
+                {item.label === 'Annual premium rate'
+                  ? `${premiumRatePct}% of annual rent`
+                  : item.value}
+              </dd>
             </div>
           ))}
         </dl>

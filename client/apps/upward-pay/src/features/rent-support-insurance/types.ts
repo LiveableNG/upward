@@ -24,10 +24,12 @@ export type RsiEnrolmentFormData = {
 }
 
 export type RsiEnrolmentRecord = {
+  uuid?: string
   submittedAt: string
   termsVersion: string
   status: RsiEnrolmentStatus
   premiumPaid?: number
+  premiumRatePct?: number
   paymentReference?: string
   form: RsiEnrolmentFormData
 }

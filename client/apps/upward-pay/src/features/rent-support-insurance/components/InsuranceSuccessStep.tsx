@@ -13,7 +13,8 @@ interface InsuranceSuccessStepProps {
 
 export function InsuranceSuccessStep({ enrolment, onDone }: InsuranceSuccessStepProps) {
   const annualRent = parseAnnualRent(enrolment.form.annualRent)
-  const premium = enrolment.premiumPaid || calculateAnnualPremium(annualRent)
+  const ratePct = enrolment.premiumRatePct ?? 2
+  const premium = enrolment.premiumPaid || calculateAnnualPremium(annualRent, ratePct)
   const isPaid = enrolment.status === 'active' || Boolean(enrolment.paymentReference)
 
   return (
@@ -27,7 +28,7 @@ export function InsuranceSuccessStep({ enrolment, onDone }: InsuranceSuccessStep
         </h2>
         <p className="rsi-flow__success-desc">
           {isPaid
-            ? `Your ${RSI_PRODUCT_NAME} 2% annual premium (${formatCurrency(premium)}) has been paid and your cover is now active.`
+            ? `Your ${RSI_PRODUCT_NAME} ${ratePct}% annual premium (${formatCurrency(premium)}) has been paid and your cover is now active.`
             : `Your ${RSI_PRODUCT_NAME} enrolment has been received.`}
         </p>
       </div>
@@ -48,7 +49,7 @@ export function InsuranceSuccessStep({ enrolment, onDone }: InsuranceSuccessStep
             <dd>{formatCurrency(annualRent)}</dd>
           </div>
           <div className="rsi-flow__summary-row">
-            <dt>Annual premium (2%)</dt>
+            <dt>Annual premium ({ratePct}%)</dt>
             <dd>{formatCurrency(premium)}</dd>
           </div>
           {enrolment.paymentReference ? (

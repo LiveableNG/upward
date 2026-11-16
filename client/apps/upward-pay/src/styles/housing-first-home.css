@@ -1424,6 +1424,32 @@
   color: var(--clay, #d97757);
 }
 
+.proto-goals__q-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.proto-goals__tag {
+  background: var(--bg, #ffffff);
+  border: 1.5px solid var(--shell-border, #f0e9df);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text, #0a0a0f);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.proto-goals__tag.is-on {
+  border-color: var(--clay, #d97757);
+  background: var(--shell-tint, #fbede5);
+  color: var(--clay, #d97757);
+}
+
 .proto-goals__field {
   width: 100%;
   box-sizing: border-box;

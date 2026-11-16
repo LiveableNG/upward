@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from '@/lib/utils'
 import { useSimulateRentSavings } from '../hooks/useRentSavings'
+import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
 import { calculatePayLessPlan } from '../services/savingsService'
 import { useAuth } from '@/features/auth/AuthContext'
 
@@ -111,6 +112,10 @@ export function RentCalculatorView({ onProceedToSetup, onOpenKycModal }: RentCal
   }, [targetAmountNaira, contractualDueDate, selectedCadence, mutateSimulate, user?.id])
 
   const simData = simulateMutation.data
+  const { rates: platformRates } = usePlatformRates()
+  const savingsAnnualRatePct = simData?.net_annual_yield_rate
+    ? Math.round(simData.net_annual_yield_rate * 1000) / 10
+    : platformRates.savingsAnnualRatePct
   const daysRemaining = simData
     ? simData.days_remaining
     : Math.max(
@@ -120,7 +125,13 @@ export function RentCalculatorView({ onProceedToSetup, onOpenKycModal }: RentCal
         ),
       )
 
-  const localPlan = calculatePayLessPlan(targetAmountNaira, daysRemaining, selectedCadence)
+  const localPlan = calculatePayLessPlan(
+    targetAmountNaira,
+    daysRemaining,
+    selectedCadence,
+    0,
+    savingsAnnualRatePct,
+  )
   const periodicDepositNaira = simData
     ? simData.periodic_deposit_kobo / 100
     : localPlan.periodicDepositNaira
@@ -205,7 +216,9 @@ export function RentCalculatorView({ onProceedToSetup, onOpenKycModal }: RentCal
               </span>
             </div>
             <div className="vault-dashboard__breakdown-item">
-              <span className="vault-dashboard__breakdown-label">Interest Covers (14.5% p.a.)</span>
+              <span className="vault-dashboard__breakdown-label">
+                Interest Covers ({savingsAnnualRatePct}% p.a.)
+              </span>
               <span className="vault-dashboard__breakdown-val vault-dashboard__breakdown-val--yield">
                 +{formatCurrency(projectedYieldNaira, 'NGN')}
               </span>

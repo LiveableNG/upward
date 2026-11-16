@@ -20,7 +20,8 @@ export function InsuranceStatusView({
   onReEnrol,
 }: InsuranceStatusViewProps) {
   const annualRent = parseAnnualRent(enrolment.form.annualRent)
-  const premium = enrolment.premiumPaid || calculateAnnualPremium(annualRent)
+  const ratePct = enrolment.premiumRatePct ?? 2
+  const premium = enrolment.premiumPaid || calculateAnnualPremium(annualRent, ratePct)
   const employmentLabel =
     EMPLOYMENT_TYPE_OPTIONS.find((option) => option.value === enrolment.form.employmentType)
       ?.label || enrolment.form.employmentType
@@ -37,7 +38,7 @@ export function InsuranceStatusView({
           </strong>
           <p>
             {enrolment.status === 'pending_activation'
-              ? 'Complete the 2% annual premium payment to activate your policy.'
+              ? `Complete the ${ratePct}% annual premium payment to activate your policy.`
               : `${RSI_PRODUCT_NAME} is active on your tenancy.`}
           </p>
         </div>
@@ -59,7 +60,7 @@ export function InsuranceStatusView({
             <dd>{formatCurrency(annualRent)}</dd>
           </div>
           <div className="rsi-flow__summary-row">
-            <dt>Annual premium (2%)</dt>
+            <dt>Annual premium ({ratePct}%)</dt>
             <dd>{formatCurrency(premium)}</dd>
           </div>
           {enrolment.paymentReference ? (

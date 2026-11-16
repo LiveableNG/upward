@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, Optional } from '@nestjs/common'
 import { IsDateString, IsIn, IsNotEmpty, IsNumber, IsOptional } from 'class-validator'
 import { Type } from 'class-transformer'
 import { RentSavingsCalculatorEngine } from '../../../domains/rent-savings/rent-savings-calculator.engine'
 import { CadenceType } from '../../../domains/rent-savings/rent-vault.types'
+import { PlatformRatesService } from '../../../shared/infrastructure/common/platform-rates.service'
 
 export class SimulateRentSavingsDto {
   @IsNotEmpty()
@@ -31,7 +32,13 @@ export class SimulateRentSavingsDto {
 
 @Injectable()
 export class SimulateRentSavingsUseCase {
+  constructor(
+    @Optional()
+    private readonly platformRates?: PlatformRatesService,
+  ) {}
+
   async execute(dto: SimulateRentSavingsDto) {
+    const rates = this.platformRates ? await this.platformRates.getRates() : null
     const result = RentSavingsCalculatorEngine.simulate({
       targetAmountKobo: BigInt(Math.round(dto.target_amount_kobo)),
       contractualDueDate: new Date(dto.contractual_due_date),
@@ -42,6 +49,7 @@ export class SimulateRentSavingsUseCase {
       monthlyIncomeKobo: dto.monthly_income_kobo
         ? BigInt(Math.round(dto.monthly_income_kobo))
         : undefined,
+      annualNetYieldRate: rates?.savingsAnnualRateDecimal,
     })
 
     return {

@@ -13,6 +13,7 @@ import { EncryptionService } from '../shared/infrastructure/common/encryption.se
 import { KYCModule } from '../shared/infrastructure/common/kyc/kyc.module'
 import { UnifiedReminderService } from '../shared/infrastructure/common/reminder.service'
 import { PaymentConfigurationService } from '../shared/infrastructure/common/payment-config.service'
+import { PlatformRatesService } from '../shared/infrastructure/common/platform-rates.service'
 import { RentalPeriodService } from './services/rental-period.service'
 
 // Goal Domain Use Cases
@@ -523,6 +524,11 @@ import {
   ActivateBenefitsSubscriptionUseCase,
   ConfirmBenefitsPaymentUseCase,
 } from './use-cases/payments/benefits-subscription.use-cases'
+import {
+  GetUserInsuranceEnrolmentsUseCase,
+  InitializeInsuranceEnrolmentUseCase,
+  ConfirmInsuranceEnrolmentUseCase,
+} from './use-cases/payments/insurance-enrolment.use-cases'
 import { VerifyGatewayTransactionUseCase } from './use-cases/payments/verify-transaction.use-case'
 import { DistributePaymentAllocationsUseCase } from './use-cases/payments/distribute-allocations.use-case'
 import { SyncPmPaymentStatusUseCase } from './use-cases/payments/sync-pm-status.use-case'
@@ -890,6 +896,9 @@ const UseCases: any[] = [
   InitializeBenefitsPaymentUseCase,
   ActivateBenefitsSubscriptionUseCase,
   ConfirmBenefitsPaymentUseCase,
+  GetUserInsuranceEnrolmentsUseCase,
+  InitializeInsuranceEnrolmentUseCase,
+  ConfirmInsuranceEnrolmentUseCase,
 
   UploadContractUseCase,
   GetContractUploadUrlUseCase,
@@ -1250,6 +1259,7 @@ import { PrismaModule } from '../shared/infrastructure/prisma/prisma.module'
     PrismaDeviceTokenRepository,
     UnifiedReminderService,
     PaymentConfigurationService,
+    PlatformRatesService,
     RentalPeriodService,
     QueueDailySequencesUseCase,
     GetQueuedSequencesUseCase,
@@ -1286,6 +1296,7 @@ import { PrismaModule } from '../shared/infrastructure/prisma/prisma.module'
     PrismaDeviceTokenRepository,
     UnifiedReminderService,
     PaymentConfigurationService,
+    PlatformRatesService,
     RentalPeriodService,
     QueueDailySequencesUseCase,
     GetQueuedSequencesUseCase,

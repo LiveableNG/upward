@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Delete, Body, Param, Query, UseGuards } from '@nestjs/common'
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, Req, UseGuards } from '@nestjs/common'
 import { AdminJwtAuthGuard } from '../../../application/auth/guards/admin-jwt-auth.guard'
 import { RolesGuard } from '../../../application/auth/guards/roles.guard'
 import { Roles } from '../../../application/auth/decorators/roles.decorator'
 import { AdminRole } from '@upward/shared-types'
+import { PlatformRatesService } from '../../../shared/infrastructure/common/platform-rates.service'
 
 // Use Cases
 import { 
@@ -21,7 +22,28 @@ export class AdminFeesController {
     private readonly upsertFeeOverrideUseCase: UpsertFeeOverrideUseCase,
     private readonly deleteFeeOverrideUseCase: DeleteFeeOverrideUseCase,
     private readonly searchFeeTargetsUseCase: SearchFeeTargetsUseCase,
+    private readonly platformRatesService: PlatformRatesService,
   ) {}
+
+  @Get('rates')
+  async getPlatformRates() {
+    const data = await this.platformRatesService.getRates()
+    return { success: true, data }
+  }
+
+  @Put('rates')
+  @Post('rates')
+  async updatePlatformRates(
+    @Body() body: { savingsAnnualRatePct?: number; insurancePremiumPct?: number },
+    @Req() req: any,
+  ) {
+    const data = await this.platformRatesService.updateRates({
+      savingsAnnualRatePct: body.savingsAnnualRatePct,
+      insurancePremiumPct: body.insurancePremiumPct,
+      updatedByAdminId: req.user?.id || req.user?.sub,
+    })
+    return { success: true, data }
+  }
 
   @Get('overrides')
   async getOverrides() {

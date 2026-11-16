@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
+import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
 import { api } from '@/lib/api'
 import { formatCurrency } from '@/lib/utils'
 import { PayPageShell } from '@/features/dashboard/components/payment/PayPageShell'
@@ -23,7 +24,7 @@ const STEP_SUBTITLES: Record<RsiFlowStep, string> = {
   property: 'Select the rental property you want to insure.',
   details: 'Understand what this insurance covers before you enrol.',
   consent: 'Confirm you understand how this policy works.',
-  form: 'Provide your details and pay the 2% annual premium to activate cover.',
+  form: 'Provide your details and pay the annual premium to activate cover.',
   success: 'Your insurance cover is now active.',
 }
 
@@ -67,6 +68,8 @@ export function RentSupportInsuranceFlow() {
   const router = useRouter()
   const { user } = useAuth()
   const toast = useToast()
+  const { rates: platformRates } = usePlatformRates()
+  const premiumRatePct = platformRates.insurancePremiumPct
   const { enrolments, loaded, setEnrolments } = useRsiEnrolment()
   const [step, setStep] = useState<RsiFlowStep>('property')
   const [selectedPropertyUuid, setSelectedPropertyUuid] = useState('')
@@ -106,67 +109,60 @@ export function RentSupportInsuranceFlow() {
   const handleSubmit = async (form: RsiEnrolmentFormData) => {
     if (submitting) return
     const annualRent = parseAnnualRent(form.annualRent)
-    const premium = calculateAnnualPremium(annualRent)
-    if (!premium || premium <= 0) {
+    if (!annualRent || annualRent <= 0) {
       toast.error('Please enter a valid annual rent amount.', 'Invalid rent')
       return
     }
 
     try {
       setSubmitting(true)
-      const init = await api.initializePayment({
-        amount: premium,
-        metadata: {
-          paymentKind: 'RENT_SUPPORT_INSURANCE',
-          type: 'RENT_SUPPORT_INSURANCE',
-          forcePaystack: true,
-          excludeBenefits: true,
-          propertyUuid: form.propertyUuid,
+      type InitResult = {
+        enrolmentUuid: string
+        reference: string
+        accessCode?: string
+        premiumAmount: number
+        premiumRatePct: number
+      }
+      const initRes = await api.post<{ data?: InitResult } | InitResult>(
+        '/payments/insurance/enrolments/initialize',
+        {
+          propertyUuid: form.propertyUuid || undefined,
+          fullName: form.fullName,
+          dateOfBirth: form.dateOfBirth,
+          gender: form.gender,
+          phone: form.phone,
+          address: form.address,
+          occupation: form.occupation,
+          employmentType: form.employmentType,
+          rentStartDate: form.rentStartDate,
           annualRent,
-          description: `${RSI_PRODUCT_NAME} — 2% Annual Premium`,
-          lineItems: [
-            {
-              id: -4,
-              name: RSI_PRODUCT_NAME,
-              label: RSI_PRODUCT_NAME,
-              amount: premium,
-              amountPaid: premium,
-              category: 'Insurance',
-            },
-          ],
+          landlordName: form.landlordName,
+          propertyAddress: form.propertyAddress,
         },
-      })
+      )
 
-      if (!init?.accessCode) {
+      const init =
+        'data' in initRes && initRes.data ? initRes.data : (initRes as InitResult)
+      if (!init?.accessCode || !init?.enrolmentUuid) {
         throw new Error('Could not initialize insurance payment. Please try again.')
       }
 
       const reference = await openPaystackInline(init.accessCode)
 
-      try {
-        await api.recordTransaction({
-          reference,
-          amount: premium,
-          currency: 'NGN',
-          type: 'RENT_SUPPORT_INSURANCE',
-          status: 'SUCCESS',
-          narration: `${RSI_PRODUCT_NAME} — 2% Annual Premium`,
-          lineItemPayments: [
-            {
-              id: -4,
-              name: RSI_PRODUCT_NAME,
-              amount: premium,
-              amountPaid: premium,
-            },
-          ],
-        })
-      } catch {
-        // Webhook or confirmation handles persistence if manual record is skipped
-      }
+      await api.post(`/payments/insurance/enrolments/${init.enrolmentUuid}/confirm`, {
+        reference,
+      })
+
+      const appliedRatePct = Number(init.premiumRatePct ?? premiumRatePct)
+      const paidAmount = Number(
+        init.premiumAmount ?? calculateAnnualPremium(annualRent, appliedRatePct),
+      )
 
       const record = saveRsiEnrolment(form, {
+        uuid: init.enrolmentUuid,
         status: 'active',
-        premiumPaid: premium,
+        premiumPaid: paidAmount,
+        premiumRatePct: appliedRatePct,
         paymentReference: reference,
       })
       setEnrolments((current) => [
@@ -175,7 +171,7 @@ export function RentSupportInsuranceFlow() {
       ])
       setSubmittedEnrolment(record)
       toast.success(
-        `${formatCurrency(premium)} insurance premium paid. Your cover is active.`,
+        `${formatCurrency(paidAmount)} insurance premium paid (${appliedRatePct}%). Your cover is active.`,
         'Insurance Activated',
       )
       setStep('success')
@@ -246,13 +242,19 @@ export function RentSupportInsuranceFlow() {
           }}
         />
       ) : null}
-      {step === 'details' ? <InsuranceDetailsStep onContinue={() => setStep('consent')} /> : null}
+      {step === 'details' ? (
+        <InsuranceDetailsStep
+          premiumRatePct={premiumRatePct}
+          onContinue={() => setStep('consent')}
+        />
+      ) : null}
       {step === 'consent' ? (
         <InsuranceConsentStep onContinue={() => setStep('form')} />
       ) : null}
       {step === 'form' ? (
         <InsuranceEnrolmentForm
           initialData={defaultFormData}
+          premiumRatePct={premiumRatePct}
           submitting={submitting}
           onSubmit={handleSubmit}
         />

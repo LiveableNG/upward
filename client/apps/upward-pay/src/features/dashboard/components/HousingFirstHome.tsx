@@ -18,6 +18,7 @@ import {
 import { type UserProfile } from '@/features/auth/types'
 import { type PendingPayment, type CompletedPayment } from '../types'
 import { useRentVault } from '@/features/savings/hooks/useRentSavings'
+import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
 import { formatCurrency, formatDate, formatTime } from '@/lib/utils'
 import { useUserGoals } from '@/features/goals/hooks/useGoals'
 import { ActionCarousel } from './ActionCarousel'
@@ -151,6 +152,7 @@ export function HousingFirstHome({
   const router = useRouter()
   const hasMyHome = useHasMyHome()
   const { data: vault } = useRentVault()
+  const { rates: platformRates } = usePlatformRates()
   const { data: userGoals } = useUserGoals()
 
   const displayGoals = React.useMemo(() => {
@@ -349,7 +351,7 @@ export function HousingFirstHome({
                       <span className="housing-goal-card__tag">SAVE RENT</span>
                       <h3 className="housing-goal-card__title">Save towards your next rent</h3>
                       <p className="housing-goal-card__desc">
-                        Save consistently and pay less — 14.5% p.a. interest completes your rent
+                        Save consistently and pay less — {platformRates.savingsAnnualRatePct}% p.a. interest completes your rent
                       </p>
                     </div>
                     {renderGoalRing(0, 38)}

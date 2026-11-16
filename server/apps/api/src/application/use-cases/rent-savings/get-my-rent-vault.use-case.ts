@@ -9,6 +9,7 @@ import {
 } from '../../../domains/rent-savings/rent-advance.repository'
 import { RentSavingsCalculatorEngine } from '../../../domains/rent-savings/rent-savings-calculator.engine'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
+import { PlatformRatesService } from '../../../shared/infrastructure/common/platform-rates.service'
 
 @Injectable()
 export class GetMyRentVaultUseCase {
@@ -19,6 +20,8 @@ export class GetMyRentVaultUseCase {
     private readonly rentAdvanceRepo: IRentAdvanceRepository,
     @Optional()
     private readonly prisma?: PrismaService,
+    @Optional()
+    private readonly platformRates?: PlatformRatesService,
   ) {}
 
   async updateCadence(userId: number, cadence: 'DAILY' | 'WEEKLY' | 'MONTHLY') {
@@ -171,6 +174,11 @@ export class GetMyRentVaultUseCase {
       rent_discount_pct: 0,
     }
 
+    const rates = this.platformRates ? await this.platformRates.getRates() : null
+    const annualYieldDecimal = rates?.savingsAnnualRateDecimal ?? RentSavingsCalculatorEngine.ANNUAL_NET_YIELD
+    const annualYieldPct = rates?.savingsAnnualRatePct ?? 14.5
+    const dailyYieldRate = rates?.savingsDailyRate ?? RentSavingsCalculatorEngine.DAILY_RATE
+
     if (daysRemaining > 0 && vault.targetAmountKobo > 0n) {
       try {
         const sim = RentSavingsCalculatorEngine.simulate({
@@ -179,6 +187,7 @@ export class GetMyRentVaultUseCase {
           initialDepositKobo: currentBalanceKobo,
           cadence: resolvedCadence,
           asOfDate: now,
+          annualNetYieldRate: annualYieldDecimal,
         })
         const remainingPrincipalKobo = Number(sim.periodicDepositKobo * BigInt(sim.numberOfPayments))
         const totalTenantContributionKobo = Number(combinedPrincipalKobo) + remainingPrincipalKobo
@@ -215,7 +224,8 @@ export class GetMyRentVaultUseCase {
         vault_principal_kobo: Number(vault.currentPrincipalKobo),
         deposit_balance_kobo: Number(depositBalanceKobo),
         accrued_yield_kobo: Number(vault.accruedYieldKobo),
-        daily_yield_rate: RentSavingsCalculatorEngine.DAILY_RATE,
+        annual_yield_rate_pct: annualYieldPct,
+        daily_yield_rate: dailyYieldRate,
         days_to_unlock: daysToUnlock,
         days_remaining: daysRemaining,
         target_amount_kobo: Number(vault.targetAmountKobo),
