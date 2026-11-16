@@ -271,10 +271,7 @@ export function RentCalculatorView({
       insurancePremiumPct: platformRates.insurancePremiumPct,
     },
   )
-  const successRemainingToPayNaira = Math.max(
-    0,
-    successDynamicPlan.totalTenantContributionNaira - parsedSuccessDeposit,
-  )
+  const successPeriodicDepositNaira = successDynamicPlan.periodicDepositNaira
   const successProjectedYieldNaira = successDynamicPlan.projectedYieldNaira
 
   const effectiveTotalTarget = totalTenantContributionNaira + projectedYieldNaira
@@ -1200,8 +1197,11 @@ export function RentCalculatorView({
                     padding: '0 2px',
                   }}
                 >
-                  Pay <strong>{formatCurrency(parsedSuccessDeposit, 'NGN')}</strong> today, then only{' '}
-                  <strong style={{ color: 'var(--clay)' }}>{formatCurrency(successRemainingToPayNaira, 'NGN')}</strong> for the rest of the year{' '}
+                  Pay <strong>{formatCurrency(parsedSuccessDeposit, 'NGN')}</strong> today, then save at least{' '}
+                  <strong style={{ color: 'var(--clay)' }}>
+                    {formatCurrency(successPeriodicDepositNaira, 'NGN')}
+                  </strong>{' '}
+                  monthly for the rest of the year{' '}
                   <span style={{ color: '#059669', fontWeight: 600 }}>
                     (+{formatCurrency(successProjectedYieldNaira, 'NGN')} interest)
                   </span>.

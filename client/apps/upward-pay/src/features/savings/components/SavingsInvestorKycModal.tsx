@@ -300,7 +300,7 @@ export function SavingsInvestorKycModal({
       insurancePremiumPct: platformRates.insurancePremiumPct,
     },
   )
-  const remainingToPayStep4 = Math.max(0, dynamicPlanStep4.totalTenantContributionNaira - numericFundAmount)
+  const periodicDepositStep4 = dynamicPlanStep4.periodicDepositNaira
   const interestStep4 = dynamicPlanStep4.projectedYieldNaira
 
   const dvaToShow = createdDva ||
@@ -1175,11 +1175,11 @@ export function SavingsInvestorKycModal({
                     padding: '0 2px',
                   }}
                 >
-                  Pay <strong>{formatCurrency(numericFundAmount, 'NGN')}</strong> today, then only{' '}
+                  Pay <strong>{formatCurrency(numericFundAmount, 'NGN')}</strong> today, then save at least{' '}
                   <strong style={{ color: 'var(--clay)' }}>
-                    {formatCurrency(remainingToPayStep4, 'NGN')}
+                    {formatCurrency(periodicDepositStep4, 'NGN')}
                   </strong>{' '}
-                  for the rest of the year{' '}
+                  monthly for the rest of the year{' '}
                   <span style={{ color: '#059669', fontWeight: 600 }}>
                     (+{formatCurrency(interestStep4, 'NGN')} interest)
                   </span>.

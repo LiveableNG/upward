@@ -182,10 +182,9 @@ export function FundVaultModal({
     },
   )
 
-  const remainingToPayNaira = Math.max(
-    0,
-    dynamicPlan.totalTenantContributionNaira - parsedDepositAmount,
-  )
+  const periodicDepositNaira = dynamicPlan.periodicDepositNaira
+  const cadenceLabel =
+    cadence === 'WEEKLY' ? 'weekly' : cadence === 'QUARTERLY' ? 'quarterly' : 'monthly'
   const projectedInterestNaira = dynamicPlan.projectedYieldNaira
 
   return (
@@ -229,8 +228,11 @@ export function FundVaultModal({
                 padding: '0 2px',
               }}
             >
-              Pay <strong>{formatCurrency(parsedDepositAmount, 'NGN')}</strong> today, then only{' '}
-              <strong style={{ color: 'var(--clay)' }}>{formatCurrency(remainingToPayNaira, 'NGN')}</strong> for the rest of the year{' '}
+              Pay <strong>{formatCurrency(parsedDepositAmount, 'NGN')}</strong> today, then save at least{' '}
+              <strong style={{ color: 'var(--clay)' }}>
+                {formatCurrency(periodicDepositNaira, 'NGN')}
+              </strong>{' '}
+              {cadenceLabel} for the rest of the year{' '}
               <span style={{ color: '#059669', fontWeight: 600 }}>
                 (+{formatCurrency(projectedInterestNaira, 'NGN')} interest)
               </span>.
