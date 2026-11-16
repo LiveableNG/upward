@@ -510,31 +510,6 @@ export function HousingFirstHome({
                       <span>{daysLeftFormatted}</span>
                     </div>
                   </button>
-
-                  {/* Traction on Second Active Goal */}
-                  {(() => {
-                    const activeGoal =
-                      appGoals.coreCategories.find((c) => c.hasGoal) || appGoals.extraCustom[0]
-                    if (activeGoal) {
-                      return (
-                        <button
-                          type="button"
-                          className="housing-goal-card"
-                          onClick={() => router.push(activeGoal.href)}
-                        >
-                          <div className="housing-goal-card__body">
-                            <span className="housing-goal-card__tag">
-                              {activeGoal.tag}
-                            </span>
-                            <h3 className="housing-goal-card__title">{activeGoal.title}</h3>
-                            <p className="housing-goal-card__desc">{activeGoal.desc}</p>
-                          </div>
-                          {renderGoalRing(activeGoal.pct, 38)}
-                        </button>
-                      )
-                    }
-                    return null
-                  })()}
                 </div>
               )}
 
