@@ -34,6 +34,7 @@ interface CategoryQuestionConfig {
     {
       label: string
       options: string[]
+      maxSelect?: number
     }
   >
   notesLabel?: string
@@ -175,6 +176,7 @@ const QUESTIONNAIRE_CONFIGS: Record<CategoryKey, CategoryQuestionConfig> = {
       'Laundry — Save on drycleaning': {
         label: 'How much do you currently spend on drycleaning per month?',
         options: ['Under ₦15,000', '₦15,000 - ₦35,000', '₦35,000 - ₦70,000', 'Above ₦70,000'],
+        maxSelect: 1,
       },
       'Grocery — Regular items bulk discount': {
         label: 'What 3 things do you buy regularly?',
@@ -406,7 +408,7 @@ export function AllGoalsScreen() {
   // Active sub-screen state: 'home' | 'questionnaire' | 'detail' | 'custom-modal'
   const [activeCategory, setActiveCategory] = useState<CategoryKey | null>(initialQueryCat)
   const [selectedOption, setSelectedOption] = useState<string | null>(null)
-  const [selectedExtra, setSelectedExtra] = useState<string | null>(null)
+  const [selectedExtras, setSelectedExtras] = useState<string[]>([])
   const [notesText, setNotesText] = useState('')
   const [savedGoalLabel, setSavedGoalLabel] = useState<string | null>(null)
 
@@ -416,7 +418,7 @@ export function AllGoalsScreen() {
     if (initialQueryCat) {
       setActiveCategory(initialQueryCat)
       setSelectedOption(null)
-      setSelectedExtra(null)
+      setSelectedExtras([])
       setNotesText('')
       setSavedGoalLabel(null)
     }
@@ -436,7 +438,7 @@ export function AllGoalsScreen() {
     (catId: CategoryKey) => {
       setActiveCategory(catId)
       setSelectedOption(null)
-      setSelectedExtra(null)
+      setSelectedExtras([])
       setNotesText('')
       setNewTimelineDays(180)
       setSavedGoalLabel(null)
@@ -548,14 +550,18 @@ export function AllGoalsScreen() {
     }
 
     const extraDef = q.extras && selectedOption ? q.extras[selectedOption] : undefined
-    if (extraDef && !selectedExtra && !notesText.trim()) {
-      toastError('Please pick which certification you are working towards.')
+    if (extraDef && selectedExtras.length === 0 && !notesText.trim()) {
+      toastError(`Please select an option for: ${extraDef.label}`)
       return
     }
 
     let finalSelection = chosen
-    if (activeCategory === 'career' && selectedExtra && !notesText.trim()) {
-      finalSelection = `Interested in ${selectedExtra}`
+    if (selectedExtras.length > 0 && !notesText.trim()) {
+      if (activeCategory === 'career') {
+        finalSelection = `Interested in ${selectedExtras.join(', ')}`
+      } else {
+        finalSelection = `${chosen}: ${selectedExtras.join(', ')}`
+      }
     }
 
     try {
@@ -585,7 +591,7 @@ export function AllGoalsScreen() {
           durationDays: newTimelineDays,
         })
       }
-      setSavedGoalLabel(selectedExtra || notesText.trim() || finalSelection)
+      setSavedGoalLabel(selectedExtras.join(', ') || notesText.trim() || finalSelection)
       success('Goal added to your plan')
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to save goal'
@@ -655,13 +661,29 @@ export function AllGoalsScreen() {
     const handleSelectQuestionnaireOption = (opt: string) => {
       setSelectedOption(opt)
       setNotesText('')
-      setSelectedExtra(null)
+      setSelectedExtras([])
       const matchedDbGoal = dbGoalsForCat.find(
         (g) => (g.title || '').toLowerCase() === opt.toLowerCase(),
       )
       if (matchedDbGoal?.defaultDurationDays) {
         setNewTimelineDays(matchedDbGoal.defaultDurationDays)
       }
+    }
+
+    const handleToggleExtra = (extOpt: string, maxSelect = 3) => {
+      setSelectedExtras((prev) => {
+        if (prev.includes(extOpt)) {
+          return prev.filter((x) => x !== extOpt)
+        }
+        if (maxSelect === 1) {
+          return [extOpt]
+        }
+        if (prev.length >= maxSelect) {
+          toastError(`You can select up to ${maxSelect} items.`)
+          return prev
+        }
+        return [...prev, extOpt]
+      })
     }
 
     return (
@@ -784,18 +806,37 @@ export function AllGoalsScreen() {
 
             {extraDef && !notesText.trim() && (
               <div className="proto-goals__q-extra">
-                <div className="proto-goals__section-label">{extraDef.label}</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '14px 0 8px' }}>
+                  <span className="proto-goals__section-label" style={{ margin: 0 }}>
+                    {extraDef.label}
+                  </span>
+                  {extraDef.maxSelect !== 1 && (
+                    <span style={{ fontSize: '11.5px', color: 'var(--text-muted, #8a8a8a)', fontWeight: 600 }}>
+                      {selectedExtras.length}/3 selected
+                    </span>
+                  )}
+                </div>
                 <div className="proto-goals__q-options">
-                  {extraDef.options.map((extOpt) => (
-                    <button
-                      key={extOpt}
-                      type="button"
-                      className={`proto-goals__opt ${selectedExtra === extOpt ? 'is-on' : ''}`}
-                      onClick={() => setSelectedExtra(extOpt)}
-                    >
-                      {extOpt}
-                    </button>
-                  ))}
+                  {extraDef.options.map((extOpt) => {
+                    const isSelected = selectedExtras.includes(extOpt)
+                    return (
+                      <button
+                        key={extOpt}
+                        type="button"
+                        className={`proto-goals__opt ${isSelected ? 'is-on' : ''}`}
+                        onClick={() => handleToggleExtra(extOpt, extraDef.maxSelect ?? 3)}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                          <span>{extOpt}</span>
+                          {isSelected && (
+                            <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--clay)' }}>
+                              ✓ Selected
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
             )}
@@ -812,7 +853,7 @@ export function AllGoalsScreen() {
                 setNotesText(e.target.value)
                 if (e.target.value.trim()) {
                   setSelectedOption(null)
-                  setSelectedExtra(null)
+                  setSelectedExtras([])
                 }
               }}
               placeholder={
@@ -917,7 +958,7 @@ export function AllGoalsScreen() {
                 if (q.extras && q.extras[opt]) {
                   setSavedGoalLabel(null)
                   setSelectedOption(opt)
-                  setSelectedExtra(null)
+                  setSelectedExtras([])
                   return
                 }
                 try {
