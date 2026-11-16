@@ -713,6 +713,11 @@ select.rent-calculator__input:focus {
     line-height: 1.25;
   }
 
+  .vault-score-card__explainer {
+    font-size: 0.6875rem;
+    padding-top: 10px;
+  }
+
   .vault-ledger {
     padding: 16px 14px;
   }
@@ -774,6 +779,20 @@ select.rent-calculator__input:focus {
   font-size: 0.75rem;
   color: var(--text-muted);
   margin-top: 2px;
+}
+
+.vault-score-card__explainer {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin: 0;
+  padding-top: var(--space-3, 12px);
+  border-top: 1px solid var(--border);
+}
+
+.vault-score-card__explainer strong {
+  color: var(--text);
+  font-weight: 600;
 }
 
 /* Action Buttons Grid */
