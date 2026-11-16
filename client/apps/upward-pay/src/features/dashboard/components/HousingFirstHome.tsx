@@ -296,6 +296,37 @@ export function HousingFirstHome({
     (p: { isPastTenancy?: boolean; rentAmount?: number; rentEndDate?: string }) =>
       !p.isPastTenancy && p.rentAmount,
   )
+  const propertyWithEndDate =
+    (user?.properties || []).find(
+      (p: { isPastTenancy?: boolean; rentAmount?: number; rentEndDate?: string }) =>
+        !p.isPastTenancy && p.rentEndDate,
+    ) || user?.properties?.[0]
+
+  const rentDueDate = propertyWithEndDate?.rentEndDate || vault?.contractual_due_date
+
+  const daysToDueDate =
+    vault?.days_remaining !== undefined && vault?.days_remaining !== null
+      ? vault.days_remaining
+      : vault?.days_to_unlock !== undefined && vault?.days_to_unlock !== null
+        ? vault.days_to_unlock
+        : rentDueDate
+          ? Math.ceil((new Date(rentDueDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+          : null
+
+  const hasDueDateSet =
+    (vault?.days_remaining !== undefined && vault?.days_remaining !== null) ||
+    (vault?.days_to_unlock !== undefined && vault?.days_to_unlock !== null) ||
+    Boolean(rentDueDate)
+
+  // Show pay rent if:
+  // 1. User has NOT set their rental details (due date), OR
+  // 2. It is within 90 days to due date (or overdue), OR
+  // 3. There is an active pending invoice/payment due
+  const shouldShowPayRent =
+    !hasDueDateSet ||
+    (daysToDueDate !== null && daysToDueDate <= 90) ||
+    pendingPaymentsCount > 0
+
   const nextPendingPayment =
     pendingPayments && pendingPayments.length > 0 ? pendingPayments[0] : null
   const recentPayments = completedPayments.slice(0, 4)
@@ -406,25 +437,27 @@ export function HousingFirstHome({
               {/* ── STATE A: User Has NOT Started Saving ── */}
               {!hasStartedSaving && (
                 <div className="housing-acc__goals-mode" aria-label="Featured Home Goals">
-                  {/* Action 1: Pay rent */}
-                  <button
-                    type="button"
-                    className="housing-goal-card"
-                    onClick={() => router.push('/dashboard/pay-rent')}
-                  >
-                    <div className="housing-goal-card__body">
-                      <span className="housing-goal-card__tag">
-                        {pendingPaymentsCount > 0 ? 'PAYMENT DUE' : 'PAY RENT'}
-                      </span>
-                      <h3 className="housing-goal-card__title">Pay my rent now</h3>
-                      <p className="housing-goal-card__desc">
-                        {nextPendingPayment
-                          ? `${formatCurrency(nextPendingPayment.total_amount, 'NGN')} due · Instant receipt`
-                          : 'Make my rent payment through Upward.'}
-                      </p>
-                    </div>
-                    <span className="housing-goal-card__action">Pay now ›</span>
-                  </button>
+                  {/* Action 1: Pay rent (shows if within 90 days of due date or if rental details not set) */}
+                  {shouldShowPayRent && (
+                    <button
+                      type="button"
+                      className="housing-goal-card"
+                      onClick={() => router.push('/dashboard/pay-rent')}
+                    >
+                      <div className="housing-goal-card__body">
+                        <span className="housing-goal-card__tag">
+                          {pendingPaymentsCount > 0 ? 'PAYMENT DUE' : 'PAY RENT'}
+                        </span>
+                        <h3 className="housing-goal-card__title">Pay rent</h3>
+                        <p className="housing-goal-card__desc">
+                          {nextPendingPayment
+                            ? `${formatCurrency(nextPendingPayment.total_amount, 'NGN')} due · Instant receipt`
+                            : 'Make my rent payment through Upward.'}
+                        </p>
+                      </div>
+                      <span className="housing-goal-card__action">Pay now ›</span>
+                    </button>
+                  )}
 
                   {/* Goal 2: Pay less for my next rent */}
                   <button
@@ -478,7 +511,7 @@ export function HousingFirstHome({
                     </div>
                   </button>
 
-                  {/* Traction on Second Active Goal (or prompt to set next milestone) */}
+                  {/* Traction on Second Active Goal */}
                   {(() => {
                     const activeGoal =
                       appGoals.coreCategories.find((c) => c.hasGoal) || appGoals.extraCustom[0]
@@ -500,28 +533,13 @@ export function HousingFirstHome({
                         </button>
                       )
                     }
-                    return (
-                      <button
-                        type="button"
-                        className="housing-goal-card"
-                        onClick={() => router.push('/dashboard/goals')}
-                      >
-                        <div className="housing-goal-card__body">
-                          <span className="housing-goal-card__tag">NEXT MILESTONE</span>
-                          <h3 className="housing-goal-card__title">Explore other goals</h3>
-                          <p className="housing-goal-card__desc">
-                            Set targets for career, business, or family milestones
-                          </p>
-                        </div>
-                        <span className="housing-goal-card__action">+ Add goal</span>
-                      </button>
-                    )
+                    return null
                   })()}
                 </div>
               )}
 
-              {/* Pay rent link row (accessible when actively saving) */}
-              {hasStartedSaving && (
+              {/* Pay rent link row (accessible when actively saving, within 90 days to due date or if no rental details set) */}
+              {hasStartedSaving && shouldShowPayRent && (
                 <button
                   type="button"
                   className="housing-link"
