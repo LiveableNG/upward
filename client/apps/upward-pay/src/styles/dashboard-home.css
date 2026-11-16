@@ -258,6 +258,11 @@
   border-left-color: #c4b8a8;
 }
 
+.dash-home__activity-center .activity-alerts__item--ad-bg {
+  padding: 8px 12px;
+  min-height: auto;
+}
+
 .dash-home__activity-center .activity-alerts__title {
   margin: 0;
   font-size: 13.5px;

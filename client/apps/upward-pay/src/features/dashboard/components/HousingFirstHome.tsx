@@ -346,27 +346,6 @@ export function HousingFirstHome({
             </div>
           </div>
 
-          {/* Compact View: Shows score pill when housing accordion is collapsed */}
-          {housingMode === 'compact' && (
-            <button
-              type="button"
-              className="score-pill"
-              onClick={() => router.push('/dashboard/score-breakdown')}
-              aria-label="View score breakdown"
-            >
-              <div className="score-pill__left">
-                <div className="score-pill__label">UPWARD SCORE</div>
-                <div className="score-pill__value">
-                  {credScore || 500} <span>/ {maxScore || 900}</span>
-                </div>
-                <div className="score-pill__meta">
-                  Rent Payment Score · {isScorable ? `${rank || 'Good'} standing` : 'Not scoreable yet'}
-                </div>
-              </div>
-              {renderScoreRing(credScore || 500, maxScore || 900, 42)}
-            </button>
-          )}
-
           {/* Accordion Body: Conditional State A (Pre-Saving) vs State B (Active Saving Traction) */}
           {housingMode !== 'compact' && (
             <div className="housing-acc__body">
@@ -546,27 +525,6 @@ export function HousingFirstHome({
                     </p>
                   </span>
                   <span className="housing-link__chev">›</span>
-                </button>
-              )}
-
-              {/* Upward Score Banner (Supporting status below primary home actions in default mode) */}
-              {housingMode === 'default' && (
-                <button
-                  type="button"
-                  className="score-pill"
-                  onClick={() => router.push('/dashboard/score-breakdown')}
-                  aria-label="View score breakdown"
-                >
-                  <div className="score-pill__left">
-                    <div className="score-pill__label">UPWARD SCORE</div>
-                    <div className="score-pill__value">
-                      {credScore || 500} <span>/ {maxScore || 900}</span>
-                    </div>
-                    <div className="score-pill__meta">
-                      Rent Payment Score · {isScorable ? `${rank || 'Good'} standing` : 'Not scoreable yet'}
-                    </div>
-                  </div>
-                  {renderScoreRing(credScore || 500, maxScore || 900, 42)}
                 </button>
               )}
 
