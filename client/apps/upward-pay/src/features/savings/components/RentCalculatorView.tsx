@@ -494,8 +494,8 @@ export function RentCalculatorView({
               className="vault-btn-primary"
               style={{
                 width: '100%',
-                height: '52px',
-                borderRadius: '16px',
+                height: '48px',
+                borderRadius: '14px',
                 fontSize: '15px',
                 fontWeight: 700,
                 background: 'var(--btn-primary-bg, var(--clay))',
@@ -617,13 +617,13 @@ export function RentCalculatorView({
             {/* High-Impact Benefit Card */}
             <div
               style={{
-                padding: '16px',
-                borderRadius: '18px',
+                padding: '13px 14px',
+                borderRadius: '16px',
                 background: 'linear-gradient(180deg, #faf9f5 0%, #f6f3ee 100%)',
                 border: '1px solid var(--shell-border, #f0e9df)',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 12,
+                gap: 10,
                 boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)',
               }}
             >
@@ -631,78 +631,64 @@ export function RentCalculatorView({
                 style={{
                   display: 'grid',
                   gridTemplateColumns: '1fr 1fr',
-                  gap: 12,
+                  gap: 10,
                   alignItems: 'baseline',
                 }}
               >
-                <div>
+                <div style={{ minWidth: 0 }}>
                   <span
                     style={{
                       fontSize: '0.6875rem',
                       color: 'var(--text-muted)',
                       textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
+                      letterSpacing: '0.04em',
                       fontWeight: 700,
                       display: 'block',
+                      whiteSpace: 'nowrap',
                     }}
                   >
                     You Contribute
                   </span>
                   <div
                     style={{
-                      fontSize: '1.3125rem',
+                      fontSize: '1.25rem',
                       fontWeight: 800,
                       color: 'var(--text)',
                       marginTop: 2,
-                      letterSpacing: '-0.025em',
+                      letterSpacing: '-0.02em',
                       lineHeight: 1.15,
+                      whiteSpace: 'nowrap',
                     }}
                   >
                     {formatCurrency(totalTenantContributionNaira, 'NGN')}
                   </div>
                 </div>
 
-                <div style={{ textAlign: 'right' }}>
-                  <div
+                <div style={{ textAlign: 'right', minWidth: 0 }}>
+                  <span
                     style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 4,
-                      justifyContent: 'flex-end',
+                      fontSize: '0.6875rem',
+                      color: '#059669',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.04em',
+                      fontWeight: 700,
+                      display: 'block',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
                     }}
                   >
-                    <span
-                      style={{
-                        fontSize: '0.6875rem',
-                        color: '#059669',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em',
-                        fontWeight: 700,
-                      }}
-                    >
-                      Interest Covers
-                    </span>
-                    <span
-                      style={{
-                        fontSize: '0.625rem',
-                        fontWeight: 700,
-                        color: '#059669',
-                        background: 'rgba(5, 150, 105, 0.12)',
-                        padding: '1px 5px',
-                        borderRadius: '999px',
-                      }}
-                    >
-                      {savingsAnnualRatePct}% p.a.
-                    </span>
-                  </div>
+                    Interest ({savingsAnnualRatePct}% p.a.)
+                  </span>
                   <div
                     style={{
-                      fontSize: '1.3125rem',
+                      fontSize: '1.25rem',
                       fontWeight: 800,
                       color: '#059669',
                       marginTop: 2,
-                      letterSpacing: '-0.025em',
+                      letterSpacing: '-0.02em',
                       lineHeight: 1.15,
+                      whiteSpace: 'nowrap',
                     }}
                   >
                     +{formatCurrency(projectedYieldNaira, 'NGN')}
@@ -714,7 +700,7 @@ export function RentCalculatorView({
               <div
                 style={{
                   width: '100%',
-                  height: '7px',
+                  height: '6px',
                   borderRadius: '999px',
                   background: 'rgba(0, 0, 0, 0.06)',
                   display: 'flex',
@@ -783,8 +769,8 @@ export function RentCalculatorView({
                   style={{
                     width: '100%',
                     textAlign: 'left',
-                    padding: '12px 14px',
-                    borderRadius: '16px',
+                    padding: '11px 13px',
+                    borderRadius: '15px',
                     border:
                       activeProductOption === 'RENT_PROTEC'
                         ? '2px solid var(--clay)'
@@ -802,7 +788,7 @@ export function RentCalculatorView({
                     transition: 'all 0.15s ease',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: 5,
+                    gap: 4,
                   }}
                 >
                   <div
@@ -814,7 +800,7 @@ export function RentCalculatorView({
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                      <ShieldCheck size={18} color="var(--clay)" style={{ flexShrink: 0 }} />
+                      <ShieldCheck size={17} color="var(--clay)" style={{ flexShrink: 0 }} />
                       <span
                         style={{
                           fontSize: '0.9375rem',
@@ -862,7 +848,7 @@ export function RentCalculatorView({
                       fontSize: '0.75rem',
                       color: 'var(--text-secondary)',
                       lineHeight: 1.35,
-                      paddingLeft: '25px',
+                      paddingLeft: '24px',
                     }}
                   >
                     <strong style={{ color: '#059669' }}>10% returns</strong> + Upward covers your rent in case of job loss or illness.
@@ -876,8 +862,8 @@ export function RentCalculatorView({
                   style={{
                     width: '100%',
                     textAlign: 'left',
-                    padding: '11px 14px',
-                    borderRadius: '16px',
+                    padding: '10px 13px',
+                    borderRadius: '15px',
                     border:
                       activeProductOption === 'SAVE_AND_EARN'
                         ? '2px solid var(--clay)'
