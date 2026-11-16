@@ -250,8 +250,10 @@ export interface CreateCustomGoalInput {
 
 export interface SubmitQuestionnaireInput {
   categorySlug: string
+  questionTitle?: string
+  selectedOption?: string
   goalSlug?: string
-  answers: Record<string, any>
+  answers?: Record<string, any>
   durationDays?: number
   durationWeeks?: number
   targetAmountKobo?: string | number

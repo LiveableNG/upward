@@ -1,103 +1,396 @@
 'use client'
 
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ChevronLeft, Plus, Check, Trash2, X } from 'lucide-react'
+import { ChevronLeft, Plus, Check, Trash2, ArrowRight, X } from 'lucide-react'
+import { useAuth } from '@/features/auth/AuthContext'
 import {
   useUserGoals,
   useGoalCategories,
   useCreateCustomGoal,
+  useSubmitQuestionnaire,
   useToggleGoalAction,
   useRemoveUserGoal,
 } from '../hooks/useGoals'
-import { type UserGoal, type GoalCategory, type GoalTargetType } from '../types/goals.types'
+import { useTenantOrders } from '../hooks/useCommerceOrders'
+import { type UserGoal, type GoalTargetType } from '../types/goals.types'
 import { useToast } from '@/components/common/Toast'
 
-function renderGoalRing(pct: number, size = 42) {
-  const strokeWidth = 3.5
-  const radius = (size - strokeWidth) / 2
+interface CategoryQuestionConfig {
+  id: 'fitness' | 'career' | 'income' | 'custom'
+  title: string
+  intro: string
+  label: string
+  options: string[]
+  extras?: Record<
+    string,
+    {
+      label: string
+      options: string[]
+    }
+  >
+  notesLabel?: string
+  notesRequired?: boolean
+}
+
+const QUESTIONNAIRE_CONFIGS: Record<'fitness' | 'career' | 'income' | 'custom', CategoryQuestionConfig> = {
+  fitness: {
+    id: 'fitness',
+    title: 'Health & fitness goals',
+    intro: 'Pick what fits best. We will use this to shape your milestones and recommendations.',
+    label: 'What is your main health or fitness goal?',
+    options: [
+      'Lose weight',
+      'Build muscle or strength',
+      'Stay consistent with exercise',
+      'Improve my diet and nutrition',
+      'Prepare for a fitness event or run',
+      'Something else',
+    ],
+  },
+  career: {
+    id: 'career',
+    title: 'Career & professional goals',
+    intro: 'Tell us where you want to grow professionally this year.',
+    label: 'What do you want to achieve?',
+    options: [
+      'Pass a professional certification exam',
+      'Learn a new high-income skill',
+      'Transition into a new career role',
+      'Get promoted at my current workplace',
+      'Build a stronger professional network',
+      'Something else',
+    ],
+    extras: {
+      'Pass a professional certification exam': {
+        label: 'Which certification?',
+        options: ['ICAN', 'ACCA', 'CFA', 'PMP', 'CIPM', 'AWS / Cloud', 'Other'],
+      },
+    },
+  },
+  income: {
+    id: 'income',
+    title: 'Income goals',
+    intro: 'Tell us how you want to grow your income in 2027.',
+    label: 'What is your primary income goal?',
+    options: [
+      'Start a side business',
+      'Grow my existing business revenue',
+      'Add a second stream of income',
+      'Save towards an emergency or investment fund',
+      'Start investing more seriously',
+      'Something else',
+    ],
+  },
+  custom: {
+    id: 'custom',
+    title: 'Another goal',
+    intro: 'What would you really like to achieve, aside from the categories already on your goals screen?',
+    label: 'What is your goal?',
+    options: [
+      'Goals for my children',
+      'A family goal',
+      'Buy a car',
+      'Travel abroad',
+      'Something not listed here',
+    ],
+    notesLabel: 'Describe the goal, and any first actions you want to take.',
+    notesRequired: false,
+  },
+}
+
+function renderPrototypeRing(pct: number, size = 52) {
+  const center = size / 2
+  const radius = center - 5
   const circ = 2 * Math.PI * radius
-  const filled = circ * (Math.min(100, Math.max(0, pct)) / 100)
-  const isFilled = pct > 0
+  const clamped = Math.min(100, Math.max(0, Math.round(pct)))
+  const dash = circ * (clamped / 100)
+  const strokeColor = clamped > 0 ? 'var(--clay, #d97757)' : '#bcb3a7'
 
   return (
-    <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
+    <div
+      className="proto-goals__ring"
+      style={{ width: size, height: size, flex: `0 0 ${size}px` }}
+    >
       <svg
-        width={size}
-        height={size}
         viewBox={`0 0 ${size} ${size}`}
-        style={{ transform: 'rotate(-90deg)', display: 'block' }}
+        style={{ width: size, height: size, transform: 'rotate(-90deg)', display: 'block' }}
         aria-hidden="true"
       >
         <circle
-          cx={size / 2}
-          cy={size / 2}
+          cx={center}
+          cy={center}
           r={radius}
           fill="none"
-          stroke="#ede8e2"
-          strokeWidth={strokeWidth}
+          stroke="#e2ddd7"
+          strokeWidth={5}
         />
         <circle
-          cx={size / 2}
-          cy={size / 2}
+          cx={center}
+          cy={center}
           r={radius}
           fill="none"
-          stroke={isFilled ? 'var(--clay, #c2501f)' : '#ede8e2'}
-          strokeWidth={strokeWidth}
+          stroke={strokeColor}
+          strokeWidth={5}
           strokeLinecap="round"
-          strokeDasharray={`${filled} ${circ}`}
+          strokeDasharray={`${dash} ${circ}`}
         />
       </svg>
-      <span
-        style={{
-          position: 'absolute',
-          inset: 0,
-          display: 'grid',
-          placeItems: 'center',
-          fontSize: '10px',
-          fontWeight: 800,
-          color: 'var(--text, #111)',
-        }}
-      >
-        {pct}%
-      </span>
+      <div className="proto-goals__ring-pct">{clamped}%</div>
     </div>
   )
+}
+
+function getTimeGreeting(): string {
+  const hour = new Date().getHours()
+  if (hour < 12) return 'Good morning'
+  if (hour < 17) return 'Good afternoon'
+  return 'Good evening'
+}
+
+function resolveQueryCategory(
+  isNew: boolean,
+  cat: string | null,
+): 'fitness' | 'career' | 'income' | 'custom' | null {
+  if (isNew || cat === 'custom') return 'custom'
+  if (cat === 'fitness' || cat === 'wellness-lifestyle') return 'fitness'
+  if (cat === 'career' || cat === 'work-growth') return 'career'
+  if (cat === 'income') return 'income'
+  return null
 }
 
 export function AllGoalsScreen() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const initialNew = searchParams.get('new') === 'true'
+  const { user } = useAuth()
+  const firstName = user?.firstName || 'there'
 
   const { success, error: toastError } = useToast()
 
-  const { data: userGoals = [], isLoading: isGoalsLoading } = useUserGoals()
-  const { data: categories = [], isLoading: isCategoriesLoading } = useGoalCategories()
+  const { data: userGoals = [] } = useUserGoals()
+  const { data: categories = [] } = useGoalCategories()
+  const { data: tenantOrdersData } = useTenantOrders({ take: 10 })
 
   const createGoalMutation = useCreateCustomGoal()
+  const submitQuestionnaireMutation = useSubmitQuestionnaire()
   const toggleActionMutation = useToggleGoalAction()
   const removeGoalMutation = useRemoveUserGoal()
 
-  // Modal states
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(initialNew)
-  const [activeDetailGoal, setActiveDetailGoal] = useState<UserGoal | null>(null)
+  const isNewParam = searchParams.get('new') === 'true'
+  const catParam = searchParams.get('cat') || searchParams.get('category')
+  const initialQueryCat = resolveQueryCategory(isNewParam, catParam)
 
-  // New goal form state
+  // Active sub-screen state: 'home' | 'questionnaire' | 'detail' | 'custom-modal'
+  const [activeCategory, setActiveCategory] = useState<'fitness' | 'career' | 'income' | 'custom' | null>(
+    initialQueryCat,
+  )
+  const [selectedOption, setSelectedOption] = useState<string | null>(null)
+  const [selectedExtra, setSelectedExtra] = useState<string | null>(null)
+  const [notesText, setNotesText] = useState('')
+  const [savedGoalLabel, setSavedGoalLabel] = useState<string | null>(null)
+
+  const [prevQueryCat, setPrevQueryCat] = useState(initialQueryCat)
+  if (initialQueryCat !== prevQueryCat) {
+    setPrevQueryCat(initialQueryCat)
+    if (initialQueryCat) {
+      setActiveCategory(initialQueryCat)
+      setSelectedOption(null)
+      setSelectedExtra(null)
+      setNotesText('')
+      setSavedGoalLabel(null)
+    }
+  }
+
+  const [activeDetailGoal, setActiveDetailGoal] = useState<UserGoal | null>(null)
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+
+  // Custom goal modal form state
   const [newTitle, setNewTitle] = useState('')
-  const [newCatSlug, setNewCatSlug] = useState('wellness-lifestyle')
+  const [newCatSlug, setNewCatSlug] = useState('lifestyle')
   const [newIcon, setNewIcon] = useState('🎯')
   const [newTimelineDays, setNewTimelineDays] = useState(90)
   const [newTargetAmount, setNewTargetAmount] = useState('')
   const [actionsList, setActionsList] = useState<string[]>([])
   const [currentActionText, setCurrentActionText] = useState('')
 
-  // Non-housing active user goals
-  const activeUserGoals = useMemo(() => {
-    return userGoals.filter(
-      (ug) => (ug.categorySlug || ug.goal?.category?.slug) !== 'housing',
+  const openQuestionnaire = useCallback((catId: 'fitness' | 'career' | 'income' | 'custom') => {
+    setActiveCategory(catId)
+    setSelectedOption(null)
+    setSelectedExtra(null)
+    setNotesText('')
+    setSavedGoalLabel(null)
+  }, [])
+
+  // Redirect ?cat=lifestyle straight to /dashboard/lifestyle
+  useEffect(() => {
+    if (catParam === 'lifestyle') {
+      router.replace('/dashboard/lifestyle')
+    }
+  }, [catParam, router])
+
+  // Group user's active goals by category
+  const goalsByCategory = useMemo(() => {
+    const active = userGoals.filter((ug) => ug.status === 'ACTIVE')
+
+    const matchCategory = (ug: UserGoal, slugs: string[]) => {
+      const s = (ug.categorySlug || ug.goal?.category?.slug || '').toLowerCase()
+      const gSlug = (ug.goal?.slug || '').toLowerCase()
+      return slugs.includes(s) || slugs.includes(gSlug)
+    }
+
+    const lifestyleGoals = active.filter(
+      (ug) =>
+        matchCategory(ug, ['lifestyle', 'home-refresh-package']) &&
+        (ug.goal?.slug || '') !== 'healthy-living-lifestyle',
     )
+    const fitnessGoals = active.filter((ug) =>
+      matchCategory(ug, ['fitness', 'health-fitness', 'wellness-lifestyle', 'healthy-living-lifestyle']),
+    )
+    const careerGoals = active.filter((ug) =>
+      matchCategory(ug, ['career', 'work-growth', 'learn-a-skill']),
+    )
+    const incomeGoals = active.filter((ug) =>
+      matchCategory(ug, ['income', 'start-a-business']),
+    )
+
+    const coreIds = new Set(
+      [...lifestyleGoals, ...fitnessGoals, ...careerGoals, ...incomeGoals].map(
+        (g) => g.id || g.uuid,
+      ),
+    )
+
+    const otherCustomGoals = active.filter((ug) => {
+      const s = (ug.categorySlug || ug.goal?.category?.slug || '').toLowerCase()
+      if (s === 'housing' || s === 'home-utilities') return false
+      return !coreIds.has(ug.id || ug.uuid)
+    })
+
+    return {
+      lifestyle: lifestyleGoals,
+      fitness: fitnessGoals,
+      career: careerGoals,
+      income: incomeGoals,
+      custom: otherCustomGoals,
+    }
   }, [userGoals])
+
+  // Active commerce orders count for lifestyle traction
+  const activeOrdersCount = useMemo(() => {
+    const orders = tenantOrdersData?.orders || []
+    return orders.filter((ord) => !['CANCELLED', 'REFUNDED'].includes(ord.status)).length
+  }, [tenantOrdersData])
+
+  // Compute card metrics for each prototype category
+  const lifestyleCardData = useMemo(() => {
+    const list = goalsByCategory.lifestyle
+    if (list.length > 0) {
+      const primary = list[0]
+      const pct = Math.max(
+        5,
+        Math.round(list.reduce((acc, g) => acc + (g.progressPct || 0), 0) / list.length),
+      )
+      const sub = primary.title || primary.goal?.title || 'Travel more'
+      return { pct, subtitle: sub }
+    }
+    if (activeOrdersCount > 0) {
+      return {
+        pct: 15,
+        subtitle: `${activeOrdersCount} active lifestyle package${activeOrdersCount > 1 ? 's' : ''}`,
+      }
+    }
+    return {
+      pct: 5,
+      subtitle: 'Home refresh, wellness & everyday perks',
+    }
+  }, [goalsByCategory.lifestyle, activeOrdersCount])
+
+  const getCategoryCardState = (
+    catKey: 'fitness' | 'career' | 'income',
+    defaultSubtitle: string,
+  ) => {
+    const list = goalsByCategory[catKey]
+    if (list.length > 0) {
+      const primary = list[0]
+      const rawPct = Math.round(
+        list.reduce((acc, g) => acc + (g.progressPct || 0), 0) / list.length,
+      )
+      const pct = rawPct > 0 ? rawPct : 5
+      const rawTitle = primary.title || primary.goal?.title || defaultSubtitle
+      const subtitle =
+        catKey === 'fitness' && rawPct > 0
+          ? `${rawTitle} · ${rawPct}% progress`
+          : rawTitle
+      return {
+        hasGoal: true,
+        badge: 'IN PROGRESS' as const,
+        badgeClass: 'proto-goals__badge--live',
+        pct,
+        subtitle,
+        primaryGoal: primary,
+      }
+    }
+    return {
+      hasGoal: false,
+      badge: 'GET STARTED' as const,
+      badgeClass: 'proto-goals__badge--collect',
+      pct: 0,
+      subtitle: defaultSubtitle,
+      primaryGoal: null,
+    }
+  }
+
+  const fitnessCard = getCategoryCardState('fitness', '10% progress · Build healthy habits')
+  const careerCard = getCategoryCardState('career', 'Certifications, skills & career growth')
+  const incomeCard = getCategoryCardState('income', 'Grow your income in 2027')
+
+  const handleCategoryCardClick = (catId: 'fitness' | 'career' | 'income') => {
+    const list = goalsByCategory[catId]
+    if (list.length > 0) {
+      setActiveDetailGoal(list[0])
+    } else {
+      openQuestionnaire(catId)
+    }
+  }
+
+  const handleSubmitQuestionnaire = async () => {
+    if (!activeCategory) return
+    const q = QUESTIONNAIRE_CONFIGS[activeCategory]
+    const chosen = selectedOption || notesText.trim()
+
+    if (!chosen) {
+      toastError('Pick an option or tell us in your own words first.')
+      return
+    }
+
+    const extraDef = q.extras && selectedOption ? q.extras[selectedOption] : undefined
+    if (extraDef && !selectedExtra) {
+      toastError('Please pick which certification you are working towards.')
+      return
+    }
+
+    let finalSelection = chosen
+    if (activeCategory === 'career' && selectedExtra) {
+      finalSelection = `Interested in ${selectedExtra}`
+    } else if (notesText.trim() && selectedOption === 'Something else') {
+      finalSelection = notesText.trim()
+    } else if (notesText.trim() && selectedOption === 'Something not listed here') {
+      finalSelection = notesText.trim()
+    }
+
+    try {
+      await submitQuestionnaireMutation.mutateAsync({
+        categorySlug: activeCategory === 'custom' ? 'other' : activeCategory,
+        questionTitle: q.title,
+        selectedOption: finalSelection,
+        durationDays: 180,
+      })
+      setSavedGoalLabel(selectedExtra || finalSelection)
+      success('Goal added to your plan')
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Failed to save goal'
+      toastError(msg)
+    }
+  }
 
   const handleAddActionItem = () => {
     const text = currentActionText.trim()
@@ -176,104 +469,350 @@ export function AllGoalsScreen() {
     }
   }
 
+  // ── SUB-SCREEN: QUESTIONNAIRE (Matches Prototype #screen-questionnaire) ──
+  if (activeCategory) {
+    const q = QUESTIONNAIRE_CONFIGS[activeCategory]
+    const extraDef = q.extras && selectedOption ? q.extras[selectedOption] : undefined
+
+    return (
+      <div className="proto-goals">
+        <div className="proto-goals__topbar">
+          <button
+            type="button"
+            className="proto-goals__icon-btn"
+            onClick={() => setActiveCategory(null)}
+            aria-label="Back to goals"
+          >
+            <ChevronLeft size={18} strokeWidth={2.2} />
+          </button>
+          <h2 className="proto-goals__topbar-title">{q.title}</h2>
+        </div>
+
+        {!savedGoalLabel ? (
+          <div className="proto-goals__q-form">
+            <p className="proto-goals__subhead">{q.intro}</p>
+
+            <div className="proto-goals__section-label">{q.label}</div>
+            <div className="proto-goals__q-options">
+              {q.options.map((opt) => {
+                const isSelected = selectedOption === opt
+                return (
+                  <button
+                    key={opt}
+                    type="button"
+                    className={`proto-goals__opt ${isSelected ? 'is-on' : ''}`}
+                    onClick={() => {
+                      setSelectedOption(opt)
+                      setSelectedExtra(null)
+                    }}
+                  >
+                    {opt}
+                  </button>
+                )
+              })}
+            </div>
+
+            {extraDef && (
+              <div className="proto-goals__q-extra">
+                <div className="proto-goals__section-label">{extraDef.label}</div>
+                <div className="proto-goals__q-options">
+                  {extraDef.options.map((extOpt) => (
+                    <button
+                      key={extOpt}
+                      type="button"
+                      className={`proto-goals__opt ${selectedExtra === extOpt ? 'is-on' : ''}`}
+                      onClick={() => setSelectedExtra(extOpt)}
+                    >
+                      {extOpt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <label className="proto-goals__section-label" htmlFor="proto-q-notes">
+              {q.notesLabel || 'Anything else we should know?'}
+            </label>
+            <textarea
+              id="proto-q-notes"
+              className="proto-goals__field"
+              value={notesText}
+              onChange={(e) => setNotesText(e.target.value)}
+              placeholder={
+                q.notesLabel
+                  ? 'Type your goal, and a few actions you want to take'
+                  : 'Optional — tell us in your own words'
+              }
+            />
+
+            <button
+              type="button"
+              className="proto-goals__btn-primary"
+              onClick={handleSubmitQuestionnaire}
+              disabled={submitQuestionnaireMutation.isPending}
+            >
+              {submitQuestionnaireMutation.isPending ? 'Saving...' : 'Save this'}
+            </button>
+          </div>
+        ) : (
+          <div className="proto-goals__thanks">
+            <div className="proto-goals__thanks-icon">
+              <Check size={28} strokeWidth={2.4} />
+            </div>
+            <h2 className="proto-goals__thanks-title">Thank you, {firstName}</h2>
+            <p className="proto-goals__thanks-copy">
+              “{savedGoalLabel}” has been added to your goals. We&apos;ll show you the next steps to get there.
+            </p>
+            <div className="proto-goals__stack-btns">
+              <button
+                type="button"
+                className="proto-goals__btn-primary"
+                onClick={() => setActiveCategory(null)}
+              >
+                Back to goals
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // ── MAIN SCREEN: YOUR GOALS (Matches Prototype Screenshot) ──
   return (
-    <div className="all-goals-page">
-      {/* Top Navigation */}
-      <div className="all-goals-page__topbar">
-        <button
-          type="button"
-          className="all-goals-page__back-btn"
-          onClick={() => router.push('/dashboard')}
-          aria-label="Back to dashboard"
-        >
-          <ChevronLeft size={20} strokeWidth={2.2} />
-        </button>
-        <h1 className="all-goals-page__title">More you can work toward</h1>
+    <div className="proto-goals">
+      {/* Greeting & Page Heading */}
+      <div className="proto-goals__hello">
+        <div className="proto-goals__greet">
+          {getTimeGreeting()}, {firstName}
+        </div>
+        <h1 className="proto-goals__title">Your goals</h1>
       </div>
 
-      <p className="all-goals-page__subhead">
-        Housing is already on your home screen. Pick another area, or create your own.
-      </p>
+      {/* Goal Category Cards List */}
+      <div className="proto-goals__list">
+        {/* 1. TOP FEATURED CARD: Lifestyle goals -> Click leads to /dashboard/lifestyle */}
+        <button
+          type="button"
+          className="proto-goals__card proto-goals__card--active-cat"
+          onClick={() => router.push('/dashboard/lifestyle')}
+        >
+          <div className="proto-goals__copy">
+            <div className="proto-goals__kicker-row">
+              <span className="proto-goals__badge proto-goals__badge--live">ACTIVE</span>
+            </div>
+            <h3 className="proto-goals__card-title">Lifestyle goals</h3>
+            <p className="proto-goals__card-desc">{lifestyleCardData.subtitle}</p>
+          </div>
+          {renderPrototypeRing(lifestyleCardData.pct, 52)}
+        </button>
 
-      {/* 1. Catalog Categories from Database */}
-      <div className="all-goals-page__list">
-        {categories.map((cat) => {
-          const userGoalsInCat = activeUserGoals.filter(
-            (ug) => (ug.categorySlug || ug.goal?.category?.slug) === cat.slug,
-          )
-          const count = userGoalsInCat.length
-          const avgPct =
-            count > 0
-              ? Math.round(
-                  userGoalsInCat.reduce((acc, g) => acc + (g.progressPct || 0), 0) / count,
-                )
-              : 0
+        {/* 2. Health & fitness goals */}
+        <button
+          type="button"
+          className="proto-goals__card"
+          onClick={() => handleCategoryCardClick('fitness')}
+        >
+          <div className="proto-goals__copy">
+            <div className="proto-goals__kicker-row">
+              <span className={`proto-goals__badge ${fitnessCard.badgeClass}`}>
+                {fitnessCard.badge}
+              </span>
+            </div>
+            <h3 className="proto-goals__card-title">Health &amp; fitness goals</h3>
+            <p className="proto-goals__card-desc">{fitnessCard.subtitle}</p>
+          </div>
+          {renderPrototypeRing(fitnessCard.pct, 52)}
+        </button>
 
-          return (
-            <button
-              key={cat.id}
-              type="button"
-              className="all-goals-page__card"
-              onClick={() => router.push(`/dashboard/lifestyle?category=${cat.slug}`)}
-            >
-              <div className="all-goals-page__card-body">
-                <h2 className="all-goals-page__card-title">{cat.title || cat.name}</h2>
-                <p className="all-goals-page__card-desc">
-                  {count > 0 ? `${count} active goal${count > 1 ? 's' : ''}` : cat.description || 'Explore goals'}
-                </p>
-              </div>
-              {renderGoalRing(avgPct, 42)}
-            </button>
-          )
-        })}
+        {/* 3. Career & professional goals */}
+        <button
+          type="button"
+          className="proto-goals__card"
+          onClick={() => handleCategoryCardClick('career')}
+        >
+          <div className="proto-goals__copy">
+            <div className="proto-goals__kicker-row">
+              <span className={`proto-goals__badge ${careerCard.badgeClass}`}>
+                {careerCard.badge}
+              </span>
+            </div>
+            <h3 className="proto-goals__card-title">Career &amp; professional goals</h3>
+            <p className="proto-goals__card-desc">{careerCard.subtitle}</p>
+          </div>
+          {renderPrototypeRing(careerCard.pct, 52)}
+        </button>
 
-        {/* 2. User's Active Goals from Database */}
-        {activeUserGoals.map((ug) => {
-          const title = (ug.icon ? `${ug.icon} ` : '') + (ug.title || ug.goal?.title || 'Goal')
-          const catName = ug.categorySlug || ug.goal?.category?.title || ug.goal?.category?.name || 'Upward Goal'
-          let subtitle = catName
-          if (ug.durationDays) {
-            const months = Math.round(ug.durationDays / 30)
-            subtitle += months >= 1 ? ` · ${months} months` : ` · ${ug.durationDays} days`
-          } else if (ug.targetAmountKobo) {
-            const amt = Number(ug.targetAmountKobo) / 100
-            const saved = Number(ug.savedAmountKobo || 0) / 100
-            subtitle += ` · ₦${Math.round(saved).toLocaleString('en-NG')} of ₦${Math.round(amt).toLocaleString('en-NG')}`
-          }
+        {/* 4. Income goals */}
+        <button
+          type="button"
+          className="proto-goals__card"
+          onClick={() => handleCategoryCardClick('income')}
+        >
+          <div className="proto-goals__copy">
+            <div className="proto-goals__kicker-row">
+              <span className={`proto-goals__badge ${incomeCard.badgeClass}`}>
+                {incomeCard.badge}
+              </span>
+            </div>
+            <h3 className="proto-goals__card-title">Income goals</h3>
+            <p className="proto-goals__card-desc">{incomeCard.subtitle}</p>
+          </div>
+          {renderPrototypeRing(incomeCard.pct, 52)}
+        </button>
 
+        {/* 5. Any Additional Custom Goals */}
+        {goalsByCategory.custom.map((ug) => {
+          const pct = ug.progressPct || 5
+          const title = ug.title || ug.goal?.title || 'Personal goal'
           return (
             <button
               key={ug.id || ug.uuid}
               type="button"
-              className="all-goals-page__card"
-              onClick={() => {
-                if (ug.goalId) {
-                  router.push(`/dashboard/lifestyle?goalId=${ug.goalId}`)
-                } else if (ug.categorySlug) {
-                  router.push(`/dashboard/lifestyle?category=${ug.categorySlug}`)
-                } else {
-                  router.push('/dashboard/lifestyle')
-                }
-              }}
+              className="proto-goals__card"
+              onClick={() => setActiveDetailGoal(ug)}
             >
-              <div className="all-goals-page__card-body">
-                <h2 className="all-goals-page__card-title">{title}</h2>
-                <p className="all-goals-page__card-desc">{subtitle}</p>
+              <div className="proto-goals__copy">
+                <div className="proto-goals__kicker-row">
+                  <span className="proto-goals__badge proto-goals__badge--live">
+                    IN PROGRESS
+                  </span>
+                </div>
+                <h3 className="proto-goals__card-title">{title}</h3>
+                <p className="proto-goals__card-desc">
+                  {ug.notes || 'Personal milestone · Tap to view action steps'}
+                </p>
               </div>
-              {renderGoalRing(ug.progressPct || 0, 42)}
+              {renderPrototypeRing(pct, 52)}
             </button>
           )
         })}
       </div>
 
-      {/* + New Goal CTA */}
+      {/* Suggest a different goal CTA */}
       <button
         type="button"
-        className="all-goals-page__new-btn"
-        onClick={() => setIsCreateModalOpen(true)}
+        className="proto-goals__custom-link"
+        onClick={() => openQuestionnaire('custom')}
       >
-        + New goal
+        Suggest a different goal
       </button>
+
+      {/* Coming soon banner */}
+      <div className="proto-goals__soon">
+        <strong>Coming soon:</strong> See how others are progressing towards their goals.
+      </div>
+
+      {/* DETAIL & ACTIONS MODAL FOR ACTIVE GOALS */}
+      {activeDetailGoal && (
+        <div
+          className="goal-modal-overlay"
+          onClick={() => setActiveDetailGoal(null)}
+        >
+          <div className="goal-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="goal-modal__head">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {renderPrototypeRing(activeDetailGoal.progressPct || 0, 38)}
+                <h2 className="goal-modal__title">
+                  {activeDetailGoal.icon} {activeDetailGoal.title || activeDetailGoal.goal?.title}
+                </h2>
+              </div>
+              <button
+                type="button"
+                className="goal-modal__close"
+                onClick={() => setActiveDetailGoal(null)}
+                aria-label="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="goal-modal__body">
+              {activeDetailGoal.targetAmountKobo && (
+                <div className="goal-modal__field">
+                  <label className="goal-modal__label">Savings Target</label>
+                  <p style={{ fontSize: '15px', fontWeight: 700, margin: '2px 0 0' }}>
+                    ₦{(Number(activeDetailGoal.savedAmountKobo || 0) / 100).toLocaleString('en-NG')} of ₦
+                    {(Number(activeDetailGoal.targetAmountKobo) / 100).toLocaleString('en-NG')}
+                  </p>
+                </div>
+              )}
+
+              {activeDetailGoal.durationDays && (
+                <div className="goal-modal__field">
+                  <label className="goal-modal__label">Timeline</label>
+                  <p style={{ fontSize: '13.5px', color: 'var(--text-muted, #8a8a8a)', margin: '2px 0 0' }}>
+                    {activeDetailGoal.durationDays} days target window
+                  </p>
+                </div>
+              )}
+
+              <div className="goal-modal__field">
+                <label className="goal-modal__label">
+                  Action Steps (
+                  {activeDetailGoal.actions?.filter((a) => a.done).length || 0} of{' '}
+                  {activeDetailGoal.actions?.length || 0} complete)
+                </label>
+
+                {!activeDetailGoal.actions || activeDetailGoal.actions.length === 0 ? (
+                  <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                    No checklist steps configured for this goal.
+                  </p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {activeDetailGoal.actions.map((act) => (
+                      <button
+                        key={act.id}
+                        type="button"
+                        className={`goal-modal__action-row ${act.done ? 'is-done' : ''}`}
+                        onClick={() => handleToggleAction(act.id)}
+                      >
+                        <span className="goal-modal__action-check">
+                          {act.done && <Check size={12} color="#ffffff" strokeWidth={3} />}
+                        </span>
+                        <span className="goal-modal__action-label">{act.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <button
+                type="button"
+                className="goal-modal__submit"
+                onClick={() => {
+                  const cat = (
+                    activeDetailGoal.categorySlug ||
+                    activeDetailGoal.goal?.category?.slug ||
+                    ''
+                  ).toLowerCase()
+                  setActiveDetailGoal(null)
+                  if (cat === 'fitness') {
+                    router.push('/dashboard/lifestyle?goal=healthy-living-lifestyle')
+                  } else if (cat === 'career' || cat === 'income') {
+                    router.push(`/dashboard/lifestyle?category=${cat}`)
+                  } else {
+                    router.push('/dashboard/lifestyle')
+                  }
+                }}
+              >
+                Explore packages for this goal <ArrowRight size={15} style={{ display: 'inline', verticalAlign: '-2px' }} />
+              </button>
+
+              {activeDetailGoal.id && (
+                <button
+                  type="button"
+                  className="goal-modal__delete-btn"
+                  onClick={() => handleDeleteGoal(activeDetailGoal.id)}
+                >
+                  <Trash2 size={14} style={{ display: 'inline', marginRight: '6px', verticalAlign: '-2px' }} />
+                  Remove this goal
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* CREATE GOAL MODAL */}
       {isCreateModalOpen && (
@@ -429,95 +968,6 @@ export function AllGoalsScreen() {
                 {createGoalMutation.isPending ? 'Creating Goal...' : 'Save Goal'}
               </button>
             </form>
-          </div>
-        </div>
-      )}
-
-      {/* DETAIL & ACTIONS MODAL */}
-      {activeDetailGoal && (
-        <div
-          className="goal-modal-overlay"
-          onClick={() => setActiveDetailGoal(null)}
-        >
-          <div className="goal-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="goal-modal__head">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {renderGoalRing(activeDetailGoal.progressPct || 0, 32)}
-                <h2 className="goal-modal__title">
-                  {activeDetailGoal.icon} {activeDetailGoal.title || activeDetailGoal.goal?.title}
-                </h2>
-              </div>
-              <button
-                type="button"
-                className="goal-modal__close"
-                onClick={() => setActiveDetailGoal(null)}
-                aria-label="Close"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="goal-modal__body">
-              {activeDetailGoal.targetAmountKobo && (
-                <div className="goal-modal__field">
-                  <label className="goal-modal__label">Savings Target</label>
-                  <p style={{ fontSize: '15px', fontWeight: 700, margin: '2px 0 0' }}>
-                    ₦{(Number(activeDetailGoal.savedAmountKobo || 0) / 100).toLocaleString('en-NG')} of ₦
-                    {(Number(activeDetailGoal.targetAmountKobo) / 100).toLocaleString('en-NG')}
-                  </p>
-                </div>
-              )}
-
-              {activeDetailGoal.durationDays && (
-                <div className="goal-modal__field">
-                  <label className="goal-modal__label">Timeline</label>
-                  <p style={{ fontSize: '13.5px', color: 'var(--text-muted, #8a8a8a)', margin: '2px 0 0' }}>
-                    {activeDetailGoal.durationDays} days target window
-                  </p>
-                </div>
-              )}
-
-              <div className="goal-modal__field">
-                <label className="goal-modal__label">
-                  Action Steps (
-                  {activeDetailGoal.actions?.filter((a) => a.done).length || 0} of{' '}
-                  {activeDetailGoal.actions?.length || 0} complete)
-                </label>
-
-                {(!activeDetailGoal.actions || activeDetailGoal.actions.length === 0) ? (
-                  <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                    No checklist steps configured for this goal.
-                  </p>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {activeDetailGoal.actions.map((act) => (
-                      <button
-                        key={act.id}
-                        type="button"
-                        className={`goal-modal__action-row ${act.done ? 'is-done' : ''}`}
-                        onClick={() => handleToggleAction(act.id)}
-                      >
-                        <span className="goal-modal__action-check">
-                          {act.done && <Check size={12} color="#ffffff" strokeWidth={3} />}
-                        </span>
-                        <span className="goal-modal__action-label">{act.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {activeDetailGoal.id && (
-                <button
-                  type="button"
-                  className="goal-modal__delete-btn"
-                  onClick={() => handleDeleteGoal(activeDetailGoal.id)}
-                >
-                  <Trash2 size={14} style={{ display: 'inline', marginRight: '6px', verticalAlign: '-2px' }} />
-                  Remove this goal
-                </button>
-              )}
-            </div>
           </div>
         </div>
       )}

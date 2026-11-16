@@ -3,7 +3,7 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Building2, Compass, History, Home, User } from 'lucide-react'
+import { Building2, CircleArrowUp, History, Home, User } from 'lucide-react'
 import { useHasMyHome } from '@/features/my-home/hooks/useMyHome'
 import { haptics } from '@/lib/haptics'
 import { useFluidNav } from '../hooks/useFluidNav'
@@ -37,9 +37,9 @@ const SIDE_NAV_ITEMS: readonly NavItem[] = [
     hideOnProfile: true,
   },
   {
-    label: 'Explore',
-    icon: Compass,
-    href: '/dashboard/lifestyle',
+    label: 'Goals',
+    icon: CircleArrowUp,
+    href: '/dashboard/goals',
     requiresMyHome: false,
     badge: 'NEW',
   },
@@ -66,8 +66,16 @@ export function BottomNav() {
   const isActive = useCallback(
     (href: string) => {
       if (!pathname) return false
-      if (href === '/dashboard/my-home' || href === '/dashboard/lifestyle') {
+      if (href === '/dashboard/my-home') {
         return pathname === href || pathname.startsWith(`${href}/`)
+      }
+      if (href === '/dashboard/goals') {
+        return (
+          pathname === '/dashboard/goals' ||
+          pathname.startsWith('/dashboard/goals/') ||
+          pathname === '/dashboard/lifestyle' ||
+          pathname.startsWith('/dashboard/lifestyle/')
+        )
       }
       const normalizedPath = pathname.endsWith('/') ? pathname : `${pathname}/`
       const normalizedHref = href.endsWith('/') ? href : `${href}/`
@@ -82,7 +90,10 @@ export function BottomNav() {
   const isPayRentRoute =
     pathname === '/dashboard/pay-rent' || !!pathname?.startsWith('/dashboard/pay-rent/')
   const isLifestyleRoute =
-    pathname === '/dashboard/lifestyle' || !!pathname?.startsWith('/dashboard/lifestyle/')
+    pathname === '/dashboard/lifestyle' ||
+    !!pathname?.startsWith('/dashboard/lifestyle/') ||
+    pathname === '/dashboard/goals' ||
+    !!pathname?.startsWith('/dashboard/goals/')
   const isTransactionsRoute =
     pathname === '/dashboard/transactions' || !!pathname?.startsWith('/dashboard/transactions/')
   const isProfileRoute =

@@ -401,9 +401,9 @@ export function HousingFirstHome({
                       className="housing-goal-card"
                       onClick={() =>
                         router.push(
-                          displayGoals[0].goalId
-                            ? `/dashboard/lifestyle?goalId=${displayGoals[0].goalId}`
-                            : `/dashboard/lifestyle?category=${displayGoals[0].categorySlug}`,
+                          displayGoals[0].categorySlug === 'lifestyle'
+                            ? '/dashboard/lifestyle'
+                            : '/dashboard/goals',
                         )
                       }
                     >
@@ -420,7 +420,7 @@ export function HousingFirstHome({
                     <button
                       type="button"
                       className="housing-goal-card"
-                      onClick={() => router.push('/dashboard/goals?new=true')}
+                      onClick={() => router.push('/dashboard/goals')}
                     >
                       <div className="housing-goal-card__body">
                         <span className="housing-goal-card__tag">NEXT MILESTONE</span>
@@ -525,9 +525,9 @@ export function HousingFirstHome({
                     className="goal-card"
                     onClick={() =>
                       router.push(
-                        item.goalId
-                          ? `/dashboard/lifestyle?goalId=${item.goalId}`
-                          : `/dashboard/lifestyle?category=${item.categorySlug}`,
+                        item.categorySlug === 'lifestyle'
+                          ? '/dashboard/lifestyle'
+                          : '/dashboard/goals',
                       )
                     }
                   >
@@ -546,7 +546,7 @@ export function HousingFirstHome({
               <button
                 type="button"
                 className="goal-card"
-                onClick={() => router.push('/dashboard/goals?new=true')}
+                onClick={() => router.push('/dashboard/goals')}
               >
                 <div className="goal-card__body">
                   <span className="goal-card__tag">EXPLORE</span>

@@ -1,10 +1,15 @@
+import { Suspense } from 'react'
 import { AllGoalsScreen } from '@/features/goals/components/AllGoalsScreen'
 
 export const metadata = {
-  title: 'More you can work toward — Upward Goals',
-  description: 'Pick another goal area or create your own goal.',
+  title: 'Your goals — Upward',
+  description: 'Track and achieve your lifestyle, health, career, and income goals.',
 }
 
 export default function DashboardGoalsPage() {
-  return <AllGoalsScreen />
+  return (
+    <Suspense fallback={null}>
+      <AllGoalsScreen />
+    </Suspense>
+  )
 }

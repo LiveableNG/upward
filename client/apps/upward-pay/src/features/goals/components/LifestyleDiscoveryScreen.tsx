@@ -333,15 +333,15 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
             <button
               type="button"
               className="lifestyle-discovery__back-btn"
-              onClick={() => router.push('/dashboard')}
-              aria-label="Back to dashboard"
+              onClick={() => router.push('/dashboard/goals')}
+              aria-label="Back to goals"
             >
               <ArrowLeft size={16} />
             </button>
             <div className="lifestyle-discovery__title-group">
-              <h1 className="lifestyle-discovery__title">Explore & Perks</h1>
+              <h1 className="lifestyle-discovery__title">Lifestyle & Perks</h1>
               <p className="lifestyle-discovery__subtitle">
-                Verified packages, home essentials, and services for tenants
+                Verified packages, home essentials, and services for your goals
               </p>
             </div>
           </div>

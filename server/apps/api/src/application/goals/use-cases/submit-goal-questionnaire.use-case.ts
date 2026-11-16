@@ -11,6 +11,13 @@ import { computeTargetDate } from '../../../domains/goals/timeline.calculator'
 import { randomUUID } from 'crypto'
 
 const DEFAULT_SUGGESTED_ACTIONS: Record<string, string[]> = {
+  fitness: [
+    'Set a weekly workout and movement schedule',
+    'Book a first fitness or gym session',
+    'Track nutrition and daily hydration for 7 days',
+    'Find a workout partner or accountability group',
+    'Schedule a routine health check-up',
+  ],
   career: [
     'Update my CV and LinkedIn profile',
     'Set a weekly 3-hour learning block',
@@ -79,6 +86,7 @@ export class SubmitGoalQuestionnaireUseCase {
     }))
 
     const iconMap: Record<string, string> = {
+      fitness: '💪',
       career: '📚',
       income: '💼',
       lifestyle: '✈️',
