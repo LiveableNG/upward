@@ -12,25 +12,13 @@ import { useRentVault } from '../hooks/useRentSavings'
 import { useAuth } from '@/features/auth/AuthContext'
 import { SavingsInvestorKycModal } from './SavingsInvestorKycModal'
 import { RentCalculatorView } from './RentCalculatorView'
-import { VaultSetupFlow } from './VaultSetupFlow'
 import { VaultDashboardView } from './VaultDashboardView'
 import { SettlementHubView } from './SettlementHubView'
-import { type SavingsCadence, type SavingsProductOption } from '../services/savingsService'
-import { readSavingsRentPlan } from '../utils/savingsRentPlan'
 import '@/styles/savings-v1.css'
 
 export function RentSavingsMainView() {
   const { user, refreshUser } = useAuth()
   const { data: vault, isLoading, error, refetch } = useRentVault()
-
-  const [step, setStep] = useState<'CALCULATOR' | 'SETUP'>('CALCULATOR')
-  const [simulationConfig, setSimulationConfig] = useState<{
-    targetAmountKobo: number
-    contractualDueDate: string
-    cadence: SavingsCadence
-    periodicDepositKobo: number
-    productOption?: SavingsProductOption
-  } | null>(null)
 
   const [viewMode, setViewMode] = useState<'DASHBOARD' | 'SETTLEMENT'>('DASHBOARD')
   const [showKycModal, setShowKycModal] = useState<boolean>(false)
@@ -160,27 +148,14 @@ export function RentSavingsMainView() {
       {renderKycBanner()}
 
       {!isVaultActive && (
-        <>
-          {step === 'SETUP' && simulationConfig ? (
-            <VaultSetupFlow
-              initialConfig={simulationConfig}
-              onBack={() => setStep('CALCULATOR')}
-              onSuccess={() => {
-                refetch()
-                setStep('CALCULATOR')
-              }}
-            />
-          ) : (
-            <RentCalculatorView
-              onProceedToSetup={(config) => {
-                setSimulationConfig(config)
-                setStep('SETUP')
-              }}
-              onOpenKycModal={() => setShowKycModal(true)}
-              isKycModalOpen={showKycModal}
-            />
-          )}
-        </>
+        <RentCalculatorView
+          onSuccess={() => {
+            refetch()
+            refreshUser().catch(() => {})
+          }}
+          onOpenKycModal={() => setShowKycModal(true)}
+          isKycModalOpen={showKycModal}
+        />
       )}
 
       {isVaultActive && (
@@ -251,20 +226,6 @@ export function RentSavingsMainView() {
         onSuccess={async () => {
           await refreshUser()
           await refetch()
-          const plan = readSavingsRentPlan()
-          const rentNaira = activeProperty?.rentAmount || Number(plan?.rentAmount) || 0
-          const dueDate = activeProperty?.rentEndDate
-            ? activeProperty.rentEndDate.split('T')[0]
-            : plan?.dueDate || ''
-          if (!rentNaira || !dueDate) return
-          const targetKobo = rentNaira * 100
-          setSimulationConfig({
-            targetAmountKobo: targetKobo,
-            contractualDueDate: dueDate,
-            cadence: 'MONTHLY',
-            periodicDepositKobo: Math.round(targetKobo / 11),
-          })
-          setStep('SETUP')
         }}
       />
     </div>

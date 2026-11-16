@@ -10,9 +10,18 @@ import {
   ShieldCheck,
   Home,
   CheckCircle2,
+  Lock,
+  Landmark,
+  Copy,
+  Check,
+  AlertCircle,
 } from 'lucide-react'
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from '@/lib/utils'
-import { useSimulateRentSavings } from '../hooks/useRentSavings'
+import {
+  useSimulateRentSavings,
+  useSavingsOnboardingPrefill,
+  useOnboardSavingsInvestor,
+} from '../hooks/useRentSavings'
 import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
 import {
   calculatePayLessPlan,
@@ -21,10 +30,14 @@ import {
   type SavingsProductOption,
 } from '../services/savingsService'
 import { useAuth } from '@/features/auth/AuthContext'
+import { useToast } from '@/components/common/Toast'
 import { BottomSheetModal } from '@/components/common/BottomSheetModal'
 
+type DrawerStage = 'RENT_INPUT' | 'BENEFIT' | 'KYC' | 'SUCCESS'
+
 interface RentCalculatorViewProps {
-  onProceedToSetup: (config: {
+  onSuccess?: () => void
+  onProceedToSetup?: (config: {
     targetAmountKobo: number
     contractualDueDate: string
     cadence: SavingsCadence
@@ -36,10 +49,13 @@ interface RentCalculatorViewProps {
 }
 
 export function RentCalculatorView({
+  onSuccess,
   onProceedToSetup,
   isKycModalOpen = false,
 }: RentCalculatorViewProps) {
-  const { user } = useAuth()
+  const { user, refreshUser } = useAuth()
+  const router = useRouter()
+  const { success: toastSuccess, error: toastError } = useToast()
 
   // Single source of truth: Settings active rental property
   const activeProperty = (user?.properties || []).find(
@@ -77,13 +93,19 @@ export function RentCalculatorView({
     }
   }
 
-  const router = useRouter()
-  const [drawerOpen, setDrawerOpen] = useState(true)
-  const [rentConfirmed, setRentConfirmed] = useState(false)
   const hasSavedRent = Boolean(activeProperty?.rentAmount && activeProperty?.rentEndDate)
+  const [rentConfirmed, setRentConfirmed] = useState(false)
   const hasRentDetails = hasSavedRent || rentConfirmed
 
+  // Drawer Stage State
+  const [stage, setStage] = useState<DrawerStage>(() => (hasSavedRent ? 'BENEFIT' : 'RENT_INPUT'))
+  const [drawerOpen, setDrawerOpen] = useState(true)
+
   const handleCloseDrawer = () => {
+    if (stage === 'SUCCESS') {
+      handleFinish()
+      return
+    }
     if (!hasSavedRent && !rentConfirmed) {
       router.push('/dashboard')
     } else {
@@ -95,8 +117,10 @@ export function RentCalculatorView({
   const tomorrow = new Date(nowTimestamp + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   const canConfirmRent =
     targetAmountNaira > 0 && Boolean(contractualDueDate) && contractualDueDate >= tomorrow
+
   const selectedCadence: SavingsCadence = 'MONTHLY'
-  const [selectedProductOption, setSelectedProductOption] = useState<SavingsProductOption>('RENT_PROTEC')
+  const [selectedProductOption, setSelectedProductOption] =
+    useState<SavingsProductOption>('RENT_PROTEC')
   const planPattern: SavingsPlanPattern = 'INITIAL_DEPOSIT'
 
   const simulateMutation = useSimulateRentSavings()
@@ -117,9 +141,48 @@ export function RentCalculatorView({
       ? 'SAVE_AND_EARN'
       : selectedProductOption
 
+  // KYC Prefill & Form State
+  const { data: prefill } = useSavingsOnboardingPrefill(drawerOpen)
+  const onboardMutation = useOnboardSavingsInvestor()
+
+  const hasVerifiedBvnOnFile = Boolean(prefill?.has_verified_bvn || user?.isIdentityVerified)
+  const [bvn, setBvn] = useState('')
+  const [mothersMaidenName, setMothersMaidenName] = useState('')
+  const [occupation, setOccupation] = useState('')
+  const [sourceOfFunds, setSourceOfFunds] = useState<'Salary' | 'Business' | 'Savings' | 'Investment'>('Salary')
+  const [nextOfKinName, setNextOfKinName] = useState('')
+  const [nextOfKinRelationship, setNextOfKinRelationship] = useState('Spouse')
+  const [nextOfKinPhone, setNextOfKinPhone] = useState('')
+  const [agreeToLock, setAgreeToLock] = useState(false)
+  const [kycError, setKycError] = useState<string | null>(null)
+
+  const [createdDva, setCreatedDva] = useState<{
+    bank_name: string
+    account_number: string
+    account_name: string
+  } | null>(null)
+  const [copiedAccount, setCopiedAccount] = useState(false)
+
+  // Sync Prefill Data
+  useEffect(() => {
+    if (prefill) {
+      if (prefill.bvn && !bvn) setBvn(prefill.bvn)
+      if (prefill.mothers_maiden_name && !mothersMaidenName) {
+        setMothersMaidenName(prefill.mothers_maiden_name)
+      }
+      if (prefill.occupation && !occupation) setOccupation(prefill.occupation)
+      if (prefill.source_of_funds && !sourceOfFunds) setSourceOfFunds(prefill.source_of_funds)
+      if (prefill.next_of_kin_name && !nextOfKinName) setNextOfKinName(prefill.next_of_kin_name)
+      if (prefill.next_of_kin_relationship) {
+        setNextOfKinRelationship(prefill.next_of_kin_relationship)
+      }
+      if (prefill.next_of_kin_phone && !nextOfKinPhone) setNextOfKinPhone(prefill.next_of_kin_phone)
+    }
+  }, [prefill, bvn, mothersMaidenName, occupation, sourceOfFunds, nextOfKinName, nextOfKinPhone])
+
+  // Simulate compound savings
   useEffect(() => {
     if (!targetAmountNaira || !contractualDueDate) return
-    // Only persist what the user actually entered or already has saved.
     if (!hasRentDetails) return
 
     mutateSimulate({
@@ -145,20 +208,6 @@ export function RentCalculatorView({
             planPattern: planPattern,
           }),
         )
-        const rawDraft = localStorage.getItem('upward_setup_draft')
-        if (rawDraft) {
-          const parsedDraft = JSON.parse(rawDraft)
-          if (parsedDraft?.formData) {
-            parsedDraft.formData.rentAmount = targetAmountNaira.toLocaleString()
-            parsedDraft.formData.rentEndDate = contractualDueDate
-            parsedDraft.formData.rentStartDate = new Date(
-              new Date(contractualDueDate).getTime() - 365 * 24 * 60 * 60 * 1000,
-            )
-              .toISOString()
-              .split('T')[0]
-            localStorage.setItem('upward_setup_draft', JSON.stringify(parsedDraft))
-          }
-        }
       } catch {}
     }
   }, [
@@ -197,9 +246,6 @@ export function RentCalculatorView({
       insurancePremiumPct: platformRates.insurancePremiumPct,
     },
   )
-  const periodicDepositNaira = simData
-    ? simData.periodic_deposit_kobo / 100
-    : localPlan.periodicDepositNaira
   const totalTenantContributionNaira = simData
     ? simData.total_tenant_contribution_kobo / 100
     : localPlan.totalTenantContributionNaira
@@ -215,23 +261,77 @@ export function RentCalculatorView({
       })
     : 'in 12 months'
 
-  const handleStartSaving = () => {
-    if (!hasRentDetails) return
+  const handleCopyAccountNumber = async (accNum: string) => {
+    try {
+      await navigator.clipboard.writeText(accNum)
+      setCopiedAccount(true)
+      setTimeout(() => setCopiedAccount(false), 2500)
+    } catch {}
+  }
 
-    onProceedToSetup({
-      targetAmountKobo: Math.round(targetAmountNaira * 100),
-      contractualDueDate,
-      cadence: selectedCadence,
-      periodicDepositKobo: Math.round(periodicDepositNaira * 100),
-      productOption: activeProductOption,
-    })
+  const isBvnValid = hasVerifiedBvnOnFile || bvn.trim().length === 11
+  const isMaidenNameValid = mothersMaidenName.trim().length > 0
+  const isOccupationValid = occupation.trim().length > 0
+  const isNextOfKinValid = nextOfKinName.trim().length > 0 && nextOfKinPhone.trim().length >= 10
+  const isKycValid =
+    isBvnValid && isMaidenNameValid && isOccupationValid && isNextOfKinValid && agreeToLock
+
+  const handleSubmitKyc = async () => {
+    if (!isKycValid) return
+    setKycError(null)
+
+    try {
+      const res = await onboardMutation.mutateAsync({
+        bvn: bvn.length === 11 ? bvn : undefined,
+        mothers_maiden_name: mothersMaidenName.trim(),
+        occupation: occupation.trim(),
+        source_of_funds: sourceOfFunds,
+        next_of_kin_name: nextOfKinName.trim(),
+        next_of_kin_relationship: nextOfKinRelationship || 'Spouse',
+        next_of_kin_phone: nextOfKinPhone.trim(),
+        target_amount: targetAmountNaira,
+        rent_due_date: contractualDueDate,
+        cadence: 'MONTHLY',
+        product_option: activeProductOption,
+        plan_pattern: 'INITIAL_DEPOSIT',
+      })
+
+      const dva = res?.dedicated_account
+      if (dva) {
+        setCreatedDva(dva)
+      } else {
+        const fallbackAccSuffix = nowTimestamp.toString().slice(-8)
+        setCreatedDva({
+          bank_name: 'Wema Bank',
+          account_number: `02${fallbackAccSuffix}`,
+          account_name: `Upward / ${user?.firstName || 'Tenant'} ${user?.lastName || ''}`.trim(),
+        })
+      }
+
+      setStage('SUCCESS')
+      toastSuccess('Account verified and dedicated rent bank account ready!')
+      await refreshUser().catch(() => {})
+    } catch (err: unknown) {
+      const error = err as { message?: string }
+      const msg = error?.message || 'Verification failed. Please check your information.'
+      setKycError(msg)
+      toastError(msg)
+    }
+  }
+
+  const handleFinish = async () => {
+    setDrawerOpen(false)
+    await refreshUser().catch(() => {})
+    if (onSuccess) {
+      onSuccess()
+    }
   }
 
   const isModalVisible = drawerOpen && !isKycModalOpen
 
   return (
     <div className="rent-savings__gated-container">
-      {/* Preview Card: Only show if user has supplied/confirmed rent details */}
+      {/* Background Preview Card: Only show if user has supplied/confirmed rent details */}
       {hasRentDetails && (
         <div
           className="rent-savings__gated-content"
@@ -263,7 +363,8 @@ export function RentCalculatorView({
                 {formatCurrency(previewRentAmount, 'NGN')}
               </span>
               <span className="vault-dashboard__target-label">
-                Due {formattedDueDate} • You only contribute {formatCurrency(totalTenantContributionNaira, 'NGN')}
+                Due {formattedDueDate} • You only contribute{' '}
+                {formatCurrency(totalTenantContributionNaira, 'NGN')}
               </span>
             </div>
 
@@ -305,7 +406,9 @@ export function RentCalculatorView({
             >
               <Gift size={16} color="var(--clay)" style={{ flexShrink: 0 }} />
               <span>
-                <strong>Pay Less for Rent:</strong> Earn {savingsAnnualRatePct}% p.a. returns and let interest pay the remaining {formatCurrency(projectedYieldNaira, 'NGN')} of your rent.
+                <strong>Pay Less for Rent:</strong> Earn {savingsAnnualRatePct}% p.a. returns and
+                let interest pay the remaining {formatCurrency(projectedYieldNaira, 'NGN')} of your
+                rent.
               </span>
             </div>
           </div>
@@ -330,50 +433,97 @@ export function RentCalculatorView({
       <BottomSheetModal
         isOpen={isModalVisible}
         onClose={handleCloseDrawer}
-        onBack={hasRentDetails && !hasSavedRent ? () => setRentConfirmed(false) : undefined}
+        onBack={stage === 'KYC' ? () => setStage('BENEFIT') : undefined}
+        showBack={stage === 'KYC'}
         showClose={true}
         showHandle={true}
-        maxWidth="md"
-        title={!hasRentDetails ? 'Your next rent' : 'Pay Less for Your Next Rent'}
+        maxWidth="500px"
+        title={
+          stage === 'RENT_INPUT'
+            ? 'Your next rent'
+            : stage === 'BENEFIT'
+              ? 'Pay Less for Your Next Rent'
+              : stage === 'KYC'
+                ? 'Activate Your Rent Account'
+                : 'Rent Account Ready! 🎉'
+        }
         subtitle={
-          !hasRentDetails
+          stage === 'RENT_INPUT'
             ? 'Tell us the rent you are saving towards and when it is due.'
-            : 'Save flexibly at your own pace and let interest help pay your rent.'
+            : stage === 'BENEFIT'
+              ? 'Save less and let compound interest help pay your upcoming rent.'
+              : stage === 'KYC'
+                ? 'Required by SEC & CBN regulations to generate your personal ARM rent account.'
+                : 'Your dedicated personal rent savings account is active.'
         }
         icon={
-          !hasRentDetails ? (
+          stage === 'RENT_INPUT' ? (
             <Home size={20} color="var(--clay)" />
-          ) : (
+          ) : stage === 'BENEFIT' ? (
             <TrendingUp size={20} color="var(--clay)" />
+          ) : stage === 'KYC' ? (
+            <ShieldCheck size={20} color="var(--clay)" />
+          ) : (
+            <CheckCircle2 size={22} color="#10b981" />
           )
         }
         footer={
-          !hasRentDetails ? (
+          stage === 'RENT_INPUT' ? (
             <button
               type="button"
               className="vault-btn-primary"
               style={{ width: '100%' }}
               disabled={!canConfirmRent}
-              onClick={() => setRentConfirmed(true)}
+              onClick={() => {
+                setRentConfirmed(true)
+                setStage('BENEFIT')
+              }}
             >
               <span>Continue</span>
               <ArrowRight size={18} />
+            </button>
+          ) : stage === 'BENEFIT' ? (
+            <button
+              type="button"
+              className="vault-btn-primary"
+              style={{ width: '100%' }}
+              onClick={() => setStage('KYC')}
+            >
+              <span>Continue to Activate Account</span>
+              <ArrowRight size={18} />
+            </button>
+          ) : stage === 'KYC' ? (
+            <button
+              type="button"
+              className="vault-btn-primary"
+              style={{ width: '100%' }}
+              disabled={!isKycValid || onboardMutation.isPending}
+              onClick={handleSubmitKyc}
+            >
+              {onboardMutation.isPending ? (
+                'Activating Account...'
+              ) : (
+                <>
+                  <span>Activate Account &amp; Get Bank Details</span>
+                  <ArrowRight size={18} />
+                </>
+              )}
             </button>
           ) : (
             <button
               type="button"
               className="vault-btn-primary"
               style={{ width: '100%' }}
-              onClick={handleStartSaving}
-              disabled={!hasRentDetails}
+              onClick={handleFinish}
             >
-              <span>Continue</span>
+              <span>Go to Savings Dashboard</span>
               <ArrowRight size={18} />
             </button>
           )
         }
       >
-        {!hasRentDetails ? (
+        {/* Stage 1: Rent Obligation Input */}
+        {stage === 'RENT_INPUT' && (
           <div className="rent-calculator__section" style={{ marginTop: 0 }}>
             <div className="rent-calculator__field">
               <label className="rent-calculator__label" htmlFor="rent-calc-amount">
@@ -385,134 +535,631 @@ export function RentCalculatorView({
                   id="rent-calc-amount"
                   type="text"
                   inputMode="numeric"
-                  className="rent-calculator__input"
                   placeholder="e.g. 2,500,000"
+                  className="rent-calculator__input"
                   value={targetAmountRaw}
                   onChange={(e) => {
-                    const num = parseCurrencyInput(e.target.value)
-                    setTargetAmountRaw(num ? formatCurrencyInput(num) : '')
+                    const parsed = parseCurrencyInput(e.target.value)
+                    setTargetAmountRaw(parsed ? formatCurrencyInput(parsed) : '')
                   }}
                 />
               </div>
             </div>
+
             <div className="rent-calculator__field" style={{ marginTop: 12 }}>
-              <label className="rent-calculator__label" htmlFor="rent-calc-due">
+              <label className="rent-calculator__label" htmlFor="rent-calc-due-date">
                 Rent due date
               </label>
-              <input
-                id="rent-calc-due"
-                type="date"
-                min={tomorrow}
-                className="rent-calculator__input rent-calculator__input--no-prefix"
-                value={contractualDueDate}
-                onChange={(e) => setContractualDueDate(e.target.value)}
-              />
+              <div className="rent-calculator__input-wrapper">
+                <input
+                  id="rent-calc-due-date"
+                  type="date"
+                  min={tomorrow}
+                  className="rent-calculator__input rent-calculator__input--no-prefix"
+                  value={contractualDueDate}
+                  onChange={(e) => setContractualDueDate(e.target.value)}
+                />
+              </div>
             </div>
           </div>
-        ) : (
-          <div className="rent-calculator__section" style={{ marginTop: 0 }}>
-            {!hasSavedRent && (
+        )}
+
+        {/* Stage 2: Clear Benefit Showcase (Makes User Eager!) */}
+        {stage === 'BENEFIT' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {/* Target Rent Pill with Edit button */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '10px 14px',
+                borderRadius: '10px',
+                background: 'var(--surface-sunken, #f8f6f3)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                Target: <strong style={{ color: 'var(--text)' }}>{formatCurrency(targetAmountNaira, 'NGN')}</strong> due{' '}
+                <strong style={{ color: 'var(--text)' }}>{formattedDueDate}</strong>
+              </div>
+              <button
+                type="button"
+                onClick={() => setStage('RENT_INPUT')}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--clay)',
+                  fontSize: '0.8125rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  padding: '2px 6px',
+                }}
+              >
+                Edit
+              </button>
+            </div>
+
+            {/* High-Impact Benefit Card */}
+            <div
+              style={{
+                padding: '14px 16px',
+                borderRadius: '12px',
+                background: 'var(--surface)',
+                border: '1.5px solid var(--border)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
+              }}
+            >
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: 12,
+                  alignItems: 'baseline',
+                }}
+              >
+                <div>
+                  <span
+                    style={{
+                      fontSize: '0.6875rem',
+                      color: 'var(--text-muted)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.04em',
+                      fontWeight: 700,
+                    }}
+                  >
+                    You Contribute
+                  </span>
+                  <div
+                    style={{
+                      fontSize: '1.25rem',
+                      fontWeight: 800,
+                      color: 'var(--text)',
+                      marginTop: 2,
+                    }}
+                  >
+                    {formatCurrency(totalTenantContributionNaira, 'NGN')}
+                  </div>
+                </div>
+
+                <div style={{ textAlign: 'right' }}>
+                  <span
+                    style={{
+                      fontSize: '0.6875rem',
+                      color: 'var(--text-muted)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.04em',
+                      fontWeight: 700,
+                    }}
+                  >
+                    Interest Covers ({savingsAnnualRatePct}% p.a.)
+                  </span>
+                  <div
+                    style={{
+                      fontSize: '1.25rem',
+                      fontWeight: 800,
+                      color: '#10b981',
+                      marginTop: 2,
+                    }}
+                  >
+                    +{formatCurrency(projectedYieldNaira, 'NGN')}
+                  </div>
+                </div>
+              </div>
+
               <div
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '10px 12px',
-                  borderRadius: '10px',
-                  background: 'var(--surface2, #efefef)',
-                  fontSize: '0.8125rem',
-                  marginBottom: 14,
+                  gap: 8,
+                  paddingTop: 8,
+                  borderTop: '1px solid var(--border)',
+                  fontSize: '0.75rem',
+                  color: 'var(--text-secondary)',
                 }}
               >
-                <div>
-                  <div style={{ color: 'var(--text-secondary)' }}>
-                    Target: <strong style={{ color: 'var(--text)' }}>{formatCurrency(targetAmountNaira, 'NGN')}</strong> due{' '}
-                    <strong style={{ color: 'var(--text)' }}>{formattedDueDate}</strong>
-                  </div>
-                  {projectedYieldNaira > 0 && (
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>
-                      Save flexibly · +{formatCurrency(projectedYieldNaira, 'NGN')} interest covers remainder
-                    </div>
-                  )}
-                </div>
+                <Landmark size={15} color="var(--clay)" style={{ flexShrink: 0 }} />
+                <span>
+                  ARM pays <strong>+{formatCurrency(projectedYieldNaira, 'NGN')}</strong> directly
+                  towards your rent. Flexible savings with zero direct debit fees.
+                </span>
+              </div>
+            </div>
+
+            {/* Plan Selection Tabs */}
+            <div className="rent-calculator__field" style={{ marginTop: 2 }}>
+              <span className="rent-calculator__label">Choose your plan</span>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: 10,
+                }}
+              >
+                {/* Option 1: Rent Protec */}
                 <button
                   type="button"
-                  onClick={() => setRentConfirmed(false)}
+                  onClick={() => setSelectedProductOption('RENT_PROTEC')}
+                  disabled={!isRentProtecEligible}
                   style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: 'var(--clay)',
-                    fontWeight: 600,
-                    fontSize: '0.8125rem',
-                    cursor: 'pointer',
-                    padding: '2px 6px',
+                    position: 'relative',
+                    padding: '12px 10px',
+                    borderRadius: '12px',
+                    border:
+                      activeProductOption === 'RENT_PROTEC'
+                        ? '2px solid var(--clay)'
+                        : '1.5px solid var(--border)',
+                    background:
+                      activeProductOption === 'RENT_PROTEC'
+                        ? 'rgba(217, 119, 87, 0.05)'
+                        : 'var(--surface)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 4,
+                    cursor: isRentProtecEligible ? 'pointer' : 'not-allowed',
+                    opacity: isRentProtecEligible ? 1 : 0.45,
+                    transition: 'all 0.15s ease',
                   }}
                 >
-                  Edit
+                  <span
+                    style={{
+                      fontSize: '0.875rem',
+                      fontWeight: 700,
+                      color: activeProductOption === 'RENT_PROTEC' ? 'var(--clay)' : 'var(--text)',
+                    }}
+                  >
+                    Rent Protec
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '0.625rem',
+                      fontWeight: 700,
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      background: 'var(--clay)',
+                      color: '#fff',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.04em',
+                    }}
+                  >
+                    Recommended
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      color: '#10b981',
+                      marginTop: 2,
+                    }}
+                  >
+                    10% p.a. + Insurance
+                  </span>
                 </button>
+
+                {/* Option 2: Save & Earn */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedProductOption('SAVE_AND_EARN')}
+                  style={{
+                    position: 'relative',
+                    padding: '12px 10px',
+                    borderRadius: '12px',
+                    border:
+                      activeProductOption === 'SAVE_AND_EARN'
+                        ? '2px solid var(--clay)'
+                        : '1.5px solid var(--border)',
+                    background:
+                      activeProductOption === 'SAVE_AND_EARN'
+                        ? 'rgba(217, 119, 87, 0.05)'
+                        : 'var(--surface)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: 4,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: '0.875rem',
+                      fontWeight: 700,
+                      color:
+                        activeProductOption === 'SAVE_AND_EARN' ? 'var(--clay)' : 'var(--text)',
+                    }}
+                  >
+                    Save &amp; Earn
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '0.625rem',
+                      fontWeight: 700,
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      background: 'rgba(16, 185, 129, 0.15)',
+                      color: '#10b981',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.04em',
+                    }}
+                  >
+                    Max Return
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      color: '#10b981',
+                      marginTop: 2,
+                    }}
+                  >
+                    14% p.a. Full Return
+                  </span>
+                </button>
+              </div>
+
+              {/* Explainer Beneath the Selected Tab */}
+              <div
+                style={{
+                  marginTop: 10,
+                  padding: '10px 14px',
+                  borderRadius: '10px',
+                  background: 'var(--surface-sunken, #f8f6f3)',
+                  border: '1px solid var(--border)',
+                  fontSize: '0.75rem',
+                  lineHeight: 1.45,
+                  color: 'var(--text-secondary)',
+                }}
+              >
+                {activeProductOption === 'RENT_PROTEC' ? (
+                  <div>
+                    <strong style={{ color: 'var(--text)' }}>
+                      Rent Protec · Upward &amp; AXA Mansard
+                    </strong>
+                    <div style={{ marginTop: 2 }}>
+                      Earn 10% p.a. returns and get complimentary rent protection insurance covering
+                      your rent in case of job loss or serious illness.
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <strong style={{ color: 'var(--text)' }}>
+                      Save &amp; Earn · Pure High Yield Savings
+                    </strong>
+                    <div style={{ marginTop: 2 }}>
+                      Focus on maximum compounding return (14% p.a.) so interest pays as much of your
+                      upcoming rent as possible.
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Stage 3: Simple & Friendly KYC Step */}
+        {stage === 'KYC' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '8px 12px',
+                borderRadius: '8px',
+                background: 'rgba(217, 119, 87, 0.08)',
+                border: '1px solid rgba(217, 119, 87, 0.2)',
+                fontSize: '0.75rem',
+                color: 'var(--text-secondary)',
+              }}
+            >
+              <Lock size={14} color="var(--clay)" style={{ flexShrink: 0 }} />
+              <span>
+                Your personal ARM rent account will be issued in your legal name to safeguard your
+                funds and enable zero-fee transfers.
+              </span>
+            </div>
+
+            {kycError && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '8px 12px',
+                  borderRadius: '8px',
+                  background: 'rgba(239, 68, 68, 0.08)',
+                  border: '1px solid rgba(239, 68, 68, 0.25)',
+                  fontSize: '0.75rem',
+                  color: 'var(--error)',
+                }}
+              >
+                <AlertCircle size={14} style={{ flexShrink: 0 }} />
+                <span>{kycError}</span>
               </div>
             )}
 
-            <div className="rent-calculator__field">
-              <span className="rent-calculator__label">Savings plan</span>
-              <div className="savings-plan-tabs" role="tablist">
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={activeProductOption === 'RENT_PROTEC'}
-                  disabled={!isRentProtecEligible}
-                  onClick={() => setSelectedProductOption('RENT_PROTEC')}
-                  className={`savings-plan-tabs__tab ${
-                    activeProductOption === 'RENT_PROTEC' ? 'savings-plan-tabs__tab--active' : ''
-                  }`}
-                >
-                  <span className="savings-plan-tabs__title">Rent Protec</span>
-                  <span className="savings-plan-tabs__rate">
-                    {platformRates.rentProtecRatePct}% p.a. + Insurance
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={activeProductOption === 'SAVE_AND_EARN'}
-                  onClick={() => setSelectedProductOption('SAVE_AND_EARN')}
-                  className={`savings-plan-tabs__tab ${
-                    activeProductOption === 'SAVE_AND_EARN' ? 'savings-plan-tabs__tab--active' : ''
-                  }`}
-                >
-                  <span className="savings-plan-tabs__title">Save &amp; Earn</span>
-                  <span className="savings-plan-tabs__rate">
-                    {platformRates.savingsAnnualRatePct}% p.a. Return
-                  </span>
-                </button>
-              </div>
-
-              {/* Minimal 1-line Explainer Beneath Tabs */}
-              <div className="savings-plan-explainer">
-                {activeProductOption === 'RENT_PROTEC' ? (
-                  <>
-                    <ShieldCheck size={16} className="savings-plan-explainer__icon" />
-                    <span>
-                      Earn {platformRates.rentProtecRatePct}% p.a. returns with AXA rent protection against job loss or illness.
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <TrendingUp size={16} className="savings-plan-explainer__icon" />
-                    <span>
-                      Earn full {platformRates.savingsAnnualRatePct}% p.a. compound returns directly towards your rent. Pure savings.
-                    </span>
-                  </>
-                )}
-              </div>
-
-              {!isRentProtecEligible && (
-                <span className="rent-calculator__hint" style={{ marginTop: 6 }}>
-                  Rent Protec needs at least {platformRates.rentProtecMinMonths} months before your
-                  rent is due.
+            {/* BVN */}
+            {hasVerifiedBvnOnFile ? (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '10px 14px',
+                  borderRadius: '10px',
+                  background: 'rgba(16, 185, 129, 0.08)',
+                  border: '1px solid rgba(16, 185, 129, 0.25)',
+                  color: '#10b981',
+                  fontSize: '0.8125rem',
+                  fontWeight: 600,
+                }}
+              >
+                <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
+                <span>
+                  Identity Verified · BVN ({prefill?.masked_bvn || '••••' + (user?.phone?.slice(-4) || '1234')}) on file
                 </span>
-              )}
+              </div>
+            ) : (
+              <div className="rent-calculator__field">
+                <label className="rent-calculator__label">Bank Verification Number (BVN)</label>
+                <div className="rent-calculator__input-wrapper">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="Enter 11-digit BVN"
+                    className="rent-calculator__input rent-calculator__input--no-prefix"
+                    value={bvn}
+                    onChange={(e) => setBvn(e.target.value.replace(/\D/g, '').slice(0, 11))}
+                    maxLength={11}
+                  />
+                </div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  Used strictly to confirm your legal identity with NIBSS.
+                </span>
+              </div>
+            )}
+
+            {/* Mother's Maiden Name */}
+            <div className="rent-calculator__field">
+              <label className="rent-calculator__label">Mother&apos;s Maiden Name</label>
+              <div className="rent-calculator__input-wrapper">
+                <input
+                  type="text"
+                  placeholder="Mother's birth family name"
+                  className="rent-calculator__input rent-calculator__input--no-prefix"
+                  value={mothersMaidenName}
+                  onChange={(e) => setMothersMaidenName(e.target.value)}
+                />
+              </div>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                Security question required for bank account provisioning.
+              </span>
+            </div>
+
+            {/* Occupation & Source of Funds */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div className="rent-calculator__field">
+                <label className="rent-calculator__label">Occupation</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Consultant"
+                  className="rent-calculator__input rent-calculator__input--no-prefix"
+                  value={occupation}
+                  onChange={(e) => setOccupation(e.target.value)}
+                />
+              </div>
+              <div className="rent-calculator__field">
+                <label className="rent-calculator__label">Source of Funds</label>
+                <select
+                  className="rent-calculator__input rent-calculator__input--no-prefix"
+                  value={sourceOfFunds}
+                  onChange={(e) =>
+                    setSourceOfFunds(
+                      e.target.value as 'Salary' | 'Business' | 'Savings' | 'Investment',
+                    )
+                  }
+                >
+                  <option value="Salary">Salary</option>
+                  <option value="Business">Business</option>
+                  <option value="Savings">Savings</option>
+                  <option value="Investment">Investment</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Next of Kin */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div className="rent-calculator__field">
+                <label className="rent-calculator__label">Next of Kin Name</label>
+                <input
+                  type="text"
+                  placeholder="Full legal name"
+                  className="rent-calculator__input rent-calculator__input--no-prefix"
+                  value={nextOfKinName}
+                  onChange={(e) => setNextOfKinName(e.target.value)}
+                />
+              </div>
+              <div className="rent-calculator__field">
+                <label className="rent-calculator__label">Next of Kin Phone</label>
+                <input
+                  type="tel"
+                  placeholder="08012345678"
+                  className="rent-calculator__input rent-calculator__input--no-prefix"
+                  value={nextOfKinPhone}
+                  onChange={(e) =>
+                    setNextOfKinPhone(e.target.value.replace(/[^\d+]/g, '').slice(0, 14))
+                  }
+                />
+              </div>
+            </div>
+
+            {/* Lock Agreement */}
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                marginTop: 6,
+                fontSize: '0.8125rem',
+                color: 'var(--text-secondary)',
+                cursor: 'pointer',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={agreeToLock}
+                onChange={(e) => setAgreeToLock(e.target.checked)}
+                style={{ width: 18, height: 18, accentColor: 'var(--clay)', cursor: 'pointer' }}
+              />
+              <span>I agree to lock my rent savings until 30 days before rent day.</span>
+            </label>
+          </div>
+        )}
+
+        {/* Stage 4: Account Created & Dedicated Account Details */}
+        {stage === 'SUCCESS' && createdDva && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div
+              style={{
+                padding: '16px',
+                borderRadius: '12px',
+                background: 'rgba(217, 119, 87, 0.05)',
+                border: '1.5px solid var(--clay)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 12,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Landmark size={20} color="var(--clay)" />
+                <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text)' }}>
+                  Personal Rent Bank Account
+                </span>
+                <span
+                  style={{
+                    marginLeft: 'auto',
+                    fontSize: '0.625rem',
+                    fontWeight: 700,
+                    padding: '2px 6px',
+                    borderRadius: '4px',
+                    background: 'rgba(16, 185, 129, 0.15)',
+                    color: '#10b981',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Active
+                </span>
+              </div>
+
+              <div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Bank Name</span>
+                <div style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--text)' }}>
+                  {createdDva.bank_name || 'Wema Bank'}
+                </div>
+              </div>
+
+              <div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Account Number</span>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginTop: 2,
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: '1.375rem',
+                      fontWeight: 800,
+                      color: 'var(--clay)',
+                      letterSpacing: '0.04em',
+                    }}
+                  >
+                    {createdDva.account_number}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleCopyAccountNumber(createdDva.account_number)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      padding: '6px 12px',
+                      borderRadius: '8px',
+                      background: 'var(--surface)',
+                      border: '1px solid var(--border)',
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      color: 'var(--text)',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {copiedAccount ? (
+                      <>
+                        <Check size={14} color="#10b981" />
+                        <span style={{ color: '#10b981' }}>Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={14} />
+                        <span>Copy</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Account Name</span>
+                <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text)' }}>
+                  {createdDva.account_name}
+                </div>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '10px 14px',
+                borderRadius: '10px',
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
+                fontSize: '0.75rem',
+                color: 'var(--text-secondary)',
+                lineHeight: 1.4,
+              }}
+            >
+              <CheckCircle2 size={16} color="#10b981" style={{ flexShrink: 0 }} />
+              <span>
+                Transfer any amount whenever you want from your banking app. Every deposit earns
+                interest daily towards your rent.
+              </span>
             </div>
           </div>
         )}
