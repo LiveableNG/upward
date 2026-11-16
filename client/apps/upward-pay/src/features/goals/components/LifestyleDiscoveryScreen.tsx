@@ -28,6 +28,20 @@ import {
   Bed,
   Loader2,
   Sparkles,
+  CreditCard,
+  TrendingUp,
+  Coins,
+  Award,
+  GraduationCap,
+  Code,
+  Laptop,
+  Plane,
+  Gift,
+  Tag,
+  Shirt,
+  Mic,
+  Palette,
+  Shield,
 } from 'lucide-react'
 import {
   useGoalCategories,
@@ -62,16 +76,59 @@ import '../styles/goals.css'
 
 export function getGoalIconComponent(iconName?: string | null, slug?: string) {
   const name = `${iconName || ''} ${slug || ''}`.toLowerCase()
+  if (name.includes('credit') || name.includes('rent-now')) {
+    return CreditCard
+  }
   if (
     name.includes('home') ||
     name.includes('decor') ||
     name.includes('kitchen') ||
     name.includes('apartment') ||
-    name.includes('clean')
+    name.includes('clean') ||
+    name.includes('sofa')
   ) {
     return Home
   }
-  if (name.includes('fitness') || name.includes('gym') || name.includes('weight')) {
+  if (name.includes('save') || name.includes('invest') || name.includes('coin') || name.includes('income')) {
+    return TrendingUp
+  }
+  if (name.includes('award') || name.includes('cert') || name.includes('licence') || name.includes('exam')) {
+    return Award
+  }
+  if (name.includes('grad') || name.includes('degree') || name.includes('child') || name.includes('school')) {
+    return GraduationCap
+  }
+  if (name.includes('code') || name.includes('program') || name.includes('tech')) {
+    return Code
+  }
+  if (name.includes('laptop') || name.includes('remote') || name.includes('digital')) {
+    return Laptop
+  }
+  if (name.includes('plane') || name.includes('travel') || name.includes('abroad')) {
+    return Plane
+  }
+  if (name.includes('gift')) {
+    return Gift
+  }
+  if (name.includes('tag') || name.includes('pay-less') || name.includes('spend')) {
+    return Tag
+  }
+  if (name.includes('shirt') || name.includes('laundry')) {
+    return Shirt
+  }
+  if (name.includes('shop') || name.includes('grocery')) {
+    return ShoppingBag
+  }
+  if (name.includes('mic') || name.includes('speak') || name.includes('presentation')) {
+    return Mic
+  }
+  if (name.includes('palette') || name.includes('paint') || name.includes('creative')) {
+    return Palette
+  }
+  if (name.includes('shield') || name.includes('martial') || name.includes('karate')) {
+    return Shield
+  }
+  if (name.includes('fitness') || name.includes('gym') || name.includes('weight') || name.includes('sport')) {
     return Dumbbell
   }
   if (name.includes('health') || name.includes('eat') || name.includes('wellness')) {
@@ -85,20 +142,17 @@ export function getGoalIconComponent(iconName?: string | null, slug?: string) {
   ) {
     return Briefcase
   }
-  if (name.includes('book') || name.includes('read') || name.includes('study')) {
+  if (name.includes('book') || name.includes('read') || name.includes('study') || name.includes('english')) {
     return BookOpen
   }
-  if (name.includes('drive') || name.includes('car') || name.includes('move')) {
+  if (name.includes('drive') || name.includes('car') || name.includes('move') || name.includes('commute')) {
     return Car
   }
-  if (name.includes('music') || name.includes('instrument')) {
+  if (name.includes('music') || name.includes('piano') || name.includes('instrument')) {
     return Music
   }
-  if (name.includes('food') || name.includes('meal')) {
-    return Utensils
-  }
-  if (name.includes('sleep') || name.includes('bed')) {
-    return Bed
+  if (name.includes('sparkle') || name.includes('custom') || name.includes('goal')) {
+    return Sparkles
   }
   return Target
 }
@@ -272,12 +326,21 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
     }
   }
 
-  const toggleDraftGoal = (goalId: number) => {
+  const toggleDraftGoal = (
+    goalId: number,
+    categoryGoals: Array<{ id: number }>,
+    catTitle: string,
+  ) => {
     setDraftGoalIds((prev) => {
       const next = new Set(prev)
       if (next.has(goalId)) {
         next.delete(goalId)
       } else {
+        const countInCat = categoryGoals.filter((g) => next.has(g.id)).length
+        if (countInCat >= 3) {
+          toastError(`You can select up to 3 goals in ${catTitle}.`)
+          return prev
+        }
         next.add(goalId)
       }
       return next
@@ -765,15 +828,32 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
             </div>
           ) : (
             categories.map((cat) => {
-              const goals = cat.goals || []
+              const goals = (cat.goals || []) as Goal[]
               if (goals.length === 0) return null
               const catTitle = getCategoryTitle(cat) || 'Lifestyle'
+              const selectedInCat = goals.filter((g) => draftGoalIds.has(g.id)).length
+              const isCatMaxed = selectedInCat >= 3
 
               return (
                 <div key={cat.id} className="goal-sheet__group">
-                  <h3 className="goal-sheet__group-title">{catTitle}</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <h3 className="goal-sheet__group-title" style={{ margin: 0 }}>{catTitle}</h3>
+                    <span
+                      style={{
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        padding: '2px 8px',
+                        borderRadius: '12px',
+                        background: isCatMaxed ? 'rgba(217, 119, 87, 0.12)' : 'var(--surface-sunken)',
+                        color: isCatMaxed ? 'var(--clay)' : 'var(--text-muted)',
+                        border: isCatMaxed ? '1px solid rgba(217, 119, 87, 0.3)' : '1px solid var(--border)',
+                      }}
+                    >
+                      {selectedInCat}/3 selected {isCatMaxed ? '(max)' : ''}
+                    </span>
+                  </div>
                   <div className="goal-sheet__list">
-                    {(goals as Goal[]).map((goal: Goal) => {
+                    {goals.map((goal: Goal) => {
                       const isSelected = draftGoalIds.has(goal.id)
                       const gTitle =
                         getGoalTitle(goal) ||
@@ -792,7 +872,7 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
                           className={`goal-card ${
                             isSelected ? 'goal-card--selected' : ''
                           }`}
-                          onClick={() => toggleDraftGoal(goal.id)}
+                          onClick={() => toggleDraftGoal(goal.id, goals, catTitle)}
                         >
                           <div className="goal-card__icon-box">
                            <IconComp size={18} />

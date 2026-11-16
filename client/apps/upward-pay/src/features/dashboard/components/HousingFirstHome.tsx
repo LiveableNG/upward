@@ -165,7 +165,8 @@ export function HousingFirstHome({
 
     const incomeGoal = active.find((ug) => matchCategory(ug, ['income', 'start-a-business']))
     const careerGoal = active.find((ug) => matchCategory(ug, ['career', 'work-growth', 'learn-a-skill']))
-    const childrenGoal = active.find((ug) => matchCategory(ug, ['other', 'children', 'family', 'goals-for-my-children']))
+    const childrenGoal = active.find((ug) => matchCategory(ug, ['children', 'other', 'family', 'goals-for-my-children']))
+    const payLessGoal = active.find((ug) => matchCategory(ug, ['pay-less', 'expenses', 'laundry', 'grocery']))
 
     const formatSubtitle = (goal: any, defaultText: string) => {
       if (!goal) return defaultText
@@ -188,26 +189,35 @@ export function HousingFirstHome({
       },
       {
         id: 'career',
-        tag: 'CAREER',
-        title: 'Career & professional',
+        tag: 'CAREER & PROFESSIONAL',
+        title: 'Career & professional development',
         desc: formatSubtitle(careerGoal, 'Certifications, skills & career growth'),
         pct: careerGoal?.progressPct ?? 0,
         hasGoal: Boolean(careerGoal),
         href: '/dashboard/goals?category=career',
       },
       {
+        id: 'pay-less',
+        tag: 'PAY LESS FOR STUFF',
+        title: 'Pay less for stuff',
+        desc: formatSubtitle(payLessGoal, 'Save on laundry, groceries & commute'),
+        pct: payLessGoal?.progressPct ?? 0,
+        hasGoal: Boolean(payLessGoal),
+        href: '/dashboard/goals?category=pay-less',
+      },
+      {
         id: 'children',
         tag: 'CHILDREN DEVELOPMENT',
-        title: 'Children development',
+        title: 'Children\'s development',
         desc: formatSubtitle(childrenGoal, 'School fees, skills & family milestones'),
         pct: childrenGoal?.progressPct ?? 0,
         hasGoal: Boolean(childrenGoal),
-        href: '/dashboard/goals?category=other',
+        href: '/dashboard/goals?category=children',
       },
     ]
 
     // Any other custom goals created by the user (excluding housing and lifestyle)
-    const coreIds = new Set([incomeGoal?.id, careerGoal?.id, childrenGoal?.id].filter(Boolean))
+    const coreIds = new Set([incomeGoal?.id, careerGoal?.id, childrenGoal?.id, payLessGoal?.id].filter(Boolean))
     const extraCustom = active
       .filter((ug) => {
         const s = (ug.categorySlug || ug.goal?.category?.slug || '').toLowerCase()

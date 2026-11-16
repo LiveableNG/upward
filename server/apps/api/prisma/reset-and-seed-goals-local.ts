@@ -65,6 +65,18 @@ async function main() {
       })
       goalMap.set(goal.slug, goal.id)
       console.log(`  🎯 Goal: [${goal.slug}] ${goal.title}`)
+
+      if (goalData.actions && goalData.actions.length > 0) {
+        await prisma.upward_goal_action_template.createMany({
+          data: goalData.actions.map((act, idx) => ({
+            goalId: goal.id,
+            title: act.title,
+            description: act.description ?? null,
+            sortOrder: idx,
+            isRequired: act.isRequired ?? false,
+          })),
+        })
+      }
     }
   }
 

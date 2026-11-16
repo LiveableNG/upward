@@ -16,8 +16,17 @@ import {
 import { type UserGoal, type GoalTargetType } from '../types/goals.types'
 import { useToast } from '@/components/common/Toast'
 
+export type CategoryKey =
+  | 'housing'
+  | 'income'
+  | 'career'
+  | 'pay-less'
+  | 'children'
+  | 'fitness'
+  | 'custom'
+
 interface CategoryQuestionConfig {
-  id: 'income' | 'career' | 'children' | 'fitness' | 'custom'
+  id: CategoryKey
   title: string
   intro: string
   label: string
@@ -33,54 +42,220 @@ interface CategoryQuestionConfig {
   notesRequired?: boolean
 }
 
-const QUESTIONNAIRE_CONFIGS: Record<
-  'income' | 'career' | 'children' | 'fitness' | 'custom',
-  CategoryQuestionConfig
-> = {
+const QUESTIONNAIRE_CONFIGS: Record<CategoryKey, CategoryQuestionConfig> = {
+  housing: {
+    id: 'housing',
+    title: 'Home & lifestyle goals',
+    intro: 'Housing is more than rent. Pick your home, move, or living space goal.',
+    label: 'What do you want to achieve for your home?',
+    options: [
+      'Pay my rent now',
+      'Pay less for my next rent',
+      'Move to a new apartment (coming soon)',
+      'Buy a house',
+      'Prepare for the new year',
+      'Improve my home feel',
+      'Improve remote work productivity',
+      'Travel',
+      'Gift someone',
+    ],
+    extras: {
+      'Prepare for the new year': {
+        label: 'Home refresh packages you are interested in:',
+        options: [
+          'Cleaning & sanitation essentials',
+          'Room carpets & footmats',
+          'Kitchen & dining renewal bundle',
+          'Bathroom upgrade package',
+        ],
+      },
+      'Gift someone': {
+        label: 'Occasion for the gift:',
+        options: ['Birthday', 'Christmas & holidays', 'Wedding / Anniversary', 'Housewarming'],
+      },
+    },
+  },
   income: {
     id: 'income',
     title: 'Income & financial goals',
-    intro: 'Pick how you want to grow your income and reserves.',
+    intro: 'Earn more, increase financial stability, build additional income streams and make progress financially.',
     label: 'What is your primary income goal?',
     options: [
-      'Start a business',
-      'Grow my existing business revenue',
-      'Add a second stream of income',
-      'Save towards an emergency or investment fund',
-      'Start investing more seriously',
+      'Get a promotion',
+      'Start a side hustle',
+      'Start freelancing',
+      'Get a remote international job',
+      'Monetise my skills',
+      'Grow my existing income',
+      'Get my first source of income',
+      'Start investing',
+      'Save more money',
+      'Reduce my expenses',
+      'Relocate abroad',
+      'Save towards an important family occasion',
+      'Pay off my debts',
     ],
   },
   career: {
     id: 'career',
-    title: 'Career & professional goals',
-    intro: 'Pick where you want to grow professionally this year.',
+    title: 'Career & professional development',
+    intro: 'Advance professionally, switch fields, acquire qualifications, and sharpen workplace skills.',
     label: 'What do you want to achieve?',
     options: [
-      'Pass a professional certification exam',
-      'Learn a new high-income skill',
-      'Transition into a new career role',
-      'Get promoted at my current workplace',
-      'Build a stronger professional network',
+      'Get my first job',
+      'Get an internship',
+      'Change my career',
+      'Switch career to tech',
+      'Get promoted to management',
+      'Start my own business',
+      'Improve my leadership skills',
+      'Improve my presentation skills',
+      'Improve my speaking skills',
+      'Get a mentor/coach',
+      'Become a better salesperson',
+      'Improve my professional appearance',
+      'Start working remotely',
+      'Improve my remote-work setup',
+      'Get a professional certification',
+      'Get a professional licence',
+      'Take a professional examination',
+      'Get a master\'s degree',
+      'Grow my professional career',
+      'Grow my business career',
     ],
     extras: {
-      'Pass a professional certification exam': {
-        label: 'Which certification?',
-        options: ['ICAN', 'ACCA', 'CFA', 'PMP', 'CIPM', 'AWS / Cloud', 'Other'],
+      'Get a professional certification': {
+        label: 'Which certification are you preparing for?',
+        options: [
+          'PMP',
+          'ICAN',
+          'OGF Academy',
+          'CIPM',
+          'NIPM',
+          'CISA (ISACA)',
+          'CCNA (Cisco)',
+          'CEH (EC-Council)',
+          'TOGAF',
+          'DCP / ACIN / FCIN',
+          'CPPM / CLM / CPPP',
+          'HSE',
+          'TCRN License',
+          'NIMASA Maritime Standards',
+          'Professional Engineering Exam',
+          'Other / Unlisted',
+        ],
+      },
+      'Get a professional licence': {
+        label: 'Which professional licence?',
+        options: [
+          'COREN (Engineering)',
+          'NSE',
+          'SURCON (Surveying)',
+          'NIS',
+          'NIESV (Estate Surveyors)',
+          'CORBON (Builders)',
+          'NIOB',
+          'NIQS (Quantity Surveyors)',
+          'Other licence',
+        ],
+      },
+    },
+  },
+  'pay-less': {
+    id: 'pay-less',
+    title: 'Pay less for stuff',
+    intro: 'Cut routine expenses across laundry, grocery, housing, and commute.',
+    label: 'Where do you want to save money?',
+    options: [
+      'Laundry — Save on drycleaning',
+      'Grocery — Regular items bulk discount',
+      'Grocery — Top monthly spends',
+      'Housing — Share space with a roommate',
+      'Commute — Reduce transportation costs',
+    ],
+    extras: {
+      'Laundry — Save on drycleaning': {
+        label: 'How much do you currently spend on drycleaning per month?',
+        options: ['Under ₦15,000', '₦15,000 - ₦35,000', '₦35,000 - ₦70,000', 'Above ₦70,000'],
+      },
+      'Grocery — Regular items bulk discount': {
+        label: 'What 3 things do you buy regularly?',
+        options: [
+          'Rice, oil & provisions',
+          'Beverages & dairy',
+          'Meat, poultry & fish',
+          'Toiletries & home cleaning',
+          'Fresh fruits & vegetables',
+        ],
+      },
+      'Grocery — Top monthly spends': {
+        label: 'What 3 things do you spend the most money on monthly?',
+        options: [
+          'Bulk grains & cooking oils',
+          'Meat, fish & poultry',
+          'Baby food & hygiene items',
+          'Snacks & packaged provisions',
+        ],
+      },
+      'Housing — Share space with a roommate': {
+        label: 'Would you be open to sharing your space with a roommate?',
+        options: [
+          'Yes, definitely open',
+          'Only with a verified professional',
+          'Maybe in the future',
+          'No, prefer living alone',
+        ],
+      },
+      'Commute — Reduce transportation costs': {
+        label: 'How much do you spend on transportation per month?',
+        options: ['Under ₦25,000', '₦25,000 - ₦60,000', '₦60,000 - ₦120,000', 'Above ₦120,000'],
       },
     },
   },
   children: {
     id: 'children',
-    title: 'Children development',
-    intro: 'School fees, skills, family milestones & future planning.',
-    label: 'What is your primary milestone or goal?',
+    title: 'Children\'s development',
+    intro: 'Help your children develop academic skills, talents, and extracurricular passions.',
+    label: 'What do you want your child to achieve?',
     options: [
-      'Goals for my children',
-      'A family goal',
-      'School fees and education fund',
-      'Extracurriculars and skills development',
-      'Buy a family car',
-      'Travel abroad',
+      'Improve my child\'s mathematics',
+      'Improve my child\'s English',
+      'Improve my child\'s speaking skills',
+      'Introduce my child to programming and technology',
+      'Improve my child\'s digital skills',
+      'Prepare my child for entrance examinations',
+      'Develop my child\'s leadership skills',
+      'Get my child involved in sports',
+      'Help my child learn piano',
+      'Develop my child’s musical ability beyond piano',
+      'Help my child learn martial arts',
+      'Improve my child\'s creative skills',
+    ],
+    extras: {
+      'Get my child involved in sports': {
+        label: 'Which sports activity?',
+        options: ['Lawn tennis', 'Swimming', 'Football', 'Basketball', 'Athletics'],
+      },
+      'Help my child learn martial arts': {
+        label: 'Which martial art?',
+        options: ['Karate', 'Taekwondo', 'Judo', 'Self-defense basics'],
+      },
+      'Develop my child’s musical ability beyond piano': {
+        label: 'Which musical instrument or skill?',
+        options: ['Violin', 'Guitar', 'Drums / Percussion', 'Voice / Singing'],
+      },
+    },
+  },
+  custom: {
+    id: 'custom',
+    title: 'Set a custom goal',
+    intro: 'Create your own goal, describe the outcome, add action steps, and set your target timeline.',
+    label: 'What type of goal do you want to create?',
+    options: [
+      'Create my own goal',
+      'Describe what I want to achieve',
+      'Add actions towards my goal',
+      'Suggest a new goal category',
     ],
   },
   fitness: {
@@ -94,19 +269,6 @@ const QUESTIONNAIRE_CONFIGS: Record<
       'Stay consistent with exercise',
       'Improve my diet and nutrition',
       'Prepare for a fitness event or run',
-    ],
-  },
-  custom: {
-    id: 'custom',
-    title: 'Set a goal',
-    intro: 'Pick a goal idea or enter your own, then add the steps to complete it.',
-    label: 'What is your goal?',
-    options: [
-      'Goals for my children',
-      'Health & fitness goal',
-      'A family goal',
-      'Buy a car',
-      'Travel abroad',
     ],
   },
 }
@@ -156,10 +318,12 @@ function renderPrototypeRing(pct: number, size = 52) {
 function resolveQueryCategory(
   isNew: boolean,
   cat: string | null,
-): 'income' | 'career' | 'children' | 'fitness' | 'custom' | null {
+): CategoryKey | null {
   if (isNew || cat === 'custom') return 'custom'
+  if (cat === 'housing' || cat === 'home' || cat === 'lifestyle') return 'housing'
   if (cat === 'income') return 'income'
   if (cat === 'career' || cat === 'work-growth') return 'career'
+  if (cat === 'pay-less' || cat === 'expenses' || cat === 'laundry' || cat === 'grocery') return 'pay-less'
   if (cat === 'other' || cat === 'children' || cat === 'family') return 'children'
   if (cat === 'fitness' || cat === 'wellness-lifestyle') return 'fitness'
   return null
@@ -187,9 +351,7 @@ export function AllGoalsScreen() {
   const initialQueryCat = resolveQueryCategory(isNewParam, catParam)
 
   // Active sub-screen state: 'home' | 'questionnaire' | 'detail' | 'custom-modal'
-  const [activeCategory, setActiveCategory] = useState<
-    'income' | 'career' | 'children' | 'fitness' | 'custom' | null
-  >(initialQueryCat)
+  const [activeCategory, setActiveCategory] = useState<CategoryKey | null>(initialQueryCat)
   const [selectedOption, setSelectedOption] = useState<string | null>(null)
   const [selectedExtra, setSelectedExtra] = useState<string | null>(null)
   const [notesText, setNotesText] = useState('')
@@ -220,7 +382,7 @@ export function AllGoalsScreen() {
   const [currentActionText, setCurrentActionText] = useState('')
 
   const openQuestionnaire = useCallback(
-    (catId: 'income' | 'career' | 'children' | 'fitness' | 'custom') => {
+    (catId: CategoryKey) => {
       setActiveCategory(catId)
       setSelectedOption(null)
       setSelectedExtra(null)
@@ -233,13 +395,6 @@ export function AllGoalsScreen() {
     [],
   )
 
-  // Redirect ?cat=lifestyle straight to /dashboard/lifestyle
-  useEffect(() => {
-    if (catParam === 'lifestyle') {
-      router.replace('/dashboard/lifestyle')
-    }
-  }, [catParam, router])
-
   // Group user's active goals by category
   const goalsByCategory = useMemo(() => {
     const active = userGoals.filter((ug) => ug.status === 'ACTIVE')
@@ -250,34 +405,42 @@ export function AllGoalsScreen() {
       return slugs.includes(s) || slugs.includes(gSlug)
     }
 
+    const housingGoals = active.filter((ug) =>
+      matchCategory(ug, ['housing', 'home-lifestyle', 'home', 'lifestyle']),
+    )
     const incomeGoals = active.filter((ug) =>
       matchCategory(ug, ['income', 'start-a-business']),
     )
     const careerGoals = active.filter((ug) =>
       matchCategory(ug, ['career', 'work-growth', 'learn-a-skill']),
     )
+    const payLessGoals = active.filter((ug) =>
+      matchCategory(ug, ['pay-less', 'expenses', 'laundry', 'grocery']),
+    )
     const childrenGoals = active.filter((ug) =>
-      matchCategory(ug, ['other', 'children', 'family', 'goals-for-my-children']),
+      matchCategory(ug, ['children', 'other', 'family', 'goals-for-my-children']),
     )
     const fitnessGoals = active.filter((ug) =>
       matchCategory(ug, ['fitness', 'health-fitness', 'wellness-lifestyle', 'healthy-living-lifestyle']),
     )
 
     const coreIds = new Set(
-      [...incomeGoals, ...careerGoals, ...childrenGoals, ...fitnessGoals].map(
+      [...housingGoals, ...incomeGoals, ...careerGoals, ...payLessGoals, ...childrenGoals, ...fitnessGoals].map(
         (g) => g.id || g.uuid,
       ),
     )
 
     const otherCustomGoals = active.filter((ug) => {
       const s = (ug.categorySlug || ug.goal?.category?.slug || '').toLowerCase()
-      if (s === 'housing' || s === 'lifestyle' || s === 'home-utilities') return false
+      if (s === 'home-utilities') return false
       return !coreIds.has(ug.id || ug.uuid)
     })
 
     return {
+      housing: housingGoals,
       income: incomeGoals,
       career: careerGoals,
+      'pay-less': payLessGoals,
       children: childrenGoals,
       fitness: fitnessGoals,
       custom: otherCustomGoals,
@@ -285,10 +448,10 @@ export function AllGoalsScreen() {
   }, [userGoals])
 
   const getCategoryCardState = (
-    catKey: 'income' | 'career' | 'children' | 'fitness',
+    catKey: CategoryKey,
     defaultSubtitle: string,
   ) => {
-    const list = goalsByCategory[catKey]
+    const list = goalsByCategory[catKey] || []
     if (list.length > 0) {
       const primary = list[0]
       const rawPct = Math.round(
@@ -319,13 +482,15 @@ export function AllGoalsScreen() {
     }
   }
 
+  const housingCard = getCategoryCardState('housing', 'Home readiness, rent savings & space improvements')
   const incomeCard = getCategoryCardState('income', 'Grow revenue, build reserves & invest')
   const careerCard = getCategoryCardState('career', 'Certifications, skills & career growth')
+  const payLessCard = getCategoryCardState('pay-less', 'Cut laundry, groceries & commute expenses')
   const childrenCard = getCategoryCardState('children', 'School fees, skills & family milestones')
   const fitnessCard = getCategoryCardState('fitness', 'Build healthy habits & fitness routines')
 
-  const handleCategoryCardClick = (catId: 'income' | 'career' | 'children' | 'fitness') => {
-    const list = goalsByCategory[catId]
+  const handleCategoryCardClick = (catId: CategoryKey) => {
+    const list = goalsByCategory[catId] || []
     if (list.length > 0) {
       setActiveDetailGoal(list[0])
     } else {
@@ -720,7 +885,25 @@ export function AllGoalsScreen() {
 
       {/* Goal Category Cards List */}
       <div className="proto-goals__list">
-        {/* 1. Income & financial goals */}
+        {/* 1. Home & lifestyle goals */}
+        <button
+          type="button"
+          className={`proto-goals__card ${housingCard.hasGoal ? 'proto-goals__card--active-cat' : ''}`}
+          onClick={() => handleCategoryCardClick('housing')}
+        >
+          <div className="proto-goals__copy">
+            <div className="proto-goals__kicker-row">
+              <span className={`proto-goals__badge ${housingCard.badgeClass}`}>
+                {housingCard.badge}
+              </span>
+            </div>
+            <h3 className="proto-goals__card-title">Home &amp; lifestyle goals</h3>
+            <p className="proto-goals__card-desc">{housingCard.subtitle}</p>
+          </div>
+          {renderPrototypeRing(housingCard.pct, 52)}
+        </button>
+
+        {/* 2. Income & financial goals */}
         <button
           type="button"
           className={`proto-goals__card ${incomeCard.hasGoal ? 'proto-goals__card--active-cat' : ''}`}
@@ -738,7 +921,7 @@ export function AllGoalsScreen() {
           {renderPrototypeRing(incomeCard.pct, 52)}
         </button>
 
-        {/* 2. Career & professional goals */}
+        {/* 3. Career & professional development */}
         <button
           type="button"
           className={`proto-goals__card ${careerCard.hasGoal ? 'proto-goals__card--active-cat' : ''}`}
@@ -750,13 +933,31 @@ export function AllGoalsScreen() {
                 {careerCard.badge}
               </span>
             </div>
-            <h3 className="proto-goals__card-title">Career &amp; professional goals</h3>
+            <h3 className="proto-goals__card-title">Career &amp; professional development</h3>
             <p className="proto-goals__card-desc">{careerCard.subtitle}</p>
           </div>
           {renderPrototypeRing(careerCard.pct, 52)}
         </button>
 
-        {/* 3. Children development */}
+        {/* 4. Pay less for stuff */}
+        <button
+          type="button"
+          className={`proto-goals__card ${payLessCard.hasGoal ? 'proto-goals__card--active-cat' : ''}`}
+          onClick={() => handleCategoryCardClick('pay-less')}
+        >
+          <div className="proto-goals__copy">
+            <div className="proto-goals__kicker-row">
+              <span className={`proto-goals__badge ${payLessCard.badgeClass}`}>
+                {payLessCard.badge}
+              </span>
+            </div>
+            <h3 className="proto-goals__card-title">Pay less for stuff</h3>
+            <p className="proto-goals__card-desc">{payLessCard.subtitle}</p>
+          </div>
+          {renderPrototypeRing(payLessCard.pct, 52)}
+        </button>
+
+        {/* 5. Children development */}
         <button
           type="button"
           className={`proto-goals__card ${childrenCard.hasGoal ? 'proto-goals__card--active-cat' : ''}`}
@@ -768,31 +969,13 @@ export function AllGoalsScreen() {
                 {childrenCard.badge}
               </span>
             </div>
-            <h3 className="proto-goals__card-title">Children development</h3>
+            <h3 className="proto-goals__card-title">Children&#39;s development</h3>
             <p className="proto-goals__card-desc">{childrenCard.subtitle}</p>
           </div>
           {renderPrototypeRing(childrenCard.pct, 52)}
         </button>
 
-        {/* 4. Health & fitness goals */}
-        <button
-          type="button"
-          className={`proto-goals__card ${fitnessCard.hasGoal ? 'proto-goals__card--active-cat' : ''}`}
-          onClick={() => handleCategoryCardClick('fitness')}
-        >
-          <div className="proto-goals__copy">
-            <div className="proto-goals__kicker-row">
-              <span className={`proto-goals__badge ${fitnessCard.badgeClass}`}>
-                {fitnessCard.badge}
-              </span>
-            </div>
-            <h3 className="proto-goals__card-title">Health &amp; fitness goals</h3>
-            <p className="proto-goals__card-desc">{fitnessCard.subtitle}</p>
-          </div>
-          {renderPrototypeRing(fitnessCard.pct, 52)}
-        </button>
-
-        {/* 5. Any Additional Custom Goals */}
+        {/* 6. Any Additional Custom Goals */}
         {goalsByCategory.custom.map((ug) => {
           const pct = ug.progressPct || 5
           const title = ug.title || ug.goal?.title || 'Personal goal'
@@ -820,13 +1003,13 @@ export function AllGoalsScreen() {
         })}
       </div>
 
-      {/* Suggest a different goal CTA */}
+      {/* Suggest a different goal CTA / Custom Goal */}
       <button
         type="button"
         className="proto-goals__custom-link"
         onClick={() => openQuestionnaire('custom')}
       >
-        Suggest a different goal
+        + Add a custom goal or suggest a new category
       </button>
 
       {/* DETAIL & ACTIONS MODAL FOR ACTIVE GOALS */}

@@ -12,19 +12,10 @@ import { randomUUID } from 'crypto'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 
 const DEFAULT_SUGGESTED_ACTIONS: Record<string, string[]> = {
-  fitness: [
-    'Set a weekly workout and movement schedule',
-    'Book a first fitness or gym session',
-    'Track nutrition and daily hydration for 7 days',
-    'Find a workout partner or accountability group',
-    'Schedule a routine health check-up',
-  ],
-  career: [
-    'Update my CV and LinkedIn profile',
-    'Set a weekly 3-hour learning block',
-    'Reach out to a professional mentor or coach',
-    'Register for the targeted certification examination',
-    'Practice mock questions and review past papers',
+  housing: [
+    'Review upcoming rent due date and amount',
+    'Set up automated monthly housing deposit',
+    'Track progress and verify payment receipt',
   ],
   income: [
     'Map my primary and secondary income sources',
@@ -33,12 +24,41 @@ const DEFAULT_SUGGESTED_ACTIONS: Record<string, string[]> = {
     'Conduct a monthly expense review',
     'Talk to someone who has successfully scaled this income path',
   ],
+  career: [
+    'Update my CV and LinkedIn profile',
+    'Set a weekly 3-hour learning block',
+    'Reach out to a professional mentor or coach',
+    'Register for the targeted certification examination',
+    'Practice mock questions and review past papers',
+  ],
+  'pay-less': [
+    'Review current monthly expense across this item',
+    'Opt into Upward bulk partner pricing or group cart',
+    'Track monthly savings and reinvest difference',
+  ],
+  children: [
+    'Select curriculum, coaching program, or club',
+    'Set aside weekly practice or tutoring time',
+    'Track termly milestone achievements',
+  ],
+  fitness: [
+    'Set a weekly workout and movement schedule',
+    'Book a first fitness or gym session',
+    'Track nutrition and daily hydration for 7 days',
+    'Find a workout partner or accountability group',
+    'Schedule a routine health check-up',
+  ],
   lifestyle: [
     'Set a realistic budget and milestone checklist',
     'Research verified suppliers and vendor offerings',
     'Block personal time on the calendar for this goal',
     'Share the milestone with an accountability partner',
     'Take the first measurable step this week',
+  ],
+  custom: [
+    'Define milestone target date and target outcome',
+    'List top 3 execution steps to complete',
+    'Track weekly progress towards completion',
   ],
 }
 
@@ -111,10 +131,13 @@ export class SubmitGoalQuestionnaireUseCase {
 
     const iconMap: Record<string, string> = {
       fitness: '💪',
-      career: '📚',
-      income: '💼',
-      lifestyle: '✈️',
+      career: '💼',
+      income: '💰',
+      lifestyle: '✨',
       housing: '🏠',
+      children: '🎓',
+      'pay-less': '🏷️',
+      custom: '🎯',
     }
 
     const targetAmountKobo = dto.targetAmountKobo

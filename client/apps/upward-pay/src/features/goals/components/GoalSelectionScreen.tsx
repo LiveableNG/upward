@@ -59,13 +59,22 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
     return new Set<number>(activeIds)
   }, [userSelectedIds, userGoals])
 
-  const toggleGoal = (goalId: number) => {
+  const toggleGoal = (
+    goalId: number,
+    categoryGoals: Array<{ id: number }>,
+    catTitle: string,
+  ) => {
     setUserSelectedIds((prev) => {
       const current = prev !== null ? prev : selectedGoalIds
       const next = new Set(current)
       if (next.has(goalId)) {
         next.delete(goalId)
       } else {
+        const countInCat = categoryGoals.filter((g) => next.has(g.id)).length
+        if (countInCat >= 3) {
+          toastError(`You can select up to 3 goals in ${catTitle}.`)
+          return current
+        }
         next.add(goalId)
       }
       return next
@@ -185,15 +194,15 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
         <div className="goal-selection__title-group">
           <h1 className="goal-selection__title">
             {hasNoGoals
-              ? 'Lifestyle Goals'
+              ? 'Goals'
               : mode === 'onboarding'
                 ? 'What are your priorities right now?'
-                : 'Your Lifestyle Goals'}
+                : 'Your Goals'}
           </h1>
           <p className="goal-selection__subtitle">
             {hasNoGoals
-              ? 'Select your tenancy priorities and perks once available.'
-              : 'Pick the goals you care about most — from 24/7 power backup and fast Wi-Fi to home furnishing — and unlock exclusive member deals.'}
+              ? 'Select your housing, income, career, and personal goals.'
+              : 'Select multiple goals (up to 3 per category) across housing, income, career, and children development.'}
           </p>
         </div>
       </header>
@@ -258,10 +267,27 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
             const goals = cat.goals || []
             if (goals.length === 0) return null
             const catTitle = getCategoryTitle(cat) || 'Lifestyle'
+            const selectedInCat = goals.filter((g) => selectedGoalIds.has(g.id)).length
+            const isCatMaxed = selectedInCat >= 3
 
             return (
               <section key={cat.id} className="goal-selection__category-section">
-                <h2 className="goal-selection__section-title">{catTitle}</h2>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <h2 className="goal-selection__section-title" style={{ margin: 0 }}>{catTitle}</h2>
+                  <span
+                    style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 600,
+                      padding: '2px 8px',
+                      borderRadius: '12px',
+                      background: isCatMaxed ? 'rgba(217, 119, 87, 0.12)' : 'var(--surface-sunken)',
+                      color: isCatMaxed ? 'var(--clay)' : 'var(--text-muted)',
+                      border: isCatMaxed ? '1px solid rgba(217, 119, 87, 0.3)' : '1px solid var(--border)',
+                    }}
+                  >
+                    {selectedInCat}/3 selected {isCatMaxed ? '(max)' : ''}
+                  </span>
+                </div>
 
                 <div className="goal-selection__grid">
                   {goals.map((goal) => {
@@ -283,7 +309,7 @@ export const GoalSelectionScreen: React.FC<GoalSelectionScreenProps> = ({
                         className={`goal-card ${
                           isSelected ? 'goal-card--selected' : ''
                         }`}
-                        onClick={() => toggleGoal(goal.id)}
+                        onClick={() => toggleGoal(goal.id, goals, catTitle)}
                       >
                         <div className="goal-card__icon-box">
                           <IconComponent size={19} />

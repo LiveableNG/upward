@@ -334,6 +334,26 @@ export class PrismaGoalRepository implements GoalRepository {
     const targetSet = new Set(goalIds)
 
     return this.prisma.$transaction(async (tx) => {
+      // Validate cap of 3 per category
+      if (goalIds.length > 0) {
+        const goalsWithCategory = await tx.upward_goal.findMany({
+          where: { id: { in: goalIds } },
+          select: { id: true, categoryId: true, category: { select: { title: true } } },
+        })
+        const countByCat = new Map<number, { count: number; title: string }>()
+        for (const g of goalsWithCategory) {
+          const existing = countByCat.get(g.categoryId)
+          const currentCount = existing ? existing.count + 1 : 1
+          const title = existing?.title || g.category?.title || 'this category'
+          if (currentCount > 3) {
+            throw new Error(
+              `You can select a maximum of 3 goals in "${title}".`,
+            )
+          }
+          countByCat.set(g.categoryId, { count: currentCount, title })
+        }
+      }
+
       // Find existing goals for this user
       const existing = await tx.upward_user_goal.findMany({
         where: { userId },
