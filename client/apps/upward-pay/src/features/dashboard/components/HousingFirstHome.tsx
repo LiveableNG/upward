@@ -182,7 +182,7 @@ export function HousingFirstHome({
         id: 'income',
         tag: 'INCOME & FINANCIAL',
         title: 'Income & financial goals',
-        desc: formatSubtitle(incomeGoal, 'Grow revenue, build reserves & invest'),
+        desc: formatSubtitle(incomeGoal, 'Earn more & build extra income streams'),
         pct: incomeGoal?.progressPct ?? 0,
         hasGoal: Boolean(incomeGoal),
         href: '/dashboard/goals?category=income',
@@ -191,7 +191,7 @@ export function HousingFirstHome({
         id: 'career',
         tag: 'CAREER & PROFESSIONAL',
         title: 'Career & professional development',
-        desc: formatSubtitle(careerGoal, 'Certifications, skills & career growth'),
+        desc: formatSubtitle(careerGoal, 'Advance professionally & acquire qualifications'),
         pct: careerGoal?.progressPct ?? 0,
         hasGoal: Boolean(careerGoal),
         href: '/dashboard/goals?category=career',
@@ -200,7 +200,7 @@ export function HousingFirstHome({
         id: 'pay-less',
         tag: 'PAY LESS FOR STUFF',
         title: 'Pay less for stuff',
-        desc: formatSubtitle(payLessGoal, 'Save on laundry, groceries & commute'),
+        desc: formatSubtitle(payLessGoal, 'Spend less and find ways to reduce costs'),
         pct: payLessGoal?.progressPct ?? 0,
         hasGoal: Boolean(payLessGoal),
         href: '/dashboard/goals?category=pay-less',
@@ -209,7 +209,7 @@ export function HousingFirstHome({
         id: 'children',
         tag: 'CHILDREN DEVELOPMENT',
         title: 'Children\'s development',
-        desc: formatSubtitle(childrenGoal, 'School fees, skills & family milestones'),
+        desc: formatSubtitle(childrenGoal, 'Skills, educational interests & activities'),
         pct: childrenGoal?.progressPct ?? 0,
         hasGoal: Boolean(childrenGoal),
         href: '/dashboard/goals?category=children',
@@ -365,10 +365,8 @@ export function HousingFirstHome({
                       <h3 className="housing-goal-card__title">Pay rent</h3>
                       <p className="housing-goal-card__desc">
                         {nextPendingPayment
-                          ? `${formatCurrency(nextPendingPayment.total_amount, 'NGN')} due ${nextPendingPayment.due_date || nextPendingPayment.dueDate ? formatDate(nextPendingPayment.due_date || nextPendingPayment.dueDate) : 'soon'} · Instant receipt`
-                          : activeProperty?.rentAmount
-                            ? `${formatCurrency(activeProperty.rentAmount, 'NGN')} · Pay landlord or property manager`
-                            : 'Pay your landlord directly · Instant receipt & builds score'}
+                          ? `${formatCurrency(nextPendingPayment.total_amount, 'NGN')} due · Instant receipt`
+                          : 'Make my rent payment through Upward.'}
                       </p>
                     </div>
                     <span className="housing-goal-card__action">Pay now ›</span>
@@ -386,7 +384,7 @@ export function HousingFirstHome({
                       </span>
                       <h3 className="housing-goal-card__title">Pay less for my next rent</h3>
                       <p className="housing-goal-card__desc">
-                        Earn returns so you pay less — {platformRates.rentProtecRatePct}% p.a. + Rent Protec or {platformRates.savingsAnnualRatePct}% p.a.
+                        Build up savings towards my upcoming rent.
                       </p>
                     </div>
                     {renderGoalRing(0, 38)}
@@ -489,10 +487,8 @@ export function HousingFirstHome({
                     </div>
                     <p className="housing-link__desc">
                       {nextPendingPayment
-                        ? `${formatCurrency(nextPendingPayment.total_amount, 'NGN')} due ${nextPendingPayment.due_date || nextPendingPayment.dueDate ? formatDate(nextPendingPayment.due_date || nextPendingPayment.dueDate) : 'soon'} · Instant receipt`
-                        : activeProperty?.rentAmount
-                          ? `${formatCurrency(activeProperty.rentAmount, 'NGN')} · Pay landlord or property manager`
-                          : 'Pay your landlord directly · Instant receipt & builds score'}
+                        ? `${formatCurrency(nextPendingPayment.total_amount, 'NGN')} due · Instant receipt`
+                        : 'Make my rent payment through Upward.'}
                     </p>
                   </span>
                   <span className="housing-link__chev">›</span>
@@ -520,8 +516,8 @@ export function HousingFirstHome({
                     </div>
                     <p className="housing-link__desc">
                       {pendingGtBillsCount > 0
-                        ? `${pendingGtBillsCount} service charge bill${pendingGtBillsCount > 1 ? 's' : ''} to pay · Complaints, visitors & documents`
-                        : 'Service charge, complaints, visitors, bills and documents'}
+                        ? `${pendingGtBillsCount} pending bill${pendingGtBillsCount > 1 ? 's' : ''} to pay`
+                        : 'Service charge, visitors & bills'}
                     </p>
                   </span>
                   <span className="housing-link__chev">›</span>

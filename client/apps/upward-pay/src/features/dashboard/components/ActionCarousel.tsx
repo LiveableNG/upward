@@ -156,7 +156,7 @@ export function ActionCarousel({
     isPromoted: true,
     promoBadge: 'FEATURED BUNDLE',
     promoTitle: 'Prepare Your Home for the New Year',
-    promoSubtitle: 'New Year Home Refresh · Curated carpets, footmats, towels & apartment renewal kits for 2027',
+    promoSubtitle: 'Curated home refresh packages for the new year',
     promoCoverImage:
       'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=900&q=80',
   } as unknown as GoalOffering

@@ -45,7 +45,7 @@ const QUESTIONNAIRE_CONFIGS: Record<CategoryKey, CategoryQuestionConfig> = {
   housing: {
     id: 'housing',
     title: 'Home & lifestyle goals',
-    intro: 'Housing is more than rent. Pick your home, move, or living space goal.',
+    intro: 'Renting, moving, home ownership and living space improvements.',
     label: 'What do you want to achieve for your home?',
     options: [
       'Pay my rent now',
@@ -77,7 +77,7 @@ const QUESTIONNAIRE_CONFIGS: Record<CategoryKey, CategoryQuestionConfig> = {
   income: {
     id: 'income',
     title: 'Income & financial goals',
-    intro: 'Earn more, increase financial stability, build additional income streams and make progress financially.',
+    intro: 'Earn more, increase financial stability and build extra income streams.',
     label: 'What is your primary income goal?',
     options: [
       'Get a promotion',
@@ -98,7 +98,7 @@ const QUESTIONNAIRE_CONFIGS: Record<CategoryKey, CategoryQuestionConfig> = {
   career: {
     id: 'career',
     title: 'Career & professional development',
-    intro: 'Advance professionally, switch fields, acquire qualifications, and sharpen workplace skills.',
+    intro: 'Advance professionally, acquire qualifications and improve workplace skills.',
     label: 'What do you want to achieve?',
     options: [
       'Get my first job',
@@ -163,7 +163,7 @@ const QUESTIONNAIRE_CONFIGS: Record<CategoryKey, CategoryQuestionConfig> = {
   'pay-less': {
     id: 'pay-less',
     title: 'Pay less for stuff',
-    intro: 'Cut routine expenses across laundry, grocery, housing, and commute.',
+    intro: 'Spend less and find ways to reduce costs across routine expenses.',
     label: 'Where do you want to save money?',
     options: [
       'Laundry — Save on drycleaning',
@@ -214,7 +214,7 @@ const QUESTIONNAIRE_CONFIGS: Record<CategoryKey, CategoryQuestionConfig> = {
   children: {
     id: 'children',
     title: 'Children\'s development',
-    intro: 'Help your children develop academic skills, talents, and extracurricular passions.',
+    intro: 'Skills, educational interests and activities for your children.',
     label: 'What do you want your child to achieve?',
     options: [
       'Improve my child\'s mathematics',
@@ -248,7 +248,7 @@ const QUESTIONNAIRE_CONFIGS: Record<CategoryKey, CategoryQuestionConfig> = {
   custom: {
     id: 'custom',
     title: 'Set a custom goal',
-    intro: 'Create your own goal, describe the outcome, add action steps, and set your target timeline.',
+    intro: 'Tell Upward what you want to achieve and the actions you intend to take.',
     label: 'What type of goal do you want to create?',
     options: [
       'Create my own goal',
@@ -463,11 +463,11 @@ export function AllGoalsScreen() {
     }
   }
 
-  const housingCard = getCategoryCardState('housing', 'Home readiness, rent savings & space improvements')
-  const incomeCard = getCategoryCardState('income', 'Grow revenue, build reserves & invest')
-  const careerCard = getCategoryCardState('career', 'Certifications, skills & career growth')
-  const payLessCard = getCategoryCardState('pay-less', 'Cut laundry, groceries & commute expenses')
-  const childrenCard = getCategoryCardState('children', 'School fees, skills & family milestones')
+  const housingCard = getCategoryCardState('housing', 'Renting, moving, home ownership & living space')
+  const incomeCard = getCategoryCardState('income', 'Earn more & build extra income streams')
+  const careerCard = getCategoryCardState('career', 'Advance professionally & acquire qualifications')
+  const payLessCard = getCategoryCardState('pay-less', 'Spend less and find ways to reduce costs')
+  const childrenCard = getCategoryCardState('children', 'Skills, educational interests & activities')
 
   const handleCategoryCardClick = (catId: CategoryKey) => {
     const list = goalsByCategory[catId] || []
