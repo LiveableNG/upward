@@ -1,10 +1,12 @@
 'use client'
 
 import React, { useState } from 'react'
+import Link from 'next/link'
 import {
   TrendingUp,
   PlusCircle,
   ShieldCheck,
+  ChevronRight,
   ArrowRight,
   ArrowDownToLine,
   ArrowUpRight,
@@ -285,9 +287,13 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
           </div>
         </div>
 
-        <p className="vault-score-card__explainer">
-          How savings activity contributes to your Upward Score.
-        </p>
+        <Link
+          href="/dashboard/score-breakdown"
+          className="vault-score-card__explainer"
+        >
+          <span>How savings activity contributes to your Upward Score</span>
+          <ChevronRight size={14} className="vault-score-card__explainer-chevron" />
+        </Link>
       </div>
 
       <div className="vault-ledger">
