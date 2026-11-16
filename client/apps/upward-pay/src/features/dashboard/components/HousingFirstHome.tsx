@@ -296,6 +296,8 @@ export function HousingFirstHome({
     (p: { isPastTenancy?: boolean; rentAmount?: number; rentEndDate?: string }) =>
       !p.isPastTenancy && p.rentAmount,
   )
+  const [nowMs] = useState(() => Date.now())
+
   const propertyWithEndDate =
     (user?.properties || []).find(
       (p: { isPastTenancy?: boolean; rentAmount?: number; rentEndDate?: string }) =>
@@ -310,7 +312,7 @@ export function HousingFirstHome({
       : vault?.days_to_unlock !== undefined && vault?.days_to_unlock !== null
         ? vault.days_to_unlock
         : rentDueDate
-          ? Math.ceil((new Date(rentDueDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+          ? Math.ceil((new Date(rentDueDate).getTime() - nowMs) / (1000 * 60 * 60 * 24))
           : null
 
   const hasDueDateSet =
