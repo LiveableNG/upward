@@ -12,6 +12,7 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Smartphone,
+  CreditCard,
 } from 'lucide-react'
 import { type UserProfile } from '@/features/auth/types'
 import { type PendingPayment, type CompletedPayment } from '../types'
@@ -281,6 +282,12 @@ export function HousingFirstHome({
   }
 
   const hasRental = Boolean(user?.properties && user.properties.length > 0) || hasRentalInfo(user)
+  const activeProperty = (user?.properties || []).find(
+    (p: { isPastTenancy?: boolean; rentAmount?: number; rentEndDate?: string }) =>
+      !p.isPastTenancy && p.rentAmount,
+  )
+  const nextPendingPayment =
+    pendingPayments && pendingPayments.length > 0 ? pendingPayments[0] : null
   const recentPayments = completedPayments.slice(0, 4)
   const pendingGtBillsCount = (gtBillsCount ?? 0) || gtBills.length
 
@@ -356,7 +363,29 @@ export function HousingFirstHome({
               {/* ── STATE A: User Has NOT Started Saving ── */}
               {!hasStartedSaving && (
                 <div className="housing-acc__goals-mode" aria-label="Featured Home Goals">
-                  {/* Goal 1: Pay less for my next rent */}
+                  {/* Action 1: Pay rent */}
+                  <button
+                    type="button"
+                    className="housing-goal-card"
+                    onClick={() => router.push('/dashboard/pay-rent')}
+                  >
+                    <div className="housing-goal-card__body">
+                      <span className="housing-goal-card__tag">
+                        {pendingPaymentsCount > 0 ? 'PAYMENT DUE' : 'PAY RENT'}
+                      </span>
+                      <h3 className="housing-goal-card__title">Pay rent</h3>
+                      <p className="housing-goal-card__desc">
+                        {nextPendingPayment
+                          ? `${formatCurrency(nextPendingPayment.total_amount, 'NGN')} due ${nextPendingPayment.due_date || nextPendingPayment.dueDate ? formatDate(nextPendingPayment.due_date || nextPendingPayment.dueDate) : 'soon'} · Instant receipt`
+                          : activeProperty?.rentAmount
+                            ? `${formatCurrency(activeProperty.rentAmount, 'NGN')} · Pay landlord or property manager`
+                            : 'Pay your landlord directly · Instant receipt & builds score'}
+                      </p>
+                    </div>
+                    <span className="housing-goal-card__action">Pay now ›</span>
+                  </button>
+
+                  {/* Goal 2: Pay less for my next rent */}
                   <button
                     type="button"
                     className="housing-goal-card"
@@ -368,7 +397,7 @@ export function HousingFirstHome({
                       </span>
                       <h3 className="housing-goal-card__title">Pay less for my next rent</h3>
                       <p className="housing-goal-card__desc">
-                        Earn returns so you pay less — {platformRates.savingsAnnualRatePct}% p.a. or Rent Protec ({platformRates.rentProtecRatePct}% + Insurance)
+                        Earn returns so you pay less — {platformRates.rentProtecRatePct}% p.a. + Rent Protec or {platformRates.savingsAnnualRatePct}% p.a.
                       </p>
                     </div>
                     {renderGoalRing(0, 38)}
@@ -448,6 +477,37 @@ export function HousingFirstHome({
                     )
                   })()}
                 </div>
+              )}
+
+              {/* Pay rent link row (accessible when actively saving) */}
+              {hasStartedSaving && (
+                <button
+                  type="button"
+                  className="housing-link"
+                  onClick={() => router.push('/dashboard/pay-rent')}
+                >
+                  <span className="housing-link__ico">
+                    <CreditCard size={16} strokeWidth={2} />
+                  </span>
+                  <span className="housing-link__body">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <h3 className="housing-link__title">Pay rent</h3>
+                      {pendingPaymentsCount > 0 && (
+                        <span className="housing-link__badge-alert">
+                          {pendingPaymentsCount} due
+                        </span>
+                      )}
+                    </div>
+                    <p className="housing-link__desc">
+                      {nextPendingPayment
+                        ? `${formatCurrency(nextPendingPayment.total_amount, 'NGN')} due ${nextPendingPayment.due_date || nextPendingPayment.dueDate ? formatDate(nextPendingPayment.due_date || nextPendingPayment.dueDate) : 'soon'} · Instant receipt`
+                        : activeProperty?.rentAmount
+                          ? `${formatCurrency(activeProperty.rentAmount, 'NGN')} · Pay landlord or property manager`
+                          : 'Pay your landlord directly · Instant receipt & builds score'}
+                    </p>
+                  </span>
+                  <span className="housing-link__chev">›</span>
+                </button>
               )}
 
               {/* My Home row (Service Charge, Bills, Complaints, Visitors, Documents) */}
