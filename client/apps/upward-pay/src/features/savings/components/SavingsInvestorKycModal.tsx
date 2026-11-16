@@ -289,7 +289,7 @@ export function SavingsInvestorKycModal({
   const dynamicPlanStep4 = calculatePayLessPlan(
     targetRent || 2_500_000,
     runwayDays,
-    selectedCadence,
+    'MONTHLY',
     numericFundAmount,
     savingsAnnualRatePct,
     {
