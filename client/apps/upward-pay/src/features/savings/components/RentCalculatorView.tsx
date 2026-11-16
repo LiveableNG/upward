@@ -828,31 +828,19 @@ export function RentCalculatorView({
                   borderRadius: '10px',
                   background: 'var(--surface-sunken, #f8f6f3)',
                   border: '1px solid var(--border)',
-                  fontSize: '0.75rem',
+                  fontSize: '0.8125rem',
                   lineHeight: 1.45,
                   color: 'var(--text-secondary)',
                 }}
               >
                 {activeProductOption === 'RENT_PROTEC' ? (
-                  <div>
-                    <strong style={{ color: 'var(--text)' }}>
-                      Rent Protec · Upward &amp; AXA Mansard
-                    </strong>
-                    <div style={{ marginTop: 2 }}>
-                      Earn 10% p.a. returns and get complimentary rent protection insurance covering
-                      your rent in case of job loss or serious illness.
-                    </div>
-                  </div>
+                  <span>
+                    10% p.a. + protection insurance covering your rent in case of income loss or serious illness.
+                  </span>
                 ) : (
-                  <div>
-                    <strong style={{ color: 'var(--text)' }}>
-                      Save &amp; Earn · Pure High Yield Savings
-                    </strong>
-                    <div style={{ marginTop: 2 }}>
-                      Focus on maximum compounding return (14% p.a.) so interest pays as much of your
-                      upcoming rent as possible.
-                    </div>
-                  </div>
+                  <span>
+                    14% p.a. maximum compound return to pay down as much of your upcoming rent as possible.
+                  </span>
                 )}
               </div>
             </div>
