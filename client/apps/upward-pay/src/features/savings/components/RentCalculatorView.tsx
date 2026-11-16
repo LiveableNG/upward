@@ -433,8 +433,7 @@ export function RentCalculatorView({
       <BottomSheetModal
         isOpen={isModalVisible}
         onClose={handleCloseDrawer}
-        onBack={stage === 'KYC' ? () => setStage('BENEFIT') : undefined}
-        showBack={stage === 'KYC'}
+        showBack={false}
         showClose={true}
         showHandle={true}
         maxWidth="500px"
@@ -444,7 +443,7 @@ export function RentCalculatorView({
             : stage === 'BENEFIT'
               ? 'Pay Less for Your Next Rent'
               : stage === 'KYC'
-                ? 'Activate Your Rent Account'
+                ? 'Activate Rent Account'
                 : 'Rent Account Ready! 🎉'
         }
         subtitle={
@@ -453,7 +452,7 @@ export function RentCalculatorView({
             : stage === 'BENEFIT'
               ? 'Save less and let compound interest help pay your upcoming rent.'
               : stage === 'KYC'
-                ? 'Required by SEC & CBN regulations to generate your personal ARM rent account.'
+                ? 'Link your BVN to generate your personal rent account.'
                 : 'Your dedicated personal rent savings account is active.'
         }
         icon={
@@ -504,7 +503,7 @@ export function RentCalculatorView({
                 'Activating Account...'
               ) : (
                 <>
-                  <span>Activate Account &amp; Get Bank Details</span>
+                  <span>Activate Account</span>
                   <ArrowRight size={18} />
                 </>
               )}
@@ -849,27 +848,7 @@ export function RentCalculatorView({
 
         {/* Stage 3: Simple & Friendly KYC Step */}
         {stage === 'KYC' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '8px 12px',
-                borderRadius: '8px',
-                background: 'rgba(217, 119, 87, 0.08)',
-                border: '1px solid rgba(217, 119, 87, 0.2)',
-                fontSize: '0.75rem',
-                color: 'var(--text-secondary)',
-              }}
-            >
-              <Lock size={14} color="var(--clay)" style={{ flexShrink: 0 }} />
-              <span>
-                Your personal ARM rent account will be issued in your legal name to safeguard your
-                funds and enable zero-fee transfers.
-              </span>
-            </div>
-
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {kycError && (
               <div
                 style={{
@@ -924,9 +903,6 @@ export function RentCalculatorView({
                     maxLength={11}
                   />
                 </div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                  Used strictly to confirm your legal identity with NIBSS.
-                </span>
               </div>
             )}
 
@@ -942,9 +918,6 @@ export function RentCalculatorView({
                   onChange={(e) => setMothersMaidenName(e.target.value)}
                 />
               </div>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Security question required for bank account provisioning.
-              </span>
             </div>
 
             {/* Occupation & Source of Funds */}
@@ -984,7 +957,7 @@ export function RentCalculatorView({
                 <label className="rent-calculator__label">Next of Kin Name</label>
                 <input
                   type="text"
-                  placeholder="Full legal name"
+                  placeholder="Full name"
                   className="rent-calculator__input rent-calculator__input--no-prefix"
                   value={nextOfKinName}
                   onChange={(e) => setNextOfKinName(e.target.value)}
