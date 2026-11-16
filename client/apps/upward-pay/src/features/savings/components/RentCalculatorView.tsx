@@ -158,6 +158,13 @@ export function RentCalculatorView({
     account_name: string
   } | null>(null)
   const [copiedAccount, setCopiedAccount] = useState(false)
+  const [initialDepositRaw, setInitialDepositRaw] = useState<string>('')
+
+  useEffect(() => {
+    if (targetAmountNaira > 0 && !initialDepositRaw) {
+      setInitialDepositRaw(formatCurrencyInput(Math.round(targetAmountNaira * 0.25)))
+    }
+  }, [targetAmountNaira, initialDepositRaw])
 
   // Sync Prefill Data
   useEffect(() => {
@@ -248,6 +255,34 @@ export function RentCalculatorView({
   const projectedYieldNaira = simData
     ? simData.projected_yield_kobo / 100
     : localPlan.projectedYieldNaira
+
+  const parsedSuccessDeposit = parseCurrencyInput(initialDepositRaw) || 0
+  const successDynamicPlan = calculatePayLessPlan(
+    previewRentAmount,
+    daysRemaining,
+    selectedCadence,
+    parsedSuccessDeposit,
+    savingsAnnualRatePct,
+    {
+      productOption: activeProductOption,
+      planPattern: planPattern,
+      maxMonths: platformRates.maxSavingsMonths,
+      minRentProtecMonths: platformRates.rentProtecMinMonths,
+      insurancePremiumPct: platformRates.insurancePremiumPct,
+    },
+  )
+  const successRemainingToPayNaira = Math.max(
+    0,
+    successDynamicPlan.totalTenantContributionNaira - parsedSuccessDeposit,
+  )
+  const successProjectedYieldNaira = successDynamicPlan.projectedYieldNaira
+
+  const successPercentPresets = [
+    { label: '10%', amount: Math.round(previewRentAmount * 0.1) },
+    { label: '25% (Recommended)', amount: Math.round(previewRentAmount * 0.25) },
+    { label: '50%', amount: Math.round(previewRentAmount * 0.5) },
+    { label: 'Full Rent', amount: previewRentAmount },
+  ]
 
   const effectiveTotalTarget = totalTenantContributionNaira + projectedYieldNaira
   const contributionPct =
@@ -447,7 +482,7 @@ export function RentCalculatorView({
               ? 'Pay Less for Your Next Rent'
               : stage === 'KYC'
                 ? 'Activate Rent Account'
-                : 'Rent Account Ready! 🎉'
+                : 'Make Your Initial Deposit'
         }
         subtitle={
           stage === 'RENT_INPUT'
@@ -456,7 +491,7 @@ export function RentCalculatorView({
               ? 'Save less and let compound interest help pay your upcoming rent.'
               : stage === 'KYC'
                 ? 'Link your BVN to generate your personal rent account.'
-                : 'Your dedicated personal rent savings account is active.'
+                : 'Deposit 25% today to lock in compound interest towards your rent.'
         }
         icon={
           stage === 'RENT_INPUT' ? (
@@ -466,7 +501,7 @@ export function RentCalculatorView({
           ) : stage === 'KYC' ? (
             <ShieldCheck size={20} color="var(--clay)" />
           ) : (
-            <CheckCircle2 size={22} color="#10b981" />
+            <Landmark size={20} color="var(--clay)" />
           )
         }
         footer={
@@ -520,15 +555,51 @@ export function RentCalculatorView({
               )}
             </button>
           ) : (
-            <button
-              type="button"
-              className="vault-btn-primary"
-              style={{ width: '100%' }}
-              onClick={handleFinish}
-            >
-              <span>Go to Savings Dashboard</span>
-              <ArrowRight size={18} />
-            </button>
+            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <button
+                type="button"
+                className="vault-btn-primary"
+                style={{ width: '100%' }}
+                onClick={handleFinish}
+              >
+                <CheckCircle2 size={18} />
+                <span>I Have Transferred</span>
+              </button>
+
+              <div style={{ textAlign: 'center', marginTop: 2 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (typeof window !== 'undefined') {
+                      try {
+                        sessionStorage.setItem('upward_dismissed_initial_deposit_prompt', 'true')
+                      } catch {}
+                    }
+                    handleFinish()
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--text-muted, #94a3b8)',
+                    fontSize: '0.6875rem',
+                    fontWeight: 400,
+                    opacity: 0.35,
+                    cursor: 'pointer',
+                    textDecoration: 'underline',
+                    padding: '4px 8px',
+                    transition: 'opacity 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.opacity = '0.7'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.opacity = '0.35'
+                  }}
+                >
+                  I&apos;ll fund later
+                </button>
+              </div>
+            </div>
           )
         }
       >
@@ -1104,6 +1175,124 @@ export function RentCalculatorView({
         {/* Stage 4: Account Created & Dedicated Account Details */}
         {stage === 'SUCCESS' && createdDva && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {/* Amount input */}
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <label
+                  htmlFor="initial-deposit-amount"
+                  style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)' }}
+                >
+                  Initial Deposit Amount
+                </label>
+                <span
+                  style={{
+                    fontSize: '0.6875rem',
+                    fontWeight: 600,
+                    color: 'var(--clay)',
+                    background: 'rgba(194, 80, 31, 0.08)',
+                    padding: '2px 8px',
+                    borderRadius: 999,
+                  }}
+                >
+                  25% of rent recommended
+                </span>
+              </div>
+              <div className="vault-sandbox-card__input-wrapper" style={{ height: 46 }}>
+                <span className="vault-sandbox-card__currency-prefix" style={{ fontSize: '1.25rem', fontWeight: 700 }}>
+                  ₦
+                </span>
+                <input
+                  id="initial-deposit-amount"
+                  type="text"
+                  inputMode="numeric"
+                  className="vault-sandbox-card__input"
+                  style={{ fontSize: '1.25rem', fontWeight: 700 }}
+                  placeholder="e.g. 1,000,000"
+                  value={initialDepositRaw}
+                  onChange={(e) => {
+                    const parsed = parseCurrencyInput(e.target.value)
+                    setInitialDepositRaw(parsed ? formatCurrencyInput(parsed) : '')
+                  }}
+                />
+              </div>
+
+              {/* Quick preset chips */}
+              <div className="vault-sandbox-card__chips" style={{ marginTop: 8 }}>
+                {successPercentPresets.map((preset) => (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    className={`vault-sandbox-card__chip ${
+                      initialDepositRaw === formatCurrencyInput(preset.amount)
+                        ? 'vault-sandbox-card__chip--active'
+                        : ''
+                    }`}
+                    onClick={() => setInitialDepositRaw(formatCurrencyInput(preset.amount))}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Dynamic Benefit Pitch Card */}
+            {parsedSuccessDeposit > 0 && previewRentAmount > 0 && (
+              <div
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  background: '#fffaf7',
+                  border: '1.5px solid rgba(194, 80, 31, 0.22)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 8,
+                  boxShadow: '0 2px 8px rgba(194, 80, 31, 0.04)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
+                  <div
+                    style={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: 8,
+                      background: 'rgba(194, 80, 31, 0.12)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      marginTop: 1,
+                    }}
+                  >
+                    <TrendingUp size={15} color="var(--clay)" />
+                  </div>
+                  <div style={{ fontSize: '0.8125rem', lineHeight: 1.45, color: 'var(--text)' }}>
+                    If you pay <strong>{formatCurrency(parsedSuccessDeposit, 'NGN')}</strong> today, you only pay{' '}
+                    <strong style={{ color: 'var(--clay)' }}>
+                      {formatCurrency(successRemainingToPayNaira, 'NGN')}
+                    </strong>{' '}
+                    for the remaining part of the year.
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    paddingTop: 8,
+                    borderTop: '1px solid rgba(194, 80, 31, 0.12)',
+                    fontSize: '0.75rem',
+                  }}
+                >
+                  <span style={{ color: 'var(--text-muted)' }}>Compound interest earned:</span>
+                  <strong style={{ color: '#059669', fontSize: '0.8125rem' }}>
+                    +{formatCurrency(successProjectedYieldNaira, 'NGN')}
+                  </strong>
+                </div>
+              </div>
+            )}
+
+            {/* Personal Rent Bank Account Details */}
             <div
               style={{
                 padding: '16px',
@@ -1219,8 +1408,7 @@ export function RentCalculatorView({
             >
               <CheckCircle2 size={16} color="#10b981" style={{ flexShrink: 0 }} />
               <span>
-                Transfer any amount whenever you want from your banking app. Every deposit earns
-                interest daily towards your rent.
+                Transfer from any banking app. Every deposit earns compound interest daily towards your rent.
               </span>
             </div>
           </div>

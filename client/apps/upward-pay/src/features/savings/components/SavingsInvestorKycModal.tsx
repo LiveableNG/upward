@@ -279,8 +279,42 @@ export function SavingsInvestorKycModal({
 
   const fundAmount =
     customFundAmount ??
-    (periodicTarget > 0 ? periodicTarget.toLocaleString() : '100,000')
+    (targetRent > 0
+      ? Math.round(targetRent * 0.25).toLocaleString()
+      : periodicTarget > 0
+        ? periodicTarget.toLocaleString()
+        : '100,000')
   const numericFundAmount = Number(fundAmount.replace(/,/g, '')) || 0
+
+  const dynamicPlanStep4 = calculatePayLessPlan(
+    targetRent || 2_500_000,
+    runwayDays,
+    selectedCadence,
+    numericFundAmount,
+    savingsAnnualRatePct,
+    {
+      productOption: activeProductOption,
+      planPattern: 'INITIAL_DEPOSIT',
+      maxMonths: platformRates.maxSavingsMonths,
+      minRentProtecMonths: platformRates.rentProtecMinMonths,
+      insurancePremiumPct: platformRates.insurancePremiumPct,
+    },
+  )
+  const remainingToPayStep4 = Math.max(0, dynamicPlanStep4.totalTenantContributionNaira - numericFundAmount)
+  const interestStep4 = dynamicPlanStep4.projectedYieldNaira
+
+  const step4PercentPresets =
+    targetRent > 0
+      ? [
+          { label: '10%', amount: Math.round(targetRent * 0.1) },
+          { label: '25% (Recommended)', amount: Math.round(targetRent * 0.25) },
+          { label: '50%', amount: Math.round(targetRent * 0.5) },
+          { label: 'Full Rent', amount: targetRent },
+        ]
+      : FUNDING_PRESETS.map((p) => ({
+          label: p >= 1_000_000 ? `₦${p / 1_000_000}M` : `₦${p / 1_000}k`,
+          amount: p,
+        }))
 
   const dvaToShow = createdDva ||
     vault?.dedicated_account || {
@@ -1151,22 +1185,79 @@ export function SavingsInvestorKycModal({
 
               {/* Preset Chips */}
               <div className="vault-sandbox-card__chips" style={{ marginTop: 6 }}>
-                {FUNDING_PRESETS.map((preset) => (
+                {step4PercentPresets.map((preset) => (
                   <button
-                    key={preset}
+                    key={preset.label}
                     type="button"
                     className={`vault-sandbox-card__chip ${
-                      fundAmount.replace(/,/g, '') === String(preset)
+                      fundAmount.replace(/,/g, '') === String(preset.amount)
                         ? 'vault-sandbox-card__chip--active'
                         : ''
                     }`}
-                    onClick={() => setCustomFundAmount(preset.toLocaleString())}
+                    onClick={() => setCustomFundAmount(preset.amount.toLocaleString())}
                   >
-                    ₦{preset >= 1_000_000 ? `${preset / 1_000_000}M` : `${preset / 1_000}k`}
+                    {preset.label}
                   </button>
                 ))}
               </div>
             </div>
+
+            {/* Dynamic Benefit Pitch Card */}
+            {numericFundAmount > 0 && targetRent > 0 && (
+              <div
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  background: '#fffaf7',
+                  border: '1.5px solid rgba(194, 80, 31, 0.22)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 8,
+                  boxShadow: '0 2px 8px rgba(194, 80, 31, 0.04)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
+                  <div
+                    style={{
+                      width: 26,
+                      height: 26,
+                      borderRadius: 8,
+                      background: 'rgba(194, 80, 31, 0.12)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                      marginTop: 1,
+                    }}
+                  >
+                    <TrendingUp size={15} color="var(--clay)" />
+                  </div>
+                  <div style={{ fontSize: '0.8125rem', lineHeight: 1.45, color: 'var(--text)' }}>
+                    If you pay <strong>{formatCurrency(numericFundAmount, 'NGN')}</strong> today, you only pay{' '}
+                    <strong style={{ color: 'var(--clay)' }}>
+                      {formatCurrency(remainingToPayStep4, 'NGN')}
+                    </strong>{' '}
+                    for the remaining part of the year.
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    paddingTop: 8,
+                    borderTop: '1px solid rgba(194, 80, 31, 0.12)',
+                    fontSize: '0.75rem',
+                  }}
+                >
+                  <span style={{ color: 'var(--text-muted)' }}>Compound interest earned:</span>
+                  <strong style={{ color: '#059669', fontSize: '0.8125rem' }}>
+                    +{formatCurrency(interestStep4, 'NGN')}
+                  </strong>
+                </div>
+              </div>
+            )}
 
             {/* Personal Rent Account (Bank Transfer) */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -1255,6 +1346,40 @@ export function SavingsInvestorKycModal({
                     </>
                   )}
                 </button>
+                <div style={{ textAlign: 'center', marginTop: 4 }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (typeof window !== 'undefined') {
+                        try {
+                          sessionStorage.setItem('upward_dismissed_initial_deposit_prompt', 'true')
+                        } catch {}
+                      }
+                      onSuccess()
+                      onClose()
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--text-muted, #94a3b8)',
+                      fontSize: '0.6875rem',
+                      fontWeight: 400,
+                      opacity: 0.35,
+                      cursor: 'pointer',
+                      textDecoration: 'underline',
+                      padding: '4px 8px',
+                      transition: 'opacity 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.opacity = '0.7'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.opacity = '0.35'
+                    }}
+                  >
+                    I&apos;ll fund later
+                  </button>
+                </div>
               </div>
             </div>
           </div>

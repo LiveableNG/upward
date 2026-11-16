@@ -82,7 +82,16 @@ interface VaultDashboardViewProps {
 }
 
 export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboardViewProps) {
-  const [showFundModal, setShowFundModal] = useState(false)
+  const isInitialPrompt = vault.current_balance_kobo === 0
+  const [showFundModal, setShowFundModal] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const dismissed = sessionStorage.getItem('upward_dismissed_initial_deposit_prompt')
+        return !dismissed && isInitialPrompt
+      } catch {}
+    }
+    return isInitialPrompt
+  })
   const [copiedAccount, setCopiedAccount] = useState(false)
   const [activeCadence, setActiveCadence] = useState<'WEEKLY' | 'MONTHLY' | 'QUARTERLY'>(() => {
     const initial = vault.cadence || vault.pay_less_projection?.cadence
@@ -491,9 +500,18 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
       <FundVaultModal
         isOpen={showFundModal}
         onClose={() => setShowFundModal(false)}
-        recommendedAmountNaira={payLessPlan.periodicDepositNaira}
+        recommendedAmountNaira={
+          payLessPlan.requiredInitialDepositNaira ||
+          (targetAmountNaira > 0 ? Math.round(targetAmountNaira * 0.25) : payLessPlan.periodicDepositNaira)
+        }
         cadence={activeCadence}
         dedicatedAccount={vault.dedicated_account}
+        targetAmountNaira={targetAmountNaira}
+        daysRemaining={daysRemaining}
+        annualRatePct={savingsAnnualRatePct}
+        productOption={vault.product_option || (vault.is_rent_protec ? 'RENT_PROTEC' : 'SAVE_AND_EARN')}
+        currentBalanceNaira={currentBalanceNaira}
+        isInitialDeposit={vault.current_balance_kobo === 0}
       />
     </div>
   )
