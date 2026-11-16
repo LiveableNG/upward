@@ -236,6 +236,18 @@
   color: var(--clay, #c2501f);
 }
 
+/* Compact view container */
+.housing-acc__compact-goal {
+  padding: 0 12px 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.housing-acc__compact-goal .housing-goal-card,
+.housing-acc__compact-goal .vault-card {
+  margin-bottom: 0 !important;
+}
+
 /* 3. Action Tiles (3 equal columns) */
 .housing-acc__actions {
   display: grid;

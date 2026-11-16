@@ -10,7 +10,6 @@ import {
   useGoalsList,
   useCreateCustomGoal,
   useSubmitQuestionnaire,
-  useToggleGoalAction,
   useRemoveUserGoal,
 } from '../hooks/useGoals'
 import { type UserGoal, type GoalTargetType } from '../types/goals.types'
@@ -248,12 +247,11 @@ const QUESTIONNAIRE_CONFIGS: Record<CategoryKey, CategoryQuestionConfig> = {
   custom: {
     id: 'custom',
     title: 'Set a custom goal',
-    intro: 'Tell Upward what you want to achieve and the actions you intend to take.',
+    intro: 'Tell Upward what you want to achieve.',
     label: 'What type of goal do you want to create?',
     options: [
       'Create my own goal',
       'Describe what I want to achieve',
-      'Add actions towards my goal',
       'Suggest a new goal category',
     ],
   },
@@ -328,7 +326,6 @@ export function AllGoalsScreen() {
 
   const createGoalMutation = useCreateCustomGoal()
   const submitQuestionnaireMutation = useSubmitQuestionnaire()
-  const toggleActionMutation = useToggleGoalAction()
   const removeGoalMutation = useRemoveUserGoal()
 
   const isNewParam = searchParams.get('new') === 'true'
@@ -363,8 +360,6 @@ export function AllGoalsScreen() {
   const [newIcon, setNewIcon] = useState('🎯')
   const [newTimelineDays, setNewTimelineDays] = useState(90)
   const [newTargetAmount, setNewTargetAmount] = useState('')
-  const [actionsList, setActionsList] = useState<string[]>([])
-  const [currentActionText, setCurrentActionText] = useState('')
 
   const openQuestionnaire = useCallback(
     (catId: CategoryKey) => {
@@ -372,8 +367,6 @@ export function AllGoalsScreen() {
       setSelectedOption(null)
       setSelectedExtra(null)
       setNotesText('')
-      setActionsList([])
-      setCurrentActionText('')
       setNewTimelineDays(180)
       setSavedGoalLabel(null)
     },
@@ -499,22 +492,10 @@ export function AllGoalsScreen() {
       finalSelection = `Interested in ${selectedExtra}`
     }
 
-    // Collect user-created action steps (including any pending text in the step input)
-    const pendingStep = currentActionText.trim()
-    const finalActions =
-      pendingStep && !actionsList.includes(pendingStep)
-        ? [...actionsList, pendingStep]
-        : actionsList
-
-    if (activeCategory === 'custom' && finalActions.length === 0) {
-      toastError('Add at least one action step to help you complete this goal.')
-      return
-    }
-
     try {
       const targetCategorySlug = activeCategory
 
-      if (activeCategory === 'custom' || finalActions.length > 0) {
+      if (activeCategory === 'custom') {
         const iconMap: Record<string, string> = {
           housing: '🏠',
           income: '💼',
@@ -524,12 +505,11 @@ export function AllGoalsScreen() {
           custom: '🎯',
         }
         await createGoalMutation.mutateAsync({
-          title: finalSelection,
+          title: notesText.trim() || finalSelection,
           categorySlug: targetCategorySlug,
           icon: iconMap[activeCategory] || '🎯',
-          targetType: 'CHECKLIST_ACTIONS',
+          targetType: 'DEADLINE',
           durationDays: newTimelineDays,
-          actions: finalActions,
         })
       } else {
         await submitQuestionnaireMutation.mutateAsync({
@@ -539,25 +519,12 @@ export function AllGoalsScreen() {
           durationDays: newTimelineDays,
         })
       }
-      setSavedGoalLabel(selectedExtra || finalSelection)
+      setSavedGoalLabel(selectedExtra || notesText.trim() || finalSelection)
       success('Goal added to your plan')
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to save goal'
       toastError(msg)
     }
-  }
-
-  const handleAddActionItem = () => {
-    const text = currentActionText.trim()
-    if (!text) return
-    if (!actionsList.includes(text)) {
-      setActionsList([...actionsList, text])
-    }
-    setCurrentActionText('')
-  }
-
-  const handleRemoveActionItem = (index: number) => {
-    setActionsList(actionsList.filter((_, i) => i !== index))
   }
 
   const handleCreateGoal = async (e: React.FormEvent) => {
@@ -569,13 +536,7 @@ export function AllGoalsScreen() {
 
     const numAmount = Number(newTargetAmount.replace(/[^0-9]/g, ''))
     const targetAmountKobo = numAmount > 0 ? numAmount * 100 : undefined
-
-    let targetType: GoalTargetType = 'CHECKLIST_ACTIONS'
-    if (targetAmountKobo && actionsList.length > 0) {
-      targetType = 'HYBRID'
-    } else if (targetAmountKobo) {
-      targetType = 'AMOUNT'
-    }
+    const targetType: GoalTargetType = targetAmountKobo ? 'AMOUNT' : 'DEADLINE'
 
     try {
       await createGoalMutation.mutateAsync({
@@ -585,31 +546,15 @@ export function AllGoalsScreen() {
         targetType,
         durationDays: newTimelineDays,
         targetAmountKobo,
-        actions: actionsList.length > 0 ? actionsList : undefined,
       })
 
       success('Goal created successfully')
       setIsCreateModalOpen(false)
       setNewTitle('')
       setNewTargetAmount('')
-      setActionsList([])
-      setCurrentActionText('')
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to create goal'
       toastError(msg)
-    }
-  }
-
-  const handleToggleAction = async (actionId: string) => {
-    if (!activeDetailGoal?.uuid) return
-    try {
-      const updated = await toggleActionMutation.mutateAsync({
-        goalUuid: activeDetailGoal.uuid,
-        actionId,
-      })
-      setActiveDetailGoal(updated)
-    } catch {
-      toastError('Failed to update action')
     }
   }
 
@@ -649,11 +594,6 @@ export function AllGoalsScreen() {
       const matchedDbGoal = dbGoalsForCat.find(
         (g) => (g.title || '').toLowerCase() === opt.toLowerCase(),
       )
-      if (matchedDbGoal?.actionTemplates && matchedDbGoal.actionTemplates.length > 0) {
-        setActionsList(matchedDbGoal.actionTemplates.map((t) => t.title))
-      } else {
-        setActionsList([])
-      }
       if (matchedDbGoal?.defaultDurationDays) {
         setNewTimelineDays(matchedDbGoal.defaultDurationDays)
       }
@@ -742,65 +682,6 @@ export function AllGoalsScreen() {
               }
             />
 
-            {/* User-Created Action Steps Builder */}
-            <div className="proto-goals__section-label">
-              Steps to complete this goal
-              {activeCategory !== 'custom' ? ' (Optional)' : ''}
-            </div>
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
-              <input
-                type="text"
-                className="goal-modal__input"
-                placeholder="Add a step (e.g. Book ground school lessons)"
-                value={currentActionText}
-                onChange={(e) => setCurrentActionText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    handleAddActionItem()
-                  }
-                }}
-              />
-              <button
-                type="button"
-                className="goal-modal__chip goal-modal__chip--active"
-                style={{ flexShrink: 0, padding: '0 14px' }}
-                onClick={handleAddActionItem}
-              >
-                <Plus size={15} style={{ display: 'inline', verticalAlign: '-2px' }} /> Add
-              </button>
-            </div>
-
-            {actionsList.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '14px' }}>
-                {actionsList.map((act, i) => (
-                  <div
-                    key={i}
-                    className="goal-modal__action-row"
-                    style={{ justifyContent: 'space-between' }}
-                  >
-                    <span className="goal-modal__action-label">
-                      {i + 1}. {act}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveActionItem(i)}
-                      aria-label={`Remove step ${i + 1}`}
-                      style={{
-                        background: 'transparent',
-                        border: 'none',
-                        color: 'var(--text-muted, #8a8a8a)',
-                        cursor: 'pointer',
-                        padding: '2px 4px',
-                      }}
-                    >
-                      <X size={15} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
             <div className="proto-goals__section-label">Timeline</div>
             <div className="goal-modal__chips" style={{ marginBottom: '18px' }}>
               {[
@@ -836,7 +717,7 @@ export function AllGoalsScreen() {
             </div>
             <h2 className="proto-goals__thanks-title">Thank you, {firstName}</h2>
             <p className="proto-goals__thanks-copy">
-              “{savedGoalLabel}” has been added to your goals. You can check off your steps as you complete them.
+              “{savedGoalLabel}” has been added to your goals.
             </p>
 
             {/* Quick Actions: Help them go home or back to all goals */}
@@ -1095,7 +976,7 @@ export function AllGoalsScreen() {
                 </div>
                 <h3 className="proto-goals__card-title">{title}</h3>
                 <p className="proto-goals__card-desc">
-                  {ug.notes || 'Personal milestone · Tap to view action steps'}
+                  {ug.notes || 'Personal milestone'}
                 </p>
               </div>
               {renderPrototypeRing(pct, 52)}
@@ -1157,35 +1038,14 @@ export function AllGoalsScreen() {
                 </div>
               )}
 
-              <div className="goal-modal__field">
-                <label className="goal-modal__label">
-                  Action Steps (
-                  {activeDetailGoal.actions?.filter((a) => a.done).length || 0} of{' '}
-                  {activeDetailGoal.actions?.length || 0} complete)
-                </label>
-
-                {!activeDetailGoal.actions || activeDetailGoal.actions.length === 0 ? (
-                  <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                    No checklist steps configured for this goal.
+              {activeDetailGoal.notes && (
+                <div className="goal-modal__field">
+                  <label className="goal-modal__label">Notes</label>
+                  <p style={{ fontSize: '13.5px', color: 'var(--text-secondary)', margin: '2px 0 0' }}>
+                    {activeDetailGoal.notes}
                   </p>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {activeDetailGoal.actions.map((act) => (
-                      <button
-                        key={act.id}
-                        type="button"
-                        className={`goal-modal__action-row ${act.done ? 'is-done' : ''}`}
-                        onClick={() => handleToggleAction(act.id)}
-                      >
-                        <span className="goal-modal__action-check">
-                          {act.done && <Check size={12} color="#ffffff" strokeWidth={3} />}
-                        </span>
-                        <span className="goal-modal__action-label">{act.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+                </div>
+              )}
 
               <button
                 type="button"
@@ -1316,56 +1176,6 @@ export function AllGoalsScreen() {
                   value={newTargetAmount}
                   onChange={(e) => setNewTargetAmount(e.target.value)}
                 />
-              </div>
-
-              <div className="goal-modal__field">
-                <label className="goal-modal__label">Action Checklist Steps</label>
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <input
-                    type="text"
-                    className="goal-modal__input"
-                    placeholder="Add an action step..."
-                    value={currentActionText}
-                    onChange={(e) => setCurrentActionText(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault()
-                        handleAddActionItem()
-                      }
-                    }}
-                  />
-                  <button
-                    type="button"
-                    className="goal-modal__chip goal-modal__chip--active"
-                    style={{ flexShrink: 0 }}
-                    onClick={handleAddActionItem}
-                  >
-                    <Plus size={16} /> Add
-                  </button>
-                </div>
-
-                {actionsList.length > 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }}>
-                    {actionsList.map((act, i) => (
-                      <div
-                        key={i}
-                        className="goal-modal__action-row"
-                        style={{ justifyContent: 'space-between' }}
-                      >
-                        <span className="goal-modal__action-label">
-                          {i + 1}. {act}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveActionItem(i)}
-                          style={{ background: 'transparent', border: 'none', color: '#999', cursor: 'pointer' }}
-                        >
-                          <X size={15} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
 
               <button
