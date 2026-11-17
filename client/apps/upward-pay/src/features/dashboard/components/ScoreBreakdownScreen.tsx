@@ -23,6 +23,7 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { PayPageShell } from '@/features/dashboard/components/payment/PayPageShell'
 import { formatCurrency, getPublicWebUrl, copyTextToClipboard } from '@/lib/utils'
 import { useToast } from '@/components/common/Toast'
+import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
 import { Capacitor } from '@capacitor/core'
 
 function ScoreBreakdownSkeleton() {
@@ -63,7 +64,8 @@ export function ScoreBreakdownScreen() {
   const router = useRouter()
   const { user } = useAuth()
   const { data: scoreProfile, isLoading } = useScoreProfile()
-  const { success, error: toastError } = useToast()
+  const { rates: platformRates, isLoading: ratesLoading } = usePlatformRates()
+  const { success, error: toastError, info: toastInfo } = useToast()
   const [copied, setCopied] = useState(false)
   const [isShareModalOpen, setIsShareModalOpen] = useState(false)
 
@@ -538,7 +540,14 @@ export function ScoreBreakdownScreen() {
 
             <div
               className="score-page__action-card"
-              onClick={() => router.push('/dashboard/savings')}
+              onClick={() => {
+                if (ratesLoading) return
+                if (platformRates.savingsEnabled === false) {
+                  toastInfo('Rent savings is coming soon — we are finalizing partner activation.')
+                  return
+                }
+                router.push('/dashboard/savings')
+              }}
               role="button"
               tabIndex={0}
             >

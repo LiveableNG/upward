@@ -36,6 +36,7 @@ export class AdminFeesController {
   async updatePlatformRates(
     @Body()
     body: {
+      savingsEnabled?: boolean
       savingsAnnualRatePct?: number
       rentProtecRatePct?: number
       insurancePremiumPct?: number
@@ -47,6 +48,7 @@ export class AdminFeesController {
     @Req() req: any,
   ) {
     const data = await this.platformRatesService.updateRates({
+      savingsEnabled: body.savingsEnabled,
       savingsAnnualRatePct: body.savingsAnnualRatePct,
       rentProtecRatePct: body.rentProtecRatePct,
       insurancePremiumPct: body.insurancePremiumPct,

@@ -1,4 +1,4 @@
-import { Injectable, Inject, Logger, BadRequestException, NotFoundException, Optional } from '@nestjs/common'
+import { Injectable, Inject, Logger, BadRequestException, ForbiddenException, NotFoundException, Optional } from '@nestjs/common'
 import { IsEmail, IsIn, IsNotEmpty, IsNumber, IsOptional, IsString, Matches } from 'class-validator'
 import { Type } from 'class-transformer'
 import * as crypto from 'crypto'
@@ -13,6 +13,7 @@ import {
 } from '../../../domains/rent-savings/asset-management.provider'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 import { PlatformRatesService } from '../../../shared/infrastructure/common/platform-rates.service'
+import { isProductionRuntime } from '../../../shared/utils/runtime-env'
 
 export class OnboardSavingsInvestorDto {
   @IsOptional()
@@ -321,6 +322,15 @@ export class OnboardSavingsInvestorUseCase {
   }
 
   async execute(userId: number, dto: OnboardSavingsInvestorDto) {
+    if (this.platformRates) {
+      const rates = await this.platformRates.getRates()
+      if (rates?.savingsEnabled === false) {
+        throw new ForbiddenException(
+          'Rent savings is launching soon. Please check back once partner activation completes.',
+        )
+      }
+    }
+
     const user = await this.userRepository.findById(userId)
     if (!user) {
       throw new NotFoundException('User not found')
@@ -531,8 +541,9 @@ export class OnboardSavingsInvestorUseCase {
       )
     }
 
-    // In non-production or if sandbox fallback is needed, ensure an authentic Wema Bank NUBAN is assigned
-    if (!dvaAccountNumber) {
+    // In non-production only, ensure a sandbox Wema Bank NUBAN is assigned if Paystack DVA didn't return one
+    const isNonProd = !isProductionRuntime(process.env.PAYSTACK_SECRET_KEY)
+    if (!dvaAccountNumber && isNonProd) {
       const randomAcc = '02' + Math.floor(10000000 + Math.random() * 90000000).toString()
       dvaAccountNumber = randomAcc
       dvaBankName = 'Wema Bank'
@@ -575,11 +586,17 @@ export class OnboardSavingsInvestorUseCase {
 
     if (activeVault) {
       const updateData: any = {
-        dvaBankName,
-        dvaAccountNumber,
-        dvaAccountName,
         dvaCustomerCode: paystackCustomerCode,
-        dvaAssignmentStatus: 'ACTIVE',
+      }
+      if (dvaAccountNumber) {
+        updateData.dvaBankName = dvaBankName
+        updateData.dvaAccountNumber = dvaAccountNumber
+        updateData.dvaAccountName = dvaAccountName
+        updateData.dvaAssignmentStatus = 'ACTIVE'
+      } else if (!activeVault.dvaAccountNumber) {
+        updateData.dvaBankName = dvaBankName
+        updateData.dvaAccountName = dvaAccountName
+        updateData.dvaAssignmentStatus = 'PENDING'
       }
       if (dto.target_amount) {
         updateData.targetAmountKobo = BigInt(Math.round(dto.target_amount * 100))
@@ -651,11 +668,11 @@ export class OnboardSavingsInvestorUseCase {
           unlockDate: resolvedUnlockDate,
           lockStatus: 'LOCKED',
           preferredFundingMethod: 'DVA',
-          dvaBankName,
+          dvaBankName: dvaAccountNumber ? dvaBankName : null,
           dvaAccountNumber,
-          dvaAccountName,
+          dvaAccountName: dvaAccountNumber ? dvaAccountName : null,
           dvaCustomerCode: paystackCustomerCode,
-          dvaAssignmentStatus: 'ACTIVE',
+          dvaAssignmentStatus: dvaAccountNumber ? 'ACTIVE' : 'PENDING',
           autoBypassPmApproval: true,
           investmentProvider: 'ARM',
         },
@@ -765,17 +782,21 @@ export class OnboardSavingsInvestorUseCase {
 
     return {
       status: 'success',
-      message: 'Investor KYC verified and dedicated Wema Bank funding account generated.',
+      message: dvaAccountNumber
+        ? 'Investor KYC verified and dedicated Wema Bank funding account generated.'
+        : 'Investor KYC verified. Your dedicated funding account is being provisioned.',
       data: {
         is_verified: true,
         masked_bvn: bvnMasked,
         provider: verificationResult.provider,
-        dedicated_account: {
-          bank_name: dvaBankName,
-          account_number: dvaAccountNumber,
-          account_name: dvaAccountName,
-          assignment_status: 'ACTIVE',
-        },
+        dedicated_account: dvaAccountNumber
+          ? {
+              bank_name: dvaBankName,
+              account_number: dvaAccountNumber,
+              account_name: dvaAccountName,
+              assignment_status: 'ACTIVE',
+            }
+          : null,
       },
     }
   }

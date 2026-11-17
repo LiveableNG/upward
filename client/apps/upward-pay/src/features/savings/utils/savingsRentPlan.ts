@@ -11,6 +11,10 @@ export interface SavingsRentPlan {
   address?: string
   cadence?: string
   productOption?: string
+  planPattern?: string
+  initialDeposit?: number
+  stepStartNaira?: number
+  stepIncrementNaira?: number
 }
 
 /**

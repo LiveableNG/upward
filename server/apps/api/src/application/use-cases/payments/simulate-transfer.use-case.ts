@@ -1,8 +1,9 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common'
+import { Injectable, Logger, BadRequestException, ForbiddenException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { createHmac } from 'node:crypto'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { ProcessPaymentWebhookUseCase } from './process-payment-webhook.use-case'
+import { isProductionRuntime } from '../../../shared/utils/runtime-env'
 
 @Injectable()
 export class SimulateTransferUseCase {
@@ -16,6 +17,9 @@ export class SimulateTransferUseCase {
 
   async execute(data: { beneficiaryBank: string; beneficiaryAccount: string; amount: number }) {
     const secret = this.configService.get<string>('PAYSTACK_SECRET_KEY')
+    if (isProductionRuntime(secret)) {
+      throw new ForbiddenException('Transfer simulation is disabled in production.')
+    }
     const isTestKey = secret?.startsWith('sk_test_') || !secret
 
     if (!isTestKey) {

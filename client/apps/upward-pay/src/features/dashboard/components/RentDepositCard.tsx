@@ -5,9 +5,13 @@ import { useQuery } from '@tanstack/react-query'
 import { ArrowUpRight, PiggyBank, Building } from 'lucide-react'
 import { api } from '@/lib/api'
 import { formatCurrency } from '@/lib/utils'
+import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
+import { useToast } from '@/components/common/Toast'
 
 export function RentDepositCard() {
   const router = useRouter()
+  const toast = useToast()
+  const { rates: platformRates, isLoading: ratesLoading } = usePlatformRates()
 
   const { data: summary } = useQuery({
     queryKey: ['rent-deposit-summary'],
@@ -26,7 +30,14 @@ export function RentDepositCard() {
   return (
     <div
       className="dashboard__deposit-card"
-      onClick={() => router.push('/dashboard/savings')}
+      onClick={() => {
+        if (ratesLoading) return
+        if (platformRates.savingsEnabled === false) {
+          toast.info('Rent savings is coming soon — we are finalizing partner activation.')
+          return
+        }
+        router.push('/dashboard/savings')
+      }}
       style={{
         background: '#ffffff',
         border: hasBalance

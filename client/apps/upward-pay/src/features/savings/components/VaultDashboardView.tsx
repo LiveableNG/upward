@@ -20,6 +20,7 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
 import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
 import { FundVaultModal } from './FundVaultModal'
+import { readSavingsRentPlan } from '../utils/savingsRentPlan'
 import {
   type SavingsCadence,
   type SavingsPlanPattern,
@@ -34,6 +35,7 @@ interface VaultDashboardViewProps {
     cadence?: SavingsCadence
     product_option?: SavingsProductOption
     plan_pattern?: SavingsPlanPattern
+    initial_deposit_kobo?: number
     is_rent_protec?: boolean
     insurance_premium_pct?: number
     current_balance_kobo: number
@@ -374,13 +376,26 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
       <FundVaultModal
         isOpen={showFundModal}
         onClose={() => setShowFundModal(false)}
-        recommendedAmountNaira={targetAmountNaira > 0 ? Math.round(targetAmountNaira * 0.25) : 100_000}
+        recommendedAmountNaira={(() => {
+          const savedPlan = readSavingsRentPlan()
+          if (vault.initial_deposit_kobo && vault.initial_deposit_kobo > 0) {
+            return vault.initial_deposit_kobo / 100
+          }
+          if (savedPlan?.initialDeposit && Number(savedPlan.initialDeposit) > 0) {
+            return Number(savedPlan.initialDeposit)
+          }
+          if (vault.plan_pattern === 'EQUAL' || vault.plan_pattern === 'STEP_UP') {
+            return Math.round((vault.pay_less_projection?.periodic_deposit_kobo ?? 0) / 100) || 100_000
+          }
+          return targetAmountNaira > 0 ? Math.round(targetAmountNaira * 0.25) : 100_000
+        })()}
         cadence="MONTHLY"
         dedicatedAccount={vault.dedicated_account}
         targetAmountNaira={targetAmountNaira}
         daysRemaining={Math.max(1, daysRemaining - 30)}
         annualRatePct={savingsAnnualRatePct}
         productOption={vault.product_option || (vault.is_rent_protec ? 'RENT_PROTEC' : 'SAVE_AND_EARN')}
+        planPattern={vault.plan_pattern || 'INITIAL_DEPOSIT'}
         currentBalanceNaira={currentBalanceNaira}
         isInitialDeposit={vault.current_balance_kobo === 0}
       />

@@ -196,13 +196,29 @@ export function SavingsInvestorKycModal({
   })
   const selectedCadence: SavingsCadence =
     selectedFrequency === 'FLEXIBLE' ? 'MONTHLY' : selectedFrequency
-  const [selectedProductOption, setSelectedProductOption] = useState<SavingsProductOption>(
-    () => vault?.product_option || 'RENT_PROTEC',
-  )
-  const [startAmountRaw, setStartAmountRaw] = useState<string>('')
+  const [selectedProductOption, setSelectedProductOption] = useState<SavingsProductOption>(() => {
+    if (vault?.product_option) return vault.product_option
+    const saved = readSavingsRentPlan()
+    return saved?.productOption === 'SAVE_AND_EARN' ? 'SAVE_AND_EARN' : 'RENT_PROTEC'
+  })
+  const [startAmountRaw, setStartAmountRaw] = useState<string>(() => {
+    if (vault?.initial_deposit_kobo && vault.initial_deposit_kobo > 0) {
+      return formatCurrencyInput(Math.round(vault.initial_deposit_kobo / 100))
+    }
+    const saved = readSavingsRentPlan()
+    if (saved?.planPattern === 'INITIAL_DEPOSIT' && saved.initialDeposit && Number(saved.initialDeposit) > 0) {
+      return formatCurrencyInput(Number(saved.initialDeposit))
+    }
+    return ''
+  })
   const startAmountNaira = parseCurrencyInput(startAmountRaw) || 0
-  // No manual pattern: what the user starts with today becomes the initial deposit.
-  const planPattern: SavingsPlanPattern = startAmountNaira > 0 ? 'INITIAL_DEPOSIT' : 'EQUAL'
+  const savedPlanPattern = readSavingsRentPlan()?.planPattern
+  const planPattern: SavingsPlanPattern =
+    startAmountNaira > 0
+      ? 'INITIAL_DEPOSIT'
+      : savedPlanPattern === 'STEP_UP'
+        ? 'STEP_UP'
+        : 'EQUAL'
   const [customFundAmount, setCustomFundAmount] = useState<string | null>(null)
 
   const [formError, setFormError] = useState<string | null>(null)
@@ -280,8 +296,12 @@ export function SavingsInvestorKycModal({
 
   const fundAmount =
     customFundAmount ??
-    (targetRent > 0
-      ? Math.round(targetRent * 0.25).toLocaleString()
+    (planPattern === 'INITIAL_DEPOSIT'
+      ? startAmountNaira > 0
+        ? startAmountNaira.toLocaleString()
+        : targetRent > 0
+          ? Math.round(targetRent * 0.25).toLocaleString()
+          : '100,000'
       : periodicTarget > 0
         ? periodicTarget.toLocaleString()
         : '100,000')
@@ -295,7 +315,7 @@ export function SavingsInvestorKycModal({
     savingsAnnualRatePct,
     {
       productOption: activeProductOption,
-      planPattern: 'INITIAL_DEPOSIT',
+      planPattern,
       maxMonths: platformRates.maxSavingsMonths,
       minRentProtecMonths: platformRates.rentProtecMinMonths,
       insurancePremiumPct: platformRates.insurancePremiumPct,
@@ -304,12 +324,16 @@ export function SavingsInvestorKycModal({
   const periodicDepositStep4 = dynamicPlanStep4.periodicDepositNaira
   const interestStep4 = dynamicPlanStep4.projectedYieldNaira
 
-  const dvaToShow = createdDva ||
-    vault?.dedicated_account || {
-      bank_name: 'Wema Bank',
-      account_number: '0284719283',
-      account_name: `Upward / ${user?.firstName || 'Tenant'} ${user?.lastName || ''}`.trim(),
-    }
+  const dvaToShow =
+    (createdDva?.account_number ? createdDva : null) ||
+    (vault?.dedicated_account?.account_number ? vault.dedicated_account : null) ||
+    (process.env.NODE_ENV !== 'production'
+      ? {
+          bank_name: 'Wema Bank',
+          account_number: '0284719283',
+          account_name: `Upward / ${user?.firstName || 'Tenant'} ${user?.lastName || ''}`.trim(),
+        }
+      : null)
 
   const handleBankTransferConfirm = () => {
     toastSuccess('Transfer recorded! Your vault will be credited as soon as funds arrive.')
@@ -388,15 +412,17 @@ export function SavingsInvestorKycModal({
       })
 
       const dva = res?.dedicated_account
-      if (dva) {
+      if (dva?.account_number) {
         setCreatedDva(dva)
-      } else {
+      } else if (process.env.NODE_ENV !== 'production') {
         const fallbackAccSuffix = nowTimestamp.toString().slice(-8)
         setCreatedDva({
           bank_name: 'Wema Bank',
           account_number: `02${fallbackAccSuffix}`,
           account_name: `Upward / ${user?.firstName || 'Tenant'} ${user?.lastName || ''}`.trim(),
         })
+      } else {
+        setCreatedDva(null)
       }
       setStep(3)
       toastSuccess('Investor profile verified and dedicated Wema account ready!')
@@ -1089,7 +1115,7 @@ export function SavingsInvestorKycModal({
                 </div>
                 <div>
                   <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', display: 'block' }}>
-                    Completed by Interest
+                    Est. Returns
                   </span>
                   <span style={{ fontSize: '0.9375rem', fontWeight: 800, color: '#059669' }}>
                     +{formatCurrency(estimatedYield, 'NGN')}
@@ -1105,7 +1131,7 @@ export function SavingsInvestorKycModal({
                   lineHeight: 1.45,
                 }}
               >
-                Save consistently and pay <strong>{formatCurrency(estimatedYield, 'NGN')} less</strong> out of pocket — your {savingsAnnualRatePct}% p.a. interest{activeProductOption === 'RENT_PROTEC' ? ' + Rent Protec cover' : ''} completes the remaining balance by {earlySettlementDateStr} (max {platformRates.maxSavingsMonths} months).
+                Save consistently for est. <strong>+{formatCurrency(estimatedYield, 'NGN')} in returns</strong> — earning {savingsAnnualRatePct}% p.a.{activeProductOption === 'RENT_PROTEC' ? ' + Rent Protec cover' : ''} towards your balance by {earlySettlementDateStr} (max {platformRates.maxSavingsMonths} months).
               </p>
             </div>
 
@@ -1189,54 +1215,74 @@ export function SavingsInvestorKycModal({
             </div>
 
             {/* Compact Personal Rent Account Card */}
-            <div
-              style={{
-                padding: '10px 14px',
-                borderRadius: '12px',
-                background: 'var(--surface2, #fbf9f6)',
-                border: '1px solid var(--border-solid, #eee7df)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 12,
-              }}
-            >
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--text)', letterSpacing: '0.02em', lineHeight: 1.2 }}>
-                  {dvaToShow.account_number}
-                </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {dvaToShow.bank_name || 'Wema Bank'} · {dvaToShow.account_name}
-                </div>
-              </div>
-              <button
-                type="button"
-                className={`vault-dva-card__copy-btn ${copiedAccount ? 'vault-dva-card__copy-btn--copied' : ''}`}
-                style={{ padding: '6px 12px', fontSize: '0.75rem', height: 32, flexShrink: 0 }}
-                onClick={() => {
-                  navigator.clipboard.writeText(dvaToShow.account_number)
-                  setCopiedAccount(true)
-                  toastSuccess('Account number copied!')
-                  setTimeout(() => setCopiedAccount(false), 2000)
+            {dvaToShow ? (
+              <div
+                style={{
+                  padding: '10px 14px',
+                  borderRadius: '12px',
+                  background: 'var(--surface2, #fbf9f6)',
+                  border: '1px solid var(--border-solid, #eee7df)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 12,
                 }}
               >
-                {copiedAccount ? (
-                  <>
-                    <Check size={13} /> Copied
-                  </>
-                ) : (
-                  <>
-                    <Copy size={13} /> Copy
-                  </>
-                )}
-              </button>
-            </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--text)', letterSpacing: '0.02em', lineHeight: 1.2 }}>
+                    {dvaToShow.account_number}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {dvaToShow.bank_name || 'Wema Bank'} · {dvaToShow.account_name}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className={`vault-dva-card__copy-btn ${copiedAccount ? 'vault-dva-card__copy-btn--copied' : ''}`}
+                  style={{ padding: '6px 12px', fontSize: '0.75rem', height: 32, flexShrink: 0 }}
+                  onClick={() => {
+                    navigator.clipboard.writeText(dvaToShow.account_number)
+                    setCopiedAccount(true)
+                    toastSuccess('Account number copied!')
+                    setTimeout(() => setCopiedAccount(false), 2000)
+                  }}
+                >
+                  {copiedAccount ? (
+                    <>
+                      <Check size={13} /> Copied
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={13} /> Copy
+                    </>
+                  )}
+                </button>
+              </div>
+            ) : (
+              <div
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  background: 'var(--surface2, #fbf9f6)',
+                  border: '1px solid var(--border-solid, #eee7df)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  fontSize: '0.8125rem',
+                  color: 'var(--text-muted)',
+                }}
+              >
+                <Loader2 size={15} className="animate-spin" color="var(--clay)" />
+                <span>Provisioning your dedicated funding account... Check back in a moment.</span>
+              </div>
+            )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 2 }}>
               <button
                 type="button"
                 className="vault-btn-primary"
                 onClick={handleBankTransferConfirm}
+                disabled={!dvaToShow}
                 style={{ height: 44 }}
               >
                 <CheckCircle2 size={16} />

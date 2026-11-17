@@ -12,6 +12,7 @@ import {
 } from '../constants/dashboardFeatures'
 import { hasRentalInfo, needsIdentityVerification } from '../utils/profileCompletion'
 import { isSavingsWalletEnabled } from '../utils/savingsWallet'
+import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
 
 export type DashboardFeatureItemView = DashboardFeatureItem & {
   badge?: string
@@ -26,6 +27,7 @@ export type DashboardFeatureSectionView = {
 export function useDashboardFeatureSections() {
   const { user } = useAuth()
   const { enrolments, loaded: rsiLoaded } = useRsiEnrolment()
+  const { rates: platformRates } = usePlatformRates()
   const { data: benefitsStatus, isError: benefitsError } = useQuery({
     queryKey: ['benefits-status'],
     queryFn: () => api.getBenefitsStatus(),
@@ -56,7 +58,7 @@ export function useDashboardFeatureSections() {
       'verify-identity': identityNeeded ? 'Required' : undefined,
     }
 
-    const savingsEnabled = isSavingsWalletEnabled(user)
+    const savingsEnabled = isSavingsWalletEnabled(user) && platformRates.savingsEnabled !== false
 
     const sections: DashboardFeatureSectionView[] = DASHBOARD_FEATURE_SECTIONS.map(
       (section: DashboardFeatureSection) => ({
@@ -67,7 +69,16 @@ export function useDashboardFeatureSections() {
             return true
           })
           .map((item) => {
-            if (item.id === 'save-for-rent' && savingsEnabled) {
+            if (item.id === 'save-for-rent') {
+              if (!savingsEnabled) {
+                return {
+                  ...item,
+                  href: '#',
+                  comingSoon: true,
+                  description: 'Launching soon while partner activation completes',
+                  badge: 'Soon',
+                }
+              }
               return {
                 ...item,
                 href: '/dashboard/savings',
@@ -88,5 +99,5 @@ export function useDashboardFeatureSections() {
     const pendingCount = Object.values(badgeByFeatureId).filter(Boolean).length
 
     return { sections, pendingCount }
-  }, [benefitsError, benefitsStatus, enrolments, rsiLoaded, user])
+  }, [benefitsError, benefitsStatus, enrolments, platformRates.savingsEnabled, rsiLoaded, user])
 }

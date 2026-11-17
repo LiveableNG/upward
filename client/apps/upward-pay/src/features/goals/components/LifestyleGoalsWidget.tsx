@@ -5,15 +5,28 @@ import { useRouter } from 'next/navigation'
 import { Target, ArrowRight, CheckCircle2, ShieldCheck, Clock } from 'lucide-react'
 import { useUserGoals, useGoalCategories } from '../hooks/useGoals'
 import { useRentVault } from '@/features/savings/hooks/useRentSavings'
+import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
+import { useToast } from '@/components/common/Toast'
 import { getGoalTitle } from '../types/goals.types'
 import { formatCurrency } from '@/lib/utils'
 import '../styles/goals.css'
 
 export const LifestyleGoalsWidget: React.FC = () => {
   const router = useRouter()
+  const toast = useToast()
   const { data: userGoals = [], isLoading: isLoadingUserGoals } = useUserGoals()
   const { data: categories = [], isLoading: isLoadingCategories } = useGoalCategories()
   const { data: vault, isLoading: isLoadingVault } = useRentVault()
+  const { rates: platformRates, isLoading: ratesLoading } = usePlatformRates()
+
+  const handleOpenSavings = () => {
+    if (ratesLoading) return
+    if (platformRates.savingsEnabled === false) {
+      toast.info('Rent savings is coming soon — we are finalizing partner activation.')
+      return
+    }
+    router.push('/dashboard/savings')
+  }
 
   const isLoading = isLoadingUserGoals || isLoadingCategories || isLoadingVault
 
@@ -54,7 +67,7 @@ export const LifestyleGoalsWidget: React.FC = () => {
         <button
           type="button"
           className="lifestyle-goals-widget__link"
-          onClick={() => router.push('/dashboard/savings')}
+          onClick={handleOpenSavings}
         >
           <span>{hasVault ? 'Manage Vault' : 'Save for Rent'}</span>
           <ArrowRight size={13} />
@@ -102,7 +115,7 @@ export const LifestyleGoalsWidget: React.FC = () => {
           <button
             type="button"
             className="lifestyle-goals-widget__cta-btn"
-            onClick={() => router.push('/dashboard/savings')}
+            onClick={handleOpenSavings}
           >
             <span>Set Up Rent Savings Goal</span>
             <ArrowRight size={14} />

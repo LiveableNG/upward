@@ -220,12 +220,16 @@ export class GetMyRentVaultUseCase {
       (vault as any).insurancePremiumPct ??
       (resolvedProductOption === 'RENT_PROTEC' ? (rates?.insurancePremiumPct ?? 2.0) : 0)
 
+    const plannedInitialDepositKobo = BigInt((vault as any).initialDepositKobo ?? 0n)
+
     if (daysRemaining > 0 && vault.targetAmountKobo > 0n) {
       try {
+        const simInitialDepositKobo =
+          currentBalanceKobo > 0n ? currentBalanceKobo : plannedInitialDepositKobo
         const sim = RentSavingsCalculatorEngine.simulate({
           targetAmountKobo: vault.targetAmountKobo,
           contractualDueDate: vault.contractualDueDate,
-          initialDepositKobo: currentBalanceKobo,
+          initialDepositKobo: simInitialDepositKobo,
           cadence: resolvedCadence,
           productOption: resolvedProductOption,
           planPattern: resolvedPlanPattern,
@@ -236,7 +240,10 @@ export class GetMyRentVaultUseCase {
           insurancePremiumPct,
         })
         const remainingPrincipalKobo = Number(sim.periodicDepositKobo * BigInt(sim.numberOfPayments))
-        const totalTenantContributionKobo = Number(combinedPrincipalKobo) + remainingPrincipalKobo
+        const totalTenantContributionKobo =
+          currentBalanceKobo > 0n
+            ? Number(combinedPrincipalKobo) + remainingPrincipalKobo
+            : Number(sim.totalTenantContributionKobo)
         const projectedYieldKobo = Math.max(
           Number(vault.accruedYieldKobo),
           targetAmountNum - totalTenantContributionKobo,
@@ -267,6 +274,7 @@ export class GetMyRentVaultUseCase {
         cadence: resolvedCadence,
         product_option: resolvedProductOption,
         plan_pattern: resolvedPlanPattern,
+        initial_deposit_kobo: Number(plannedInitialDepositKobo),
         is_rent_protec: resolvedProductOption === 'RENT_PROTEC',
         insurance_premium_pct: insurancePremiumPct,
         current_balance_kobo: Number(currentBalanceKobo),

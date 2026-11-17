@@ -1,4 +1,10 @@
-import { Injectable, Inject, Logger, BadRequestException } from '@nestjs/common'
+import {
+  Injectable,
+  Inject,
+  Logger,
+  BadRequestException,
+  UnauthorizedException,
+} from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import * as crypto from 'crypto'
 import {
@@ -6,6 +12,7 @@ import {
   RENT_VAULT_REPOSITORY,
 } from '../../../domains/rent-savings/rent-vault.repository'
 import { AssetManagementProviderRegistry } from '../../../infrastructure/providers/asset-management/asset-management-provider.registry'
+import { isProductionRuntime } from '../../../shared/utils/runtime-env'
 
 export interface PaystackWebhookPayload {
   event: string
@@ -43,6 +50,10 @@ export class ProcessPaystackSavingsWebhookUseCase {
 
   public verifySignature(rawBody: string | Buffer, signatureHeader: string | undefined): boolean {
     if (!this.secretKey) {
+      if (isProductionRuntime(this.secretKey)) {
+        this.logger.error('PAYSTACK_SECRET_KEY missing in production; rejecting webhook signature')
+        return false
+      }
       this.logger.warn(
         'PAYSTACK_SECRET_KEY not set; skipping signature verification in development',
       )
@@ -63,7 +74,17 @@ export class ProcessPaystackSavingsWebhookUseCase {
     signatureHeader?: string,
     rawBody?: string | Buffer,
   ) {
-    if (rawBody && signatureHeader && !this.verifySignature(rawBody, signatureHeader)) {
+    const isProd = isProductionRuntime(this.secretKey)
+    if (isProd) {
+      if (!this.secretKey) {
+        this.logger.error('PAYSTACK_SECRET_KEY missing in production; rejecting savings webhook')
+        throw new UnauthorizedException('Webhook secret is not configured')
+      }
+      if (!signatureHeader || !rawBody || !this.verifySignature(rawBody, signatureHeader)) {
+        this.logger.error('Missing or invalid Paystack savings webhook signature in production')
+        throw new UnauthorizedException('Invalid webhook signature')
+      }
+    } else if (rawBody && signatureHeader && !this.verifySignature(rawBody, signatureHeader)) {
       this.logger.error('Invalid Paystack webhook signature')
       throw new BadRequestException('Invalid webhook signature')
     }
