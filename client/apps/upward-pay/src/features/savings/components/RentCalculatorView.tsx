@@ -27,6 +27,8 @@ import {
 import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
 import { PayPageShell, PayFlowPrimaryButton } from '@/features/dashboard/components/payment/PayPageShell'
+import { loadSetupDraft } from '@/features/dashboard/setup/setupDraft'
+import { readSavingsRentPlan } from '../utils/savingsRentPlan'
 
 type Stage = 'RENT_INPUT' | 'BENEFIT' | 'KYC' | 'SUCCESS'
 
@@ -63,13 +65,31 @@ export function RentCalculatorView({
     }) => !p.isPastTenancy && p.rentAmount,
   )
 
-  const [targetAmountRaw, setTargetAmountRaw] = useState<string>(() =>
-    activeProperty?.rentAmount ? formatCurrencyInput(activeProperty.rentAmount) : '',
-  )
+  const [targetAmountRaw, setTargetAmountRaw] = useState<string>(() => {
+    if (activeProperty?.rentAmount) return formatCurrencyInput(activeProperty.rentAmount)
+    if (typeof window !== 'undefined') {
+      try {
+        const draft = loadSetupDraft()
+        const draftAmount = draft?.formData?.rentAmount ? (parseCurrencyInput(draft.formData.rentAmount) || 0) : 0
+        if (draftAmount > 0) return formatCurrencyInput(draftAmount)
+        const plan = readSavingsRentPlan()
+        if (plan?.rentAmount) return formatCurrencyInput(Number(plan.rentAmount))
+      } catch {}
+    }
+    return ''
+  })
   const [nowTimestamp] = useState(() => Date.now())
   const [contractualDueDate, setContractualDueDate] = useState<string>(() => {
     if (activeProperty?.rentEndDate) {
       return activeProperty.rentEndDate.split('T')[0]
+    }
+    if (typeof window !== 'undefined') {
+      try {
+        const draft = loadSetupDraft()
+        if (draft?.formData?.rentEndDate) return draft.formData.rentEndDate.split('T')[0]
+        const plan = readSavingsRentPlan()
+        if (plan?.dueDate) return plan.dueDate.split('T')[0]
+      } catch {}
     }
     return ''
   })
@@ -87,15 +107,18 @@ export function RentCalculatorView({
     }
   }
 
-  const hasSavedRent = Boolean(activeProperty?.rentAmount && activeProperty?.rentEndDate)
+  const targetAmountNaira = parseCurrencyInput(targetAmountRaw) || 0
+  const tomorrow = new Date(nowTimestamp + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  const hasSavedRent = Boolean(
+    (activeProperty?.rentAmount && activeProperty?.rentEndDate) ||
+    (targetAmountNaira > 0 && contractualDueDate && contractualDueDate >= tomorrow)
+  )
   const [rentConfirmed, setRentConfirmed] = useState(false)
   const hasRentDetails = hasSavedRent || rentConfirmed
 
   // Flow Stage State
   const [stage, setStage] = useState<Stage>(() => (hasSavedRent ? 'BENEFIT' : 'RENT_INPUT'))
 
-  const targetAmountNaira = parseCurrencyInput(targetAmountRaw) || 0
-  const tomorrow = new Date(nowTimestamp + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
   const canConfirmRent =
     targetAmountNaira > 0 && Boolean(contractualDueDate) && contractualDueDate >= tomorrow
 
