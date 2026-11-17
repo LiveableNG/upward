@@ -94,7 +94,7 @@ export class SubmitStudentEarlyAccessUseCase {
           subject = 'You’re in! The Tech-Driven Property Management Model: Go from Commission-Only to Predictable Income in 90 Days'
           title = 'You’re in! The Tech-Driven Property Management Model: Go from Commission-Only to Predictable Income in 90 Days'
 
-          const whatsappCommunityUrl = 'https://chat.whatsapp.com/LcFwiekT2UQLUSzrm2zGER?s=cl&p=a&mlu=4&ilr=4&iam=2'
+          const whatsappCommunityUrl = 'https://chat.whatsapp.com/EVzHouLPtchBFxv2TOb3ra'
 
           contentHtml = `
             <p style="margin-top: 0; font-size: 16px;">Hi <strong>${firstName}</strong>,</p>

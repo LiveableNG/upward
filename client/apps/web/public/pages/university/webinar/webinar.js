@@ -401,7 +401,7 @@
         // Setup WhatsApp Waitlist Community Link
         const whatsappCommunityBtn = document.getElementById('btnWebinarWhatsappCommunity');
         if (whatsappCommunityBtn) {
-          whatsappCommunityBtn.href = 'https://chat.whatsapp.com/LcFwiekT2UQLUSzrm2zGER?s=cl&p=a&mlu=4&ilr=4&iam=2';
+          whatsappCommunityBtn.href = 'https://chat.whatsapp.com/EVzHouLPtchBFxv2TOb3ra';
         }
 
         successBox?.scrollIntoView({ behavior: 'smooth', block: 'center' });
