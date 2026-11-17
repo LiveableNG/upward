@@ -185,7 +185,7 @@ export function CommerceCheckoutModal({
       ? [
           {
             offeringId: offering.id,
-            offeringUuid: offering.uuid,
+            offeringUuid: offering.uuid || String(offering.id),
             title: offering.title || offering.name || 'Commerce Offering',
             subtitle: offering.subtitle,
             imageUrl:

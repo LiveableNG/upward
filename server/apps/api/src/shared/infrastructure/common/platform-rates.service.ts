@@ -12,6 +12,8 @@ export interface PlatformRatesSnapshot {
   savingsDailyRate: number;
   rentProtecDailyRate: number;
   insurancePremiumRateDecimal: number;
+  partnerName: string;
+  partnerShortName: string;
   updatedAt: string | null;
 }
 
@@ -20,6 +22,10 @@ const DEFAULT_RENT_PROTEC_RATE_PCT = 10.0;
 const DEFAULT_INSURANCE_PREMIUM_PCT = 2.0;
 const DEFAULT_RENT_PROTEC_MIN_MONTHS = 6;
 const DEFAULT_MAX_SAVINGS_MONTHS = 11;
+const DEFAULT_PARTNER_NAME =
+  process.env.INVESTMENT_PARTNER_NAME || 'Asset & Resource Management Holding Company (ARM)';
+const DEFAULT_PARTNER_SHORT_NAME =
+  process.env.INVESTMENT_PARTNER_SHORT_NAME || 'ARM';
 const GLOBAL_KEY = 'GLOBAL';
 const LEGACY_SAVINGS_CONFIG_KEY = 'GLOBAL_DAILY_INTEREST';
 
@@ -30,6 +36,8 @@ export class PlatformRatesService implements OnModuleInit {
   private cachedInsurancePremiumPct = DEFAULT_INSURANCE_PREMIUM_PCT;
   private cachedRentProtecMinMonths = DEFAULT_RENT_PROTEC_MIN_MONTHS;
   private cachedMaxSavingsMonths = DEFAULT_MAX_SAVINGS_MONTHS;
+  private cachedPartnerName = DEFAULT_PARTNER_NAME;
+  private cachedPartnerShortName = DEFAULT_PARTNER_SHORT_NAME;
   private cachedUpdatedAt: Date | null = null;
 
   constructor(private readonly prisma: PrismaService) {}
@@ -92,6 +100,8 @@ export class PlatformRatesService implements OnModuleInit {
       savingsDailyRate: savingsAnnualRateDecimal / 365,
       rentProtecDailyRate: rentProtecRateDecimal / 365,
       insurancePremiumRateDecimal,
+      partnerName: this.cachedPartnerName,
+      partnerShortName: this.cachedPartnerShortName,
       updatedAt: this.cachedUpdatedAt ? this.cachedUpdatedAt.toISOString() : null,
     };
   }
@@ -121,6 +131,8 @@ export class PlatformRatesService implements OnModuleInit {
     insurancePremiumPct?: number;
     rentProtecMinMonths?: number;
     maxSavingsMonths?: number;
+    partnerName?: string;
+    partnerShortName?: string;
     updatedByAdminId?: string;
   }): Promise<PlatformRatesSnapshot> {
     const current = await this.getRates();
@@ -206,6 +218,12 @@ export class PlatformRatesService implements OnModuleInit {
     this.cachedInsurancePremiumPct = updated.insurancePremiumPct;
     this.cachedRentProtecMinMonths = updated.rentProtecMinMonths;
     this.cachedMaxSavingsMonths = updated.maxSavingsMonths;
+    if (params.partnerName !== undefined && params.partnerName.trim()) {
+      this.cachedPartnerName = params.partnerName.trim();
+    }
+    if (params.partnerShortName !== undefined && params.partnerShortName.trim()) {
+      this.cachedPartnerShortName = params.partnerShortName.trim();
+    }
     this.cachedUpdatedAt = updated.updatedAt;
 
     return this.getCachedRates();

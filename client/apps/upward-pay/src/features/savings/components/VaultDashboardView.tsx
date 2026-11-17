@@ -152,7 +152,10 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
           <div className="vault-arm-badge">
             <ShieldCheck size={14} className="vault-arm-badge__icon" />
             <span>
-              Powered by <strong>Asset &amp; Resource Management Holding Company (ARM)</strong>
+              Powered by{' '}
+              <strong>
+                {platformRates.partnerName || 'Asset & Resource Management Holding Company (ARM)'}
+              </strong>
             </span>
           </div>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>

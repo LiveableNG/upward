@@ -41,6 +41,8 @@ export class AdminFeesController {
       insurancePremiumPct?: number
       rentProtecMinMonths?: number
       maxSavingsMonths?: number
+      partnerName?: string
+      partnerShortName?: string
     },
     @Req() req: any,
   ) {
@@ -50,6 +52,8 @@ export class AdminFeesController {
       insurancePremiumPct: body.insurancePremiumPct,
       rentProtecMinMonths: body.rentProtecMinMonths,
       maxSavingsMonths: body.maxSavingsMonths,
+      partnerName: body.partnerName,
+      partnerShortName: body.partnerShortName,
       updatedByAdminId: req.user?.id || req.user?.sub,
     })
     return { success: true, data }

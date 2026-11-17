@@ -11,6 +11,8 @@ export interface PlatformRates {
   savingsDailyRate: number
   rentProtecDailyRate: number
   insurancePremiumRateDecimal: number
+  partnerName?: string
+  partnerShortName?: string
   updatedAt: string | null
 }
 
@@ -25,6 +27,8 @@ export const DEFAULT_PLATFORM_RATES: PlatformRates = {
   savingsDailyRate: 0.14 / 365,
   rentProtecDailyRate: 0.1 / 365,
   insurancePremiumRateDecimal: 0.02,
+  partnerName: 'Asset & Resource Management Holding Company (ARM)',
+  partnerShortName: 'ARM',
   updatedAt: null,
 }
 

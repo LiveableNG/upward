@@ -9,6 +9,7 @@ import {
   PiggyBank,
 } from 'lucide-react'
 import { useRentVault } from '../hooks/useRentSavings'
+import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
 import { useAuth } from '@/features/auth/AuthContext'
 import { SavingsInvestorKycModal } from './SavingsInvestorKycModal'
 import { RentCalculatorView } from './RentCalculatorView'
@@ -19,6 +20,7 @@ import '@/styles/savings-v1.css'
 export function RentSavingsMainView() {
   const { user, refreshUser } = useAuth()
   const { data: vault, isLoading, error, refetch } = useRentVault()
+  const { rates: platformRates } = usePlatformRates()
 
   const [viewMode, setViewMode] = useState<'DASHBOARD' | 'SETTLEMENT'>('DASHBOARD')
   const [showKycModal, setShowKycModal] = useState<boolean>(false)
@@ -93,7 +95,9 @@ export function RentSavingsMainView() {
           <div className="savings-kyc-banner__content">
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <span className="savings-kyc-banner__title">Identity Verification Required</span>
-              <span className="savings-kyc-banner__partner">powered by ARM</span>
+              <span className="savings-kyc-banner__partner">
+                powered by {platformRates.partnerShortName || 'ARM'}
+              </span>
             </div>
             <span className="savings-kyc-banner__desc">
               Verify your identity to unlock rent savings and start earning daily compound returns.
@@ -119,7 +123,9 @@ export function RentSavingsMainView() {
           <div className="savings-kyc-banner__content">
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <span className="savings-kyc-banner__title">Rent Savings Plan Ready</span>
-              <span className="savings-kyc-banner__partner">powered by ARM</span>
+              <span className="savings-kyc-banner__partner">
+                powered by {platformRates.partnerShortName || 'ARM'}
+              </span>
             </div>
             <span className="savings-kyc-banner__desc">
               Get cash back on your next rent when you save up for it regularly.

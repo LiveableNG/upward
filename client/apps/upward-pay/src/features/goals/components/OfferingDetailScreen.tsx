@@ -550,8 +550,8 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
           null
         return {
           offeringId: comp.id,
-          offeringUuid: comp.uuid,
-          title: comp.title || comp.name || offering.title,
+          offeringUuid: comp.uuid || String(comp.id),
+          title: comp.title || comp.name || offering.title || 'Package Item',
           subtitle: comp.subtitle,
           imageUrl: primaryImg,
           price: itemPrice,
@@ -1165,7 +1165,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                           : null
                     const primaryCompImage =
                       comp?.imageUrl ||
-                      comp?.media?.find((m) => m.isPrimary)?.mediaUrl ||
+                      comp?.media?.find((m: { isPrimary?: boolean; mediaUrl?: string }) => m.isPrimary)?.mediaUrl ||
                       comp?.media?.[0]?.mediaUrl ||
                       null
 

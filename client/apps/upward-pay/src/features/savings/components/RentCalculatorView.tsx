@@ -374,7 +374,7 @@ export function RentCalculatorView({
               <div className="vault-arm-badge">
                 <ShieldCheck size={14} className="vault-arm-badge__icon" />
                 <span>
-                  Powered by <strong>Asset &amp; Resource Management Holding Company (ARM)</strong>
+                  Powered by <strong>{platformRates.partnerName || 'Asset & Resource Management Holding Company (ARM)'}</strong>
                 </span>
               </div>
               <span className="vault-dashboard__countdown-pill">
@@ -797,7 +797,8 @@ export function RentCalculatorView({
               >
                 <Landmark size={15} color="var(--clay)" style={{ flexShrink: 0 }} />
                 <span>
-                  ARM pays <strong>+{formatCurrency(projectedYieldNaira, 'NGN')}</strong> directly
+                  {platformRates.partnerShortName || 'ARM'} pays{' '}
+                  <strong>+{formatCurrency(projectedYieldNaira, 'NGN')}</strong> directly
                   towards your rent. Flexible savings with zero direct debit fees.
                 </span>
               </div>

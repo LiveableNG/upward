@@ -136,7 +136,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
 
         const newItem: CartItem = {
           offeringId: offering.id,
-          offeringUuid: offering.uuid,
+          offeringUuid: offering.uuid || String(offering.id),
           title: offering.title || offering.name || 'Curated Item',
           subtitle: offering.subtitle,
           imageUrl: primaryImage,
@@ -202,7 +202,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
           } else {
             updated.push({
               offeringId: offering.id,
-              offeringUuid: offering.uuid,
+              offeringUuid: offering.uuid || String(offering.id),
               title: offering.title || offering.name || 'Curated Item',
               subtitle: offering.subtitle,
               imageUrl: primaryImage,
