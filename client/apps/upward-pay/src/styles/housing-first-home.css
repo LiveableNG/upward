@@ -205,47 +205,62 @@
   line-height: 1.2;
 }
 
-.housing-acc__controls {
+/* Housing card body + collapsible secondary rows */
+.housing-acc__body {
+  width: 100%;
   display: flex;
-  gap: 6px;
-  flex-shrink: 0;
-  align-items: center;
+  flex-direction: column;
 }
 
-.housing-acc__ctrl {
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
-  border: 1px solid var(--shell-border, #f0e9df);
-  background: var(--oat, #faf9f5);
-  color: var(--text-secondary, #4a4642);
+.housing-acc__more {
   display: grid;
-  place-items: center;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 0.28s ease, opacity 0.2s ease;
+}
+
+.housing-acc--expanded .housing-acc__more {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.housing-acc__more-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.housing-acc__toggle {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 11px 12px;
+  border: none;
+  border-top: 1px solid var(--shell-border, #f0e9df);
+  background: transparent;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--clay, #c2501f);
   cursor: pointer;
-  padding: 0;
-  transition: transform 0.15s ease, background 0.15s ease;
+  transition: background 0.15s ease;
   -webkit-tap-highlight-color: transparent;
 }
 
-.housing-acc__ctrl:active {
-  transform: scale(0.94);
-}
-
-.housing-acc__ctrl.is-active {
+.housing-acc__toggle:active {
   background: var(--shell-tint, #fbede5);
-  color: var(--clay, #c2501f);
 }
 
-/* Compact view container */
-.housing-acc__compact-goal {
-  padding: 0 12px 12px;
-  width: 100%;
-  box-sizing: border-box;
+.housing-acc__toggle:focus-visible {
+  outline: 2px solid var(--clay, #c2501f);
+  outline-offset: -2px;
 }
 
-.housing-acc__compact-goal .housing-goal-card,
-.housing-acc__compact-goal .vault-card {
-  margin-bottom: 0 !important;
+@media (prefers-reduced-motion: reduce) {
+  .housing-acc__more {
+    transition: none;
+  }
 }
 
 /* 3. Action Tiles (3 equal columns) */
