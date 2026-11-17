@@ -704,7 +704,7 @@ export function EditPropertyView({ propertyUuid }: EditPropertyViewProps) {
                     <input
                       disabled={isRentTermsDisabled}
                       type="text"
-                      placeholder="1,200,000"
+                      placeholder="e.g. 2,500,000"
                       value={rentAmount}
                       onChange={(e) => {
                         const val = e.target.value.replace(/\D/g, '')

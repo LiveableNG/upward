@@ -115,7 +115,10 @@ export function createEmptyDraft(mode: SetupMode = 'onboarding'): SetupDraft {
 export function loadSetupDraft(): SetupDraft | null {
   if (typeof window === 'undefined') return null
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY)
+    let raw = sessionStorage.getItem(STORAGE_KEY)
+    if (!raw) {
+      raw = localStorage.getItem(STORAGE_KEY)
+    }
     if (!raw) return null
     const parsed = JSON.parse(raw) as Partial<SetupDraft>
     const formData = parsed.formData
@@ -143,23 +146,45 @@ export function loadSetupDraft(): SetupDraft | null {
 
 export function saveSetupDraft(draft: SetupDraft) {
   if (typeof window === 'undefined') return
-  // Omit File object when saving to sessionStorage to prevent JSON stringify issues
+  // Omit File object when saving to storage to prevent JSON stringify issues
   const { proofFile, ...formDataRest } = draft.formData
   const serializableDraft = {
     ...draft,
     formData: formDataRest,
   }
-  sessionStorage.setItem(STORAGE_KEY, JSON.stringify(serializableDraft))
+  try {
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(serializableDraft))
+  } catch {}
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(serializableDraft))
+  } catch {}
 }
 
-export function patchSetupDraft(patch: Partial<SetupDraft>) {
+export type SetupDraftPatch = Omit<Partial<SetupDraft>, 'formData'> & {
+  formData?: Partial<RentalFormData>
+}
+
+export function patchSetupDraft(patch: SetupDraftPatch) {
   const current = loadSetupDraft() || createEmptyDraft()
-  saveSetupDraft({ ...current, ...patch })
+  const updated: SetupDraft = {
+    ...current,
+    ...patch,
+    formData: {
+      ...current.formData,
+      ...(patch.formData || {}),
+    },
+  }
+  saveSetupDraft(updated)
 }
 
 export function clearSetupDraft() {
   if (typeof window === 'undefined') return
-  sessionStorage.removeItem(STORAGE_KEY)
+  try {
+    sessionStorage.removeItem(STORAGE_KEY)
+  } catch {}
+  try {
+    localStorage.removeItem(STORAGE_KEY)
+  } catch {}
 }
 
 export type DraftUserProperty = {

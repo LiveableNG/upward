@@ -10,6 +10,7 @@ import {
   Check,
   AlertCircle,
   Loader2,
+  ArrowRight,
 } from 'lucide-react'
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from '@/lib/utils'
 import {
@@ -27,7 +28,7 @@ import {
 import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
 import { PayPageShell, PayFlowPrimaryButton } from '@/features/dashboard/components/payment/PayPageShell'
-import { loadSetupDraft } from '@/features/dashboard/setup/setupDraft'
+import { loadSetupDraft, patchSetupDraft } from '@/features/dashboard/setup/setupDraft'
 import { readSavingsRentPlan } from '../utils/savingsRentPlan'
 
 type Stage = 'RENT_INPUT' | 'BENEFIT' | 'KYC' | 'SUCCESS'
@@ -228,6 +229,20 @@ export function RentCalculatorView({
           }),
         )
       } catch {}
+
+      if (targetAmountNaira > 0) {
+        const computedStart = contractualDueDate
+          ? new Date(new Date(contractualDueDate).getTime() - 365 * 24 * 60 * 60 * 1000)
+              .toISOString()
+              .split('T')[0]
+          : ''
+        patchSetupDraft({
+          formData: {
+            rentAmount: formatCurrencyInput(targetAmountNaira),
+            ...(contractualDueDate ? { rentEndDate: contractualDueDate, rentStartDate: computedStart } : {}),
+          },
+        })
+      }
     }
   }, [
     targetAmountNaira,
@@ -488,11 +503,38 @@ export function RentCalculatorView({
           <PayFlowPrimaryButton
             disabled={!canConfirmRent}
             onClick={() => {
+              if (targetAmountNaira > 0) {
+                const computedStartDate = contractualDueDate
+                  ? new Date(new Date(contractualDueDate).getTime() - 365 * 24 * 60 * 60 * 1000)
+                      .toISOString()
+                      .split('T')[0]
+                  : ''
+                patchSetupDraft({
+                  formData: {
+                    rentAmount: formatCurrencyInput(targetAmountNaira),
+                    ...(contractualDueDate ? { rentEndDate: contractualDueDate, rentStartDate: computedStartDate } : {}),
+                  },
+                })
+                try {
+                  const currentPlan = readSavingsRentPlan() || {}
+                  localStorage.setItem(
+                    'upward_savings_rent_plan',
+                    JSON.stringify({
+                      ...currentPlan,
+                      userId: user?.id,
+                      source: 'user',
+                      rentAmount: targetAmountNaira,
+                      dueDate: contractualDueDate || currentPlan.dueDate,
+                    }),
+                  )
+                } catch {}
+              }
               setRentConfirmed(true)
               setStage('BENEFIT')
             }}
           >
             Continue
+            <ArrowRight size={18} aria-hidden />
           </PayFlowPrimaryButton>
         }
       >
@@ -550,6 +592,7 @@ export function RentCalculatorView({
         footer={
           <PayFlowPrimaryButton onClick={() => setStage('KYC')}>
             Continue to Activate Account
+            <ArrowRight size={18} aria-hidden />
           </PayFlowPrimaryButton>
         }
       >
@@ -1067,6 +1110,7 @@ export function RentCalculatorView({
             onClick={handleSubmitKyc}
           >
             Activate Account
+            <ArrowRight size={18} aria-hidden />
           </PayFlowPrimaryButton>
         }
       >

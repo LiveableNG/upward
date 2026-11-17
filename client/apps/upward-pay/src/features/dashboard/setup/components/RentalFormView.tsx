@@ -110,7 +110,13 @@ export function RentalFormView() {
 
     let savingsPlan: SavingsRentPlan | null = null
     const storedPlan = readSavingsRentPlan()
-    if (storedPlan && (!storedPlan.userId || (user?.id && storedPlan.userId === user.id))) {
+    if (
+      storedPlan &&
+      (!storedPlan.userId ||
+        !user?.id ||
+        String(storedPlan.userId) === String(user?.id) ||
+        String(storedPlan.userId) === String(user?.uuid))
+    ) {
       savingsPlan = storedPlan
     }
 
@@ -172,17 +178,27 @@ export function RentalFormView() {
       }
     }
 
-    hasPrefilledRef.current = true
-
     if (needsUpdate) {
+      hasPrefilledRef.current = true
       updateDraft({
         formData: {
           ...draft.formData,
           ...patch,
         },
       })
+    } else if (draft.formData.rentAmount && draft.formData.rentAmount !== '0') {
+      hasPrefilledRef.current = true
     }
-  }, [isEdit, prefillData, user?.id, updateDraft])
+  }, [
+    isEdit,
+    prefillData,
+    user?.id,
+    user?.uuid,
+    draft.formData.rentAmount,
+    draft.formData.rentEndDate,
+    draft.formData.address,
+    updateDraft,
+  ])
 
   // Auto-calculate end date whenever tenancy parameters change
   useEffect(() => {
@@ -773,7 +789,7 @@ export function RentalFormView() {
                   <span>₦</span>
                   <input
                     type="text"
-                    placeholder="1,200,000"
+                    placeholder="e.g. 2,500,000"
                     value={draft.formData.rentAmount}
                     onChange={(e) => {
                       const val = e.target.value.replace(/\D/g, '')
