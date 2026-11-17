@@ -530,14 +530,14 @@ export function RentCalculatorView({
           </PayFlowPrimaryButton>
         }
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {/* Target Rent Pill with Edit button */}
           <div
             style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
-              padding: '10px 14px',
+              padding: '8px 12px',
               borderRadius: '12px',
               background: 'var(--oat, #faf9f5)',
               border: '1px solid var(--shell-border, #f0e9df)',
@@ -571,7 +571,7 @@ export function RentCalculatorView({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                marginBottom: 8,
+                marginBottom: 6,
               }}
             >
               <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text)' }}>
@@ -592,7 +592,7 @@ export function RentCalculatorView({
                 display: 'grid',
                 gridTemplateColumns: 'repeat(3, 1fr)',
                 gap: 4,
-                padding: '4px',
+                padding: '3px',
                 background: 'var(--oat, #faf9f5)',
                 borderRadius: '12px',
                 border: '1px solid var(--shell-border, #f0e9df)',
@@ -602,7 +602,7 @@ export function RentCalculatorView({
                 type="button"
                 onClick={() => handleSelectPlan('INITIAL_DEPOSIT')}
                 style={{
-                  padding: '8px 4px',
+                  padding: '7px 4px',
                   borderRadius: '9px',
                   border: 'none',
                   background: planPattern === 'INITIAL_DEPOSIT' ? '#ffffff' : 'transparent',
@@ -621,7 +621,7 @@ export function RentCalculatorView({
                 type="button"
                 onClick={() => handleSelectPlan('EQUAL')}
                 style={{
-                  padding: '8px 4px',
+                  padding: '7px 4px',
                   borderRadius: '9px',
                   border: 'none',
                   background: planPattern === 'EQUAL' ? '#ffffff' : 'transparent',
@@ -640,7 +640,7 @@ export function RentCalculatorView({
                 type="button"
                 onClick={() => handleSelectPlan('STEP_UP')}
                 style={{
-                  padding: '8px 4px',
+                  padding: '7px 4px',
                   borderRadius: '9px',
                   border: 'none',
                   background: planPattern === 'STEP_UP' ? '#ffffff' : 'transparent',
@@ -658,95 +658,16 @@ export function RentCalculatorView({
             </div>
           </div>
 
-          {/* Editable Upfront Deposit Field (Only shown when With Deposit is selected) */}
-          {planPattern === 'INITIAL_DEPOSIT' && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '10px 14px',
-                borderRadius: '12px',
-                background: 'var(--oat, #faf9f5)',
-                border: '1px solid var(--shell-border, #f0e9df)',
-                gap: 12,
-              }}
-            >
-              <div>
-                <label
-                  htmlFor="upfront-deposit-amount"
-                  style={{
-                    fontSize: '0.8125rem',
-                    fontWeight: 700,
-                    color: 'var(--text)',
-                    display: 'block',
-                  }}
-                >
-                  Upfront deposit
-                </label>
-                <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
-                  Pay upfront to lower monthly savings
-                </span>
-              </div>
-
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  background: '#ffffff',
-                  border: '1.5px solid var(--shell-border, #f0e9df)',
-                  borderRadius: '10px',
-                  padding: '6px 10px',
-                  width: '160px',
-                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
-                }}
-              >
-                <span
-                  style={{
-                    fontSize: '0.9375rem',
-                    fontWeight: 700,
-                    color: 'var(--text-secondary)',
-                    marginRight: 4,
-                  }}
-                >
-                  ₦
-                </span>
-                <input
-                  id="upfront-deposit-amount"
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="0"
-                  value={initialDepositRaw}
-                  onChange={(e) => {
-                    const parsed = parseCurrencyInput(e.target.value)
-                    setCustomInitialDeposit(parsed ? formatCurrencyInput(parsed) : '')
-                  }}
-                  style={{
-                    width: '100%',
-                    border: 'none',
-                    background: 'transparent',
-                    outline: 'none',
-                    fontSize: '0.9375rem',
-                    fontWeight: 800,
-                    color: 'var(--text)',
-                    textAlign: 'right',
-                    letterSpacing: '-0.01em',
-                  }}
-                />
-              </div>
-            </div>
-          )}
-
           {/* High-Impact Benefit Card */}
           <div
             style={{
-              padding: '14px 16px',
+              padding: '12px 14px',
               borderRadius: '16px',
               background: 'linear-gradient(180deg, #faf9f5 0%, #f6f3ee 100%)',
               border: '1px solid var(--shell-border, #f0e9df)',
               display: 'flex',
               flexDirection: 'column',
-              gap: 10,
+              gap: 8,
               boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)',
             }}
           >
@@ -849,6 +770,59 @@ export function RentCalculatorView({
               />
             </div>
 
+            {/* Compact Editable Upfront Deposit (Integrated inside the Benefit Card) */}
+            {planPattern === 'INITIAL_DEPOSIT' && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingTop: 6,
+                  borderTop: '1px solid rgba(0, 0, 0, 0.05)',
+                  marginTop: 2,
+                }}
+              >
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                  Upfront deposit
+                </div>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    background: '#ffffff',
+                    border: '1px solid var(--shell-border, #e5dfd7)',
+                    borderRadius: '8px',
+                    padding: '2px 8px',
+                  }}
+                >
+                  <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-muted)', marginRight: 2 }}>
+                    ₦
+                  </span>
+                  <input
+                    id="upfront-deposit-amount"
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="0"
+                    value={initialDepositRaw}
+                    onChange={(e) => {
+                      const parsed = parseCurrencyInput(e.target.value)
+                      setCustomInitialDeposit(parsed ? formatCurrencyInput(parsed) : '')
+                    }}
+                    style={{
+                      width: '105px',
+                      border: 'none',
+                      background: 'transparent',
+                      outline: 'none',
+                      fontSize: '0.8125rem',
+                      fontWeight: 800,
+                      color: 'var(--text)',
+                      textAlign: 'right',
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
             <div
               style={{
                 display: 'flex',
@@ -871,14 +845,14 @@ export function RentCalculatorView({
                 fontSize: '0.8125rem',
                 fontWeight: 700,
                 color: 'var(--text)',
-                marginBottom: 8,
+                marginBottom: 6,
                 display: 'block',
               }}
             >
               Protection plan
             </span>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {/* Option 1: Rent Protec (Recommended) */}
               <button
                 type="button"
@@ -887,7 +861,7 @@ export function RentCalculatorView({
                 style={{
                   width: '100%',
                   textAlign: 'left',
-                  padding: '10px 14px',
+                  padding: '9px 12px',
                   borderRadius: '13px',
                   border:
                     activeProductOption === 'RENT_PROTEC'
@@ -902,7 +876,7 @@ export function RentCalculatorView({
                   transition: 'all 0.15s ease',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 3,
+                  gap: 2,
                 }}
               >
                 <div
@@ -964,7 +938,7 @@ export function RentCalculatorView({
                 style={{
                   width: '100%',
                   textAlign: 'left',
-                  padding: '10px 14px',
+                  padding: '9px 12px',
                   borderRadius: '13px',
                   border:
                     activeProductOption === 'SAVE_AND_EARN'
@@ -978,7 +952,7 @@ export function RentCalculatorView({
                   transition: 'all 0.15s ease',
                   display: 'flex',
                   flexDirection: 'column',
-                  gap: 3,
+                  gap: 2,
                 }}
               >
                 <div
