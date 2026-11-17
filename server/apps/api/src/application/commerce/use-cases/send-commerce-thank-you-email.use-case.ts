@@ -114,8 +114,9 @@ export class SendCommerceThankYouEmailUseCase {
         ;(order.subOrders || []).forEach((sub) => {
           ;(sub.items || []).forEach((item) => {
             const snap = (item.snapshotData as any) || {}
+            const off = (item as any).offering
             itemsSummary.push(
-              `${item.quantity}x ${snap.title || `Offering #${item.offeringId}`}`,
+              `${item.quantity}x ${snap.title || snap.name || off?.title || `Offering #${item.offeringId}`}`,
             )
           })
         })

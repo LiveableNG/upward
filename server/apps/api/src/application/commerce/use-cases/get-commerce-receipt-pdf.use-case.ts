@@ -69,7 +69,8 @@ export class GetCommerceReceiptPdfUseCase {
     ;(order.subOrders || []).forEach((sub) => {
       ;(sub.items || []).forEach((item) => {
         const snap = (item.snapshotData as any) || {}
-        const title = snap.title || snap.name || `Item #${item.offeringId}`
+        const off = (item as any).offering
+        const title = snap.title || snap.name || off?.title || `Item #${item.offeringId}`
         const offeringType = item.offeringType || 'PRODUCT'
         lineItems.push({
           title,

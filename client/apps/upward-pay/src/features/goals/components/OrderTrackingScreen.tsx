@@ -320,19 +320,9 @@ export function OrderTrackingScreen({
             <span>Receipt</span>
           </button>
         ) : (
-          <button
-            type="button"
-            className="order-tracking__header-pay-btn"
-            onClick={handlePayNow}
-            disabled={isPaying}
-          >
-            {isPaying ? (
-              <Loader2 size={14} className="animate-spin" />
-            ) : (
-              <CreditCard size={14} />
-            )}
-            <span>Pay Now</span>
-          </button>
+          <span className="order-tracking__header-badge-unpaid">
+            Payment Pending
+          </span>
         )}
       </header>
 
@@ -390,7 +380,7 @@ export function OrderTrackingScreen({
 
       {/* Sub-Orders Section */}
       <div className="order-tracking__suborders">
-        {order.subOrders.map((subOrder) => {
+        {order.subOrders.map((subOrder, subIdx) => {
           const isService = subOrder.items.some((i) => i.offeringType === 'SERVICE')
 
           // Consolidated 3-step pipeline for physical goods
@@ -439,12 +429,14 @@ export function OrderTrackingScreen({
               {/* Suborder Header */}
               <div className="order-tracking__suborder-head">
                 <div>
-                  {order.subOrders.length > 1 && (
-                    <div className="order-tracking__suborder-num">{subOrder.subOrderNumber}</div>
-                  )}
+                  <div className="order-tracking__suborder-num">
+                    {order.subOrders.length > 1
+                      ? `Package ${subIdx + 1} of ${order.subOrders.length}`
+                      : 'Fulfillment Package'}
+                  </div>
                   <div className="order-tracking__vendor-tag">
                     <ShieldCheck size={14} color="var(--clay)" />
-                    <span>Fulfilled by {subOrder.vendor?.name || subOrder.vendorName || 'Upward Merchant'}</span>
+                    <span>Fulfilled by {subOrder.vendor?.name || subOrder.vendorName || 'Upward Verified Merchant'}</span>
                   </div>
                 </div>
 
@@ -658,28 +650,44 @@ export function OrderTrackingScreen({
               <div className="order-tracking__items-section">
                 <div className="order-tracking__items-heading">Items in Package</div>
                 <div className="order-tracking__items-list">
-                  {subOrder.items.map((item) => (
-                    <div key={item.uuid} className="order-tracking__item-row">
-                      <div className="order-tracking__item-thumb">
-                        {item.thumbnailUrl ? (
-                          <img src={item.thumbnailUrl} alt={item.title} />
-                        ) : isService ? (
-                          <Wrench size={18} color="var(--clay)" />
-                        ) : (
-                          <Package size={18} color="var(--clay)" />
-                        )}
-                      </div>
-                      <div className="order-tracking__item-info">
-                        <div className="order-tracking__item-title">{item.title}</div>
-                        <div className="order-tracking__item-qty">
-                          Qty: {item.quantity} · {formatKoboToNgn(item.unitPriceKobo)} each
+                  {subOrder.items.map((item) => {
+                    const itemTitle = item.title || (item.snapshotData as any)?.title || 'Package Item'
+                    const itemImage =
+                      item.thumbnailUrl ||
+                      (item.snapshotData as any)?.thumbnailUrl ||
+                      (item.snapshotData as any)?.imageUrl ||
+                      null
+
+                    return (
+                      <div key={item.uuid} className="order-tracking__item-row">
+                        <div className="order-tracking__item-thumb">
+                          {itemImage ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={itemImage}
+                              alt={itemTitle}
+                              onError={(e) => {
+                                (e.currentTarget as HTMLElement).style.display = 'none'
+                              }}
+                            />
+                          ) : isService ? (
+                            <Wrench size={18} color="var(--clay)" />
+                          ) : (
+                            <Package size={18} color="var(--clay)" />
+                          )}
+                        </div>
+                        <div className="order-tracking__item-info">
+                          <div className="order-tracking__item-title">{itemTitle}</div>
+                          <div className="order-tracking__item-qty">
+                            Qty: {item.quantity} · {formatKoboToNgn(item.unitPriceKobo)} each
+                          </div>
+                        </div>
+                        <div className="order-tracking__item-price">
+                          {formatKoboToNgn(item.totalPriceKobo)}
                         </div>
                       </div>
-                      <div className="order-tracking__item-price">
-                        {formatKoboToNgn(item.totalPriceKobo)}
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
 
@@ -709,6 +717,35 @@ export function OrderTrackingScreen({
             </div>
           )
         })}
+      </div>
+
+      {/* Unified Order Financial Summary */}
+      <div className="order-tracking__summary-card">
+        <h3 className="order-tracking__summary-title">Order Financial Summary</h3>
+        <div className="order-tracking__summary-rows">
+          <div className="order-tracking__summary-row">
+            <span>Items Subtotal</span>
+            <span>{formatKoboToNgn(order.itemsSubtotalKobo)}</span>
+          </div>
+          <div className="order-tracking__summary-row">
+            <span>Verified Logistics & Delivery</span>
+            <span>
+              {BigInt(order.deliveryFeeKobo || 0) > 0n
+                ? formatKoboToNgn(order.deliveryFeeKobo)
+                : 'Free'}
+            </span>
+          </div>
+          {BigInt(order.discountKobo || 0) > 0n && (
+            <div className="order-tracking__summary-row order-tracking__summary-row--discount">
+              <span>Applied Discount</span>
+              <span>-{formatKoboToNgn(order.discountKobo)}</span>
+            </div>
+          )}
+          <div className="order-tracking__summary-row order-tracking__summary-row--total">
+            <span>{order.paymentStatus === 'PAID' ? 'Total Paid' : 'Total Due'}</span>
+            <strong>{formatKoboToNgn(order.totalAmountKobo)}</strong>
+          </div>
+        </div>
       </div>
 
       {/* Customer Support / Dispute Modal */}

@@ -195,7 +195,13 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
       include: {
         subOrders: {
           include: {
-            items: true,
+            items: {
+              include: {
+                offering: {
+                  include: { media: true },
+                },
+              },
+            },
             fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
             vendor: true,
           },
@@ -223,7 +229,13 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
         },
         subOrders: {
           include: {
-            items: true,
+            items: {
+              include: {
+                offering: {
+                  include: { media: true },
+                },
+              },
+            },
             fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
             vendor: true,
             payableRecord: true,
@@ -242,7 +254,13 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
       include: {
         subOrders: {
           include: {
-            items: true,
+            items: {
+              include: {
+                offering: {
+                  include: { media: true },
+                },
+              },
+            },
             fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
             vendor: true,
           },
@@ -258,7 +276,13 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
       include: {
         subOrders: {
           include: {
-            items: true,
+            items: {
+              include: {
+                offering: {
+                  include: { media: true },
+                },
+              },
+            },
             fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
             vendor: true,
           },
@@ -274,7 +298,13 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
       include: {
         subOrders: {
           include: {
-            items: true,
+            items: {
+              include: {
+                offering: {
+                  include: { media: true },
+                },
+              },
+            },
             fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
             vendor: true,
           },
@@ -303,7 +333,13 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
         include: {
           subOrders: {
             include: {
-              items: true,
+              items: {
+              include: {
+                offering: {
+                  include: { media: true },
+                },
+              },
+            },
               fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
               vendor: true,
             },
@@ -365,7 +401,13 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
           subOrders: {
             include: {
               vendor: true,
-              items: true,
+              items: {
+              include: {
+                offering: {
+                  include: { media: true },
+                },
+              },
+            },
               fulfilmentEvents: {
                 orderBy: { createdAt: 'desc' },
               },
@@ -395,7 +437,13 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
       include: {
         subOrders: {
           include: {
-            items: true,
+            items: {
+              include: {
+                offering: {
+                  include: { media: true },
+                },
+              },
+            },
             fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
             vendor: true,
           },
@@ -693,7 +741,13 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
             subOrders: {
               include: {
                 vendor: true,
-                items: true,
+                items: {
+              include: {
+                offering: {
+                  include: { media: true },
+                },
+              },
+            },
               },
             },
           },

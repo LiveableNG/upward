@@ -25,6 +25,8 @@ export interface PriceableOffering {
   deliveryZones?: string[]
   leadTimeDays?: number | null
   status: string // 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
+  imageUrl?: string | null
+  media?: Array<{ mediaUrl: string; isPrimary?: boolean }>
   vendor?: {
     id: number
     uuid: string
@@ -55,6 +57,8 @@ export interface CalculatedItemSnapshot {
   pricingModel: string
   unitPriceKobo: string
   currency: string
+  imageUrl?: string | null
+  thumbnailUrl?: string | null
   deliveryAvailable: boolean
   leadTimeDays: number | null
   vendor: {
@@ -186,6 +190,12 @@ export class CommercePricingEngine {
       const unitPriceKobo = BigInt(Math.round(offering.price * 100))
       const totalPriceKobo = unitPriceKobo * BigInt(quantity)
 
+      const primaryImage =
+        offering.imageUrl ||
+        offering.media?.find((m) => m.isPrimary)?.mediaUrl ||
+        offering.media?.[0]?.mediaUrl ||
+        null
+
       // Build immutable point-in-time snapshot
       const snapshot: CalculatedItemSnapshot = {
         offeringId: offering.id,
@@ -197,6 +207,8 @@ export class CommercePricingEngine {
         pricingModel: offering.pricingModel,
         unitPriceKobo: unitPriceKobo.toString(),
         currency: offering.currency || 'NGN',
+        imageUrl: primaryImage,
+        thumbnailUrl: primaryImage,
         deliveryAvailable: offering.deliveryAvailable,
         leadTimeDays: offering.leadTimeDays ?? null,
         vendor: {

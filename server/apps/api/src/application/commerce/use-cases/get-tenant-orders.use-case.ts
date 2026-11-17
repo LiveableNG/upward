@@ -73,12 +73,19 @@ export class GetTenantOrdersUseCase {
     for (const sub of subOrders) {
       if (Array.isArray(sub.items)) {
         for (const it of sub.items) {
+          const snap = (it.snapshotData as any) || {}
+          const off = (it as any).offering
+          const offeringImage =
+            off?.imageUrl ||
+            off?.media?.find((m: any) => m.isPrimary)?.mediaUrl ||
+            off?.media?.[0]?.mediaUrl ||
+            null
+          const finalImage = snap.thumbnailUrl || snap.imageUrl || offeringImage || null
+          const finalTitle = snap.title || snap.name || off?.title || 'Lifestyle Item'
+
           allItems.push({
-            title: it.snapshotData?.title || 'Lifestyle Item',
-            thumbnailUrl:
-              it.snapshotData?.media?.[0]?.url ||
-              it.snapshotData?.thumbnailUrl ||
-              null,
+            title: finalTitle,
+            thumbnailUrl: finalImage,
             offeringType: it.offeringType || 'PRODUCT',
             quantity: it.quantity || 1,
           })
@@ -128,7 +135,8 @@ export class GetTenantOrdersUseCase {
       deliveryAddress: order.deliveryAddress,
       subOrderCount: subOrders.length,
       subOrdersCount: subOrders.length,
-      itemsCount: allItems.reduce((acc, it) => acc + (it.quantity || 1), 0),
+      itemsCount: allItems.length,
+      totalQuantity: allItems.reduce((acc, it) => acc + (it.quantity || 1), 0),
       itemsPreview: allItems,
       primaryStatus,
       createdAt: order.createdAt || new Date(),

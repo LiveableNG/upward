@@ -284,11 +284,18 @@ export function OrdersListScreen() {
                       <div key={idx} className="orders-hub__item">
                         <div className="orders-hub__item-thumb">
                           {item.thumbnailUrl ? (
-                            <img src={item.thumbnailUrl} alt={item.title} />
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={item.thumbnailUrl}
+                              alt={item.title}
+                              onError={(e) => {
+                                (e.currentTarget as HTMLElement).style.display = 'none'
+                              }}
+                            />
                           ) : item.offeringType === 'SERVICE' ? (
-                            <Wrench size={18} color="var(--clay)" />
+                            <Wrench size={16} color="var(--clay)" />
                           ) : (
-                            <Truck size={18} color="var(--clay)" />
+                            <Package size={16} color="var(--clay)" />
                           )}
                         </div>
                         <div className="orders-hub__item-info">
