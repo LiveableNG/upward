@@ -133,10 +133,8 @@ export function DashboardHeader({
                 if (href === '/dashboard/my-home') {
                   return pathname === href || pathname.startsWith(`${href}/`)
                 }
-                if (href === '/dashboard/goals') {
+                if (href === '/dashboard/lifestyle') {
                   return (
-                    pathname === '/dashboard/goals' ||
-                    pathname.startsWith('/dashboard/goals/') ||
                     pathname === '/dashboard/lifestyle' ||
                     pathname.startsWith('/dashboard/lifestyle/')
                   )
@@ -164,7 +162,7 @@ export function DashboardHeader({
                   {hasMyHome && !isMyHomeRoute && !isPayRentRoute && !isTransactionsRoute && !isProfileRoute ? (
                     <Link href="/dashboard/my-home" className={isActive('/dashboard/my-home') ? 'active' : ''}>My Home</Link>
                   ) : null}
-                  <Link href="/dashboard/goals" className={isActive('/dashboard/goals') ? 'active' : ''}>Goals</Link>
+                  <Link href="/dashboard/lifestyle" className={isActive('/dashboard/lifestyle') ? 'active' : ''}>Explore</Link>
                   <Link href="/dashboard/pay-rent" className={isActive('/dashboard/pay-rent') ? 'active' : ''}>Pay Rent</Link>
                   {showMarketplace && (
                     <Link href="/dashboard/alliance" className={isActive('/dashboard/alliance') ? 'active' : ''}>Marketplace</Link>

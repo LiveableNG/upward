@@ -3,7 +3,7 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Building2, CircleArrowUp, History, Home, User } from 'lucide-react'
+import { Building2, Compass, History, Home, User } from 'lucide-react'
 import { useHasMyHome } from '@/features/my-home/hooks/useMyHome'
 import { haptics } from '@/lib/haptics'
 import { useFluidNav } from '../hooks/useFluidNav'
@@ -37,9 +37,9 @@ const SIDE_NAV_ITEMS: readonly NavItem[] = [
     hideOnProfile: true,
   },
   {
-    label: 'Goals',
-    icon: CircleArrowUp,
-    href: '/dashboard/goals',
+    label: 'Explore',
+    icon: Compass,
+    href: '/dashboard/lifestyle',
     requiresMyHome: false,
     badge: 'NEW',
   },
@@ -69,10 +69,8 @@ export function BottomNav() {
       if (href === '/dashboard/my-home') {
         return pathname === href || pathname.startsWith(`${href}/`)
       }
-      if (href === '/dashboard/goals') {
+      if (href === '/dashboard/lifestyle') {
         return (
-          pathname === '/dashboard/goals' ||
-          pathname.startsWith('/dashboard/goals/') ||
           pathname === '/dashboard/lifestyle' ||
           pathname.startsWith('/dashboard/lifestyle/')
         )
@@ -91,9 +89,7 @@ export function BottomNav() {
     pathname === '/dashboard/pay-rent' || !!pathname?.startsWith('/dashboard/pay-rent/')
   const isLifestyleRoute =
     pathname === '/dashboard/lifestyle' ||
-    !!pathname?.startsWith('/dashboard/lifestyle/') ||
-    pathname === '/dashboard/goals' ||
-    !!pathname?.startsWith('/dashboard/goals/')
+    !!pathname?.startsWith('/dashboard/lifestyle/')
   const isTransactionsRoute =
     pathname === '/dashboard/transactions' || !!pathname?.startsWith('/dashboard/transactions/')
   const isProfileRoute =

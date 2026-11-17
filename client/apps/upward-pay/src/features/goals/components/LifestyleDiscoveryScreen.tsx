@@ -412,14 +412,6 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
       <header className="lifestyle-discovery__header">
         <div className="lifestyle-discovery__top-bar">
           <div className="lifestyle-discovery__top-left">
-            <button
-              type="button"
-              className="lifestyle-discovery__back-btn"
-              onClick={() => router.push('/dashboard/goals')}
-              aria-label="Back to goals"
-            >
-              <ArrowLeft size={16} />
-            </button>
             <div className="lifestyle-discovery__title-group">
               <h1 className="lifestyle-discovery__title">Lifestyle & Perks</h1>
               <p className="lifestyle-discovery__subtitle">
@@ -429,6 +421,17 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
           </div>
 
           <div className="lifestyle-discovery__top-actions">
+            <button
+              type="button"
+              className="lifestyle-discovery__goals-trigger"
+              onClick={() => router.push('/dashboard/goals')}
+              aria-label="Setup your goals"
+              title="Setup Goals"
+            >
+              <Target size={14} />
+              <span>Goals</span>
+            </button>
+
             <button
               type="button"
               className={`lifestyle-discovery__goals-trigger ${

@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { ChevronLeft, ChevronRight, Plus, Check, Trash2, ArrowRight, X, Home } from 'lucide-react'
+import { ArrowLeft, ChevronLeft, ChevronRight, Plus, Check, Trash2, ArrowRight, X, Home } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import {
   useUserGoals,
@@ -1171,10 +1171,27 @@ export function AllGoalsScreen() {
   // ── MAIN SCREEN: YOUR GOALS (Matches Prototype Screenshot) ──
   return (
     <div className="proto-goals">
-      {/* Page Heading */}
-      <div className="proto-goals__hello">
-        <h1 className="proto-goals__title">Your goals</h1>
-      </div>
+      {/* Header Bar with Back Button (like Order page) */}
+      <header className="proto-goals__header">
+        <button
+          type="button"
+          className="proto-goals__back-btn"
+          onClick={() => {
+            if (typeof window !== 'undefined' && window.history.length > 1) {
+              router.back()
+            } else {
+              router.push('/dashboard/lifestyle')
+            }
+          }}
+          aria-label="Back to Explore"
+        >
+          <ArrowLeft size={16} />
+        </button>
+        <div className="proto-goals__header-text">
+          <h1 className="proto-goals__title">Your goals</h1>
+          <p className="proto-goals__greet">Track and setup priorities for your lifestyle</p>
+        </div>
+      </header>
 
       {/* Goal Category Cards List */}
       <div className="proto-goals__list">

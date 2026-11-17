@@ -111,6 +111,7 @@ export interface TenantOrderSummaryDto {
   subOrderCount: number
   subOrdersCount?: number
   itemsCount?: number
+  totalQuantity?: number
   itemsPreview?: Array<{
     title: string
     thumbnailUrl?: string | null

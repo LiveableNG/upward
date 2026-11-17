@@ -730,12 +730,12 @@ export function OrderTrackingScreen({
           <div className="order-tracking__summary-row">
             <span>Verified Logistics & Delivery</span>
             <span>
-              {BigInt(order.deliveryFeeKobo || 0) > 0n
+              {BigInt(order.deliveryFeeKobo || 0) > BigInt(0)
                 ? formatKoboToNgn(order.deliveryFeeKobo)
                 : 'Free'}
             </span>
           </div>
-          {BigInt(order.discountKobo || 0) > 0n && (
+          {BigInt(order.discountKobo || 0) > BigInt(0) && (
             <div className="order-tracking__summary-row order-tracking__summary-row--discount">
               <span>Applied Discount</span>
               <span>-{formatKoboToNgn(order.discountKobo)}</span>
