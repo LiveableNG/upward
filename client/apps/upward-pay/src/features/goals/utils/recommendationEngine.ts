@@ -19,6 +19,7 @@ export interface RecommendedOfferingItem {
 
 export interface RecommendationOptions {
   activeGoalId?: number
+  categorySlug?: string
   typeFilter?: OfferingType | 'ALL'
   searchQuery?: string
   limit?: number
@@ -77,7 +78,7 @@ export function getRecommendedOfferings(
   categories: GoalCategory[] = [],
   options: RecommendationOptions = {},
 ): RecommendedOfferingItem[] {
-  const { activeGoalId, typeFilter = 'ALL', searchQuery = '', limit } = options
+  const { activeGoalId, categorySlug, typeFilter = 'ALL', searchQuery = '', limit } = options
 
   // Active user goals map: goalId -> goal
   const activeUserGoalMap = new Map<number, { name: string; categoryName?: string }>()
@@ -99,13 +100,33 @@ export function getRecommendedOfferings(
     })
   })
 
-  // Filter offerings by publication status, search query, and type
+  // Filter offerings by publication status, category, search query, and type
   const filtered = offerings.filter((o) => {
     // Only published offerings
     if (o.status && o.status !== 'PUBLISHED') return false
 
     // Type filter
     if (typeFilter !== 'ALL' && o.type !== typeFilter) return false
+
+    // Category filter
+    if (categorySlug && categorySlug !== 'ALL') {
+      const targetCat = categories.find(
+        (c) => c.slug === categorySlug || String(c.id) === categorySlug,
+      )
+      const catGoalIds = new Set(targetCat?.goals?.map((g) => g.id) || [])
+      const offeringGoalLinks = o.goalLinks || o.goals || []
+
+      const matchesCategory = offeringGoalLinks.some((l) => {
+        if (catGoalIds.has(l.goalId)) return true
+        if (l.goal?.categoryId && targetCat && l.goal.categoryId === targetCat.id) return true
+        if (l.goal?.category?.slug === categorySlug) return true
+        return false
+      })
+
+      if (!matchesCategory) {
+        return false
+      }
+    }
 
     // If a specific goal pill is selected, filter strictly to offerings linked to that goal
     if (activeGoalId !== undefined && !isOfferingLinkedToGoal(o, activeGoalId)) {

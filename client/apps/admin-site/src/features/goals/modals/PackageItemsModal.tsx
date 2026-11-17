@@ -27,10 +27,31 @@ export const PackageItemsModal: React.FC<PackageItemsModalProps> = ({
   >([])
   const [submitting, setSubmitting] = useState(false)
 
-  // Filter out the package itself to prevent circular bundling
+  // Filter out the package itself and other bundles to prevent circular bundling
   const availableComponents = allOfferings.filter(
-    (o) => o.id !== packageOffering?.id && o.type !== 'SERVICE_PACKAGE',
+    (o) =>
+      o.id !== packageOffering?.id &&
+      o.type !== 'SERVICE_PACKAGE' &&
+      o.type !== 'BUNDLE' &&
+      o.type !== 'PACKAGE',
   )
+
+  const totalStandardRetail = items.reduce((sum, item) => {
+    const comp = allOfferings.find((o) => o.id === item.componentId)
+    const price = comp?.price ? Number(comp.price) : 0
+    return sum + price * (item.quantity || 1)
+  }, 0)
+
+  const totalBundleItemsPrice = items.reduce((sum, item) => {
+    const comp = allOfferings.find((o) => o.id === item.componentId)
+    const price =
+      item.overridePrice != null
+        ? Number(item.overridePrice)
+        : comp?.price
+          ? Number(comp.price)
+          : 0
+    return sum + price * (item.quantity || 1)
+  }, 0)
 
   useEffect(() => {
     if (packageOffering && packageOffering.packageItems) {
@@ -92,8 +113,8 @@ export const PackageItemsModal: React.FC<PackageItemsModalProps> = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Manage Package Components"
-      description={`Configure the products and services bundled inside "${packageOffering?.title || ''}"`}
+      title="Manage Bundle Components"
+      description={`Configure the products and items bundled inside "${packageOffering?.title || ''}"`}
       icon={<Boxes size={20} />}
       maxWidth="620px"
     >
@@ -216,6 +237,36 @@ export const PackageItemsModal: React.FC<PackageItemsModalProps> = ({
           </div>
         )}
 
+        {items.length > 0 && (
+          <div
+            style={{
+              padding: '12px 14px',
+              background: 'var(--surface2, #f8f9fa)',
+              borderRadius: '8px',
+              border: '1px solid var(--border)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              fontSize: '12px',
+            }}
+          >
+            <div>
+              <span style={{ color: 'var(--text-muted)' }}>Regular Retail Sum: </span>
+              <strong style={{ color: 'var(--text)' }}>₦{totalStandardRetail.toLocaleString()}</strong>
+            </div>
+            <div>
+              <span style={{ color: 'var(--text-muted)' }}>Bundle Items Total: </span>
+              <strong style={{ color: 'var(--accent, #c2501f)' }}>₦{totalBundleItemsPrice.toLocaleString()}</strong>
+            </div>
+            {packageOffering?.price != null && (
+              <div>
+                <span style={{ color: 'var(--text-muted)' }}>Bundle Set Price: </span>
+                <strong style={{ color: 'var(--text)' }}>₦{Number(packageOffering.price).toLocaleString()}</strong>
+              </div>
+            )}
+          </div>
+        )}
+
         <div
           style={{
             display: 'flex',
@@ -230,7 +281,7 @@ export const PackageItemsModal: React.FC<PackageItemsModalProps> = ({
             Cancel
           </button>
           <button type="submit" className="btn btn-primary" disabled={submitting}>
-            {submitting ? 'Saving...' : 'Save Package Items'}
+            {submitting ? 'Saving...' : 'Save Bundle Components'}
           </button>
         </div>
       </form>

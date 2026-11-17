@@ -451,7 +451,7 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
               </label>
             </div>
             <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-              Surfaces in Activity Center & Lifestyle Spotlight
+              Spotlight Ad (Only 1 active platform-wide; replaces current)
             </span>
           </div>
 

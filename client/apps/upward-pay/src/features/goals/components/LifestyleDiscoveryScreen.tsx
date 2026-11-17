@@ -11,6 +11,7 @@ import {
   AlertCircle,
   RefreshCw,
   Layers,
+  ChevronDown,
   Package,
   Wrench,
   ShoppingBag,
@@ -213,6 +214,15 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedType, setSelectedType] = useState<OfferingType | 'ALL'>('ALL')
 
+  const queryCategoryParam = searchParams?.get('category') || searchParams?.get('cat') || 'ALL'
+  const [selectedCategorySlug, setSelectedCategorySlug] = useState<string>(queryCategoryParam)
+
+  const [prevQueryCategoryParam, setPrevQueryCategoryParam] = useState(queryCategoryParam)
+  if (queryCategoryParam !== prevQueryCategoryParam) {
+    setPrevQueryCategoryParam(queryCategoryParam)
+    setSelectedCategorySlug(queryCategoryParam)
+  }
+
   const isQueryGoalsOpen = searchParams?.get('goals') === 'open'
   const queryGoalId = searchParams?.get('goalId')
   const queryGoalSlug = searchParams?.get('goal')
@@ -359,12 +369,11 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
   // Personalized & filtered offerings
   const displayItems = useMemo<RecommendedOfferingItem[]>(() => {
     return getRecommendedOfferings(offerings, userGoals, categories, {
-      activeGoalId:
-        selectedActiveGoalId === 'ALL' ? undefined : selectedActiveGoalId,
+      categorySlug: selectedCategorySlug,
       typeFilter: selectedType,
       searchQuery,
     })
-  }, [offerings, userGoals, categories, selectedActiveGoalId, selectedType, searchQuery])
+  }, [offerings, userGoals, categories, selectedCategorySlug, selectedType, searchQuery])
 
   // Promoted / Spotlight bundle (E-Commerce Featured Hero)
   const spotlightOffering = useMemo<GoalOffering | undefined>(() => {
@@ -378,7 +387,7 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
     Boolean(spotlightOffering) &&
     !searchQuery &&
     selectedType === 'ALL' &&
-    selectedActiveGoalId === 'ALL'
+    selectedCategorySlug === 'ALL'
 
   // If spotlight hero is active, avoid duplicating the exact same offering as item #1 in the grid
   const gridItems = useMemo<RecommendedOfferingItem[]>(() => {
@@ -557,39 +566,34 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
 
       {/* Main Content */}
       <main className="lifestyle-discovery__container">
-        {/* Universal Goals / Categories Filter Strip */}
-        <div className="lifestyle-discovery__context-strip">
-          <div className="lifestyle-discovery__goal-scroll-wrap">
-            <div className="lifestyle-discovery__goal-pills-row">
-              <button
-                type="button"
-                className={`lifestyle-discovery__goal-pill ${
-                  selectedActiveGoalId === 'ALL'
-                    ? 'lifestyle-discovery__goal-pill--active'
-                    : ''
-                }`}
-                onClick={() => setSelectedActiveGoalId('ALL')}
-              >
-                All Perks
-              </button>
-              {allSystemGoals.map((g) => {
-                const gTitle = getGoalTitle(g) || g.title
-                const isActive = selectedActiveGoalId === g.id
-                return (
-                  <button
-                    key={g.id}
-                    type="button"
-                    className={`lifestyle-discovery__goal-pill ${
-                      isActive ? 'lifestyle-discovery__goal-pill--active' : ''
-                    }`}
-                    onClick={() => setSelectedActiveGoalId(isActive ? 'ALL' : g.id)}
-                  >
-                    {gTitle}
-                  </button>
-                )
-              })}
-            </div>
+        {/* Category Filter Dropdown */}
+        <div className="lifestyle-discovery__category-bar">
+          <div className="lifestyle-discovery__category-dropdown-box">
+            <Layers size={14} className="lifestyle-discovery__category-dropdown-icon" />
+            <select
+              className="lifestyle-discovery__category-select"
+              value={selectedCategorySlug}
+              onChange={(e) => setSelectedCategorySlug(e.target.value)}
+              aria-label="Filter by category"
+            >
+              <option value="ALL">All Categories</option>
+              {categories.map((cat) => (
+                <option key={cat.id || cat.slug} value={cat.slug}>
+                  {cat.title || cat.name}
+                </option>
+              ))}
+            </select>
+            <ChevronDown size={14} className="lifestyle-discovery__category-dropdown-chevron" />
           </div>
+          {selectedCategorySlug !== 'ALL' && (
+            <button
+              type="button"
+              className="lifestyle-discovery__category-reset"
+              onClick={() => setSelectedCategorySlug('ALL')}
+            >
+              Reset
+            </button>
+          )}
         </div>
 
         {/* E-Commerce Spotlight / Promoted Ad Hero Banner */}

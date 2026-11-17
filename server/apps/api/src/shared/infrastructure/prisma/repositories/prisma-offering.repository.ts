@@ -148,6 +148,13 @@ export class PrismaOfferingRepository implements OfferingRepository {
     media?: Array<Partial<OfferingMedia>>,
     packageItems?: Array<{ componentId: number; quantity: number; isOptional?: boolean; overridePrice?: number }>,
   ): Promise<Offering> {
+    if (data.isPromoted) {
+      await this.prisma.upward_offering.updateMany({
+        where: { isPromoted: true },
+        data: { isPromoted: false },
+      })
+    }
+
     const created = await this.prisma.upward_offering.create({
       data: {
         vendorId: data.vendorId,
@@ -229,6 +236,13 @@ export class PrismaOfferingRepository implements OfferingRepository {
           })),
         })
       }
+    }
+
+    if (data.isPromoted) {
+      await this.prisma.upward_offering.updateMany({
+        where: { id: { not: id }, isPromoted: true },
+        data: { isPromoted: false },
+      })
     }
 
     const updated = await this.prisma.upward_offering.update({

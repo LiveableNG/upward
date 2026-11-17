@@ -162,7 +162,7 @@ export const OfferingsTab: React.FC<OfferingsTabProps> = ({
             >
               {conf.label}
             </span>
-            {offering.type === 'SERVICE_PACKAGE' && (
+            {offering.type === 'BUNDLE' && (
               <button
                 onClick={() => onManagePackageItems(offering)}
                 style={{
@@ -172,7 +172,7 @@ export const OfferingsTab: React.FC<OfferingsTabProps> = ({
                   color: 'var(--accent)',
                   padding: '2px',
                 }}
-                title="Manage Package Components"
+                title="Manage Bundle Components"
               >
                 <Boxes size={14} />
               </button>
@@ -283,9 +283,9 @@ export const OfferingsTab: React.FC<OfferingsTabProps> = ({
       },
     ]
 
-    if (offering.type === 'SERVICE_PACKAGE') {
+    if (offering.type === 'BUNDLE') {
       actions.push({
-        label: 'Manage Package Items',
+        label: 'Manage Bundle Components',
         icon: <Boxes size={14} />,
         onClick: () => onManagePackageItems(offering),
       })
