@@ -12,7 +12,7 @@ import {
   ArrowDownRight,
   Smartphone,
   CreditCard,
-  KeyRound,
+  FileCheck,
   Sofa,
 } from 'lucide-react'
 import { type UserProfile } from '@/features/auth/types'
@@ -408,11 +408,11 @@ export function HousingFirstHome({
         ]
       : []),
     {
-      key: 'buy-a-house',
-      icon: <KeyRound size={16} strokeWidth={2} />,
-      title: 'Buy a house',
-      desc: 'Start preparing financially to buy a house',
-      href: '/dashboard/lifestyle?goal=buy-a-house',
+      key: 'request-records',
+      icon: <FileCheck size={16} strokeWidth={2} />,
+      title: 'Request rental records',
+      desc: 'Add verified past tenancy history to your profile',
+      href: '/dashboard/request-records',
       pinned: false,
     },
     {
@@ -515,39 +515,57 @@ export function HousingFirstHome({
             {/* Pinned rows: anything needing attention stays visible even when collapsed */}
             {pinnedHousingRows.map(renderHousingRow)}
 
-            {/* Secondary rows: animate open/closed */}
-            {extraHousingRows.length > 0 && (
-              <div
-                id="housing-acc-more"
-                className="housing-acc__more"
-                aria-hidden={!isHousingExpanded}
-                inert={!isHousingExpanded}
-              >
-                <div className="housing-acc__more-inner">
-                  {extraHousingRows.map(renderHousingRow)}
-                </div>
+            {/* Secondary content (Upward Score + more housing rows): animate open/closed */}
+            <div
+              id="housing-acc-more"
+              className="housing-acc__more"
+              aria-hidden={!isHousingExpanded}
+              inert={!isHousingExpanded}
+            >
+              <div className="housing-acc__more-inner">
+                <button
+                  type="button"
+                  className="score-full"
+                  onClick={() => router.push('/dashboard/score-breakdown')}
+                >
+                  <div className="score-full__top">
+                    <div>
+                      <div className="score-full__eyebrow">UPWARD SCORE</div>
+                      <div className="score-full__value-row">
+                        <span className="score-full__value">{credScore || 500}</span>
+                        <span className="score-full__max">/ {maxScore || 900}</span>
+                      </div>
+                      <div className="score-full__sub">Rent Payment Score</div>
+                      <span className="score-full__pill">View breakdown ›</span>
+                    </div>
+                    <div className="score-full__ring">
+                      <div className="score-full__ring-inner">
+                        <span>{isScorable ? `${rank || 'Good'} standing` : 'Not scoreable yet'}</span>
+                      </div>
+                    </div>
+                  </div>
+                </button>
+                {extraHousingRows.map(renderHousingRow)}
               </div>
-            )}
+            </div>
           </div>
 
-          {extraHousingRows.length > 0 && (
-            <button
-              type="button"
-              className="housing-acc__toggle"
-              onClick={toggleHousingExpanded}
-              aria-expanded={isHousingExpanded}
-              aria-controls="housing-acc-more"
-            >
-              <span>
-                {isHousingExpanded ? 'Show less' : `Show ${extraHousingRows.length} more`}
-              </span>
-              {isHousingExpanded ? (
-                <ChevronUp size={16} strokeWidth={2.2} />
-              ) : (
-                <ChevronDown size={16} strokeWidth={2.2} />
-              )}
-            </button>
-          )}
+          <button
+            type="button"
+            className="housing-acc__toggle"
+            onClick={toggleHousingExpanded}
+            aria-expanded={isHousingExpanded}
+            aria-controls="housing-acc-more"
+          >
+            <span>
+              {isHousingExpanded ? 'Show less' : 'Show more'}
+            </span>
+            {isHousingExpanded ? (
+              <ChevronUp size={16} strokeWidth={2.2} />
+            ) : (
+              <ChevronDown size={16} strokeWidth={2.2} />
+            )}
+          </button>
         </section>
 
         {/* Also on Upward Section (Other goals hub) */}
