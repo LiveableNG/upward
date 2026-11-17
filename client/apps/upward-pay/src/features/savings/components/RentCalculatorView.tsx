@@ -159,13 +159,7 @@ export function RentCalculatorView({
     account_name: string
   } | null>(null)
   const [copiedAccount, setCopiedAccount] = useState(false)
-  const [initialDepositRaw, setInitialDepositRaw] = useState<string>('')
-
-  useEffect(() => {
-    if (targetAmountNaira > 0 && !initialDepositRaw) {
-      setInitialDepositRaw(formatCurrencyInput(Math.round(targetAmountNaira * 0.25)))
-    }
-  }, [targetAmountNaira, initialDepositRaw])
+  const [customInitialDeposit, setCustomInitialDeposit] = useState<string | null>(null)
 
   // Sync Prefill Data
   useEffect(() => {
@@ -310,6 +304,28 @@ export function RentCalculatorView({
     ? simData.projected_yield_kobo / 100
     : localPlan.projectedYieldNaira
 
+  const defaultInitialDepositNaira = useMemo(() => {
+    if (planPattern === 'INITIAL_DEPOSIT') {
+      return Math.round(previewRentAmount * 0.25)
+    }
+    if (planPattern === 'EQUAL') {
+      return planEqualMetrics.periodicDepositNaira
+    }
+    return planStepUpMetrics.periodicDepositNaira
+  }, [
+    planPattern,
+    previewRentAmount,
+    planEqualMetrics.periodicDepositNaira,
+    planStepUpMetrics.periodicDepositNaira,
+  ])
+
+  const initialDepositRaw =
+    customInitialDeposit !== null
+      ? customInitialDeposit
+      : defaultInitialDepositNaira > 0
+        ? formatCurrencyInput(defaultInitialDepositNaira)
+        : ''
+
   const parsedSuccessDeposit = parseCurrencyInput(initialDepositRaw) || 0
   const successDynamicPlan = calculatePayLessPlan(
     previewRentAmount,
@@ -338,13 +354,7 @@ export function RentCalculatorView({
   const handleSelectPlan = (pattern: SavingsPlanPattern) => {
     setPlanPattern(pattern)
     setShowAllPlans(false)
-    if (pattern === 'INITIAL_DEPOSIT') {
-      setInitialDepositRaw(formatCurrencyInput(Math.round(previewRentAmount * 0.25)))
-    } else if (pattern === 'EQUAL') {
-      setInitialDepositRaw(formatCurrencyInput(planEqualMetrics.periodicDepositNaira))
-    } else if (pattern === 'STEP_UP') {
-      setInitialDepositRaw(formatCurrencyInput(planStepUpMetrics.periodicDepositNaira))
-    }
+    setCustomInitialDeposit(null)
   }
 
   const formattedDueDate = contractualDueDate
@@ -1528,7 +1538,7 @@ export function RentCalculatorView({
                   value={initialDepositRaw}
                   onChange={(e) => {
                     const parsed = parseCurrencyInput(e.target.value)
-                    setInitialDepositRaw(parsed ? formatCurrencyInput(parsed) : '')
+                    setCustomInitialDeposit(parsed ? formatCurrencyInput(parsed) : '')
                   }}
                 />
               </div>
