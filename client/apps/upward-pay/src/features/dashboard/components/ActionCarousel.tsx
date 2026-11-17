@@ -415,7 +415,7 @@ export function ActionCarousel({
           style={
             item.backgroundImageUrl
               ? {
-                  backgroundImage: `linear-gradient(95deg, rgba(20, 16, 13, 0.90) 0%, rgba(26, 20, 16, 0.76) 55%, rgba(26, 20, 16, 0.40) 100%), url(${item.backgroundImageUrl})`,
+                  backgroundImage: `linear-gradient(92deg, rgba(16, 12, 10, 0.65) 0%, rgba(16, 12, 10, 0.42) 55%, rgba(16, 12, 10, 0.15) 100%), url(${item.backgroundImageUrl})`,
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
                 }

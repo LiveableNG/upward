@@ -10,6 +10,7 @@ import {
   Truck,
   ArrowUpRight,
   Sparkles,
+  MapPinOff,
 } from 'lucide-react'
 import {
   isVendorVerified,
@@ -167,8 +168,12 @@ export const OfferingCard: React.FC<OfferingCardProps> = ({
           )}
 
           {!deliveryCheck.isDeliverable && (
-            <span className="offering-card__undeliverable-badge">
-              Unavailable in your area
+            <span
+              className="offering-card__undeliverable-badge"
+              title="Unavailable in your current delivery zone"
+            >
+              <MapPinOff size={10} strokeWidth={2.2} />
+              <span>Unavailable in your area</span>
             </span>
           )}
         </div>

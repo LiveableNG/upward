@@ -1353,7 +1353,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  flex-wrap: wrap;
+  gap: 4px 8px;
   margin-bottom: 4px;
 }
 
@@ -2823,11 +2824,15 @@
 .offering-card__undeliverable-badge {
   display: inline-flex;
   align-items: center;
-  padding: 2px 7px;
+  gap: 4px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding: 2px 8px;
   border-radius: var(--radius-full);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.02em;
+  line-height: 1.3;
   background: color-mix(in srgb, #f59e0b 14%, var(--surface));
   color: #d97706;
   border: 1px solid color-mix(in srgb, #f59e0b 35%, transparent);
@@ -5331,9 +5336,10 @@
   min-height: auto !important;
   background-size: cover !important;
   background-position: center !important;
-  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  border: 1px solid rgba(255, 255, 255, 0.22) !important;
   border-left-color: var(--clay, #c2501f) !important;
   color: #ffffff !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
 }
 
 .activity-alerts__item--ad-bg .activity-alerts__title {
@@ -5341,19 +5347,22 @@
   font-size: 13px !important;
   line-height: 1.25 !important;
   margin: 0 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 }
 
 .activity-alerts__item--ad-bg .activity-alerts__meta {
-  color: rgba(255, 255, 255, 0.88) !important;
+  color: rgba(255, 255, 255, 0.92) !important;
   font-size: 11px !important;
   line-height: 1.25 !important;
   margin: 0 0 3px !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 }
 
 .activity-alerts__item--ad-bg .activity-alerts__cta {
   color: #ffd6be !important;
   font-weight: 800;
   font-size: 11.5px !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 .activity-alerts__ad-pill {
@@ -5384,7 +5393,9 @@
   border-radius: 18px;
   background-size: cover;
   background-position: center;
-  margin: 0 var(--shell-px, 20px) 18px;
+  margin: 0 0 20px 0;
+  width: 100%;
+  box-sizing: border-box;
   max-width: 1200px;
   cursor: pointer;
   border: 1px solid rgba(255, 255, 255, 0.18);
@@ -5394,7 +5405,7 @@
 
 @media (min-width: 1240px) {
   .lifestyle-discovery__spotlight {
-    margin: 0 auto 20px;
+    margin: 0 0 22px 0;
   }
 }
 
@@ -5409,6 +5420,7 @@
   gap: 8px;
   color: #ffffff;
   max-width: 680px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 @media (max-width: 540px) {
