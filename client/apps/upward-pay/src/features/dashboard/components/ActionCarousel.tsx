@@ -20,7 +20,6 @@ interface ActionCarouselProps {
   rentReminders: any[]
   isIdentityVerified: boolean
   skin?: 'default' | 'proto'
-  showBenefitsUpsell?: boolean
   benefitsEndsAt?: string | null
   activeOrder?: TenantOrderSummaryDto | null
   activeOrders?: TenantOrderSummaryDto[]
@@ -135,7 +134,6 @@ export function ActionCarousel({
   rentReminders,
   isIdentityVerified,
   skin = 'default',
-  showBenefitsUpsell = false,
   activeOrder,
   activeOrders,
   unpaidOrder,
@@ -362,18 +360,6 @@ export function ActionCarousel({
       urgency: 'neutral',
       badgePill: activePromo.promoBadge || 'FEATURED BUNDLE',
       backgroundImageUrl: promoCover,
-    })
-  }
-
-  if (showBenefitsUpsell) {
-    items.push({
-      type: 'benefits',
-      id: 'benefits-upsell',
-      title: 'Get Rent Protection',
-      meta: 'Activate Upward Benefits for one year',
-      actionLabel: 'View Benefits',
-      action: () => router.push('/dashboard/benefits'),
-      urgency: items.length === 0 ? 'pending' : 'neutral',
     })
   }
 

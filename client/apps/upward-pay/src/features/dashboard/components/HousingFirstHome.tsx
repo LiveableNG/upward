@@ -747,7 +747,6 @@ export function HousingFirstHome({
             rentReminders={[]}
             isIdentityVerified={user?.verificationOn === false || Boolean(user?.isIdentityVerified)}
             skin="proto"
-            showBenefitsUpsell={!benefitsActive}
             benefitsEndsAt={benefitsEndsAt}
             activeOrders={activeOrders}
             unpaidOrder={unpaidOrder}
