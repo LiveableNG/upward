@@ -34,6 +34,7 @@ import {
   type DeliveryZoneItem,
 } from '../utils/deliveryLocation'
 import { fetchDeliveryZones } from '../services/goalsService'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import '../styles/goals.css'
 
 interface CommerceCheckoutModalProps {
@@ -136,20 +137,16 @@ export function CommerceCheckoutModal({
     }
   }, [])
 
-  // Lock body scroll and listen for Escape key
+  // Robust cross-platform body scroll lock & Escape listener
+  useBodyScrollLock(isOpen)
+
   useEffect(() => {
-    if (isOpen) {
-      const orig = document.body.style.overflow
-      document.body.style.overflow = 'hidden'
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Escape' && !isProcessing) onClose()
-      }
-      window.addEventListener('keydown', handleKeyDown)
-      return () => {
-        document.body.style.overflow = orig
-        window.removeEventListener('keydown', handleKeyDown)
-      }
+    if (!isOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isProcessing) onClose()
     }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen, isProcessing, onClose])
 
   const initialName = user

@@ -50,6 +50,7 @@ import {
 } from '../utils/deliveryLocation'
 import { DeliveryLocationBar } from './DeliveryLocationBar'
 import { CommerceCheckoutModal } from './CommerceCheckoutModal'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { getPublicWebUrl, copyTextToClipboard } from '@/lib/utils'
 import '../styles/goals.css'
 
@@ -297,44 +298,35 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
     }
   }
 
+  // Robust cross-platform body scroll lock for Lightbox and Inquiry modals
+  useBodyScrollLock(isLightboxOpen || isInquiryOpen)
+
   useEffect(() => {
-    if (isLightboxOpen) {
-      const original = document.body.style.overflow
-      document.body.style.overflow = 'hidden'
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') setIsLightboxOpen(false)
-        if (e.key === 'ArrowRight' && images.length > 1) {
-          setSelectedImageIndex((prev) =>
-            prev < images.length - 1 ? prev + 1 : 0,
-          )
-        }
-        if (e.key === 'ArrowLeft' && images.length > 1) {
-          setSelectedImageIndex((prev) =>
-            prev > 0 ? prev - 1 : images.length - 1,
-          )
-        }
+    if (!isLightboxOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsLightboxOpen(false)
+      if (e.key === 'ArrowRight' && images.length > 1) {
+        setSelectedImageIndex((prev) =>
+          prev < images.length - 1 ? prev + 1 : 0,
+        )
       }
-      window.addEventListener('keydown', handleKeyDown)
-      return () => {
-        document.body.style.overflow = original
-        window.removeEventListener('keydown', handleKeyDown)
+      if (e.key === 'ArrowLeft' && images.length > 1) {
+        setSelectedImageIndex((prev) =>
+          prev > 0 ? prev - 1 : images.length - 1,
+        )
       }
     }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isLightboxOpen, images.length])
 
   useEffect(() => {
-    if (isInquiryOpen) {
-      const original = document.body.style.overflow
-      document.body.style.overflow = 'hidden'
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') setIsInquiryOpen(false)
-      }
-      window.addEventListener('keydown', handleKeyDown)
-      return () => {
-        document.body.style.overflow = original
-        window.removeEventListener('keydown', handleKeyDown)
-      }
+    if (!isInquiryOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsInquiryOpen(false)
     }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isInquiryOpen])
 
   const cart = useCart()

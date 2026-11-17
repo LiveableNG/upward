@@ -71,6 +71,7 @@ import {
 } from '../utils/deliveryLocation'
 import { DeliveryLocationBar } from './DeliveryLocationBar'
 import { BottomSheetModal } from '@/components/common/BottomSheetModal'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useToast } from '@/components/common/Toast'
 import { useCart } from '../context/CartContext'
 import '../styles/goals.css'
@@ -271,20 +272,8 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
   // Note: Alliance marketplace integration paused; keep UI code intact below for future enablement
   const showAllianceBanner = false
 
-  // Lock body scroll when goal sheet is open
-  useEffect(() => {
-    if (isGoalSheetOpen) {
-      const originalOverflow = document.body.style.overflow
-      const originalTouchAction = document.body.style.touchAction
-      document.body.style.overflow = 'hidden'
-      document.body.style.touchAction = 'none'
-
-      return () => {
-        document.body.style.overflow = originalOverflow
-        document.body.style.touchAction = originalTouchAction
-      }
-    }
-  }, [isGoalSheetOpen])
+  // Robust cross-platform body scroll lock
+  useBodyScrollLock(isGoalSheetOpen)
 
   // Sync draftGoalIds during render when active goals change
   const activeGoalIdsKey = useMemo(

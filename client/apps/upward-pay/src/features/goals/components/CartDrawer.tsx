@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { useCart, type CartItem } from '../context/CartContext'
 import { CommerceCheckoutModal } from './CommerceCheckoutModal'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import {
   getStoredDeliveryLocation,
   type UserDeliveryLocation,
@@ -56,17 +57,17 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
     setMounted(true)
   }, [])
 
-  // Lock background scroll when drawer is open
+  // Robust cross-platform body scroll lock & Escape listener
+  useBodyScrollLock(isOpen)
+
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden'
-    } else {
-      document.body.style.overflow = ''
+    if (!isOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeCart()
     }
-    return () => {
-      document.body.style.overflow = ''
-    }
-  }, [isOpen])
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, closeCart])
 
   if (!mounted) return null
 
