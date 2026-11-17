@@ -788,12 +788,12 @@ export function RentCalculatorView({
                     padding: '2px 4px',
                   }}
                 >
-                  {showAllPlans ? 'Hide other plans ▴' : 'See other savings plans ▾'}
+                  {showAllPlans ? 'Close comparison ▴' : 'Compare other plans ›'}
                 </button>
               </div>
 
               {!showAllPlans ? (
-                /* Compact Active Plan View (clean by default) */
+                /* Single Active Plan View (clean & uncluttered by default: Kunle specification) */
                 <button
                   type="button"
                   onClick={() => setShowAllPlans(true)}
@@ -815,7 +815,7 @@ export function RentCalculatorView({
                   <div style={{ minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--text)' }}>
-                        {planPattern === 'INITIAL_DEPOSIT' && 'Start with a down deposit'}
+                        {planPattern === 'INITIAL_DEPOSIT' && 'Start with a deposit and save equally'}
                         {planPattern === 'EQUAL' && 'Save equal instalments'}
                         {planPattern === 'STEP_UP' && 'Start small & increase gradually'}
                       </span>
@@ -853,11 +853,11 @@ export function RentCalculatorView({
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    Change ›
+                    Compare plans ›
                   </span>
                 </button>
               ) : (
-                /* Expanded 3-Plan Selection Cards */
+                /* Expanded 3-Plan Comparison Cards with Interest Breakdown */
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                   {/* Plan 1: Down deposit + equal (Recommended/Default) */}
                   <button
@@ -885,7 +885,7 @@ export function RentCalculatorView({
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                         <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--text)' }}>
-                          Start with a down deposit
+                          Start with a deposit and save equally
                         </span>
                         <span
                           style={{
@@ -906,9 +906,14 @@ export function RentCalculatorView({
                         ₦{formatCurrency(planDepositMetrics.periodicDepositNaira)}/mo
                       </span>
                     </div>
-                    <p style={{ fontSize: '0.6875rem', color: 'var(--text-secondary)', margin: '3px 0 0' }}>
-                      Deposit 25% (₦{formatCurrency(Math.round(previewRentAmount * 0.25))}) upfront to lock in lower monthly contributions.
-                    </p>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '3px 0 0', flexWrap: 'wrap', gap: 4 }}>
+                      <p style={{ fontSize: '0.6875rem', color: 'var(--text-secondary)', margin: 0 }}>
+                        Deposit 25% (₦{formatCurrency(Math.round(previewRentAmount * 0.25))}) upfront.
+                      </p>
+                      <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#059669' }}>
+                        Earns +{formatCurrency(planDepositMetrics.projectedYieldNaira, 'NGN')} interest
+                      </span>
+                    </div>
                   </button>
 
                   {/* Plan 2: Save equal instalments */}
@@ -935,16 +940,37 @@ export function RentCalculatorView({
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--text)' }}>
-                        Save equal instalments
-                      </span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--text)' }}>
+                          Save equal instalments
+                        </span>
+                        <span
+                          style={{
+                            fontSize: '0.5625rem',
+                            fontWeight: 700,
+                            letterSpacing: '0.03em',
+                            textTransform: 'uppercase',
+                            padding: '1.5px 6px',
+                            borderRadius: '999px',
+                            background: 'rgba(5, 150, 105, 0.08)',
+                            color: '#059669',
+                          }}
+                        >
+                          ₦0 down
+                        </span>
+                      </div>
                       <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: 'var(--clay)' }}>
                         ₦{formatCurrency(planEqualMetrics.periodicDepositNaira)}/mo
                       </span>
                     </div>
-                    <p style={{ fontSize: '0.6875rem', color: 'var(--text-secondary)', margin: '3px 0 0' }}>
-                      Save the exact same amount every month from now till rent date. ₦0 down deposit.
-                    </p>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '3px 0 0', flexWrap: 'wrap', gap: 4 }}>
+                      <p style={{ fontSize: '0.6875rem', color: 'var(--text-secondary)', margin: 0 }}>
+                        Equal monthly contributions from day one till rent date.
+                      </p>
+                      <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#059669' }}>
+                        Earns +{formatCurrency(planEqualMetrics.projectedYieldNaira, 'NGN')} interest
+                      </span>
+                    </div>
                   </button>
 
                   {/* Plan 3: Start small & increase gradually (Step-up) */}
@@ -978,9 +1004,14 @@ export function RentCalculatorView({
                         From ₦{formatCurrency(planStepUpMetrics.periodicDepositNaira)}/mo
                       </span>
                     </div>
-                    <p style={{ fontSize: '0.6875rem', color: 'var(--text-secondary)', margin: '3px 0 0' }}>
-                      Start with smaller deposits now and increase as the rent date gets closer (steps up to ₦{formatCurrency(planStepUpMetrics.lastPeriodDepositNaira)}/mo).
-                    </p>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '3px 0 0', flexWrap: 'wrap', gap: 4 }}>
+                      <p style={{ fontSize: '0.6875rem', color: 'var(--text-secondary)', margin: 0 }}>
+                        Start smaller, steps up to ₦{formatCurrency(planStepUpMetrics.lastPeriodDepositNaira)}/mo near rent day.
+                      </p>
+                      <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#059669' }}>
+                        Earns +{formatCurrency(planStepUpMetrics.projectedYieldNaira, 'NGN')} interest
+                      </span>
+                    </div>
                   </button>
                 </div>
               )}
