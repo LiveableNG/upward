@@ -14,6 +14,7 @@ import {
   Package,
   Wrench,
   ShoppingBag,
+  ShoppingCart,
   SlidersHorizontal,
   Check,
   X,
@@ -27,7 +28,6 @@ import {
   Utensils,
   Bed,
   Loader2,
-  Sparkles,
   CreditCard,
   TrendingUp,
   Coins,
@@ -72,6 +72,7 @@ import {
 import { DeliveryLocationBar } from './DeliveryLocationBar'
 import { BottomSheetModal } from '@/components/common/BottomSheetModal'
 import { useToast } from '@/components/common/Toast'
+import { useCart } from '../context/CartContext'
 import '../styles/goals.css'
 
 export function getGoalIconComponent(iconName?: string | null, slug?: string) {
@@ -152,7 +153,7 @@ export function getGoalIconComponent(iconName?: string | null, slug?: string) {
     return Music
   }
   if (name.includes('sparkle') || name.includes('custom') || name.includes('goal')) {
-    return Sparkles
+    return Target
   }
   return Target
 }
@@ -164,6 +165,7 @@ const EMPTY_USER_GOALS: UserGoal[] = []
 export const LifestyleDiscoveryScreen: React.FC = () => {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const cart = useCart()
   const { success, error: toastError } = useToast()
 
   // Queries
@@ -446,6 +448,24 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
                 </span>
               )}
             </button>
+
+            <button
+              type="button"
+              className={`lifestyle-discovery__goals-trigger lifestyle-discovery__cart-trigger ${
+                cart.totalCount > 0 ? 'lifestyle-discovery__goals-trigger--active' : ''
+              }`}
+              onClick={cart.openCart}
+              aria-label="View shopping cart"
+              title="Your Cart"
+            >
+              <ShoppingCart size={14} />
+              <span>Cart</span>
+              {cart.totalCount > 0 && (
+                <span className="lifestyle-discovery__goals-badge lifestyle-discovery__cart-badge">
+                  {cart.totalCount}
+                </span>
+              )}
+            </button>
           </div>
         </div>
 
@@ -503,7 +523,7 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
                 onClick={() => setSelectedType('PACKAGE')}
               >
                 <Package size={13} />
-                <span>Packages</span>
+                <span>Packs & Sets</span>
               </button>
               <button
                 type="button"
@@ -515,7 +535,7 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
                 onClick={() => setSelectedType('BUNDLE')}
               >
                 <Layers size={13} />
-                <span>Bundles</span>
+                <span>Bundle Sets</span>
               </button>
               <button
                 type="button"
@@ -539,7 +559,7 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
                 onClick={() => setSelectedType('PRODUCT')}
               >
                 <ShoppingBag size={13} />
-                <span>Products</span>
+                <span>Single Items</span>
               </button>
             </div>
           </div>
@@ -607,10 +627,6 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
             }}
           >
             <div className="lifestyle-discovery__spotlight-content">
-              <span className="lifestyle-discovery__spotlight-pill">
-                <Sparkles size={11} strokeWidth={2.4} />
-                <span>{spotlightOffering.promoBadge || 'FEATURED BUNDLE'}</span>
-              </span>
               <h2 className="lifestyle-discovery__spotlight-title">
                 {spotlightOffering.promoTitle || spotlightOffering.title}
               </h2>

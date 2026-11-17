@@ -154,7 +154,6 @@ export function ActionCarousel({
     currency: 'NGN',
     status: 'PUBLISHED',
     isPromoted: true,
-    promoBadge: 'FEATURED BUNDLE',
     promoTitle: 'Prepare Your Home for the New Year',
     promoSubtitle: 'Curated home refresh packages for the new year',
     promoCoverImage:
@@ -360,7 +359,6 @@ export function ActionCarousel({
       actionLabel: 'Explore Bundle',
       action: () => router.push(`/dashboard/lifestyle?id=${encodeURIComponent(promoTarget)}`),
       urgency: 'neutral',
-      badgePill: activePromo.promoBadge || 'FEATURED BUNDLE',
       backgroundImageUrl: promoCover,
     })
   }

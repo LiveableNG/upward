@@ -42,6 +42,8 @@ const TermsAcceptanceModal = dynamic(() => import('@/features/auth/components/Te
 import { useUserGoals, useGoalCategories } from '@/features/goals/hooks/useGoals'
 import { PageTransition } from '@/components/common/PageTransition'
 import { DashboardSkeleton } from '@/features/dashboard/components/DashboardSkeleton'
+import { CartProvider } from '@/features/goals/context/CartContext'
+import { CartDrawer } from '@/features/goals/components/CartDrawer'
 import { api } from '@/lib/api'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -219,37 +221,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     // || isRentalGated
 
   return (
-    <div className={`dashboard-layout${showProfileBlocker || showTermsGate ? ' dashboard-layout--blocker' : ''}${hideBottomNav ? ' dashboard-layout--no-bottom-nav' : ''}`}>
-      {showTermsGate && (
-        <TermsAcceptanceModal onAccepted={() => window.location.reload()} />
-      )}
-      {/* ProfileSetupBlocker temporarily commented out
-      {showProfileBlocker && user && (
-        <ProfileSetupBlocker
-          user={user}
-          score={scoreProfile?.data?.score}
-          maxScore={scoreProfile?.data?.maxScore}
-          profileCompletion={scoreProfile?.data?.profile?.profileCompletion}
-          onSkip={handleSkipBlocker}
-        />
-      )}
-      */}
-      {/* Desktop Global Header */}
-      {!showProfileBlocker && (
-        <div className="desktop-only">
-          <DashboardHeader />
-        </div>
-      )}
+    <CartProvider>
+      <div className={`dashboard-layout${showProfileBlocker || showTermsGate ? ' dashboard-layout--blocker' : ''}${hideBottomNav ? ' dashboard-layout--no-bottom-nav' : ''}`}>
+        {showTermsGate && (
+          <TermsAcceptanceModal onAccepted={() => window.location.reload()} />
+        )}
+        {/* Desktop Global Header */}
+        {!showProfileBlocker && (
+          <div className="desktop-only">
+            <DashboardHeader />
+          </div>
+        )}
 
-      <AnnouncementManager />
-      <RentReminderManager />
-      <main className="dashboard-layout__content">
-        <Suspense fallback={<DashboardSkeleton />}>
-          <PageTransition>{children}</PageTransition>
-        </Suspense>
-      </main>
-      {!hideBottomNav && <BottomNav />}
-    </div>
+        <AnnouncementManager />
+        <RentReminderManager />
+        <main className="dashboard-layout__content">
+          <Suspense fallback={<DashboardSkeleton />}>
+            <PageTransition>{children}</PageTransition>
+          </Suspense>
+        </main>
+        {!hideBottomNav && <BottomNav />}
+        <CartDrawer />
+      </div>
+    </CartProvider>
   )
 }
 

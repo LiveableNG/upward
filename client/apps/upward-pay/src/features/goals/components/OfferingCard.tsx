@@ -2,16 +2,16 @@
 
 import React, { useState } from 'react'
 import {
-  ShieldCheck,
   Package,
   Layers,
   Wrench,
   ShoppingBag,
   Truck,
   ArrowUpRight,
-  Sparkles,
   MapPinOff,
+  ShoppingCart,
 } from 'lucide-react'
+import { useCart } from '../context/CartContext'
 import {
   isVendorVerified,
   type GoalOffering,
@@ -50,18 +50,22 @@ export function formatCurrencyValue(val?: number | null, currency = 'NGN'): stri
   }
 }
 
-export function getOfferingTypeIcon(type: string) {
+export function getOfferingTypeDisplay(type: string): { label: string; icon: any } {
   switch (type) {
     case 'BUNDLE':
-      return Layers
+      return { label: 'Bundle Set', icon: Layers }
     case 'PACKAGE':
-      return Package
+      return { label: 'Pack', icon: Package }
     case 'SERVICE':
-      return Wrench
+      return { label: 'Service', icon: Wrench }
     case 'PRODUCT':
     default:
-      return ShoppingBag
+      return { label: 'Single Item', icon: ShoppingBag }
   }
+}
+
+export function getOfferingTypeIcon(type: string) {
+  return getOfferingTypeDisplay(type).icon
 }
 
 export const OfferingCard: React.FC<OfferingCardProps> = ({
@@ -69,15 +73,12 @@ export const OfferingCard: React.FC<OfferingCardProps> = ({
   userLocation,
   onClick,
 }) => {
+  const cart = useCart()
   const [imgError, setImgError] = useState(false)
   const offering = item.offering
-  const rawReason = item.reason
-  const reason =
-    rawReason && !rawReason.toLowerCase().includes('matched to')
-      ? rawReason
-      : null
   const isGoalMatch = item.isGoalMatch
-  const TypeIcon = getOfferingTypeIcon(offering.type)
+  const laymanType = getOfferingTypeDisplay(offering.type)
+  const TypeIcon = laymanType.icon
 
   const deliveryCheck = userLocation
     ? isOfferingDeliverableToLocation(offering, userLocation)
@@ -126,20 +127,12 @@ export const OfferingCard: React.FC<OfferingCardProps> = ({
           </div>
         )}
 
-        {/* Promo / Sponsored Badge */}
-        {offering.isPromoted && (
-          <span className="offering-card__promo-pill">
-            <Sparkles size={10} strokeWidth={2.4} />
-            <span>{offering.promoBadge || 'FEATURED BUNDLE'}</span>
-          </span>
-        )}
-
-        {/* Type Badge */}
+        {/* Layman Type Badge */}
         <span
           className={`offering-card__type-badge offering-card__type-badge--${offering.type.toLowerCase()}`}
         >
           <TypeIcon size={11} strokeWidth={2.3} />
-          <span>{offering.type}</span>
+          <span>{laymanType.label}</span>
         </span>
       </div>
 
@@ -149,13 +142,6 @@ export const OfferingCard: React.FC<OfferingCardProps> = ({
           {vendor ? (
             <span className="offering-card__vendor-label">
               <span className="offering-card__vendor-name">{vendor.name}</span>
-              {verified && (
-                <ShieldCheck
-                  size={13}
-                  className="offering-card__verified-icon"
-                  aria-label="Verified merchant"
-                />
-              )}
             </span>
           ) : (
             <span className="offering-card__vendor-label">Upward Partner</span>
@@ -184,12 +170,6 @@ export const OfferingCard: React.FC<OfferingCardProps> = ({
           <p className="offering-card__subtitle">{offering.subtitle}</p>
         )}
 
-        {reason && (
-          <div className="offering-card__match-tag">
-            <span>{reason}</span>
-          </div>
-        )}
-
         <div className="offering-card__footer">
           <div className="offering-card__price-group">
             <span className="offering-card__price">
@@ -212,10 +192,25 @@ export const OfferingCard: React.FC<OfferingCardProps> = ({
             )}
           </div>
 
-          <span className="offering-card__action-btn" aria-hidden="true">
-            <span>Details</span>
-            <ArrowUpRight size={14} />
-          </span>
+          <div className="offering-card__actions-wrap">
+            <button
+              type="button"
+              className="offering-card__cart-btn"
+              title="Add to Cart"
+              onClick={(e) => {
+                e.stopPropagation()
+                cart.addItem(offering, { quantity: 1 })
+                cart.openCart()
+              }}
+            >
+              <ShoppingCart size={12} strokeWidth={2.4} />
+              <span>Add</span>
+            </button>
+            <span className="offering-card__action-btn" aria-hidden="true">
+              <span>Details</span>
+              <ArrowUpRight size={14} />
+            </span>
+          </div>
         </div>
       </div>
     </article>

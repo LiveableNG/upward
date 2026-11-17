@@ -15,6 +15,7 @@ import {
   Minus,
   Loader2,
   AlertCircle,
+  ShoppingBag,
 } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
@@ -25,6 +26,7 @@ import {
   useVerifyCommercePayment,
 } from '../hooks/useCommerceOrders'
 import type { GoalOffering } from '../types/goals.types'
+import type { CartItem } from '../context/CartContext'
 import {
   getStoredDeliveryLocation,
   saveStoredDeliveryLocation,
@@ -35,9 +37,11 @@ import { fetchDeliveryZones } from '../services/goalsService'
 import '../styles/goals.css'
 
 interface CommerceCheckoutModalProps {
-  offering: GoalOffering
+  offering?: GoalOffering
+  cartItems?: CartItem[]
   isOpen: boolean
   onClose: () => void
+  onSuccess?: () => void
   deliveryLocation?: UserDeliveryLocation
 }
 
@@ -64,8 +68,10 @@ import { openPaystackInline } from '../utils/paystackInline'
 
 export function CommerceCheckoutModal({
   offering,
+  cartItems,
   isOpen,
   onClose,
+  onSuccess,
   deliveryLocation,
 }: CommerceCheckoutModalProps) {
   const router = useRouter()
@@ -175,22 +181,50 @@ export function CommerceCheckoutModal({
 
   if (!isOpen || !mounted) return null
 
-  const unitPrice = offering.price ? Number(offering.price) : 0
-  const itemsSubtotal = unitPrice * quantity
-  const isService = offering.type === 'SERVICE'
-  const deliveryFee = isService
+  const isMultiItem = Boolean(cartItems && cartItems.length > 0)
+  const effectiveItems: CartItem[] = isMultiItem && cartItems
+    ? cartItems
+    : offering
+      ? [
+          {
+            offeringId: offering.id,
+            offeringUuid: offering.uuid,
+            title: offering.title || offering.name || 'Commerce Offering',
+            subtitle: offering.subtitle,
+            imageUrl:
+              offering.imageUrl ||
+              offering.media?.find((m) => m.isPrimary)?.mediaUrl ||
+              offering.media?.[0]?.mediaUrl ||
+              null,
+            price: offering.price ? Number(offering.price) : 0,
+            currency: offering.currency || 'NGN',
+            quantity,
+            vendorName: offering.vendor?.name || 'Upward Partner',
+            vendorVerified: offering.vendor?.isVerified ?? false,
+            type: (offering.type as CartItem['type']) || 'PRODUCT',
+          },
+        ]
+      : []
+
+  const itemsSubtotal = effectiveItems.reduce(
+    (acc, it) => acc + it.price * it.quantity,
+    0,
+  )
+  const allServices = effectiveItems.every((it) => it.type === 'SERVICE')
+  const deliveryFee = allServices
     ? 0
     : selectedLocation?.deliveryFeeKobo
       ? Number(BigInt(selectedLocation.deliveryFeeKobo) / BigInt(100))
       : 0
   const grandTotal = itemsSubtotal + deliveryFee
 
-  const offeringTitle = offering.title || offering.name || 'Commerce Offering'
-  const vendorName = offering.vendor?.name || 'Upward Partner'
+  const offeringTitle = offering?.title || offering?.name || 'Commerce Offering'
+  const vendorName = offering?.vendor?.name || 'Upward Partner'
   const primaryImage =
-    offering.imageUrl ||
-    offering.media?.find((m) => m.isPrimary)?.mediaUrl ||
-    offering.media?.[0]?.mediaUrl
+    offering?.imageUrl ||
+    offering?.media?.find((m) => m.isPrimary)?.mediaUrl ||
+    offering?.media?.[0]?.mediaUrl
+  const isService = offering?.type === 'SERVICE'
 
   const isZoneDeliverable = Boolean(
     selectedLocation.isDelivering &&
@@ -220,13 +254,11 @@ export function CommerceCheckoutModal({
         deliveryAddress: fullDeliveryAddress,
         deliveryZoneTag: selectedLocation.zoneTag,
         deliveryNotes: data.deliveryNotes ? data.deliveryNotes.trim() : undefined,
-        items: [
-          {
-            offeringUuid: offering.uuid,
-            offeringId: offering.id,
-            quantity,
-          },
-        ],
+        items: effectiveItems.map((it) => ({
+          offeringUuid: it.offeringUuid,
+          offeringId: it.offeringId,
+          quantity: it.quantity,
+        })),
       }
 
       const orderResult = await createOrder.mutateAsync(orderPayload)
@@ -255,11 +287,13 @@ export function CommerceCheckoutModal({
           }
 
           toast.success('Payment confirmed! Your order has been placed.')
+          onSuccess?.()
           onClose()
           router.push(`/dashboard/lifestyle/orders?uuid=${createdOrder.uuid}`)
         } catch (popupErr: any) {
           if (popupErr?.message === 'Payment cancelled') {
             toast.info('Payment was cancelled. You can resume at any time from My Orders.')
+            onSuccess?.()
             onClose()
             router.push(`/dashboard/lifestyle/orders?uuid=${createdOrder.uuid}`)
           } else if (paymentInit.authorizationUrl) {
@@ -272,6 +306,7 @@ export function CommerceCheckoutModal({
         window.location.href = paymentInit.authorizationUrl
       } else {
         toast.success('Order placed successfully!')
+        onSuccess?.()
         onClose()
         router.push(`/dashboard/lifestyle/orders?uuid=${createdOrder.uuid}`)
       }
@@ -329,61 +364,107 @@ export function CommerceCheckoutModal({
             </div>
           )}
 
-          {/* Item Summary Card (Restored exact 58px thumb styling) */}
-          <div className="checkout-sheet__item-card">
-            {primaryImage ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={primaryImage}
-                alt={offeringTitle}
-                className="checkout-sheet__item-thumb"
-              />
-            ) : (
-              <div className="checkout-sheet__item-thumb-placeholder">
-                <MapPin size={24} />
+          {/* Item Summary Card */}
+          {isMultiItem ? (
+            <div className="checkout-sheet__items-multi">
+              <div className="checkout-sheet__items-multi-header">
+                <span className="checkout-sheet__items-multi-count">
+                  Order Items ({effectiveItems.reduce((acc, ci) => acc + ci.quantity, 0)})
+                </span>
+                <span className="checkout-sheet__items-multi-subtotal">
+                  {formatNgn(itemsSubtotal)}
+                </span>
               </div>
-            )}
-            <div className="checkout-sheet__item-details">
-              <div className="checkout-sheet__item-title">{offeringTitle}</div>
-              <div className="checkout-sheet__item-merchant">
-                <span>By {vendorName}</span>
-                <ShieldCheck size={13} className="checkout-sheet__verified-icon" />
-              </div>
-              <div className="checkout-sheet__item-price">
-                {formatNgn(unitPrice)}
-                {offering.pricingModel === 'STARTING_AT' && (
-                  <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)' }}>
-                    {' '}starting
-                  </span>
-                )}
+              <div className="checkout-sheet__items-multi-list">
+                {effectiveItems.map((item) => (
+                  <div key={item.offeringId} className="checkout-sheet__item-row">
+                    <div className="checkout-sheet__item-row-left">
+                      {item.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={item.imageUrl}
+                          alt={item.title}
+                          className="checkout-sheet__item-row-thumb"
+                        />
+                      ) : (
+                        <div className="checkout-sheet__item-row-thumb-placeholder">
+                          <ShoppingBag size={14} />
+                        </div>
+                      )}
+                      <div className="checkout-sheet__item-row-info">
+                        <div className="checkout-sheet__item-row-title">
+                          {item.title}
+                        </div>
+                        <div className="checkout-sheet__item-row-meta">
+                          <span>Qty: {item.quantity}</span>
+                          <span>•</span>
+                          <span>{item.vendorName || 'Upward Partner'}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="checkout-sheet__item-row-price">
+                      {formatNgn(item.price * item.quantity)}
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-
-            {/* Quantity Stepper (for goods/bundles) */}
-            {!isService && (
-              <div className="checkout-sheet__stepper">
-                <button
-                  type="button"
-                  className="checkout-sheet__stepper-btn"
-                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                  disabled={quantity <= 1 || isProcessing}
-                  aria-label="Decrease quantity"
-                >
-                  <Minus size={14} />
-                </button>
-                <span className="checkout-sheet__stepper-value">{quantity}</span>
-                <button
-                  type="button"
-                  className="checkout-sheet__stepper-btn"
-                  onClick={() => setQuantity((q) => q + 1)}
-                  disabled={isProcessing}
-                  aria-label="Increase quantity"
-                >
-                  <Plus size={14} />
-                </button>
+          ) : (
+            <div className="checkout-sheet__item-card">
+              {primaryImage ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={primaryImage}
+                  alt={offeringTitle}
+                  className="checkout-sheet__item-thumb"
+                />
+              ) : (
+                <div className="checkout-sheet__item-thumb-placeholder">
+                  <MapPin size={24} />
+                </div>
+              )}
+              <div className="checkout-sheet__item-details">
+                <div className="checkout-sheet__item-title">{offeringTitle}</div>
+                <div className="checkout-sheet__item-merchant">
+                  <span>By {vendorName}</span>
+                  <ShieldCheck size={13} className="checkout-sheet__verified-icon" />
+                </div>
+                <div className="checkout-sheet__item-price">
+                  {formatNgn(itemsSubtotal / Math.max(1, quantity))}
+                  {offering?.pricingModel === 'STARTING_AT' && (
+                    <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--text-muted)' }}>
+                      {' '}starting
+                    </span>
+                  )}
+                </div>
               </div>
-            )}
-          </div>
+
+              {/* Quantity Stepper (for goods/bundles) */}
+              {!isService && (
+                <div className="checkout-sheet__stepper">
+                  <button
+                    type="button"
+                    className="checkout-sheet__stepper-btn"
+                    onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                    disabled={quantity <= 1 || isProcessing}
+                    aria-label="Decrease quantity"
+                  >
+                    <Minus size={14} />
+                  </button>
+                  <span className="checkout-sheet__stepper-value">{quantity}</span>
+                  <button
+                    type="button"
+                    className="checkout-sheet__stepper-btn"
+                    onClick={() => setQuantity((q) => q + 1)}
+                    disabled={isProcessing}
+                    aria-label="Increase quantity"
+                  >
+                    <Plus size={14} />
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Recipient & Contact Details */}
           <div className="checkout-sheet__section">
