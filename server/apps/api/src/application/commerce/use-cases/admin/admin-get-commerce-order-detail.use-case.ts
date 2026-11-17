@@ -107,7 +107,7 @@ export class AdminGetCommerceOrderDetailUseCase {
         items: (sub.items || []).map((it: CommerceOrderItem) => {
           const snap = (it.snapshotData as Record<string, any>) || {}
           const off = (it as any).offering
-          const finalTitle = snap.title || snap.name || off?.title || 'Merchandise Item'
+          const finalTitle = snap.title || snap.name || snap.offeringTitle || off?.title || 'Merchandise Item'
           const offeringImage =
             off?.imageUrl ||
             off?.media?.find((m: any) => m.isPrimary)?.mediaUrl ||
@@ -125,11 +125,7 @@ export class AdminGetCommerceOrderDetailUseCase {
             thumbnailUrl: finalImage,
             unitPriceKobo: it.unitPriceKobo.toString(),
             totalPriceKobo: it.totalPriceKobo.toString(),
-            snapshotData: {
-              ...snap,
-              title: finalTitle,
-              thumbnailUrl: finalImage,
-            },
+            snapshotData: it.snapshotData,
             createdAt: it.createdAt,
           }
         }),
