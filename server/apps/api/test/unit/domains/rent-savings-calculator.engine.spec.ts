@@ -95,6 +95,36 @@ describe('RentSavingsCalculatorEngine', () => {
       expect(Number(res.periodicDepositKobo)).toBeGreaterThan(100_000_000)
     })
 
+    it('M-06b: should enforce Rent Protec eligibility (>= 6 months advance notice) and rate differentiation', () => {
+      const targetAmountKobo = 240_000_000n // ₦2.4M
+
+      // Eligible: 7 months (210 days) runway
+      const eligibleDueDate = new Date('2026-07-30T00:00:00Z')
+      const eligibleRes = RentSavingsCalculatorEngine.simulate({
+        targetAmountKobo,
+        contractualDueDate: eligibleDueDate,
+        cadence: 'MONTHLY',
+        productOption: 'RENT_PROTEC',
+        asOfDate: baseDate,
+      })
+      expect(eligibleRes.isRentProtecEligible).toBe(true)
+      expect(eligibleRes.rentProtecIneligibilityReason).toBeUndefined()
+      expect(eligibleRes.daysRemaining).toBe(180) // 210 - 30
+      expect(eligibleRes.numberOfPayments).toBe(6)
+
+      // Ineligible: 4 months (120 days) runway (< 6 months)
+      const ineligibleDueDate = new Date('2026-05-01T00:00:00Z')
+      const ineligibleRes = RentSavingsCalculatorEngine.simulate({
+        targetAmountKobo,
+        contractualDueDate: ineligibleDueDate,
+        cadence: 'MONTHLY',
+        productOption: 'RENT_PROTEC',
+        asOfDate: baseDate,
+      })
+      expect(ineligibleRes.isRentProtecEligible).toBe(false)
+      expect(ineligibleRes.rentProtecIneligibilityReason).toMatch(/requires at least 6 months/)
+    })
+
     it('M-07: should trigger affordability alert when monthly deposit exceeds 50% income', () => {
       const dueDate = new Date('2026-06-30T00:00:00Z') // 180 days
       const targetAmountKobo = 240_000_000n // ~₦382,200/mo
