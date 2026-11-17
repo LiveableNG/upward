@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ChevronLeft, ChevronRight, Plus, Check, Trash2, ArrowRight, X, Home } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
@@ -426,6 +427,11 @@ export function AllGoalsScreen() {
 
   const [activeDetailGoal, setActiveDetailGoal] = useState<UserGoal | null>(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   // Ensure modal is dismissed whenever transitioning category views
   useEffect(() => {
@@ -639,8 +645,8 @@ export function AllGoalsScreen() {
   }
 
   const renderGoalDetailModal = () => {
-    if (!activeDetailGoal) return null
-    return (
+    if (!activeDetailGoal || !isMounted) return null
+    return createPortal(
       <div
         className="goal-modal-overlay"
         onClick={() => setActiveDetailGoal(null)}
@@ -750,7 +756,8 @@ export function AllGoalsScreen() {
             )}
           </div>
         </div>
-      </div>
+      </div>,
+      document.body,
     )
   }
 
@@ -1297,7 +1304,7 @@ export function AllGoalsScreen() {
       {renderGoalDetailModal()}
 
       {/* CREATE GOAL MODAL */}
-      {isCreateModalOpen && (
+      {isCreateModalOpen && isMounted && createPortal(
         <div
           className="goal-modal-overlay"
           onClick={() => setIsCreateModalOpen(false)}
@@ -1401,7 +1408,8 @@ export function AllGoalsScreen() {
               </button>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   )
