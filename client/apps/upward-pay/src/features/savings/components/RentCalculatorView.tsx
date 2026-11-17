@@ -12,6 +12,7 @@ import {
   Loader2,
   ArrowRight,
   ChevronRight,
+  Pencil,
 } from 'lucide-react'
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from '@/lib/utils'
 import {
@@ -844,14 +845,14 @@ export function RentCalculatorView({
       planPattern === 'INITIAL_DEPOSIT'
         ? 'Deposit now, save monthly'
         : planPattern === 'EQUAL'
-          ? 'Equal monthly savings'
+          ? 'Equal monthly'
           : 'Start small & step up'
 
     return (
       <>
         <PayPageShell
           title="Pay Less for Your Next Rent"
-          subtitle="Save less with compound interest towards your rent."
+          subtitle="Let compound interest help pay your rent."
           showBack
           onBack={handleBenefitBack}
           pinFooter
@@ -862,17 +863,17 @@ export function RentCalculatorView({
             </PayFlowPrimaryButton>
           }
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 18, paddingBottom: 20 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 22, paddingBottom: 24 }}>
             {/* Compact Target + Track Summary Bar */}
             <div
               style={{
                 borderRadius: '14px',
                 background: 'var(--oat, #faf9f5)',
                 border: '1px solid var(--shell-border, #f0e9df)',
-                padding: '10px 14px',
+                padding: '11px 14px',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 8,
+                gap: 9,
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
@@ -900,7 +901,7 @@ export function RentCalculatorView({
               <div
                 style={{
                   borderTop: '1px solid rgba(0, 0, 0, 0.05)',
-                  paddingTop: 8,
+                  paddingTop: 9,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
@@ -944,13 +945,13 @@ export function RentCalculatorView({
             {/* Single Airy Plan Card (Uncrowded per Kunle Spec) */}
             <div
               style={{
-                padding: '18px',
+                padding: '20px 18px',
                 borderRadius: '18px',
                 background: 'linear-gradient(180deg, #faf9f5 0%, #f6f3ee 100%)',
                 border: '1px solid var(--shell-border, #f0e9df)',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 16,
+                gap: 18,
                 boxShadow: '0 2px 10px rgba(0, 0, 0, 0.03)',
               }}
             >
@@ -990,38 +991,36 @@ export function RentCalculatorView({
                 </button>
               </div>
 
-              {/* Exact Contributions Section — Prominent & Unmistakable per Plan */}
+              {/* Exact Contributions Section — Clear Input Textboxes vs Read-Only Output */}
               {planPattern === 'INITIAL_DEPOSIT' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <div
-                    style={{
-                      background: '#ffffff',
-                      border: '1.5px solid var(--shell-border, #e5dfd7)',
-                      borderRadius: '14px',
-                      padding: '14px',
-                    }}
-                  >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <div>
+                    <label
+                      htmlFor="upfront-deposit-amount"
+                      style={{
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        color: 'var(--text-secondary)',
+                        display: 'block',
+                        marginBottom: 6,
+                      }}
+                    >
+                      Today&apos;s upfront deposit
+                    </label>
                     <div
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'space-between',
-                        marginBottom: 6,
+                        gap: 6,
+                        background: '#ffffff',
+                        border: '1.5px solid #cbc2b7',
+                        borderRadius: '12px',
+                        height: 48,
+                        padding: '0 14px',
+                        boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.04)',
                       }}
                     >
-                      <label
-                        htmlFor="upfront-deposit-amount"
-                        style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}
-                      >
-                        Today&apos;s upfront deposit
-                      </label>
-                      <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--clay)' }}>
-                        Editable
-                      </span>
-                    </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <span style={{ fontSize: '1.375rem', fontWeight: 800, color: 'var(--text-muted)' }}>
+                      <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-muted)', flexShrink: 0 }}>
                         ₦
                       </span>
                       <input
@@ -1036,19 +1035,21 @@ export function RentCalculatorView({
                         }}
                         style={{
                           width: '100%',
+                          minWidth: 0,
                           border: 'none',
                           background: 'transparent',
                           outline: 'none',
-                          fontSize: '1.5rem',
+                          fontSize: '1.3125rem',
                           fontWeight: 800,
                           color: 'var(--text)',
                           letterSpacing: '-0.02em',
                         }}
                       />
+                      <Pencil size={14} color="var(--clay)" style={{ flexShrink: 0, opacity: 0.75 }} aria-hidden />
                     </div>
                   </div>
 
-                  {/* Exact Monthly Contribution Box */}
+                  {/* Read-Only Calculated Monthly Output */}
                   <div
                     style={{
                       display: 'flex',
@@ -1056,8 +1057,7 @@ export function RentCalculatorView({
                       justifyContent: 'space-between',
                       padding: '14px',
                       borderRadius: '12px',
-                      background: 'rgba(194, 80, 31, 0.07)',
-                      border: '1px solid rgba(194, 80, 31, 0.14)',
+                      background: 'rgba(194, 80, 31, 0.06)',
                     }}
                   >
                     <div>
@@ -1079,10 +1079,9 @@ export function RentCalculatorView({
               {planPattern === 'EQUAL' && (
                 <div
                   style={{
-                    background: '#ffffff',
-                    border: '1.5px solid var(--shell-border, #e5dfd7)',
+                    background: 'rgba(194, 80, 31, 0.06)',
                     borderRadius: '14px',
-                    padding: '18px 14px',
+                    padding: '20px 16px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -1090,52 +1089,58 @@ export function RentCalculatorView({
                   }}
                 >
                   <div>
-                    <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
-                      Monthly contribution
+                    <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text)' }}>
+                      Save monthly
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 3 }}>
-                      {planEqualMetrics.numberOfPayments} equal months · ₦0 upfront
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: 3 }}>
+                      {planEqualMetrics.numberOfPayments} months · ₦0 upfront
                     </div>
                   </div>
                   <div
                     style={{
-                      fontSize: '1.4375rem',
+                      fontSize: '1.5rem',
                       fontWeight: 800,
                       color: 'var(--clay)',
                       letterSpacing: '-0.02em',
+                      whiteSpace: 'nowrap',
                     }}
                   >
                     {formatCurrency(planEqualMetrics.periodicDepositNaira)}
-                    <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>/mo</span>
+                    <span style={{ fontSize: '0.8125rem', fontWeight: 700 }}>/mo</span>
                   </div>
                 </div>
               )}
 
               {planPattern === 'STEP_UP' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                    <div
-                      style={{
-                        background: '#ffffff',
-                        border: '1.5px solid var(--shell-border, #e5dfd7)',
-                        borderRadius: '12px',
-                        padding: '12px',
-                      }}
-                    >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                    <div>
                       <label
                         htmlFor="stepup-start-amount"
                         style={{
-                          fontSize: '0.6875rem',
+                          fontSize: '0.75rem',
                           fontWeight: 700,
                           color: 'var(--text-secondary)',
                           display: 'block',
-                          marginBottom: 4,
+                          marginBottom: 6,
                         }}
                       >
-                        Start with (Month 1)
+                        Start (Month 1)
                       </label>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                        <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          background: '#ffffff',
+                          border: '1.5px solid #cbc2b7',
+                          borderRadius: '12px',
+                          height: 46,
+                          padding: '0 10px',
+                          boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.04)',
+                        }}
+                      >
+                        <span style={{ fontSize: '0.9375rem', fontWeight: 800, color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>
                           ₦
                         </span>
                         <input
@@ -1155,36 +1160,42 @@ export function RentCalculatorView({
                             border: 'none',
                             background: 'transparent',
                             outline: 'none',
-                            fontSize: '1.0625rem',
+                            fontSize: '1rem',
                             fontWeight: 800,
                             color: 'var(--text)',
                           }}
                         />
+                        <Pencil size={12} color="var(--clay)" style={{ flexShrink: 0, opacity: 0.75 }} aria-hidden />
                       </div>
                     </div>
 
-                    <div
-                      style={{
-                        background: '#ffffff',
-                        border: '1.5px solid var(--shell-border, #e5dfd7)',
-                        borderRadius: '12px',
-                        padding: '12px',
-                      }}
-                    >
+                    <div>
                       <label
                         htmlFor="stepup-increment-amount"
                         style={{
-                          fontSize: '0.6875rem',
+                          fontSize: '0.75rem',
                           fontWeight: 700,
                           color: 'var(--text-secondary)',
                           display: 'block',
-                          marginBottom: 4,
+                          marginBottom: 6,
                         }}
                       >
-                        Step up monthly by
+                        Monthly step-up
                       </label>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                        <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--clay)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          background: '#ffffff',
+                          border: '1.5px solid #cbc2b7',
+                          borderRadius: '12px',
+                          height: 46,
+                          padding: '0 10px',
+                          boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.04)',
+                        }}
+                      >
+                        <span style={{ fontSize: '0.9375rem', fontWeight: 800, color: 'var(--clay)', whiteSpace: 'nowrap', flexShrink: 0 }}>
                           +₦
                         </span>
                         <input
@@ -1204,30 +1215,34 @@ export function RentCalculatorView({
                             border: 'none',
                             background: 'transparent',
                             outline: 'none',
-                            fontSize: '1.0625rem',
+                            fontSize: '1rem',
                             fontWeight: 800,
                             color: 'var(--clay)',
                           }}
                         />
+                        <Pencil size={12} color="var(--clay)" style={{ flexShrink: 0, opacity: 0.75 }} aria-hidden />
                       </div>
                     </div>
                   </div>
 
+                  {/* Concise Read-Only Progression Line (no repeated Month 1 / step-up figures) */}
                   <div
                     style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
                       padding: '10px 12px',
                       borderRadius: '10px',
-                      background: 'rgba(194, 80, 31, 0.07)',
-                      border: '1px solid rgba(194, 80, 31, 0.14)',
+                      background: 'rgba(194, 80, 31, 0.06)',
                       fontSize: '0.75rem',
-                      color: 'var(--text)',
+                      color: 'var(--text-secondary)',
                       fontWeight: 600,
-                      lineHeight: 1.35,
                     }}
                   >
-                    Month 1: <strong>{formatCurrency(planStepUpMetrics.periodicDepositNaira)}</strong> →{' '}
-                    +{formatCurrency(planStepUpMetrics.stepIncrementNaira)}/mo → Final month:{' '}
-                    <strong>{formatCurrency(planStepUpMetrics.lastPeriodDepositNaira)}</strong>
+                    <span>Final month (Month {planStepUpMetrics.numberOfPayments})</span>
+                    <strong style={{ color: 'var(--text)', fontSize: '0.875rem' }}>
+                      {formatCurrency(planStepUpMetrics.lastPeriodDepositNaira)}
+                    </strong>
                   </div>
                 </div>
               )}
@@ -1254,7 +1269,7 @@ export function RentCalculatorView({
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    Total you contribute
+                    You contribute
                   </span>
                   <div
                     style={{
@@ -1280,11 +1295,9 @@ export function RentCalculatorView({
                       fontWeight: 700,
                       display: 'block',
                       whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
                     }}
                   >
-                    Est. interest ({savingsAnnualRatePct}% p.a.)
+                    Est. returns
                   </span>
                   <div
                     style={{
