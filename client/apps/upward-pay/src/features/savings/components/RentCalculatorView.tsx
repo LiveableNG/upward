@@ -656,6 +656,20 @@ export function RentCalculatorView({
                 Step-Up
               </button>
             </div>
+
+            {/* 1-Line Minimal Explainer */}
+            <p
+              style={{
+                fontSize: '0.6875rem',
+                color: 'var(--text-secondary)',
+                margin: '5px 0 0 2px',
+                lineHeight: 1.25,
+              }}
+            >
+              {planPattern === 'INITIAL_DEPOSIT' && 'Deposit upfront to lower monthly savings.'}
+              {planPattern === 'EQUAL' && 'Zero deposit. Save the same amount each month.'}
+              {planPattern === 'STEP_UP' && 'Start small and increase contributions gradually.'}
+            </p>
           </div>
 
           {/* High-Impact Benefit Card */}
