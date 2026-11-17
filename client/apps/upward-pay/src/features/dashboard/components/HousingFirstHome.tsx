@@ -6,6 +6,7 @@ import {
   Home,
   ChevronUp,
   ChevronDown,
+  ChevronRight,
   Maximize2,
   Minimize2,
   ShieldCheck,
@@ -171,9 +172,6 @@ export function HousingFirstHome({
     const formatSubtitle = (goal: UserGoal | null | undefined, defaultText: string) => {
       if (!goal) return defaultText
       const title = (goal.icon ? `${goal.icon} ` : '') + (goal.title || goal.goal?.title || defaultText)
-      if (goal.progressPct && goal.progressPct > 0) {
-        return `${title} · ${goal.progressPct}% done`
-      }
       return title
     }
 
@@ -230,8 +228,8 @@ export function HousingFirstHome({
           id: String(ug.id || ug.uuid),
           tag: (ug.categorySlug || 'PERSONAL').replace(/-/g, ' ').toUpperCase(),
           title,
-          desc: ug.notes || 'Personal milestone · Tap to view steps',
-          pct: ug.progressPct ?? 5,
+          desc: ug.notes || 'Personal milestone',
+          pct: 0,
           hasGoal: true,
           href: '/dashboard/goals',
         }
@@ -427,7 +425,7 @@ export function HousingFirstHome({
                       Build up savings towards my upcoming rent.
                     </p>
                   </div>
-                  {renderGoalRing(0, 38)}
+                  <ChevronRight size={18} color="var(--text-muted, #8a8a8a)" style={{ flexShrink: 0 }} />
                 </button>
               )}
             </div>
@@ -476,7 +474,7 @@ export function HousingFirstHome({
                         Build up savings towards my upcoming rent.
                       </p>
                     </div>
-                    {renderGoalRing(0, 38)}
+                    <ChevronRight size={18} color="var(--text-muted, #8a8a8a)" style={{ flexShrink: 0 }} />
                   </button>
                 </div>
               )}
@@ -663,11 +661,7 @@ export function HousingFirstHome({
                     <h3 className="goal-card__title">{cat.title}</h3>
                     <p className="goal-card__desc">{cat.desc}</p>
                   </div>
-                  {cat.hasGoal ? (
-                    renderGoalRing(cat.pct, 38)
-                  ) : (
-                    <span className="housing-link__chev">›</span>
-                  )}
+                  <ChevronRight size={18} color="var(--text-muted, #8a8a8a)" style={{ flexShrink: 0 }} />
                 </button>
               ))}
 
@@ -683,7 +677,7 @@ export function HousingFirstHome({
                     <h3 className="goal-card__title">{item.title}</h3>
                     <p className="goal-card__desc">{item.desc}</p>
                   </div>
-                  {renderGoalRing(item.pct, 38)}
+                  <ChevronRight size={18} color="var(--text-muted, #8a8a8a)" style={{ flexShrink: 0 }} />
                 </button>
               ))}
             </div>
