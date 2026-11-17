@@ -1182,7 +1182,7 @@ export function SavingsInvestorKycModal({
                   </strong>{' '}
                   monthly for the rest of the year{' '}
                   <span style={{ color: '#059669', fontWeight: 600 }}>
-                    (interest covers +{formatCurrency(interestStep4, 'NGN')})
+                    (est. +{formatCurrency(interestStep4, 'NGN')} in returns)
                   </span>.
                 </div>
               )}

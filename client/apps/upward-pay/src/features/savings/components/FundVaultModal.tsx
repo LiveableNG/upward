@@ -232,7 +232,7 @@ export function FundVaultModal({
               </strong>{' '}
               monthly for the rest of the year{' '}
               <span style={{ color: '#059669', fontWeight: 600 }}>
-                (interest covers +{formatCurrency(projectedInterestNaira, 'NGN')})
+                (est. +{formatCurrency(projectedInterestNaira, 'NGN')} in returns)
               </span>.
             </div>
           )}

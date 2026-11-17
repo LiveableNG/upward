@@ -309,10 +309,10 @@ export function HousingFirstHome({
 
   const accruedYieldFormatted = vault?.accrued_yield_kobo
     ? projectedInterestTotal > 0
-      ? `+${formatCurrency(vault.accrued_yield_kobo / 100, 'NGN')} earned · Interest covers ${formatCurrency(projectedInterestTotal, 'NGN')}`
+      ? `+${formatCurrency(vault.accrued_yield_kobo / 100, 'NGN')} earned · Est. +${formatCurrency(projectedInterestTotal, 'NGN')} total`
       : `+${formatCurrency(vault.accrued_yield_kobo / 100, 'NGN')} returns accrued`
     : projectedInterestTotal > 0
-      ? `Interest covers ${formatCurrency(projectedInterestTotal, 'NGN')} so you pay less`
+      ? `Est. +${formatCurrency(projectedInterestTotal, 'NGN')} returns`
       : '+₦0 returns accrued'
 
   const daysLeftFormatted =

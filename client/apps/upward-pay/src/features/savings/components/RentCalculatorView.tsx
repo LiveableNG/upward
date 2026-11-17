@@ -914,7 +914,7 @@ export function RentCalculatorView({
               }}
             >
               <ShieldCheck size={13} color="#059669" style={{ flexShrink: 0 }} />
-              <span>Zero debit fees · Compound interest pays towards rent</span>
+              <span>Zero debit fees · Compound interest helps pay towards rent</span>
             </div>
           </div>
 

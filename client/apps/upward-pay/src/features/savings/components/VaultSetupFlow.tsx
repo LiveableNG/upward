@@ -251,7 +251,7 @@ export function VaultSetupFlow({ initialConfig, onBack, onSuccess }: VaultSetupF
             </div>
             <div style={{ textAlign: 'right' }}>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>
-                Interest Covers ({annualRatePct}% p.a.)
+                Est. Interest ({annualRatePct}% p.a.)
               </span>
               <span style={{ fontSize: '1.0625rem', fontWeight: 800, color: '#059669', marginTop: 2, display: 'block' }}>
                 +{formatCurrency(payLessPlan.projectedYieldNaira, 'NGN')}
