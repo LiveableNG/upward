@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   ArrowLeft,
   Loader2,
@@ -8,6 +9,7 @@ import {
   AlertCircle,
   PiggyBank,
 } from 'lucide-react'
+import { PayPageShell } from '@/features/dashboard/components/payment/PayPageShell'
 import { useRentVault } from '../hooks/useRentSavings'
 import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
 import { useAuth } from '@/features/auth/AuthContext'
@@ -18,6 +20,7 @@ import { SettlementHubView } from './SettlementHubView'
 import '@/styles/savings-v1.css'
 
 export function RentSavingsMainView() {
+  const router = useRouter()
   const { user, refreshUser } = useAuth()
   const { data: vault, isLoading, error, refetch } = useRentVault()
   const { rates: platformRates } = usePlatformRates()
@@ -32,44 +35,56 @@ export function RentSavingsMainView() {
 
   if (isLoading) {
     return (
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: 360,
-          gap: 16,
-          color: 'var(--text-muted)',
-        }}
+      <PayPageShell
+        title="Rent Savings"
+        showBack
+        onBack={() => router.push('/dashboard')}
       >
-        <Loader2 size={32} className="animate-spin" color="var(--clay)" />
-        <span style={{ fontSize: '0.875rem' }}>Loading your Rent Vault...</span>
-      </div>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            minHeight: 360,
+            gap: 16,
+            color: 'var(--text-muted)',
+          }}
+        >
+          <Loader2 size={32} className="animate-spin" color="var(--clay)" />
+          <span style={{ fontSize: '0.875rem' }}>Loading your Rent Vault...</span>
+        </div>
+      </PayPageShell>
     )
   }
 
   if (error) {
     return (
-      <div className="rent-calculator__card" style={{ textAlign: 'center', padding: '40px 24px' }}>
-        <AlertCircle size={36} color="var(--error)" style={{ margin: '0 auto 12px' }} />
-        <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text)' }}>
-          Unable to Load Rent Vault
-        </h3>
-        <p
-          style={{
-            fontSize: '0.875rem',
-            color: 'var(--text-muted)',
-            marginTop: 4,
-            marginBottom: 20,
-          }}
-        >
-          {error instanceof Error ? error.message : 'A network error occurred. Please try again.'}
-        </p>
-        <button type="button" className="vault-btn-primary" onClick={() => refetch()}>
-          Retry
-        </button>
-      </div>
+      <PayPageShell
+        title="Rent Savings"
+        showBack
+        onBack={() => router.push('/dashboard')}
+      >
+        <div className="rent-calculator__card" style={{ textAlign: 'center', padding: '40px 24px' }}>
+          <AlertCircle size={36} color="var(--error)" style={{ margin: '0 auto 12px' }} />
+          <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text)' }}>
+            Unable to Load Rent Vault
+          </h3>
+          <p
+            style={{
+              fontSize: '0.875rem',
+              color: 'var(--text-muted)',
+              marginTop: 4,
+              marginBottom: 20,
+            }}
+          >
+            {error instanceof Error ? error.message : 'A network error occurred. Please try again.'}
+          </p>
+          <button type="button" className="vault-btn-primary" onClick={() => refetch()}>
+            Retry
+          </button>
+        </div>
+      </PayPageShell>
     )
   }
 
@@ -145,22 +160,32 @@ export function RentSavingsMainView() {
     return null
   }
 
+  if (!isVaultActive) {
+    return (
+      <RentCalculatorView
+        onSuccess={() => {
+          refetch()
+          refreshUser().catch(() => {})
+        }}
+      />
+    )
+  }
+
   return (
-    <div className="rent-savings-view" style={{ width: '100%' }}>
-      {renderKycBanner()}
+    <PayPageShell
+      title={viewMode === 'SETTLEMENT' ? 'Rent Settlement' : 'Rent Savings'}
+      showBack
+      onBack={() => {
+        if (viewMode === 'SETTLEMENT') {
+          setViewMode('DASHBOARD')
+        } else {
+          router.push('/dashboard')
+        }
+      }}
+    >
+      <div className="rent-savings-view" style={{ width: '100%' }}>
+        {renderKycBanner()}
 
-      {!isVaultActive && (
-        <RentCalculatorView
-          onSuccess={() => {
-            refetch()
-            refreshUser().catch(() => {})
-          }}
-          onOpenKycModal={() => setShowKycModal(true)}
-          isKycModalOpen={showKycModal}
-        />
-      )}
-
-      {isVaultActive && (
         <div className="rent-savings__gated-container">
           <div
             className={`rent-savings__gated-content ${
@@ -168,34 +193,13 @@ export function RentSavingsMainView() {
             }`}
           >
             {viewMode === 'SETTLEMENT' && (
-              <div>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('DASHBOARD')}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    color: 'var(--text-muted)',
-                    fontSize: '0.875rem',
-                    cursor: 'pointer',
-                    marginBottom: 16,
-                  }}
-                >
-                  <ArrowLeft size={16} />
-                  <span>Back to Vault Dashboard</span>
-                </button>
-
-                <SettlementHubView
-                  vault={vault}
-                  onRestartVault={() => {
-                    refetch()
-                    setViewMode('DASHBOARD')
-                  }}
-                />
-              </div>
+              <SettlementHubView
+                vault={vault}
+                onRestartVault={() => {
+                  refetch()
+                  setViewMode('DASHBOARD')
+                }}
+              />
             )}
 
             {viewMode === 'DASHBOARD' && (
@@ -220,16 +224,16 @@ export function RentSavingsMainView() {
             />
           )}
         </div>
-      )}
 
-      <SavingsInvestorKycModal
-        isOpen={showKycModal}
-        onClose={() => setShowKycModal(false)}
-        onSuccess={async () => {
-          await refreshUser()
-          await refetch()
-        }}
-      />
-    </div>
+        <SavingsInvestorKycModal
+          isOpen={showKycModal}
+          onClose={() => setShowKycModal(false)}
+          onSuccess={async () => {
+            await refreshUser()
+            await refetch()
+          }}
+        />
+      </div>
+    </PayPageShell>
   )
 }

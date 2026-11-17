@@ -3,18 +3,13 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  Calendar,
   TrendingUp,
-  Gift,
-  ArrowRight,
   ShieldCheck,
-  Home,
   CheckCircle2,
-  Lock,
-  Landmark,
   Copy,
   Check,
   AlertCircle,
+  Loader2,
 } from 'lucide-react'
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from '@/lib/utils'
 import {
@@ -31,9 +26,9 @@ import {
 } from '../services/savingsService'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
-import { BottomSheetModal } from '@/components/common/BottomSheetModal'
+import { PayPageShell, PayFlowPrimaryButton } from '@/features/dashboard/components/payment/PayPageShell'
 
-type DrawerStage = 'RENT_INPUT' | 'BENEFIT' | 'KYC' | 'SUCCESS'
+type Stage = 'RENT_INPUT' | 'BENEFIT' | 'KYC' | 'SUCCESS'
 
 interface RentCalculatorViewProps {
   onSuccess?: () => void
@@ -51,7 +46,6 @@ interface RentCalculatorViewProps {
 export function RentCalculatorView({
   onSuccess,
   onProceedToSetup,
-  isKycModalOpen = false,
 }: RentCalculatorViewProps) {
   const { user, refreshUser } = useAuth()
   const router = useRouter()
@@ -97,17 +91,8 @@ export function RentCalculatorView({
   const [rentConfirmed, setRentConfirmed] = useState(false)
   const hasRentDetails = hasSavedRent || rentConfirmed
 
-  // Drawer Stage State
-  const [stage, setStage] = useState<DrawerStage>(() => (hasSavedRent ? 'BENEFIT' : 'RENT_INPUT'))
-  const [drawerOpen, setDrawerOpen] = useState(true)
-
-  const handleCloseDrawer = () => {
-    if (stage === 'SUCCESS') {
-      handleFinish()
-      return
-    }
-    router.push('/dashboard')
-  }
+  // Flow Stage State
+  const [stage, setStage] = useState<Stage>(() => (hasSavedRent ? 'BENEFIT' : 'RENT_INPUT'))
 
   const targetAmountNaira = parseCurrencyInput(targetAmountRaw) || 0
   const tomorrow = new Date(nowTimestamp + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
@@ -138,7 +123,7 @@ export function RentCalculatorView({
       : selectedProductOption
 
   // KYC Prefill & Form State
-  const { data: prefill } = useSavingsOnboardingPrefill(drawerOpen)
+  const { data: prefill } = useSavingsOnboardingPrefill(true)
   const onboardMutation = useOnboardSavingsInvestor()
 
   const hasVerifiedBvnOnFile = Boolean(prefill?.has_verified_bvn || user?.isIdentityVerified)
@@ -431,943 +416,822 @@ export function RentCalculatorView({
   }
 
   const handleFinish = async () => {
-    setDrawerOpen(false)
     await refreshUser().catch(() => {})
     if (onSuccess) {
       onSuccess()
+    } else {
+      router.push('/dashboard')
     }
   }
 
-  const isModalVisible = drawerOpen && !isKycModalOpen
+  const handleRentInputBack = () => {
+    if (hasSavedRent) {
+      setStage('BENEFIT')
+    } else {
+      router.push('/dashboard')
+    }
+  }
 
-  return (
-    <div className="rent-savings__gated-container">
-      {/* Background Preview Card: Only show if user has supplied/confirmed rent details */}
-      {hasRentDetails && (
-        <div
-          className="rent-savings__gated-content"
-          onClick={() => setDrawerOpen(true)}
-          role="button"
-          tabIndex={0}
-          aria-label="Open Rent Savings Drawer"
-          style={{ cursor: 'pointer' }}
-        >
-          <div className="vault-dashboard__hero">
-            <div className="vault-dashboard__top-row">
-              <div className="vault-arm-badge">
-                <ShieldCheck size={14} className="vault-arm-badge__icon" />
-                <span>
-                  Powered by <strong>{platformRates.partnerName || 'Asset & Resource Management Holding Company (ARM)'}</strong>
-                </span>
-              </div>
-              <span className="vault-dashboard__countdown-pill">
-                <Calendar size={12} />
-                <span>{daysRemaining || 343} Days to Rent Day</span>
-              </span>
-            </div>
+  const handleBenefitBack = () => {
+    if (rentConfirmed) {
+      setStage('RENT_INPUT')
+    } else {
+      router.push('/dashboard')
+    }
+  }
 
-            <div className="vault-dashboard__amounts">
-              <span className="vault-dashboard__balance-caption">
-                Target Rent (Pay Less with Interest)
-              </span>
-              <span className="vault-dashboard__current-balance">
-                {formatCurrency(previewRentAmount, 'NGN')}
-              </span>
-              <span className="vault-dashboard__target-label">
-                Due {formattedDueDate} • You only contribute{' '}
-                {formatCurrency(totalTenantContributionNaira, 'NGN')}
-              </span>
-            </div>
-
-            {/* 3-Column Pay Less Breakdown */}
-            <div className="vault-dashboard__breakdown-grid">
-              <div className="vault-dashboard__breakdown-item">
-                <span className="vault-dashboard__breakdown-label">Deposit Schedule</span>
-                <span className="vault-dashboard__breakdown-val">Flexible</span>
-              </div>
-              <div className="vault-dashboard__breakdown-item">
-                <span className="vault-dashboard__breakdown-label">You Only Pay</span>
-                <span className="vault-dashboard__breakdown-val">
-                  {formatCurrency(totalTenantContributionNaira, 'NGN')}
-                </span>
-              </div>
-              <div className="vault-dashboard__breakdown-item">
-                <span className="vault-dashboard__breakdown-label">
-                  Interest Covers ({savingsAnnualRatePct}% p.a.)
-                </span>
-                <span className="vault-dashboard__breakdown-val vault-dashboard__breakdown-val--yield">
-                  +{formatCurrency(projectedYieldNaira, 'NGN')}
-                </span>
-              </div>
-            </div>
-
-            {/* Pay Less note */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                padding: '10px 14px',
-                borderRadius: '10px',
-                background: 'rgba(217, 119, 87, 0.06)',
-                border: '1px solid rgba(217, 119, 87, 0.15)',
-                fontSize: '0.75rem',
-                color: 'var(--text-secondary)',
-              }}
-            >
-              <Gift size={16} color="var(--clay)" style={{ flexShrink: 0 }} />
-              <span>
-                <strong>Pay Less for Rent:</strong> Earn {savingsAnnualRatePct}% p.a. returns and
-                let interest pay the remaining {formatCurrency(projectedYieldNaira, 'NGN')} of your
-                rent.
-              </span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Button to reopen drawer if user closed it after supplying rent details */}
-      {hasRentDetails && !isModalVisible && (
-        <div style={{ textAlign: 'center', marginTop: 20 }}>
-          <button
-            type="button"
-            className="vault-btn-primary"
-            style={{ maxWidth: 320, margin: '0 auto' }}
-            onClick={() => setDrawerOpen(true)}
-          >
-            View Savings Plan
-          </button>
-        </div>
-      )}
-
-      {/* Bottom Drawer */}
-      <BottomSheetModal
-        isOpen={isModalVisible}
-        onClose={handleCloseDrawer}
-        showBack={false}
-        showClose={true}
-        showHandle={true}
-        maxWidth="500px"
-        title={
-          stage === 'RENT_INPUT'
-            ? 'Your next rent'
-            : stage === 'BENEFIT'
-              ? 'Pay Less for Your Next Rent'
-              : stage === 'KYC'
-                ? 'Activate Rent Account'
-                : 'Make a Deposit'
-        }
-        subtitle={
-          stage === 'RENT_INPUT'
-            ? 'Tell us the rent you are saving towards and when it is due.'
-            : stage === 'BENEFIT'
-              ? 'Save less and let compound interest help pay your upcoming rent.'
-              : stage === 'KYC'
-                ? 'Link your BVN to generate your personal rent account.'
-                : undefined
-        }
-        icon={
-          stage === 'RENT_INPUT' ? (
-            <Home size={20} color="var(--clay)" />
-          ) : stage === 'BENEFIT' ? (
-            <TrendingUp size={20} color="var(--clay)" />
-          ) : stage === 'KYC' ? (
-            <ShieldCheck size={20} color="var(--clay)" />
-          ) : (
-            <Landmark size={20} color="var(--clay)" />
-          )
-        }
+  // STAGE 1: Rent Details Input
+  if (stage === 'RENT_INPUT') {
+    return (
+      <PayPageShell
+        title="Set Up Rent Savings"
+        subtitle="Tell us the rent you are saving towards and when it is due."
+        showBack
+        onBack={handleRentInputBack}
+        pinFooter
         footer={
-          stage === 'RENT_INPUT' ? (
-            <button
-              type="button"
-              className="vault-btn-primary"
-              style={{ width: '100%' }}
-              disabled={!canConfirmRent}
-              onClick={() => {
-                setRentConfirmed(true)
-                setStage('BENEFIT')
-              }}
-            >
-              <span>Continue</span>
-              <ArrowRight size={18} />
-            </button>
-          ) : stage === 'BENEFIT' ? (
-            <button
-              type="button"
-              className="vault-btn-primary"
-              style={{
-                width: '100%',
-                height: '48px',
-                borderRadius: '14px',
-                fontSize: '15px',
-                fontWeight: 700,
-                background: 'var(--btn-primary-bg, var(--clay))',
-                boxShadow: '0 8px 20px -6px rgba(194, 80, 31, 0.45)',
-              }}
-              onClick={() => setStage('KYC')}
-            >
-              <span>Continue to Activate Account</span>
-              <ArrowRight size={18} />
-            </button>
-          ) : stage === 'KYC' ? (
-            <button
-              type="button"
-              className="vault-btn-primary"
-              style={{ width: '100%' }}
-              disabled={!isKycValid || onboardMutation.isPending}
-              onClick={handleSubmitKyc}
-            >
-              {onboardMutation.isPending ? (
-                'Activating Account...'
-              ) : (
-                <>
-                  <span>Activate Account</span>
-                  <ArrowRight size={18} />
-                </>
-              )}
-            </button>
-          ) : (
-            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <button
-                type="button"
-                className="vault-btn-primary"
-                style={{ width: '100%' }}
-                onClick={handleFinish}
-              >
-                <CheckCircle2 size={18} />
-                <span>I Have Transferred</span>
-              </button>
-
-              <div style={{ textAlign: 'center', marginTop: 2 }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (typeof window !== 'undefined') {
-                      try {
-                        sessionStorage.setItem('upward_dismissed_initial_deposit_prompt', 'true')
-                      } catch {}
-                    }
-                    handleFinish()
-                  }}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--text-muted, #94a3b8)',
-                    fontSize: '0.6875rem',
-                    fontWeight: 400,
-                    opacity: 0.35,
-                    cursor: 'pointer',
-                    textDecoration: 'underline',
-                    padding: '4px 8px',
-                    transition: 'opacity 0.15s ease',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.opacity = '0.7'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.opacity = '0.35'
-                  }}
-                >
-                  I&apos;ll fund later
-                </button>
-              </div>
-            </div>
-          )
+          <PayFlowPrimaryButton
+            disabled={!canConfirmRent}
+            onClick={() => {
+              setRentConfirmed(true)
+              setStage('BENEFIT')
+            }}
+          >
+            Continue
+          </PayFlowPrimaryButton>
         }
       >
-        {/* Stage 1: Rent Obligation Input */}
-        {stage === 'RENT_INPUT' && (
-          <div className="rent-calculator__section" style={{ marginTop: 0 }}>
-            <div className="rent-calculator__field">
-              <label className="rent-calculator__label" htmlFor="rent-calc-amount">
-                Annual rent
-              </label>
-              <div className="rent-calculator__input-wrapper">
-                <span className="rent-calculator__input-prefix">₦</span>
-                <input
-                  id="rent-calc-amount"
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="e.g. 2,500,000"
-                  className="rent-calculator__input"
-                  value={targetAmountRaw}
-                  onChange={(e) => {
-                    const parsed = parseCurrencyInput(e.target.value)
-                    setTargetAmountRaw(parsed ? formatCurrencyInput(parsed) : '')
-                  }}
-                />
-              </div>
-            </div>
-
-            <div className="rent-calculator__field" style={{ marginTop: 12 }}>
-              <label className="rent-calculator__label" htmlFor="rent-calc-due-date">
-                Rent due date
-              </label>
-              <div className="rent-calculator__input-wrapper">
-                <input
-                  id="rent-calc-due-date"
-                  type="date"
-                  min={tomorrow}
-                  className="rent-calculator__input rent-calculator__input--no-prefix"
-                  value={contractualDueDate}
-                  onChange={(e) => setContractualDueDate(e.target.value)}
-                />
-              </div>
+        <div className="rent-calculator__section" style={{ marginTop: 0 }}>
+          <div className="rent-calculator__field">
+            <label className="rent-calculator__label" htmlFor="rent-calc-amount">
+              Annual rent
+            </label>
+            <div className="rent-calculator__input-wrapper">
+              <span className="rent-calculator__input-prefix">₦</span>
+              <input
+                id="rent-calc-amount"
+                type="text"
+                inputMode="numeric"
+                placeholder="e.g. 2,500,000"
+                className="rent-calculator__input"
+                value={targetAmountRaw}
+                onChange={(e) => {
+                  const parsed = parseCurrencyInput(e.target.value)
+                  setTargetAmountRaw(parsed ? formatCurrencyInput(parsed) : '')
+                }}
+              />
             </div>
           </div>
-        )}
 
-        {/* Stage 2: Clear Benefit Showcase (Makes User Eager!) */}
-        {stage === 'BENEFIT' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {/* Target Rent Pill with Edit button */}
+          <div className="rent-calculator__field" style={{ marginTop: 14 }}>
+            <label className="rent-calculator__label" htmlFor="rent-calc-due-date">
+              Rent due date
+            </label>
+            <div className="rent-calculator__input-wrapper">
+              <input
+                id="rent-calc-due-date"
+                type="date"
+                min={tomorrow}
+                className="rent-calculator__input rent-calculator__input--no-prefix"
+                value={contractualDueDate}
+                onChange={(e) => setContractualDueDate(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
+      </PayPageShell>
+    )
+  }
+
+  // STAGE 2: Clear Benefit Showcase (Kunle Specification)
+  if (stage === 'BENEFIT') {
+    return (
+      <PayPageShell
+        title="Pay Less for Your Next Rent"
+        subtitle="Save less and let compound interest help pay your upcoming rent."
+        showBack
+        onBack={handleBenefitBack}
+        pinFooter
+        footer={
+          <PayFlowPrimaryButton onClick={() => setStage('KYC')}>
+            Continue to Activate Account
+          </PayFlowPrimaryButton>
+        }
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          {/* Target Rent Pill with Edit button */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '10px 14px',
+              borderRadius: '12px',
+              background: 'var(--oat, #faf9f5)',
+              border: '1px solid var(--shell-border, #f0e9df)',
+            }}
+          >
+            <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+              Target: <strong style={{ color: 'var(--text)' }}>{formatCurrency(targetAmountNaira, 'NGN')}</strong> due{' '}
+              <strong style={{ color: 'var(--text)' }}>{formattedDueDate}</strong>
+            </div>
+            <button
+              type="button"
+              onClick={() => setStage('RENT_INPUT')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--clay)',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                padding: '2px 6px',
+              }}
+            >
+              Change
+            </button>
+          </div>
+
+          {/* Savings Schedule (Segmented Tabs - Instant, Clean, Zero Paragraphs) */}
+          <div>
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                padding: '9px 13px',
-                borderRadius: '12px',
-                background: 'var(--oat, #faf9f5)',
-                border: '1px solid var(--shell-border, #f0e9df)',
+                marginBottom: 8,
               }}
             >
-              <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-                Target: <strong style={{ color: 'var(--text)' }}>{formatCurrency(targetAmountNaira, 'NGN')}</strong> due{' '}
-                <strong style={{ color: 'var(--text)' }}>{formattedDueDate}</strong>
-              </div>
-              <button
-                type="button"
-                onClick={() => setStage('RENT_INPUT')}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--clay)',
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  padding: '2px 4px',
-                }}
-              >
-                Change
-              </button>
+              <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text)' }}>
+                Savings schedule
+              </span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--clay)' }}>
+                {planPattern === 'INITIAL_DEPOSIT' &&
+                  `${formatCurrency(planDepositMetrics.periodicDepositNaira)}/mo after 25% down`}
+                {planPattern === 'EQUAL' &&
+                  `${formatCurrency(planEqualMetrics.periodicDepositNaira)}/mo`}
+                {planPattern === 'STEP_UP' &&
+                  `From ${formatCurrency(planStepUpMetrics.periodicDepositNaira)}/mo`}
+              </span>
             </div>
 
-            {/* Savings Schedule (Segmented Tabs - Instant, Clean, Zero Paragraphs) */}
-            <div style={{ marginTop: 2 }}>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  marginBottom: 6,
-                }}
-              >
-                <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text)' }}>
-                  Savings schedule
-                </span>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--clay)' }}>
-                  {planPattern === 'INITIAL_DEPOSIT' && `${formatCurrency(planDepositMetrics.periodicDepositNaira)}/mo after 25% down`}
-                  {planPattern === 'EQUAL' && `${formatCurrency(planEqualMetrics.periodicDepositNaira)}/mo`}
-                  {planPattern === 'STEP_UP' && `From ${formatCurrency(planStepUpMetrics.periodicDepositNaira)}/mo`}
-                </span>
-              </div>
-
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(3, 1fr)',
-                  gap: 4,
-                  padding: '3px',
-                  background: 'var(--oat, #faf9f5)',
-                  borderRadius: '12px',
-                  border: '1px solid var(--shell-border, #f0e9df)',
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={() => handleSelectPlan('INITIAL_DEPOSIT')}
-                  style={{
-                    padding: '7px 4px',
-                    borderRadius: '9px',
-                    border: 'none',
-                    background: planPattern === 'INITIAL_DEPOSIT' ? '#ffffff' : 'transparent',
-                    boxShadow: planPattern === 'INITIAL_DEPOSIT' ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
-                    color: planPattern === 'INITIAL_DEPOSIT' ? 'var(--clay)' : 'var(--text-secondary)',
-                    fontWeight: 700,
-                    fontSize: '0.75rem',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                    textAlign: 'center',
-                  }}
-                >
-                  25% Down
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSelectPlan('EQUAL')}
-                  style={{
-                    padding: '7px 4px',
-                    borderRadius: '9px',
-                    border: 'none',
-                    background: planPattern === 'EQUAL' ? '#ffffff' : 'transparent',
-                    boxShadow: planPattern === 'EQUAL' ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
-                    color: planPattern === 'EQUAL' ? 'var(--clay)' : 'var(--text-secondary)',
-                    fontWeight: 700,
-                    fontSize: '0.75rem',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                    textAlign: 'center',
-                  }}
-                >
-                  Equal Monthly
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSelectPlan('STEP_UP')}
-                  style={{
-                    padding: '7px 4px',
-                    borderRadius: '9px',
-                    border: 'none',
-                    background: planPattern === 'STEP_UP' ? '#ffffff' : 'transparent',
-                    boxShadow: planPattern === 'STEP_UP' ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
-                    color: planPattern === 'STEP_UP' ? 'var(--clay)' : 'var(--text-secondary)',
-                    fontWeight: 700,
-                    fontSize: '0.75rem',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                    textAlign: 'center',
-                  }}
-                >
-                  Step-Up
-                </button>
-              </div>
-            </div>
-
-            {/* High-Impact Benefit Card */}
             <div
               style={{
-                padding: '13px 14px',
-                borderRadius: '16px',
-                background: 'linear-gradient(180deg, #faf9f5 0%, #f6f3ee 100%)',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: 4,
+                padding: '4px',
+                background: 'var(--oat, #faf9f5)',
+                borderRadius: '12px',
                 border: '1px solid var(--shell-border, #f0e9df)',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => handleSelectPlan('INITIAL_DEPOSIT')}
+                style={{
+                  padding: '8px 4px',
+                  borderRadius: '9px',
+                  border: 'none',
+                  background: planPattern === 'INITIAL_DEPOSIT' ? '#ffffff' : 'transparent',
+                  boxShadow: planPattern === 'INITIAL_DEPOSIT' ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
+                  color: planPattern === 'INITIAL_DEPOSIT' ? 'var(--clay)' : 'var(--text-secondary)',
+                  fontWeight: 700,
+                  fontSize: '0.75rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  textAlign: 'center',
+                }}
+              >
+                25% Down
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSelectPlan('EQUAL')}
+                style={{
+                  padding: '8px 4px',
+                  borderRadius: '9px',
+                  border: 'none',
+                  background: planPattern === 'EQUAL' ? '#ffffff' : 'transparent',
+                  boxShadow: planPattern === 'EQUAL' ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
+                  color: planPattern === 'EQUAL' ? 'var(--clay)' : 'var(--text-secondary)',
+                  fontWeight: 700,
+                  fontSize: '0.75rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  textAlign: 'center',
+                }}
+              >
+                Equal Monthly
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSelectPlan('STEP_UP')}
+                style={{
+                  padding: '8px 4px',
+                  borderRadius: '9px',
+                  border: 'none',
+                  background: planPattern === 'STEP_UP' ? '#ffffff' : 'transparent',
+                  boxShadow: planPattern === 'STEP_UP' ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
+                  color: planPattern === 'STEP_UP' ? 'var(--clay)' : 'var(--text-secondary)',
+                  fontWeight: 700,
+                  fontSize: '0.75rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  textAlign: 'center',
+                }}
+              >
+                Step-Up
+              </button>
+            </div>
+          </div>
+
+          {/* High-Impact Benefit Card */}
+          <div
+            style={{
+              padding: '14px 16px',
+              borderRadius: '16px',
+              background: 'linear-gradient(180deg, #faf9f5 0%, #f6f3ee 100%)',
+              border: '1px solid var(--shell-border, #f0e9df)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 10,
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)',
+            }}
+          >
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: 12,
+                alignItems: 'baseline',
+              }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <span
+                  style={{
+                    fontSize: '0.6875rem',
+                    color: 'var(--text-muted)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.04em',
+                    fontWeight: 700,
+                    display: 'block',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  You Contribute
+                </span>
+                <div
+                  style={{
+                    fontSize: '1.25rem',
+                    fontWeight: 800,
+                    color: 'var(--text)',
+                    marginTop: 2,
+                    letterSpacing: '-0.02em',
+                    lineHeight: 1.15,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {formatCurrency(totalTenantContributionNaira)}
+                </div>
+              </div>
+
+              <div style={{ textAlign: 'right', minWidth: 0 }}>
+                <span
+                  style={{
+                    fontSize: '0.6875rem',
+                    color: '#059669',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.04em',
+                    fontWeight: 700,
+                    display: 'block',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  Interest ({savingsAnnualRatePct}% p.a.)
+                </span>
+                <div
+                  style={{
+                    fontSize: '1.25rem',
+                    fontWeight: 800,
+                    color: '#059669',
+                    marginTop: 2,
+                    letterSpacing: '-0.02em',
+                    lineHeight: 1.15,
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  +{formatCurrency(projectedYieldNaira)}
+                </div>
+              </div>
+            </div>
+
+            {/* Visual Breakdown Bar */}
+            <div
+              style={{
+                width: '100%',
+                height: '6px',
+                borderRadius: '999px',
+                background: 'rgba(0, 0, 0, 0.06)',
                 display: 'flex',
-                flexDirection: 'column',
-                gap: 8,
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)',
+                overflow: 'hidden',
+                gap: '2px',
               }}
             >
               <div
                 style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: 10,
-                  alignItems: 'baseline',
+                  width: `${contributionPct}%`,
+                  background: 'var(--clay)',
+                  borderRadius: '999px 0 0 999px',
+                  transition: 'width 0.3s ease',
                 }}
-              >
-                <div style={{ minWidth: 0 }}>
-                  <span
-                    style={{
-                      fontSize: '0.6875rem',
-                      color: 'var(--text-muted)',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.04em',
-                      fontWeight: 700,
-                      display: 'block',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    You Contribute
-                  </span>
-                  <div
-                    style={{
-                      fontSize: '1.25rem',
-                      fontWeight: 800,
-                      color: 'var(--text)',
-                      marginTop: 2,
-                      letterSpacing: '-0.02em',
-                      lineHeight: 1.15,
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {formatCurrency(totalTenantContributionNaira)}
-                  </div>
-                </div>
-
-                <div style={{ textAlign: 'right', minWidth: 0 }}>
-                  <span
-                    style={{
-                      fontSize: '0.6875rem',
-                      color: '#059669',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.04em',
-                      fontWeight: 700,
-                      display: 'block',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}
-                  >
-                    Interest ({savingsAnnualRatePct}% p.a.)
-                  </span>
-                  <div
-                    style={{
-                      fontSize: '1.25rem',
-                      fontWeight: 800,
-                      color: '#059669',
-                      marginTop: 2,
-                      letterSpacing: '-0.02em',
-                      lineHeight: 1.15,
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    +{formatCurrency(projectedYieldNaira)}
-                  </div>
-                </div>
-              </div>
-
-              {/* Visual Breakdown Bar */}
+              />
               <div
                 style={{
-                  width: '100%',
-                  height: '6px',
-                  borderRadius: '999px',
-                  background: 'rgba(0, 0, 0, 0.06)',
-                  display: 'flex',
-                  overflow: 'hidden',
-                  gap: '2px',
+                  width: `${yieldPct}%`,
+                  background: '#059669',
+                  borderRadius: '0 999px 999px 0',
+                  transition: 'width 0.3s ease',
                 }}
-              >
-                <div
-                  style={{
-                    width: `${contributionPct}%`,
-                    background: 'var(--clay)',
-                    borderRadius: '999px 0 0 999px',
-                    transition: 'width 0.3s ease',
-                  }}
-                />
-                <div
-                  style={{
-                    width: `${yieldPct}%`,
-                    background: '#059669',
-                    borderRadius: '0 999px 999px 0',
-                    transition: 'width 0.3s ease',
-                  }}
-                />
-              </div>
-
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  fontSize: '0.6875rem',
-                  color: 'var(--text-muted)',
-                  lineHeight: 1.25,
-                }}
-              >
-                <ShieldCheck size={13} color="#059669" style={{ flexShrink: 0 }} />
-                <span>Zero debit fees · Compound interest pays towards rent</span>
-              </div>
+              />
             </div>
 
-            {/* Protection Option */}
-            <div className="rent-calculator__field" style={{ marginTop: 2 }}>
-              <span
-                style={{
-                  fontSize: '0.8125rem',
-                  fontWeight: 700,
-                  color: 'var(--text)',
-                  marginBottom: 6,
-                  display: 'block',
-                }}
-              >
-                Protection plan
-              </span>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {/* Option 1: Rent Protec (Recommended) */}
-                <button
-                  type="button"
-                  onClick={() => setSelectedProductOption('RENT_PROTEC')}
-                  disabled={!isRentProtecEligible}
-                  style={{
-                    width: '100%',
-                    textAlign: 'left',
-                    padding: '9px 12px',
-                    borderRadius: '13px',
-                    border:
-                      activeProductOption === 'RENT_PROTEC'
-                        ? '2px solid var(--clay)'
-                        : '1.5px solid var(--shell-border, #f0e9df)',
-                    background:
-                      activeProductOption === 'RENT_PROTEC'
-                        ? '#fffaf7'
-                        : 'var(--surface, #ffffff)',
-                    cursor: isRentProtecEligible ? 'pointer' : 'not-allowed',
-                    opacity: isRentProtecEligible ? 1 : 0.45,
-                    transition: 'all 0.15s ease',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 2,
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      width: '100%',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <ShieldCheck size={16} color="var(--clay)" style={{ flexShrink: 0 }} />
-                      <span
-                        style={{
-                          fontSize: '0.875rem',
-                          fontWeight: 800,
-                          color: 'var(--text)',
-                        }}
-                      >
-                        Rent Protec
-                      </span>
-                      <span
-                        style={{
-                          fontSize: '0.5625rem',
-                          fontWeight: 800,
-                          letterSpacing: '0.04em',
-                          textTransform: 'uppercase',
-                          padding: '1.5px 6px',
-                          borderRadius: '999px',
-                          background: 'var(--shell-tint, #fbede5)',
-                          color: 'var(--clay)',
-                        }}
-                      >
-                        Recommended
-                      </span>
-                    </div>
-
-                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#059669' }}>
-                      10% returns
-                    </span>
-                  </div>
-
-                  <div
-                    style={{
-                      fontSize: '0.6875rem',
-                      color: 'var(--text-secondary)',
-                      lineHeight: 1.3,
-                      paddingLeft: '22px',
-                    }}
-                  >
-                    Includes Upward rent coverage in case of job loss or illness.
-                  </div>
-                </button>
-
-                {/* Option 2: Save & Earn (Basic Savings Only) */}
-                <button
-                  type="button"
-                  onClick={() => setSelectedProductOption('SAVE_AND_EARN')}
-                  style={{
-                    width: '100%',
-                    textAlign: 'left',
-                    padding: '9px 12px',
-                    borderRadius: '13px',
-                    border:
-                      activeProductOption === 'SAVE_AND_EARN'
-                        ? '2px solid var(--clay)'
-                        : '1.5px solid var(--shell-border, #f0e9df)',
-                    background:
-                      activeProductOption === 'SAVE_AND_EARN'
-                        ? '#fffaf7'
-                        : 'var(--surface, #ffffff)',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 2,
-                  }}
-                >
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      width: '100%',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <TrendingUp size={15} color="var(--text-muted)" style={{ flexShrink: 0 }} />
-                      <span
-                        style={{
-                          fontSize: '0.875rem',
-                          fontWeight: 700,
-                          color:
-                            activeProductOption === 'SAVE_AND_EARN'
-                              ? 'var(--clay)'
-                              : 'var(--text)',
-                        }}
-                      >
-                        Save &amp; Earn
-                      </span>
-                      <span
-                        style={{
-                          fontSize: '0.5625rem',
-                          fontWeight: 600,
-                          color: 'var(--text-muted)',
-                          background: 'var(--surface2, #efefef)',
-                          padding: '1px 5px',
-                          borderRadius: '999px',
-                        }}
-                      >
-                        Savings only
-                      </span>
-                    </div>
-
-                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#059669' }}>
-                      14% returns
-                    </span>
-                  </div>
-
-                  <div
-                    style={{
-                      fontSize: '0.6875rem',
-                      color: 'var(--text-muted)',
-                      lineHeight: 1.3,
-                      paddingLeft: '21px',
-                    }}
-                  >
-                    Standard savings without rent protection insurance.
-                  </div>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Stage 3: Simple & Friendly KYC Step */}
-        {stage === 'KYC' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {kycError && (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  background: 'rgba(239, 68, 68, 0.08)',
-                  border: '1px solid rgba(239, 68, 68, 0.25)',
-                  fontSize: '0.75rem',
-                  color: 'var(--error)',
-                }}
-              >
-                <AlertCircle size={14} style={{ flexShrink: 0 }} />
-                <span>{kycError}</span>
-              </div>
-            )}
-
-            {/* BVN */}
-            {hasVerifiedBvnOnFile ? (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  padding: '10px 14px',
-                  borderRadius: '10px',
-                  background: 'rgba(16, 185, 129, 0.08)',
-                  border: '1px solid rgba(16, 185, 129, 0.25)',
-                  color: '#10b981',
-                  fontSize: '0.8125rem',
-                  fontWeight: 600,
-                }}
-              >
-                <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
-                <span>
-                  Identity Verified · BVN ({prefill?.masked_bvn || '••••' + (user?.phone?.slice(-4) || '1234')}) on file
-                </span>
-              </div>
-            ) : (
-              <div className="rent-calculator__field">
-                <label className="rent-calculator__label">Bank Verification Number (BVN)</label>
-                <div className="rent-calculator__input-wrapper">
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="Enter 11-digit BVN"
-                    className="rent-calculator__input rent-calculator__input--no-prefix"
-                    value={bvn}
-                    onChange={(e) => setBvn(e.target.value.replace(/\D/g, '').slice(0, 11))}
-                    maxLength={11}
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Mother's Maiden Name */}
-            <div className="rent-calculator__field">
-              <label className="rent-calculator__label">Mother&apos;s Maiden Name</label>
-              <div className="rent-calculator__input-wrapper">
-                <input
-                  type="text"
-                  placeholder="Mother's birth family name"
-                  className="rent-calculator__input rent-calculator__input--no-prefix"
-                  value={mothersMaidenName}
-                  onChange={(e) => setMothersMaidenName(e.target.value)}
-                />
-              </div>
-            </div>
-
-            {/* Occupation & Source of Funds */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <div className="rent-calculator__field">
-                <label className="rent-calculator__label">Occupation</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Consultant"
-                  className="rent-calculator__input rent-calculator__input--no-prefix"
-                  value={occupation}
-                  onChange={(e) => setOccupation(e.target.value)}
-                />
-              </div>
-              <div className="rent-calculator__field">
-                <label className="rent-calculator__label">Source of Funds</label>
-                <select
-                  className="rent-calculator__input rent-calculator__input--no-prefix"
-                  value={sourceOfFunds}
-                  onChange={(e) =>
-                    setSourceOfFunds(
-                      e.target.value as 'Salary' | 'Business' | 'Savings' | 'Investment',
-                    )
-                  }
-                >
-                  <option value="Salary">Salary</option>
-                  <option value="Business">Business</option>
-                  <option value="Savings">Savings</option>
-                  <option value="Investment">Investment</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Next of Kin */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <div className="rent-calculator__field">
-                <label className="rent-calculator__label">Next of Kin Name</label>
-                <input
-                  type="text"
-                  placeholder="Full name"
-                  className="rent-calculator__input rent-calculator__input--no-prefix"
-                  value={nextOfKinName}
-                  onChange={(e) => setNextOfKinName(e.target.value)}
-                />
-              </div>
-              <div className="rent-calculator__field">
-                <label className="rent-calculator__label">Next of Kin Phone</label>
-                <input
-                  type="tel"
-                  placeholder="08012345678"
-                  className="rent-calculator__input rent-calculator__input--no-prefix"
-                  value={nextOfKinPhone}
-                  onChange={(e) =>
-                    setNextOfKinPhone(e.target.value.replace(/[^\d+]/g, '').slice(0, 14))
-                  }
-                />
-              </div>
-            </div>
-
-            {/* Lock Agreement */}
-            <label
+            <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 10,
-                marginTop: 6,
-                fontSize: '0.8125rem',
-                color: 'var(--text-secondary)',
-                cursor: 'pointer',
+                gap: 6,
+                fontSize: '0.6875rem',
+                color: 'var(--text-muted)',
+                lineHeight: 1.25,
               }}
             >
-              <input
-                type="checkbox"
-                checked={agreeToLock}
-                onChange={(e) => setAgreeToLock(e.target.checked)}
-                style={{ width: 18, height: 18, accentColor: 'var(--clay)', cursor: 'pointer' }}
-              />
-              <span>I agree to lock my rent savings until 30 days before rent day.</span>
-            </label>
+              <ShieldCheck size={13} color="#059669" style={{ flexShrink: 0 }} />
+              <span>Zero debit fees · Compound interest pays towards rent</span>
+            </div>
           </div>
-        )}
 
-        {/* Stage 4: Account Created & Dedicated Account Details */}
-        {stage === 'SUCCESS' && createdDva && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '4px 0 8px' }}>
-            {/* Compact Amount input */}
-            <div>
-              <label
-                htmlFor="initial-deposit-amount"
+          {/* Protection Option */}
+          <div className="rent-calculator__field" style={{ marginTop: 2 }}>
+            <span
+              style={{
+                fontSize: '0.8125rem',
+                fontWeight: 700,
+                color: 'var(--text)',
+                marginBottom: 8,
+                display: 'block',
+              }}
+            >
+              Protection plan
+            </span>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {/* Option 1: Rent Protec (Recommended) */}
+              <button
+                type="button"
+                onClick={() => setSelectedProductOption('RENT_PROTEC')}
+                disabled={!isRentProtecEligible}
                 style={{
-                  fontSize: '0.8125rem',
-                  fontWeight: 700,
-                  color: 'var(--text)',
-                  display: 'block',
-                  marginBottom: 6,
+                  width: '100%',
+                  textAlign: 'left',
+                  padding: '10px 14px',
+                  borderRadius: '13px',
+                  border:
+                    activeProductOption === 'RENT_PROTEC'
+                      ? '2px solid var(--clay)'
+                      : '1.5px solid var(--shell-border, #f0e9df)',
+                  background:
+                    activeProductOption === 'RENT_PROTEC'
+                      ? '#fffaf7'
+                      : 'var(--surface, #ffffff)',
+                  cursor: isRentProtecEligible ? 'pointer' : 'not-allowed',
+                  opacity: isRentProtecEligible ? 1 : 0.45,
+                  transition: 'all 0.15s ease',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 3,
                 }}
               >
-                {planPattern === 'INITIAL_DEPOSIT'
-                  ? 'Initial Down Deposit (25%)'
-                  : planPattern === 'EQUAL'
-                    ? 'First Monthly Contribution'
-                    : 'First Month Contribution'}
-              </label>
-              <div className="vault-sandbox-card__input-wrapper" style={{ height: 44 }}>
-                <span className="vault-sandbox-card__currency-prefix" style={{ fontSize: '1.2rem', fontWeight: 700 }}>
-                  ₦
-                </span>
-                <input
-                  id="initial-deposit-amount"
-                  type="text"
-                  inputMode="numeric"
-                  className="vault-sandbox-card__input"
-                  style={{ fontSize: '1.2rem', fontWeight: 700 }}
-                  placeholder="e.g. 1,000,000"
-                  value={initialDepositRaw}
-                  onChange={(e) => {
-                    const parsed = parseCurrencyInput(e.target.value)
-                    setCustomInitialDeposit(parsed ? formatCurrencyInput(parsed) : '')
-                  }}
-                />
-              </div>
-
-              {/* Punchy 1-line benefit pitch */}
-              {parsedSuccessDeposit > 0 && previewRentAmount > 0 && (
                 <div
                   style={{
-                    fontSize: '0.8125rem',
-                    color: 'var(--text-secondary)',
-                    lineHeight: 1.4,
-                    marginTop: 6,
-                    padding: '0 2px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    width: '100%',
                   }}
                 >
-                  Deposit <strong>{formatCurrency(parsedSuccessDeposit, 'NGN')}</strong> to start, then save at least{' '}
-                  <strong style={{ color: 'var(--clay)' }}>
-                    {formatCurrency(successPeriodicDepositNaira, 'NGN')}
-                  </strong>{' '}
-                  monthly{' '}
-                  <span style={{ color: '#059669', fontWeight: 600 }}>
-                    (estimated +{formatCurrency(successProjectedYieldNaira, 'NGN')} interest yield)
-                  </span>.
-                </div>
-              )}
-            </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <ShieldCheck size={16} color="var(--clay)" style={{ flexShrink: 0 }} />
+                    <span
+                      style={{
+                        fontSize: '0.875rem',
+                        fontWeight: 800,
+                        color: 'var(--text)',
+                      }}
+                    >
+                      Rent Protec
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '0.5625rem',
+                        fontWeight: 800,
+                        letterSpacing: '0.04em',
+                        textTransform: 'uppercase',
+                        padding: '1.5px 6px',
+                        borderRadius: '999px',
+                        background: 'var(--shell-tint, #fbede5)',
+                        color: 'var(--clay)',
+                      }}
+                    >
+                      Recommended
+                    </span>
+                  </div>
 
-            {/* Compact Account Card */}
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#059669' }}>
+                    10% returns
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    fontSize: '0.6875rem',
+                    color: 'var(--text-secondary)',
+                    lineHeight: 1.3,
+                    paddingLeft: '22px',
+                  }}
+                >
+                  Includes Upward rent coverage in case of job loss or illness.
+                </div>
+              </button>
+
+              {/* Option 2: Save & Earn (Basic Savings Only) */}
+              <button
+                type="button"
+                onClick={() => setSelectedProductOption('SAVE_AND_EARN')}
+                style={{
+                  width: '100%',
+                  textAlign: 'left',
+                  padding: '10px 14px',
+                  borderRadius: '13px',
+                  border:
+                    activeProductOption === 'SAVE_AND_EARN'
+                      ? '2px solid var(--clay)'
+                      : '1.5px solid var(--shell-border, #f0e9df)',
+                  background:
+                    activeProductOption === 'SAVE_AND_EARN'
+                      ? '#fffaf7'
+                      : 'var(--surface, #ffffff)',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 3,
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    width: '100%',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <TrendingUp size={15} color="var(--text-muted)" style={{ flexShrink: 0 }} />
+                    <span
+                      style={{
+                        fontSize: '0.875rem',
+                        fontWeight: 700,
+                        color:
+                          activeProductOption === 'SAVE_AND_EARN'
+                            ? 'var(--clay)'
+                            : 'var(--text)',
+                      }}
+                    >
+                      Save &amp; Earn
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '0.5625rem',
+                        fontWeight: 600,
+                        color: 'var(--text-muted)',
+                        background: 'var(--surface2, #efefef)',
+                        padding: '1px 5px',
+                        borderRadius: '999px',
+                      }}
+                    >
+                      Savings only
+                    </span>
+                  </div>
+
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#059669' }}>
+                    14% returns
+                  </span>
+                </div>
+
+                <div
+                  style={{
+                    fontSize: '0.6875rem',
+                    color: 'var(--text-muted)',
+                    lineHeight: 1.3,
+                    paddingLeft: '21px',
+                  }}
+                >
+                  Standard savings without rent protection insurance.
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      </PayPageShell>
+    )
+  }
+
+  // STAGE 3: KYC Step
+  if (stage === 'KYC') {
+    return (
+      <PayPageShell
+        title="Activate Rent Account"
+        subtitle="Link your BVN to generate your personal rent account."
+        showBack
+        onBack={() => setStage('BENEFIT')}
+        pinFooter
+        footer={
+          <PayFlowPrimaryButton
+            disabled={!isKycValid || onboardMutation.isPending}
+            loading={onboardMutation.isPending}
+            onClick={handleSubmitKyc}
+          >
+            Activate Account
+          </PayFlowPrimaryButton>
+        }
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {kycError && (
             <div
               style={{
-                padding: '10px 14px',
-                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '8px 12px',
+                borderRadius: '8px',
+                background: 'rgba(239, 68, 68, 0.08)',
+                border: '1px solid rgba(239, 68, 68, 0.25)',
+                fontSize: '0.75rem',
+                color: 'var(--error)',
+              }}
+            >
+              <AlertCircle size={14} style={{ flexShrink: 0 }} />
+              <span>{kycError}</span>
+            </div>
+          )}
+
+          {/* BVN */}
+          {hasVerifiedBvnOnFile ? (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '12px 14px',
+                borderRadius: '10px',
+                background: 'rgba(16, 185, 129, 0.08)',
+                border: '1px solid rgba(16, 185, 129, 0.25)',
+                color: '#10b981',
+                fontSize: '0.8125rem',
+                fontWeight: 600,
+              }}
+            >
+              <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
+              <span>
+                Identity Verified · BVN ({prefill?.masked_bvn || '••••' + (user?.phone?.slice(-4) || '1234')}) on file
+              </span>
+            </div>
+          ) : (
+            <div className="rent-calculator__field">
+              <label className="rent-calculator__label">Bank Verification Number (BVN)</label>
+              <div className="rent-calculator__input-wrapper">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="Enter 11-digit BVN"
+                  className="rent-calculator__input rent-calculator__input--no-prefix"
+                  value={bvn}
+                  onChange={(e) => setBvn(e.target.value.replace(/\D/g, '').slice(0, 11))}
+                  maxLength={11}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Mother's Maiden Name */}
+          <div className="rent-calculator__field">
+            <label className="rent-calculator__label">Mother&apos;s Maiden Name</label>
+            <div className="rent-calculator__input-wrapper">
+              <input
+                type="text"
+                placeholder="Mother's birth family name"
+                className="rent-calculator__input rent-calculator__input--no-prefix"
+                value={mothersMaidenName}
+                onChange={(e) => setMothersMaidenName(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Occupation & Source of Funds */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div className="rent-calculator__field">
+              <label className="rent-calculator__label">Occupation</label>
+              <input
+                type="text"
+                placeholder="e.g. Consultant"
+                className="rent-calculator__input rent-calculator__input--no-prefix"
+                value={occupation}
+                onChange={(e) => setOccupation(e.target.value)}
+              />
+            </div>
+            <div className="rent-calculator__field">
+              <label className="rent-calculator__label">Source of Funds</label>
+              <select
+                className="rent-calculator__input rent-calculator__input--no-prefix"
+                value={sourceOfFunds}
+                onChange={(e) =>
+                  setSourceOfFunds(
+                    e.target.value as 'Salary' | 'Business' | 'Savings' | 'Investment',
+                  )
+                }
+              >
+                <option value="Salary">Salary</option>
+                <option value="Business">Business</option>
+                <option value="Savings">Savings</option>
+                <option value="Investment">Investment</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Next of Kin */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <div className="rent-calculator__field">
+              <label className="rent-calculator__label">Next of Kin Name</label>
+              <input
+                type="text"
+                placeholder="Full name"
+                className="rent-calculator__input rent-calculator__input--no-prefix"
+                value={nextOfKinName}
+                onChange={(e) => setNextOfKinName(e.target.value)}
+              />
+            </div>
+            <div className="rent-calculator__field">
+              <label className="rent-calculator__label">Next of Kin Phone</label>
+              <input
+                type="tel"
+                placeholder="08012345678"
+                className="rent-calculator__input rent-calculator__input--no-prefix"
+                value={nextOfKinPhone}
+                onChange={(e) =>
+                  setNextOfKinPhone(e.target.value.replace(/[^\d+]/g, '').slice(0, 14))
+                }
+              />
+            </div>
+          </div>
+
+          {/* Lock Agreement */}
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              marginTop: 6,
+              fontSize: '0.8125rem',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={agreeToLock}
+              onChange={(e) => setAgreeToLock(e.target.checked)}
+              style={{ width: 18, height: 18, accentColor: 'var(--clay)', cursor: 'pointer' }}
+            />
+            <span>I agree to lock my rent savings until 30 days before rent day.</span>
+          </label>
+        </div>
+      </PayPageShell>
+    )
+  }
+
+  // STAGE 4: Dedicated Account Ready / Deposit
+  if (stage === 'SUCCESS') {
+    return (
+      <PayPageShell
+        title="Make a Deposit"
+        subtitle="Transfer from your banking app to your dedicated rent account."
+        showBack={false}
+        pinFooter
+        footer={
+          <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <PayFlowPrimaryButton onClick={handleFinish}>
+              I Have Transferred
+            </PayFlowPrimaryButton>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof window !== 'undefined') {
+                  try {
+                    sessionStorage.setItem('upward_dismissed_initial_deposit_prompt', 'true')
+                  } catch {}
+                }
+                handleFinish()
+              }}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-muted, #94a3b8)',
+                fontSize: '0.75rem',
+                fontWeight: 500,
+                opacity: 0.6,
+                cursor: 'pointer',
+                textDecoration: 'underline',
+                padding: '6px 8px',
+                margin: '0 auto',
+                transition: 'opacity 0.15s ease',
+              }}
+            >
+              I&apos;ll fund later
+            </button>
+          </div>
+        }
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '4px 0 8px' }}>
+          {/* Amount input */}
+          <div>
+            <label
+              htmlFor="initial-deposit-amount"
+              style={{
+                fontSize: '0.8125rem',
+                fontWeight: 700,
+                color: 'var(--text)',
+                display: 'block',
+                marginBottom: 6,
+              }}
+            >
+              {planPattern === 'INITIAL_DEPOSIT'
+                ? 'Initial Down Deposit (25%)'
+                : planPattern === 'EQUAL'
+                  ? 'First Monthly Contribution'
+                  : 'First Month Contribution'}
+            </label>
+            <div className="vault-sandbox-card__input-wrapper" style={{ height: 44 }}>
+              <span className="vault-sandbox-card__currency-prefix" style={{ fontSize: '1.2rem', fontWeight: 700 }}>
+                ₦
+              </span>
+              <input
+                id="initial-deposit-amount"
+                type="text"
+                inputMode="numeric"
+                className="vault-sandbox-card__input"
+                style={{ fontSize: '1.2rem', fontWeight: 700 }}
+                placeholder="e.g. 1,000,000"
+                value={initialDepositRaw}
+                onChange={(e) => {
+                  const parsed = parseCurrencyInput(e.target.value)
+                  setCustomInitialDeposit(parsed ? formatCurrencyInput(parsed) : '')
+                }}
+              />
+            </div>
+
+            {/* Punchy 1-line benefit pitch */}
+            {parsedSuccessDeposit > 0 && previewRentAmount > 0 && (
+              <div
+                style={{
+                  fontSize: '0.8125rem',
+                  color: 'var(--text-secondary)',
+                  lineHeight: 1.4,
+                  marginTop: 6,
+                  padding: '0 2px',
+                }}
+              >
+                Deposit <strong>{formatCurrency(parsedSuccessDeposit, 'NGN')}</strong> to start, then save at least{' '}
+                <strong style={{ color: 'var(--clay)' }}>
+                  {formatCurrency(successPeriodicDepositNaira, 'NGN')}
+                </strong>{' '}
+                monthly{' '}
+                <span style={{ color: '#059669', fontWeight: 600 }}>
+                  (estimated +{formatCurrency(successProjectedYieldNaira, 'NGN')} interest yield)
+                </span>.
+              </div>
+            )}
+          </div>
+
+          {/* Compact Account Card */}
+          {createdDva ? (
+            <div
+              style={{
+                padding: '12px 14px',
+                borderRadius: '14px',
                 background: 'var(--surface2, #fbf9f6)',
                 border: '1px solid var(--border-solid, #eee7df)',
                 display: 'flex',
@@ -1401,9 +1265,35 @@ export function RentCalculatorView({
                 )}
               </button>
             </div>
+          ) : (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '24px 0' }}>
+              <Loader2 size={24} className="animate-spin" color="var(--clay)" />
+            </div>
+          )}
+
+          {/* Partner Info Badge */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '10px 14px',
+              borderRadius: '12px',
+              background: 'rgba(217, 119, 87, 0.05)',
+              border: '1px solid rgba(217, 119, 87, 0.12)',
+              fontSize: '0.75rem',
+              color: 'var(--text-secondary)',
+            }}
+          >
+            <ShieldCheck size={16} color="var(--clay)" style={{ flexShrink: 0 }} />
+            <span>
+              Dedicated virtual account powered by <strong>{platformRates.partnerName || 'Asset & Resource Management Holding Company (ARM)'}</strong>.
+            </span>
           </div>
-        )}
-      </BottomSheetModal>
-    </div>
-  )
+        </div>
+      </PayPageShell>
+    )
+  }
+
+  return null
 }
