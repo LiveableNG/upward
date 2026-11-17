@@ -250,12 +250,15 @@ const QUESTIONNAIRE_CONFIGS: Record<CategoryKey, CategoryQuestionConfig> = {
   custom: {
     id: 'custom',
     title: 'Set a custom goal',
-    intro: 'Tell Upward what you want to achieve.',
-    label: 'What type of goal do you want to create?',
+    intro: 'Pick a goal below or write your own.',
+    label: 'Popular goals',
     options: [
-      'Create my own goal',
-      'Describe what I want to achieve',
-      'Suggest a new goal category',
+      'Build an emergency fund',
+      'Buy a car',
+      'Pay off debt',
+      'Health & wellness',
+      'Plan a wedding',
+      'Upgrade my gadgets',
     ],
   },
 }
@@ -985,7 +988,7 @@ export function AllGoalsScreen() {
               }}
               placeholder={
                 activeCategory === 'custom'
-                  ? 'e.g. Learn to fly a plane'
+                  ? 'e.g. Save for a family event or health checkup'
                   : 'Type your goal in your own words'
               }
             />
