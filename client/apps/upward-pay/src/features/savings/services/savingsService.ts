@@ -455,6 +455,9 @@ export async function breakoutRentVault(vaultId: string): Promise<BreakoutResult
 }
 
 export async function simulateVaultDeposit(accountNumber: string, amountKobo: number) {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Simulated deposits are only available in non-production environments.')
+  }
   const res = await request<{ status: string; reference?: string }>(
     '/payments/webhooks/rent-savings/paystack',
     {

@@ -9,6 +9,7 @@ import {
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { RecordTransactionUseCase } from './payment.use-cases'
+import { isProductionRuntime } from '../../../shared/utils/runtime-env'
 
 @Injectable()
 export class VerifyGatewayTransactionUseCase {
@@ -86,7 +87,11 @@ export class VerifyGatewayTransactionUseCase {
         } else {
           this.logger.log(`No DVA transaction found for account ${accountNumber} after ${sessionTimestamp}`)
 
-          const isTestKey = process.env.PAYSTACK_SECRET_KEY?.startsWith('sk_test_') || !process.env.PAYSTACK_SECRET_KEY
+          const isNonProd = !isProductionRuntime(process.env.PAYSTACK_SECRET_KEY)
+          const isTestKey =
+            isNonProd &&
+            (process.env.PAYSTACK_SECRET_KEY?.startsWith('sk_test_') ||
+              !process.env.PAYSTACK_SECRET_KEY)
           if (isTestKey && !this.activeMocks.has(data.reference) && process.env.MOCK_PAYMENTS === 'true') {
             this.logger.log(`[MOCK] Test environment detected and no transaction exists. Simulating payment for reference: ${data.reference}`)
             try {
@@ -213,7 +218,10 @@ export class VerifyGatewayTransactionUseCase {
       return { isVerified: false, user, isNew: true }
     }
 
-    const isTestKey = process.env.PAYSTACK_SECRET_KEY?.startsWith('sk_test_') || !process.env.PAYSTACK_SECRET_KEY
+    const isNonProd = !isProductionRuntime(process.env.PAYSTACK_SECRET_KEY)
+    const isTestKey =
+      isNonProd &&
+      (process.env.PAYSTACK_SECRET_KEY?.startsWith('sk_test_') || !process.env.PAYSTACK_SECRET_KEY)
     if (isTestKey && data.reference.startsWith('TFD_')) {
       const parts = data.reference.split('_')
       const mockAmount = parseFloat(parts[2]!) || 50000

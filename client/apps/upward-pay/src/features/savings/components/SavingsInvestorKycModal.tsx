@@ -324,12 +324,16 @@ export function SavingsInvestorKycModal({
   const periodicDepositStep4 = dynamicPlanStep4.periodicDepositNaira
   const interestStep4 = dynamicPlanStep4.projectedYieldNaira
 
-  const dvaToShow = createdDva ||
-    vault?.dedicated_account || {
-      bank_name: 'Wema Bank',
-      account_number: '0284719283',
-      account_name: `Upward / ${user?.firstName || 'Tenant'} ${user?.lastName || ''}`.trim(),
-    }
+  const dvaToShow =
+    (createdDva?.account_number ? createdDva : null) ||
+    (vault?.dedicated_account?.account_number ? vault.dedicated_account : null) ||
+    (process.env.NODE_ENV !== 'production'
+      ? {
+          bank_name: 'Wema Bank',
+          account_number: '0284719283',
+          account_name: `Upward / ${user?.firstName || 'Tenant'} ${user?.lastName || ''}`.trim(),
+        }
+      : null)
 
   const handleBankTransferConfirm = () => {
     toastSuccess('Transfer recorded! Your vault will be credited as soon as funds arrive.')
@@ -408,15 +412,17 @@ export function SavingsInvestorKycModal({
       })
 
       const dva = res?.dedicated_account
-      if (dva) {
+      if (dva?.account_number) {
         setCreatedDva(dva)
-      } else {
+      } else if (process.env.NODE_ENV !== 'production') {
         const fallbackAccSuffix = nowTimestamp.toString().slice(-8)
         setCreatedDva({
           bank_name: 'Wema Bank',
           account_number: `02${fallbackAccSuffix}`,
           account_name: `Upward / ${user?.firstName || 'Tenant'} ${user?.lastName || ''}`.trim(),
         })
+      } else {
+        setCreatedDva(null)
       }
       setStep(3)
       toastSuccess('Investor profile verified and dedicated Wema account ready!')
@@ -1209,54 +1215,74 @@ export function SavingsInvestorKycModal({
             </div>
 
             {/* Compact Personal Rent Account Card */}
-            <div
-              style={{
-                padding: '10px 14px',
-                borderRadius: '12px',
-                background: 'var(--surface2, #fbf9f6)',
-                border: '1px solid var(--border-solid, #eee7df)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 12,
-              }}
-            >
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--text)', letterSpacing: '0.02em', lineHeight: 1.2 }}>
-                  {dvaToShow.account_number}
-                </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {dvaToShow.bank_name || 'Wema Bank'} · {dvaToShow.account_name}
-                </div>
-              </div>
-              <button
-                type="button"
-                className={`vault-dva-card__copy-btn ${copiedAccount ? 'vault-dva-card__copy-btn--copied' : ''}`}
-                style={{ padding: '6px 12px', fontSize: '0.75rem', height: 32, flexShrink: 0 }}
-                onClick={() => {
-                  navigator.clipboard.writeText(dvaToShow.account_number)
-                  setCopiedAccount(true)
-                  toastSuccess('Account number copied!')
-                  setTimeout(() => setCopiedAccount(false), 2000)
+            {dvaToShow ? (
+              <div
+                style={{
+                  padding: '10px 14px',
+                  borderRadius: '12px',
+                  background: 'var(--surface2, #fbf9f6)',
+                  border: '1px solid var(--border-solid, #eee7df)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 12,
                 }}
               >
-                {copiedAccount ? (
-                  <>
-                    <Check size={13} /> Copied
-                  </>
-                ) : (
-                  <>
-                    <Copy size={13} /> Copy
-                  </>
-                )}
-              </button>
-            </div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--text)', letterSpacing: '0.02em', lineHeight: 1.2 }}>
+                    {dvaToShow.account_number}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {dvaToShow.bank_name || 'Wema Bank'} · {dvaToShow.account_name}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className={`vault-dva-card__copy-btn ${copiedAccount ? 'vault-dva-card__copy-btn--copied' : ''}`}
+                  style={{ padding: '6px 12px', fontSize: '0.75rem', height: 32, flexShrink: 0 }}
+                  onClick={() => {
+                    navigator.clipboard.writeText(dvaToShow.account_number)
+                    setCopiedAccount(true)
+                    toastSuccess('Account number copied!')
+                    setTimeout(() => setCopiedAccount(false), 2000)
+                  }}
+                >
+                  {copiedAccount ? (
+                    <>
+                      <Check size={13} /> Copied
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={13} /> Copy
+                    </>
+                  )}
+                </button>
+              </div>
+            ) : (
+              <div
+                style={{
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  background: 'var(--surface2, #fbf9f6)',
+                  border: '1px solid var(--border-solid, #eee7df)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  fontSize: '0.8125rem',
+                  color: 'var(--text-muted)',
+                }}
+              >
+                <Loader2 size={15} className="animate-spin" color="var(--clay)" />
+                <span>Provisioning your dedicated funding account... Check back in a moment.</span>
+              </div>
+            )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 2 }}>
               <button
                 type="button"
                 className="vault-btn-primary"
                 onClick={handleBankTransferConfirm}
+                disabled={!dvaToShow}
                 style={{ height: 44 }}
               >
                 <CheckCircle2 size={16} />

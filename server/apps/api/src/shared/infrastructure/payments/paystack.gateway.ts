@@ -9,6 +9,7 @@ import {
   ISubaccountRepository,
   PaystackSubaccount,
 } from '../../../domains/payments/payment.repository'
+import { isProductionRuntime } from '../../utils/runtime-env'
 
 @Injectable()
 export class PaystackGateway implements IPaymentGateway {
@@ -97,22 +98,23 @@ export class PaystackGateway implements IPaymentGateway {
       if (!res.ok || !data.status) {
         const errorMsg = data.message || 'Could not resolve account'
 
-        // Handle Paystack test mode limit gracefully
-        if (errorMsg.includes('Test mode daily limit')) {
+        const isNonProdTest = !isProductionRuntime(this.secretKey) && this.secretKey.startsWith('sk_test_')
+
+        // Handle Paystack test mode limit gracefully in non-production
+        if (isNonProdTest && errorMsg.includes('Test mode daily limit')) {
           this.logger.warn(
             `Paystack test limit reached. Using mock resolution for ${accountNumber}`,
           )
           return {
             accountNumber,
-            accountName:
-              process.env.NODE_ENV !== 'production' ? 'RONALD EKOM (VERIFIED)' : 'ACCOUNT VERIFIED',
+            accountName: 'RONALD EKOM (VERIFIED)',
             bankCode,
           }
         }
 
         // In non-production, if Paystack test sandbox cannot resolve fake NUBAN, provide mock verification
         if (
-          process.env.NODE_ENV !== 'production' &&
+          isNonProdTest &&
           (errorMsg.includes('Could not resolve') || errorMsg.includes('Test mode'))
         ) {
           this.logger.warn(`Non-production mock resolution fallback for ${accountNumber}`)
@@ -133,11 +135,14 @@ export class PaystackGateway implements IPaymentGateway {
         bankCode,
       }
     } catch (error: any) {
-      if (error?.message?.includes('Test mode daily limit')) {
+      if (
+        !isProductionRuntime(this.secretKey) &&
+        this.secretKey.startsWith('sk_test_') &&
+        error?.message?.includes('Test mode daily limit')
+      ) {
         return {
           accountNumber,
-          accountName:
-            process.env.NODE_ENV !== 'production' ? 'RONALD EKOM (VERIFIED)' : 'ACCOUNT VERIFIED',
+          accountName: 'RONALD EKOM (VERIFIED)',
           bankCode,
         }
       }
@@ -422,7 +427,7 @@ export class PaystackGateway implements IPaymentGateway {
     preferredBank?: string
     disableFallback?: boolean
   }): Promise<any> {
-    const isTest = this.secretKey.startsWith('sk_test_')
+    const isTest = !isProductionRuntime(this.secretKey) && this.secretKey.startsWith('sk_test_')
     const primaryBank = isTest ? 'test-bank' : data.preferredBank || 'titan-paystack'
     const fallbackBank =
       isTest || data.disableFallback

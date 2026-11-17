@@ -541,15 +541,17 @@ export function RentCalculatorView({
       })
 
       const dva = res?.dedicated_account
-      if (dva) {
+      if (dva?.account_number) {
         setCreatedDva(dva)
-      } else {
+      } else if (process.env.NODE_ENV !== 'production') {
         const fallbackAccSuffix = nowTimestamp.toString().slice(-8)
         setCreatedDva({
           bank_name: 'Wema Bank',
           account_number: `02${fallbackAccSuffix}`,
           account_name: `Upward / ${user?.firstName || 'Tenant'} ${user?.lastName || ''}`.trim(),
         })
+      } else {
+        setCreatedDva(null)
       }
 
       setStage('SUCCESS')
@@ -1825,8 +1827,21 @@ export function RentCalculatorView({
               </button>
             </div>
           ) : (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '24px 0' }}>
-              <Loader2 size={24} className="animate-spin" color="var(--clay)" />
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '12px 14px',
+                borderRadius: '14px',
+                background: 'var(--surface2, #fbf9f6)',
+                border: '1px solid var(--border-solid, #eee7df)',
+                fontSize: '0.8125rem',
+                color: 'var(--text-muted)',
+              }}
+            >
+              <Loader2 size={16} className="animate-spin" color="var(--clay)" style={{ flexShrink: 0 }} />
+              <span>Provisioning your dedicated funding account... Check your dashboard in a moment.</span>
             </div>
           )}
 

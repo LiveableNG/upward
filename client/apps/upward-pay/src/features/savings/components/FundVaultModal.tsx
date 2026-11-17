@@ -106,11 +106,13 @@ export function FundVaultModal({
 
   if (!isOpen || !isClient || typeof document === 'undefined') return null
 
+  const isNonProd = process.env.NODE_ENV !== 'production'
   const bankName = dedicatedAccount?.bank_name || 'Wema Bank'
-  const accountNumber = dedicatedAccount?.account_number || '9012345678'
+  const accountNumber = dedicatedAccount?.account_number || (isNonProd ? '9012345678' : '')
   const accountName = dedicatedAccount?.account_name || 'Upward Rent Savings'
 
   const handleCopy = (text: string) => {
+    if (!text) return
     navigator.clipboard.writeText(text)
     setCopiedField('account')
     toastSuccess('Account number copied!')
@@ -118,6 +120,9 @@ export function FundVaultModal({
   }
 
   const handleDeposit = async () => {
+    if (!isNonProd || !accountNumber) {
+      return
+    }
     const rawNumber = Number(customAmount.replace(/,/g, ''))
     if (!rawNumber || isNaN(rawNumber) || rawNumber < 1000) {
       toastError('Please enter a valid deposit amount (minimum ₦1,000)')
@@ -237,43 +242,62 @@ export function FundVaultModal({
         </div>
 
         {/* Compact Account Card */}
-        <div
-          style={{
-            padding: '10px 14px',
-            borderRadius: '12px',
-            background: 'var(--surface2, #fbf9f6)',
-            border: '1px solid var(--border-solid, #eee7df)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 12,
-          }}
-        >
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--text)', letterSpacing: '0.02em', lineHeight: 1.2 }}>
-              {accountNumber}
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {bankName} · {accountName}
-            </div>
-          </div>
-          <button
-            type="button"
-            className={`vault-dva-card__copy-btn ${copiedField === 'account' ? 'vault-dva-card__copy-btn--copied' : ''}`}
-            style={{ padding: '6px 12px', fontSize: '0.75rem', height: 32, flexShrink: 0 }}
-            onClick={() => handleCopy(accountNumber)}
+        {accountNumber ? (
+          <div
+            style={{
+              padding: '10px 14px',
+              borderRadius: '12px',
+              background: 'var(--surface2, #fbf9f6)',
+              border: '1px solid var(--border-solid, #eee7df)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+            }}
           >
-            {copiedField === 'account' ? (
-              <>
-                <Check size={13} /> Copied
-              </>
-            ) : (
-              <>
-                <Copy size={13} /> Copy
-              </>
-            )}
-          </button>
-        </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--text)', letterSpacing: '0.02em', lineHeight: 1.2 }}>
+                {accountNumber}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {bankName} · {accountName}
+              </div>
+            </div>
+            <button
+              type="button"
+              className={`vault-dva-card__copy-btn ${copiedField === 'account' ? 'vault-dva-card__copy-btn--copied' : ''}`}
+              style={{ padding: '6px 12px', fontSize: '0.75rem', height: 32, flexShrink: 0 }}
+              onClick={() => handleCopy(accountNumber)}
+            >
+              {copiedField === 'account' ? (
+                <>
+                  <Check size={13} /> Copied
+                </>
+              ) : (
+                <>
+                  <Copy size={13} /> Copy
+                </>
+              )}
+            </button>
+          </div>
+        ) : (
+          <div
+            style={{
+              padding: '12px 14px',
+              borderRadius: '12px',
+              background: 'var(--surface2, #fbf9f6)',
+              border: '1px solid var(--border-solid, #eee7df)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              fontSize: '0.8125rem',
+              color: 'var(--text-muted)',
+            }}
+          >
+            <Loader2 size={15} className="animate-spin" color="var(--clay)" />
+            <span>Provisioning your dedicated funding account...</span>
+          </div>
+        )}
 
         {/* Action Buttons */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 2 }}>
@@ -282,13 +306,13 @@ export function FundVaultModal({
             className="vault-btn-primary"
             style={{ height: 44 }}
             onClick={handleIHavePaid}
-            disabled={hasPaidNotified}
+            disabled={hasPaidNotified || !accountNumber}
           >
             <CheckCircle2 size={16} />
             <span>{hasPaidNotified ? 'Transfer Recorded!' : 'I Have Transferred'}</span>
           </button>
 
-          {process.env.NODE_ENV !== 'production' && (
+          {isNonProd && accountNumber && (
             <button
               type="button"
               className="vault-btn-secondary"

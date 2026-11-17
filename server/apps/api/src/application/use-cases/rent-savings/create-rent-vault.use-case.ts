@@ -17,6 +17,7 @@ import {
 import { CadenceType, FundingMethodType } from '../../../domains/rent-savings/rent-vault.types'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
+import { isProductionRuntime } from '../../../shared/utils/runtime-env'
 
 export class CreateRentVaultDto {
   @IsNotEmpty()
@@ -132,7 +133,8 @@ export class CreateRentVaultUseCase {
     let dvaAccountNumber: string | null = existingDvaRecord?.dvaAccountNumber || null
     let dvaAssignmentStatus = existingDvaRecord?.dvaAssignmentStatus || 'PENDING'
 
-    if (!dvaAccountNumber) {
+    const isNonProd = !isProductionRuntime(process.env.PAYSTACK_SECRET_KEY)
+    if (!dvaAccountNumber && isNonProd) {
       dvaBankName = 'Wema Bank'
       const randomAcc = '02' + Math.floor(10000000 + Math.random() * 90000000).toString()
       dvaAccountNumber = randomAcc
