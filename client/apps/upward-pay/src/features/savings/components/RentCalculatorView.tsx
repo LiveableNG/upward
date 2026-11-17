@@ -566,10 +566,10 @@ export function RentCalculatorView({
                 Savings schedule
               </span>
               <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--clay)' }}>
-                {planPattern === 'EQUAL' &&
-                  `${formatCurrency(planEqualMetrics.periodicDepositNaira)}/mo`}
                 {planPattern === 'INITIAL_DEPOSIT' &&
                   `${formatCurrency(planDepositMetrics.periodicDepositNaira)}/mo after deposit`}
+                {planPattern === 'EQUAL' &&
+                  `${formatCurrency(planEqualMetrics.periodicDepositNaira)}/mo`}
                 {planPattern === 'STEP_UP' &&
                   `From ${formatCurrency(planStepUpMetrics.periodicDepositNaira)}/mo`}
               </span>
@@ -588,25 +588,6 @@ export function RentCalculatorView({
             >
               <button
                 type="button"
-                onClick={() => handleSelectPlan('EQUAL')}
-                style={{
-                  padding: '8px 4px',
-                  borderRadius: '9px',
-                  border: 'none',
-                  background: planPattern === 'EQUAL' ? '#ffffff' : 'transparent',
-                  boxShadow: planPattern === 'EQUAL' ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
-                  color: planPattern === 'EQUAL' ? 'var(--clay)' : 'var(--text-secondary)',
-                  fontWeight: 700,
-                  fontSize: '0.75rem',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  textAlign: 'center',
-                }}
-              >
-                Equal Monthly
-              </button>
-              <button
-                type="button"
                 onClick={() => handleSelectPlan('INITIAL_DEPOSIT')}
                 style={{
                   padding: '8px 4px',
@@ -623,6 +604,25 @@ export function RentCalculatorView({
                 }}
               >
                 With Deposit
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSelectPlan('EQUAL')}
+                style={{
+                  padding: '8px 4px',
+                  borderRadius: '9px',
+                  border: 'none',
+                  background: planPattern === 'EQUAL' ? '#ffffff' : 'transparent',
+                  boxShadow: planPattern === 'EQUAL' ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
+                  color: planPattern === 'EQUAL' ? 'var(--clay)' : 'var(--text-secondary)',
+                  fontWeight: 700,
+                  fontSize: '0.75rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  textAlign: 'center',
+                }}
+              >
+                Equal Monthly
               </button>
               <button
                 type="button"
