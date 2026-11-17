@@ -118,7 +118,8 @@ export function RentCalculatorView({
   const hasRentDetails = hasSavedRent || rentConfirmed
 
   // Flow Stage State
-  const [stage, setStage] = useState<Stage>(() => (hasSavedRent ? 'BENEFIT' : 'RENT_INPUT'))
+  const [initialStage] = useState<Stage>(() => (hasSavedRent ? 'BENEFIT' : 'RENT_INPUT'))
+  const [stage, setStage] = useState<Stage>(initialStage)
 
   const canConfirmRent =
     targetAmountNaira > 0 && Boolean(contractualDueDate) && contractualDueDate >= tomorrow
@@ -475,18 +476,14 @@ export function RentCalculatorView({
   }
 
   const handleRentInputBack = () => {
-    if (hasSavedRent) {
-      setStage('BENEFIT')
-    } else {
-      router.push('/dashboard')
-    }
+    router.push('/dashboard')
   }
 
   const handleBenefitBack = () => {
-    if (rentConfirmed) {
-      setStage('RENT_INPUT')
-    } else {
+    if (initialStage === 'BENEFIT') {
       router.push('/dashboard')
+    } else {
+      setStage('RENT_INPUT')
     }
   }
 
