@@ -1135,7 +1135,7 @@ export function RentCalculatorView({
                         Start with (Month 1)
                       </label>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                        <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-muted)' }}>
+                        <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-muted)', whiteSpace: 'nowrap', flexShrink: 0 }}>
                           ₦
                         </span>
                         <input
@@ -1151,6 +1151,7 @@ export function RentCalculatorView({
                           }}
                           style={{
                             width: '100%',
+                            minWidth: 0,
                             border: 'none',
                             background: 'transparent',
                             outline: 'none',
@@ -1183,7 +1184,7 @@ export function RentCalculatorView({
                         Step up monthly by
                       </label>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                        <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--clay)' }}>
+                        <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--clay)', whiteSpace: 'nowrap', flexShrink: 0 }}>
                           +₦
                         </span>
                         <input
@@ -1199,6 +1200,7 @@ export function RentCalculatorView({
                           }}
                           style={{
                             width: '100%',
+                            minWidth: 0,
                             border: 'none',
                             background: 'transparent',
                             outline: 'none',
@@ -1339,11 +1341,7 @@ export function RentCalculatorView({
           title="Compare Savings Plans"
           maxWidth="480px"
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingBottom: 8 }}>
-            <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.4 }}>
-              Choose how you&apos;d like to fund your <strong>{formatCurrency(previewRentAmount)}</strong> rent goal and compare estimated interest.
-            </p>
-
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingBottom: 8 }}>
             {/* Plan 1: Deposit + Save Equally */}
             <button
               type="button"
@@ -1365,31 +1363,33 @@ export function RentCalculatorView({
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                <span style={{ fontSize: '0.9375rem', fontWeight: 800, color: 'var(--text)' }}>
-                  Start with a deposit &amp; save equally
-                </span>
-                <span
-                  style={{
-                    fontSize: '0.625rem',
-                    fontWeight: 800,
-                    textTransform: 'uppercase',
-                    padding: '2px 7px',
-                    borderRadius: '999px',
-                    background: 'var(--shell-tint, #fbede5)',
-                    color: 'var(--clay)',
-                  }}
-                >
-                  Default
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: '0.9375rem', fontWeight: 800, color: 'var(--text)' }}>
+                    Deposit &amp; save equally
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '0.5625rem',
+                      fontWeight: 800,
+                      textTransform: 'uppercase',
+                      padding: '2px 6px',
+                      borderRadius: '999px',
+                      background: 'var(--shell-tint, #fbede5)',
+                      color: 'var(--clay)',
+                    }}
+                  >
+                    Default
+                  </span>
+                </div>
+                <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 800, whiteSpace: 'nowrap' }}>
+                  Est. +{formatCurrency(planDepositMetrics.projectedYieldNaira)}
                 </span>
               </div>
-              <div style={{ fontSize: '0.8125rem', color: 'var(--text)', fontWeight: 600 }}>
-                {formatCurrency(planDepositMetrics.requiredInitialDepositNaira)} upfront +{' '}
+              <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                {formatCurrency(planDepositMetrics.requiredInitialDepositNaira)} today +{' '}
                 <strong style={{ color: 'var(--clay)' }}>
                   {formatCurrency(planDepositMetrics.periodicDepositNaira)}/mo
                 </strong>
-              </div>
-              <div style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 700 }}>
-                Est. +{formatCurrency(planDepositMetrics.projectedYieldNaira)} returns
               </div>
             </button>
 
@@ -1413,18 +1413,19 @@ export function RentCalculatorView({
                 gap: 6,
               }}
             >
-              <div style={{ fontSize: '0.9375rem', fontWeight: 800, color: 'var(--text)' }}>
-                Save equal monthly instalments
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                <span style={{ fontSize: '0.9375rem', fontWeight: 800, color: 'var(--text)' }}>
+                  Equal monthly
+                </span>
+                <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 800, whiteSpace: 'nowrap' }}>
+                  Est. +{formatCurrency(planEqualMetrics.projectedYieldNaira)}
+                </span>
               </div>
-              <div style={{ fontSize: '0.8125rem', color: 'var(--text)', fontWeight: 600 }}>
-                ₦0 upfront ·{' '}
+              <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
                 <strong style={{ color: 'var(--clay)' }}>
                   {formatCurrency(planEqualMetrics.periodicDepositNaira)}/mo
                 </strong>{' '}
-                for {planEqualMetrics.numberOfPayments} months
-              </div>
-              <div style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 700 }}>
-                Est. +{formatCurrency(planEqualMetrics.projectedYieldNaira)} returns
+                · ₦0 upfront
               </div>
             </button>
 
@@ -1448,18 +1449,20 @@ export function RentCalculatorView({
                 gap: 6,
               }}
             >
-              <div style={{ fontSize: '0.9375rem', fontWeight: 800, color: 'var(--text)' }}>
-                Start small &amp; increase gradually
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                <span style={{ fontSize: '0.9375rem', fontWeight: 800, color: 'var(--text)' }}>
+                  Start small &amp; step up
+                </span>
+                <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 800, whiteSpace: 'nowrap' }}>
+                  Est. +{formatCurrency(planStepUpMetrics.projectedYieldNaira)}
+                </span>
               </div>
-              <div style={{ fontSize: '0.8125rem', color: 'var(--text)', fontWeight: 600 }}>
-                Set your Month 1 amount &amp; monthly step-up (e.g.{' '}
+              <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                Custom start &amp; monthly increase (from{' '}
                 <strong style={{ color: 'var(--clay)' }}>
-                  {formatCurrency(planStepUpMetrics.periodicDepositNaira)} + {formatCurrency(planStepUpMetrics.stepIncrementNaira)}/mo
+                  {formatCurrency(planStepUpMetrics.periodicDepositNaira)}/mo
                 </strong>
                 )
-              </div>
-              <div style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 700 }}>
-                Est. +{formatCurrency(planStepUpMetrics.projectedYieldNaira)} returns (based on your inputs)
               </div>
             </button>
           </div>
