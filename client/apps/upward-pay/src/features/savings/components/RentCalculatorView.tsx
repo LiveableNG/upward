@@ -33,7 +33,7 @@ import { PayPageShell, PayFlowPrimaryButton } from '@/features/dashboard/compone
 import { loadSetupDraft, patchSetupDraft } from '@/features/dashboard/setup/setupDraft'
 import { readSavingsRentPlan } from '../utils/savingsRentPlan'
 
-type Stage = 'RENT_INPUT' | 'BENEFIT' | 'KYC' | 'SUCCESS'
+type Stage = 'RENT_INPUT' | 'PROTECTION' | 'BENEFIT' | 'KYC' | 'SUCCESS'
 
 interface RentCalculatorViewProps {
   onSuccess?: () => void
@@ -122,14 +122,24 @@ export function RentCalculatorView({
   // Flow Stage State
   const [initialStage] = useState<Stage>(() => (hasSavedRent ? 'BENEFIT' : 'RENT_INPUT'))
   const [stage, setStage] = useState<Stage>(initialStage)
+  const [protectionFromBenefit, setProtectionFromBenefit] = useState(false)
 
   const canConfirmRent =
     targetAmountNaira > 0 && Boolean(contractualDueDate) && contractualDueDate >= tomorrow
 
   const selectedCadence: SavingsCadence = 'MONTHLY'
   const [selectedProductOption, setSelectedProductOption] =
-    useState<SavingsProductOption>('RENT_PROTEC')
-  const [planPattern, setPlanPattern] = useState<SavingsPlanPattern>('INITIAL_DEPOSIT')
+    useState<SavingsProductOption>(() => {
+      const saved = readSavingsRentPlan()
+      return saved?.productOption === 'SAVE_AND_EARN' ? 'SAVE_AND_EARN' : 'RENT_PROTEC'
+    })
+  const [planPattern, setPlanPattern] = useState<SavingsPlanPattern>(() => {
+    const saved = readSavingsRentPlan()
+    if (saved?.planPattern === 'EQUAL' || saved?.planPattern === 'STEP_UP') {
+      return saved.planPattern
+    }
+    return 'INITIAL_DEPOSIT'
+  })
 
   const simulateMutation = useSimulateRentSavings()
   const mutateSimulate = simulateMutation.mutate
@@ -565,11 +575,25 @@ export function RentCalculatorView({
     router.push('/dashboard')
   }
 
+  const handleProtectionBack = () => {
+    if (protectionFromBenefit) {
+      setProtectionFromBenefit(false)
+      setStage('BENEFIT')
+      return
+    }
+    if (initialStage === 'RENT_INPUT') {
+      setStage('RENT_INPUT')
+    } else {
+      router.push('/dashboard')
+    }
+  }
+
   const handleBenefitBack = () => {
     if (initialStage === 'BENEFIT') {
       router.push('/dashboard')
     } else {
-      setStage('RENT_INPUT')
+      setProtectionFromBenefit(false)
+      setStage('PROTECTION')
     }
   }
 
@@ -613,7 +637,8 @@ export function RentCalculatorView({
                 } catch {}
               }
               setRentConfirmed(true)
-              setStage('BENEFIT')
+              setProtectionFromBenefit(false)
+              setStage('PROTECTION')
             }}
           >
             Continue
@@ -663,20 +688,170 @@ export function RentCalculatorView({
     )
   }
 
-  // STAGE 2: Clear Benefit Showcase (Kunle Specification: One Plan Per Screen + Compare Plans)
+  // STAGE 1.5: Savings Track / Protection Plan Selection (Nov 16 Spec: before schedule breakdown)
+  if (stage === 'PROTECTION') {
+    return (
+      <PayPageShell
+        title="Choose Your Plan Track"
+        subtitle="Include rent protection or earn higher pure interest towards your rent."
+        showBack
+        onBack={handleProtectionBack}
+        pinFooter
+        footer={
+          <PayFlowPrimaryButton
+            onClick={() => {
+              setProtectionFromBenefit(false)
+              setStage('BENEFIT')
+            }}
+          >
+            Continue
+            <ArrowRight size={18} aria-hidden />
+          </PayFlowPrimaryButton>
+        }
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingTop: 4 }}>
+          {/* Option 1: Rent Protec (Recommended) */}
+          <button
+            type="button"
+            onClick={() => setSelectedProductOption('RENT_PROTEC')}
+            disabled={!isRentProtecEligible}
+            style={{
+              width: '100%',
+              textAlign: 'left',
+              padding: '18px',
+              borderRadius: '16px',
+              border:
+                activeProductOption === 'RENT_PROTEC'
+                  ? '2px solid var(--clay)'
+                  : '1.5px solid var(--shell-border, #f0e9df)',
+              background:
+                activeProductOption === 'RENT_PROTEC'
+                  ? '#fffaf7'
+                  : 'var(--surface, #ffffff)',
+              cursor: isRentProtecEligible ? 'pointer' : 'not-allowed',
+              opacity: isRentProtecEligible ? 1 : 0.45,
+              transition: 'all 0.15s ease',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <ShieldCheck size={18} color="var(--clay)" style={{ flexShrink: 0 }} />
+                <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text)' }}>
+                  Rent Protec
+                </span>
+                <span
+                  style={{
+                    fontSize: '0.625rem',
+                    fontWeight: 800,
+                    letterSpacing: '0.04em',
+                    textTransform: 'uppercase',
+                    padding: '2px 7px',
+                    borderRadius: '999px',
+                    background: 'var(--shell-tint, #fbede5)',
+                    color: 'var(--clay)',
+                  }}
+                >
+                  Recommended
+                </span>
+              </div>
+
+              <span style={{ fontSize: '0.875rem', fontWeight: 800, color: '#059669' }}>
+                {platformRates.rentProtecRatePct}% p.a.
+              </span>
+            </div>
+
+            <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.45, paddingLeft: '26px' }}>
+              Earn compound returns plus Upward rent coverage in case of job loss or illness.
+            </div>
+
+            {!isRentProtecEligible && (
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', paddingLeft: '26px' }}>
+                Requires at least {platformRates.rentProtecMinMonths} months before rent is due.
+              </div>
+            )}
+          </button>
+
+          {/* Option 2: Save & Earn (Basic Savings Only) */}
+          <button
+            type="button"
+            onClick={() => setSelectedProductOption('SAVE_AND_EARN')}
+            style={{
+              width: '100%',
+              textAlign: 'left',
+              padding: '18px',
+              borderRadius: '16px',
+              border:
+                activeProductOption === 'SAVE_AND_EARN'
+                  ? '2px solid var(--clay)'
+                  : '1.5px solid var(--shell-border, #f0e9df)',
+              background:
+                activeProductOption === 'SAVE_AND_EARN'
+                  ? '#fffaf7'
+                  : 'var(--surface, #ffffff)',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <TrendingUp size={18} color="var(--text-muted)" style={{ flexShrink: 0 }} />
+                <span
+                  style={{
+                    fontSize: '1rem',
+                    fontWeight: 700,
+                    color: activeProductOption === 'SAVE_AND_EARN' ? 'var(--clay)' : 'var(--text)',
+                  }}
+                >
+                  Save &amp; Earn
+                </span>
+                <span
+                  style={{
+                    fontSize: '0.625rem',
+                    fontWeight: 600,
+                    color: 'var(--text-muted)',
+                    background: 'var(--surface2, #efefef)',
+                    padding: '2px 7px',
+                    borderRadius: '999px',
+                  }}
+                >
+                  Savings only
+                </span>
+              </div>
+
+              <span style={{ fontSize: '0.875rem', fontWeight: 800, color: '#059669' }}>
+                {platformRates.savingsAnnualRatePct}% p.a.
+              </span>
+            </div>
+
+            <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', lineHeight: 1.45, paddingLeft: '26px' }}>
+              Earn maximum compound returns towards your rent without insurance coverage.
+            </div>
+          </button>
+        </div>
+      </PayPageShell>
+    )
+  }
+
+  // STAGE 2: Clear Benefit Showcase (Kunle Specification: Spacious, One Plan Per Screen + Compare Plans)
   if (stage === 'BENEFIT') {
     const activePlanTitle =
       planPattern === 'INITIAL_DEPOSIT'
-        ? 'Start with a deposit & save equally'
+        ? 'Deposit & save equally'
         : planPattern === 'EQUAL'
-          ? 'Save equal monthly instalments'
-          : 'Start small & increase gradually'
+          ? 'Equal monthly savings'
+          : 'Start small & step up'
 
     return (
       <>
         <PayPageShell
           title="Pay Less for Your Next Rent"
-          subtitle="Save less and let compound interest help pay your upcoming rent."
+          subtitle="Save less with compound interest towards your rent."
           showBack
           onBack={handleBenefitBack}
           pinFooter
@@ -687,50 +862,95 @@ export function RentCalculatorView({
             </PayFlowPrimaryButton>
           }
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 18, paddingBottom: 24 }}>
-            {/* Target Rent Pill with Edit button */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18, paddingBottom: 20 }}>
+            {/* Compact Target + Track Summary Bar */}
             <div
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '11px 14px',
-                borderRadius: '13px',
+                borderRadius: '14px',
                 background: 'var(--oat, #faf9f5)',
                 border: '1px solid var(--shell-border, #f0e9df)',
+                padding: '10px 14px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
               }}
             >
-              <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-                Target: <strong style={{ color: 'var(--text)' }}>{formatCurrency(targetAmountNaira, 'NGN')}</strong> due{' '}
-                <strong style={{ color: 'var(--text)' }}>{formattedDueDate}</strong>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                  Target: <strong style={{ color: 'var(--text)' }}>{formatCurrency(targetAmountNaira, 'NGN')}</strong> due{' '}
+                  <strong style={{ color: 'var(--text)' }}>{formattedDueDate}</strong>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setStage('RENT_INPUT')}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--clay)',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    padding: '2px 4px',
+                  }}
+                >
+                  Change
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => setStage('RENT_INPUT')}
+
+              <div
                 style={{
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--clay)',
-                  fontSize: '0.75rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  padding: '4px 6px',
+                  borderTop: '1px solid rgba(0, 0, 0, 0.05)',
+                  paddingTop: 8,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 8,
                 }}
               >
-                Change
-              </button>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 5 }}>
+                  {activeProductOption === 'RENT_PROTEC' ? (
+                    <ShieldCheck size={14} color="var(--clay)" />
+                  ) : (
+                    <TrendingUp size={14} color="#059669" />
+                  )}
+                  <span>
+                    <strong style={{ color: 'var(--text)' }}>
+                      {activeProductOption === 'RENT_PROTEC' ? 'Rent Protec' : 'Save & Earn'}
+                    </strong>{' '}
+                    ({savingsAnnualRatePct}% p.a.)
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProtectionFromBenefit(true)
+                    setStage('PROTECTION')
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--clay)',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    padding: '2px 4px',
+                  }}
+                >
+                  Switch
+                </button>
+              </div>
             </div>
 
-            {/* Single Active Plan Card (Uncrowded per Kunle Spec) */}
+            {/* Single Airy Plan Card (Uncrowded per Kunle Spec) */}
             <div
               style={{
-                padding: '16px',
+                padding: '18px',
                 borderRadius: '18px',
                 background: 'linear-gradient(180deg, #faf9f5 0%, #f6f3ee 100%)',
                 border: '1px solid var(--shell-border, #f0e9df)',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: 14,
+                gap: 16,
                 boxShadow: '0 2px 10px rgba(0, 0, 0, 0.03)',
               }}
             >
@@ -743,27 +963,9 @@ export function RentCalculatorView({
                   gap: 8,
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--text)' }}>
-                    {activePlanTitle}
-                  </span>
-                  {planPattern === 'INITIAL_DEPOSIT' && (
-                    <span
-                      style={{
-                        fontSize: '0.5625rem',
-                        fontWeight: 800,
-                        letterSpacing: '0.04em',
-                        textTransform: 'uppercase',
-                        padding: '2px 6px',
-                        borderRadius: '999px',
-                        background: 'var(--shell-tint, #fbede5)',
-                        color: 'var(--clay)',
-                      }}
-                    >
-                      Default
-                    </span>
-                  )}
-                </div>
+                <span style={{ fontSize: '0.9375rem', fontWeight: 800, color: 'var(--text)' }}>
+                  {activePlanTitle}
+                </span>
 
                 <button
                   type="button"
@@ -790,13 +992,13 @@ export function RentCalculatorView({
 
               {/* Exact Contributions Section — Prominent & Unmistakable per Plan */}
               {planPattern === 'INITIAL_DEPOSIT' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <div
                     style={{
                       background: '#ffffff',
                       border: '1.5px solid var(--shell-border, #e5dfd7)',
                       borderRadius: '14px',
-                      padding: '12px 14px',
+                      padding: '14px',
                     }}
                   >
                     <div
@@ -819,7 +1021,7 @@ export function RentCalculatorView({
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-muted)' }}>
+                      <span style={{ fontSize: '1.375rem', fontWeight: 800, color: 'var(--text-muted)' }}>
                         ₦
                       </span>
                       <input
@@ -837,41 +1039,12 @@ export function RentCalculatorView({
                           border: 'none',
                           background: 'transparent',
                           outline: 'none',
-                          fontSize: '1.375rem',
+                          fontSize: '1.5rem',
                           fontWeight: 800,
                           color: 'var(--text)',
                           letterSpacing: '-0.02em',
                         }}
                       />
-                    </div>
-
-                    <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
-                      {[0.1, 0.25, 0.4, 0.5].map((pct) => {
-                        const presetAmt = Math.round(previewRentAmount * pct)
-                        const isSelected = (parseCurrencyInput(initialDepositRaw) || 0) === presetAmt
-                        return (
-                          <button
-                            key={pct}
-                            type="button"
-                            onClick={() => setCustomInitialDeposit(formatCurrencyInput(presetAmt))}
-                            style={{
-                              flex: 1,
-                              padding: '5px 0',
-                              borderRadius: '8px',
-                              border: isSelected
-                                ? '1.5px solid var(--clay)'
-                                : '1px solid var(--shell-border, #e5dfd7)',
-                              background: isSelected ? 'var(--shell-tint, #fbede5)' : '#faf9f5',
-                              color: isSelected ? 'var(--clay)' : 'var(--text-secondary)',
-                              fontSize: '0.6875rem',
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                            }}
-                          >
-                            {Math.round(pct * 100)}%
-                          </button>
-                        )
-                      })}
                     </div>
                   </div>
 
@@ -881,21 +1054,21 @@ export function RentCalculatorView({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'space-between',
-                      padding: '12px 14px',
+                      padding: '14px',
                       borderRadius: '12px',
                       background: 'rgba(194, 80, 31, 0.07)',
                       border: '1px solid rgba(194, 80, 31, 0.14)',
                     }}
                   >
                     <div>
-                      <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)' }}>
+                      <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text)' }}>
                         Then save monthly
                       </div>
-                      <div style={{ fontSize: '0.6875rem', color: 'var(--text-secondary)', marginTop: 1 }}>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: 2 }}>
                         For {planDepositMetrics.numberOfPayments} months
                       </div>
                     </div>
-                    <div style={{ fontSize: '1.1875rem', fontWeight: 800, color: 'var(--clay)' }}>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--clay)' }}>
                       {formatCurrency(planDepositMetrics.periodicDepositNaira)}
                       <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>/mo</span>
                     </div>
@@ -909,7 +1082,7 @@ export function RentCalculatorView({
                     background: '#ffffff',
                     border: '1.5px solid var(--shell-border, #e5dfd7)',
                     borderRadius: '14px',
-                    padding: '16px 14px',
+                    padding: '18px 14px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -917,25 +1090,23 @@ export function RentCalculatorView({
                   }}
                 >
                   <div>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                    <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
                       Monthly contribution
                     </div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 3 }}>
-                      {planEqualMetrics.numberOfPayments} equal months · ₦0 upfront deposit
+                      {planEqualMetrics.numberOfPayments} equal months · ₦0 upfront
                     </div>
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div
-                      style={{
-                        fontSize: '1.375rem',
-                        fontWeight: 800,
-                        color: 'var(--clay)',
-                        letterSpacing: '-0.02em',
-                      }}
-                    >
-                      {formatCurrency(planEqualMetrics.periodicDepositNaira)}
-                      <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>/mo</span>
-                    </div>
+                  <div
+                    style={{
+                      fontSize: '1.4375rem',
+                      fontWeight: 800,
+                      color: 'var(--clay)',
+                      letterSpacing: '-0.02em',
+                    }}
+                  >
+                    {formatCurrency(planEqualMetrics.periodicDepositNaira)}
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>/mo</span>
                   </div>
                 </div>
               )}
@@ -948,7 +1119,7 @@ export function RentCalculatorView({
                         background: '#ffffff',
                         border: '1.5px solid var(--shell-border, #e5dfd7)',
                         borderRadius: '12px',
-                        padding: '10px 12px',
+                        padding: '12px',
                       }}
                     >
                       <label
@@ -996,7 +1167,7 @@ export function RentCalculatorView({
                         background: '#ffffff',
                         border: '1.5px solid var(--shell-border, #e5dfd7)',
                         borderRadius: '12px',
-                        padding: '10px 12px',
+                        padding: '12px',
                       }}
                     >
                       <label
@@ -1054,10 +1225,7 @@ export function RentCalculatorView({
                   >
                     Month 1: <strong>{formatCurrency(planStepUpMetrics.periodicDepositNaira)}</strong> →{' '}
                     +{formatCurrency(planStepUpMetrics.stepIncrementNaira)}/mo → Final month:{' '}
-                    <strong>{formatCurrency(planStepUpMetrics.lastPeriodDepositNaira)}</strong>{' '}
-                    <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
-                      ({planStepUpMetrics.numberOfPayments} months)
-                    </span>
+                    <strong>{formatCurrency(planStepUpMetrics.lastPeriodDepositNaira)}</strong>
                   </div>
                 </div>
               )}
@@ -1159,158 +1327,6 @@ export function RentCalculatorView({
                     transition: 'width 0.3s ease',
                   }}
                 />
-              </div>
-
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6,
-                  fontSize: '0.75rem',
-                  color: 'var(--text-muted)',
-                  lineHeight: 1.3,
-                }}
-              >
-                <ShieldCheck size={14} color="#059669" style={{ flexShrink: 0 }} />
-                <span>Zero debit fees · Compound interest helps pay towards rent</span>
-              </div>
-            </div>
-
-            {/* Protection Plan Option */}
-            <div className="rent-calculator__field" style={{ marginTop: 2 }}>
-              <span
-                style={{
-                  fontSize: '0.875rem',
-                  fontWeight: 700,
-                  color: 'var(--text)',
-                  marginBottom: 10,
-                  display: 'block',
-                }}
-              >
-                Protection plan
-              </span>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                {/* Option 1: Rent Protec (Recommended) */}
-                <button
-                  type="button"
-                  onClick={() => setSelectedProductOption('RENT_PROTEC')}
-                  disabled={!isRentProtecEligible}
-                  style={{
-                    width: '100%',
-                    textAlign: 'left',
-                    padding: '12px 13px',
-                    borderRadius: '14px',
-                    border:
-                      activeProductOption === 'RENT_PROTEC'
-                        ? '2px solid var(--clay)'
-                        : '1.5px solid var(--shell-border, #f0e9df)',
-                    background:
-                      activeProductOption === 'RENT_PROTEC'
-                        ? '#fffaf7'
-                        : 'var(--surface, #ffffff)',
-                    cursor: isRentProtecEligible ? 'pointer' : 'not-allowed',
-                    opacity: isRentProtecEligible ? 1 : 0.45,
-                    transition: 'all 0.15s ease',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 5,
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.8125rem', fontWeight: 800, color: 'var(--text)' }}>
-                      <ShieldCheck size={15} color="var(--clay)" style={{ flexShrink: 0 }} />
-                      Rent Protec
-                    </span>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#059669', flexShrink: 0 }}>
-                      {platformRates.rentProtecRatePct}% p.a.
-                    </span>
-                  </div>
-
-                  <div style={{ fontSize: '0.6875rem', color: 'var(--text-secondary)', lineHeight: 1.35 }}>
-                    Rent coverage for job loss or illness.
-                  </div>
-
-                  <span
-                    style={{
-                      alignSelf: 'flex-start',
-                      fontSize: '0.5625rem',
-                      fontWeight: 800,
-                      letterSpacing: '0.04em',
-                      textTransform: 'uppercase',
-                      padding: '2px 6px',
-                      borderRadius: '999px',
-                      background: 'var(--shell-tint, #fbede5)',
-                      color: 'var(--clay)',
-                      marginTop: 'auto',
-                    }}
-                  >
-                    Recommended
-                  </span>
-                </button>
-
-                {/* Option 2: Save & Earn (Basic Savings Only) */}
-                <button
-                  type="button"
-                  onClick={() => setSelectedProductOption('SAVE_AND_EARN')}
-                  style={{
-                    width: '100%',
-                    textAlign: 'left',
-                    padding: '12px 13px',
-                    borderRadius: '14px',
-                    border:
-                      activeProductOption === 'SAVE_AND_EARN'
-                        ? '2px solid var(--clay)'
-                        : '1.5px solid var(--shell-border, #f0e9df)',
-                    background:
-                      activeProductOption === 'SAVE_AND_EARN'
-                        ? '#fffaf7'
-                        : 'var(--surface, #ffffff)',
-                    cursor: 'pointer',
-                    transition: 'all 0.15s ease',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 5,
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
-                    <span
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 5,
-                        fontSize: '0.8125rem',
-                        fontWeight: 700,
-                        color: activeProductOption === 'SAVE_AND_EARN' ? 'var(--clay)' : 'var(--text)',
-                      }}
-                    >
-                      <TrendingUp size={14} color="var(--text-muted)" style={{ flexShrink: 0 }} />
-                      Save &amp; Earn
-                    </span>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#059669', flexShrink: 0 }}>
-                      {platformRates.savingsAnnualRatePct}% p.a.
-                    </span>
-                  </div>
-
-                  <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', lineHeight: 1.35 }}>
-                    Higher interest, no rent insurance.
-                  </div>
-
-                  <span
-                    style={{
-                      alignSelf: 'flex-start',
-                      fontSize: '0.5625rem',
-                      fontWeight: 600,
-                      color: 'var(--text-muted)',
-                      background: 'var(--surface2, #efefef)',
-                      padding: '2px 6px',
-                      borderRadius: '999px',
-                      marginTop: 'auto',
-                    }}
-                  >
-                    Savings only
-                  </span>
-                </button>
               </div>
             </div>
           </div>
