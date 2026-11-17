@@ -10,6 +10,8 @@ import {
   XCircle,
   Star,
   Layers,
+  ListChecks,
+  Lock,
 } from 'lucide-react'
 import { DataTable, type ColumnDef, type ActionItem } from '../../../components/common/table/DataTable'
 import type { Goal, GoalCategory } from '../types'
@@ -30,6 +32,7 @@ interface GoalsTabProps {
   onNewGoal: () => void
   onEditGoal: (goal: Goal) => void
   onManageCollections: (goal: Goal) => void
+  onManageActions?: (goal: Goal) => void
   onDeleteGoal: (goal: Goal) => void
   onTogglePublish: (goal: Goal) => void
 }
@@ -50,6 +53,7 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
   onNewGoal,
   onEditGoal,
   onManageCollections,
+  onManageActions,
   onDeleteGoal,
   onTogglePublish,
 }) => {
@@ -170,34 +174,92 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
       ),
     },
     {
+      key: 'actions',
+      label: 'Actions',
+      width: '130px',
+      align: 'center',
+      render: (goal) => {
+        const templates = goal.actionTemplates || []
+        const activeCount = templates.filter((t) => t.isActive !== false).length
+        return (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onManageActions?.(goal)
+            }}
+            className="btn btn-secondary"
+            style={{
+              padding: '4px 8px',
+              fontSize: '12px',
+              height: '28px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+            title="Manage Predefined Actions"
+          >
+            <ListChecks size={13} />
+            <span>
+              {activeCount}/{templates.length} active
+            </span>
+          </button>
+        )
+      },
+    },
+    {
       key: 'status',
       label: 'Status',
-      width: '130px',
-      render: (goal) => (
-        <button
-          onClick={(e) => {
-            e.stopPropagation()
-            onTogglePublish(goal)
-          }}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '4px 10px',
-            borderRadius: '20px',
-            fontSize: '12px',
-            fontWeight: 600,
-            background: goal.isPublished ? 'rgba(16, 185, 129, 0.1)' : 'rgba(100, 116, 139, 0.1)',
-            color: goal.isPublished ? '#10b981' : '#64748b',
-            border: 'none',
-            cursor: 'pointer',
-          }}
-          title="Click to toggle publish status"
-        >
-          {goal.isPublished ? <CheckCircle2 size={13} /> : <XCircle size={13} />}
-          <span>{goal.isPublished ? 'Published' : 'Draft'}</span>
-        </button>
-      ),
+      width: '140px',
+      render: (goal) => {
+        const isHousing = goal.category?.slug === 'housing'
+        const isActive = isHousing || (goal.status ? goal.status === 'PUBLISHED' : !!goal.isPublished)
+        if (isHousing) {
+          return (
+            <span
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+                padding: '4px 10px',
+                borderRadius: '20px',
+                fontSize: '12px',
+                fontWeight: 600,
+                background: 'rgba(16, 185, 129, 0.12)',
+                color: '#059669',
+              }}
+              title="Housing goals are always active"
+            >
+              <Lock size={12} />
+              <span>Always Active</span>
+            </span>
+          )
+        }
+        return (
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onTogglePublish(goal)
+            }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '4px 10px',
+              borderRadius: '20px',
+              fontSize: '12px',
+              fontWeight: 600,
+              background: isActive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(100, 116, 139, 0.1)',
+              color: isActive ? '#10b981' : '#64748b',
+              border: 'none',
+              cursor: 'pointer',
+            }}
+            title={isActive ? 'Click to disable goal' : 'Click to activate goal'}
+          >
+            {isActive ? <CheckCircle2 size={13} /> : <XCircle size={13} />}
+            <span>{isActive ? 'Active' : 'Disabled'}</span>
+          </button>
+        )
+      },
     },
     {
       key: 'sortOrder',
@@ -216,17 +278,30 @@ export const GoalsTab: React.FC<GoalsTabProps> = ({
       icon: <Edit2 size={14} />,
       onClick: () => onEditGoal(goal),
     },
+    ...(onManageActions
+      ? [
+          {
+            label: 'Manage Predefined Actions',
+            icon: <ListChecks size={14} />,
+            onClick: () => onManageActions(goal),
+          },
+        ]
+      : []),
     {
       label: 'Manage Collections & Offerings',
       icon: <LinkIcon size={14} />,
       onClick: () => onManageCollections(goal),
     },
-    {
-      label: 'Delete Goal',
-      icon: <Trash2 size={14} />,
-      danger: true,
-      onClick: () => onDeleteGoal(goal),
-    },
+    ...(goal.category?.slug === 'housing'
+      ? []
+      : [
+          {
+            label: 'Delete Goal',
+            icon: <Trash2 size={14} />,
+            danger: true,
+            onClick: () => onDeleteGoal(goal),
+          },
+        ]),
   ]
 
   return (

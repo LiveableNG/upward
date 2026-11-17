@@ -13,6 +13,7 @@ interface NavItem {
   icon: React.ComponentType<{ size?: number; strokeWidth?: number }>
   href: string
   requiresMyHome: boolean
+  hideOnDashboard?: boolean
   hideOnMyHome?: boolean
   hideOnPayRent?: boolean
   hideOnLifestyle?: boolean
@@ -28,6 +29,7 @@ const SIDE_NAV_ITEMS: readonly NavItem[] = [
     icon: Building2,
     href: '/dashboard/my-home',
     requiresMyHome: true,
+    hideOnDashboard: true,
     hideOnMyHome: true,
     hideOnPayRent: true,
     hideOnLifestyle: true,
@@ -35,7 +37,7 @@ const SIDE_NAV_ITEMS: readonly NavItem[] = [
     hideOnProfile: true,
   },
   {
-    label: 'Lifestyle',
+    label: 'Explore',
     icon: Compass,
     href: '/dashboard/lifestyle',
     requiresMyHome: false,
@@ -64,8 +66,14 @@ export function BottomNav() {
   const isActive = useCallback(
     (href: string) => {
       if (!pathname) return false
-      if (href === '/dashboard/my-home' || href === '/dashboard/lifestyle') {
+      if (href === '/dashboard/my-home') {
         return pathname === href || pathname.startsWith(`${href}/`)
+      }
+      if (href === '/dashboard/lifestyle') {
+        return (
+          pathname === '/dashboard/lifestyle' ||
+          pathname.startsWith('/dashboard/lifestyle/')
+        )
       }
       const normalizedPath = pathname.endsWith('/') ? pathname : `${pathname}/`
       const normalizedHref = href.endsWith('/') ? href : `${href}/`
@@ -80,14 +88,15 @@ export function BottomNav() {
   const isPayRentRoute =
     pathname === '/dashboard/pay-rent' || !!pathname?.startsWith('/dashboard/pay-rent/')
   const isLifestyleRoute =
-    pathname === '/dashboard/lifestyle' || !!pathname?.startsWith('/dashboard/lifestyle/')
+    pathname === '/dashboard/lifestyle' ||
+    !!pathname?.startsWith('/dashboard/lifestyle/')
   const isTransactionsRoute =
     pathname === '/dashboard/transactions' || !!pathname?.startsWith('/dashboard/transactions/')
   const isProfileRoute =
     pathname === '/dashboard/me' || !!pathname?.startsWith('/dashboard/me/')
 
   const items = SIDE_NAV_ITEMS.filter((item) => {
-    if ('hideOnDashboard' in item && item.hideOnDashboard) return false
+    if (item.hideOnDashboard && isDashboardHome) return false
     if ('hideOnMyHome' in item && item.hideOnMyHome && isMyHomeRoute) return false
     if ('hideOnPayRent' in item && item.hideOnPayRent && isPayRentRoute) return false
     if ('hideOnLifestyle' in item && item.hideOnLifestyle && isLifestyleRoute) return false

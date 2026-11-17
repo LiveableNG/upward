@@ -11,6 +11,7 @@ import {
 } from '../domains/rent-savings/rent-advance.repository'
 import { RentSavingsCalculatorEngine } from '../domains/rent-savings/rent-savings-calculator.engine'
 import { AssetManagementProviderRegistry } from '../infrastructure/providers/asset-management/asset-management-provider.registry'
+import { PlatformRatesService } from '../shared/infrastructure/common/platform-rates.service'
 
 @Injectable()
 export class RentSavingsScheduler {
@@ -23,6 +24,7 @@ export class RentSavingsScheduler {
     @Inject(RENT_ADVANCE_REPOSITORY)
     private readonly rentAdvanceRepo: IRentAdvanceRepository,
     private readonly providerRegistry: AssetManagementProviderRegistry,
+    private readonly platformRates: PlatformRatesService,
   ) {}
 
   /**
@@ -44,16 +46,17 @@ export class RentSavingsScheduler {
       this.logger.log(`Found ${activeVaults.length} active vaults for daily yield calculation.`)
 
       const armProvider = this.providerRegistry.getProvider('ARM')
-      let dailyYieldRate = 0.145 / 365
-      let annualRatePct = '14.5%'
+      const platformRates = await this.platformRates.getRates()
+      let dailyYieldRate = platformRates.savingsDailyRate
+      let annualRatePct = `${platformRates.savingsAnnualRatePct}%`
       try {
         const metrics = await armProvider.getYieldMetrics('ARMMMF')
-        if (metrics?.dailyYieldRate > 0) {
+        if (metrics?.dailyYieldRate > 0 && platformRates.savingsAnnualRatePct === 14.5) {
           dailyYieldRate = metrics.dailyYieldRate
           annualRatePct = `${(metrics.annualNetYieldRate * 100).toFixed(1)}%`
         }
       } catch (rateErr: any) {
-        this.logger.warn(`Could not fetch live ARM yield rate, using baseline: ${rateErr?.message}`)
+        this.logger.warn(`Could not fetch live ARM yield rate, using platform rate: ${rateErr?.message}`)
       }
 
       for (const vault of activeVaults) {

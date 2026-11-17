@@ -1,10 +1,12 @@
 'use client'
 
 import React, { useState } from 'react'
+import Link from 'next/link'
 import {
   TrendingUp,
   PlusCircle,
   ShieldCheck,
+  ChevronRight,
   ArrowRight,
   ArrowDownToLine,
   ArrowUpRight,
@@ -16,18 +18,30 @@ import {
 import { formatCurrency } from '@/lib/utils'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
+import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
 import { FundVaultModal } from './FundVaultModal'
-import type { VaultTransactionItem } from '../services/savingsService'
+import {
+  type SavingsCadence,
+  type SavingsPlanPattern,
+  type SavingsProductOption,
+  type VaultTransactionItem,
+} from '../services/savingsService'
 
 interface VaultDashboardViewProps {
   vault: {
     vault_id: string
     lock_status: string
+    cadence?: SavingsCadence
+    product_option?: SavingsProductOption
+    plan_pattern?: SavingsPlanPattern
+    is_rent_protec?: boolean
+    insurance_premium_pct?: number
     current_balance_kobo: number
     principal_kobo: number
     vault_principal_kobo?: number
     deposit_balance_kobo?: number
     accrued_yield_kobo: number
+    annual_yield_rate_pct?: number
     daily_yield_rate: number
     days_to_unlock: number
     days_remaining: number
@@ -35,6 +49,14 @@ interface VaultDashboardViewProps {
     target_completion_percentage: number
     contractual_due_date: string
     unlock_date: string
+    pay_less_projection?: {
+      cadence: 'DAILY' | 'WEEKLY' | 'MONTHLY'
+      periodic_deposit_kobo: number
+      number_of_payments: number
+      total_tenant_contribution_kobo: number
+      projected_yield_kobo: number
+      rent_discount_pct: number
+    } | null
     dedicated_account?: {
       bank_name: string
       account_number: string
@@ -60,9 +82,17 @@ interface VaultDashboardViewProps {
 }
 
 export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboardViewProps) {
-  const [showFundModal, setShowFundModal] = useState(false)
+  const isInitialPrompt = vault.current_balance_kobo === 0
+  const [showFundModal, setShowFundModal] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const dismissed = sessionStorage.getItem('upward_dismissed_initial_deposit_prompt')
+        return !dismissed && isInitialPrompt
+      } catch {}
+    }
+    return isInitialPrompt
+  })
   const [copiedAccount, setCopiedAccount] = useState(false)
-
   const { user } = useAuth()
   const { success: toastSuccess } = useToast()
   const [nowTimestamp] = useState(() => Date.now())
@@ -72,8 +102,6 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
   )
 
   const currentBalanceNaira = vault.current_balance_kobo / 100
-  const vaultPrincipalNaira = (vault.vault_principal_kobo ?? vault.principal_kobo) / 100
-  const depositBalanceNaira = (vault.deposit_balance_kobo ?? 0) / 100
   const targetAmountNaira = activeProperty?.rentAmount || vault.target_amount_kobo / 100
   const targetDueDate = activeProperty?.rentEndDate || vault.contractual_due_date
   const daysRemaining = targetDueDate
@@ -83,9 +111,10 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
       )
     : vault.days_remaining
 
-  const accruedYieldNaira = vault.accrued_yield_kobo / 100
-  const dailyRate = vault.daily_yield_rate || 0.145 / 365
-  const estimatedDailyAddNaira = currentBalanceNaira * dailyRate
+  const { rates: platformRates } = usePlatformRates()
+  const savingsAnnualRatePct =
+    vault.annual_yield_rate_pct ??
+    (vault.is_rent_protec ? platformRates.rentProtecRatePct : platformRates.savingsAnnualRatePct)
 
   const targetCompletionPercentage =
     targetAmountNaira > 0
@@ -123,10 +152,29 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
           <div className="vault-arm-badge">
             <ShieldCheck size={14} className="vault-arm-badge__icon" />
             <span>
-              Powered by <strong>Asset &amp; Resource Management Holding Company (ARM)</strong>
+              Powered by{' '}
+              <strong>
+                {platformRates.partnerName || 'Asset & Resource Management Holding Company (ARM)'}
+              </strong>
             </span>
           </div>
-          <span className="vault-dashboard__countdown-pill">{daysRemaining} Days Left</span>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            {vault.is_rent_protec && (
+              <span
+                style={{
+                  padding: '3px 8px',
+                  borderRadius: 999,
+                  background: '#ECFDF5',
+                  color: '#047857',
+                  fontSize: '0.6875rem',
+                  fontWeight: 700,
+                }}
+              >
+                Rent Protec • Protected
+              </span>
+            )}
+            <span className="vault-dashboard__countdown-pill">{daysRemaining} Days Left</span>
+          </div>
         </div>
 
         <div className="vault-dashboard__amounts">
@@ -152,32 +200,6 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
               className="vault-dashboard__progress-fill"
               style={{ width: `${Math.min(100, targetCompletionPercentage)}%` }}
             />
-          </div>
-        </div>
-
-        <div className="vault-dashboard__breakdown-grid">
-          <div className="vault-dashboard__breakdown-item">
-            <span className="vault-dashboard__breakdown-label">Principal</span>
-            <span className="vault-dashboard__breakdown-val">
-              {formatCurrency(vaultPrincipalNaira, 'NGN')}
-            </span>
-          </div>
-          {depositBalanceNaira > 0 && (
-            <div className="vault-dashboard__breakdown-item">
-              <span className="vault-dashboard__breakdown-label">Deposit Credit</span>
-              <span className="vault-dashboard__breakdown-val">
-                {formatCurrency(depositBalanceNaira, 'NGN')}
-              </span>
-            </div>
-          )}
-          <div className="vault-dashboard__breakdown-item">
-            <span className="vault-dashboard__breakdown-label">Returns (14.5% p.a.)</span>
-            <span className="vault-dashboard__breakdown-val vault-dashboard__breakdown-val--yield">
-              +{formatCurrency(accruedYieldNaira, 'NGN')}
-              <span className="vault-dashboard__yield-sub">
-                +{formatCurrency(estimatedDailyAddNaira, 'NGN')}/day
-              </span>
-            </span>
           </div>
         </div>
 
@@ -242,6 +264,7 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
         </div>
       )}
 
+      {/* Savings Score Card (Commented out)
       <div className="vault-score-card">
         <div className="vault-score-card__header">
           <div className="vault-score-card__title">
@@ -267,7 +290,16 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
             <div className="vault-score-card__metric-label">Target Progress</div>
           </div>
         </div>
+
+        <Link
+          href="/dashboard/score-breakdown"
+          className="vault-score-card__explainer"
+        >
+          <span>How savings activity contributes to your Upward Score</span>
+          <ChevronRight size={14} className="vault-score-card__explainer-chevron" />
+        </Link>
       </div>
+      */}
 
       <div className="vault-ledger">
         <div className="vault-ledger__header">
@@ -283,7 +315,7 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
         {transactions.length === 0 ? (
           <div className="vault-ledger__empty">
             No savings or deposit transactions yet. Transfer to your dedicated account to start
-            earning 14.5% p.a. daily interest.
+            earning {savingsAnnualRatePct}% p.a. daily interest.
           </div>
         ) : (
           <div className="vault-ledger__list">
@@ -342,7 +374,15 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
       <FundVaultModal
         isOpen={showFundModal}
         onClose={() => setShowFundModal(false)}
+        recommendedAmountNaira={targetAmountNaira > 0 ? Math.round(targetAmountNaira * 0.25) : 100_000}
+        cadence="MONTHLY"
         dedicatedAccount={vault.dedicated_account}
+        targetAmountNaira={targetAmountNaira}
+        daysRemaining={Math.max(1, daysRemaining - 30)}
+        annualRatePct={savingsAnnualRatePct}
+        productOption={vault.product_option || (vault.is_rent_protec ? 'RENT_PROTEC' : 'SAVE_AND_EARN')}
+        currentBalanceNaira={currentBalanceNaira}
+        isInitialDeposit={vault.current_balance_kobo === 0}
       />
     </div>
   )

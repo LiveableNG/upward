@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { readSavingsRentPlan, type SavingsRentPlan } from '@/features/savings/utils/savingsRentPlan'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import {
   ArrowRight,
@@ -58,6 +59,7 @@ export function RentalFormView() {
   const hasStartedRef = useRef(false)
   const hasViewedRef = useRef(false)
   const startDateInputRef = useRef<HTMLInputElement>(null)
+  const endDateInputRef = useRef<HTMLInputElement>(null)
 
   // Track RENTAL_DETAILS_VIEWED and exposure on mount
   useEffect(() => {
@@ -106,17 +108,16 @@ export function RentalFormView() {
   useEffect(() => {
     if (isEdit || hasPrefilledRef.current) return
 
-    let savingsPlan: { userId?: number; rentAmount?: number | string; dueDate?: string; address?: string } | null = null
-    if (typeof window !== 'undefined') {
-      try {
-        const raw = localStorage.getItem('upward_savings_rent_plan')
-        if (raw) {
-          const parsed = JSON.parse(raw)
-          if (!parsed.userId || (user?.id && parsed.userId === user.id)) {
-            savingsPlan = parsed
-          }
-        }
-      } catch {}
+    let savingsPlan: SavingsRentPlan | null = null
+    const storedPlan = readSavingsRentPlan()
+    if (
+      storedPlan &&
+      (!storedPlan.userId ||
+        !user?.id ||
+        String(storedPlan.userId) === String(user?.id) ||
+        String(storedPlan.userId) === String(user?.uuid))
+    ) {
+      savingsPlan = storedPlan
     }
 
     const patch: Partial<typeof draft.formData> = {}
@@ -177,17 +178,27 @@ export function RentalFormView() {
       }
     }
 
-    hasPrefilledRef.current = true
-
     if (needsUpdate) {
+      hasPrefilledRef.current = true
       updateDraft({
         formData: {
           ...draft.formData,
           ...patch,
         },
       })
+    } else if (draft.formData.rentAmount && draft.formData.rentAmount !== '0') {
+      hasPrefilledRef.current = true
     }
-  }, [isEdit, prefillData, user?.id, updateDraft])
+  }, [
+    isEdit,
+    prefillData,
+    user?.id,
+    user?.uuid,
+    draft.formData.rentAmount,
+    draft.formData.rentEndDate,
+    draft.formData.address,
+    updateDraft,
+  ])
 
   // Auto-calculate end date whenever tenancy parameters change
   useEffect(() => {
@@ -327,6 +338,25 @@ export function RentalFormView() {
       return
     }
     if (!validateTenancyStep()) return
+
+    if (typeof window !== 'undefined') {
+      try {
+        const rawAmount = parseFloat(draft.formData.rentAmount.replace(/,/g, '')) || 0
+        if (rawAmount > 0) {
+          localStorage.setItem(
+            'upward_savings_rent_plan',
+            JSON.stringify({
+              userId: user?.id,
+              source: 'user',
+              rentAmount: rawAmount,
+              dueDate: draft.formData.rentEndDate,
+              address: draft.formData.address,
+            }),
+          )
+        }
+      } catch {}
+    }
+
     setFormStep('manager')
   }
 
@@ -759,7 +789,7 @@ export function RentalFormView() {
                   <span>₦</span>
                   <input
                     type="text"
-                    placeholder="1,200,000"
+                    placeholder="e.g. 2,500,000"
                     value={draft.formData.rentAmount}
                     onChange={(e) => {
                       const val = e.target.value.replace(/\D/g, '')
@@ -770,6 +800,136 @@ export function RentalFormView() {
                         },
                       })
                     }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Tenancy Start & Due Dates - Placed right alongside Rent Amount so both are immediately visible! */}
+            <div className="setup-page__field-row" style={{ marginTop: 12 }}>
+              <div className="setup-page__field">
+                <label>
+                  {draft.formData.tenancyStatus === 'ALREADY_PAID'
+                    ? 'Period paid starts'
+                    : draft.formData.tenancyStatus === 'PAYING_BALANCE'
+                      ? 'Current cycle starts'
+                      : 'Tenancy period starts'}
+                </label>
+                <div
+                  className={`setup-page__date-picker ${draft.formData.rentStartDate ? 'has-value' : ''}`}
+                  onClick={() => {
+                    try {
+                      startDateInputRef.current?.showPicker?.()
+                    } catch {
+                      startDateInputRef.current?.focus()
+                    }
+                  }}
+                >
+                  <div className="setup-page__date-picker__left">
+                    <Calendar size={16} className="setup-page__date-picker__icon" />
+                    <span
+                      className={`setup-page__date-picker__text ${
+                        !draft.formData.rentStartDate ? 'setup-page__date-picker__text--placeholder' : ''
+                      }`}
+                    >
+                      {draft.formData.rentStartDate
+                        ? formatDisplayDate(draft.formData.rentStartDate)
+                        : 'Select start date'}
+                    </span>
+                  </div>
+
+                  <div className="setup-page__date-picker__right">
+                    <span className="setup-page__date-picker__badge">
+                      <Calendar size={12} />
+                      <span>Pick</span>
+                    </span>
+                  </div>
+
+                  <input
+                    ref={startDateInputRef}
+                    className="setup-page__date-picker__native"
+                    type="date"
+                    value={draft.formData.rentStartDate}
+                    onChange={(e) => {
+                      const rentStartDate = toDateInputValue(e.target.value)
+                      const computedEnd = calculateRentEndDate(
+                        rentStartDate,
+                        draft.formData.rentType || 'Annually',
+                        draft.formData.leaseDuration || '1',
+                        draft.formData.leaseUnit || 'years',
+                      )
+                      updateDraft({
+                        formData: {
+                          ...draft.formData,
+                          rentStartDate,
+                          rentEndDate: computedEnd,
+                        },
+                      })
+                    }}
+                    aria-label="Tenancy period start date"
+                  />
+                </div>
+              </div>
+
+              <div className="setup-page__field">
+                <label>
+                  {draft.formData.tenancyStatus === 'ALREADY_PAID'
+                    ? 'Period paid ends'
+                    : draft.formData.tenancyStatus === 'PAYING_BALANCE'
+                      ? 'Current cycle due date'
+                      : 'Next rent due date'}
+                </label>
+                <div
+                  className={`setup-page__date-picker ${draft.formData.rentEndDate ? 'has-value' : ''}`}
+                  onClick={() => {
+                    try {
+                      endDateInputRef.current?.showPicker?.()
+                    } catch {
+                      endDateInputRef.current?.focus()
+                    }
+                  }}
+                >
+                  <div className="setup-page__date-picker__left">
+                    <Calendar size={16} className="setup-page__date-picker__icon" />
+                    <span
+                      className={`setup-page__date-picker__text ${
+                        !draft.formData.rentEndDate ? 'setup-page__date-picker__text--placeholder' : ''
+                      }`}
+                    >
+                      {draft.formData.rentEndDate
+                        ? formatDisplayDate(draft.formData.rentEndDate)
+                        : 'Select due date'}
+                    </span>
+                  </div>
+
+                  <div className="setup-page__date-picker__right">
+                    <span className="setup-page__date-picker__badge">
+                      <Calendar size={12} />
+                      <span>Pick</span>
+                    </span>
+                  </div>
+
+                  <input
+                    ref={endDateInputRef}
+                    className="setup-page__date-picker__native"
+                    type="date"
+                    value={draft.formData.rentEndDate}
+                    onChange={(e) => {
+                      const rentEndDate = toDateInputValue(e.target.value)
+                      const computedStart = new Date(
+                        new Date(rentEndDate).getTime() - 365 * 24 * 60 * 60 * 1000,
+                      )
+                        .toISOString()
+                        .split('T')[0]
+                      updateDraft({
+                        formData: {
+                          ...draft.formData,
+                          rentEndDate,
+                          rentStartDate: draft.formData.rentStartDate || computedStart,
+                        },
+                      })
+                    }}
+                    aria-label="Next rent due date"
                   />
                 </div>
               </div>
@@ -1000,101 +1160,6 @@ export function RentalFormView() {
                 )}
               </div>
             )}
-
-            {/* Dynamic Date Labels */}
-            <div className="setup-page__field-row" style={{ marginTop: 14 }}>
-              <div className="setup-page__field">
-                <label>
-                  {draft.formData.tenancyStatus === 'ALREADY_PAID'
-                    ? 'Period paid starts'
-                    : draft.formData.tenancyStatus === 'PAYING_BALANCE'
-                      ? 'Current cycle starts'
-                      : 'Tenancy period starts'}
-                </label>
-                <div
-                  className={`setup-page__date-picker ${draft.formData.rentStartDate ? 'has-value' : ''}`}
-                  onClick={() => {
-                    try {
-                      startDateInputRef.current?.showPicker?.()
-                    } catch {
-                      startDateInputRef.current?.focus()
-                    }
-                  }}
-                >
-                  <div className="setup-page__date-picker__left">
-                    <Calendar size={16} className="setup-page__date-picker__icon" />
-                    <span
-                      className={`setup-page__date-picker__text ${
-                        !draft.formData.rentStartDate ? 'setup-page__date-picker__text--placeholder' : ''
-                      }`}
-                    >
-                      {draft.formData.rentStartDate
-                        ? formatDisplayDate(draft.formData.rentStartDate)
-                        : 'Select start date (DD/MM/YYYY)'}
-                    </span>
-                  </div>
-
-                  <div className="setup-page__date-picker__right">
-                    <span className="setup-page__date-picker__badge">
-                      <Calendar size={12} />
-                      <span>Pick</span>
-                    </span>
-                  </div>
-
-                  <input
-                    ref={startDateInputRef}
-                    className="setup-page__date-picker__native"
-                    type="date"
-                    value={draft.formData.rentStartDate}
-                    onChange={(e) => {
-                      const rentStartDate = toDateInputValue(e.target.value)
-                      const computedEnd = calculateRentEndDate(
-                        rentStartDate,
-                        draft.formData.rentType || 'Annually',
-                        draft.formData.leaseDuration || '1',
-                        draft.formData.leaseUnit || 'years'
-                      )
-                      updateDraft({
-                        formData: {
-                          ...draft.formData,
-                          rentStartDate,
-                          rentEndDate: computedEnd,
-                        },
-                      })
-                    }}
-                    aria-label="Tenancy period start date"
-                  />
-                </div>
-              </div>
-              <div className="setup-page__field">
-                <label>
-                  {draft.formData.tenancyStatus === 'ALREADY_PAID'
-                    ? 'Period paid ends'
-                    : draft.formData.tenancyStatus === 'PAYING_BALANCE'
-                      ? 'Current cycle due date'
-                      : 'Next rent due date'}
-                </label>
-                <div className="setup-page__date-display">
-                  <div className="setup-page__date-picker__left">
-                    <Calendar size={16} className="setup-page__date-picker__icon" style={{ opacity: 0.6 }} />
-                    <span
-                      className={`setup-page__date-picker__text ${
-                        !draft.formData.rentEndDate ? 'setup-page__date-picker__text--placeholder' : ''
-                      }`}
-                    >
-                      {draft.formData.rentEndDate
-                        ? formatDisplayDate(draft.formData.rentEndDate)
-                        : 'Calculated automatically'}
-                    </span>
-                  </div>
-                  <div className="setup-page__date-picker__right">
-                    <span className="setup-page__date-display__badge">
-                      <Lock size={10} /> Auto
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
 
             {/* Tenancy Context Callout */}
             <div

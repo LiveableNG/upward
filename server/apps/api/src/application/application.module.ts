@@ -13,6 +13,7 @@ import { EncryptionService } from '../shared/infrastructure/common/encryption.se
 import { KYCModule } from '../shared/infrastructure/common/kyc/kyc.module'
 import { UnifiedReminderService } from '../shared/infrastructure/common/reminder.service'
 import { PaymentConfigurationService } from '../shared/infrastructure/common/payment-config.service'
+import { PlatformRatesService } from '../shared/infrastructure/common/platform-rates.service'
 import { RentalPeriodService } from './services/rental-period.service'
 
 // Goal Domain Use Cases
@@ -23,10 +24,14 @@ import { GetUserGoalsUseCase } from './goals/use-cases/get-user-goals.use-case'
 import { SetUserGoalsUseCase } from './goals/use-cases/set-user-goals.use-case'
 import { UpdateUserGoalUseCase } from './goals/use-cases/update-user-goal.use-case'
 import { RemoveUserGoalUseCase } from './goals/use-cases/remove-user-goal.use-case'
+import { CreateCustomGoalUseCase } from './goals/use-cases/create-custom-goal.use-case'
+import { ToggleGoalActionUseCase } from './goals/use-cases/toggle-goal-action.use-case'
+import { SubmitGoalQuestionnaireUseCase } from './goals/use-cases/submit-goal-questionnaire.use-case'
 import { GetOfferingsUseCase } from './goals/use-cases/get-offerings.use-case'
 import { GetOfferingDetailUseCase } from './goals/use-cases/get-offering-detail.use-case'
 import { AdminManageCategoriesUseCase } from './goals/use-cases/admin/admin-manage-categories.use-case'
 import { AdminManageGoalsUseCase } from './goals/use-cases/admin/admin-manage-goals.use-case'
+import { AdminManageActionTemplatesUseCase } from './goals/use-cases/admin/admin-manage-action-templates.use-case'
 import { AdminManageCollectionsUseCase } from './goals/use-cases/admin/admin-manage-collections.use-case'
 import { AdminManageOfferingsUseCase } from './goals/use-cases/admin/admin-manage-offerings.use-case'
 import { AdminManageVendorsUseCase } from './goals/use-cases/admin/admin-manage-vendors.use-case'
@@ -519,6 +524,11 @@ import {
   ActivateBenefitsSubscriptionUseCase,
   ConfirmBenefitsPaymentUseCase,
 } from './use-cases/payments/benefits-subscription.use-cases'
+import {
+  GetUserInsuranceEnrolmentsUseCase,
+  InitializeInsuranceEnrolmentUseCase,
+  ConfirmInsuranceEnrolmentUseCase,
+} from './use-cases/payments/insurance-enrolment.use-cases'
 import { VerifyGatewayTransactionUseCase } from './use-cases/payments/verify-transaction.use-case'
 import { DistributePaymentAllocationsUseCase } from './use-cases/payments/distribute-allocations.use-case'
 import { SyncPmPaymentStatusUseCase } from './use-cases/payments/sync-pm-status.use-case'
@@ -886,6 +896,9 @@ const UseCases: any[] = [
   InitializeBenefitsPaymentUseCase,
   ActivateBenefitsSubscriptionUseCase,
   ConfirmBenefitsPaymentUseCase,
+  GetUserInsuranceEnrolmentsUseCase,
+  InitializeInsuranceEnrolmentUseCase,
+  ConfirmInsuranceEnrolmentUseCase,
 
   UploadContractUseCase,
   GetContractUploadUrlUseCase,
@@ -1150,10 +1163,14 @@ const UseCases: any[] = [
   SetUserGoalsUseCase,
   UpdateUserGoalUseCase,
   RemoveUserGoalUseCase,
+  CreateCustomGoalUseCase,
+  ToggleGoalActionUseCase,
+  SubmitGoalQuestionnaireUseCase,
   GetOfferingsUseCase,
   GetOfferingDetailUseCase,
   AdminManageCategoriesUseCase,
   AdminManageGoalsUseCase,
+  AdminManageActionTemplatesUseCase,
   AdminManageCollectionsUseCase,
   AdminManageOfferingsUseCase,
   AdminManageVendorsUseCase,
@@ -1242,6 +1259,7 @@ import { PrismaModule } from '../shared/infrastructure/prisma/prisma.module'
     PrismaDeviceTokenRepository,
     UnifiedReminderService,
     PaymentConfigurationService,
+    PlatformRatesService,
     RentalPeriodService,
     QueueDailySequencesUseCase,
     GetQueuedSequencesUseCase,
@@ -1278,6 +1296,7 @@ import { PrismaModule } from '../shared/infrastructure/prisma/prisma.module'
     PrismaDeviceTokenRepository,
     UnifiedReminderService,
     PaymentConfigurationService,
+    PlatformRatesService,
     RentalPeriodService,
     QueueDailySequencesUseCase,
     GetQueuedSequencesUseCase,

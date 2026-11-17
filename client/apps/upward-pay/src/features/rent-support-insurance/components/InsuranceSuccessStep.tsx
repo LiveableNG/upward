@@ -13,7 +13,9 @@ interface InsuranceSuccessStepProps {
 
 export function InsuranceSuccessStep({ enrolment, onDone }: InsuranceSuccessStepProps) {
   const annualRent = parseAnnualRent(enrolment.form.annualRent)
-  const premium = calculateAnnualPremium(annualRent)
+  const ratePct = enrolment.premiumRatePct ?? 2
+  const premium = enrolment.premiumPaid || calculateAnnualPremium(annualRent, ratePct)
+  const isPaid = enrolment.status === 'active' || Boolean(enrolment.paymentReference)
 
   return (
     <div className="rsi-flow">
@@ -21,10 +23,13 @@ export function InsuranceSuccessStep({ enrolment, onDone }: InsuranceSuccessStep
         <div className="rsi-flow__success-icon">
           <CheckCircle2 size={32} />
         </div>
-        <h2 className="rsi-flow__success-title">Enrolment submitted</h2>
+        <h2 className="rsi-flow__success-title">
+          {isPaid ? 'Insurance cover activated' : 'Enrolment submitted'}
+        </h2>
         <p className="rsi-flow__success-desc">
-          Your {RSI_PRODUCT_NAME} enrolment has been received. Cover is not active yet — your
-          landlord must complete premium payment before the policy incepts.
+          {isPaid
+            ? `Your ${RSI_PRODUCT_NAME} ${ratePct}% annual premium (${formatCurrency(premium)}) has been paid and your cover is now active.`
+            : `Your ${RSI_PRODUCT_NAME} enrolment has been received.`}
         </p>
       </div>
 
@@ -44,9 +49,15 @@ export function InsuranceSuccessStep({ enrolment, onDone }: InsuranceSuccessStep
             <dd>{formatCurrency(annualRent)}</dd>
           </div>
           <div className="rsi-flow__summary-row">
-            <dt>Annual premium</dt>
+            <dt>Annual premium ({ratePct}%)</dt>
             <dd>{formatCurrency(premium)}</dd>
           </div>
+          {enrolment.paymentReference ? (
+            <div className="rsi-flow__summary-row">
+              <dt>Reference</dt>
+              <dd>{enrolment.paymentReference}</dd>
+            </div>
+          ) : null}
           <div className="rsi-flow__summary-row">
             <dt>Rent start date</dt>
             <dd>{formatDate(enrolment.form.rentStartDate)}</dd>
@@ -58,7 +69,9 @@ export function InsuranceSuccessStep({ enrolment, onDone }: InsuranceSuccessStep
           <div className="rsi-flow__summary-row">
             <dt>Status</dt>
             <dd>
-              <span className="rsi-flow__status-pill">Pending activation</span>
+              <span className="rsi-flow__status-pill">
+                {isPaid ? 'Active' : 'Pending activation'}
+              </span>
             </dd>
           </div>
         </dl>

@@ -114,8 +114,9 @@ export class SendCommerceReceiptEmailUseCase {
       ; (order.subOrders || []).forEach((sub) => {
         ; (sub.items || []).forEach((item) => {
           const snap = (item.snapshotData as any) || {}
+          const off = (item as any).offering
           lineItems.push({
-            title: snap.title || snap.name || `Offering #${item.offeringId}`,
+            title: snap.title || snap.name || off?.title || `Offering #${item.offeringId}`,
             offeringType: item.offeringType,
             quantity: item.quantity,
             unitPriceKobo: item.unitPriceKobo,

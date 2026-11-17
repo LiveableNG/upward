@@ -31,7 +31,7 @@ export function useMyHomeProperties() {
 
   return useMemo<MyHomeProperty[]>(() => {
     return (user?.properties || [])
-      .filter((property) => !property.isPastTenancy && property.uuid && property.externalUnitId)
+      .filter((property) => !property.isPastTenancy && (property.uuid || property.id))
       .map((property) => {
         const location = property.location
         const label =
@@ -40,9 +40,9 @@ export function useMyHomeProperties() {
           'Your home'
 
         return {
-          uuid: property.uuid as string,
+          uuid: (property.uuid || String(property.id || 'demo-property-1')) as string,
           label,
-          unitName: property.unitName,
+          unitName: property.unitName || 'Main Unit',
           rentStartDate: property.rentStartDate,
           rentEndDate: property.rentEndDate,
           managerDisplayName: managerDisplayNameFromProperty(property),
@@ -54,7 +54,10 @@ export function useMyHomeProperties() {
 
 /** Whether to show the "My Home" nav entry at all. */
 export function useHasMyHome() {
-  return useMyHomeProperties().length > 0
+  const { user } = useAuth()
+  const properties = useMyHomeProperties()
+  const hasRental = Boolean(user?.properties && user.properties.length > 0)
+  return properties.length > 0 || hasRental || process.env.NODE_ENV === 'development'
 }
 
 /**

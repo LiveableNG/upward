@@ -31,6 +31,13 @@ export class PrismaRentVaultRepository implements IRentVaultRepository {
         unlockDate: data.unlockDate,
         lockStatus: data.lockStatus ?? 'LOCKED',
         preferredFundingMethod: data.preferredFundingMethod,
+        productOption: data.productOption ?? 'SAVE_AND_EARN',
+        planPattern: data.planPattern ?? 'INITIAL_DEPOSIT',
+        initialDepositKobo: data.initialDepositKobo ?? 0n,
+        appliedAnnualRatePct:
+          data.appliedAnnualRatePct ?? (data.productOption === 'RENT_PROTEC' ? 10.0 : 14.0),
+        insurancePremiumPct:
+          data.insurancePremiumPct ?? (data.productOption === 'RENT_PROTEC' ? 2.0 : 0.0),
         paydayDayOfMonth: data.paydayDayOfMonth ?? null,
         cardAuthorizationCode: data.cardAuthorizationCode ?? null,
         dvaBankName: data.dvaBankName ?? null,

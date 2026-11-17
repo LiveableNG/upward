@@ -55,6 +55,9 @@ export interface TenantOrderItemDto {
   offeringId?: number | null
   offeringType: string
   quantity: number
+  title?: string
+  thumbnailUrl?: string | null
+  imageUrl?: string | null
   unitPriceKobo: string
   totalPriceKobo: string
   snapshotData: Record<string, any>
@@ -108,6 +111,7 @@ export interface TenantOrderSummaryDto {
   subOrderCount: number
   subOrdersCount?: number
   itemsCount?: number
+  totalQuantity?: number
   itemsPreview?: Array<{
     title: string
     thumbnailUrl?: string | null

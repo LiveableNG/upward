@@ -8,6 +8,8 @@ import type {
   OfferingListQuery,
   SetUserGoalsData,
   UpdateUserGoalData,
+  CreateCustomGoalInput,
+  SubmitQuestionnaireInput,
   PaginationMeta,
 } from '../types/goals.types'
 
@@ -120,15 +122,54 @@ export async function updateUserGoal(
 }
 
 export async function removeUserGoal(
-  goalId: number,
+  identifier: number | string,
 ): Promise<{ success: boolean; message: string }> {
   const res = await request<{ success: boolean; message: string }>(
-    `/user/goals/${goalId}`,
+    `/user/goals/${identifier}`,
     {
       method: 'DELETE',
     },
   )
   return res
+}
+
+export async function createCustomGoal(
+  data: CreateCustomGoalInput,
+): Promise<UserGoal> {
+  const res = await request<{ data: UserGoal; message: string }>(
+    '/user/goals/custom',
+    {
+      method: 'POST',
+      body: JSON.stringify(data),
+    },
+  )
+  return res.data
+}
+
+export async function submitGoalQuestionnaire(
+  data: SubmitQuestionnaireInput,
+): Promise<UserGoal> {
+  const res = await request<{ data: UserGoal; message: string }>(
+    '/user/goals/questionnaire',
+    {
+      method: 'POST',
+      body: JSON.stringify(data),
+    },
+  )
+  return res.data
+}
+
+export async function toggleGoalAction(
+  goalUuid: string,
+  actionId: string,
+): Promise<UserGoal> {
+  const res = await request<{ data: UserGoal; message: string }>(
+    `/user/goals/${goalUuid}/actions/${actionId}/toggle`,
+    {
+      method: 'PATCH',
+    },
+  )
+  return res.data
 }
 
 export interface DeliveryZoneConfig {

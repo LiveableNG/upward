@@ -19,7 +19,9 @@ import {
 
 interface InsuranceEnrolmentFormProps {
   initialData: RsiEnrolmentFormData
-  onSubmit: (data: RsiEnrolmentFormData) => void
+  premiumRatePct?: number
+  submitting?: boolean
+  onSubmit: (data: RsiEnrolmentFormData) => void | Promise<void>
 }
 
 function Field({
@@ -45,13 +47,15 @@ function Field({
 
 export function InsuranceEnrolmentForm({
   initialData,
+  premiumRatePct = 2,
+  submitting = false,
   onSubmit,
 }: InsuranceEnrolmentFormProps) {
   const toast = useToast()
   const [form, setForm] = useState<RsiEnrolmentFormData>(initialData)
 
   const annualRent = parseAnnualRent(form.annualRent)
-  const premium = calculateAnnualPremium(annualRent)
+  const premium = calculateAnnualPremium(annualRent, premiumRatePct)
   const rentCapped = annualRent > RSI_MAX_SUM_ASSURED
 
   const selectedEmployment = EMPLOYMENT_TYPE_OPTIONS.find(
@@ -293,15 +297,19 @@ export function InsuranceEnrolmentForm({
 
         {annualRent > 0 ? (
           <div className="rsi-flow__premium-box">
-            <span>Estimated annual premium (paid by landlord)</span>
+            <span>Annual insurance premium ({premiumRatePct}% of annual rent)</span>
             <strong>{formatCurrency(premium)}</strong>
           </div>
         ) : null}
       </section>
 
       <div className="rsi-flow__step-cta">
-        <button type="submit" className="pay-flow__cta">
-          Submit enrolment
+        <button type="submit" className="pay-flow__cta" disabled={submitting}>
+          {submitting
+            ? 'Processing payment…'
+            : premium > 0
+              ? `Pay ${formatCurrency(premium)} & enrol`
+              : 'Pay & enrol'}
         </button>
       </div>
     </form>

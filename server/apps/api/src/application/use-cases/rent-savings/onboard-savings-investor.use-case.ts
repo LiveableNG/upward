@@ -1,4 +1,4 @@
-import { Injectable, Inject, Logger, BadRequestException, NotFoundException } from '@nestjs/common'
+import { Injectable, Inject, Logger, BadRequestException, NotFoundException, Optional } from '@nestjs/common'
 import { IsEmail, IsIn, IsNotEmpty, IsNumber, IsOptional, IsString, Matches } from 'class-validator'
 import { Type } from 'class-transformer'
 import * as crypto from 'crypto'
@@ -12,6 +12,7 @@ import {
   ASSET_MANAGEMENT_PROVIDER,
 } from '../../../domains/rent-savings/asset-management.provider'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
+import { PlatformRatesService } from '../../../shared/infrastructure/common/platform-rates.service'
 
 export class OnboardSavingsInvestorDto {
   @IsOptional()
@@ -79,6 +80,23 @@ export class OnboardSavingsInvestorDto {
   @IsOptional()
   @IsString()
   rent_due_date?: string
+
+  @IsOptional()
+  @IsIn(['DAILY', 'WEEKLY', 'MONTHLY', 'QUARTERLY'])
+  cadence?: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY'
+
+  @IsOptional()
+  @IsIn(['SAVE_AND_EARN', 'RENT_PROTEC'])
+  product_option?: 'SAVE_AND_EARN' | 'RENT_PROTEC'
+
+  @IsOptional()
+  @IsIn(['EQUAL', 'INITIAL_DEPOSIT', 'STEP_UP', 'ACCELERATED'])
+  plan_pattern?: 'EQUAL' | 'INITIAL_DEPOSIT' | 'STEP_UP' | 'ACCELERATED'
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  initial_deposit_kobo?: number
 }
 
 function cleanName(name: string): string {
@@ -144,6 +162,7 @@ export class OnboardSavingsInvestorUseCase {
     @Inject(PAYMENT_GATEWAY) private readonly paymentGateway: IPaymentGateway,
     @Inject(ASSET_MANAGEMENT_PROVIDER)
     private readonly assetManagementProvider: IAssetManagementProvider,
+    @Optional() private readonly platformRates?: PlatformRatesService,
   ) {}
 
   async getOnboardingPrefill(userId: number) {
@@ -231,22 +250,15 @@ export class OnboardSavingsInvestorUseCase {
         : null) ||
       null
 
-    const defaultRentAmount = 2400000
-    const defaultDueDate = new Date(Date.now() + 343 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .split('T')[0]
-
     const effectiveTargetRent = latestVault
       ? Number(latestVault.targetAmountKobo) / 100
-      : activeProp?.rentAmount || (latestKyc?.status === 'VERIFIED' ? defaultRentAmount : null)
+      : activeProp?.rentAmount || null
 
     const effectiveDueDate = latestVault?.contractualDueDate
       ? new Date(latestVault.contractualDueDate).toISOString().split('T')[0]
       : activeProp?.rentEndDate
         ? new Date(activeProp.rentEndDate).toISOString().split('T')[0]
-        : latestKyc?.status === 'VERIFIED'
-          ? defaultDueDate
-          : null
+        : null
 
     return {
       status: 'success',
@@ -303,18 +315,7 @@ export class OnboardSavingsInvestorUseCase {
                 landlord_bank_name: null,
                 landlord_account_number: null,
               }
-            : latestKyc?.status === 'VERIFIED'
-              ? {
-                  uuid: 'savings-draft',
-                  rent_amount: defaultRentAmount,
-                  rent_end_date: defaultDueDate,
-                  address: latestKyc.nextOfKinAddress || null,
-                  landlord_name: null,
-                  landlord_bank_code: null,
-                  landlord_bank_name: null,
-                  landlord_account_number: null,
-                }
-              : null,
+            : null,
       },
     }
   }
@@ -423,6 +424,7 @@ export class OnboardSavingsInvestorUseCase {
 
     await this.userRepository.update(userId, {
       isIdentityVerified: true,
+      savingsWalletEnabled: true,
       ...(user.dateOfBirth ? {} : returnedDob ? { dateOfBirth: returnedDob } : {}),
       ...(user.gender ? {} : normalizedGender ? { gender: normalizedGender } : {}),
     })
@@ -560,16 +562,14 @@ export class OnboardSavingsInvestorUseCase {
         })
       : null
 
-    const resolvedRent =
-      dto.target_amount ||
-      activeProperty?.rentAmount ||
-      2400000
-
-    const resolvedDueDate = dto.rent_due_date
-      ? new Date(dto.rent_due_date)
-      : activeProperty?.rentEndDate
-        ? new Date(activeProperty.rentEndDate)
-        : new Date(Date.now() + 343 * 24 * 60 * 60 * 1000)
+    const resolvedRent = dto.target_amount || activeProperty?.rentAmount
+    const resolvedDueDateRaw = dto.rent_due_date || activeProperty?.rentEndDate
+    if (!resolvedRent || !resolvedDueDateRaw) {
+      throw new BadRequestException(
+        'Rent amount and rent due date are required to start saving.',
+      )
+    }
+    const resolvedDueDate = new Date(resolvedDueDateRaw)
 
     const resolvedUnlockDate = new Date(resolvedDueDate.getTime() - 30 * 24 * 60 * 60 * 1000)
 
@@ -599,6 +599,23 @@ export class OnboardSavingsInvestorUseCase {
         )
       }
 
+      if (dto.cadence) {
+        updateData.cadence = dto.cadence
+      }
+      const platformRates = this.platformRates ? await this.platformRates.getRates() : null
+      const chosenOption = dto.product_option || 'SAVE_AND_EARN'
+      updateData.productOption = chosenOption
+      updateData.planPattern = dto.plan_pattern || 'INITIAL_DEPOSIT'
+      if (dto.initial_deposit_kobo !== undefined) {
+        updateData.initialDepositKobo = BigInt(Math.max(0, Math.round(dto.initial_deposit_kobo)))
+      }
+      updateData.appliedAnnualRatePct =
+        chosenOption === 'RENT_PROTEC'
+          ? (platformRates?.rentProtecRatePct ?? 10.0)
+          : (platformRates?.savingsAnnualRatePct ?? 14.0)
+      updateData.insurancePremiumPct =
+        chosenOption === 'RENT_PROTEC' ? (platformRates?.insurancePremiumPct ?? 2.0) : 0
+
       await this.prisma.upward_rent_vault.update({
         where: { id: activeVault.id },
         data: updateData,
@@ -609,6 +626,8 @@ export class OnboardSavingsInvestorUseCase {
     } else {
       // Auto-provision rent vault for the verified investor
       const targetAmountKobo = BigInt(Math.round(resolvedRent * 100))
+      const platformRates = this.platformRates ? await this.platformRates.getRates() : null
+      const chosenOption = dto.product_option || 'SAVE_AND_EARN'
 
       const newVault = await this.prisma.upward_rent_vault.create({
         data: {
@@ -616,7 +635,18 @@ export class OnboardSavingsInvestorUseCase {
           targetAmountKobo,
           currentPrincipalKobo: 0n,
           accruedYieldKobo: 0n,
-          cadence: 'MONTHLY',
+          cadence: dto.cadence || 'MONTHLY',
+          productOption: chosenOption,
+          planPattern: dto.plan_pattern || 'INITIAL_DEPOSIT',
+          initialDepositKobo: dto.initial_deposit_kobo
+            ? BigInt(Math.max(0, Math.round(dto.initial_deposit_kobo)))
+            : 0n,
+          appliedAnnualRatePct:
+            chosenOption === 'RENT_PROTEC'
+              ? (platformRates?.rentProtecRatePct ?? 10.0)
+              : (platformRates?.savingsAnnualRatePct ?? 14.0),
+          insurancePremiumPct:
+            chosenOption === 'RENT_PROTEC' ? (platformRates?.insurancePremiumPct ?? 2.0) : 0,
           contractualDueDate: resolvedDueDate,
           unlockDate: resolvedUnlockDate,
           lockStatus: 'LOCKED',

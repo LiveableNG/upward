@@ -126,6 +126,12 @@ export class CreateCommerceOrderUseCase {
         deliveryZones: offering.deliveryZones,
         leadTimeDays: offering.leadTimeDays,
         status: offering.status,
+        imageUrl:
+          offering.media?.find((m) => m.isPrimary)?.mediaUrl ||
+          offering.media?.[0]?.mediaUrl ||
+          offering.promoCoverImage ||
+          null,
+        media: offering.media?.map((m) => ({ mediaUrl: m.mediaUrl!, isPrimary: m.isPrimary })),
         vendor: offering.vendor,
         packageItems: offering.packageItems?.map((pi) => ({
           componentId: pi.componentId,

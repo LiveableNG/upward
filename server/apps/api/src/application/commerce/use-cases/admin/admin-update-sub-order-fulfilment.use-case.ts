@@ -391,6 +391,11 @@ export class AdminUpdateSubOrderFulfilmentUseCase {
           if (!tenantEmail || tenantEmail.endsWith('@upward.com')) return
 
           const trackingUrl = `${this.frontendUrl}/dashboard/lifestyle/orders/${order.uuid}`
+          const subOrderItemsHtml = (subOrder.items || []).map((it) => {
+            const snap = (it.snapshotData as any) || {}
+            return `<li style="font-size: 13px; color: #444444; margin-bottom: 4px;">${it.quantity}x ${snap.title || snap.name || `Offering #${it.offeringId}`}</li>`
+          }).join('')
+
           const html = `
             <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; color: #1E1B18; line-height: 1.5;">
               <div style="background-color: #B65B37; height: 6px; width: 100%;"></div>
@@ -401,6 +406,16 @@ export class AdminUpdateSubOrderFulfilmentUseCase {
                   <div style="font-size: 14px; font-weight: 600; color: #1E1B18; margin-bottom: 6px;">${eventTitle}</div>
                   <div style="font-size: 13.5px; color: #555555;">${eventDescription}</div>
                   ${dispatchData.carrierName && dispatchData.trackingNumber ? `<div style="margin-top: 10px; font-size: 12.5px; color: #888888;">Carrier: ${dispatchData.carrierName} · Tracking: ${dispatchData.trackingNumber}</div>` : ''}
+                  ${subOrderItemsHtml ? `
+                    <div style="margin-top: 14px; padding-top: 12px; border-top: 1px dashed #E5E2DC;">
+                      <div style="font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #8A8275; margin-bottom: 6px;">
+                        Items in this shipment (${subOrder.vendor?.name || 'Vendor'}):
+                      </div>
+                      <ul style="margin: 0 0 0 16px; padding: 0;">
+                        ${subOrderItemsHtml}
+                      </ul>
+                    </div>
+                  ` : ''}
                 </div>
                 <div style="text-align: center; margin: 24px 0;">
                   <a href="${trackingUrl}" style="background-color: #B65B37; color: #FFFFFF; text-decoration: none; font-weight: 700; font-size: 14px; padding: 12px 24px; border-radius: 8px; display: inline-block;">

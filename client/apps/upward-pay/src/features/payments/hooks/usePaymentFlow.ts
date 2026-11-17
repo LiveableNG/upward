@@ -231,13 +231,22 @@ export function usePaymentFlow(
           )
         }
 
-        if ((res.data.payment.status === 'PAID' || due <= 0) && step !== 'success') {
-          setStep(prev => (prev === 'success' ? 'success' : 'already-paid'))
+        if (res.data.payment.status === 'PAID' || due <= 0) {
+          setStep(prev =>
+            prev === 'success' || prev === 'onboarding' || prev === 'processing'
+              ? prev
+              : 'already-paid',
+          )
         } else if (res.data.payment.status === 'CANCELLED') {
           setStep('cancelled')
         } else {
           setStep(prev => {
-            if (prev === 'success' || prev === 'onboarding' || prev === 'already-paid') {
+            if (
+              prev === 'success' ||
+              prev === 'onboarding' ||
+              prev === 'already-paid' ||
+              prev === 'processing'
+            ) {
               return prev
             }
             return 'invoice'

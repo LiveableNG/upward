@@ -3,6 +3,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useAuth } from '@/features/auth/AuthContext'
+import { readSavingsRentPlan } from '@/features/savings/utils/savingsRentPlan'
 import {
   type SetupDraft,
   type SetupMode,
@@ -32,15 +33,19 @@ export function SetupDraftProvider({ children }: { children: React.ReactNode }) 
   const hydratedKey = useRef<string | null>(null)
 
   const [draft, setDraftState] = useState<SetupDraft>(() => {
+    const userPlan = readSavingsRentPlan() // also purges legacy placeholder rent before the draft loads
     const stored = loadSetupDraft()
     const initialDraft = stored ? { ...stored, mode: stored.mode || mode } : createEmptyDraft(mode)
 
     if (typeof window !== 'undefined' && mode === 'onboarding') {
       try {
-        const rawPlan = localStorage.getItem('upward_savings_rent_plan')
-        if (rawPlan) {
-          const plan = JSON.parse(rawPlan)
-          const isPlanForUser = !plan.userId || (user?.id && plan.userId === user.id)
+        if (userPlan) {
+          const plan = userPlan
+          const isPlanForUser =
+            !plan.userId ||
+            !user?.id ||
+            String(plan.userId) === String(user?.id) ||
+            String(plan.userId) === String(user?.uuid)
           if (isPlanForUser) {
             if (plan.rentAmount && (!initialDraft.formData.rentAmount || initialDraft.formData.rentAmount === '0')) {
               initialDraft.formData.rentAmount = Number(plan.rentAmount).toLocaleString()
@@ -63,6 +68,49 @@ export function SetupDraftProvider({ children }: { children: React.ReactNode }) 
 
     return initialDraft
   })
+
+  // Synchronize when user auth resolves asynchronously
+  useEffect(() => {
+    if (mode !== 'onboarding') return
+    const plan = readSavingsRentPlan()
+    if (!plan) return
+
+    const isPlanForUser =
+      !plan.userId ||
+      !user?.id ||
+      String(plan.userId) === String(user?.id) ||
+      String(plan.userId) === String(user?.uuid)
+
+    if (!isPlanForUser) return
+
+    setDraftState((prev) => {
+      let changed = false
+      const nextFormData = { ...prev.formData }
+
+      if (plan.rentAmount && (!nextFormData.rentAmount || nextFormData.rentAmount === '0')) {
+        nextFormData.rentAmount = Number(plan.rentAmount).toLocaleString()
+        changed = true
+      }
+      if (plan.dueDate && !nextFormData.rentEndDate) {
+        nextFormData.rentEndDate = plan.dueDate
+        nextFormData.rentStartDate = new Date(
+          new Date(plan.dueDate).getTime() - 365 * 24 * 60 * 60 * 1000,
+        )
+          .toISOString()
+          .split('T')[0]
+        changed = true
+      }
+      if (plan.address && !nextFormData.address) {
+        nextFormData.address = plan.address
+        changed = true
+      }
+
+      if (!changed) return prev
+      const updated = { ...prev, formData: nextFormData }
+      saveSetupDraft(updated)
+      return updated
+    })
+  }, [mode, user?.id, user?.uuid])
 
   useEffect(() => {
     const hydrationKey = `${mode}:${propertyUuid || ''}:${isNew ? 'new' : ''}`

@@ -120,16 +120,34 @@ export class AdminGetCommerceOrdersUseCase {
           deliveryFeeKobo: sub.deliveryFeeKobo?.toString() || '0',
           platformFeeKobo: sub.platformFeeKobo?.toString() || '0',
           vendorPayoutKobo: sub.vendorPayoutKobo.toString(),
-          items: (sub.items || []).map((it) => ({
-            id: it.id,
-            uuid: it.uuid,
-            offeringId: it.offeringId,
-            offeringType: it.offeringType,
-            quantity: it.quantity,
-            unitPriceKobo: it.unitPriceKobo.toString(),
-            totalPriceKobo: it.totalPriceKobo.toString(),
-            snapshotData: (it.snapshotData as Record<string, any>) || {},
-          })),
+          items: (sub.items || []).map((it) => {
+            const snap = (it.snapshotData as Record<string, any>) || {}
+            const off = (it as any).offering
+            const finalTitle = snap.title || snap.name || off?.title || 'Merchandise Item'
+            const offeringImage =
+              off?.imageUrl ||
+              off?.media?.find((m: any) => m.isPrimary)?.mediaUrl ||
+              off?.media?.[0]?.mediaUrl ||
+              null
+            const finalImage = snap.thumbnailUrl || snap.imageUrl || offeringImage || null
+
+            return {
+              id: it.id,
+              uuid: it.uuid,
+              offeringId: it.offeringId,
+              offeringType: it.offeringType,
+              quantity: it.quantity,
+              title: finalTitle,
+              thumbnailUrl: finalImage,
+              unitPriceKobo: it.unitPriceKobo.toString(),
+              totalPriceKobo: it.totalPriceKobo.toString(),
+              snapshotData: {
+                ...snap,
+                title: finalTitle,
+                thumbnailUrl: finalImage,
+              },
+            }
+          }),
         }
       }),
       createdAt: order.createdAt || new Date(),

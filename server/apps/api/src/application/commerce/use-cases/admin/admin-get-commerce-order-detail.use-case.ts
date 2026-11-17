@@ -104,17 +104,31 @@ export class AdminGetCommerceOrderDetailUseCase {
           email: sub.vendor?.email,
           phone: sub.vendor?.phone,
         },
-        items: (sub.items || []).map((it: CommerceOrderItem) => ({
-          id: it.id,
-          uuid: it.uuid,
-          offeringId: it.offeringId,
-          offeringType: it.offeringType,
-          quantity: it.quantity,
-          unitPriceKobo: it.unitPriceKobo.toString(),
-          totalPriceKobo: it.totalPriceKobo.toString(),
-          snapshotData: it.snapshotData,
-          createdAt: it.createdAt,
-        })),
+        items: (sub.items || []).map((it: CommerceOrderItem) => {
+          const snap = (it.snapshotData as Record<string, any>) || {}
+          const off = (it as any).offering
+          const finalTitle = snap.title || snap.name || snap.offeringTitle || off?.title || 'Merchandise Item'
+          const offeringImage =
+            off?.imageUrl ||
+            off?.media?.find((m: any) => m.isPrimary)?.mediaUrl ||
+            off?.media?.[0]?.mediaUrl ||
+            null
+          const finalImage = snap.thumbnailUrl || snap.imageUrl || offeringImage || null
+
+          return {
+            id: it.id,
+            uuid: it.uuid,
+            offeringId: it.offeringId,
+            offeringType: it.offeringType,
+            quantity: it.quantity,
+            title: finalTitle,
+            thumbnailUrl: finalImage,
+            unitPriceKobo: it.unitPriceKobo.toString(),
+            totalPriceKobo: it.totalPriceKobo.toString(),
+            snapshotData: it.snapshotData,
+            createdAt: it.createdAt,
+          }
+        }),
         fulfilmentEvents: (sub.fulfilmentEvents || []).map((ev: CommerceFulfilmentEvent) => ({
           id: ev.id,
           uuid: ev.uuid,

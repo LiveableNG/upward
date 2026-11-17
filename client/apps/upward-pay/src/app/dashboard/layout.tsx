@@ -42,6 +42,8 @@ const TermsAcceptanceModal = dynamic(() => import('@/features/auth/components/Te
 import { useUserGoals, useGoalCategories } from '@/features/goals/hooks/useGoals'
 import { PageTransition } from '@/components/common/PageTransition'
 import { DashboardSkeleton } from '@/features/dashboard/components/DashboardSkeleton'
+import { CartProvider } from '@/features/goals/context/CartContext'
+import { CartDrawer } from '@/features/goals/components/CartDrawer'
 import { api } from '@/lib/api'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -78,10 +80,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { isGated: isRentalGated, notifyGated } = useRentalGate()
   const hasRental = hasRentalInfo(user)
 
-  // Session-scoped skip state: skipping setup only applies for the active session
+  // Skip state: check session and local storage
   const isSkippedInStorage =
     typeof window !== 'undefined' && user?.uuid
-      ? sessionStorage.getItem(`upward_profile_setup_skipped_${user.uuid}`) === 'true'
+      ? (sessionStorage.getItem(`upward_profile_setup_skipped_${user.uuid}`) === 'true' ||
+         localStorage.getItem(`upward_profile_setup_skipped_${user.uuid}`) === 'true')
       : false
 
   const isDismissed = isRequired ? false : (blockerDismissed || isSkippedInStorage)
@@ -89,6 +92,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const handleSkipBlocker = () => {
     if (typeof window !== 'undefined' && user?.uuid) {
       sessionStorage.setItem(`upward_profile_setup_skipped_${user.uuid}`, 'true')
+      localStorage.setItem(`upward_profile_setup_skipped_${user.uuid}`, 'true')
     }
     setBlockerDismissed(true)
   }
@@ -140,38 +144,41 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   // Do not force-redirect away from dashboard on fresh signup so user sees the setup blocker welcome screen
   const shouldAutoOpenRental = false
 
-  useEffect(() => {
-    if (loading || !user?.uuid || !isRentalGated || showTermsGate || isExemptRoute) return
-
-    if (!isDashboardHome) {
-      notifyGated()
-      router.replace('/dashboard')
-    }
-  }, [
-    loading,
-    user?.uuid,
-    isRentalGated,
-    showTermsGate,
-    isExemptRoute,
-    isDashboardHome,
-    notifyGated,
-    router,
-  ])
+  // Temporarily commented out rental gate redirect
+  // useEffect(() => {
+  //   if (loading || !user?.uuid || !isRentalGated || showTermsGate || isExemptRoute) return
+  //
+  //   if (!isDashboardHome) {
+  //     notifyGated()
+  //     router.replace('/dashboard')
+  //   }
+  // }, [
+  //   loading,
+  //   user?.uuid,
+  //   isRentalGated,
+  //   showTermsGate,
+  //   isExemptRoute,
+  //   isDashboardHome,
+  //   notifyGated,
+  //   router,
+  // ])
 
   const isSetupComplete = isProfileSetupComplete(user, {
     hasGoals,
     goalsAvailable: true,
   })
 
-  const showProfileBlocker =
-    mounted &&
-    !loading &&
-    !showTermsGate &&
-    !!user &&
-    !isExperimentLoading &&
-    !shouldAutoOpenRental &&
-    ((isRequired && isRentalGated && !isExemptRoute) ||
-      (isDashboardHome && !isSetupComplete && !isDismissed))
+  // Temporarily commented out profile setup blocker after signup/signin
+  // const showProfileBlocker =
+  //   mounted &&
+  //   !loading &&
+  //   !showTermsGate &&
+  //   !!user &&
+  //   !isExperimentLoading &&
+  //   !shouldAutoOpenRental &&
+  //   ((isRequired && isRentalGated && !isExemptRoute) ||
+  //     (isDashboardHome && !isSetupComplete && !isDismissed))
+  const showProfileBlocker = false
 
   useEffect(() => {
     if (!loading && isLoggedIn && user && !showProfileBlocker && !showTermsGate) {
@@ -198,6 +205,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const normalizedPath = (pathname || '').replace(/\/$/, '')
   const ROOT_NAV_PATHS = new Set([
     '/dashboard',
+    '/dashboard/lifestyle',
     '/dashboard/pay-rent',
     '/dashboard/transactions',
     '/dashboard/me',
@@ -208,39 +216,33 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const hideBottomNav =
     !isRootTab ||
-    !!showProfileBlocker ||
-    isRentalGated
+    !!showProfileBlocker
+    // || isRentalGated
 
   return (
-    <div className={`dashboard-layout${showProfileBlocker || showTermsGate ? ' dashboard-layout--blocker' : ''}${hideBottomNav ? ' dashboard-layout--no-bottom-nav' : ''}`}>
-      {showTermsGate && (
-        <TermsAcceptanceModal onAccepted={() => window.location.reload()} />
-      )}
-      {showProfileBlocker && user && (
-        <ProfileSetupBlocker
-          user={user}
-          score={scoreProfile?.data?.score}
-          maxScore={scoreProfile?.data?.maxScore}
-          profileCompletion={scoreProfile?.data?.profile?.profileCompletion}
-          onSkip={handleSkipBlocker}
-        />
-      )}
-      {/* Desktop Global Header */}
-      {!showProfileBlocker && (
-        <div className="desktop-only">
-          <DashboardHeader />
-        </div>
-      )}
+    <CartProvider>
+      <div className={`dashboard-layout${showProfileBlocker || showTermsGate ? ' dashboard-layout--blocker' : ''}${hideBottomNav ? ' dashboard-layout--no-bottom-nav' : ''}`}>
+        {showTermsGate && (
+          <TermsAcceptanceModal onAccepted={() => window.location.reload()} />
+        )}
+        {/* Desktop Global Header */}
+        {!showProfileBlocker && (
+          <div className="desktop-only">
+            <DashboardHeader />
+          </div>
+        )}
 
-      <AnnouncementManager />
-      <RentReminderManager />
-      <main className="dashboard-layout__content">
-        <Suspense fallback={<DashboardSkeleton />}>
-          <PageTransition>{children}</PageTransition>
-        </Suspense>
-      </main>
-      {!hideBottomNav && <BottomNav />}
-    </div>
+        <AnnouncementManager />
+        <RentReminderManager />
+        <main className="dashboard-layout__content">
+          <Suspense fallback={<DashboardSkeleton />}>
+            <PageTransition>{children}</PageTransition>
+          </Suspense>
+        </main>
+        {!hideBottomNav && <BottomNav />}
+        <CartDrawer />
+      </div>
+    </CartProvider>
   )
 }
 

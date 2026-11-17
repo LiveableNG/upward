@@ -425,6 +425,7 @@ export class PrismaUserRepository implements UserRepository {
     // Pick direct scalar fields
     const scalarFields = [
       'passwordHash', 'authProvider', 'providerId', 'gender', 'dateOfBirth', 'isIdentityVerified',
+      'savingsWalletEnabled',
       'isFromWaitlist', 'isFromInvite', 'invitedAt', 'joinedAt', 'profilePic', 'profileSlug', 
       'bio', 'termsAcceptedAt', 'termsVersion', 'hearAboutUs', 'resetPasswordOTP', 'resetPasswordExpires'
     ]

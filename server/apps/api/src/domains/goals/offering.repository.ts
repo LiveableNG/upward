@@ -48,6 +48,12 @@ export interface Offering {
   leadTimeDays?: number | null
   status: GoalPublishStatus
   isFeatured: boolean
+  isPromoted?: boolean
+  promoBadge?: string | null
+  promoTitle?: string | null
+  promoSubtitle?: string | null
+  promoCoverImage?: string | null
+  promoPriority?: number
   createdAt?: Date
   updatedAt?: Date
   vendor?: any
@@ -57,19 +63,22 @@ export interface Offering {
   goalLinks?: any[]
 }
 
+export interface FindOfferingsFilter {
+  goalId?: number
+  type?: OfferingType
+  status?: GoalPublishStatus
+  vendorId?: number
+  isFeatured?: boolean
+  isPromoted?: boolean
+  minPrice?: number
+  maxPrice?: number
+  search?: string
+  skip?: number
+  take?: number
+}
+
 export interface OfferingRepository {
-  findOfferings(filter?: {
-    goalId?: number
-    type?: OfferingType
-    status?: GoalPublishStatus
-    vendorId?: number
-    isFeatured?: boolean
-    minPrice?: number
-    maxPrice?: number
-    search?: string
-    skip?: number
-    take?: number
-  }): Promise<{ items: Offering[]; total: number }>
+  findOfferings(filter?: FindOfferingsFilter): Promise<{ items: Offering[]; total: number }>
   findOfferingById(id: number): Promise<Offering | null>
   findOfferingByUuid(uuid: string): Promise<Offering | null>
   createOffering(data: Partial<Offering>, media?: Array<Partial<OfferingMedia>>, packageItems?: Array<{ componentId: number; quantity: number; isOptional?: boolean; overridePrice?: number }>): Promise<Offering>

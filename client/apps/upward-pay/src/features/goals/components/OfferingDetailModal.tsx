@@ -16,6 +16,7 @@ import {
   ChevronRight,
   Info,
 } from 'lucide-react'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import type { GoalOffering, CommerceVendor } from '../types/goals.types'
 
 interface OfferingDetailModalProps {
@@ -80,6 +81,8 @@ export const OfferingDetailModal: React.FC<OfferingDetailModalProps> = ({
 }) => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
 
+  useBodyScrollLock(isOpen)
+
   useEffect(() => {
     if (!isOpen) return
     setSelectedImageIndex(0)
@@ -88,11 +91,9 @@ export const OfferingDetailModal: React.FC<OfferingDetailModalProps> = ({
       if (e.key === 'Escape') onClose()
     }
     window.addEventListener('keydown', handleKeyDown)
-    document.body.style.overflow = 'hidden'
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
-      document.body.style.overflow = ''
     }
   }, [isOpen, onClose])
 

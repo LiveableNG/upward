@@ -19,6 +19,7 @@ export interface RecommendedOfferingItem {
 
 export interface RecommendationOptions {
   activeGoalId?: number
+  categorySlug?: string
   typeFilter?: OfferingType | 'ALL'
   searchQuery?: string
   limit?: number
@@ -56,6 +57,9 @@ export function getRecommendationExplanation(
   offering: GoalOffering,
   _matchedGoalName?: string,
 ): string {
+  if (offering.isPromoted) {
+    return offering.promoBadge || 'Featured bundle'
+  }
   if (offering.isFeatured) {
     return 'Featured perk'
   }
@@ -74,12 +78,12 @@ export function getRecommendedOfferings(
   categories: GoalCategory[] = [],
   options: RecommendationOptions = {},
 ): RecommendedOfferingItem[] {
-  const { activeGoalId, typeFilter = 'ALL', searchQuery = '', limit } = options
+  const { activeGoalId, categorySlug, typeFilter = 'ALL', searchQuery = '', limit } = options
 
   // Active user goals map: goalId -> goal
   const activeUserGoalMap = new Map<number, { name: string; categoryName?: string }>()
   userGoals.forEach((ug) => {
-    if (ug.status === 'ACTIVE' && ug.goal) {
+    if (ug.status === 'ACTIVE' && ug.goal && typeof ug.goalId === 'number') {
       activeUserGoalMap.set(ug.goalId, {
         name: getGoalTitle(ug.goal),
         categoryName: getCategoryTitle(ug.goal.category),
@@ -96,13 +100,33 @@ export function getRecommendedOfferings(
     })
   })
 
-  // Filter offerings by publication status, search query, and type
+  // Filter offerings by publication status, category, search query, and type
   const filtered = offerings.filter((o) => {
     // Only published offerings
     if (o.status && o.status !== 'PUBLISHED') return false
 
     // Type filter
     if (typeFilter !== 'ALL' && o.type !== typeFilter) return false
+
+    // Category filter
+    if (categorySlug && categorySlug !== 'ALL') {
+      const targetCat = categories.find(
+        (c) => c.slug === categorySlug || String(c.id) === categorySlug,
+      )
+      const catGoalIds = new Set(targetCat?.goals?.map((g) => g.id) || [])
+      const offeringGoalLinks = o.goalLinks || o.goals || []
+
+      const matchesCategory = offeringGoalLinks.some((l) => {
+        if (catGoalIds.has(l.goalId)) return true
+        if (l.goal?.categoryId && targetCat && l.goal.categoryId === targetCat.id) return true
+        if (l.goal?.category?.slug === categorySlug) return true
+        return false
+      })
+
+      if (!matchesCategory) {
+        return false
+      }
+    }
 
     // If a specific goal pill is selected, filter strictly to offerings linked to that goal
     if (activeGoalId !== undefined && !isOfferingLinkedToGoal(o, activeGoalId)) {
@@ -127,6 +151,11 @@ export function getRecommendedOfferings(
     let matchedGoalName: string | undefined
     let matchedCategoryName: string | undefined
     let isGoalMatch = false
+
+    // 0. Promoted / Sponsored Ad offerings (Top E-Commerce Rank)
+    if (offering.isPromoted) {
+      priority += 200 + (offering.promoPriority || 0)
+    }
 
     // 1. Check if offering links to the specifically requested goal (top priority)
     if (activeGoalId !== undefined && isOfferingLinkedToGoal(offering, activeGoalId)) {

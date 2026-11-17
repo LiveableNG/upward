@@ -9,6 +9,7 @@ import {
 } from '../../../domains/rent-savings/rent-advance.repository'
 import { RentSavingsCalculatorEngine } from '../../../domains/rent-savings/rent-savings-calculator.engine'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
+import { PlatformRatesService } from '../../../shared/infrastructure/common/platform-rates.service'
 
 @Injectable()
 export class GetMyRentVaultUseCase {
@@ -19,7 +20,44 @@ export class GetMyRentVaultUseCase {
     private readonly rentAdvanceRepo: IRentAdvanceRepository,
     @Optional()
     private readonly prisma?: PrismaService,
+    @Optional()
+    private readonly platformRates?: PlatformRatesService,
   ) {}
+
+  async updateCadence(
+    userId: number,
+    cadence: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY',
+    options?: {
+      productOption?: 'SAVE_AND_EARN' | 'RENT_PROTEC'
+      planPattern?: 'EQUAL' | 'INITIAL_DEPOSIT' | 'STEP_UP' | 'ACCELERATED'
+      initialDepositKobo?: number
+    },
+  ) {
+    const vault = await this.rentVaultRepo.findActiveByUserId(userId)
+    if (vault && this.prisma) {
+      const data: any = { cadence, preferredFundingMethod: 'DVA' }
+      if (options?.productOption) {
+        data.productOption = options.productOption
+        const rates = this.platformRates ? await this.platformRates.getRates() : null
+        data.appliedAnnualRatePct =
+          options.productOption === 'RENT_PROTEC'
+            ? (rates?.rentProtecRatePct ?? 10.0)
+            : (rates?.savingsAnnualRatePct ?? 14.0)
+        data.insurancePremiumPct =
+          options.productOption === 'RENT_PROTEC' ? (rates?.insurancePremiumPct ?? 2.0) : 0
+      }
+      if (options?.planPattern) {
+        data.planPattern = options.planPattern
+      }
+      if (options?.initialDepositKobo !== undefined) {
+        data.initialDepositKobo = BigInt(Math.max(0, Math.round(options.initialDepositKobo)))
+      }
+      await this.prisma.upward_rent_vault.update({
+        where: { id: vault.id },
+        data,
+      })
+    }
+  }
 
   async execute(userId: number) {
     const vault = await this.rentVaultRepo.findActiveByUserId(userId)
@@ -148,23 +186,103 @@ export class GetMyRentVaultUseCase {
     const goalPoints = Math.min(50, Math.round(goalRatio * 50))
     const totalScore = Math.min(100, consistencyPoints + goalPoints)
 
+    const resolvedCadence = (
+      ['DAILY', 'WEEKLY', 'MONTHLY', 'QUARTERLY'].includes(vault.cadence)
+        ? vault.cadence
+        : 'MONTHLY'
+    ) as 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY'
+    const resolvedProductOption =
+      (vault as any).productOption === 'RENT_PROTEC' ? 'RENT_PROTEC' : 'SAVE_AND_EARN'
+    const resolvedPlanPattern = (
+      ['EQUAL', 'INITIAL_DEPOSIT', 'STEP_UP', 'ACCELERATED'].includes((vault as any).planPattern)
+        ? (vault as any).planPattern
+        : 'INITIAL_DEPOSIT'
+    ) as 'EQUAL' | 'INITIAL_DEPOSIT' | 'STEP_UP' | 'ACCELERATED'
+
+    let payLessProjection = {
+      cadence: resolvedCadence,
+      periodic_deposit_kobo: 0,
+      number_of_payments: 0,
+      total_tenant_contribution_kobo: Number(combinedPrincipalKobo),
+      projected_yield_kobo: Number(vault.accruedYieldKobo),
+      rent_discount_pct: 0,
+    }
+
+    const rates = this.platformRates ? await this.platformRates.getRates() : null
+    const annualYieldPct =
+      (vault as any).appliedAnnualRatePct ??
+      (resolvedProductOption === 'RENT_PROTEC'
+        ? (rates?.rentProtecRatePct ?? 10.0)
+        : (rates?.savingsAnnualRatePct ?? 14.0))
+    const annualYieldDecimal = annualYieldPct / 100
+    const dailyYieldRate = annualYieldDecimal / 365
+    const insurancePremiumPct =
+      (vault as any).insurancePremiumPct ??
+      (resolvedProductOption === 'RENT_PROTEC' ? (rates?.insurancePremiumPct ?? 2.0) : 0)
+
+    if (daysRemaining > 0 && vault.targetAmountKobo > 0n) {
+      try {
+        const sim = RentSavingsCalculatorEngine.simulate({
+          targetAmountKobo: vault.targetAmountKobo,
+          contractualDueDate: vault.contractualDueDate,
+          initialDepositKobo: currentBalanceKobo,
+          cadence: resolvedCadence,
+          productOption: resolvedProductOption,
+          planPattern: resolvedPlanPattern,
+          asOfDate: now,
+          annualNetYieldRate: annualYieldDecimal,
+          maxSavingsMonths: rates?.maxSavingsMonths ?? 11,
+          rentProtecMinMonths: rates?.rentProtecMinMonths ?? 6,
+          insurancePremiumPct,
+        })
+        const remainingPrincipalKobo = Number(sim.periodicDepositKobo * BigInt(sim.numberOfPayments))
+        const totalTenantContributionKobo = Number(combinedPrincipalKobo) + remainingPrincipalKobo
+        const projectedYieldKobo = Math.max(
+          Number(vault.accruedYieldKobo),
+          targetAmountNum - totalTenantContributionKobo,
+        )
+        const rentDiscountPct =
+          targetAmountNum > 0
+            ? Math.round((projectedYieldKobo / targetAmountNum) * 1000) / 10
+            : 0
+
+        payLessProjection = {
+          cadence: resolvedCadence,
+          periodic_deposit_kobo: Number(sim.periodicDepositKobo),
+          number_of_payments: sim.numberOfPayments,
+          total_tenant_contribution_kobo: totalTenantContributionKobo,
+          projected_yield_kobo: projectedYieldKobo,
+          rent_discount_pct: rentDiscountPct,
+        }
+      } catch {
+        // Fallback if due date has passed
+      }
+    }
+
     return {
       status: 'success',
       data: {
         vault_id: vault.uuid,
         lock_status: currentLockStatus,
+        cadence: resolvedCadence,
+        product_option: resolvedProductOption,
+        plan_pattern: resolvedPlanPattern,
+        is_rent_protec: resolvedProductOption === 'RENT_PROTEC',
+        insurance_premium_pct: insurancePremiumPct,
         current_balance_kobo: Number(currentBalanceKobo),
         principal_kobo: Number(combinedPrincipalKobo),
         vault_principal_kobo: Number(vault.currentPrincipalKobo),
         deposit_balance_kobo: Number(depositBalanceKobo),
         accrued_yield_kobo: Number(vault.accruedYieldKobo),
-        daily_yield_rate: RentSavingsCalculatorEngine.DAILY_RATE,
+        annual_yield_rate_pct: annualYieldPct,
+        daily_yield_rate: dailyYieldRate,
         days_to_unlock: daysToUnlock,
         days_remaining: daysRemaining,
         target_amount_kobo: Number(vault.targetAmountKobo),
         target_completion_percentage: targetCompletionPercentage,
         contractual_due_date: vault.contractualDueDate.toISOString().split('T')[0],
         unlock_date: vault.unlockDate.toISOString().split('T')[0],
+        pay_less_projection: payLessProjection,
         dedicated_account: vault.dvaAccountNumber
           ? {
               bank_name: vault.dvaBankName,

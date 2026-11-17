@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 
 import { type Landlord, type LineItem, type PayRentStep } from '@/features/dashboard/components/payment/types'
@@ -22,6 +23,7 @@ import { isSelfInitiatedPayment } from '@/features/dashboard/components/payment/
 
 export default function PayRentPage() {
   const router = useRouter()
+  const queryClient = useQueryClient()
   const toast = useToast()
   const [loading, setLoading] = useState(true)
   const [step, setStep] = useState<PayRentStep>('property-select')
@@ -495,7 +497,14 @@ export default function PayRentPage() {
           lineItems={lineItems}
           paymentRequestUuid={activePaymentRequest?.uuid}
           onBack={() => setStep('payment-method')}
-          onSuccess={() => router.push('/dashboard')}
+          onSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+            queryClient.invalidateQueries({ queryKey: ['pendingPayments'] })
+            queryClient.invalidateQueries({ queryKey: ['pending-payments'] })
+            queryClient.invalidateQueries({ queryKey: ['transactions'] })
+            router.refresh()
+            router.push('/dashboard')
+          }}
         />
       )}
 

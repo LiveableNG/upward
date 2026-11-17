@@ -182,13 +182,15 @@ export default function DashboardPage() {
           />
         </div>
 
-        <StatStrip
-          completedPaymentsCount={completedPayments?.length || 0}
-          totalPaid={totalPaid}
-          currency={currency}
-          pendingCount={pendingPayments.length}
-          isLoading={txLoading || pendingLoading}
-        />
+        <div className="desktop-only">
+          <StatStrip
+            completedPaymentsCount={completedPayments?.length || 0}
+            totalPaid={totalPaid}
+            currency={currency}
+            pendingCount={pendingPayments.length}
+            isLoading={txLoading || pendingLoading}
+          />
+        </div>
 
         <DashboardHome
           user={user}

@@ -405,6 +405,52 @@ model upward_savings_config {
   updatedAt         DateTime @updatedAt
 }
 
+model upward_platform_rate_config {
+  id                   Int      @id @default(autoincrement())
+  key                  String   @unique @default("GLOBAL")
+  savingsAnnualRatePct Float    @default(14.0)
+  rentProtecRatePct    Float    @default(10.0)
+  insurancePremiumPct  Float    @default(2.0)
+  rentProtecMinMonths  Int      @default(6)
+  maxSavingsMonths     Int      @default(11)
+  updatedByAdminId     String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model upward_insurance_enrolment {
+  id               Int         @id @default(autoincrement())
+  uuid             String      @unique @default(uuid())
+  userId           Int
+  userPropertyUuid String?
+  fullName         String
+  dateOfBirth      String
+  gender           String
+  phone            String?
+  address          String
+  occupation       String
+  employmentType   String
+  rentStartDate    String
+  annualRent       Float
+  sumAssured       Float
+  premiumRatePct   Float
+  premiumAmount    Float
+  currency         String      @default("NGN")
+  landlordName     String
+  propertyAddress  String?
+  status           String      @default("PENDING")
+  paymentReference String?     @unique
+  termsVersion     String?
+  purchasedAt      DateTime?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  user             upward_user @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userPropertyUuid])
+  @@index([status])
+}
+
 model upward_fee_override {
   id         Int      @id @default(autoincrement())
   uuid       String   @unique @default(uuid())

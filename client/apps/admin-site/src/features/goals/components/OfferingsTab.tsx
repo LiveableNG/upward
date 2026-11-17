@@ -104,6 +104,22 @@ export const OfferingsTab: React.FC<OfferingsTabProps> = ({
                     <Star size={13} fill="#f59e0b" color="#f59e0b" />
                   </span>
                 )}
+                {offering.isPromoted && (
+                  <span
+                    style={{
+                      fontSize: '10px',
+                      fontWeight: 800,
+                      padding: '1px 6px',
+                      borderRadius: '4px',
+                      background: 'rgba(217, 119, 87, 0.15)',
+                      color: 'var(--accent)',
+                      border: '1px solid rgba(217, 119, 87, 0.3)',
+                    }}
+                    title={`Spotlight Ad (${offering.promoBadge || 'Promoted'})`}
+                  >
+                    {offering.promoBadge || 'SPOTLIGHT'}
+                  </span>
+                )}
               </div>
               <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                 /{offering.slug}
@@ -146,7 +162,7 @@ export const OfferingsTab: React.FC<OfferingsTabProps> = ({
             >
               {conf.label}
             </span>
-            {offering.type === 'SERVICE_PACKAGE' && (
+            {offering.type === 'BUNDLE' && (
               <button
                 onClick={() => onManagePackageItems(offering)}
                 style={{
@@ -156,7 +172,7 @@ export const OfferingsTab: React.FC<OfferingsTabProps> = ({
                   color: 'var(--accent)',
                   padding: '2px',
                 }}
-                title="Manage Package Components"
+                title="Manage Bundle Components"
               >
                 <Boxes size={14} />
               </button>
@@ -267,9 +283,9 @@ export const OfferingsTab: React.FC<OfferingsTabProps> = ({
       },
     ]
 
-    if (offering.type === 'SERVICE_PACKAGE') {
+    if (offering.type === 'BUNDLE') {
       actions.push({
-        label: 'Manage Package Items',
+        label: 'Manage Bundle Components',
         icon: <Boxes size={14} />,
         onClick: () => onManagePackageItems(offering),
       })

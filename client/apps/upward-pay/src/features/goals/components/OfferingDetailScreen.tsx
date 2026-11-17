@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
@@ -24,8 +24,10 @@ import {
   MessageSquare,
   Send,
   MapPin,
+  ShoppingCart,
 } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
+import { useCart, type CartItem } from '../context/CartContext'
 import { BottomSheetModal } from '@/components/common/BottomSheetModal'
 import { useGoalOfferingDetail, usePublicOfferings } from '../hooks/useGoals'
 import { useCreateCommerceInquiry } from '../hooks/useCommerceOrders'
@@ -48,11 +50,21 @@ import {
 } from '../utils/deliveryLocation'
 import { DeliveryLocationBar } from './DeliveryLocationBar'
 import { CommerceCheckoutModal } from './CommerceCheckoutModal'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { getPublicWebUrl, copyTextToClipboard } from '@/lib/utils'
 import '../styles/goals.css'
 
 interface OfferingDetailScreenProps {
   identifier: string
+}
+
+function formatNgn(amount: number): string {
+  return new Intl.NumberFormat('en-NG', {
+    style: 'currency',
+    currency: 'NGN',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount)
 }
 
 function getSafeExternalUrl(raw?: string | null): string | null {
@@ -99,7 +111,7 @@ export function OfferingDetailSkeleton({ onBack }: { onBack?: () => void }) {
   }, [])
 
   return (
-    <div className="offering-detail">
+    <div className="offering-detail" data-hide-bottom-nav="true">
       <header className="offering-detail__header">
         <button
           type="button"
@@ -226,32 +238,67 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
   const similarItems = React.useMemo(() => {
     if (!offering || !cachedOfferings || cachedOfferings.length === 0) return []
 
-    // Filter out current item
+    // Filter out current item and any of its package components
+    const componentIds = new Set(
+      (offering.packageItems || []).map((p) => p.componentId ?? p.id).filter(Boolean),
+    )
+
     const candidates = cachedOfferings.filter((item) => {
       if (offering.id && item.id === offering.id) return false
       if (offering.uuid && item.uuid === offering.uuid) return false
       if (offering.slug && item.slug === offering.slug) return false
+      if (componentIds.has(item.id)) return false
+      if (
+        item.uuid &&
+        offering.packageItems?.some(
+          (p) => p.component?.uuid === item.uuid || p.itemOffering?.uuid === item.uuid,
+        )
+      ) {
+        return false
+      }
       return true
     })
 
-    // Score by relevance (same type, shared goals, or featured)
-    const scored = candidates.map((item) => {
-      let score = 0
-      if (item.type === offering.type) score += 3
-      const sharesGoal =
-        item.goalLinks?.some((gl) =>
-          offering.goalLinks?.some((og) => og.goalId === gl.goalId),
-        ) ||
-        item.goals?.some((g) =>
-          offering.goals?.some((og) => og.goalId === g.goalId),
-        )
-      if (sharesGoal) score += 4
-      if (item.vendor?.id && offering.vendor?.id && item.vendor.id === offering.vendor.id) {
-        score += 1
-      }
-      if (item.isFeatured) score += 1
-      return { item, score }
-    })
+    // Extract goals and categories associated with the current offering
+    const offeringGoalLinks = offering.goalLinks || offering.goals || []
+    const offeringGoalIds = new Set(
+      offeringGoalLinks.map((g) => g.goalId).filter(Boolean),
+    )
+    const offeringCategoryIds = new Set(
+      offeringGoalLinks
+        .map((gl) => gl.goal?.categoryId || gl.goal?.category?.id)
+        .filter((id): id is number => typeof id === 'number'),
+    )
+
+    // Score by relevance (strictly items sharing goals or category with the current offering/bundle)
+    const scored = candidates
+      .map((item) => {
+        let score = 0
+        if (item.type === offering.type) score += 2
+
+        const itemGoalLinks = item.goalLinks || item.goals || []
+        const sharesGoal = itemGoalLinks.some((gl) => offeringGoalIds.has(gl.goalId))
+
+        const sharesCategory =
+          offeringCategoryIds.size > 0 &&
+          itemGoalLinks.some((gl) => {
+            const catId = gl.goal?.categoryId || gl.goal?.category?.id
+            return typeof catId === 'number' && offeringCategoryIds.has(catId)
+          })
+
+        if (sharesGoal) score += 5
+        if (sharesCategory) score += 3
+
+        // Strictly require shared goals or category
+        if (!sharesGoal && !sharesCategory) return null
+
+        if (item.vendor?.id && offering.vendor?.id && item.vendor.id === offering.vendor.id) {
+          score += 1
+        }
+        if (item.isFeatured) score += 1
+        return { item, score }
+      })
+      .filter((s): s is { item: GoalOffering; score: number } => s !== null)
 
     scored.sort((a, b) => b.score - a.score)
     return scored.slice(0, 6).map((s) => s.item)
@@ -286,45 +333,203 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
     }
   }
 
+  // Robust cross-platform body scroll lock for Lightbox and Inquiry modals
+  useBodyScrollLock(isLightboxOpen || isInquiryOpen)
+
   useEffect(() => {
-    if (isLightboxOpen) {
-      const original = document.body.style.overflow
-      document.body.style.overflow = 'hidden'
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') setIsLightboxOpen(false)
-        if (e.key === 'ArrowRight' && images.length > 1) {
-          setSelectedImageIndex((prev) =>
-            prev < images.length - 1 ? prev + 1 : 0,
-          )
-        }
-        if (e.key === 'ArrowLeft' && images.length > 1) {
-          setSelectedImageIndex((prev) =>
-            prev > 0 ? prev - 1 : images.length - 1,
-          )
-        }
+    if (!isLightboxOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsLightboxOpen(false)
+      if (e.key === 'ArrowRight' && images.length > 1) {
+        setSelectedImageIndex((prev) =>
+          prev < images.length - 1 ? prev + 1 : 0,
+        )
       }
-      window.addEventListener('keydown', handleKeyDown)
-      return () => {
-        document.body.style.overflow = original
-        window.removeEventListener('keydown', handleKeyDown)
+      if (e.key === 'ArrowLeft' && images.length > 1) {
+        setSelectedImageIndex((prev) =>
+          prev > 0 ? prev - 1 : images.length - 1,
+        )
       }
     }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isLightboxOpen, images.length])
 
   useEffect(() => {
-    if (isInquiryOpen) {
-      const original = document.body.style.overflow
-      document.body.style.overflow = 'hidden'
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') setIsInquiryOpen(false)
-      }
-      window.addEventListener('keydown', handleKeyDown)
-      return () => {
-        document.body.style.overflow = original
-        window.removeEventListener('keydown', handleKeyDown)
-      }
+    if (!isInquiryOpen) return
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsInquiryOpen(false)
     }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isInquiryOpen])
+
+  const cart = useCart()
+
+  const isBundle = Boolean(offering && offering.type === 'BUNDLE')
+
+  const effectivePackageItems = useMemo(() => {
+    if (!offering || !isBundle) return []
+    if (offering.packageItems && offering.packageItems.length > 0) {
+      return offering.packageItems
+    }
+    return []
+  }, [offering, isBundle])
+
+  const packageItems = effectivePackageItems
+
+  const [selectedComponentIds, setSelectedComponentIds] = useState<Set<number>>(
+    () => new Set(),
+  )
+
+  useEffect(() => {
+    if (packageItems.length > 0) {
+      const ids = packageItems
+        .map((p) => p.componentId ?? p.id)
+        .filter((id): id is number => typeof id === 'number')
+      setSelectedComponentIds(new Set(ids))
+    }
+  }, [offering?.id, packageItems])
+
+  const toggleComponent = (compId: number) => {
+    setSelectedComponentIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(compId)) {
+        if (next.size <= 1) return prev
+        next.delete(compId)
+      } else {
+        next.add(compId)
+      }
+      return next
+    })
+  }
+
+  const selectedPackageItems = useMemo(() => {
+    return packageItems.filter((p) => {
+      const compId = p.componentId ?? p.id
+      return typeof compId === 'number' && selectedComponentIds.has(compId)
+    })
+  }, [packageItems, selectedComponentIds])
+
+  const isAllComponentsSelected =
+    packageItems.length > 0 &&
+    selectedPackageItems.length === packageItems.length
+
+  const customBundlePrice = useMemo(() => {
+    if (!offering) return 0
+    if (packageItems.length === 0) {
+      return offering.price ? Number(offering.price) : 0
+    }
+    if (isAllComponentsSelected && offering.price != null) {
+      return Number(offering.price)
+    }
+    return selectedPackageItems.reduce((acc, p) => {
+      const comp = p.component || p.itemOffering
+      const itemPrice =
+        p.overridePrice != null
+          ? Number(p.overridePrice)
+          : comp?.price != null
+            ? Number(comp.price)
+            : Number(offering.price || 0) / Math.max(1, packageItems.length)
+      return acc + itemPrice * (p.quantity || 1)
+    }, 0)
+  }, [offering, packageItems, selectedPackageItems, isAllComponentsSelected])
+
+  const compareAtPrice =
+    offering?.compareAtPrice ??
+    (offering?.pricingModel === 'FIXED' ? offering?.maxPrice : null)
+
+  const expectedTotalRetail = useMemo(() => {
+    if (!offering) return null
+    if (packageItems.length > 0) {
+      const sum = selectedPackageItems.reduce((acc, p) => {
+        const comp = p.component || p.itemOffering
+        const orig = comp?.price
+          ? Number(comp.price)
+          : p.overridePrice
+            ? Math.round(Number(p.overridePrice) * 1.15)
+            : 0
+        return acc + orig * (p.quantity || 1)
+      }, 0)
+
+      if (isAllComponentsSelected && compareAtPrice && Number(compareAtPrice) > customBundlePrice) {
+        return Math.max(Number(compareAtPrice), sum)
+      }
+      if (sum > customBundlePrice) return sum
+      return null
+    }
+    if (compareAtPrice && Number(compareAtPrice) > customBundlePrice) {
+      return Number(compareAtPrice)
+    }
+    return null
+  }, [offering, compareAtPrice, customBundlePrice, packageItems, selectedPackageItems, isAllComponentsSelected])
+
+  const bundleDiscountPercent = useMemo(() => {
+    if (!expectedTotalRetail || expectedTotalRetail <= customBundlePrice) return 0
+    return Math.round(
+      ((expectedTotalRetail - customBundlePrice) / expectedTotalRetail) * 100,
+    )
+  }, [expectedTotalRetail, customBundlePrice])
+
+  const customCheckoutItems: CartItem[] = useMemo(() => {
+    if (!offering) return []
+    if (packageItems.length > 0) {
+      return selectedPackageItems.map((p) => {
+        const comp = (p.component || p.itemOffering || offering) as GoalOffering
+        const itemPrice =
+          p.overridePrice != null
+            ? Number(p.overridePrice)
+            : comp.price
+              ? Number(comp.price)
+              : Number(offering.price || 0) / Math.max(1, packageItems.length)
+        const primaryImg =
+          comp.imageUrl ||
+          comp.media?.find((m) => m.isPrimary)?.mediaUrl ||
+          comp.media?.[0]?.mediaUrl ||
+          offering.imageUrl ||
+          null
+        return {
+          offeringId: comp.id,
+          offeringUuid: comp.uuid || String(comp.id),
+          title: comp.title || comp.name || offering.title || 'Package Item',
+          subtitle: comp.subtitle,
+          imageUrl: primaryImg,
+          price: itemPrice,
+          currency: comp.currency || offering.currency || 'NGN',
+          quantity: p.quantity || 1,
+          vendorName: comp.vendor?.name || offering.vendor?.name || 'Upward Partner',
+          vendorVerified: comp.vendor?.isVerified || offering.vendor?.isVerified || false,
+          type: (comp.type as CartItem['type']) || 'PRODUCT',
+          bundleParentTitle: offering.title,
+        }
+      })
+    }
+    return []
+  }, [offering, packageItems, selectedPackageItems])
+
+  const handleAddToCart = () => {
+    if (!offering) return
+    if (packageItems.length > 0) {
+      const componentsToAdd = selectedPackageItems.map((p) => {
+        const comp = (p.component || p.itemOffering || offering) as GoalOffering
+        const overridePrice =
+          p.overridePrice != null
+            ? Number(p.overridePrice)
+            : comp.price
+              ? Number(comp.price)
+              : Number(offering.price || 0) / Math.max(1, packageItems.length)
+        return {
+          offering: comp,
+          overridePrice,
+          quantity: p.quantity || 1,
+        }
+      })
+      cart.addBundleItems(offering, componentsToAdd)
+    } else {
+      cart.addItem(offering, { quantity: 1 })
+    }
+    cart.openCart()
+  }
 
   if (isLoading) {
     return <OfferingDetailSkeleton onBack={handleBack} />
@@ -381,7 +586,6 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
   const showActiveImage =
     Boolean(activeImage) && !failedImages[selectedImageIndex]
 
-  const packageItems = offering.packageItems || []
   const rawGoalLinks = offering.goalLinks || offering.goals || []
   const linkedGoals = rawGoalLinks
     .map((g) => getGoalTitle(g.goal))
@@ -393,9 +597,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
   const vendorPhone = vendor?.phone || vendor?.contactPhone || null
   const vendorWebsite = getSafeExternalUrl(vendor?.website)
 
-  const compareAtPrice =
-    offering.compareAtPrice ??
-    (offering.pricingModel === 'FIXED' ? offering.maxPrice : null)
+
   const hasDiscount =
     compareAtPrice != null &&
     offering.price != null &&
@@ -407,8 +609,288 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
     ? compareAtPrice! - offering.price!
     : 0
 
+  if (isBundle) {
+    return (
+      <div className="offering-detail" data-hide-bottom-nav="true">
+        {/* Navigation Bar */}
+        <header className="offering-detail__header">
+          <div className="offering-detail__header-inner">
+            <button
+              type="button"
+              className="offering-detail__back-btn"
+              onClick={handleBack}
+            >
+              <ArrowLeft size={16} />
+              <span>Lifestyle & Perks</span>
+            </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <button
+                type="button"
+                className="bundle-showcase__cart-trigger"
+                onClick={cart.openCart}
+              >
+                <ShoppingCart size={15} />
+                <span>Cart</span>
+                {cart.totalCount > 0 && (
+                  <span className="bundle-showcase__cart-badge">
+                    {cart.totalCount}
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                className="offering-detail__share-btn"
+                onClick={handleShare}
+              >
+                {copied ? <Check size={15} /> : <Share2 size={15} />}
+                <span>{copied ? 'Copied' : 'Share'}</span>
+              </button>
+            </div>
+          </div>
+        </header>
+
+        <main className="offering-detail__container bundle-showcase">
+          {/* Clean Editorial Hero Banner */}
+          <section className="bundle-showcase__hero">
+            {offering.imageUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={offering.imageUrl}
+                alt={title}
+                className="bundle-showcase__hero-img"
+              />
+            )}
+            <div className="bundle-showcase__hero-info">
+              <h1 className="bundle-showcase__title">{title}</h1>
+              {offering.subtitle && (
+                <p className="bundle-showcase__subtitle">{offering.subtitle}</p>
+              )}
+              {offering.description && offering.description !== offering.subtitle && (
+                <p className="bundle-showcase__desc">{offering.description}</p>
+              )}
+              <div className="bundle-showcase__pricing-row">
+                <span className="bundle-showcase__price-val">
+                  {formatNgn(customBundlePrice)}
+                </span>
+                {expectedTotalRetail && expectedTotalRetail > customBundlePrice && (
+                  <span className="bundle-showcase__price-original">
+                    {formatNgn(expectedTotalRetail)}
+                  </span>
+                )}
+                {bundleDiscountPercent > 0 && (
+                  <div
+                    className="bundle-showcase__burst-badge"
+                    aria-label={`${bundleDiscountPercent}% OFF`}
+                  >
+                    <svg
+                      viewBox="0 0 100 100"
+                      className="bundle-showcase__burst-svg"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M50.0 2.0 L57.6 11.7 L68.4 5.7 L71.7 17.6 L83.9 16.1 L82.4 28.3 L94.3 31.6 L88.3 42.4 L98.0 50.0 L88.3 57.6 L94.3 68.4 L82.4 71.7 L83.9 83.9 L71.7 82.4 L68.4 94.3 L57.6 88.3 L50.0 98.0 L42.4 88.3 L31.6 94.3 L28.3 82.4 L16.1 83.9 L17.6 71.7 L5.7 68.4 L11.7 57.6 L2.0 50.0 L11.7 42.4 L5.7 31.6 L17.6 28.3 L16.1 16.1 L28.3 17.6 L31.6 5.7 L42.4 11.7 Z"
+                        fill="#dc2626"
+                      />
+                    </svg>
+                    <div className="bundle-showcase__burst-text">
+                      <span className="bundle-showcase__burst-pct">
+                        {bundleDiscountPercent}%
+                      </span>
+                      <span className="bundle-showcase__burst-off">OFF</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="bundle-showcase__top-actions">
+                <button
+                  type="button"
+                  className="bundle-showcase__top-add-btn"
+                  onClick={handleAddToCart}
+                >
+                  <ShoppingCart size={15} strokeWidth={2.3} />
+                  <span>
+                    {isAllComponentsSelected
+                      ? 'Add to Cart'
+                      : `Add (${selectedPackageItems.length}) to Cart`}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className="bundle-showcase__top-checkout-btn"
+                  onClick={() => setIsCheckoutOpen(true)}
+                >
+                  <span>Checkout</span>
+                </button>
+              </div>
+            </div>
+          </section>
+
+          {/* Included Items Section */}
+          <section className="bundle-showcase__items-section">
+            <div className="bundle-showcase__items-header">
+              <div>
+                <h2 className="bundle-showcase__items-title">
+                  What’s included ({selectedPackageItems.length} of {packageItems.length})
+                </h2>
+                <p className="bundle-showcase__items-desc">
+                  Tap any item to include or remove it from your set. Total updates in real time.
+                </p>
+              </div>
+            </div>
+
+            <div className="bundle-showcase__items-list">
+              {packageItems.map((pkgItem, idx) => {
+                const comp = pkgItem.component || pkgItem.itemOffering
+                const compId = (pkgItem.componentId ?? pkgItem.id) as number
+                const isSelected = typeof compId === 'number' && selectedComponentIds.has(compId)
+                const itemTitle =
+                  comp?.title || comp?.name || `Component ${idx + 1}`
+                const itemPrice =
+                  pkgItem.overridePrice != null
+                    ? Number(pkgItem.overridePrice)
+                    : comp?.price != null
+                      ? Number(comp.price)
+                      : null
+                const originalPrice =
+                  comp?.price != null ? Number(comp.price) : null
+                const primaryCompImage =
+                  comp?.imageUrl ||
+                  comp?.media?.find((m: any) => m.isPrimary)?.mediaUrl ||
+                  comp?.media?.[0]?.mediaUrl ||
+                  offering.imageUrl ||
+                  null
+
+                return (
+                  <div
+                    key={pkgItem.id || idx}
+                    className={`bundle-showcase__item-card ${
+                      isSelected
+                        ? 'bundle-showcase__item-card--selected'
+                        : 'bundle-showcase__item-card--deselected'
+                    }`}
+                    onClick={() => toggleComponent(compId)}
+                    role="checkbox"
+                    aria-checked={isSelected}
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === ' ' || e.key === 'Enter') {
+                        e.preventDefault()
+                        toggleComponent(compId)
+                      }
+                    }}
+                  >
+                    <div
+                      className={`bundle-showcase__checkbox ${
+                        isSelected ? 'bundle-showcase__checkbox--checked' : ''
+                      }`}
+                    >
+                      {isSelected && <Check size={12} strokeWidth={3} />}
+                    </div>
+
+                    {primaryCompImage && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={primaryCompImage}
+                        alt={itemTitle}
+                        className="bundle-showcase__item-thumb"
+                      />
+                    )}
+
+                    <div className="bundle-showcase__item-info">
+                      <div className="bundle-showcase__item-title-row">
+                        <span className="bundle-showcase__item-name">
+                          {itemTitle}
+                        </span>
+                        {pkgItem.quantity > 1 && (
+                          <span className="bundle-showcase__item-qty">
+                            ×{pkgItem.quantity}
+                          </span>
+                        )}
+                      </div>
+                      {comp?.description && (
+                        <p className="bundle-showcase__item-desc">
+                          {comp.description}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="bundle-showcase__item-pricing">
+                      {itemPrice != null && (
+                        <span className="bundle-showcase__item-price">
+                          {formatNgn(itemPrice * (pkgItem.quantity || 1))}
+                        </span>
+                      )}
+                      {originalPrice != null &&
+                        originalPrice > (itemPrice || 0) && (
+                          <span className="bundle-showcase__item-original">
+                            {formatNgn(
+                              originalPrice * (pkgItem.quantity || 1),
+                            )}
+                          </span>
+                        )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </section>
+
+
+
+          {/* Similar Items Carousel */}
+          {(similarItems.length > 0 || isOfferingsLoading) && (
+            <section
+              className="offering-detail__similar-section"
+              style={{ marginTop: 24, paddingBottom: 24 }}
+            >
+              <div className="offering-detail__similar-header-row">
+                <div>
+                  <h2 className="offering-detail__similar-title">
+                    Similar Products & Packages
+                  </h2>
+                </div>
+              </div>
+              <div className="offering-detail__carousel-track">
+                {similarItems.map((item) => (
+                  <div
+                    key={item.id}
+                    className="offering-detail__carousel-item offering-detail__carousel-slide"
+                  >
+                    <OfferingCard
+                      item={{ offering: item }}
+                      userLocation={deliveryLocation}
+                      onClick={(clicked) => {
+                        const targetId =
+                          clicked.uuid || clicked.slug || clicked.id
+                        router.push(`/dashboard/lifestyle?id=${targetId}`)
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+        </main>
+
+        {/* Multi-Item Checkout Modal */}
+        {isCheckoutOpen && (
+          <CommerceCheckoutModal
+            offering={offering}
+            cartItems={customCheckoutItems}
+            isOpen={isCheckoutOpen}
+            onClose={() => setIsCheckoutOpen(false)}
+            deliveryLocation={deliveryLocation}
+          />
+        )}
+      </div>
+    )
+  }
+
   return (
-    <div className="offering-detail">
+    <div className="offering-detail" data-hide-bottom-nav="true">
       {/* Sticky Navigation Bar */}
       <header className="offering-detail__header">
         <div className="offering-detail__header-inner">
@@ -590,56 +1072,6 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                 </div>
               )}
             </section>
-
-            {/* Package / Bundle Components */}
-            {packageItems.length > 0 && (
-              <section className="offering-detail__card">
-                <h2 className="offering-detail__section-label">
-                  Included in This {offering.type === 'BUNDLE' ? 'Bundle' : 'Package'} (
-                  {packageItems.length})
-                </h2>
-                <div className="offering-detail__package-list">
-                  {packageItems.map((pkgItem, idx) => {
-                    const comp = pkgItem.component || pkgItem.itemOffering
-                    const itemTitle =
-                      comp?.title || comp?.name || `Component ${idx + 1}`
-                    return (
-                      <div
-                        key={pkgItem.id || idx}
-                        className="offering-detail__package-row"
-                      >
-                        <div className="offering-detail__package-left">
-                          <CheckCircle2
-                            size={16}
-                            className="offering-detail__package-icon"
-                          />
-                          <div>
-                            <div className="offering-detail__package-name">
-                              {itemTitle}
-                            </div>
-                            {comp?.subtitle && (
-                              <div className="offering-detail__package-sub">
-                                {comp.subtitle}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        <div className="offering-detail__package-right">
-                          <span className="offering-detail__package-qty">
-                            ×{pkgItem.quantity}
-                          </span>
-                          {pkgItem.isOptional && (
-                            <span className="offering-detail__package-opt">
-                              Optional
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </section>
-            )}
           </div>
 
           {/* Right / Merchant & Action Column */}
@@ -737,17 +1169,34 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
 
               <div className="offering-detail__cta-stack">
                 {deliveryCheck.isDeliverable ? (
-                  <button
-                    type="button"
-                    className="offering-detail__primary-cta"
-                    onClick={() => setIsCheckoutOpen(true)}
-                  >
-                    <span>
-                      {offering.type === 'SERVICE'
-                        ? 'Book Service'
-                        : 'Order Now'}
-                    </span>
-                  </button>
+                  <>
+                    <button
+                      type="button"
+                      className="offering-detail__primary-cta"
+                      onClick={() => setIsCheckoutOpen(true)}
+                    >
+                      <span>
+                        {offering.type === 'SERVICE'
+                          ? 'Book Service'
+                          : packageItems.length > 0
+                            ? `Order Selected (${selectedPackageItems.length}) • ${formatNgn(customBundlePrice)}`
+                            : 'Order Now'}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="offering-detail__cart-cta"
+                      onClick={handleAddToCart}
+                    >
+                      <ShoppingCart size={16} />
+                      <span>
+                        {packageItems.length > 0
+                          ? `Add ${selectedPackageItems.length} Items to Cart`
+                          : 'Add to Cart'}
+                      </span>
+                    </button>
+                  </>
                 ) : (
                   <button
                     type="button"
@@ -1059,6 +1508,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
       {offering && (
         <CommerceCheckoutModal
           offering={offering}
+          cartItems={packageItems.length > 0 ? customCheckoutItems : undefined}
           isOpen={isCheckoutOpen}
           onClose={() => setIsCheckoutOpen(false)}
           deliveryLocation={deliveryLocation}

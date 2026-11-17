@@ -82,15 +82,30 @@ export class GetTenantOrderDetailUseCase {
           logoUrl: sub.vendor?.logoUrl,
           rating: sub.vendor?.rating ?? 5.0,
         },
-        items: (sub.items || []).map((it) => ({
-          uuid: it.uuid,
-          offeringId: it.offeringId,
-          offeringType: it.offeringType,
-          quantity: it.quantity,
-          unitPriceKobo: it.unitPriceKobo.toString(),
-          totalPriceKobo: it.totalPriceKobo.toString(),
-          snapshotData: it.snapshotData,
-        })),
+        items: (sub.items || []).map((it) => {
+          const snap = (it.snapshotData as any) || {}
+          const off = (it as any).offering
+          const offeringImage =
+            off?.imageUrl ||
+            off?.media?.find((m: any) => m.isPrimary)?.mediaUrl ||
+            off?.media?.[0]?.mediaUrl ||
+            null
+          const finalImage = snap.thumbnailUrl || snap.imageUrl || offeringImage || null
+          const finalTitle = snap.title || snap.name || off?.title || 'Lifestyle Item'
+
+          return {
+            uuid: it.uuid,
+            offeringId: it.offeringId,
+            offeringType: it.offeringType,
+            quantity: it.quantity,
+            title: finalTitle,
+            thumbnailUrl: finalImage,
+            imageUrl: finalImage,
+            unitPriceKobo: it.unitPriceKobo.toString(),
+            totalPriceKobo: it.totalPriceKobo.toString(),
+            snapshotData: it.snapshotData,
+          }
+        }),
         fulfilmentEvents: (sub.fulfilmentEvents || [])
           .filter((ev) => ev.isCustomerVisible)
           .map((ev) => ({

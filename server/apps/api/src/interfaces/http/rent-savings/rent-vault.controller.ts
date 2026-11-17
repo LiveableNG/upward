@@ -94,9 +94,25 @@ export class RentVaultController {
   @UseGuards(JwtAuthGuard)
   @Post('consent')
   @HttpCode(HttpStatus.OK)
-  async consentToSavings(@Req() req: any) {
+  async consentToSavings(
+    @Req() req: any,
+    @Body()
+    body?: {
+      cadence?: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY'
+      product_option?: 'SAVE_AND_EARN' | 'RENT_PROTEC'
+      plan_pattern?: 'EQUAL' | 'INITIAL_DEPOSIT' | 'STEP_UP' | 'ACCELERATED'
+      initial_deposit_kobo?: number
+    },
+  ) {
     const userId = await this.getNumericUserId(req)
     await this.userRepo.update(userId, { savingsWalletEnabled: true })
+    if (body?.cadence && ['DAILY', 'WEEKLY', 'MONTHLY', 'QUARTERLY'].includes(body.cadence)) {
+      await this.getMyVaultUseCase.updateCadence(userId, body.cadence, {
+        productOption: body.product_option,
+        planPattern: body.plan_pattern,
+        initialDepositKobo: body.initial_deposit_kobo,
+      })
+    }
     return {
       status: 'success',
       message: 'Rent savings consent recorded successfully',

@@ -33,6 +33,20 @@ export class PaystackGateway implements IPaymentGateway {
     }
   }
 
+  private sanitizeEmail(email?: string | null): string {
+    if (!email || typeof email !== 'string' || email.includes(':')) {
+      return 'tenant@upward.ng'
+    }
+    const trimmed = email.trim().toLowerCase()
+    // Fix common domain/TLD typos that Paystack's strict IANA validator rejects
+    const normalized = trimmed.replace(/\.(cpem|cem|c0m|con|comm|cm)$/i, '.com')
+    const validEmailRegex = /^[^\s@]+@[^\s@]+\.[a-z]{2,10}$/i
+    if (!validEmailRegex.test(normalized)) {
+      return 'tenant@upward.ng'
+    }
+    return normalized
+  }
+
   async getBanks(): Promise<Bank[]> {
     try {
       this.logger.log('Fetching banks from Paystack...')
@@ -187,12 +201,13 @@ export class PaystackGateway implements IPaymentGateway {
     channels?: string[]
   }): Promise<{ authorizationUrl: string; accessCode?: string; reference: string }> {
     try {
-      this.logger.log(`Initializing transaction ${data.reference} for ${data.email}`)
+      const safeEmail = this.sanitizeEmail(data.email)
+      this.logger.log(`Initializing transaction ${data.reference} for ${safeEmail}`)
       const res = await fetch(`${this.baseUrl}/transaction/initialize`, {
         method: 'POST',
         headers: this.headers,
         body: JSON.stringify({
-          email: data.email,
+          email: safeEmail,
           amount: Math.round(data.amount * 100), // convert to kobo
           reference: data.reference,
           metadata: data.metadata,
@@ -314,12 +329,13 @@ export class PaystackGateway implements IPaymentGateway {
     phone?: string
   }): Promise<string> {
     try {
-      this.logger.log(`Creating Paystack customer: ${data.email}`)
+      const safeEmail = this.sanitizeEmail(data.email)
+      this.logger.log(`Creating Paystack customer: ${safeEmail}`)
       const res = await fetch(`${this.baseUrl}/customer`, {
         method: 'POST',
         headers: this.headers,
         body: JSON.stringify({
-          email: data.email,
+          email: safeEmail,
           first_name: data.firstName,
           last_name: data.lastName,
           phone: data.phone,
@@ -342,10 +358,10 @@ export class PaystackGateway implements IPaymentGateway {
 
       if (!customerCode) {
         this.logger.warn(
-          `Failed to resolve customer code directly. Searching customer by email: ${data.email}`,
+          `Failed to resolve customer code directly. Searching customer by email: ${safeEmail}`,
         )
         const listRes = await fetch(
-          `${this.baseUrl}/customer?email=${encodeURIComponent(data.email)}`,
+          `${this.baseUrl}/customer?email=${encodeURIComponent(safeEmail)}`,
           {
             method: 'GET',
             headers: this.headers,

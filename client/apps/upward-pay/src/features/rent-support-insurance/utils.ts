@@ -3,10 +3,14 @@ import type { UserProfile } from '@/features/auth/types'
 import type { RsiEnrolmentFormData } from './types'
 import { toDateInputValue } from '@/features/dashboard/setup/rentalDates'
 
-export function calculateAnnualPremium(sumAssured: number): number {
+export function calculateAnnualPremium(sumAssured: number, premiumRatePct?: number): number {
   if (!Number.isFinite(sumAssured) || sumAssured <= 0) return 0
   const capped = Math.min(sumAssured, RSI_MAX_SUM_ASSURED)
-  return Math.round(capped * RSI_ANNUAL_RATE)
+  const rate =
+    premiumRatePct !== undefined && Number.isFinite(premiumRatePct) && premiumRatePct >= 0
+      ? premiumRatePct / 100
+      : RSI_ANNUAL_RATE
+  return Math.round(capped * rate)
 }
 
 export function getAgeFromDob(dob: string): number | null {

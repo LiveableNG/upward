@@ -55,6 +55,7 @@ model upward_user {
   savingsGoals          upward_savings_goal[]
   rentVaults            upward_rent_vault[]
   rentVaultTransactions upward_rent_vault_transaction[]
+  insuranceEnrolments   upward_insurance_enrolment[]
   rentAdvances          upward_rent_advance[]
   rentSettlements       upward_rent_settlement[]
   rentSavingsScores     upward_rent_savings_score[]

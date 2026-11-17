@@ -1,43 +1,71 @@
 'use client'
 
 import React, { useState, useEffect, useSyncExternalStore } from 'react'
-import { createPortal } from 'react-dom'
 import {
-  X,
   Copy,
   Check,
   Landmark,
-  Zap,
-  CreditCard,
-  Building2,
   CheckCircle2,
   Loader2,
 } from 'lucide-react'
 import { useToast } from '@/components/common/Toast'
+import { BottomSheetModal } from '@/components/common/BottomSheetModal'
 import { formatCurrency } from '@/lib/utils'
 import { useSimulateVaultDeposit } from '../hooks/useRentSavings'
+import {
+  calculatePayLessPlan,
+  type SavingsCadence,
+  type SavingsProductOption,
+} from '../services/savingsService'
+import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
 
 interface FundVaultModalProps {
   isOpen: boolean
   onClose: () => void
+  recommendedAmountNaira?: number
+  cadence?: SavingsCadence
   dedicatedAccount?: {
     bank_name: string
     account_number: string
     account_name: string
   } | null
+  targetAmountNaira?: number
+  daysRemaining?: number
+  annualRatePct?: number
+  productOption?: SavingsProductOption
+  currentBalanceNaira?: number
+  isInitialDeposit?: boolean
 }
 
 const emptySubscribe = () => () => {}
 
-export function FundVaultModal({ isOpen, onClose, dedicatedAccount }: FundVaultModalProps) {
-  // Cowrywise pattern: Direct Debit / Card is primary, Bank Transfer is alternative
-  const [fundingMode, setFundingMode] = useState<'DIRECT_DEBIT' | 'TRANSFER'>('DIRECT_DEBIT')
-  const [debitSource, setDebitSource] = useState<'CARD' | 'BANK'>('CARD')
-  const [copiedField, setCopiedField] = useState<'account' | 'all' | null>(null)
-  const [customAmount, setCustomAmount] = useState('100,000')
+export function FundVaultModal({
+  isOpen,
+  onClose,
+  recommendedAmountNaira,
+  cadence = 'MONTHLY',
+  dedicatedAccount,
+  targetAmountNaira,
+  daysRemaining,
+  annualRatePct,
+  productOption = 'RENT_PROTEC',
+  currentBalanceNaira = 0,
+  isInitialDeposit = false,
+}: FundVaultModalProps) {
+  const [copiedField, setCopiedField] = useState<'account' | null>(null)
+
+  const defaultInitialAmount =
+    targetAmountNaira && targetAmountNaira > 0 && (isInitialDeposit || currentBalanceNaira === 0)
+      ? Math.round(targetAmountNaira * 0.25)
+      : recommendedAmountNaira && recommendedAmountNaira > 0
+        ? recommendedAmountNaira
+        : 100_000
+
+  const [customAmount, setCustomAmount] = useState(() => defaultInitialAmount.toLocaleString())
   const [hasPaidNotified, setHasPaidNotified] = useState(false)
 
   const { success: toastSuccess, error: toastError } = useToast()
+  const { rates: platformRates } = usePlatformRates()
   const simulateMutation = useSimulateVaultDeposit()
 
   const isClient = useSyncExternalStore(
@@ -46,7 +74,12 @@ export function FundVaultModal({ isOpen, onClose, dedicatedAccount }: FundVaultM
     () => false,
   )
 
-  const PRESET_AMOUNTS = [50_000, 100_000, 250_000, 500_000]
+  useEffect(() => {
+    if (targetAmountNaira && targetAmountNaira > 0 && (isInitialDeposit || currentBalanceNaira === 0)) {
+      const initial25Pct = Math.round(targetAmountNaira * 0.25)
+      setCustomAmount(initial25Pct.toLocaleString())
+    }
+  }, [targetAmountNaira, isInitialDeposit, currentBalanceNaira])
 
   useEffect(() => {
     if (isOpen) {
@@ -64,16 +97,25 @@ export function FundVaultModal({ isOpen, onClose, dedicatedAccount }: FundVaultM
     onClose()
   }
 
+  const handleQuietSkip = () => {
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem('upward_dismissed_initial_deposit_prompt', 'true')
+      } catch {}
+    }
+    handleClose()
+  }
+
   if (!isOpen || !isClient || typeof document === 'undefined') return null
 
   const bankName = dedicatedAccount?.bank_name || 'Wema Bank'
   const accountNumber = dedicatedAccount?.account_number || '9012345678'
   const accountName = dedicatedAccount?.account_name || 'Upward Rent Savings'
 
-  const handleCopy = (text: string, field: 'account' | 'all') => {
+  const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text)
-    setCopiedField(field)
-    toastSuccess('Account details copied to clipboard!')
+    setCopiedField('account')
+    toastSuccess('Account number copied!')
     setTimeout(() => setCopiedField(null), 2500)
   }
 
@@ -90,7 +132,12 @@ export function FundVaultModal({ isOpen, onClose, dedicatedAccount }: FundVaultM
         accountNumber,
         amountKobo,
       })
-      toastSuccess(`Instant deposit of ${formatCurrency(rawNumber, 'NGN')} credited to your vault!`)
+      toastSuccess(`Deposit of ${formatCurrency(rawNumber, 'NGN')} credited to your vault!`)
+      if (typeof window !== 'undefined') {
+        try {
+          sessionStorage.setItem('upward_dismissed_initial_deposit_prompt', 'true')
+        } catch {}
+      }
       onClose()
     } catch (err: unknown) {
       const error = err as { message?: string }
@@ -101,284 +148,195 @@ export function FundVaultModal({ isOpen, onClose, dedicatedAccount }: FundVaultM
   const handleIHavePaid = () => {
     setHasPaidNotified(true)
     toastSuccess('Payment recorded! We will credit your vault as soon as your transfer arrives.')
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem('upward_dismissed_initial_deposit_prompt', 'true')
+      } catch {}
+    }
     setTimeout(() => {
       onClose()
     }, 1500)
   }
 
-  return createPortal(
-    <div className="vault-modal-overlay" onClick={handleClose}>
-      <div
-        className="vault-modal-card"
-        onClick={(e) => e.stopPropagation()}
-        style={{ maxWidth: 480 }}
-      >
-        <div className="vault-modal-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+  const parsedDepositAmount = Number(customAmount.replace(/,/g, '')) || 0
+  const effectiveTargetRent = targetAmountNaira || 2_500_000
+  const effectiveRunwayDays = Math.max(1, daysRemaining || 330)
+  const effectiveRatePct =
+    annualRatePct ||
+    (productOption === 'RENT_PROTEC'
+      ? platformRates.rentProtecRatePct
+      : platformRates.savingsAnnualRatePct)
+
+  const dynamicPlan = calculatePayLessPlan(
+    effectiveTargetRent,
+    effectiveRunwayDays,
+    'MONTHLY',
+    parsedDepositAmount,
+    effectiveRatePct,
+    {
+      productOption,
+      planPattern: 'INITIAL_DEPOSIT',
+      maxMonths: platformRates.maxSavingsMonths,
+      minRentProtecMonths: platformRates.rentProtecMinMonths,
+      insurancePremiumPct: platformRates.insurancePremiumPct,
+    },
+  )
+
+  const monthlyDepositNaira = dynamicPlan.periodicDepositNaira
+  const projectedInterestNaira = dynamicPlan.projectedYieldNaira
+
+  return (
+    <BottomSheetModal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title="Make a Deposit"
+      icon={<Landmark size={20} color="var(--clay)" />}
+      maxWidth="480px"
+    >
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '4px 0 8px' }}>
+        {/* Compact Amount Input */}
+        <div>
+          <div className="vault-sandbox-card__input-wrapper" style={{ height: 44 }}>
+            <span className="vault-sandbox-card__currency-prefix" style={{ fontSize: '1.2rem', fontWeight: 700 }}>
+              ₦
+            </span>
+            <input
+              id="quick-save-amount"
+              type="text"
+              inputMode="numeric"
+              className="vault-sandbox-card__input"
+              style={{ fontSize: '1.2rem', fontWeight: 700 }}
+              placeholder="e.g. 1,000,000"
+              value={customAmount}
+              onChange={(e) => {
+                const digits = e.target.value.replace(/[^0-9]/g, '')
+                setCustomAmount(digits ? Number(digits).toLocaleString() : '')
+              }}
+            />
+          </div>
+
+          {/* Punchy 1-line benefit pitch */}
+          {parsedDepositAmount > 0 && effectiveTargetRent > 0 && (
             <div
               style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                background: 'var(--clay-faint, rgba(200, 107, 73, 0.1))',
-                color: 'var(--clay)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                fontSize: '0.8125rem',
+                color: 'var(--text-secondary)',
+                lineHeight: 1.4,
+                marginTop: 6,
+                padding: '0 2px',
               }}
             >
-              <Zap size={20} />
+              Pay <strong>{formatCurrency(parsedDepositAmount, 'NGN')}</strong> today, then deposit at least{' '}
+              <strong style={{ color: 'var(--clay)' }}>
+                {formatCurrency(monthlyDepositNaira, 'NGN')}
+              </strong>{' '}
+              monthly for the rest of the year{' '}
+              <span style={{ color: '#059669', fontWeight: 600 }}>
+                (est. +{formatCurrency(projectedInterestNaira, 'NGN')} in returns)
+              </span>.
             </div>
-            <div>
-              <span className="vault-modal-title" style={{ fontSize: '1.0625rem', fontWeight: 700 }}>
-                Add Money to Rent Savings
-              </span>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>
-                Earns 14.5% returns every year, added daily
-              </p>
+          )}
+        </div>
+
+        {/* Compact Account Card */}
+        <div
+          style={{
+            padding: '10px 14px',
+            borderRadius: '12px',
+            background: 'var(--surface2, #fbf9f6)',
+            border: '1px solid var(--border-solid, #eee7df)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 12,
+          }}
+        >
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--text)', letterSpacing: '0.02em', lineHeight: 1.2 }}>
+              {accountNumber}
+            </div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {bankName} · {accountName}
             </div>
           </div>
-          <button type="button" className="vault-modal-close" onClick={handleClose}>
-            <X size={20} />
+          <button
+            type="button"
+            className={`vault-dva-card__copy-btn ${copiedField === 'account' ? 'vault-dva-card__copy-btn--copied' : ''}`}
+            style={{ padding: '6px 12px', fontSize: '0.75rem', height: 32, flexShrink: 0 }}
+            onClick={() => handleCopy(accountNumber)}
+          >
+            {copiedField === 'account' ? (
+              <>
+                <Check size={13} /> Copied
+              </>
+            ) : (
+              <>
+                <Copy size={13} /> Copy
+              </>
+            )}
           </button>
         </div>
 
-        {/* Tab Selection: Direct Debit (Primary) vs Bank Transfer (Alternative) */}
-        <div style={{ display: 'flex', background: 'var(--surface)', borderRadius: 10, padding: 3, gap: 4 }}>
+        {/* Action Buttons */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 2 }}>
           <button
             type="button"
-            onClick={() => setFundingMode('DIRECT_DEBIT')}
-            style={{
-              flex: 1,
-              padding: '8px 12px',
-              borderRadius: 8,
-              border: 'none',
-              background: fundingMode === 'DIRECT_DEBIT' ? 'var(--bg)' : 'transparent',
-              boxShadow: fundingMode === 'DIRECT_DEBIT' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-              color: fundingMode === 'DIRECT_DEBIT' ? 'var(--text)' : 'var(--text-muted)',
-              fontSize: '0.8125rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-              transition: 'all 0.15s ease',
-            }}
+            className="vault-btn-primary"
+            style={{ height: 44 }}
+            onClick={handleIHavePaid}
+            disabled={hasPaidNotified}
           >
-            <Zap size={14} color={fundingMode === 'DIRECT_DEBIT' ? 'var(--clay)' : 'inherit'} />
-            <span>Direct Debit (Card/Bank)</span>
+            <CheckCircle2 size={16} />
+            <span>{hasPaidNotified ? 'Transfer Recorded!' : 'I Have Transferred'}</span>
           </button>
-          <button
-            type="button"
-            onClick={() => setFundingMode('TRANSFER')}
-            style={{
-              flex: 1,
-              padding: '8px 12px',
-              borderRadius: 8,
-              border: 'none',
-              background: fundingMode === 'TRANSFER' ? 'var(--bg)' : 'transparent',
-              boxShadow: fundingMode === 'TRANSFER' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-              color: fundingMode === 'TRANSFER' ? 'var(--text)' : 'var(--text-muted)',
-              fontSize: '0.8125rem',
-              fontWeight: 700,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-              transition: 'all 0.15s ease',
-            }}
-          >
-            <Landmark size={14} color={fundingMode === 'TRANSFER' ? 'var(--clay)' : 'inherit'} />
-            <span>Bank Transfer</span>
-          </button>
-        </div>
 
-        {/* MODE 1: Direct Debit / Quick Save (Cowrywise Image 5 pattern) */}
-        {fundingMode === 'DIRECT_DEBIT' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {/* Amount input with big display */}
-            <div>
-              <label htmlFor="quick-save-amount" style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 6 }}>
-                How much would you like to save?
-              </label>
-              <div className="vault-sandbox-card__input-wrapper" style={{ height: 46 }}>
-                <span className="vault-sandbox-card__currency-prefix" style={{ fontSize: '1.25rem', fontWeight: 700 }}>₦</span>
-                <input
-                  id="quick-save-amount"
-                  type="text"
-                  inputMode="numeric"
-                  className="vault-sandbox-card__input"
-                  style={{ fontSize: '1.25rem', fontWeight: 700 }}
-                  placeholder="e.g. 100,000"
-                  value={customAmount}
-                  onChange={(e) => {
-                    const digits = e.target.value.replace(/[^0-9]/g, '')
-                    setCustomAmount(digits ? Number(digits).toLocaleString() : '')
-                  }}
-                />
-              </div>
-
-              {/* Quick preset chips */}
-              <div className="vault-sandbox-card__chips" style={{ marginTop: 8 }}>
-                {PRESET_AMOUNTS.map((preset) => (
-                  <button
-                    key={preset}
-                    type="button"
-                    className={`vault-sandbox-card__chip ${
-                      customAmount.replace(/,/g, '') === String(preset)
-                        ? 'vault-sandbox-card__chip--active'
-                        : ''
-                    }`}
-                    onClick={() => setCustomAmount(preset.toLocaleString())}
-                  >
-                    ₦{preset >= 1_000_000 ? `${preset / 1_000_000}M` : `${preset / 1_000}k`}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Set Primary Source of Funds (Cowrywise Image 5) */}
-            <div>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)', display: 'block', marginBottom: 8 }}>
-                Set Primary Source of Funds
-              </span>
-              <div className="vault-setup__source-grid">
-                <div
-                  className={`vault-setup__source-card ${
-                    debitSource === 'CARD' ? 'vault-setup__source-card--active' : ''
-                  }`}
-                  onClick={() => setDebitSource('CARD')}
-                >
-                  <CreditCard size={18} color="var(--clay)" />
-                  <div className="vault-setup__source-info">
-                    <span className="vault-setup__source-title">Debit Card</span>
-                    <span className="vault-setup__source-sub">Mastercard •••• 7572</span>
-                  </div>
-                </div>
-
-                <div
-                  className={`vault-setup__source-card ${
-                    debitSource === 'BANK' ? 'vault-setup__source-card--active' : ''
-                  }`}
-                  onClick={() => setDebitSource('BANK')}
-                >
-                  <Building2 size={18} color="var(--clay)" />
-                  <div className="vault-setup__source-info">
-                    <span className="vault-setup__source-title">Bank Account</span>
-                    <span className="vault-setup__source-sub">Direct debit from bank</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
+          {process.env.NODE_ENV !== 'production' && (
             <button
               type="button"
-              className="vault-btn-primary"
-              disabled={simulateMutation.isPending || !customAmount}
+              className="vault-btn-secondary"
               onClick={handleDeposit}
-              style={{ height: 44, marginTop: 4 }}
+              disabled={simulateMutation.isPending}
+              style={{ fontSize: '0.75rem', height: 36 }}
             >
               {simulateMutation.isPending ? (
                 <>
-                  <Loader2 size={16} className="animate-spin" />
-                  <span>Processing Deposit...</span>
+                  <Loader2 size={13} className="animate-spin" /> Simulating Transfer...
                 </>
               ) : (
-                <>
-                  <Zap size={16} />
-                  <span>Save ₦{customAmount || '0'} Now</span>
-                </>
+                <span>Simulate Instant Transfer (₦{customAmount || '0'})</span>
               )}
             </button>
+          )}
+
+          {/* Quiet Skip Link: faint, unobtrusive text link as hard to see as possible */}
+          <div style={{ textAlign: 'center', marginTop: 2 }}>
+            <button
+              type="button"
+              onClick={handleQuietSkip}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-muted, #94a3b8)',
+                fontSize: '0.6875rem',
+                fontWeight: 400,
+                opacity: 0.35,
+                cursor: 'pointer',
+                textDecoration: 'underline',
+                padding: '4px 8px',
+                transition: 'opacity 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = '0.7'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = '0.35'
+              }}
+            >
+              I&apos;ll fund later
+            </button>
           </div>
-        )}
-
-        {/* MODE 2: Bank Transfer (Cowrywise Image 2 pattern) */}
-        {fundingMode === 'TRANSFER' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.45 }}>
-              Transfer from any Nigerian bank mobile app or USSD to your personal rent account below:
-            </p>
-
-            <div className="vault-dva-card" style={{ margin: 0 }}>
-              <div className="vault-dva-card__header">
-                <span className="vault-dva-card__title">Your Personal Rent Account</span>
-                <span className="vault-dva-card__badge">
-                  <Zap size={11} /> Enters Instantly
-                </span>
-              </div>
-
-              <div className="vault-dva-card__number-row">
-                <div className="vault-dva-card__number-block">
-                  <span className="vault-dva-card__number-label">Account Number</span>
-                  <span className="vault-dva-card__number">{accountNumber}</span>
-                </div>
-                <button
-                  type="button"
-                  className={`vault-dva-card__copy-btn ${
-                    copiedField === 'account' ? 'vault-dva-card__copy-btn--copied' : ''
-                  }`}
-                  onClick={() => handleCopy(accountNumber, 'account')}
-                >
-                  {copiedField === 'account' ? (
-                    <>
-                      <Check size={14} /> Copied!
-                    </>
-                  ) : (
-                    <>
-                      <Copy size={14} /> Copy
-                    </>
-                  )}
-                </button>
-              </div>
-
-              <div className="vault-dva-card__meta-list">
-                <div className="vault-dva-card__meta-row">
-                  <span className="vault-dva-card__meta-label">Bank Name</span>
-                  <span className="vault-dva-card__meta-value">{bankName}</span>
-                </div>
-                <div className="vault-dva-card__meta-row">
-                  <span className="vault-dva-card__meta-label">Account Name</span>
-                  <span className="vault-dva-card__meta-value">{accountName}</span>
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-              <button
-                type="button"
-                className="vault-btn-secondary"
-                onClick={() => handleCopy(`${accountNumber}\n${bankName}\n${accountName}`, 'all')}
-                style={{ flex: 1, height: 42, fontSize: '0.8125rem' }}
-              >
-                {copiedField === 'all' ? (
-                  <>
-                    <Check size={14} /> Copied!
-                  </>
-                ) : (
-                  <>
-                    <Copy size={14} /> Copy Details
-                  </>
-                )}
-              </button>
-
-              <button
-                type="button"
-                className="vault-btn-primary"
-                onClick={handleIHavePaid}
-                style={{ flex: 1.4, height: 42, fontSize: '0.8125rem' }}
-                disabled={hasPaidNotified}
-              >
-                <CheckCircle2 size={16} />
-                <span>{hasPaidNotified ? 'Payment Recorded' : 'I Have Transferred'}</span>
-              </button>
-            </div>
-          </div>
-        )}
+        </div>
       </div>
-    </div>,
-    document.body,
+    </BottomSheetModal>
   )
 }

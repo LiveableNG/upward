@@ -11,9 +11,11 @@ import {
   AlertCircle,
   RefreshCw,
   Layers,
+  ChevronDown,
   Package,
   Wrench,
   ShoppingBag,
+  ShoppingCart,
   SlidersHorizontal,
   Check,
   X,
@@ -27,6 +29,20 @@ import {
   Utensils,
   Bed,
   Loader2,
+  CreditCard,
+  TrendingUp,
+  Coins,
+  Award,
+  GraduationCap,
+  Code,
+  Laptop,
+  Plane,
+  Gift,
+  Tag,
+  Shirt,
+  Mic,
+  Palette,
+  Shield,
 } from 'lucide-react'
 import {
   useGoalCategories,
@@ -39,7 +55,7 @@ import {
   getRecommendedOfferings,
   type RecommendedOfferingItem,
 } from '../utils/recommendationEngine'
-import { OfferingCard } from './OfferingCard'
+import { OfferingCard, formatOfferingPrice } from './OfferingCard'
 import {
   getGoalTitle,
   getCategoryTitle,
@@ -56,21 +72,66 @@ import {
 } from '../utils/deliveryLocation'
 import { DeliveryLocationBar } from './DeliveryLocationBar'
 import { BottomSheetModal } from '@/components/common/BottomSheetModal'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useToast } from '@/components/common/Toast'
+import { useCart } from '../context/CartContext'
 import '../styles/goals.css'
 
 export function getGoalIconComponent(iconName?: string | null, slug?: string) {
   const name = `${iconName || ''} ${slug || ''}`.toLowerCase()
+  if (name.includes('credit') || name.includes('rent-now')) {
+    return CreditCard
+  }
   if (
     name.includes('home') ||
     name.includes('decor') ||
     name.includes('kitchen') ||
     name.includes('apartment') ||
-    name.includes('clean')
+    name.includes('clean') ||
+    name.includes('sofa')
   ) {
     return Home
   }
-  if (name.includes('fitness') || name.includes('gym') || name.includes('weight')) {
+  if (name.includes('save') || name.includes('invest') || name.includes('coin') || name.includes('income')) {
+    return TrendingUp
+  }
+  if (name.includes('award') || name.includes('cert') || name.includes('licence') || name.includes('exam')) {
+    return Award
+  }
+  if (name.includes('grad') || name.includes('degree') || name.includes('child') || name.includes('school')) {
+    return GraduationCap
+  }
+  if (name.includes('code') || name.includes('program') || name.includes('tech')) {
+    return Code
+  }
+  if (name.includes('laptop') || name.includes('remote') || name.includes('digital')) {
+    return Laptop
+  }
+  if (name.includes('plane') || name.includes('travel') || name.includes('abroad')) {
+    return Plane
+  }
+  if (name.includes('gift')) {
+    return Gift
+  }
+  if (name.includes('tag') || name.includes('pay-less') || name.includes('spend')) {
+    return Tag
+  }
+  if (name.includes('shirt') || name.includes('laundry')) {
+    return Shirt
+  }
+  if (name.includes('shop') || name.includes('grocery')) {
+    return ShoppingBag
+  }
+  if (name.includes('mic') || name.includes('speak') || name.includes('presentation')) {
+    return Mic
+  }
+  if (name.includes('palette') || name.includes('paint') || name.includes('creative')) {
+    return Palette
+  }
+  if (name.includes('shield') || name.includes('martial') || name.includes('karate')) {
+    return Shield
+  }
+  if (name.includes('fitness') || name.includes('gym') || name.includes('weight') || name.includes('sport')) {
     return Dumbbell
   }
   if (name.includes('health') || name.includes('eat') || name.includes('wellness')) {
@@ -84,20 +145,17 @@ export function getGoalIconComponent(iconName?: string | null, slug?: string) {
   ) {
     return Briefcase
   }
-  if (name.includes('book') || name.includes('read') || name.includes('study')) {
+  if (name.includes('book') || name.includes('read') || name.includes('study') || name.includes('english')) {
     return BookOpen
   }
-  if (name.includes('drive') || name.includes('car') || name.includes('move')) {
+  if (name.includes('drive') || name.includes('car') || name.includes('move') || name.includes('commute')) {
     return Car
   }
-  if (name.includes('music') || name.includes('instrument')) {
+  if (name.includes('music') || name.includes('piano') || name.includes('instrument')) {
     return Music
   }
-  if (name.includes('food') || name.includes('meal')) {
-    return Utensils
-  }
-  if (name.includes('sleep') || name.includes('bed')) {
-    return Bed
+  if (name.includes('sparkle') || name.includes('custom') || name.includes('goal')) {
+    return Target
   }
   return Target
 }
@@ -109,6 +167,7 @@ const EMPTY_USER_GOALS: UserGoal[] = []
 export const LifestyleDiscoveryScreen: React.FC = () => {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const cart = useCart()
   const { success, error: toastError } = useToast()
 
   // Queries
@@ -155,34 +214,63 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedType, setSelectedType] = useState<OfferingType | 'ALL'>('ALL')
 
-  const isQueryGoalsOpen = searchParams?.get('goals') === 'open'
-  const queryGoalId = searchParams?.get('goalId')
-  const parsedQueryGoalId = queryGoalId ? Number(queryGoalId) : null
+  const queryCategoryParam = searchParams?.get('category') || searchParams?.get('cat') || 'ALL'
+  const [selectedCategorySlug, setSelectedCategorySlug] = useState<string>(queryCategoryParam)
 
-  const [isGoalSheetOpen, setIsGoalSheetOpen] = useState(() => isQueryGoalsOpen)
-  const [selectedActiveGoalId, setSelectedActiveGoalId] = useState<number | 'ALL'>(() =>
-    parsedQueryGoalId && !isNaN(parsedQueryGoalId) ? parsedQueryGoalId : 'ALL',
-  )
-
-  const [prevQueryGoalsOpen, setPrevQueryGoalsOpen] = useState(isQueryGoalsOpen)
-  if (isQueryGoalsOpen !== prevQueryGoalsOpen) {
-    setPrevQueryGoalsOpen(isQueryGoalsOpen)
-    if (isQueryGoalsOpen) {
-      setIsGoalSheetOpen(true)
-    }
+  const [prevQueryCategoryParam, setPrevQueryCategoryParam] = useState(queryCategoryParam)
+  if (queryCategoryParam !== prevQueryCategoryParam) {
+    setPrevQueryCategoryParam(queryCategoryParam)
+    setSelectedCategorySlug(queryCategoryParam)
   }
 
-  const [prevQueryGoalId, setPrevQueryGoalId] = useState(queryGoalId)
-  if (queryGoalId !== prevQueryGoalId) {
-    setPrevQueryGoalId(queryGoalId)
+  const isQueryGoalsOpen = searchParams?.get('goals') === 'open'
+  const queryGoalId = searchParams?.get('goalId')
+  const queryGoalSlug = searchParams?.get('goal')
+  const queryCategorySlug = searchParams?.get('category') || searchParams?.get('cat')
+  const parsedQueryGoalId = queryGoalId ? Number(queryGoalId) : null
+
+  // Flat list of all system goals from published categories
+  const allSystemGoals = useMemo(() => {
+    return categories.flatMap((cat) =>
+      (cat.goals || []).map((g) => ({
+        ...g,
+        categorySlug: cat.slug,
+        categoryTitle: cat.title || cat.name,
+      })),
+    )
+  }, [categories])
+
+  const initialGoalId = useMemo<number | 'ALL'>(() => {
     if (parsedQueryGoalId && !isNaN(parsedQueryGoalId)) {
-      setSelectedActiveGoalId(parsedQueryGoalId)
+      return parsedQueryGoalId
     }
+    if (queryGoalSlug && allSystemGoals.length > 0) {
+      const match = allSystemGoals.find((g) => g.slug === queryGoalSlug)
+      if (match) return match.id
+    }
+    if (queryCategorySlug && allSystemGoals.length > 0) {
+      const match = allSystemGoals.find((g) => g.categorySlug === queryCategorySlug)
+      if (match) return match.id
+    }
+    return 'ALL'
+  }, [parsedQueryGoalId, queryGoalSlug, queryCategorySlug, allSystemGoals])
+
+  const [isGoalSheetOpen, setIsGoalSheetOpen] = useState(() => isQueryGoalsOpen)
+  const [selectedActiveGoalId, setSelectedActiveGoalId] = useState<number | 'ALL'>(initialGoalId)
+
+  const [prevInitialGoalId, setPrevInitialGoalId] = useState(initialGoalId)
+  if (initialGoalId !== prevInitialGoalId) {
+    setPrevInitialGoalId(initialGoalId)
+    setSelectedActiveGoalId(initialGoalId)
   }
 
   // Active user goals
   const activeUserGoals = useMemo(
-    () => userGoals.filter((ug) => ug.status === 'ACTIVE' && ug.goal),
+    () =>
+      userGoals.filter(
+        (ug): ug is typeof ug & { goalId: number } =>
+          ug.status === 'ACTIVE' && typeof ug.goalId === 'number' && !!ug.goal,
+      ),
     [userGoals],
   )
   const hasSelectedGoals = activeUserGoals.length > 0
@@ -194,26 +282,14 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
   // Note: Alliance marketplace integration paused; keep UI code intact below for future enablement
   const showAllianceBanner = false
 
-  // Lock body scroll when goal sheet is open
-  useEffect(() => {
-    if (isGoalSheetOpen) {
-      const originalOverflow = document.body.style.overflow
-      const originalTouchAction = document.body.style.touchAction
-      document.body.style.overflow = 'hidden'
-      document.body.style.touchAction = 'none'
-
-      return () => {
-        document.body.style.overflow = originalOverflow
-        document.body.style.touchAction = originalTouchAction
-      }
-    }
-  }, [isGoalSheetOpen])
+  // Robust cross-platform body scroll lock
+  useBodyScrollLock(isGoalSheetOpen)
 
   // Sync draftGoalIds during render when active goals change
   const activeGoalIdsKey = useMemo(
     () =>
       userGoals
-        .filter((ug) => ug.status === 'ACTIVE')
+        .filter((ug): ug is typeof ug & { goalId: number } => ug.status === 'ACTIVE' && typeof ug.goalId === 'number')
         .map((ug) => ug.goalId)
         .sort((a, b) => a - b)
         .join(','),
@@ -222,25 +298,25 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
 
   const [draftGoalIds, setDraftGoalIds] = useState<Set<number>>(() => {
     const activeIds = userGoals
-      .filter((ug) => ug.status === 'ACTIVE')
+      .filter((ug): ug is typeof ug & { goalId: number } => ug.status === 'ACTIVE' && typeof ug.goalId === 'number')
       .map((ug) => ug.goalId)
-    return new Set(activeIds)
+    return new Set<number>(activeIds)
   })
 
   const [prevActiveGoalIdsKey, setPrevActiveGoalIdsKey] = useState(activeGoalIdsKey)
   if (activeGoalIdsKey !== prevActiveGoalIdsKey) {
     setPrevActiveGoalIdsKey(activeGoalIdsKey)
     const activeIds = userGoals
-      .filter((ug) => ug.status === 'ACTIVE')
+      .filter((ug): ug is typeof ug & { goalId: number } => ug.status === 'ACTIVE' && typeof ug.goalId === 'number')
       .map((ug) => ug.goalId)
-    setDraftGoalIds(new Set(activeIds))
+    setDraftGoalIds(new Set<number>(activeIds))
   }
 
   const openGoalSheet = () => {
     const activeIds = userGoals
-      .filter((ug) => ug.status === 'ACTIVE')
+      .filter((ug): ug is typeof ug & { goalId: number } => ug.status === 'ACTIVE' && typeof ug.goalId === 'number')
       .map((ug) => ug.goalId)
-    setDraftGoalIds(new Set(activeIds))
+    setDraftGoalIds(new Set<number>(activeIds))
     setIsGoalSheetOpen(true)
   }
 
@@ -251,12 +327,21 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
     }
   }
 
-  const toggleDraftGoal = (goalId: number) => {
+  const toggleDraftGoal = (
+    goalId: number,
+    categoryGoals: Array<{ id: number }>,
+    catTitle: string,
+  ) => {
     setDraftGoalIds((prev) => {
       const next = new Set(prev)
       if (next.has(goalId)) {
         next.delete(goalId)
       } else {
+        const countInCat = categoryGoals.filter((g) => next.has(g.id)).length
+        if (countInCat >= 3) {
+          toastError(`You can select up to 3 goals in ${catTitle}.`)
+          return prev
+        }
         next.add(goalId)
       }
       return next
@@ -284,19 +369,42 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
   // Personalized & filtered offerings
   const displayItems = useMemo<RecommendedOfferingItem[]>(() => {
     return getRecommendedOfferings(offerings, userGoals, categories, {
-      activeGoalId:
-        selectedActiveGoalId === 'ALL' ? undefined : selectedActiveGoalId,
+      categorySlug: selectedCategorySlug,
       typeFilter: selectedType,
       searchQuery,
     })
-  }, [offerings, userGoals, categories, selectedActiveGoalId, selectedType, searchQuery])
+  }, [offerings, userGoals, categories, selectedCategorySlug, selectedType, searchQuery])
+
+  // Promoted / Spotlight bundle (E-Commerce Featured Hero)
+  const spotlightOffering = useMemo<GoalOffering | undefined>(() => {
+    return offerings.find((o) => (o.status === 'PUBLISHED' || !o.status) && o.isPromoted)
+  }, [offerings])
+
+  const isLoading = isCategoriesLoading || isOfferingsLoading
+
+  const showSpotlightHero =
+    !isLoading &&
+    Boolean(spotlightOffering) &&
+    !searchQuery &&
+    selectedType === 'ALL' &&
+    selectedCategorySlug === 'ALL'
+
+  // If spotlight hero is active, avoid duplicating the exact same offering as item #1 in the grid
+  const gridItems = useMemo<RecommendedOfferingItem[]>(() => {
+    if (showSpotlightHero && spotlightOffering) {
+      return displayItems.filter(
+        (item) =>
+          item.offering.id !== spotlightOffering.id &&
+          item.offering.uuid !== spotlightOffering.uuid
+      )
+    }
+    return displayItems
+  }, [displayItems, showSpotlightHero, spotlightOffering])
 
   const handleOfferingClick = (offering: GoalOffering) => {
     const identifier = offering.uuid || offering.slug || String(offering.id)
     router.push(`/dashboard/lifestyle?id=${encodeURIComponent(identifier)}`, { scroll: false })
   }
-
-  const isLoading = isCategoriesLoading || isOfferingsLoading
 
   return (
     <div className="lifestyle-discovery">
@@ -304,23 +412,26 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
       <header className="lifestyle-discovery__header">
         <div className="lifestyle-discovery__top-bar">
           <div className="lifestyle-discovery__top-left">
-            <button
-              type="button"
-              className="lifestyle-discovery__back-btn"
-              onClick={() => router.push('/dashboard')}
-              aria-label="Back to dashboard"
-            >
-              <ArrowLeft size={16} />
-            </button>
             <div className="lifestyle-discovery__title-group">
               <h1 className="lifestyle-discovery__title">Lifestyle & Perks</h1>
               <p className="lifestyle-discovery__subtitle">
-                Verified services, packages, and home essentials for tenants
+                Verified packages, home essentials, and services for your goals
               </p>
             </div>
           </div>
 
           <div className="lifestyle-discovery__top-actions">
+            <button
+              type="button"
+              className="lifestyle-discovery__goals-trigger"
+              onClick={() => router.push('/dashboard/goals')}
+              aria-label="Setup your goals"
+              title="Setup Goals"
+            >
+              <Target size={14} />
+              <span>Goals</span>
+            </button>
+
             <button
               type="button"
               className={`lifestyle-discovery__goals-trigger ${
@@ -341,20 +452,18 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
 
             <button
               type="button"
-              className={`lifestyle-discovery__goals-trigger ${
-                hasSelectedGoals ? 'lifestyle-discovery__goals-trigger--active' : ''
+              className={`lifestyle-discovery__goals-trigger lifestyle-discovery__cart-trigger ${
+                cart.totalCount > 0 ? 'lifestyle-discovery__goals-trigger--active' : ''
               }`}
-              onClick={openGoalSheet}
-              aria-label="Select and edit lifestyle goals"
+              onClick={cart.openCart}
+              aria-label="View shopping cart"
+              title="Your Cart"
             >
-              <SlidersHorizontal size={14} />
-              <span className="lifestyle-discovery__goals-text">
-                {!hasSelectedGoals && <span className="lifestyle-discovery__goals-prefix">Set </span>}
-                Goals
-              </span>
-              {hasSelectedGoals && (
-                <span className="lifestyle-discovery__goals-badge">
-                  {activeUserGoals.length}
+              <ShoppingCart size={14} />
+              <span>Cart</span>
+              {cart.totalCount > 0 && (
+                <span className="lifestyle-discovery__goals-badge lifestyle-discovery__cart-badge">
+                  {cart.totalCount}
                 </span>
               )}
             </button>
@@ -415,7 +524,7 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
                 onClick={() => setSelectedType('PACKAGE')}
               >
                 <Package size={13} />
-                <span>Packages</span>
+                <span>Packs & Sets</span>
               </button>
               <button
                 type="button"
@@ -427,7 +536,7 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
                 onClick={() => setSelectedType('BUNDLE')}
               >
                 <Layers size={13} />
-                <span>Bundles</span>
+                <span>Bundle Sets</span>
               </button>
               <button
                 type="button"
@@ -451,7 +560,7 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
                 onClick={() => setSelectedType('PRODUCT')}
               >
                 <ShoppingBag size={13} />
-                <span>Products</span>
+                <span>Single Items</span>
               </button>
             </div>
           </div>
@@ -460,67 +569,91 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
 
       {/* Main Content */}
       <main className="lifestyle-discovery__container">
-        {/* Compact Goal Filter / Personalization Strip */}
-        {!isUserGoalsLoading && (
-          <div className="lifestyle-discovery__context-strip">
-            {hasSelectedGoals ? (
-              <div className="lifestyle-discovery__goal-scroll-wrap">
-                <div className="lifestyle-discovery__goal-pills-row">
-                  <button
-                    type="button"
-                    className={`lifestyle-discovery__goal-pill ${
-                      selectedActiveGoalId === 'ALL'
-                        ? 'lifestyle-discovery__goal-pill--active'
-                        : ''
-                    }`}
-                    onClick={() => setSelectedActiveGoalId('ALL')}
-                  >
-                    All For You
-                  </button>
-                  {activeUserGoals.map((ug) => {
-                    const gTitle = getGoalTitle(ug.goal) || `Goal #${ug.goalId}`
-                    return (
-                      <button
-                        key={ug.goalId}
-                        type="button"
-                        className={`lifestyle-discovery__goal-pill ${
-                          selectedActiveGoalId === ug.goalId
-                            ? 'lifestyle-discovery__goal-pill--active'
-                            : ''
-                        }`}
-                        onClick={() => setSelectedActiveGoalId(ug.goalId)}
-                      >
-                        {gTitle}
-                      </button>
-                    )
-                  })}
-                  <button
-                    type="button"
-                    className="lifestyle-discovery__goal-edit-link"
-                    onClick={openGoalSheet}
-                  >
-                    Edit goals
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="lifestyle-discovery__nudge-bar">
-                <div className="lifestyle-discovery__nudge-text">
-                  <Target size={15} className="lifestyle-discovery__nudge-icon" />
-                  <span>
-                    Select your home & lifestyle goals to tailor recommendations.
-                  </span>
+        {/* Category Filter Dropdown */}
+        <div className="lifestyle-discovery__category-bar">
+          <div className="lifestyle-discovery__category-dropdown-box">
+            <Layers size={14} className="lifestyle-discovery__category-dropdown-icon" />
+            <select
+              className="lifestyle-discovery__category-select"
+              value={selectedCategorySlug}
+              onChange={(e) => setSelectedCategorySlug(e.target.value)}
+              aria-label="Filter by category"
+            >
+              <option value="ALL">All Categories</option>
+              {categories.map((cat) => (
+                <option key={cat.id || cat.slug} value={cat.slug}>
+                  {cat.title || cat.name}
+                </option>
+              ))}
+            </select>
+            <ChevronDown size={14} className="lifestyle-discovery__category-dropdown-chevron" />
+          </div>
+          {selectedCategorySlug !== 'ALL' && (
+            <button
+              type="button"
+              className="lifestyle-discovery__category-reset"
+              onClick={() => setSelectedCategorySlug('ALL')}
+            >
+              Reset
+            </button>
+          )}
+        </div>
+
+        {/* E-Commerce Spotlight / Promoted Ad Hero Banner */}
+        {showSpotlightHero && spotlightOffering && (
+          <div
+            className="lifestyle-discovery__spotlight"
+            onClick={() => handleOfferingClick(spotlightOffering)}
+            tabIndex={0}
+            role="button"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                handleOfferingClick(spotlightOffering)
+              }
+            }}
+            style={{
+              backgroundImage: `linear-gradient(92deg, rgba(16, 12, 10, 0.68) 0%, rgba(16, 12, 10, 0.42) 55%, rgba(16, 12, 10, 0.15) 100%), url(${
+                spotlightOffering.promoCoverImage ||
+                spotlightOffering.media?.find((m) => m.isPrimary)?.mediaUrl ||
+                spotlightOffering.media?.[0]?.mediaUrl ||
+                spotlightOffering.imageUrl ||
+                'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=1200&q=80'
+              })`,
+            }}
+          >
+            <div className="lifestyle-discovery__spotlight-content">
+              <h2 className="lifestyle-discovery__spotlight-title">
+                {spotlightOffering.promoTitle || spotlightOffering.title}
+              </h2>
+              <p className="lifestyle-discovery__spotlight-desc">
+                {spotlightOffering.promoSubtitle ||
+                  spotlightOffering.subtitle ||
+                  spotlightOffering.description ||
+                  'Curated package for your home'}
+              </p>
+              <div className="lifestyle-discovery__spotlight-footer">
+                <div className="lifestyle-discovery__spotlight-price">
+                  <span>{formatOfferingPrice(spotlightOffering)}</span>
+                  {spotlightOffering.pricingModel && spotlightOffering.pricingModel !== 'FIXED' && (
+                    <span className="lifestyle-discovery__spotlight-pricing-model">
+                      {spotlightOffering.pricingModel.toLowerCase().replace('_', ' ')}
+                    </span>
+                  )}
                 </div>
                 <button
                   type="button"
-                  className="lifestyle-discovery__nudge-action"
-                  onClick={openGoalSheet}
+                  className="lifestyle-discovery__spotlight-btn"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleOfferingClick(spotlightOffering)
+                  }}
                 >
-                  <span>Choose goals</span>
-                  <ArrowRight size={13} />
+                  <span>Explore Bundle</span>
+                  <ArrowRight size={14} />
                 </button>
               </div>
-            )}
+            </div>
           </div>
         )}
 
@@ -553,18 +686,13 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
         <div className="lifestyle-discovery__section-header">
           <h2 className="lifestyle-discovery__section-title">
             {selectedActiveGoalId !== 'ALL'
-              ? getGoalTitle(
-                  activeUserGoals.find((g) => g.goalId === selectedActiveGoalId)
-                    ?.goal,
-                ) || 'Recommended for You'
-              : hasSelectedGoals
-                ? 'Curated for You'
-                : 'Explore Perks'}
+              ? allSystemGoals.find((g) => g.id === selectedActiveGoalId)?.title || 'Curated for You'
+              : 'Explore Perks'}
           </h2>
           {!isLoading && (
             <span className="lifestyle-discovery__count-badge">
-              {displayItems.length}{' '}
-              {displayItems.length === 1 ? 'item' : 'items'}
+              {gridItems.length}{' '}
+              {gridItems.length === 1 ? 'item' : 'items'}
             </span>
           )}
         </div>
@@ -606,7 +734,7 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
         {!isLoading &&
           !offeringsError &&
           !categoriesError &&
-          displayItems.length === 0 && (
+          gridItems.length === 0 && (
             <div className="lifestyle-discovery__empty-state">
               {hasNoGoals && offerings.length === 0 ? (
                 <>
@@ -629,10 +757,14 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
                 <>
                   <ShoppingBag size={30} className="lifestyle-discovery__empty-icon" />
                   <h3 className="lifestyle-discovery__empty-title">
-                    No matching items found
+                    {selectedActiveGoalId !== 'ALL'
+                      ? 'No perks linked to this goal yet'
+                      : 'No matching items found'}
                   </h3>
                   <p className="lifestyle-discovery__empty-desc">
-                    Try clearing your search or switching categories.
+                    {selectedActiveGoalId !== 'ALL'
+                      ? 'We are curating verified packages and merchants for this goal. Check back soon or browse all available perks.'
+                      : 'Try clearing your search or switching categories.'}
                   </p>
                   {(searchQuery ||
                     selectedType !== 'ALL' ||
@@ -646,7 +778,7 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
                         setSelectedActiveGoalId('ALL')
                       }}
                     >
-                      Reset Filters
+                      View All Perks
                     </button>
                   )}
                 </>
@@ -655,9 +787,9 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
           )}
 
         {/* Offerings Grid */}
-        {!isLoading && displayItems.length > 0 && (
+        {!isLoading && gridItems.length > 0 && (
           <div className="lifestyle-discovery__grid">
-            {displayItems.map((item) => (
+            {gridItems.map((item) => (
               <OfferingCard
                 key={item.offering.id}
                 item={item}
@@ -727,15 +859,32 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
             </div>
           ) : (
             categories.map((cat) => {
-              const goals = cat.goals || []
+              const goals = (cat.goals || []) as Goal[]
               if (goals.length === 0) return null
               const catTitle = getCategoryTitle(cat) || 'Lifestyle'
+              const selectedInCat = goals.filter((g) => draftGoalIds.has(g.id)).length
+              const isCatMaxed = selectedInCat >= 3
 
               return (
                 <div key={cat.id} className="goal-sheet__group">
-                  <h3 className="goal-sheet__group-title">{catTitle}</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <h3 className="goal-sheet__group-title" style={{ margin: 0 }}>{catTitle}</h3>
+                    <span
+                      style={{
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        padding: '2px 8px',
+                        borderRadius: '12px',
+                        background: isCatMaxed ? 'rgba(217, 119, 87, 0.12)' : 'var(--surface-sunken)',
+                        color: isCatMaxed ? 'var(--clay)' : 'var(--text-muted)',
+                        border: isCatMaxed ? '1px solid rgba(217, 119, 87, 0.3)' : '1px solid var(--border)',
+                      }}
+                    >
+                      {selectedInCat}/3 selected {isCatMaxed ? '(max)' : ''}
+                    </span>
+                  </div>
                   <div className="goal-sheet__list">
-                    {(goals as Goal[]).map((goal: Goal) => {
+                    {goals.map((goal: Goal) => {
                       const isSelected = draftGoalIds.has(goal.id)
                       const gTitle =
                         getGoalTitle(goal) ||
@@ -754,7 +903,7 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
                           className={`goal-card ${
                             isSelected ? 'goal-card--selected' : ''
                           }`}
-                          onClick={() => toggleDraftGoal(goal.id)}
+                          onClick={() => toggleDraftGoal(goal.id, goals, catTitle)}
                         >
                           <div className="goal-card__icon-box">
                            <IconComp size={18} />

@@ -49,6 +49,12 @@ import {
   InitializeBenefitsPaymentUseCase,
   ConfirmBenefitsPaymentUseCase,
 } from '../../../application/use-cases/payments/benefits-subscription.use-cases'
+import {
+  GetUserInsuranceEnrolmentsUseCase,
+  InitializeInsuranceEnrolmentUseCase,
+  ConfirmInsuranceEnrolmentUseCase,
+} from '../../../application/use-cases/payments/insurance-enrolment.use-cases'
+import { PlatformRatesService } from '../../../shared/infrastructure/common/platform-rates.service'
 import { VerifyGatewayTransactionUseCase } from '../../../application/use-cases/payments/verify-transaction.use-case'
 import { GetRentDepositSummaryUseCase } from '../../../application/use-cases/payments/get-rent-deposit-summary.use-case'
 import { ApplyRentDepositToPaymentRequestUseCase } from '../../../application/use-cases/payments/apply-rent-deposit-to-payment-request.use-case'
@@ -80,6 +86,10 @@ export class PaymentsController {
     private readonly getBenefitsStatusUc: GetBenefitsStatusUseCase,
     private readonly initializeBenefitsPaymentUc: InitializeBenefitsPaymentUseCase,
     private readonly confirmBenefitsPaymentUc: ConfirmBenefitsPaymentUseCase,
+    private readonly getUserInsuranceEnrolmentsUc: GetUserInsuranceEnrolmentsUseCase,
+    private readonly initializeInsuranceEnrolmentUc: InitializeInsuranceEnrolmentUseCase,
+    private readonly confirmInsuranceEnrolmentUc: ConfirmInsuranceEnrolmentUseCase,
+    private readonly platformRatesService: PlatformRatesService,
     private readonly getRentDepositSummaryUc: GetRentDepositSummaryUseCase,
     private readonly applyRentDepositUc: ApplyRentDepositToPaymentRequestUseCase,
     private readonly generateRentDepositReceiptPdfUc: GenerateRentDepositReceiptPdfUseCase,
@@ -192,6 +202,57 @@ export class PaymentsController {
     return {
       data,
       message: 'Benefits payment confirmed',
+      meta: {},
+    }
+  }
+
+  @Get('platform-rates')
+  async getPlatformRates() {
+    const data = await this.platformRatesService.getRates()
+    return {
+      data,
+      message: 'Platform rates retrieved',
+      meta: {},
+    }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('insurance/enrolments')
+  async getUserInsuranceEnrolments(@Req() req: any) {
+    const data = await this.getUserInsuranceEnrolmentsUc.execute(req.user.id)
+    return {
+      data,
+      message: 'Insurance enrolments retrieved',
+      meta: {},
+    }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('insurance/enrolments/initialize')
+  async initializeInsuranceEnrolment(@Req() req: any, @Body() body: any) {
+    const data = await this.initializeInsuranceEnrolmentUc.execute(req.user.id, body)
+    return {
+      data,
+      message: 'Insurance payment initialized',
+      meta: {},
+    }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('insurance/enrolments/:uuid/confirm')
+  async confirmInsuranceEnrolment(
+    @Req() req: any,
+    @Param('uuid') uuid: string,
+    @Body() body?: { reference?: string },
+  ) {
+    const data = await this.confirmInsuranceEnrolmentUc.execute(
+      req.user.id,
+      uuid,
+      body?.reference,
+    )
+    return {
+      data,
+      message: 'Insurance enrolment confirmed',
       meta: {},
     }
   }
