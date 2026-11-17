@@ -232,7 +232,7 @@ export function RentCalculatorView({
   const savingsAnnualRatePct = simData?.net_annual_yield_rate
     ? Math.round(simData.net_annual_yield_rate * 1000) / 10
     : defaultRatePct
-  const daysRemaining = simData ? simData.days_remaining : rawDaysRemaining
+  const daysRemaining = simData ? simData.days_remaining : Math.max(1, rawDaysRemaining - 30)
 
   const previewRentAmount = targetAmountNaira || 2_500_000
   const localPlan = calculatePayLessPlan(

@@ -378,7 +378,7 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
         cadence="MONTHLY"
         dedicatedAccount={vault.dedicated_account}
         targetAmountNaira={targetAmountNaira}
-        daysRemaining={daysRemaining}
+        daysRemaining={Math.max(1, daysRemaining - 30)}
         annualRatePct={savingsAnnualRatePct}
         productOption={vault.product_option || (vault.is_rent_protec ? 'RENT_PROTEC' : 'SAVE_AND_EARN')}
         currentBalanceNaira={currentBalanceNaira}

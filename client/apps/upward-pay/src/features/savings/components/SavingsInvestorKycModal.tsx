@@ -234,9 +234,10 @@ export function SavingsInvestorKycModal({
     activeProductOption === 'RENT_PROTEC'
       ? platformRates.rentProtecRatePct
       : platformRates.savingsAnnualRatePct
+  const savingsDays = Math.max(1, runwayDays - 30)
   const payLessPlan = calculatePayLessPlan(
     targetRent,
-    runwayDays,
+    savingsDays,
     selectedCadence,
     startAmountNaira,
     savingsAnnualRatePct,
@@ -252,7 +253,7 @@ export function SavingsInvestorKycModal({
     activeProductOption === 'RENT_PROTEC'
       ? calculatePayLessPlan(
           targetRent,
-          runwayDays,
+          savingsDays,
           selectedCadence,
           0,
           savingsAnnualRatePct,
@@ -288,7 +289,7 @@ export function SavingsInvestorKycModal({
 
   const dynamicPlanStep4 = calculatePayLessPlan(
     targetRent || 2_500_000,
-    runwayDays,
+    savingsDays,
     'MONTHLY',
     numericFundAmount,
     savingsAnnualRatePct,
