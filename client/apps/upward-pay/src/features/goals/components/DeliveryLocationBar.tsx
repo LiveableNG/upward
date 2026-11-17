@@ -66,21 +66,7 @@ export const DeliveryLocationBar: React.FC<DeliveryLocationBarProps> = ({
     }
   }, [])
 
-  // Lock body scroll and listen for Escape when sheet is open
-  useEffect(() => {
-    if (isOpen) {
-      const orig = document.body.style.overflow
-      document.body.style.overflow = 'hidden'
-      const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') setIsOpen(false)
-      }
-      window.addEventListener('keydown', handleKeyDown)
-      return () => {
-        document.body.style.overflow = orig
-        window.removeEventListener('keydown', handleKeyDown)
-      }
-    }
-  }, [isOpen])
+
 
   const rentalProperty = user?.properties?.[0]
   const rentalAddress = rentalProperty?.address

@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   Building2,
 } from 'lucide-react'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import type { CommerceVendor } from '../types/goals.types'
 
 interface VendorCredibilityModalProps {
@@ -24,6 +25,8 @@ export const VendorCredibilityModal: React.FC<VendorCredibilityModalProps> = ({
   isOpen,
   onClose,
 }) => {
+  useBodyScrollLock(isOpen)
+
   useEffect(() => {
     if (!isOpen) return
 
@@ -31,11 +34,9 @@ export const VendorCredibilityModal: React.FC<VendorCredibilityModalProps> = ({
       if (e.key === 'Escape') onClose()
     }
     window.addEventListener('keydown', handleKeyDown)
-    document.body.style.overflow = 'hidden'
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
-      document.body.style.overflow = ''
     }
   }, [isOpen, onClose])
 

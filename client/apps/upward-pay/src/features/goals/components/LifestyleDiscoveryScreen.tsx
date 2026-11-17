@@ -14,6 +14,7 @@ import {
   Package,
   Wrench,
   ShoppingBag,
+  ShoppingCart,
   SlidersHorizontal,
   Check,
   X,
@@ -27,7 +28,6 @@ import {
   Utensils,
   Bed,
   Loader2,
-  Sparkles,
   CreditCard,
   TrendingUp,
   Coins,
@@ -71,7 +71,9 @@ import {
 } from '../utils/deliveryLocation'
 import { DeliveryLocationBar } from './DeliveryLocationBar'
 import { BottomSheetModal } from '@/components/common/BottomSheetModal'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useToast } from '@/components/common/Toast'
+import { useCart } from '../context/CartContext'
 import '../styles/goals.css'
 
 export function getGoalIconComponent(iconName?: string | null, slug?: string) {
@@ -152,7 +154,7 @@ export function getGoalIconComponent(iconName?: string | null, slug?: string) {
     return Music
   }
   if (name.includes('sparkle') || name.includes('custom') || name.includes('goal')) {
-    return Sparkles
+    return Target
   }
   return Target
 }
@@ -164,6 +166,7 @@ const EMPTY_USER_GOALS: UserGoal[] = []
 export const LifestyleDiscoveryScreen: React.FC = () => {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const cart = useCart()
   const { success, error: toastError } = useToast()
 
   // Queries
@@ -269,20 +272,8 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
   // Note: Alliance marketplace integration paused; keep UI code intact below for future enablement
   const showAllianceBanner = false
 
-  // Lock body scroll when goal sheet is open
-  useEffect(() => {
-    if (isGoalSheetOpen) {
-      const originalOverflow = document.body.style.overflow
-      const originalTouchAction = document.body.style.touchAction
-      document.body.style.overflow = 'hidden'
-      document.body.style.touchAction = 'none'
-
-      return () => {
-        document.body.style.overflow = originalOverflow
-        document.body.style.touchAction = originalTouchAction
-      }
-    }
-  }, [isGoalSheetOpen])
+  // Robust cross-platform body scroll lock
+  useBodyScrollLock(isGoalSheetOpen)
 
   // Sync draftGoalIds during render when active goals change
   const activeGoalIdsKey = useMemo(
@@ -380,12 +371,31 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
     return offerings.find((o) => (o.status === 'PUBLISHED' || !o.status) && o.isPromoted)
   }, [offerings])
 
+  const isLoading = isCategoriesLoading || isOfferingsLoading
+
+  const showSpotlightHero =
+    !isLoading &&
+    Boolean(spotlightOffering) &&
+    !searchQuery &&
+    selectedType === 'ALL' &&
+    selectedActiveGoalId === 'ALL'
+
+  // If spotlight hero is active, avoid duplicating the exact same offering as item #1 in the grid
+  const gridItems = useMemo<RecommendedOfferingItem[]>(() => {
+    if (showSpotlightHero && spotlightOffering) {
+      return displayItems.filter(
+        (item) =>
+          item.offering.id !== spotlightOffering.id &&
+          item.offering.uuid !== spotlightOffering.uuid
+      )
+    }
+    return displayItems
+  }, [displayItems, showSpotlightHero, spotlightOffering])
+
   const handleOfferingClick = (offering: GoalOffering) => {
     const identifier = offering.uuid || offering.slug || String(offering.id)
     router.push(`/dashboard/lifestyle?id=${encodeURIComponent(identifier)}`, { scroll: false })
   }
-
-  const isLoading = isCategoriesLoading || isOfferingsLoading
 
   return (
     <div className="lifestyle-discovery">
@@ -424,6 +434,24 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
               {activeOrdersCount > 0 && (
                 <span className="lifestyle-discovery__goals-badge">
                   {activeOrdersCount}
+                </span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              className={`lifestyle-discovery__goals-trigger lifestyle-discovery__cart-trigger ${
+                cart.totalCount > 0 ? 'lifestyle-discovery__goals-trigger--active' : ''
+              }`}
+              onClick={cart.openCart}
+              aria-label="View shopping cart"
+              title="Your Cart"
+            >
+              <ShoppingCart size={14} />
+              <span>Cart</span>
+              {cart.totalCount > 0 && (
+                <span className="lifestyle-discovery__goals-badge lifestyle-discovery__cart-badge">
+                  {cart.totalCount}
                 </span>
               )}
             </button>
@@ -484,7 +512,7 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
                 onClick={() => setSelectedType('PACKAGE')}
               >
                 <Package size={13} />
-                <span>Packages</span>
+                <span>Packs & Sets</span>
               </button>
               <button
                 type="button"
@@ -496,7 +524,7 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
                 onClick={() => setSelectedType('BUNDLE')}
               >
                 <Layers size={13} />
-                <span>Bundles</span>
+                <span>Bundle Sets</span>
               </button>
               <button
                 type="button"
@@ -520,7 +548,7 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
                 onClick={() => setSelectedType('PRODUCT')}
               >
                 <ShoppingBag size={13} />
-                <span>Products</span>
+                <span>Single Items</span>
               </button>
             </div>
           </div>
@@ -564,6 +592,64 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
           </div>
         </div>
 
+        {/* E-Commerce Spotlight / Promoted Ad Hero Banner */}
+        {showSpotlightHero && spotlightOffering && (
+          <div
+            className="lifestyle-discovery__spotlight"
+            onClick={() => handleOfferingClick(spotlightOffering)}
+            tabIndex={0}
+            role="button"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                handleOfferingClick(spotlightOffering)
+              }
+            }}
+            style={{
+              backgroundImage: `linear-gradient(92deg, rgba(16, 12, 10, 0.68) 0%, rgba(16, 12, 10, 0.42) 55%, rgba(16, 12, 10, 0.15) 100%), url(${
+                spotlightOffering.promoCoverImage ||
+                spotlightOffering.media?.find((m) => m.isPrimary)?.mediaUrl ||
+                spotlightOffering.media?.[0]?.mediaUrl ||
+                spotlightOffering.imageUrl ||
+                'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=1200&q=80'
+              })`,
+            }}
+          >
+            <div className="lifestyle-discovery__spotlight-content">
+              <h2 className="lifestyle-discovery__spotlight-title">
+                {spotlightOffering.promoTitle || spotlightOffering.title}
+              </h2>
+              <p className="lifestyle-discovery__spotlight-desc">
+                {spotlightOffering.promoSubtitle ||
+                  spotlightOffering.subtitle ||
+                  spotlightOffering.description ||
+                  'Curated package for your home'}
+              </p>
+              <div className="lifestyle-discovery__spotlight-footer">
+                <div className="lifestyle-discovery__spotlight-price">
+                  <span>{formatOfferingPrice(spotlightOffering)}</span>
+                  {spotlightOffering.pricingModel && spotlightOffering.pricingModel !== 'FIXED' && (
+                    <span className="lifestyle-discovery__spotlight-pricing-model">
+                      {spotlightOffering.pricingModel.toLowerCase().replace('_', ' ')}
+                    </span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="lifestyle-discovery__spotlight-btn"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    handleOfferingClick(spotlightOffering)
+                  }}
+                >
+                  <span>Explore Bundle</span>
+                  <ArrowRight size={14} />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Contextual Moving Alliance Banner (Kept for future enablement) */}
         {showAllianceBanner && (
           <section className="lifestyle-discovery__alliance-bar">
@@ -598,8 +684,8 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
           </h2>
           {!isLoading && (
             <span className="lifestyle-discovery__count-badge">
-              {displayItems.length}{' '}
-              {displayItems.length === 1 ? 'item' : 'items'}
+              {gridItems.length}{' '}
+              {gridItems.length === 1 ? 'item' : 'items'}
             </span>
           )}
         </div>
@@ -641,7 +727,7 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
         {!isLoading &&
           !offeringsError &&
           !categoriesError &&
-          displayItems.length === 0 && (
+          gridItems.length === 0 && (
             <div className="lifestyle-discovery__empty-state">
               {hasNoGoals && offerings.length === 0 ? (
                 <>
@@ -693,72 +779,10 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
             </div>
           )}
 
-        {/* E-Commerce Spotlight / Promoted Ad Hero */}
-        {!isLoading && spotlightOffering && !searchQuery && selectedType === 'ALL' && selectedActiveGoalId === 'ALL' && (
-          <div
-            className="lifestyle-discovery__spotlight"
-            onClick={() => handleOfferingClick(spotlightOffering)}
-            tabIndex={0}
-            role="button"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault()
-                handleOfferingClick(spotlightOffering)
-              }
-            }}
-            style={{
-              backgroundImage: `linear-gradient(95deg, rgba(20, 16, 13, 0.90) 0%, rgba(26, 20, 16, 0.76) 55%, rgba(26, 20, 16, 0.40) 100%), url(${
-                spotlightOffering.promoCoverImage ||
-                spotlightOffering.media?.find((m) => m.isPrimary)?.mediaUrl ||
-                spotlightOffering.media?.[0]?.mediaUrl ||
-                spotlightOffering.imageUrl ||
-                'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=1200&q=80'
-              })`,
-            }}
-          >
-            <div className="lifestyle-discovery__spotlight-content">
-              <span className="lifestyle-discovery__spotlight-pill">
-                <Sparkles size={11} strokeWidth={2.4} />
-                <span>{spotlightOffering.promoBadge || 'FEATURED BUNDLE'}</span>
-              </span>
-              <h2 className="lifestyle-discovery__spotlight-title">
-                {spotlightOffering.promoTitle || spotlightOffering.title}
-              </h2>
-              <p className="lifestyle-discovery__spotlight-desc">
-                {spotlightOffering.promoSubtitle ||
-                  spotlightOffering.subtitle ||
-                  spotlightOffering.description ||
-                  'Curated package for your home'}
-              </p>
-              <div className="lifestyle-discovery__spotlight-footer">
-                <div className="lifestyle-discovery__spotlight-price">
-                  <span>{formatOfferingPrice(spotlightOffering)}</span>
-                  {spotlightOffering.pricingModel && spotlightOffering.pricingModel !== 'FIXED' && (
-                    <span className="lifestyle-discovery__spotlight-pricing-model">
-                      {spotlightOffering.pricingModel.toLowerCase().replace('_', ' ')}
-                    </span>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  className="lifestyle-discovery__spotlight-btn"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    handleOfferingClick(spotlightOffering)
-                  }}
-                >
-                  <span>Explore Bundle</span>
-                  <ArrowRight size={14} />
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Offerings Grid */}
-        {!isLoading && displayItems.length > 0 && (
+        {!isLoading && gridItems.length > 0 && (
           <div className="lifestyle-discovery__grid">
-            {displayItems.map((item) => (
+            {gridItems.map((item) => (
               <OfferingCard
                 key={item.offering.id}
                 item={item}

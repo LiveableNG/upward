@@ -534,6 +534,50 @@ async function main() {
     console.log(`  [${count}/20] 🎁 [${createdOffering.type}] ${createdOffering.title} -> Goal: ${goalSlug}`)
   }
 
+  // 4. Link bundle components for the Promoted Ad ("New Year Home Refresh Bundle")
+  const bundle = await prisma.upward_offering.findFirst({
+    where: { title: 'New Year Home Refresh Bundle' },
+  })
+  const cleaning = await prisma.upward_offering.findFirst({
+    where: { title: 'Premium Home Deep Clean & Sanitization' },
+  })
+  const fumigation = await prisma.upward_offering.findFirst({
+    where: { title: 'Apartment Fumigation & Pest Shield Service' },
+  })
+  const armchair = await prisma.upward_offering.findFirst({
+    where: { title: 'Minimalist Living Room Accent Armchair' },
+  })
+
+  if (bundle && cleaning && fumigation && armchair) {
+    await prisma.upward_package_item.createMany({
+      data: [
+        {
+          packageId: bundle.id,
+          componentId: cleaning.id,
+          quantity: 1,
+          isOptional: true,
+          overridePrice: 25000,
+        },
+        {
+          packageId: bundle.id,
+          componentId: fumigation.id,
+          quantity: 1,
+          isOptional: true,
+          overridePrice: 20000,
+        },
+        {
+          packageId: bundle.id,
+          componentId: armchair.id,
+          quantity: 1,
+          isOptional: true,
+          overridePrice: 40000,
+        },
+      ],
+      skipDuplicates: true,
+    })
+    console.log('  ✨ Attached 3 package components to "New Year Home Refresh Bundle"!')
+  }
+
   console.log(`🎉 Local DB reset and reseed complete! Seeded ${count} items across all categories.`)
 }
 

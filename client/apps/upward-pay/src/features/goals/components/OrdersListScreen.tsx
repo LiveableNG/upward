@@ -12,7 +12,6 @@ import {
   ExternalLink,
   ShieldCheck,
   CheckCircle2,
-  Sparkles,
   Truck,
   Wrench,
   Loader2,
