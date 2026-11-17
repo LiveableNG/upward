@@ -433,10 +433,12 @@ export function AllGoalsScreen() {
     setIsMounted(true)
   }, [])
 
-  // Ensure modal is dismissed whenever transitioning category views
-  useEffect(() => {
+  // Ensure modal is dismissed whenever transitioning category views without cascading effect renders
+  const [prevCategory, setPrevCategory] = useState(activeCategory)
+  if (prevCategory !== activeCategory) {
+    setPrevCategory(activeCategory)
     setActiveDetailGoal(null)
-  }, [activeCategory])
+  }
 
   // Custom goal modal form state
   const [newTitle, setNewTitle] = useState('')
