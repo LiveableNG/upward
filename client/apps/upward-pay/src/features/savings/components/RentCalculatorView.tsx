@@ -842,7 +842,7 @@ export function RentCalculatorView({
   if (stage === 'BENEFIT') {
     const activePlanTitle =
       planPattern === 'INITIAL_DEPOSIT'
-        ? 'Deposit & save equally'
+        ? 'Deposit now, save monthly'
         : planPattern === 'EQUAL'
           ? 'Equal monthly savings'
           : 'Start small & step up'
@@ -1365,7 +1365,7 @@ export function RentCalculatorView({
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ fontSize: '0.9375rem', fontWeight: 800, color: 'var(--text)' }}>
-                    Deposit &amp; save equally
+                    Deposit now, save monthly
                   </span>
                   <span
                     style={{
