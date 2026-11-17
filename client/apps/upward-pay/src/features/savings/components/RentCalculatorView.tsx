@@ -172,10 +172,13 @@ export function RentCalculatorView({
     if (!targetAmountNaira || !contractualDueDate) return
     if (!hasRentDetails) return
 
-    const initialDepositKobo =
+    const currentDepositNaira =
       planPattern === 'INITIAL_DEPOSIT'
-        ? Math.round(targetAmountNaira * 0.25 * 100)
+        ? (customInitialDeposit !== null
+            ? (parseCurrencyInput(customInitialDeposit) || 0)
+            : Math.round(targetAmountNaira * 0.25))
         : 0
+    const initialDepositKobo = Math.round(currentDepositNaira * 100)
 
     mutateSimulate({
       target_amount_kobo: Math.round(targetAmountNaira * 100),
@@ -198,6 +201,7 @@ export function RentCalculatorView({
             cadence: selectedCadence,
             productOption: activeProductOption,
             planPattern: planPattern,
+            initialDeposit: currentDepositNaira,
           }),
         )
       } catch {}
@@ -207,6 +211,7 @@ export function RentCalculatorView({
     contractualDueDate,
     activeProductOption,
     planPattern,
+    customInitialDeposit,
     selectedCadence,
     hasRentDetails,
     mutateSimulate,
@@ -227,7 +232,10 @@ export function RentCalculatorView({
 
   // Pre-calculate metrics for all 3 savings plans (Kunle specification)
   const planDepositMetrics = useMemo(() => {
-    const initialNaira = Math.round(previewRentAmount * 0.25)
+    const initialNaira =
+      customInitialDeposit !== null
+        ? (parseCurrencyInput(customInitialDeposit) || 0)
+        : Math.round(previewRentAmount * 0.25)
     return calculatePayLessPlan(
       previewRentAmount,
       daysRemaining,
@@ -242,7 +250,7 @@ export function RentCalculatorView({
         insurancePremiumPct: platformRates.insurancePremiumPct,
       },
     )
-  }, [previewRentAmount, daysRemaining, selectedCadence, savingsAnnualRatePct, activeProductOption, platformRates])
+  }, [previewRentAmount, customInitialDeposit, daysRemaining, selectedCadence, savingsAnnualRatePct, activeProductOption, platformRates])
 
   const planEqualMetrics = useMemo(() => {
     return calculatePayLessPlan(
@@ -388,7 +396,11 @@ export function RentCalculatorView({
         plan_pattern: planPattern,
         initial_deposit_kobo:
           planPattern === 'INITIAL_DEPOSIT'
-            ? Math.round(targetAmountNaira * 0.25 * 100)
+            ? Math.round(
+                (customInitialDeposit !== null
+                  ? (parseCurrencyInput(customInitialDeposit) || 0)
+                  : Math.round(targetAmountNaira * 0.25)) * 100,
+              )
             : 0,
       })
 
@@ -645,6 +657,85 @@ export function RentCalculatorView({
               </button>
             </div>
           </div>
+
+          {/* Editable Upfront Deposit Field (Only shown when With Deposit is selected) */}
+          {planPattern === 'INITIAL_DEPOSIT' && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '10px 14px',
+                borderRadius: '12px',
+                background: 'var(--oat, #faf9f5)',
+                border: '1px solid var(--shell-border, #f0e9df)',
+                gap: 12,
+              }}
+            >
+              <div>
+                <label
+                  htmlFor="upfront-deposit-amount"
+                  style={{
+                    fontSize: '0.8125rem',
+                    fontWeight: 700,
+                    color: 'var(--text)',
+                    display: 'block',
+                  }}
+                >
+                  Upfront deposit
+                </label>
+                <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
+                  Pay upfront to lower monthly savings
+                </span>
+              </div>
+
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  background: '#ffffff',
+                  border: '1.5px solid var(--shell-border, #f0e9df)',
+                  borderRadius: '10px',
+                  padding: '6px 10px',
+                  width: '160px',
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: '0.9375rem',
+                    fontWeight: 700,
+                    color: 'var(--text-secondary)',
+                    marginRight: 4,
+                  }}
+                >
+                  ₦
+                </span>
+                <input
+                  id="upfront-deposit-amount"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="0"
+                  value={initialDepositRaw}
+                  onChange={(e) => {
+                    const parsed = parseCurrencyInput(e.target.value)
+                    setCustomInitialDeposit(parsed ? formatCurrencyInput(parsed) : '')
+                  }}
+                  style={{
+                    width: '100%',
+                    border: 'none',
+                    background: 'transparent',
+                    outline: 'none',
+                    fontSize: '0.9375rem',
+                    fontWeight: 800,
+                    color: 'var(--text)',
+                    textAlign: 'right',
+                    letterSpacing: '-0.01em',
+                  }}
+                />
+              </div>
+            </div>
+          )}
 
           {/* High-Impact Benefit Card */}
           <div
