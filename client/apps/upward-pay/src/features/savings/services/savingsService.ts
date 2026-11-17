@@ -117,6 +117,7 @@ export interface RentVaultData {
   cadence?: SavingsCadence
   product_option?: SavingsProductOption
   plan_pattern?: SavingsPlanPattern
+  initial_deposit_kobo?: number
   is_rent_protec?: boolean
   insurance_premium_pct?: number
   current_balance_kobo: number
@@ -277,6 +278,8 @@ export function calculatePayLessPlan(
     maxMonths?: number
     minRentProtecMonths?: number
     insurancePremiumPct?: number
+    customStepStartNaira?: number
+    customStepIncrementNaira?: number
   },
 ) {
   const maxMonths = Math.min(11, Math.max(1, options?.maxMonths ?? 11))
@@ -298,10 +301,14 @@ export function calculatePayLessPlan(
       : 0
   const requiredInitialDepositNaira = Math.round(targetRentNaira * forcedDepositRatio)
   const effectiveInitialNaira =
-    initialSavedNaira > 0
-      ? initialSavedNaira
-      : productOption === 'RENT_PROTEC'
-        ? requiredInitialDepositNaira
+    planPattern === 'INITIAL_DEPOSIT'
+      ? initialSavedNaira > 0
+        ? initialSavedNaira
+        : productOption === 'RENT_PROTEC'
+          ? requiredInitialDepositNaira
+          : 0
+      : initialSavedNaira > 0
+        ? initialSavedNaira
         : 0
 
   let numberOfPayments = monthsRemaining
@@ -320,32 +327,72 @@ export function calculatePayLessPlan(
   const fvInitial = effectiveInitialNaira * Math.pow(1 + periodRate, numberOfPayments)
   const deficit = Math.max(0, targetRentNaira - fvInitial)
 
-  const weights: number[] = []
-  for (let i = 1; i <= numberOfPayments; i++) {
-    if (planPattern === 'STEP_UP') {
-      const stepFactor = cadence === 'WEEKLY' ? 0.02 : 0.08
-      weights.push(Math.pow(1 + stepFactor, i - 1))
-    } else if (planPattern === 'ACCELERATED') {
-      const taperFactor = cadence === 'WEEKLY' ? 0.015 : 0.06
-      weights.push(Math.max(0.4, 1 - taperFactor * (i - 1)))
-    } else {
-      weights.push(1)
+  let schedule: number[] = []
+  let stepIncrementNaira = 0
+
+  if (planPattern === 'STEP_UP') {
+    let sumDiscount = 0
+    let sumIndexDiscount = 0
+    for (let i = 1; i <= numberOfPayments; i++) {
+      const discountFactor = Math.pow(1 + periodRate, numberOfPayments - i)
+      sumDiscount += discountFactor
+      sumIndexDiscount += (i - 1) * discountFactor
     }
+
+    let startNaira = 0
+    if (options?.customStepStartNaira !== undefined && options.customStepStartNaira >= 0) {
+      startNaira = Math.round(options.customStepStartNaira)
+      const rem = Math.max(0, deficit - startNaira * sumDiscount)
+      stepIncrementNaira = sumIndexDiscount > 0 ? Math.ceil(rem / sumIndexDiscount) : 0
+    } else if (options?.customStepIncrementNaira !== undefined && options.customStepIncrementNaira >= 0) {
+      stepIncrementNaira = Math.round(options.customStepIncrementNaira)
+      const rem = Math.max(0, deficit - stepIncrementNaira * sumIndexDiscount)
+      startNaira = sumDiscount > 0 ? Math.ceil(rem / sumDiscount) : 0
+    } else {
+      const equalAmt = sumDiscount > 0 ? deficit / sumDiscount : deficit
+      startNaira =
+        numberOfPayments > 1
+          ? Math.max(5_000, Math.round((equalAmt * 0.6) / 5_000) * 5_000)
+          : Math.ceil(equalAmt)
+      const rem = Math.max(0, deficit - startNaira * sumDiscount)
+      stepIncrementNaira = sumIndexDiscount > 0 ? Math.ceil(rem / sumIndexDiscount) : 0
+    }
+
+    for (let i = 1; i <= numberOfPayments; i++) {
+      schedule.push(Math.max(0, startNaira + (i - 1) * stepIncrementNaira))
+    }
+  } else {
+    const weights: number[] = []
+    for (let i = 1; i <= numberOfPayments; i++) {
+      if (planPattern === 'ACCELERATED') {
+        const taperFactor = cadence === 'WEEKLY' ? 0.015 : 0.06
+        weights.push(Math.max(0.4, 1 - taperFactor * (i - 1)))
+      } else {
+        weights.push(1)
+      }
+    }
+
+    let denominator = 0
+    for (let i = 1; i <= numberOfPayments; i++) {
+      const periodsRemaining = Math.max(0, numberOfPayments - i)
+      denominator += weights[i - 1] * Math.pow(1 + periodRate, periodsRemaining)
+    }
+
+    const basePayment = deficit > 0 && denominator > 0 ? Math.ceil(deficit / denominator) : 0
+    schedule = weights.map((w) => Math.max(0, Math.ceil(basePayment * w)))
   }
 
-  let denominator = 0
-  for (let i = 1; i <= numberOfPayments; i++) {
-    const periodsRemaining = Math.max(0, numberOfPayments - i)
-    denominator += weights[i - 1] * Math.pow(1 + periodRate, periodsRemaining)
-  }
-
-  const basePayment = deficit > 0 && denominator > 0 ? Math.ceil(deficit / denominator) : 0
-  const schedule = weights.map((w) => Math.max(0, Math.ceil(basePayment * w)))
   const periodicDepositNaira = schedule[0] ?? 0
   const lastPeriodDepositNaira = schedule[schedule.length - 1] ?? 0
   const totalPeriodicContributionNaira = schedule.reduce((sum, p) => sum + p, 0)
   const totalTenantContributionNaira = effectiveInitialNaira + totalPeriodicContributionNaira
-  const projectedYieldNaira = Math.max(0, targetRentNaira - totalTenantContributionNaira)
+
+  let futureValue = fvInitial
+  for (let i = 1; i <= numberOfPayments; i++) {
+    futureValue +=
+      (schedule[i - 1] ?? 0) * Math.pow(1 + periodRate, Math.max(0, numberOfPayments - i))
+  }
+  const projectedYieldNaira = Math.max(0, Math.round(futureValue - totalTenantContributionNaira))
   const rentDiscountPct =
     targetRentNaira > 0
       ? Math.round((projectedYieldNaira / targetRentNaira) * 1000) / 10
@@ -361,6 +408,7 @@ export function calculatePayLessPlan(
     periodicDepositNaira,
     firstPeriodDepositNaira: periodicDepositNaira,
     lastPeriodDepositNaira,
+    stepIncrementNaira,
     numberOfPayments,
     totalTenantContributionNaira,
     projectedYieldNaira,

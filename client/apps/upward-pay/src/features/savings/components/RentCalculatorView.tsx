@@ -11,6 +11,7 @@ import {
   AlertCircle,
   Loader2,
   ArrowRight,
+  ChevronRight,
 } from 'lucide-react'
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from '@/lib/utils'
 import {
@@ -27,6 +28,7 @@ import {
 } from '../services/savingsService'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
+import { BottomSheetModal } from '@/components/common/BottomSheetModal'
 import { PayPageShell, PayFlowPrimaryButton } from '@/features/dashboard/components/payment/PayPageShell'
 import { loadSetupDraft, patchSetupDraft } from '@/features/dashboard/setup/setupDraft'
 import { readSavingsRentPlan } from '../utils/savingsRentPlan'
@@ -190,72 +192,21 @@ export function RentCalculatorView({
     account_name: string
   } | null>(null)
   const [copiedAccount, setCopiedAccount] = useState(false)
-  const [customInitialDeposit, setCustomInitialDeposit] = useState<string | null>(null)
-
-  // Simulate compound savings
-  useEffect(() => {
-    if (!targetAmountNaira || !contractualDueDate) return
-    if (!hasRentDetails) return
-
-    const currentDepositNaira =
-      planPattern === 'INITIAL_DEPOSIT'
-        ? (customInitialDeposit !== null
-            ? (parseCurrencyInput(customInitialDeposit) || 0)
-            : Math.round(targetAmountNaira * 0.25))
-        : 0
-    const initialDepositKobo = Math.round(currentDepositNaira * 100)
-
-    mutateSimulate({
-      target_amount_kobo: Math.round(targetAmountNaira * 100),
-      contractual_due_date: contractualDueDate,
-      initial_deposit_kobo: initialDepositKobo,
-      cadence: selectedCadence,
-      product_option: activeProductOption,
-      plan_pattern: planPattern,
-    })
-
+  const [showComparePlans, setShowComparePlans] = useState(false)
+  const [customInitialDeposit, setCustomInitialDeposit] = useState<string | null>(() => {
     if (typeof window !== 'undefined') {
       try {
-        localStorage.setItem(
-          'upward_savings_rent_plan',
-          JSON.stringify({
-            userId: user?.id,
-            source: 'user',
-            rentAmount: targetAmountNaira,
-            dueDate: contractualDueDate,
-            cadence: selectedCadence,
-            productOption: activeProductOption,
-            planPattern: planPattern,
-            initialDeposit: currentDepositNaira,
-          }),
-        )
+        const plan = readSavingsRentPlan()
+        if (plan?.planPattern === 'INITIAL_DEPOSIT' && plan.initialDeposit && Number(plan.initialDeposit) > 0) {
+          return formatCurrencyInput(Number(plan.initialDeposit))
+        }
       } catch {}
-
-      if (targetAmountNaira > 0) {
-        const computedStart = contractualDueDate
-          ? new Date(new Date(contractualDueDate).getTime() - 365 * 24 * 60 * 60 * 1000)
-              .toISOString()
-              .split('T')[0]
-          : ''
-        patchSetupDraft({
-          formData: {
-            rentAmount: formatCurrencyInput(targetAmountNaira),
-            ...(contractualDueDate ? { rentEndDate: contractualDueDate, rentStartDate: computedStart } : {}),
-          },
-        })
-      }
     }
-  }, [
-    targetAmountNaira,
-    contractualDueDate,
-    activeProductOption,
-    planPattern,
-    customInitialDeposit,
-    selectedCadence,
-    hasRentDetails,
-    mutateSimulate,
-    user?.id,
-  ])
+    return null
+  })
+  const [stepInputMode, setStepInputMode] = useState<'START' | 'INCREMENT' | null>(null)
+  const [customStepStart, setCustomStepStart] = useState<string | null>(null)
+  const [customStepIncrement, setCustomStepIncrement] = useState<string | null>(null)
 
   const simData = simulateMutation.data
   const defaultRatePct =
@@ -270,6 +221,13 @@ export function RentCalculatorView({
   const previewRentAmount = targetAmountNaira || 2_500_000
 
   // Pre-calculate metrics for all 3 savings plans (Kunle specification)
+  const currentDepositNairaForCalc =
+    planPattern === 'INITIAL_DEPOSIT'
+      ? (customInitialDeposit !== null
+          ? (parseCurrencyInput(customInitialDeposit) || 0)
+          : Math.round(previewRentAmount * 0.25))
+      : 0
+
   const planDepositMetrics = useMemo(() => {
     const initialNaira =
       customInitialDeposit !== null
@@ -321,9 +279,41 @@ export function RentCalculatorView({
         maxMonths: platformRates.maxSavingsMonths,
         minRentProtecMonths: platformRates.rentProtecMinMonths,
         insurancePremiumPct: platformRates.insurancePremiumPct,
+        customStepStartNaira:
+          stepInputMode === 'START' && customStepStart !== null
+            ? (parseCurrencyInput(customStepStart) || 0)
+            : undefined,
+        customStepIncrementNaira:
+          stepInputMode === 'INCREMENT' && customStepIncrement !== null
+            ? (parseCurrencyInput(customStepIncrement) || 0)
+            : undefined,
       },
     )
-  }, [previewRentAmount, daysRemaining, selectedCadence, savingsAnnualRatePct, activeProductOption, platformRates])
+  }, [
+    previewRentAmount,
+    daysRemaining,
+    selectedCadence,
+    savingsAnnualRatePct,
+    activeProductOption,
+    platformRates,
+    stepInputMode,
+    customStepStart,
+    customStepIncrement,
+  ])
+
+  const stepStartDisplayRaw =
+    stepInputMode === 'START' && customStepStart !== null
+      ? customStepStart
+      : planStepUpMetrics.periodicDepositNaira > 0
+        ? formatCurrencyInput(planStepUpMetrics.periodicDepositNaira)
+        : ''
+
+  const stepIncrementDisplayRaw =
+    stepInputMode === 'INCREMENT' && customStepIncrement !== null
+      ? customStepIncrement
+      : planStepUpMetrics.stepIncrementNaira > 0
+        ? formatCurrencyInput(planStepUpMetrics.stepIncrementNaira)
+        : '0'
 
   const localPlan =
     planPattern === 'EQUAL'
@@ -332,13 +322,96 @@ export function RentCalculatorView({
         ? planStepUpMetrics
         : planDepositMetrics
 
-  const isSimDataCurrent = simData && simData.plan_pattern === planPattern
+  const isSimDataCurrent =
+    simData &&
+    simData.plan_pattern === planPattern &&
+    planPattern !== 'STEP_UP' &&
+    (planPattern !== 'INITIAL_DEPOSIT' ||
+      Math.abs((simData.required_initial_deposit_kobo ?? 0) - Math.round(currentDepositNairaForCalc * 100)) < 200)
+
   const totalTenantContributionNaira = isSimDataCurrent
     ? simData.total_tenant_contribution_kobo / 100
     : localPlan.totalTenantContributionNaira
   const projectedYieldNaira = isSimDataCurrent
     ? simData.projected_yield_kobo / 100
     : localPlan.projectedYieldNaira
+
+  // Simulate compound savings & persist exact plan details
+  useEffect(() => {
+    if (!targetAmountNaira || !contractualDueDate) return
+    if (!hasRentDetails) return
+
+    const currentDepositNaira =
+      planPattern === 'INITIAL_DEPOSIT'
+        ? (customInitialDeposit !== null
+            ? (parseCurrencyInput(customInitialDeposit) || 0)
+            : Math.round(targetAmountNaira * 0.25))
+        : 0
+    const initialDepositKobo = Math.round(currentDepositNaira * 100)
+
+    mutateSimulate({
+      target_amount_kobo: Math.round(targetAmountNaira * 100),
+      contractual_due_date: contractualDueDate,
+      initial_deposit_kobo: initialDepositKobo,
+      cadence: selectedCadence,
+      product_option: activeProductOption,
+      plan_pattern: planPattern,
+    })
+
+    const persistedDepositNaira =
+      planPattern === 'INITIAL_DEPOSIT'
+        ? currentDepositNaira
+        : planPattern === 'EQUAL'
+          ? planEqualMetrics.periodicDepositNaira
+          : planStepUpMetrics.periodicDepositNaira
+
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(
+          'upward_savings_rent_plan',
+          JSON.stringify({
+            userId: user?.id,
+            source: 'user',
+            rentAmount: targetAmountNaira,
+            dueDate: contractualDueDate,
+            cadence: selectedCadence,
+            productOption: activeProductOption,
+            planPattern: planPattern,
+            initialDeposit: persistedDepositNaira,
+            stepStartNaira: planStepUpMetrics.periodicDepositNaira,
+            stepIncrementNaira: planStepUpMetrics.stepIncrementNaira,
+          }),
+        )
+      } catch {}
+
+      if (targetAmountNaira > 0) {
+        const computedStart = contractualDueDate
+          ? new Date(new Date(contractualDueDate).getTime() - 365 * 24 * 60 * 60 * 1000)
+              .toISOString()
+              .split('T')[0]
+          : ''
+        patchSetupDraft({
+          formData: {
+            rentAmount: formatCurrencyInput(targetAmountNaira),
+            ...(contractualDueDate ? { rentEndDate: contractualDueDate, rentStartDate: computedStart } : {}),
+          },
+        })
+      }
+    }
+  }, [
+    targetAmountNaira,
+    contractualDueDate,
+    activeProductOption,
+    planPattern,
+    customInitialDeposit,
+    planEqualMetrics.periodicDepositNaira,
+    planStepUpMetrics.periodicDepositNaira,
+    planStepUpMetrics.stepIncrementNaira,
+    selectedCadence,
+    hasRentDetails,
+    mutateSimulate,
+    user?.id,
+  ])
 
   const defaultInitialDepositNaira = useMemo(() => {
     if (planPattern === 'INITIAL_DEPOSIT') {
@@ -356,27 +429,36 @@ export function RentCalculatorView({
   ])
 
   const initialDepositRaw =
-    customInitialDeposit !== null
-      ? customInitialDeposit
-      : defaultInitialDepositNaira > 0
-        ? formatCurrencyInput(defaultInitialDepositNaira)
-        : ''
+    planPattern === 'INITIAL_DEPOSIT'
+      ? customInitialDeposit !== null
+        ? customInitialDeposit
+        : defaultInitialDepositNaira > 0
+          ? formatCurrencyInput(defaultInitialDepositNaira)
+          : ''
+      : customInitialDeposit !== null
+        ? customInitialDeposit
+        : defaultInitialDepositNaira > 0
+          ? formatCurrencyInput(defaultInitialDepositNaira)
+          : ''
 
   const parsedSuccessDeposit = parseCurrencyInput(initialDepositRaw) || 0
-  const successDynamicPlan = calculatePayLessPlan(
-    previewRentAmount,
-    daysRemaining,
-    selectedCadence,
-    parsedSuccessDeposit,
-    savingsAnnualRatePct,
-    {
-      productOption: activeProductOption,
-      planPattern: planPattern,
-      maxMonths: platformRates.maxSavingsMonths,
-      minRentProtecMonths: platformRates.rentProtecMinMonths,
-      insurancePremiumPct: platformRates.insurancePremiumPct,
-    },
-  )
+  const successDynamicPlan =
+    planPattern === 'INITIAL_DEPOSIT'
+      ? calculatePayLessPlan(
+          previewRentAmount,
+          daysRemaining,
+          selectedCadence,
+          parsedSuccessDeposit,
+          savingsAnnualRatePct,
+          {
+            productOption: activeProductOption,
+            planPattern: 'INITIAL_DEPOSIT',
+            maxMonths: platformRates.maxSavingsMonths,
+            minRentProtecMonths: platformRates.rentProtecMinMonths,
+            insurancePremiumPct: platformRates.insurancePremiumPct,
+          },
+        )
+      : localPlan
   const successPeriodicDepositNaira = successDynamicPlan.periodicDepositNaira
   const successProjectedYieldNaira = successDynamicPlan.projectedYieldNaira
 
@@ -390,6 +472,10 @@ export function RentCalculatorView({
   const handleSelectPlan = (pattern: SavingsPlanPattern) => {
     setPlanPattern(pattern)
     setCustomInitialDeposit(null)
+    setStepInputMode(null)
+    setCustomStepStart(null)
+    setCustomStepIncrement(null)
+    setShowComparePlans(false)
   }
 
   const formattedDueDate = contractualDueDate
@@ -577,517 +663,826 @@ export function RentCalculatorView({
     )
   }
 
-  // STAGE 2: Clear Benefit Showcase (Kunle Specification)
+  // STAGE 2: Clear Benefit Showcase (Kunle Specification: One Plan Per Screen + Compare Plans)
   if (stage === 'BENEFIT') {
-    return (
-      <PayPageShell
-        title="Pay Less for Your Next Rent"
-        subtitle="Save less and let compound interest help pay your upcoming rent."
-        showBack
-        onBack={handleBenefitBack}
-        pinFooter
-        footer={
-          <PayFlowPrimaryButton onClick={() => setStage('KYC')}>
-            Continue to Activate Account
-            <ArrowRight size={18} aria-hidden />
-          </PayFlowPrimaryButton>
-        }
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {/* Target Rent Pill with Edit button */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '8px 12px',
-              borderRadius: '12px',
-              background: 'var(--oat, #faf9f5)',
-              border: '1px solid var(--shell-border, #f0e9df)',
-            }}
-          >
-            <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-              Target: <strong style={{ color: 'var(--text)' }}>{formatCurrency(targetAmountNaira, 'NGN')}</strong> due{' '}
-              <strong style={{ color: 'var(--text)' }}>{formattedDueDate}</strong>
-            </div>
-            <button
-              type="button"
-              onClick={() => setStage('RENT_INPUT')}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--clay)',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                cursor: 'pointer',
-                padding: '2px 6px',
-              }}
-            >
-              Change
-            </button>
-          </div>
+    const activePlanTitle =
+      planPattern === 'INITIAL_DEPOSIT'
+        ? 'Deposit + Save Equally'
+        : planPattern === 'EQUAL'
+          ? 'Equal Monthly'
+          : 'Start Small & Step Up'
 
-          {/* Savings Schedule (Segmented Tabs - Instant, Clean, Zero Paragraphs) */}
-          <div>
+    return (
+      <>
+        <PayPageShell
+          title="Pay Less for Your Next Rent"
+          subtitle="Save less and let compound interest help pay your upcoming rent."
+          showBack
+          onBack={handleBenefitBack}
+          pinFooter
+          footer={
+            <PayFlowPrimaryButton onClick={() => setStage('KYC')}>
+              Continue to Activate Account
+              <ArrowRight size={18} aria-hidden />
+            </PayFlowPrimaryButton>
+          }
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18, paddingBottom: 24 }}>
+            {/* Target Rent Pill with Edit button */}
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                marginBottom: 6,
-              }}
-            >
-              <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text)' }}>
-                Savings schedule
-              </span>
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--clay)' }}>
-                {planPattern === 'INITIAL_DEPOSIT' &&
-                  `${formatCurrency(planDepositMetrics.periodicDepositNaira)}/mo after deposit`}
-                {planPattern === 'EQUAL' &&
-                  `${formatCurrency(planEqualMetrics.periodicDepositNaira)}/mo`}
-                {planPattern === 'STEP_UP' &&
-                  `From ${formatCurrency(planStepUpMetrics.periodicDepositNaira)}/mo`}
-              </span>
-            </div>
-
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: 4,
-                padding: '3px',
+                padding: '11px 14px',
+                borderRadius: '13px',
                 background: 'var(--oat, #faf9f5)',
-                borderRadius: '12px',
                 border: '1px solid var(--shell-border, #f0e9df)',
               }}
             >
+              <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                Target: <strong style={{ color: 'var(--text)' }}>{formatCurrency(targetAmountNaira, 'NGN')}</strong> due{' '}
+                <strong style={{ color: 'var(--text)' }}>{formattedDueDate}</strong>
+              </div>
               <button
                 type="button"
-                onClick={() => handleSelectPlan('INITIAL_DEPOSIT')}
+                onClick={() => setStage('RENT_INPUT')}
                 style={{
-                  padding: '7px 4px',
-                  borderRadius: '9px',
+                  background: 'none',
                   border: 'none',
-                  background: planPattern === 'INITIAL_DEPOSIT' ? '#ffffff' : 'transparent',
-                  boxShadow: planPattern === 'INITIAL_DEPOSIT' ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
-                  color: planPattern === 'INITIAL_DEPOSIT' ? 'var(--clay)' : 'var(--text-secondary)',
-                  fontWeight: 700,
+                  color: 'var(--clay)',
                   fontSize: '0.75rem',
+                  fontWeight: 700,
                   cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  textAlign: 'center',
+                  padding: '4px 6px',
                 }}
               >
-                With Deposit
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSelectPlan('EQUAL')}
-                style={{
-                  padding: '7px 4px',
-                  borderRadius: '9px',
-                  border: 'none',
-                  background: planPattern === 'EQUAL' ? '#ffffff' : 'transparent',
-                  boxShadow: planPattern === 'EQUAL' ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
-                  color: planPattern === 'EQUAL' ? 'var(--clay)' : 'var(--text-secondary)',
-                  fontWeight: 700,
-                  fontSize: '0.75rem',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  textAlign: 'center',
-                }}
-              >
-                Equal Monthly
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSelectPlan('STEP_UP')}
-                style={{
-                  padding: '7px 4px',
-                  borderRadius: '9px',
-                  border: 'none',
-                  background: planPattern === 'STEP_UP' ? '#ffffff' : 'transparent',
-                  boxShadow: planPattern === 'STEP_UP' ? '0 1px 4px rgba(0,0,0,0.06)' : 'none',
-                  color: planPattern === 'STEP_UP' ? 'var(--clay)' : 'var(--text-secondary)',
-                  fontWeight: 700,
-                  fontSize: '0.75rem',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  textAlign: 'center',
-                }}
-              >
-                Step-Up
+                Change
               </button>
             </div>
 
-            {/* 1-Line Minimal Explainer */}
-            <p
-              style={{
-                fontSize: '0.6875rem',
-                color: 'var(--text-secondary)',
-                margin: '5px 0 0 2px',
-                lineHeight: 1.25,
-              }}
-            >
-              {planPattern === 'INITIAL_DEPOSIT' && 'Deposit upfront to lower monthly savings.'}
-              {planPattern === 'EQUAL' && 'Zero deposit. Save the same amount each month.'}
-              {planPattern === 'STEP_UP' && 'Start small and increase contributions gradually.'}
-            </p>
-          </div>
-
-          {/* High-Impact Benefit Card */}
-          <div
-            style={{
-              padding: '12px 14px',
-              borderRadius: '16px',
-              background: 'linear-gradient(180deg, #faf9f5 0%, #f6f3ee 100%)',
-              border: '1px solid var(--shell-border, #f0e9df)',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 8,
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)',
-            }}
-          >
+            {/* Single Active Plan Card (Uncrowded per Kunle Spec) */}
             <div
               style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: 12,
-                alignItems: 'baseline',
-              }}
-            >
-              <div style={{ minWidth: 0 }}>
-                <span
-                  style={{
-                    fontSize: '0.6875rem',
-                    color: 'var(--text-muted)',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.04em',
-                    fontWeight: 700,
-                    display: 'block',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  You Contribute
-                </span>
-                <div
-                  style={{
-                    fontSize: '1.25rem',
-                    fontWeight: 800,
-                    color: 'var(--text)',
-                    marginTop: 2,
-                    letterSpacing: '-0.02em',
-                    lineHeight: 1.15,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {formatCurrency(totalTenantContributionNaira)}
-                </div>
-              </div>
-
-              <div style={{ textAlign: 'right', minWidth: 0 }}>
-                <span
-                  style={{
-                    fontSize: '0.6875rem',
-                    color: '#059669',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.04em',
-                    fontWeight: 700,
-                    display: 'block',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}
-                >
-                  Interest ({savingsAnnualRatePct}% p.a.)
-                </span>
-                <div
-                  style={{
-                    fontSize: '1.25rem',
-                    fontWeight: 800,
-                    color: '#059669',
-                    marginTop: 2,
-                    letterSpacing: '-0.02em',
-                    lineHeight: 1.15,
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  +{formatCurrency(projectedYieldNaira)}
-                </div>
-              </div>
-            </div>
-
-            {/* Visual Breakdown Bar */}
-            <div
-              style={{
-                width: '100%',
-                height: '6px',
-                borderRadius: '999px',
-                background: 'rgba(0, 0, 0, 0.06)',
+                padding: '16px',
+                borderRadius: '18px',
+                background: 'linear-gradient(180deg, #faf9f5 0%, #f6f3ee 100%)',
+                border: '1px solid var(--shell-border, #f0e9df)',
                 display: 'flex',
-                overflow: 'hidden',
-                gap: '2px',
+                flexDirection: 'column',
+                gap: 14,
+                boxShadow: '0 2px 10px rgba(0, 0, 0, 0.03)',
               }}
             >
-              <div
-                style={{
-                  width: `${contributionPct}%`,
-                  background: 'var(--clay)',
-                  borderRadius: '999px 0 0 999px',
-                  transition: 'width 0.3s ease',
-                }}
-              />
-              <div
-                style={{
-                  width: `${yieldPct}%`,
-                  background: '#059669',
-                  borderRadius: '0 999px 999px 0',
-                  transition: 'width 0.3s ease',
-                }}
-              />
-            </div>
-
-            {/* Compact Editable Upfront Deposit (Integrated inside the Benefit Card) */}
-            {planPattern === 'INITIAL_DEPOSIT' && (
+              {/* Plan Header + Compare Button */}
               <div
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  paddingTop: 6,
-                  borderTop: '1px solid rgba(0, 0, 0, 0.05)',
-                  marginTop: 2,
+                  gap: 8,
                 }}
               >
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
-                  Upfront deposit
-                </div>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    background: '#ffffff',
-                    border: '1px solid var(--shell-border, #e5dfd7)',
-                    borderRadius: '8px',
-                    padding: '2px 8px',
-                  }}
-                >
-                  <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-muted)', marginRight: 2 }}>
-                    ₦
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--text)' }}>
+                    {activePlanTitle}
                   </span>
-                  <input
-                    id="upfront-deposit-amount"
-                    type="text"
-                    inputMode="numeric"
-                    placeholder="0"
-                    value={initialDepositRaw}
-                    onChange={(e) => {
-                      const parsed = parseCurrencyInput(e.target.value)
-                      setCustomInitialDeposit(parsed ? formatCurrencyInput(parsed) : '')
-                    }}
-                    style={{
-                      width: '105px',
-                      border: 'none',
-                      background: 'transparent',
-                      outline: 'none',
-                      fontSize: '0.8125rem',
-                      fontWeight: 800,
-                      color: 'var(--text)',
-                      textAlign: 'right',
-                    }}
-                  />
-                </div>
-              </div>
-            )}
-
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-                fontSize: '0.6875rem',
-                color: 'var(--text-muted)',
-                lineHeight: 1.25,
-              }}
-            >
-              <ShieldCheck size={13} color="#059669" style={{ flexShrink: 0 }} />
-              <span>Zero debit fees · Compound interest helps pay towards rent</span>
-            </div>
-          </div>
-
-          {/* Protection Option */}
-          <div className="rent-calculator__field" style={{ marginTop: 2 }}>
-            <span
-              style={{
-                fontSize: '0.8125rem',
-                fontWeight: 700,
-                color: 'var(--text)',
-                marginBottom: 6,
-                display: 'block',
-              }}
-            >
-              Protection plan
-            </span>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {/* Option 1: Rent Protec (Recommended) */}
-              <button
-                type="button"
-                onClick={() => setSelectedProductOption('RENT_PROTEC')}
-                disabled={!isRentProtecEligible}
-                style={{
-                  width: '100%',
-                  textAlign: 'left',
-                  padding: '9px 12px',
-                  borderRadius: '13px',
-                  border:
-                    activeProductOption === 'RENT_PROTEC'
-                      ? '2px solid var(--clay)'
-                      : '1.5px solid var(--shell-border, #f0e9df)',
-                  background:
-                    activeProductOption === 'RENT_PROTEC'
-                      ? '#fffaf7'
-                      : 'var(--surface, #ffffff)',
-                  cursor: isRentProtecEligible ? 'pointer' : 'not-allowed',
-                  opacity: isRentProtecEligible ? 1 : 0.45,
-                  transition: 'all 0.15s ease',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 2,
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    width: '100%',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <ShieldCheck size={16} color="var(--clay)" style={{ flexShrink: 0 }} />
-                    <span
-                      style={{
-                        fontSize: '0.875rem',
-                        fontWeight: 800,
-                        color: 'var(--text)',
-                      }}
-                    >
-                      Rent Protec
-                    </span>
+                  {planPattern === 'INITIAL_DEPOSIT' && (
                     <span
                       style={{
                         fontSize: '0.5625rem',
                         fontWeight: 800,
                         letterSpacing: '0.04em',
                         textTransform: 'uppercase',
-                        padding: '1.5px 6px',
+                        padding: '2px 6px',
                         borderRadius: '999px',
                         background: 'var(--shell-tint, #fbede5)',
                         color: 'var(--clay)',
                       }}
                     >
-                      Recommended
+                      Default
                     </span>
-                  </div>
-
-                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#059669' }}>
-                    10% returns
-                  </span>
+                  )}
                 </div>
 
-                <div
+                <button
+                  type="button"
+                  onClick={() => setShowComparePlans(true)}
                   style={{
-                    fontSize: '0.6875rem',
-                    color: 'var(--text-secondary)',
-                    lineHeight: 1.3,
-                    paddingLeft: '22px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 2,
+                    background: '#ffffff',
+                    border: '1px solid var(--shell-border, #e5dfd7)',
+                    borderRadius: '999px',
+                    padding: '5px 10px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                    color: 'var(--clay)',
+                    cursor: 'pointer',
+                    flexShrink: 0,
                   }}
                 >
-                  Includes Upward rent coverage in case of job loss or illness.
-                </div>
-              </button>
+                  Compare plans
+                  <ChevronRight size={14} />
+                </button>
+              </div>
 
-              {/* Option 2: Save & Earn (Basic Savings Only) */}
-              <button
-                type="button"
-                onClick={() => setSelectedProductOption('SAVE_AND_EARN')}
+              {/* Exact Contributions Section — Prominent & Unmistakable per Plan */}
+              {planPattern === 'INITIAL_DEPOSIT' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div
+                    style={{
+                      background: '#ffffff',
+                      border: '1.5px solid var(--shell-border, #e5dfd7)',
+                      borderRadius: '14px',
+                      padding: '12px 14px',
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        marginBottom: 6,
+                      }}
+                    >
+                      <label
+                        htmlFor="upfront-deposit-amount"
+                        style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}
+                      >
+                        Today&apos;s upfront deposit
+                      </label>
+                      <span style={{ fontSize: '0.6875rem', fontWeight: 600, color: 'var(--clay)' }}>
+                        Editable
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <span style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-muted)' }}>
+                        ₦
+                      </span>
+                      <input
+                        id="upfront-deposit-amount"
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="0"
+                        value={initialDepositRaw}
+                        onChange={(e) => {
+                          const parsed = parseCurrencyInput(e.target.value)
+                          setCustomInitialDeposit(parsed ? formatCurrencyInput(parsed) : '')
+                        }}
+                        style={{
+                          width: '100%',
+                          border: 'none',
+                          background: 'transparent',
+                          outline: 'none',
+                          fontSize: '1.375rem',
+                          fontWeight: 800,
+                          color: 'var(--text)',
+                          letterSpacing: '-0.02em',
+                        }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+                      {[0.1, 0.25, 0.4, 0.5].map((pct) => {
+                        const presetAmt = Math.round(previewRentAmount * pct)
+                        const isSelected = (parseCurrencyInput(initialDepositRaw) || 0) === presetAmt
+                        return (
+                          <button
+                            key={pct}
+                            type="button"
+                            onClick={() => setCustomInitialDeposit(formatCurrencyInput(presetAmt))}
+                            style={{
+                              flex: 1,
+                              padding: '5px 0',
+                              borderRadius: '8px',
+                              border: isSelected
+                                ? '1.5px solid var(--clay)'
+                                : '1px solid var(--shell-border, #e5dfd7)',
+                              background: isSelected ? 'var(--shell-tint, #fbede5)' : '#faf9f5',
+                              color: isSelected ? 'var(--clay)' : 'var(--text-secondary)',
+                              fontSize: '0.6875rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {Math.round(pct * 100)}%
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Exact Monthly Contribution Box */}
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '12px 14px',
+                      borderRadius: '12px',
+                      background: 'rgba(194, 80, 31, 0.07)',
+                      border: '1px solid rgba(194, 80, 31, 0.14)',
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text)' }}>
+                        Then save monthly
+                      </div>
+                      <div style={{ fontSize: '0.6875rem', color: 'var(--text-secondary)', marginTop: 1 }}>
+                        For {planDepositMetrics.numberOfPayments} months
+                      </div>
+                    </div>
+                    <div style={{ fontSize: '1.1875rem', fontWeight: 800, color: 'var(--clay)' }}>
+                      {formatCurrency(planDepositMetrics.periodicDepositNaira)}
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>/mo</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {planPattern === 'EQUAL' && (
+                <div
+                  style={{
+                    background: '#ffffff',
+                    border: '1.5px solid var(--shell-border, #e5dfd7)',
+                    borderRadius: '14px',
+                    padding: '16px 14px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 12,
+                  }}
+                >
+                  <div>
+                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                      Monthly contribution
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 3 }}>
+                      {planEqualMetrics.numberOfPayments} equal months · ₦0 upfront deposit
+                    </div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div
+                      style={{
+                        fontSize: '1.375rem',
+                        fontWeight: 800,
+                        color: 'var(--clay)',
+                        letterSpacing: '-0.02em',
+                      }}
+                    >
+                      {formatCurrency(planEqualMetrics.periodicDepositNaira)}
+                      <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>/mo</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {planPattern === 'STEP_UP' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                    <div
+                      style={{
+                        background: '#ffffff',
+                        border: '1.5px solid var(--shell-border, #e5dfd7)',
+                        borderRadius: '12px',
+                        padding: '10px 12px',
+                      }}
+                    >
+                      <label
+                        htmlFor="stepup-start-amount"
+                        style={{
+                          fontSize: '0.6875rem',
+                          fontWeight: 700,
+                          color: 'var(--text-secondary)',
+                          display: 'block',
+                          marginBottom: 4,
+                        }}
+                      >
+                        Start with (Month 1)
+                      </label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                        <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-muted)' }}>
+                          ₦
+                        </span>
+                        <input
+                          id="stepup-start-amount"
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="0"
+                          value={stepStartDisplayRaw}
+                          onChange={(e) => {
+                            const parsed = parseCurrencyInput(e.target.value)
+                            setStepInputMode('START')
+                            setCustomStepStart(parsed ? formatCurrencyInput(parsed) : '')
+                          }}
+                          style={{
+                            width: '100%',
+                            border: 'none',
+                            background: 'transparent',
+                            outline: 'none',
+                            fontSize: '1.0625rem',
+                            fontWeight: 800,
+                            color: 'var(--text)',
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div
+                      style={{
+                        background: '#ffffff',
+                        border: '1.5px solid var(--shell-border, #e5dfd7)',
+                        borderRadius: '12px',
+                        padding: '10px 12px',
+                      }}
+                    >
+                      <label
+                        htmlFor="stepup-increment-amount"
+                        style={{
+                          fontSize: '0.6875rem',
+                          fontWeight: 700,
+                          color: 'var(--text-secondary)',
+                          display: 'block',
+                          marginBottom: 4,
+                        }}
+                      >
+                        Step up monthly by
+                      </label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                        <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--clay)' }}>
+                          +₦
+                        </span>
+                        <input
+                          id="stepup-increment-amount"
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="0"
+                          value={stepIncrementDisplayRaw}
+                          onChange={(e) => {
+                            const parsed = parseCurrencyInput(e.target.value)
+                            setStepInputMode('INCREMENT')
+                            setCustomStepIncrement(parsed ? formatCurrencyInput(parsed) : '')
+                          }}
+                          style={{
+                            width: '100%',
+                            border: 'none',
+                            background: 'transparent',
+                            outline: 'none',
+                            fontSize: '1.0625rem',
+                            fontWeight: 800,
+                            color: 'var(--clay)',
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      padding: '10px 12px',
+                      borderRadius: '10px',
+                      background: 'rgba(194, 80, 31, 0.07)',
+                      border: '1px solid rgba(194, 80, 31, 0.14)',
+                      fontSize: '0.75rem',
+                      color: 'var(--text)',
+                      fontWeight: 600,
+                      lineHeight: 1.35,
+                    }}
+                  >
+                    Month 1: <strong>{formatCurrency(planStepUpMetrics.periodicDepositNaira)}</strong> →{' '}
+                    +{formatCurrency(planStepUpMetrics.stepIncrementNaira)}/mo → Final month:{' '}
+                    <strong>{formatCurrency(planStepUpMetrics.lastPeriodDepositNaira)}</strong>{' '}
+                    <span style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>
+                      ({planStepUpMetrics.numberOfPayments} months)
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Total Contributions vs Estimated Returns Summary */}
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: 12,
+                  alignItems: 'baseline',
+                  paddingTop: 4,
+                }}
+              >
+                <div style={{ minWidth: 0 }}>
+                  <span
+                    style={{
+                      fontSize: '0.6875rem',
+                      color: 'var(--text-muted)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.04em',
+                      fontWeight: 700,
+                      display: 'block',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    Total you contribute
+                  </span>
+                  <div
+                    style={{
+                      fontSize: '1.125rem',
+                      fontWeight: 800,
+                      color: 'var(--text)',
+                      marginTop: 2,
+                      letterSpacing: '-0.02em',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {formatCurrency(totalTenantContributionNaira)}
+                  </div>
+                </div>
+
+                <div style={{ textAlign: 'right', minWidth: 0 }}>
+                  <span
+                    style={{
+                      fontSize: '0.6875rem',
+                      color: '#059669',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.04em',
+                      fontWeight: 700,
+                      display: 'block',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    Est. interest ({savingsAnnualRatePct}% p.a.)
+                  </span>
+                  <div
+                    style={{
+                      fontSize: '1.125rem',
+                      fontWeight: 800,
+                      color: '#059669',
+                      marginTop: 2,
+                      letterSpacing: '-0.02em',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    +{formatCurrency(projectedYieldNaira)}
+                  </div>
+                </div>
+              </div>
+
+              {/* Visual Breakdown Bar */}
+              <div
                 style={{
                   width: '100%',
-                  textAlign: 'left',
-                  padding: '9px 12px',
-                  borderRadius: '13px',
-                  border:
-                    activeProductOption === 'SAVE_AND_EARN'
-                      ? '2px solid var(--clay)'
-                      : '1.5px solid var(--shell-border, #f0e9df)',
-                  background:
-                    activeProductOption === 'SAVE_AND_EARN'
-                      ? '#fffaf7'
-                      : 'var(--surface, #ffffff)',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
+                  height: '6px',
+                  borderRadius: '999px',
+                  background: 'rgba(0, 0, 0, 0.06)',
                   display: 'flex',
-                  flexDirection: 'column',
-                  gap: 2,
+                  overflow: 'hidden',
+                  gap: '2px',
                 }}
               >
                 <div
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
+                    width: `${contributionPct}%`,
+                    background: 'var(--clay)',
+                    borderRadius: '999px 0 0 999px',
+                    transition: 'width 0.3s ease',
+                  }}
+                />
+                <div
+                  style={{
+                    width: `${yieldPct}%`,
+                    background: '#059669',
+                    borderRadius: '0 999px 999px 0',
+                    transition: 'width 0.3s ease',
+                  }}
+                />
+              </div>
+
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  fontSize: '0.75rem',
+                  color: 'var(--text-muted)',
+                  lineHeight: 1.3,
+                }}
+              >
+                <ShieldCheck size={14} color="#059669" style={{ flexShrink: 0 }} />
+                <span>Zero debit fees · Compound interest helps pay towards rent</span>
+              </div>
+            </div>
+
+            {/* Protection Plan Option */}
+            <div className="rent-calculator__field" style={{ marginTop: 2 }}>
+              <span
+                style={{
+                  fontSize: '0.875rem',
+                  fontWeight: 700,
+                  color: 'var(--text)',
+                  marginBottom: 10,
+                  display: 'block',
+                }}
+              >
+                Protection plan
+              </span>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {/* Option 1: Rent Protec (Recommended) */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedProductOption('RENT_PROTEC')}
+                  disabled={!isRentProtecEligible}
+                  style={{
                     width: '100%',
+                    textAlign: 'left',
+                    padding: '13px 15px',
+                    borderRadius: '14px',
+                    border:
+                      activeProductOption === 'RENT_PROTEC'
+                        ? '2px solid var(--clay)'
+                        : '1.5px solid var(--shell-border, #f0e9df)',
+                    background:
+                      activeProductOption === 'RENT_PROTEC'
+                        ? '#fffaf7'
+                        : 'var(--surface, #ffffff)',
+                    cursor: isRentProtecEligible ? 'pointer' : 'not-allowed',
+                    opacity: isRentProtecEligible ? 1 : 0.45,
+                    transition: 'all 0.15s ease',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 4,
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <TrendingUp size={15} color="var(--text-muted)" style={{ flexShrink: 0 }} />
-                    <span
-                      style={{
-                        fontSize: '0.875rem',
-                        fontWeight: 700,
-                        color:
-                          activeProductOption === 'SAVE_AND_EARN'
-                            ? 'var(--clay)'
-                            : 'var(--text)',
-                      }}
-                    >
-                      Save &amp; Earn
-                    </span>
-                    <span
-                      style={{
-                        fontSize: '0.5625rem',
-                        fontWeight: 600,
-                        color: 'var(--text-muted)',
-                        background: 'var(--surface2, #efefef)',
-                        padding: '1px 5px',
-                        borderRadius: '999px',
-                      }}
-                    >
-                      Savings only
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      width: '100%',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <ShieldCheck size={16} color="var(--clay)" style={{ flexShrink: 0 }} />
+                      <span
+                        style={{
+                          fontSize: '0.875rem',
+                          fontWeight: 800,
+                          color: 'var(--text)',
+                        }}
+                      >
+                        Rent Protec
+                      </span>
+                      <span
+                        style={{
+                          fontSize: '0.5625rem',
+                          fontWeight: 800,
+                          letterSpacing: '0.04em',
+                          textTransform: 'uppercase',
+                          padding: '2px 6px',
+                          borderRadius: '999px',
+                          background: 'var(--shell-tint, #fbede5)',
+                          color: 'var(--clay)',
+                        }}
+                      >
+                        Recommended
+                      </span>
+                    </div>
+
+                    <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: '#059669' }}>
+                      {platformRates.rentProtecRatePct}% p.a.
                     </span>
                   </div>
 
-                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#059669' }}>
-                    14% returns
-                  </span>
-                </div>
+                  <div
+                    style={{
+                      fontSize: '0.75rem',
+                      color: 'var(--text-secondary)',
+                      lineHeight: 1.35,
+                      paddingLeft: '22px',
+                    }}
+                  >
+                    Includes Upward rent coverage in case of job loss or illness.
+                  </div>
+                </button>
 
-                <div
+                {/* Option 2: Save & Earn (Basic Savings Only) */}
+                <button
+                  type="button"
+                  onClick={() => setSelectedProductOption('SAVE_AND_EARN')}
                   style={{
-                    fontSize: '0.6875rem',
-                    color: 'var(--text-muted)',
-                    lineHeight: 1.3,
-                    paddingLeft: '21px',
+                    width: '100%',
+                    textAlign: 'left',
+                    padding: '13px 15px',
+                    borderRadius: '14px',
+                    border:
+                      activeProductOption === 'SAVE_AND_EARN'
+                        ? '2px solid var(--clay)'
+                        : '1.5px solid var(--shell-border, #f0e9df)',
+                    background:
+                      activeProductOption === 'SAVE_AND_EARN'
+                        ? '#fffaf7'
+                        : 'var(--surface, #ffffff)',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 4,
                   }}
                 >
-                  Standard savings without rent protection insurance.
-                </div>
-              </button>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      width: '100%',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <TrendingUp size={15} color="var(--text-muted)" style={{ flexShrink: 0 }} />
+                      <span
+                        style={{
+                          fontSize: '0.875rem',
+                          fontWeight: 700,
+                          color:
+                            activeProductOption === 'SAVE_AND_EARN'
+                              ? 'var(--clay)'
+                              : 'var(--text)',
+                        }}
+                      >
+                        Save &amp; Earn
+                      </span>
+                      <span
+                        style={{
+                          fontSize: '0.5625rem',
+                          fontWeight: 600,
+                          color: 'var(--text-muted)',
+                          background: 'var(--surface2, #efefef)',
+                          padding: '2px 6px',
+                          borderRadius: '999px',
+                        }}
+                      >
+                        Savings only
+                      </span>
+                    </div>
+
+                    <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: '#059669' }}>
+                      {platformRates.savingsAnnualRatePct}% p.a.
+                    </span>
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: '0.75rem',
+                      color: 'var(--text-muted)',
+                      lineHeight: 1.35,
+                      paddingLeft: '21px',
+                    }}
+                  >
+                    Standard savings without rent protection insurance.
+                  </div>
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      </PayPageShell>
+        </PayPageShell>
+
+        {/* Compare Other Savings Plans Modal (Kunle Spec) */}
+        <BottomSheetModal
+          isOpen={showComparePlans}
+          onClose={() => setShowComparePlans(false)}
+          title="Compare Savings Plans"
+          maxWidth="480px"
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingBottom: 8 }}>
+            <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.4 }}>
+              Choose how you&apos;d like to fund your <strong>{formatCurrency(previewRentAmount)}</strong> rent goal and compare estimated interest.
+            </p>
+
+            {/* Plan 1: Deposit + Save Equally */}
+            <button
+              type="button"
+              onClick={() => handleSelectPlan('INITIAL_DEPOSIT')}
+              style={{
+                width: '100%',
+                textAlign: 'left',
+                padding: '14px 16px',
+                borderRadius: '14px',
+                border:
+                  planPattern === 'INITIAL_DEPOSIT'
+                    ? '2px solid var(--clay)'
+                    : '1.5px solid var(--shell-border, #e5dfd7)',
+                background: planPattern === 'INITIAL_DEPOSIT' ? '#fffaf7' : '#ffffff',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 6,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                <span style={{ fontSize: '0.9375rem', fontWeight: 800, color: 'var(--text)' }}>
+                  Start with a deposit &amp; save equally
+                </span>
+                <span
+                  style={{
+                    fontSize: '0.625rem',
+                    fontWeight: 800,
+                    textTransform: 'uppercase',
+                    padding: '2px 7px',
+                    borderRadius: '999px',
+                    background: 'var(--shell-tint, #fbede5)',
+                    color: 'var(--clay)',
+                  }}
+                >
+                  Default
+                </span>
+              </div>
+              <div style={{ fontSize: '0.8125rem', color: 'var(--text)', fontWeight: 600 }}>
+                {formatCurrency(planDepositMetrics.requiredInitialDepositNaira)} upfront +{' '}
+                <strong style={{ color: 'var(--clay)' }}>
+                  {formatCurrency(planDepositMetrics.periodicDepositNaira)}/mo
+                </strong>
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 700 }}>
+                Est. +{formatCurrency(planDepositMetrics.projectedYieldNaira)} returns
+              </div>
+            </button>
+
+            {/* Plan 2: Equal Monthly */}
+            <button
+              type="button"
+              onClick={() => handleSelectPlan('EQUAL')}
+              style={{
+                width: '100%',
+                textAlign: 'left',
+                padding: '14px 16px',
+                borderRadius: '14px',
+                border:
+                  planPattern === 'EQUAL'
+                    ? '2px solid var(--clay)'
+                    : '1.5px solid var(--shell-border, #e5dfd7)',
+                background: planPattern === 'EQUAL' ? '#fffaf7' : '#ffffff',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 6,
+              }}
+            >
+              <div style={{ fontSize: '0.9375rem', fontWeight: 800, color: 'var(--text)' }}>
+                Save equal monthly instalments
+              </div>
+              <div style={{ fontSize: '0.8125rem', color: 'var(--text)', fontWeight: 600 }}>
+                ₦0 upfront ·{' '}
+                <strong style={{ color: 'var(--clay)' }}>
+                  {formatCurrency(planEqualMetrics.periodicDepositNaira)}/mo
+                </strong>{' '}
+                for {planEqualMetrics.numberOfPayments} months
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 700 }}>
+                Est. +{formatCurrency(planEqualMetrics.projectedYieldNaira)} returns
+              </div>
+            </button>
+
+            {/* Plan 3: Start Small & Step Up */}
+            <button
+              type="button"
+              onClick={() => handleSelectPlan('STEP_UP')}
+              style={{
+                width: '100%',
+                textAlign: 'left',
+                padding: '14px 16px',
+                borderRadius: '14px',
+                border:
+                  planPattern === 'STEP_UP'
+                    ? '2px solid var(--clay)'
+                    : '1.5px solid var(--shell-border, #e5dfd7)',
+                background: planPattern === 'STEP_UP' ? '#fffaf7' : '#ffffff',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 6,
+              }}
+            >
+              <div style={{ fontSize: '0.9375rem', fontWeight: 800, color: 'var(--text)' }}>
+                Start small &amp; increase gradually
+              </div>
+              <div style={{ fontSize: '0.8125rem', color: 'var(--text)', fontWeight: 600 }}>
+                You set Month 1 ({formatCurrency(planStepUpMetrics.periodicDepositNaira)}) +{' '}
+                <strong style={{ color: 'var(--clay)' }}>
+                  +{formatCurrency(planStepUpMetrics.stepIncrementNaira)}/mo
+                </strong>{' '}
+                step-up
+              </div>
+              <div style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 700 }}>
+                Est. +{formatCurrency(planStepUpMetrics.projectedYieldNaira)} returns (customize amounts next)
+              </div>
+            </button>
+          </div>
+        </BottomSheetModal>
+      </>
     )
   }
 
@@ -1357,14 +1752,37 @@ export function RentCalculatorView({
                   padding: '0 2px',
                 }}
               >
-                Deposit <strong>{formatCurrency(parsedSuccessDeposit, 'NGN')}</strong> to start, then save at least{' '}
-                <strong style={{ color: 'var(--clay)' }}>
-                  {formatCurrency(successPeriodicDepositNaira, 'NGN')}
-                </strong>{' '}
-                monthly{' '}
+                {planPattern === 'INITIAL_DEPOSIT' && (
+                  <>
+                    Deposit <strong>{formatCurrency(parsedSuccessDeposit, 'NGN')}</strong> to start, then save{' '}
+                    <strong style={{ color: 'var(--clay)' }}>
+                      {formatCurrency(successPeriodicDepositNaira, 'NGN')}
+                    </strong>{' '}
+                    monthly{' '}
+                  </>
+                )}
+                {planPattern === 'EQUAL' && (
+                  <>
+                    Save{' '}
+                    <strong style={{ color: 'var(--clay)' }}>
+                      {formatCurrency(parsedSuccessDeposit, 'NGN')}
+                    </strong>{' '}
+                    monthly for {successDynamicPlan.numberOfPayments} months{' '}
+                  </>
+                )}
+                {planPattern === 'STEP_UP' && (
+                  <>
+                    Start Month 1 with{' '}
+                    <strong style={{ color: 'var(--clay)' }}>
+                      {formatCurrency(parsedSuccessDeposit, 'NGN')}
+                    </strong>
+                    , stepping up by +{formatCurrency(planStepUpMetrics.stepIncrementNaira, 'NGN')}/mo{' '}
+                  </>
+                )}
                 <span style={{ color: '#059669', fontWeight: 600 }}>
-                  (estimated +{formatCurrency(successProjectedYieldNaira, 'NGN')} interest yield)
-                </span>.
+                  (est. +{formatCurrency(successProjectedYieldNaira, 'NGN')} returns)
+                </span>
+                .
               </div>
             )}
           </div>

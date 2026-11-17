@@ -15,6 +15,7 @@ import { useSimulateVaultDeposit } from '../hooks/useRentSavings'
 import {
   calculatePayLessPlan,
   type SavingsCadence,
+  type SavingsPlanPattern,
   type SavingsProductOption,
 } from '../services/savingsService'
 import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
@@ -33,6 +34,7 @@ interface FundVaultModalProps {
   daysRemaining?: number
   annualRatePct?: number
   productOption?: SavingsProductOption
+  planPattern?: SavingsPlanPattern
   currentBalanceNaira?: number
   isInitialDeposit?: boolean
 }
@@ -49,19 +51,21 @@ export function FundVaultModal({
   daysRemaining,
   annualRatePct,
   productOption = 'RENT_PROTEC',
+  planPattern = 'INITIAL_DEPOSIT',
   currentBalanceNaira = 0,
   isInitialDeposit = false,
 }: FundVaultModalProps) {
   const [copiedField, setCopiedField] = useState<'account' | null>(null)
 
   const defaultInitialAmount =
-    targetAmountNaira && targetAmountNaira > 0 && (isInitialDeposit || currentBalanceNaira === 0)
-      ? Math.round(targetAmountNaira * 0.25)
-      : recommendedAmountNaira && recommendedAmountNaira > 0
-        ? recommendedAmountNaira
+    recommendedAmountNaira && recommendedAmountNaira > 0
+      ? recommendedAmountNaira
+      : targetAmountNaira && targetAmountNaira > 0 && (isInitialDeposit || currentBalanceNaira === 0) && planPattern === 'INITIAL_DEPOSIT'
+        ? Math.round(targetAmountNaira * 0.25)
         : 100_000
 
-  const [customAmount, setCustomAmount] = useState(() => defaultInitialAmount.toLocaleString())
+  const [customAmountOverride, setCustomAmountOverride] = useState<string | null>(null)
+  const customAmount = customAmountOverride !== null ? customAmountOverride : defaultInitialAmount.toLocaleString()
   const [hasPaidNotified, setHasPaidNotified] = useState(false)
 
   const { success: toastSuccess, error: toastError } = useToast()
@@ -73,13 +77,6 @@ export function FundVaultModal({
     () => true,
     () => false,
   )
-
-  useEffect(() => {
-    if (targetAmountNaira && targetAmountNaira > 0 && (isInitialDeposit || currentBalanceNaira === 0)) {
-      const initial25Pct = Math.round(targetAmountNaira * 0.25)
-      setCustomAmount(initial25Pct.toLocaleString())
-    }
-  }, [targetAmountNaira, isInitialDeposit, currentBalanceNaira])
 
   useEffect(() => {
     if (isOpen) {
@@ -94,6 +91,7 @@ export function FundVaultModal({
 
   const handleClose = () => {
     setHasPaidNotified(false)
+    setCustomAmountOverride(null)
     onClose()
   }
 
@@ -175,7 +173,7 @@ export function FundVaultModal({
     effectiveRatePct,
     {
       productOption,
-      planPattern: 'INITIAL_DEPOSIT',
+      planPattern,
       maxMonths: platformRates.maxSavingsMonths,
       minRentProtecMonths: platformRates.rentProtecMinMonths,
       insurancePremiumPct: platformRates.insurancePremiumPct,
@@ -210,7 +208,7 @@ export function FundVaultModal({
               value={customAmount}
               onChange={(e) => {
                 const digits = e.target.value.replace(/[^0-9]/g, '')
-                setCustomAmount(digits ? Number(digits).toLocaleString() : '')
+                setCustomAmountOverride(digits ? Number(digits).toLocaleString() : '')
               }}
             />
           </div>

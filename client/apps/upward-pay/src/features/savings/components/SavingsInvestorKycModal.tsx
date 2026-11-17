@@ -280,8 +280,12 @@ export function SavingsInvestorKycModal({
 
   const fundAmount =
     customFundAmount ??
-    (targetRent > 0
-      ? Math.round(targetRent * 0.25).toLocaleString()
+    (planPattern === 'INITIAL_DEPOSIT'
+      ? startAmountNaira > 0
+        ? startAmountNaira.toLocaleString()
+        : targetRent > 0
+          ? Math.round(targetRent * 0.25).toLocaleString()
+          : '100,000'
       : periodicTarget > 0
         ? periodicTarget.toLocaleString()
         : '100,000')
@@ -295,7 +299,7 @@ export function SavingsInvestorKycModal({
     savingsAnnualRatePct,
     {
       productOption: activeProductOption,
-      planPattern: 'INITIAL_DEPOSIT',
+      planPattern,
       maxMonths: platformRates.maxSavingsMonths,
       minRentProtecMonths: platformRates.rentProtecMinMonths,
       insurancePremiumPct: platformRates.insurancePremiumPct,
