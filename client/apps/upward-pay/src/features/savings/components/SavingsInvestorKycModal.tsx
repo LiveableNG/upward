@@ -196,13 +196,29 @@ export function SavingsInvestorKycModal({
   })
   const selectedCadence: SavingsCadence =
     selectedFrequency === 'FLEXIBLE' ? 'MONTHLY' : selectedFrequency
-  const [selectedProductOption, setSelectedProductOption] = useState<SavingsProductOption>(
-    () => vault?.product_option || 'RENT_PROTEC',
-  )
-  const [startAmountRaw, setStartAmountRaw] = useState<string>('')
+  const [selectedProductOption, setSelectedProductOption] = useState<SavingsProductOption>(() => {
+    if (vault?.product_option) return vault.product_option
+    const saved = readSavingsRentPlan()
+    return saved?.productOption === 'SAVE_AND_EARN' ? 'SAVE_AND_EARN' : 'RENT_PROTEC'
+  })
+  const [startAmountRaw, setStartAmountRaw] = useState<string>(() => {
+    if (vault?.initial_deposit_kobo && vault.initial_deposit_kobo > 0) {
+      return formatCurrencyInput(Math.round(vault.initial_deposit_kobo / 100))
+    }
+    const saved = readSavingsRentPlan()
+    if (saved?.planPattern === 'INITIAL_DEPOSIT' && saved.initialDeposit && Number(saved.initialDeposit) > 0) {
+      return formatCurrencyInput(Number(saved.initialDeposit))
+    }
+    return ''
+  })
   const startAmountNaira = parseCurrencyInput(startAmountRaw) || 0
-  // No manual pattern: what the user starts with today becomes the initial deposit.
-  const planPattern: SavingsPlanPattern = startAmountNaira > 0 ? 'INITIAL_DEPOSIT' : 'EQUAL'
+  const savedPlanPattern = readSavingsRentPlan()?.planPattern
+  const planPattern: SavingsPlanPattern =
+    startAmountNaira > 0
+      ? 'INITIAL_DEPOSIT'
+      : savedPlanPattern === 'STEP_UP'
+        ? 'STEP_UP'
+        : 'EQUAL'
   const [customFundAmount, setCustomFundAmount] = useState<string | null>(null)
 
   const [formError, setFormError] = useState<string | null>(null)
@@ -1093,7 +1109,7 @@ export function SavingsInvestorKycModal({
                 </div>
                 <div>
                   <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', display: 'block' }}>
-                    Completed by Interest
+                    Est. Returns
                   </span>
                   <span style={{ fontSize: '0.9375rem', fontWeight: 800, color: '#059669' }}>
                     +{formatCurrency(estimatedYield, 'NGN')}
@@ -1109,7 +1125,7 @@ export function SavingsInvestorKycModal({
                   lineHeight: 1.45,
                 }}
               >
-                Save consistently and pay <strong>{formatCurrency(estimatedYield, 'NGN')} less</strong> out of pocket — your {savingsAnnualRatePct}% p.a. interest{activeProductOption === 'RENT_PROTEC' ? ' + Rent Protec cover' : ''} completes the remaining balance by {earlySettlementDateStr} (max {platformRates.maxSavingsMonths} months).
+                Save consistently for est. <strong>+{formatCurrency(estimatedYield, 'NGN')} in returns</strong> — earning {savingsAnnualRatePct}% p.a.{activeProductOption === 'RENT_PROTEC' ? ' + Rent Protec cover' : ''} towards your balance by {earlySettlementDateStr} (max {platformRates.maxSavingsMonths} months).
               </p>
             </div>
 

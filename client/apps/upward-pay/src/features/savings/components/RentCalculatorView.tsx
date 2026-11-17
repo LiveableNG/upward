@@ -667,10 +667,10 @@ export function RentCalculatorView({
   if (stage === 'BENEFIT') {
     const activePlanTitle =
       planPattern === 'INITIAL_DEPOSIT'
-        ? 'Deposit + Save Equally'
+        ? 'Start with a deposit & save equally'
         : planPattern === 'EQUAL'
-          ? 'Equal Monthly'
-          : 'Start Small & Step Up'
+          ? 'Save equal monthly instalments'
+          : 'Start small & increase gradually'
 
     return (
       <>
@@ -1190,7 +1190,7 @@ export function RentCalculatorView({
                 Protection plan
               </span>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
                 {/* Option 1: Rent Protec (Recommended) */}
                 <button
                   type="button"
@@ -1199,7 +1199,7 @@ export function RentCalculatorView({
                   style={{
                     width: '100%',
                     textAlign: 'left',
-                    padding: '13px 15px',
+                    padding: '12px 13px',
                     borderRadius: '14px',
                     border:
                       activeProductOption === 'RENT_PROTEC'
@@ -1214,59 +1214,39 @@ export function RentCalculatorView({
                     transition: 'all 0.15s ease',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: 4,
+                    gap: 5,
                   }}
                 >
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      width: '100%',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <ShieldCheck size={16} color="var(--clay)" style={{ flexShrink: 0 }} />
-                      <span
-                        style={{
-                          fontSize: '0.875rem',
-                          fontWeight: 800,
-                          color: 'var(--text)',
-                        }}
-                      >
-                        Rent Protec
-                      </span>
-                      <span
-                        style={{
-                          fontSize: '0.5625rem',
-                          fontWeight: 800,
-                          letterSpacing: '0.04em',
-                          textTransform: 'uppercase',
-                          padding: '2px 6px',
-                          borderRadius: '999px',
-                          background: 'var(--shell-tint, #fbede5)',
-                          color: 'var(--clay)',
-                        }}
-                      >
-                        Recommended
-                      </span>
-                    </div>
-
-                    <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: '#059669' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '0.8125rem', fontWeight: 800, color: 'var(--text)' }}>
+                      <ShieldCheck size={15} color="var(--clay)" style={{ flexShrink: 0 }} />
+                      Rent Protec
+                    </span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#059669', flexShrink: 0 }}>
                       {platformRates.rentProtecRatePct}% p.a.
                     </span>
                   </div>
 
-                  <div
+                  <div style={{ fontSize: '0.6875rem', color: 'var(--text-secondary)', lineHeight: 1.35 }}>
+                    Rent coverage for job loss or illness.
+                  </div>
+
+                  <span
                     style={{
-                      fontSize: '0.75rem',
-                      color: 'var(--text-secondary)',
-                      lineHeight: 1.35,
-                      paddingLeft: '22px',
+                      alignSelf: 'flex-start',
+                      fontSize: '0.5625rem',
+                      fontWeight: 800,
+                      letterSpacing: '0.04em',
+                      textTransform: 'uppercase',
+                      padding: '2px 6px',
+                      borderRadius: '999px',
+                      background: 'var(--shell-tint, #fbede5)',
+                      color: 'var(--clay)',
+                      marginTop: 'auto',
                     }}
                   >
-                    Includes Upward rent coverage in case of job loss or illness.
-                  </div>
+                    Recommended
+                  </span>
                 </button>
 
                 {/* Option 2: Save & Earn (Basic Savings Only) */}
@@ -1276,7 +1256,7 @@ export function RentCalculatorView({
                   style={{
                     width: '100%',
                     textAlign: 'left',
-                    padding: '13px 15px',
+                    padding: '12px 13px',
                     borderRadius: '14px',
                     border:
                       activeProductOption === 'SAVE_AND_EARN'
@@ -1290,60 +1270,46 @@ export function RentCalculatorView({
                     transition: 'all 0.15s ease',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: 4,
+                    gap: 5,
                   }}
                 >
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      width: '100%',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <TrendingUp size={15} color="var(--text-muted)" style={{ flexShrink: 0 }} />
-                      <span
-                        style={{
-                          fontSize: '0.875rem',
-                          fontWeight: 700,
-                          color:
-                            activeProductOption === 'SAVE_AND_EARN'
-                              ? 'var(--clay)'
-                              : 'var(--text)',
-                        }}
-                      >
-                        Save &amp; Earn
-                      </span>
-                      <span
-                        style={{
-                          fontSize: '0.5625rem',
-                          fontWeight: 600,
-                          color: 'var(--text-muted)',
-                          background: 'var(--surface2, #efefef)',
-                          padding: '2px 6px',
-                          borderRadius: '999px',
-                        }}
-                      >
-                        Savings only
-                      </span>
-                    </div>
-
-                    <span style={{ fontSize: '0.8125rem', fontWeight: 800, color: '#059669' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 5,
+                        fontSize: '0.8125rem',
+                        fontWeight: 700,
+                        color: activeProductOption === 'SAVE_AND_EARN' ? 'var(--clay)' : 'var(--text)',
+                      }}
+                    >
+                      <TrendingUp size={14} color="var(--text-muted)" style={{ flexShrink: 0 }} />
+                      Save &amp; Earn
+                    </span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#059669', flexShrink: 0 }}>
                       {platformRates.savingsAnnualRatePct}% p.a.
                     </span>
                   </div>
 
-                  <div
+                  <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', lineHeight: 1.35 }}>
+                    Higher interest, no rent insurance.
+                  </div>
+
+                  <span
                     style={{
-                      fontSize: '0.75rem',
+                      alignSelf: 'flex-start',
+                      fontSize: '0.5625rem',
+                      fontWeight: 600,
                       color: 'var(--text-muted)',
-                      lineHeight: 1.35,
-                      paddingLeft: '21px',
+                      background: 'var(--surface2, #efefef)',
+                      padding: '2px 6px',
+                      borderRadius: '999px',
+                      marginTop: 'auto',
                     }}
                   >
-                    Standard savings without rent protection insurance.
-                  </div>
+                    Savings only
+                  </span>
                 </button>
               </div>
             </div>
@@ -1470,14 +1436,14 @@ export function RentCalculatorView({
                 Start small &amp; increase gradually
               </div>
               <div style={{ fontSize: '0.8125rem', color: 'var(--text)', fontWeight: 600 }}>
-                You set Month 1 ({formatCurrency(planStepUpMetrics.periodicDepositNaira)}) +{' '}
+                Set your Month 1 amount &amp; monthly step-up (e.g.{' '}
                 <strong style={{ color: 'var(--clay)' }}>
-                  +{formatCurrency(planStepUpMetrics.stepIncrementNaira)}/mo
-                </strong>{' '}
-                step-up
+                  {formatCurrency(planStepUpMetrics.periodicDepositNaira)} + {formatCurrency(planStepUpMetrics.stepIncrementNaira)}/mo
+                </strong>
+                )
               </div>
               <div style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 700 }}>
-                Est. +{formatCurrency(planStepUpMetrics.projectedYieldNaira)} returns (customize amounts next)
+                Est. +{formatCurrency(planStepUpMetrics.projectedYieldNaira)} returns (based on your inputs)
               </div>
             </button>
           </div>
