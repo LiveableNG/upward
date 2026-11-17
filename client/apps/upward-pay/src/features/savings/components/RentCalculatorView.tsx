@@ -143,15 +143,37 @@ export function RentCalculatorView({
   const onboardMutation = useOnboardSavingsInvestor()
 
   const hasVerifiedBvnOnFile = Boolean(prefill?.has_verified_bvn || user?.isIdentityVerified)
-  const [bvn, setBvn] = useState('')
-  const [mothersMaidenName, setMothersMaidenName] = useState('')
-  const [occupation, setOccupation] = useState('')
-  const [sourceOfFunds, setSourceOfFunds] = useState<'Salary' | 'Business' | 'Savings' | 'Investment'>('Salary')
-  const [nextOfKinName, setNextOfKinName] = useState('')
-  const [nextOfKinRelationship, setNextOfKinRelationship] = useState('Spouse')
-  const [nextOfKinPhone, setNextOfKinPhone] = useState('')
+  const [bvn, setBvn] = useState(() => prefill?.bvn || '')
+  const [mothersMaidenName, setMothersMaidenName] = useState(() => prefill?.mothers_maiden_name || '')
+  const [occupation, setOccupation] = useState(() => prefill?.occupation || '')
+  const [sourceOfFunds, setSourceOfFunds] = useState<'Salary' | 'Business' | 'Savings' | 'Investment'>(
+    () => prefill?.source_of_funds || 'Salary',
+  )
+  const [nextOfKinName, setNextOfKinName] = useState(() => prefill?.next_of_kin_name || '')
+  const [nextOfKinRelationship, setNextOfKinRelationship] = useState(
+    () => prefill?.next_of_kin_relationship || 'Spouse',
+  )
+  const [nextOfKinPhone, setNextOfKinPhone] = useState(() => prefill?.next_of_kin_phone || '')
   const [agreeToLock, setAgreeToLock] = useState(false)
   const [kycError, setKycError] = useState<string | null>(null)
+
+  const [prevPrefill, setPrevPrefill] = useState<typeof prefill | null>(null)
+  if (prefill && prefill !== prevPrefill) {
+    setPrevPrefill(prefill)
+    if (prefill.bvn && !bvn) setBvn(prefill.bvn)
+    if (prefill.mothers_maiden_name && !mothersMaidenName) {
+      setMothersMaidenName(prefill.mothers_maiden_name)
+    }
+    if (prefill.occupation && !occupation) setOccupation(prefill.occupation)
+    if (prefill.source_of_funds && (!sourceOfFunds || sourceOfFunds === 'Salary')) {
+      setSourceOfFunds(prefill.source_of_funds)
+    }
+    if (prefill.next_of_kin_name && !nextOfKinName) setNextOfKinName(prefill.next_of_kin_name)
+    if (prefill.next_of_kin_relationship && (!nextOfKinRelationship || nextOfKinRelationship === 'Spouse')) {
+      setNextOfKinRelationship(prefill.next_of_kin_relationship)
+    }
+    if (prefill.next_of_kin_phone && !nextOfKinPhone) setNextOfKinPhone(prefill.next_of_kin_phone)
+  }
 
   const [createdDva, setCreatedDva] = useState<{
     bank_name: string
@@ -160,23 +182,6 @@ export function RentCalculatorView({
   } | null>(null)
   const [copiedAccount, setCopiedAccount] = useState(false)
   const [customInitialDeposit, setCustomInitialDeposit] = useState<string | null>(null)
-
-  // Sync Prefill Data
-  useEffect(() => {
-    if (prefill) {
-      if (prefill.bvn && !bvn) setBvn(prefill.bvn)
-      if (prefill.mothers_maiden_name && !mothersMaidenName) {
-        setMothersMaidenName(prefill.mothers_maiden_name)
-      }
-      if (prefill.occupation && !occupation) setOccupation(prefill.occupation)
-      if (prefill.source_of_funds && !sourceOfFunds) setSourceOfFunds(prefill.source_of_funds)
-      if (prefill.next_of_kin_name && !nextOfKinName) setNextOfKinName(prefill.next_of_kin_name)
-      if (prefill.next_of_kin_relationship) {
-        setNextOfKinRelationship(prefill.next_of_kin_relationship)
-      }
-      if (prefill.next_of_kin_phone && !nextOfKinPhone) setNextOfKinPhone(prefill.next_of_kin_phone)
-    }
-  }, [prefill, bvn, mothersMaidenName, occupation, sourceOfFunds, nextOfKinName, nextOfKinPhone])
 
   // Simulate compound savings
   useEffect(() => {
