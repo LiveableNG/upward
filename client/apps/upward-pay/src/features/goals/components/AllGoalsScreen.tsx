@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo, useEffect, useCallback } from 'react'
+import React, { useState, useMemo, useEffect, useCallback, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { ChevronLeft, ChevronRight, Plus, Check, Trash2, ArrowRight, X, Home } from 'lucide-react'
@@ -386,6 +386,8 @@ function resolveQueryCategory(
   return null
 }
 
+const emptySubscribe = () => () => {}
+
 export function AllGoalsScreen() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -427,11 +429,11 @@ export function AllGoalsScreen() {
 
   const [activeDetailGoal, setActiveDetailGoal] = useState<UserGoal | null>(null)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
-  const [isMounted, setIsMounted] = useState(false)
-
-  useEffect(() => {
-    setIsMounted(true)
-  }, [])
+  const isMounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false,
+  )
 
   // Ensure modal is dismissed whenever transitioning category views without cascading effect renders
   const [prevCategory, setPrevCategory] = useState(activeCategory)
