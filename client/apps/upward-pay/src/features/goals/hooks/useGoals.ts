@@ -116,6 +116,7 @@ export function useGoalOfferingDetail(
  * Authenticated User Goals Hooks
  */
 export function useUserGoals(options: { enabled?: boolean } = {}) {
+  const queryClient = useQueryClient()
   const { user } = useAuth()
   const userKey = user?.uuid || user?.id || 'anonymous'
   const isEnabled = options.enabled !== undefined ? options.enabled : !!user?.uuid
@@ -133,11 +134,6 @@ export function useUserGoals(options: { enabled?: boolean } = {}) {
     enabled: isEnabled,
     staleTime: 30 * 1000, // 30 seconds
     retry: 1,
-    initialData: () => {
-      const cached = getCachedUserGoals(user?.id)
-      return cached ?? undefined
-    },
-    initialDataUpdatedAt: 0, // Treats initialData as stale so it immediately validates in background
   })
 
   // Synchronize server-confirmed goals to local storage for offline continuity
@@ -146,6 +142,16 @@ export function useUserGoals(options: { enabled?: boolean } = {}) {
       setCachedUserGoals(user.id, query.data)
     }
   }, [query.data, user?.id])
+
+  // Restore cached goals post-mount to avoid SSR hydration mismatches
+  useEffect(() => {
+    if (!query.data && user?.id) {
+      const cached = getCachedUserGoals(user.id)
+      if (cached && cached.length > 0) {
+        queryClient.setQueryData(['user-goals', userKey], cached)
+      }
+    }
+  }, [query.data, user?.id, userKey, queryClient])
 
   return query
 }
