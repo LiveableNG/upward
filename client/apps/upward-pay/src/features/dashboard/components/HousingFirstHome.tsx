@@ -496,7 +496,7 @@ export function HousingFirstHome({
             ) : (
               <button
                 type="button"
-                className="housing-goal-card"
+                className="housing-goal-card housing-goal-card--hero"
                 onClick={() => router.push('/dashboard/savings')}
               >
                 <div className="housing-goal-card__body">
@@ -508,7 +508,7 @@ export function HousingFirstHome({
                     Build up savings towards my upcoming rent.
                   </p>
                 </div>
-                <ChevronRight size={18} color="var(--text-muted, #8a8a8a)" style={{ flexShrink: 0 }} />
+                <ChevronRight size={18} color="#ffffff" style={{ flexShrink: 0 }} />
               </button>
             )}
 
