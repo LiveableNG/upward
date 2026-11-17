@@ -11,7 +11,8 @@ export function usePlatformRates() {
   const query = useQuery<PlatformRates>({
     queryKey: ['platform-rates'],
     queryFn: getPlatformRates,
-    staleTime: 60 * 1000,
+    staleTime: 15 * 1000,
+    refetchOnMount: 'always',
     retry: 1,
   })
 

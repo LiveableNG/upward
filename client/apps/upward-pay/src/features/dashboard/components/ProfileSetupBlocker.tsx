@@ -31,6 +31,8 @@ import { isSavingsWalletEnabled } from '../utils/savingsWallet'
 import { useRentalExperiment } from '../setup/hooks/useRentalExperiment'
 import { useRentalGate } from '../setup/hooks/useRentalGate'
 import { useUserGoals, useGoalCategories } from '@/features/goals/hooks/useGoals'
+import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
+import { useToast } from '@/components/common/Toast'
 
 interface ProfileSetupBlockerProps {
   user: UserProfile
@@ -60,9 +62,11 @@ interface QuickAction {
 
 export function ProfileSetupBlocker({ user, score, maxScore, onSkip }: ProfileSetupBlockerProps) {
   const router = useRouter()
+  const toast = useToast()
   const { logout } = useAuth()
   const { trackExposure, trackDeferral } = useRentalExperiment()
   const { isGated, guard, notifyGated } = useRentalGate()
+  const { rates: platformRates, isLoading: ratesLoading } = usePlatformRates()
 
   useEffect(() => {
     trackExposure('ProfileSetupBlocker')
@@ -123,7 +127,12 @@ export function ProfileSetupBlocker({ user, score, maxScore, onSkip }: ProfileSe
 
   const quickActions: QuickAction[] = [
     { label: 'Pay Rent', icon: CreditCard, href: '/dashboard/pay-rent' },
-    { label: 'Save for Rent', icon: PiggyBank, href: '/dashboard/savings' },
+    {
+      label: 'Save for Rent',
+      icon: PiggyBank,
+      href: '/dashboard/savings',
+      comingSoon: platformRates.savingsEnabled === false,
+    },
     ...(showGoalsStep ? [{ label: 'Living Goals', icon: Target, href: '/dashboard/lifestyle' }] : []),
   ]
 
@@ -236,6 +245,13 @@ export function ProfileSetupBlocker({ user, score, maxScore, onSkip }: ProfileSe
                     className={`setup-gate__tile${locked ? ' setup-gate__tile--locked' : ''}`}
                     aria-disabled={locked ? 'true' : undefined}
                     onClick={() => {
+                      if (action.href === '/dashboard/savings') {
+                        if (ratesLoading) return
+                        if (platformRates.savingsEnabled === false) {
+                          toast.info('Rent savings is coming soon — we are finalizing partner activation.')
+                          return
+                        }
+                      }
                       if (action.comingSoon) return
                       if (isGated) {
                         notifyGated(action.label)

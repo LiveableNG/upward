@@ -3,6 +3,8 @@
 import { Target, TrendingUp, ChevronRight, Plus, Home } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
+import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
+import { useToast } from '@/components/common/Toast'
 
 interface RentSavingsCardProps {
   name?: string
@@ -24,6 +26,8 @@ export function RentSavingsCard({
   onConfigureGoal,
 }: RentSavingsCardProps) {
   const router = useRouter()
+  const toast = useToast()
+  const { rates: platformRates, isLoading: ratesLoading } = usePlatformRates()
   const progress = progressPct ?? (savingsGoal > 0 ? (savingsBalance / savingsGoal) * 100 : 0)
 
   return (
@@ -44,7 +48,14 @@ export function RentSavingsCard({
           <button
             type="button"
             className="savings-goal-card__btn savings-goal-card__btn--primary"
-            onClick={() => router.push('/dashboard/savings/deposit')}
+            onClick={() => {
+              if (ratesLoading) return
+              if (platformRates.savingsEnabled === false) {
+                toast.info('Rent savings is coming soon — we are finalizing partner activation.')
+                return
+              }
+              router.push('/dashboard/savings/deposit')
+            }}
           >
             <Plus size={14} />
             Deposit

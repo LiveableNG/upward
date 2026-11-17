@@ -1,6 +1,7 @@
 import { request } from '@/lib/api-client'
 
 export interface PlatformRates {
+  savingsEnabled: boolean
   savingsAnnualRatePct: number
   rentProtecRatePct: number
   insurancePremiumPct: number
@@ -17,6 +18,7 @@ export interface PlatformRates {
 }
 
 export const DEFAULT_PLATFORM_RATES: PlatformRates = {
+  savingsEnabled: true,
   savingsAnnualRatePct: 14.0,
   rentProtecRatePct: 10.0,
   insurancePremiumPct: 2.0,

@@ -1,4 +1,4 @@
-import { Injectable, Inject, Logger, BadRequestException, NotFoundException, Optional } from '@nestjs/common'
+import { Injectable, Inject, Logger, BadRequestException, ForbiddenException, NotFoundException, Optional } from '@nestjs/common'
 import { IsEmail, IsIn, IsNotEmpty, IsNumber, IsOptional, IsString, Matches } from 'class-validator'
 import { Type } from 'class-transformer'
 import * as crypto from 'crypto'
@@ -321,6 +321,15 @@ export class OnboardSavingsInvestorUseCase {
   }
 
   async execute(userId: number, dto: OnboardSavingsInvestorDto) {
+    if (this.platformRates) {
+      const rates = await this.platformRates.getRates()
+      if (rates?.savingsEnabled === false) {
+        throw new ForbiddenException(
+          'Rent savings is launching soon. Please check back once partner activation completes.',
+        )
+      }
+    }
+
     const user = await this.userRepository.findById(userId)
     if (!user) {
       throw new NotFoundException('User not found')

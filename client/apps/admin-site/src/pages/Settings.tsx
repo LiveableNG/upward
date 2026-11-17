@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Percent, Save, UserPlus } from 'lucide-react'
+import { Percent, Power, Save, UserPlus } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
 import { AdminTable, type AdminUser } from '../features/settings/components/AdminTable'
@@ -17,6 +17,8 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
   const [loading, setLoading] = useState(true)
 
   // Platform Rates State
+  const [savingsEnabled, setSavingsEnabled] = useState(true)
+  const [togglingSavings, setTogglingSavings] = useState(false)
   const [savingsRatePct, setSavingsRatePct] = useState('14')
   const [rentProtecRatePct, setRentProtecRatePct] = useState('10')
   const [insurancePremiumPct, setInsurancePremiumPct] = useState('2')
@@ -53,6 +55,9 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
       const result = await apiService.get('/admin/fees/rates', token)
       const data = result?.data || result
       if (data) {
+        if (data.savingsEnabled !== undefined) {
+          setSavingsEnabled(Boolean(data.savingsEnabled))
+        }
         if (data.savingsAnnualRatePct !== undefined) {
           setSavingsRatePct(String(data.savingsAnnualRatePct))
         }
@@ -111,6 +116,7 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
       const result = await apiService.post(
         '/admin/fees/rates',
         {
+          savingsEnabled,
           savingsAnnualRatePct: parsedSavings,
           rentProtecRatePct: parsedRentProtec,
           insurancePremiumPct: parsedInsurance,
@@ -126,6 +132,30 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
       showToast(err.message || 'Failed to update platform rates', true)
     } finally {
       setSavingRates(false)
+    }
+  }
+
+  const handleToggleSavingsAvailability = async () => {
+    const nextEnabled = !savingsEnabled
+    try {
+      setTogglingSavings(true)
+      const result = await apiService.post(
+        '/admin/fees/rates',
+        { savingsEnabled: nextEnabled },
+        token,
+      )
+      const data = result?.data || result
+      setSavingsEnabled(nextEnabled)
+      if (data?.updatedAt) setRatesUpdatedAt(data.updatedAt)
+      showToast(
+        nextEnabled
+          ? 'Rent Savings is now LIVE in the app!'
+          : 'Rent Savings turned OFF — users cannot enter the savings flow.',
+      )
+    } catch (err: any) {
+      showToast(err.message || 'Failed to toggle Rent Savings availability', true)
+    } finally {
+      setTogglingSavings(false)
     }
   }
 
@@ -293,6 +323,66 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
                 Last updated: {new Date(ratesUpdatedAt).toLocaleString()}
               </span>
             )}
+          </div>
+
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '12px',
+              padding: '14px 16px',
+              borderRadius: '12px',
+              marginBottom: '20px',
+              border: savingsEnabled ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)',
+              background: savingsEnabled ? 'rgba(16, 185, 129, 0.06)' : 'rgba(239, 68, 68, 0.06)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <Power
+                size={18}
+                style={{ color: savingsEnabled ? '#059669' : '#dc2626', flexShrink: 0 }}
+              />
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>
+                    Rent Savings Feature Availability
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: '999px',
+                      background: savingsEnabled ? 'rgba(16, 185, 129, 0.16)' : 'rgba(239, 68, 68, 0.16)',
+                      color: savingsEnabled ? '#047857' : '#b91c1c',
+                    }}
+                  >
+                    {savingsEnabled ? 'LIVE FOR USERS' : 'OFF (PAUSED)'}
+                  </span>
+                </div>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '3px 0 0' }}>
+                  {savingsEnabled
+                    ? 'Users can tap into Rent Savings and open a vault.'
+                    : 'Turned off until ARM activates production — clicking Rent Savings in the app will not proceed.'}
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleToggleSavingsAvailability}
+              disabled={ratesLoading || togglingSavings}
+              className={savingsEnabled ? 'btn btn-secondary' : 'btn btn-primary'}
+              style={{ minWidth: '150px' }}
+            >
+              {togglingSavings
+                ? 'Updating...'
+                : savingsEnabled
+                  ? 'Turn Off Savings'
+                  : 'Turn On Savings'}
+            </button>
           </div>
 
           <form

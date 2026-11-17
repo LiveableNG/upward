@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 export interface PlatformRatesSnapshot {
+  savingsEnabled: boolean;
   savingsAnnualRatePct: number;
   rentProtecRatePct: number;
   insurancePremiumPct: number;
@@ -17,6 +18,7 @@ export interface PlatformRatesSnapshot {
   updatedAt: string | null;
 }
 
+const DEFAULT_SAVINGS_ENABLED = true;
 const DEFAULT_SAVINGS_ANNUAL_RATE_PCT = 14.0;
 const DEFAULT_RENT_PROTEC_RATE_PCT = 10.0;
 const DEFAULT_INSURANCE_PREMIUM_PCT = 2.0;
@@ -31,6 +33,7 @@ const LEGACY_SAVINGS_CONFIG_KEY = 'GLOBAL_DAILY_INTEREST';
 
 @Injectable()
 export class PlatformRatesService implements OnModuleInit {
+  private cachedSavingsEnabled = DEFAULT_SAVINGS_ENABLED;
   private cachedSavingsAnnualRatePct = DEFAULT_SAVINGS_ANNUAL_RATE_PCT;
   private cachedRentProtecRatePct = DEFAULT_RENT_PROTEC_RATE_PCT;
   private cachedInsurancePremiumPct = DEFAULT_INSURANCE_PREMIUM_PCT;
@@ -52,6 +55,7 @@ export class PlatformRatesService implements OnModuleInit {
         where: { key: GLOBAL_KEY },
       });
       if (record) {
+        this.cachedSavingsEnabled = record.savingsEnabled ?? DEFAULT_SAVINGS_ENABLED;
         this.cachedSavingsAnnualRatePct = record.savingsAnnualRatePct;
         this.cachedRentProtecRatePct = record.rentProtecRatePct;
         this.cachedInsurancePremiumPct = record.insurancePremiumPct;
@@ -62,6 +66,7 @@ export class PlatformRatesService implements OnModuleInit {
         const created = await this.prisma.upward_platform_rate_config.create({
           data: {
             key: GLOBAL_KEY,
+            savingsEnabled: DEFAULT_SAVINGS_ENABLED,
             savingsAnnualRatePct: DEFAULT_SAVINGS_ANNUAL_RATE_PCT,
             rentProtecRatePct: DEFAULT_RENT_PROTEC_RATE_PCT,
             insurancePremiumPct: DEFAULT_INSURANCE_PREMIUM_PCT,
@@ -69,6 +74,7 @@ export class PlatformRatesService implements OnModuleInit {
             maxSavingsMonths: DEFAULT_MAX_SAVINGS_MONTHS,
           },
         });
+        this.cachedSavingsEnabled = created.savingsEnabled ?? DEFAULT_SAVINGS_ENABLED;
         this.cachedSavingsAnnualRatePct = created.savingsAnnualRatePct;
         this.cachedRentProtecRatePct = created.rentProtecRatePct;
         this.cachedInsurancePremiumPct = created.insurancePremiumPct;
@@ -77,6 +83,7 @@ export class PlatformRatesService implements OnModuleInit {
         this.cachedUpdatedAt = created.updatedAt;
       }
     } catch {
+      this.cachedSavingsEnabled = DEFAULT_SAVINGS_ENABLED;
       this.cachedSavingsAnnualRatePct = DEFAULT_SAVINGS_ANNUAL_RATE_PCT;
       this.cachedRentProtecRatePct = DEFAULT_RENT_PROTEC_RATE_PCT;
       this.cachedInsurancePremiumPct = DEFAULT_INSURANCE_PREMIUM_PCT;
@@ -90,6 +97,7 @@ export class PlatformRatesService implements OnModuleInit {
     const rentProtecRateDecimal = this.cachedRentProtecRatePct / 100;
     const insurancePremiumRateDecimal = this.cachedInsurancePremiumPct / 100;
     return {
+      savingsEnabled: this.cachedSavingsEnabled,
       savingsAnnualRatePct: this.cachedSavingsAnnualRatePct,
       rentProtecRatePct: this.cachedRentProtecRatePct,
       insurancePremiumPct: this.cachedInsurancePremiumPct,
@@ -112,6 +120,7 @@ export class PlatformRatesService implements OnModuleInit {
         where: { key: GLOBAL_KEY },
       });
       if (record) {
+        this.cachedSavingsEnabled = record.savingsEnabled ?? DEFAULT_SAVINGS_ENABLED;
         this.cachedSavingsAnnualRatePct = record.savingsAnnualRatePct;
         this.cachedRentProtecRatePct = record.rentProtecRatePct;
         this.cachedInsurancePremiumPct = record.insurancePremiumPct;
@@ -126,6 +135,7 @@ export class PlatformRatesService implements OnModuleInit {
   }
 
   async updateRates(params: {
+    savingsEnabled?: boolean;
     savingsAnnualRatePct?: number;
     rentProtecRatePct?: number;
     insurancePremiumPct?: number;
@@ -137,6 +147,10 @@ export class PlatformRatesService implements OnModuleInit {
   }): Promise<PlatformRatesSnapshot> {
     const current = await this.getRates();
 
+    const nextSavingsEnabled =
+      params.savingsEnabled !== undefined
+        ? Boolean(params.savingsEnabled)
+        : current.savingsEnabled;
     const nextSavingsPct =
       params.savingsAnnualRatePct !== undefined
         ? Number(params.savingsAnnualRatePct)
@@ -178,6 +192,7 @@ export class PlatformRatesService implements OnModuleInit {
       where: { key: GLOBAL_KEY },
       create: {
         key: GLOBAL_KEY,
+        savingsEnabled: nextSavingsEnabled,
         savingsAnnualRatePct: nextSavingsPct,
         rentProtecRatePct: nextRentProtecPct,
         insurancePremiumPct: nextInsurancePct,
@@ -186,6 +201,7 @@ export class PlatformRatesService implements OnModuleInit {
         updatedByAdminId: params.updatedByAdminId || null,
       },
       update: {
+        savingsEnabled: nextSavingsEnabled,
         savingsAnnualRatePct: nextSavingsPct,
         rentProtecRatePct: nextRentProtecPct,
         insurancePremiumPct: nextInsurancePct,
@@ -213,6 +229,7 @@ export class PlatformRatesService implements OnModuleInit {
       // Non-blocking sync
     }
 
+    this.cachedSavingsEnabled = updated.savingsEnabled ?? nextSavingsEnabled;
     this.cachedSavingsAnnualRatePct = updated.savingsAnnualRatePct;
     this.cachedRentProtecRatePct = updated.rentProtecRatePct;
     this.cachedInsurancePremiumPct = updated.insurancePremiumPct;

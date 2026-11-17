@@ -19,6 +19,7 @@ import { type UserProfile } from '@/features/auth/types'
 import { type PendingPayment, type CompletedPayment } from '../types'
 import { useRentVault } from '@/features/savings/hooks/useRentSavings'
 import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
+import { useToast } from '@/components/common/Toast'
 import { formatCurrency, formatDate, formatTime } from '@/lib/utils'
 import { useUserGoals } from '@/features/goals/hooks/useGoals'
 import { ActionCarousel } from './ActionCarousel'
@@ -189,10 +190,20 @@ export function HousingFirstHome({
   onOpenGoals,
 }: HousingFirstHomeProps) {
   const router = useRouter()
+  const toast = useToast()
   const hasMyHome = useHasMyHome()
   const { data: vault } = useRentVault()
-  const { rates: platformRates } = usePlatformRates()
+  const { rates: platformRates, isLoading: ratesLoading } = usePlatformRates()
   const { data: userGoals } = useUserGoals()
+
+  const handleOpenRentSavings = () => {
+    if (ratesLoading) return
+    if (platformRates.savingsEnabled === false) {
+      toast.info('Rent savings is coming soon — we are finalizing partner activation.')
+      return
+    }
+    router.push('/dashboard/savings')
+  }
 
   const appGoals = React.useMemo(() => {
     const active = (userGoals || []).filter((ug) => ug.status === 'ACTIVE')
@@ -469,7 +480,7 @@ export function HousingFirstHome({
               <button
                 type="button"
                 className="vault-card"
-                onClick={() => router.push('/dashboard/savings')}
+                onClick={handleOpenRentSavings}
               >
                 <div className="vault-card__top">
                   <div>
@@ -497,11 +508,15 @@ export function HousingFirstHome({
               <button
                 type="button"
                 className="housing-goal-card housing-goal-card--hero"
-                onClick={() => router.push('/dashboard/savings')}
+                onClick={handleOpenRentSavings}
               >
                 <div className="housing-goal-card__body">
                   <span className="housing-goal-card__tag">
-                    {vault?.is_rent_protec ? 'RENT PROTEC • PROTECTED' : 'SAVE RENT'}
+                    {platformRates.savingsEnabled === false
+                      ? 'SAVE RENT · COMING SOON'
+                      : vault?.is_rent_protec
+                        ? 'RENT PROTEC • PROTECTED'
+                        : 'SAVE RENT'}
                   </span>
                   <h3 className="housing-goal-card__title">Pay less for my next rent</h3>
                   <p className="housing-goal-card__desc">
@@ -708,7 +723,7 @@ export function HousingFirstHome({
               <button
                 type="button"
                 className="sidebar-widget__action-btn"
-                onClick={() => router.push('/dashboard/savings')}
+                onClick={handleOpenRentSavings}
               >
                 View Rent Protec
               </button>
