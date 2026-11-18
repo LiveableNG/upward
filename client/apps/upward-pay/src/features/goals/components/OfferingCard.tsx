@@ -33,8 +33,11 @@ interface OfferingCardProps {
 }
 
 export function formatOfferingPrice(offering: GoalOffering): string {
+  if (offering.type === 'SERVICE' || offering.pricingModel === 'QUOTE_REQUIRED') {
+    return 'Custom Quote'
+  }
   const currency = offering.currency || 'NGN'
-  return formatCurrencyValue(offering.price, currency) || (offering.minPrice != null ? `From ${formatCurrencyValue(offering.minPrice, currency)}` : 'Inquire for price')
+  return formatCurrencyValue(offering.price, currency) || (offering.minPrice != null ? `From ${formatCurrencyValue(offering.minPrice, currency)}` : 'Custom Quote')
 }
 
 export function formatCurrencyValue(val?: number | null, currency = 'NGN'): string {
@@ -185,17 +188,20 @@ export const OfferingCard: React.FC<OfferingCardProps> = ({
                 </span>
               </>
             )}
-            {offering.pricingModel && offering.pricingModel !== 'FIXED' && (
+            {(offering.type === 'SERVICE' || (offering.pricingModel && offering.pricingModel !== 'FIXED')) && (
               <span className="offering-card__pricing-model">
-                {offering.pricingModel.toLowerCase().replace('_', ' ')}
+                {offering.type === 'SERVICE' || offering.pricingModel === 'QUOTE_REQUIRED'
+                  ? 'Tailored pricing'
+                  : offering.pricingModel?.toLowerCase().replace('_', ' ')}
               </span>
             )}
           </div>
 
-          <div className="offering-card__actions-wrap">
+          <div className="offering-card__actions-wrap" style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
             <button
               type="button"
               className="offering-card__cart-btn"
+              style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
               title={
                 offering.type === 'SERVICE' || offering.pricingModel === 'QUOTE_REQUIRED'
                   ? 'Request Quote / Details'

@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Truck, Wrench, Send, Loader2, User, ChevronRight } from 'lucide-react'
+import { Truck, Wrench, Send, Loader2, User, ChevronRight, MessageSquare, Tag } from 'lucide-react'
 import { Modal } from '../../../components/common/modal/Modal'
 import type {
   AdminCommerceSubOrder,
@@ -23,14 +23,35 @@ interface SubOrderFulfilmentModalProps {
       adminOperationalNotes?: string
     },
   ) => Promise<any>
+  onSetQuote?: (
+    subOrderUuid: string,
+    payload: { quotedPriceNgn: number; quoteNotes?: string },
+  ) => Promise<any>
+  onPostMessage?: (subOrderUuid: string, message: string) => Promise<any>
 }
 
 export function SubOrderFulfilmentModal({
   subOrder,
   onClose,
   onUpdate,
+  onSetQuote,
+  onPostMessage,
 }: SubOrderFulfilmentModalProps) {
   const isService = (subOrder.items || []).some((i) => i.offeringType === 'SERVICE')
+  const isQuotePhase =
+    subOrder.customerStatus === 'QUOTE_REQUESTED' ||
+    subOrder.customerStatus === 'QUOTE_PROVIDED'
+
+  const [messages, setMessages] = useState(subOrder.messages || [])
+  const [replyText, setReplyText] = useState('')
+  const [sendingReply, setSendingReply] = useState(false)
+  const [quotedPriceNgn, setQuotedPriceNgn] = useState(
+    subOrder.subtotalKobo && Number(subOrder.subtotalKobo) > 0
+      ? String(Math.round(Number(subOrder.subtotalKobo) / 100))
+      : '',
+  )
+  const [quoteNotes, setQuoteNotes] = useState(subOrder.quoteNotes || '')
+  const [savingQuote, setSavingQuote] = useState(false)
 
   const getInitialAction = (): AdminFulfilmentTransitionAction => {
     if (isService) {
@@ -113,11 +134,60 @@ export function SubOrderFulfilmentModal({
         },
       ]
 
+  const handleSendAdminReply = async () => {
+    const trimmed = replyText.trim()
+    if (!trimmed || !onPostMessage) return
+    setSendingReply(true)
+    try {
+      const res = await onPostMessage(subOrder.uuid, trimmed)
+      const created = res?.message || {
+        uuid: String(Date.now()),
+        senderType: 'ADMIN',
+        senderName: 'Upward Team',
+        message: trimmed,
+        createdAt: new Date().toISOString(),
+      }
+      setMessages((prev) => [...prev, created])
+      setReplyText('')
+    } catch {
+      // toast handled in hook
+    } finally {
+      setSendingReply(false)
+    }
+  }
+
+  const handleSendQuote = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!onSetQuote) return
+    const parsed = Number(quotedPriceNgn)
+    if (!Number.isFinite(parsed) || parsed < 100) {
+      alert('Please enter a valid quoted price of at least ₦100.')
+      return
+    }
+    setSavingQuote(true)
+    try {
+      await onSetQuote(subOrder.uuid, {
+        quotedPriceNgn: parsed,
+        quoteNotes: quoteNotes.trim() || undefined,
+      })
+      onClose()
+    } catch {
+      // toast handled in hook
+    } finally {
+      setSavingQuote(false)
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if ((action === 'SCHEDULE_SERVICE' || action === 'SERVICE_SCHEDULE') && !serviceScheduledAt) {
       alert('Please select an Appointment Date & Time to schedule service.')
+      return
+    }
+
+    if (action === 'TECHNICIAN_EN_ROUTE' && (!technicianName.trim() || !technicianPhone.trim())) {
+      alert('Please provide the assigned specialist / crew name and contact phone before marking En Route.')
       return
     }
 
@@ -188,6 +258,184 @@ export function SubOrderFulfilmentModal({
           </div>
         </div>
 
+        {/* Quote Review, Interactive Messages & Custom Price Setup */}
+        {isQuotePhase ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Milestone Conversation Thread */}
+            <div
+              style={{
+                border: '1px solid var(--border)',
+                borderRadius: 12,
+                padding: 14,
+                background: '#FAF8F5',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 10,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
+                <MessageSquare size={15} />
+                <span>Scope &amp; Customer Clarification Thread</span>
+              </div>
+
+              <div
+                style={{
+                  maxHeight: 210,
+                  overflowY: 'auto',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 8,
+                  paddingRight: 4,
+                }}
+              >
+                {messages.length === 0 ? (
+                  <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-muted)' }}>
+                    No messages yet. Ask any clarifying questions below before setting a quote price.
+                  </p>
+                ) : (
+                  messages.map((msg) => {
+                    const isAdmin = msg.senderType === 'ADMIN'
+                    return (
+                      <div
+                        key={msg.uuid}
+                        style={{
+                          alignSelf: isAdmin ? 'flex-end' : 'flex-start',
+                          maxWidth: '86%',
+                          background: isAdmin ? 'var(--clay, #C2501F)' : '#FFFFFF',
+                          color: isAdmin ? '#FFFFFF' : 'var(--text, #1A1714)',
+                          border: isAdmin ? 'none' : '1px solid var(--border)',
+                          borderRadius: 10,
+                          padding: '8px 12px',
+                          fontSize: 12.5,
+                          lineHeight: 1.45,
+                        }}
+                      >
+                        <div style={{ fontSize: 10.5, fontWeight: 700, opacity: 0.8, marginBottom: 3 }}>
+                          {isAdmin ? 'Upward Team' : msg.senderName || 'Customer'}
+                        </div>
+                        <div style={{ whiteSpace: 'pre-wrap' }}>{msg.message}</div>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  type="text"
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault()
+                      handleSendAdminReply()
+                    }
+                  }}
+                  placeholder="Ask customer for clarification or reply…"
+                  style={{
+                    flex: 1,
+                    padding: '9px 12px',
+                    borderRadius: 8,
+                    border: '1px solid var(--border)',
+                    fontSize: 13,
+                    background: '#FFFFFF',
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={handleSendAdminReply}
+                  disabled={sendingReply || !replyText.trim()}
+                  className="btn btn-secondary"
+                  style={{ height: 38, padding: '0 14px', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                >
+                  {sendingReply ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                  <span>Send</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Set Final Custom Quote Price */}
+            <form
+              onSubmit={handleSendQuote}
+              style={{
+                border: '1px solid var(--border)',
+                borderRadius: 12,
+                padding: 16,
+                background: '#FFFFFF',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 12,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>
+                <Tag size={15} />
+                <span>Set Final Service Quote (100% Upward Balance)</span>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 5, color: 'var(--text)' }}>
+                  Total Quoted Price (₦ NGN) *
+                </label>
+                <input
+                  type="number"
+                  min={100}
+                  step="100"
+                  required
+                  value={quotedPriceNgn}
+                  onChange={(e) => setQuotedPriceNgn(e.target.value)}
+                  placeholder="e.g. 25000"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    borderRadius: 8,
+                    border: '1px solid var(--border)',
+                    fontSize: 14,
+                    fontWeight: 700,
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 5, color: 'var(--text)' }}>
+                  Quote Breakdown / Notes for Customer (Optional)
+                </label>
+                <textarea
+                  rows={3}
+                  value={quoteNotes}
+                  onChange={(e) => setQuoteNotes(e.target.value)}
+                  placeholder="e.g. Covers full service labor, materials, and logistics."
+                  style={{
+                    width: '100%',
+                    padding: '9px 12px',
+                    borderRadius: 8,
+                    border: '1px solid var(--border)',
+                    fontSize: 13,
+                    resize: 'vertical',
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, paddingTop: 4 }}>
+                <button type="button" onClick={onClose} className="btn btn-secondary">
+                  Close
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingQuote || !quotedPriceNgn}
+                  className="btn btn-primary"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                >
+                  {savingQuote ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                  <span>
+                    {subOrder.customerStatus === 'QUOTE_PROVIDED'
+                      ? 'Update & Resend Quote'
+                      : 'Send Quote to Customer'}
+                  </span>
+                </button>
+              </div>
+            </form>
+          </div>
+        ) : (
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* Chronological Step Pipeline */}
           <div>
@@ -491,13 +739,14 @@ export function SubOrderFulfilmentModal({
 
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 5, color: 'var(--text)' }}>
-                  Specialist Name
+                  Assigned Crew / Specialist Name {action === 'TECHNICIAN_EN_ROUTE' ? '*' : ''}
                 </label>
                 <input
                   type="text"
+                  required={action === 'TECHNICIAN_EN_ROUTE'}
                   value={technicianName}
                   onChange={(e) => setTechnicianName(e.target.value)}
-                  placeholder="e.g. Emmanuel Nwachukwu"
+                  placeholder="e.g. Emmanuel Nwachukwu / Team Alpha"
                   style={{
                     width: '100%',
                     padding: '9px 12px',
@@ -511,10 +760,11 @@ export function SubOrderFulfilmentModal({
 
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 5, color: 'var(--text)' }}>
-                  Specialist Phone
+                  Crew / Specialist Contact Phone {action === 'TECHNICIAN_EN_ROUTE' ? '*' : ''}
                 </label>
                 <input
                   type="tel"
+                  required={action === 'TECHNICIAN_EN_ROUTE'}
                   value={technicianPhone}
                   onChange={(e) => setTechnicianPhone(e.target.value)}
                   placeholder="+23480..."
@@ -596,6 +846,7 @@ export function SubOrderFulfilmentModal({
             </button>
           </div>
         </form>
+        )}
       </div>
     </Modal>
   )

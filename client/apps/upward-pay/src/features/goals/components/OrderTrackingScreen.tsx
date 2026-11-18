@@ -30,6 +30,7 @@ import {
   Star,
   CreditCard,
   Key,
+  Send,
 } from 'lucide-react'
 import { useToast } from '@/components/common/Toast'
 import {
@@ -39,6 +40,8 @@ import {
   useCreateCommerceDispute,
   useInitializeCommercePayment,
   useVerifyCommercePayment,
+  usePostCommerceOrderMessage,
+  useDeclineServiceQuote,
 } from '../hooks/useCommerceOrders'
 import { openPaystackInline } from '../utils/paystackInline'
 import { BottomSheetModal } from '@/components/common/BottomSheetModal'
@@ -133,11 +136,16 @@ export function OrderTrackingScreen({
   const createDispute = useCreateCommerceDispute()
   const initializePayment = useInitializeCommercePayment()
   const verifyPayment = useVerifyCommercePayment()
+  const postOrderMessage = usePostCommerceOrderMessage()
+  const declineServiceQuote = useDeclineServiceQuote()
 
   const [activeDisputeSubOrder, setActiveDisputeSubOrder] = useState<TenantSubOrderDetailDto | null>(null)
   const [subOrderToConfirm, setSubOrderToConfirm] = useState<TenantSubOrderDetailDto | null>(null)
   const [rating, setRating] = useState<number>(5)
   const [feedback, setFeedback] = useState<string>('')
+  const [messageDrafts, setMessageDrafts] = useState<Record<string, string>>({})
+  const [sendingSubOrderUuid, setSendingSubOrderUuid] = useState<string | null>(null)
+  const [isDecliningQuote, setIsDecliningQuote] = useState(false)
   const [hoveredRating, setHoveredRating] = useState<number | null>(null)
   const [isDownloading, setIsDownloading] = useState(false)
   const [isPaying, setIsPaying] = useState(false)
@@ -253,6 +261,34 @@ export function OrderTrackingScreen({
       reset()
     } catch (err: any) {
       toast.error(err?.message || 'Failed to submit inquiry.')
+    }
+  }
+
+  const handleSendMilestoneReply = async (subOrderUuid: string) => {
+    const text = (messageDrafts[subOrderUuid] || '').trim()
+    if (!text) return
+    try {
+      setSendingSubOrderUuid(subOrderUuid)
+      await postOrderMessage.mutateAsync({ subOrderUuid, message: text })
+      setMessageDrafts((prev) => ({ ...prev, [subOrderUuid]: '' }))
+      toast.success('Reply sent to Upward Team')
+    } catch (err: any) {
+      toast.error(err?.message || 'Could not send message.')
+    } finally {
+      setSendingSubOrderUuid(null)
+    }
+  }
+
+  const handleDeclineQuote = async () => {
+    if (!order) return
+    try {
+      setIsDecliningQuote(true)
+      await declineServiceQuote.mutateAsync({ orderUuid: order.uuid })
+      toast.info('Quote declined and service request cancelled.')
+    } catch (err: any) {
+      toast.error(err?.message || 'Could not decline quote.')
+    } finally {
+      setIsDecliningQuote(false)
     }
   }
 
@@ -417,7 +453,9 @@ export function OrderTrackingScreen({
             </button>
           </div>
         </div>
-      ) : order.paymentStatus !== 'PAID' && (
+      ) : order.paymentStatus !== 'PAID' &&
+        Number(order.totalAmountKobo) > 0 &&
+        !order.subOrders.some((s) => s.customerStatus === 'QUOTE_PROVIDED') && (
         <div className="order-tracking__unpaid-banner">
           <div className="order-tracking__unpaid-icon">
             <AlertTriangle size={20} color="#D97706" />
@@ -481,8 +519,9 @@ export function OrderTrackingScreen({
           ]
 
           const serviceSteps = [
-            { key: 'ORDER_CONFIRMED', label: 'Confirmed' },
-            { key: 'SERVICE_SCHEDULED', label: 'Scheduled' },
+            { key: 'QUOTE_REQUESTED', label: 'Quote Review' },
+            { key: 'QUOTE_PROVIDED', label: 'Quote & Pay' },
+            { key: 'SERVICE_SCHEDULED', label: 'Team Assigned' },
             { key: 'TECHNICIAN_EN_ROUTE', label: 'En Route' },
             { key: 'SERVICE_COMPLETED', label: 'Completed' },
           ]
@@ -492,10 +531,16 @@ export function OrderTrackingScreen({
           let activeStepIndex = 0
           if (isService) {
             if (['SERVICE_COMPLETED', 'RECEIVED_CONFIRMED'].includes(subOrder.customerStatus)) {
-              activeStepIndex = 3
+              activeStepIndex = 4
             } else if (subOrder.customerStatus === 'TECHNICIAN_EN_ROUTE') {
+              activeStepIndex = 3
+            } else if (
+              subOrder.customerStatus === 'SERVICE_SCHEDULED' ||
+              subOrder.customerStatus === 'PROCESSING' ||
+              subOrder.customerStatus === 'ORDER_CONFIRMED'
+            ) {
               activeStepIndex = 2
-            } else if (subOrder.customerStatus === 'SERVICE_SCHEDULED' || subOrder.customerStatus === 'PROCESSING') {
+            } else if (subOrder.customerStatus === 'QUOTE_PROVIDED') {
               activeStepIndex = 1
             } else {
               activeStepIndex = 0
@@ -649,6 +694,240 @@ export function OrderTrackingScreen({
                       )
                     })}
                   </div>
+                </div>
+              )}
+
+              {/* Quote Ready & Payment Approval Card (Service Quote Milestone 3) */}
+              {isService &&
+                subOrder.customerStatus === 'QUOTE_PROVIDED' &&
+                order.paymentStatus !== 'PAID' &&
+                order.status !== 'CANCELLED' && (
+                  <div
+                    style={{
+                      marginTop: 14,
+                      padding: '16px',
+                      borderRadius: 14,
+                      background: 'rgba(var(--clay-rgb, 217, 119, 87), 0.06)',
+                      border: '1.5px solid rgba(var(--clay-rgb, 217, 119, 87), 0.25)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 12,
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+                      <div>
+                        <div style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--clay, #d97757)' }}>
+                          Custom Quote Ready
+                        </div>
+                        <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text, #1a1714)', marginTop: 2 }}>
+                          {formatKoboToNgn(order.totalAmountKobo)}
+                        </div>
+                      </div>
+                      <CreditCard size={22} color="var(--clay, #d97757)" />
+                    </div>
+
+                    {subOrder.quoteNotes && (
+                      <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: 'var(--text-secondary, #4a4642)' }}>
+                        {subOrder.quoteNotes}
+                      </p>
+                    )}
+
+                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={handlePayNow}
+                        disabled={isPaying || isDecliningQuote}
+                        style={{
+                          flex: 1,
+                          minWidth: 150,
+                          height: 44,
+                          borderRadius: 12,
+                          border: 'none',
+                          background: 'var(--clay, #d97757)',
+                          color: '#ffffff',
+                          fontWeight: 700,
+                          fontSize: 14,
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 8,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {isPaying ? <Loader2 size={15} className="animate-spin" /> : <CreditCard size={15} />}
+                        <span>{isPaying ? 'Opening Paystack…' : `Pay ${formatKoboToNgn(order.totalAmountKobo)}`}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleDeclineQuote}
+                        disabled={isPaying || isDecliningQuote}
+                        style={{
+                          height: 44,
+                          padding: '0 16px',
+                          borderRadius: 12,
+                          border: '1px solid var(--border-solid, #e2ddd7)',
+                          background: '#ffffff',
+                          color: 'var(--text-secondary, #4a4642)',
+                          fontWeight: 600,
+                          fontSize: 13.5,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {isDecliningQuote ? 'Declining…' : 'Decline Quote'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+              {/* Interactive Scope & Clarification Conversation Thread (Service Orders) */}
+              {isService &&
+                (subOrder.customerStatus === 'QUOTE_REQUESTED' ||
+                  subOrder.customerStatus === 'QUOTE_PROVIDED' ||
+                  (subOrder.messages && subOrder.messages.length > 0)) && (
+                  <div
+                    style={{
+                      marginTop: 14,
+                      padding: '14px',
+                      borderRadius: 14,
+                      background: 'var(--oat, #faf9f5)',
+                      border: '1px solid var(--border, rgba(0, 0, 0, 0.08))',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 10,
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, color: 'var(--text, #1a1714)' }}>
+                      <MessageSquare size={14} color="var(--clay, #d97757)" />
+                      <span>Scope &amp; Review Conversation</span>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 220, overflowY: 'auto' }}>
+                      {(subOrder.messages || []).length === 0 ? (
+                        <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-muted, #8a8a8a)' }}>
+                          Our team is reviewing your request. Any follow-up questions will appear here.
+                        </p>
+                      ) : (
+                        (subOrder.messages || []).map((msg) => {
+                          const isMine = msg.senderType === 'TENANT'
+                          return (
+                            <div
+                              key={msg.uuid}
+                              style={{
+                                alignSelf: isMine ? 'flex-end' : 'flex-start',
+                                maxWidth: '85%',
+                                padding: '8px 12px',
+                                borderRadius: 12,
+                                background: isMine ? 'var(--clay, #d97757)' : '#ffffff',
+                                color: isMine ? '#ffffff' : 'var(--text, #1a1714)',
+                                border: isMine ? 'none' : '1px solid var(--border, rgba(0, 0, 0, 0.08))',
+                                fontSize: 13,
+                                lineHeight: 1.45,
+                              }}
+                            >
+                              <div style={{ fontSize: 10.5, fontWeight: 700, opacity: 0.8, marginBottom: 2 }}>
+                                {isMine ? 'You' : 'Upward Team'}
+                              </div>
+                              <div style={{ whiteSpace: 'pre-wrap' }}>{msg.message}</div>
+                            </div>
+                          )
+                        })
+                      )}
+                    </div>
+
+                    {['QUOTE_REQUESTED', 'QUOTE_PROVIDED'].includes(subOrder.customerStatus) &&
+                      order.status !== 'CANCELLED' && (
+                        <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
+                          <input
+                            type="text"
+                            value={messageDrafts[subOrder.uuid] || ''}
+                            onChange={(e) =>
+                              setMessageDrafts((prev) => ({
+                                ...prev,
+                                [subOrder.uuid]: e.target.value,
+                              }))
+                            }
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault()
+                                handleSendMilestoneReply(subOrder.uuid)
+                              }
+                            }}
+                            placeholder="Reply or add extra details for our team…"
+                            style={{
+                              flex: 1,
+                              height: 40,
+                              padding: '0 12px',
+                              borderRadius: 10,
+                              border: '1px solid var(--border-solid, #e2ddd7)',
+                              background: '#ffffff',
+                              fontSize: 13,
+                              color: 'var(--text, #1a1714)',
+                              outline: 'none',
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleSendMilestoneReply(subOrder.uuid)}
+                            disabled={
+                              sendingSubOrderUuid === subOrder.uuid ||
+                              !(messageDrafts[subOrder.uuid] || '').trim()
+                            }
+                            style={{
+                              height: 40,
+                              padding: '0 14px',
+                              borderRadius: 10,
+                              border: 'none',
+                              background: 'var(--clay, #d97757)',
+                              color: '#ffffff',
+                              fontWeight: 600,
+                              fontSize: 13,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              cursor: 'pointer',
+                              opacity:
+                                sendingSubOrderUuid === subOrder.uuid ||
+                                !(messageDrafts[subOrder.uuid] || '').trim()
+                                  ? 0.55
+                                  : 1,
+                            }}
+                          >
+                            {sendingSubOrderUuid === subOrder.uuid ? (
+                              <Loader2 size={14} className="animate-spin" />
+                            ) : (
+                              <Send size={14} />
+                            )}
+                            <span>Send</span>
+                          </button>
+                        </div>
+                      )}
+                  </div>
+                )}
+
+              {/* Submitted Service Review Summary */}
+              {isService && subOrder.serviceRating && (
+                <div
+                  style={{
+                    marginTop: 14,
+                    padding: '12px 14px',
+                    borderRadius: 12,
+                    background: 'rgba(34, 197, 94, 0.06)',
+                    border: '1px solid rgba(34, 197, 94, 0.2)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 4,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, color: '#15803d' }}>
+                    <Star size={14} fill="#f59e0b" color="#f59e0b" />
+                    <span>Your Service Rating: {subOrder.serviceRating}/5</span>
+                  </div>
+                  {subOrder.serviceReviewComment && (
+                    <p style={{ margin: 0, fontSize: 13, color: 'var(--text-secondary, #4a4642)', lineHeight: 1.45 }}>
+                      “{subOrder.serviceReviewComment}”
+                    </p>
+                  )}
                 </div>
               )}
 

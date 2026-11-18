@@ -54,6 +54,7 @@ import {
 import { fetchDeliveryZones } from '../services/goalsService'
 import { DeliveryLocationBar } from './DeliveryLocationBar'
 import { CommerceCheckoutModal } from './CommerceCheckoutModal'
+import { ServiceQuoteModal } from './ServiceQuoteModal'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { getPublicWebUrl, copyTextToClipboard } from '@/lib/utils'
 import '../styles/goals.css'
@@ -293,6 +294,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
   )
   const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false)
   const [isInquiryOpen, setIsInquiryOpen] = useState(false)
+  const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false)
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
   const [inquiryCategory, setInquiryCategory] = useState('GENERAL')
   const [inquiryMessage, setInquiryMessage] = useState('')
@@ -1290,36 +1292,62 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                 )}
               </div>
 
-              <div className="offering-detail__price-banner">
-                <div className="offering-detail__price-col">
-                  <span className="offering-detail__price-label">Price</span>
-                  <div className="offering-detail__price-row">
-                    <span className="offering-detail__price-value">
-                      {formatOfferingPrice(offering)}
-                    </span>
-                    {hasDiscount && (
-                      <span className="offering-detail__compare-price">
-                        {formatCurrencyValue(compareAtPrice, offering.currency)}
+              {offering.type === 'SERVICE' || offering.pricingModel === 'QUOTE_REQUIRED' ? (
+                <div className="offering-detail__price-banner">
+                  <div className="offering-detail__price-col">
+                    <span className="offering-detail__price-label">Custom Estimate</span>
+                    <div className="offering-detail__price-row">
+                      <span className="offering-detail__price-value" style={{ fontSize: 17 }}>
+                        Tailored to your request
                       </span>
-                    )}
+                    </div>
+                    <span
+                      style={{
+                        fontSize: 12.5,
+                        color: 'var(--text-secondary, #4a4642)',
+                        marginTop: 4,
+                        lineHeight: 1.45,
+                      }}
+                    >
+                      Share your details and receive a clear quote before paying.
+                    </span>
+                  </div>
+                  <span className="offering-detail__pricing-pill" style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
+                    Free Quote
+                  </span>
+                </div>
+              ) : (
+                <div className="offering-detail__price-banner">
+                  <div className="offering-detail__price-col">
+                    <span className="offering-detail__price-label">Price</span>
+                    <div className="offering-detail__price-row">
+                      <span className="offering-detail__price-value">
+                        {formatOfferingPrice(offering)}
+                      </span>
+                      {hasDiscount && (
+                        <span className="offering-detail__compare-price">
+                          {formatCurrencyValue(compareAtPrice, offering.currency)}
+                        </span>
+                      )}
+                      {hasDiscount && (
+                        <span className="offering-detail__discount-badge">
+                          {discountPercent}% OFF
+                        </span>
+                      )}
+                    </div>
                     {hasDiscount && (
-                      <span className="offering-detail__discount-badge">
-                        {discountPercent}% OFF
+                      <span className="offering-detail__savings-text">
+                        You save {formatCurrencyValue(savingsAmount, offering.currency)}
                       </span>
                     )}
                   </div>
-                  {hasDiscount && (
-                    <span className="offering-detail__savings-text">
-                      You save {formatCurrencyValue(savingsAmount, offering.currency)}
+                  {offering.pricingModel && (
+                    <span className="offering-detail__pricing-pill">
+                      {offering.pricingModel.toLowerCase().replace('_', ' ')}
                     </span>
                   )}
                 </div>
-                {offering.pricingModel && (
-                  <span className="offering-detail__pricing-pill">
-                    {offering.pricingModel.toLowerCase().replace('_', ' ')}
-                  </span>
-                )}
-              </div>
+              )}
 
               {offering.description && (
                 <div className="offering-detail__description-block">
@@ -1469,31 +1497,25 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                 {offering.type === 'SERVICE' ||
                 offering.pricingModel === 'QUOTE_REQUIRED' ||
                 !offering.price ? (
-                  <>
+                  deliveryCheck.isDeliverable ? (
                     <button
                       type="button"
                       className="offering-detail__primary-cta"
-                      onClick={() => {
-                        setInquiryCategory('PRICING')
-                        setIsInquiryOpen(true)
-                        setInquirySent(false)
-                      }}
+                      onClick={() => setIsQuoteModalOpen(true)}
                     >
-                      <MessageSquare size={16} />
+                      <Wrench size={16} />
                       <span>Request a Custom Quote</span>
                     </button>
+                  ) : (
                     <button
                       type="button"
-                      className="offering-detail__secondary-cta"
-                      onClick={() => {
-                        setInquiryCategory('GENERAL')
-                        setIsInquiryOpen(true)
-                        setInquirySent(false)
-                      }}
+                      className="offering-detail__primary-cta"
+                      onClick={() => setIsLocationPickerOpen(true)}
                     >
-                      <span>Ask Upward Support</span>
+                      <MapPin size={16} />
+                      <span>Select Covered Location to Request</span>
                     </button>
-                  </>
+                  )
                 ) : deliveryCheck.isDeliverable ? (
                   <>
                     <button
@@ -1536,6 +1558,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                   type="button"
                   className="offering-detail__secondary-cta"
                   onClick={() => {
+                    setInquiryCategory('GENERAL')
                     setIsInquiryOpen(true)
                     setInquirySent(false)
                   }}
@@ -1856,6 +1879,16 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
           onClose={() => setIsCheckoutOpen(false)}
           deliveryLocation={deliveryLocation}
           onLocationChange={(loc) => setDeliveryLocation(loc)}
+        />
+      )}
+
+      {/* Dedicated Service Custom Quote Request Modal */}
+      {offering && (
+        <ServiceQuoteModal
+          offering={offering}
+          isOpen={isQuoteModalOpen}
+          onClose={() => setIsQuoteModalOpen(false)}
+          deliveryLocation={deliveryLocation}
         />
       )}
     </div>

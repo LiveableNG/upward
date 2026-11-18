@@ -9,6 +9,7 @@ import {
   AdminOperationalStatus,
   CommerceVendorSuborder,
   CommerceFulfilmentEvent,
+  CommerceOrderMessage,
   CommercePaymentAttempt,
   CommerceOrderAudit,
   CreateOrderData,
@@ -219,6 +220,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
               },
             },
             fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
+            messages: { orderBy: { createdAt: 'asc' } },
             vendor: true,
           },
         },
@@ -253,6 +255,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
               },
             },
             fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
+            messages: { orderBy: { createdAt: 'asc' } },
             vendor: true,
             payableRecord: true,
           },
@@ -278,6 +281,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
               },
             },
             fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
+            messages: { orderBy: { createdAt: 'asc' } },
             vendor: true,
           },
         },
@@ -300,6 +304,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
               },
             },
             fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
+            messages: { orderBy: { createdAt: 'asc' } },
             vendor: true,
           },
         },
@@ -322,6 +327,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
               },
             },
             fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
+            messages: { orderBy: { createdAt: 'asc' } },
             vendor: true,
           },
         },
@@ -357,6 +363,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
               },
             },
               fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
+            messages: { orderBy: { createdAt: 'asc' } },
               vendor: true,
             },
           },
@@ -461,6 +468,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
               },
             },
             fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
+            messages: { orderBy: { createdAt: 'asc' } },
             vendor: true,
           },
         },
@@ -477,6 +485,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
         vendor: true,
         items: true,
         fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
+        messages: { orderBy: { createdAt: 'asc' } },
         payableRecord: true,
       },
     })
@@ -491,6 +500,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
         vendor: true,
         items: true,
         fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
+        messages: { orderBy: { createdAt: 'asc' } },
         payableRecord: true,
       },
     })
@@ -521,6 +531,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
           order: true,
           items: true,
           fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
+        messages: { orderBy: { createdAt: 'asc' } },
         },
       }),
       this.prisma.upward_commerce_vendor_suborder.count({ where }),
@@ -562,6 +573,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
         vendor: true,
         items: true,
         fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
+        messages: { orderBy: { createdAt: 'asc' } },
       },
     })
     return updated as unknown as CommerceVendorSuborder
@@ -713,6 +725,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
           vendor: true,
           items: true,
           fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
+        messages: { orderBy: { createdAt: 'asc' } },
           payableRecord: true,
         },
       })
@@ -860,10 +873,15 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
 
       // 4. Update each vendor sub-order and create Vendor Payable record
       for (const sub of order.subOrders) {
+        const isServiceQuote =
+          sub.customerStatus === 'QUOTE_PROVIDED' ||
+          sub.customerStatus === 'QUOTE_REQUESTED'
+        const nextCustomerStatus = isServiceQuote ? 'SERVICE_SCHEDULED' : 'PROCESSING'
+
         await tx.upward_commerce_vendor_suborder.update({
           where: { id: sub.id },
           data: {
-            customerStatus: 'PROCESSING',
+            customerStatus: nextCustomerStatus,
             operationalStatus: 'AWAITING_VENDOR_CONFIRMATION',
           },
         })
@@ -872,9 +890,11 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
         await tx.upward_commerce_fulfilment_event.create({
           data: {
             subOrderId: sub.id,
-            status: 'PROCESSING',
-            title: 'Payment Confirmed',
-            description: 'Payment verified successfully. Order is being processed.',
+            status: nextCustomerStatus,
+            title: isServiceQuote ? 'Quote Paid — Scheduling Service' : 'Payment Confirmed',
+            description: isServiceQuote
+              ? 'Payment verified successfully. Our team is now assigning your service specialist and scheduling your appointment.'
+              : 'Payment verified successfully. Order is being processed.',
             isCustomerVisible: true,
             actorType: 'SYSTEM',
             actorId: 'PAYSTACK_WEBHOOK',
@@ -1015,5 +1035,299 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
         },
       })
     })
+  }
+
+  async createServiceQuoteOrder(data: {
+    userId: number
+    orderNumber: string
+    subOrderNumber: string
+    currency: string
+    vendorId: number
+    offeringId: number
+    offeringSnapshot: Record<string, any>
+    recipientName: string
+    recipientPhone: string
+    deliveryAddress: string
+    deliveryNotes?: string
+    deliveryZoneTag?: string
+    initialMessage: string
+  }): Promise<CommerceOrder> {
+    const createdOrderId = await this.prisma.$transaction(async (tx) => {
+      const order = await tx.upward_commerce_order.create({
+        data: {
+          userId: data.userId,
+          orderNumber: data.orderNumber,
+          currency: data.currency,
+          itemsSubtotalKobo: 0n,
+          deliveryFeeKobo: 0n,
+          taxKobo: 0n,
+          discountKobo: 0n,
+          totalAmountKobo: 0n,
+          recipientName: data.recipientName,
+          recipientPhone: data.recipientPhone,
+          deliveryAddress: data.deliveryAddress,
+          deliveryNotes: data.deliveryNotes,
+          deliveryZoneTag: data.deliveryZoneTag,
+          status: 'PENDING',
+          paymentStatus: 'UNPAID',
+        },
+      })
+
+      const subOrder = await tx.upward_commerce_vendor_suborder.create({
+        data: {
+          orderId: order.id,
+          vendorId: data.vendorId,
+          subOrderNumber: data.subOrderNumber,
+          customerStatus: 'QUOTE_REQUESTED',
+          operationalStatus: 'AWAITING_VENDOR_CONFIRMATION',
+          subtotalKobo: 0n,
+          deliveryFeeKobo: 0n,
+          allocatedDiscountKobo: 0n,
+          platformFeeKobo: 0n,
+          vendorPayoutKobo: 0n,
+        },
+      })
+
+      await tx.upward_commerce_order_item.create({
+        data: {
+          subOrderId: subOrder.id,
+          offeringId: data.offeringId,
+          offeringType: 'SERVICE',
+          quantity: 1,
+          unitPriceKobo: 0n,
+          totalPriceKobo: 0n,
+          snapshotData: data.offeringSnapshot,
+        },
+      })
+
+      await tx.upward_commerce_fulfilment_event.create({
+        data: {
+          subOrderId: subOrder.id,
+          status: 'QUOTE_REQUESTED',
+          title: 'Service Quote Requested',
+          description: 'Your service request has been received. Our team is reviewing your details and will follow up with any questions or your custom quote.',
+          isCustomerVisible: true,
+          actorType: 'TENANT',
+          actorId: String(data.userId),
+        },
+      })
+
+      if (data.initialMessage?.trim()) {
+        await tx.upward_commerce_order_message.create({
+          data: {
+            subOrderId: subOrder.id,
+            senderType: 'TENANT',
+            senderId: String(data.userId),
+            senderName: data.recipientName,
+            message: data.initialMessage.trim(),
+          },
+        })
+      }
+
+      await tx.upward_commerce_order_audit.create({
+        data: {
+          orderId: order.id,
+          event: 'SERVICE_QUOTE_REQUESTED',
+          toState: 'PENDING',
+          actorType: 'TENANT',
+          actorId: String(data.userId),
+          details: {
+            orderNumber: data.orderNumber,
+            offeringId: data.offeringId,
+          },
+        },
+      })
+
+      return order.id
+    }, {
+      maxWait: 10000,
+      timeout: 30000,
+    })
+
+    const created = await this.findOrderById(createdOrderId)
+    if (!created) {
+      throw new Error(`Failed to retrieve created service quote order ID ${createdOrderId}`)
+    }
+    return created
+  }
+
+  async addSubOrderMessage(params: {
+    subOrderId: number
+    senderType: 'TENANT' | 'ADMIN'
+    senderId?: string
+    senderName?: string
+    message: string
+  }): Promise<CommerceOrderMessage> {
+    const created = await this.prisma.upward_commerce_order_message.create({
+      data: {
+        subOrderId: params.subOrderId,
+        senderType: params.senderType,
+        senderId: params.senderId,
+        senderName: params.senderName,
+        message: params.message.trim(),
+      },
+    })
+    return created as unknown as CommerceOrderMessage
+  }
+
+  async setSubOrderQuotePrice(params: {
+    orderId: number
+    subOrderId: number
+    quotedPriceKobo: bigint
+    quoteNotes?: string
+    adminActorId?: string
+  }): Promise<CommerceOrder> {
+    await this.prisma.$transaction(async (tx) => {
+      // 100% goes to Upward balance — no split payout
+      await tx.upward_commerce_order.update({
+        where: { id: params.orderId },
+        data: {
+          itemsSubtotalKobo: params.quotedPriceKobo,
+          deliveryFeeKobo: 0n,
+          taxKobo: 0n,
+          discountKobo: 0n,
+          totalAmountKobo: params.quotedPriceKobo,
+        },
+      })
+
+      await tx.upward_commerce_vendor_suborder.update({
+        where: { id: params.subOrderId },
+        data: {
+          customerStatus: 'QUOTE_PROVIDED',
+          subtotalKobo: params.quotedPriceKobo,
+          deliveryFeeKobo: 0n,
+          platformFeeKobo: params.quotedPriceKobo,
+          vendorPayoutKobo: 0n,
+          quoteNotes: params.quoteNotes?.trim() || null,
+          quotedAt: new Date(),
+        },
+      })
+
+      await tx.upward_commerce_order_item.updateMany({
+        where: { subOrderId: params.subOrderId },
+        data: {
+          unitPriceKobo: params.quotedPriceKobo,
+          totalPriceKobo: params.quotedPriceKobo,
+        },
+      })
+
+      const formattedNgn = `₦${(Number(params.quotedPriceKobo) / 100).toLocaleString('en-NG')}`
+      await tx.upward_commerce_fulfilment_event.create({
+        data: {
+          subOrderId: params.subOrderId,
+          status: 'QUOTE_PROVIDED',
+          title: `Custom Quote Ready — ${formattedNgn}`,
+          description: params.quoteNotes?.trim()
+            ? `Your tailored quote of ${formattedNgn} is ready. Note: ${params.quoteNotes.trim()}`
+            : `Your tailored quote of ${formattedNgn} is ready. Review and complete payment to schedule your service.`,
+          isCustomerVisible: true,
+          actorType: 'ADMIN',
+          actorId: params.adminActorId || 'ADMIN',
+        },
+      })
+
+      await tx.upward_commerce_order_audit.create({
+        data: {
+          orderId: params.orderId,
+          event: 'SERVICE_QUOTE_PRICE_SET',
+          fromState: 'QUOTE_REQUESTED',
+          toState: 'QUOTE_PROVIDED',
+          actorType: 'ADMIN',
+          actorId: params.adminActorId || 'ADMIN',
+          details: {
+            quotedPriceKobo: params.quotedPriceKobo.toString(),
+            quoteNotes: params.quoteNotes || null,
+          },
+        },
+      })
+    }, {
+      maxWait: 10000,
+      timeout: 30000,
+    })
+
+    const updated = await this.findOrderById(params.orderId)
+    if (!updated) {
+      throw new Error(`Order ID ${params.orderId} not found after setting quote`)
+    }
+    return updated
+  }
+
+  async declineQuoteOrder(params: {
+    orderId: number
+    subOrderId: number
+    userId: number
+    reason?: string
+  }): Promise<CommerceOrder> {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.upward_commerce_order.update({
+        where: { id: params.orderId },
+        data: {
+          status: 'CANCELLED',
+        },
+      })
+
+      await tx.upward_commerce_vendor_suborder.update({
+        where: { id: params.subOrderId },
+        data: {
+          customerStatus: 'CANCELLED',
+          operationalStatus: 'CANCELLED_REFUNDED',
+        },
+      })
+
+      await tx.upward_commerce_fulfilment_event.create({
+        data: {
+          subOrderId: params.subOrderId,
+          status: 'CANCELLED',
+          title: 'Quote Declined by Customer',
+          description: params.reason?.trim()
+            ? `Customer declined the quote. Reason: ${params.reason.trim()}`
+            : 'Customer declined the custom quote and cancelled the service request.',
+          isCustomerVisible: true,
+          actorType: 'TENANT',
+          actorId: String(params.userId),
+        },
+      })
+
+      await tx.upward_commerce_order_audit.create({
+        data: {
+          orderId: params.orderId,
+          event: 'SERVICE_QUOTE_DECLINED',
+          fromState: 'QUOTE_PROVIDED',
+          toState: 'CANCELLED',
+          actorType: 'TENANT',
+          actorId: String(params.userId),
+          details: { reason: params.reason || null },
+        },
+      })
+    })
+
+    const updated = await this.findOrderById(params.orderId)
+    if (!updated) {
+      throw new Error(`Order ID ${params.orderId} not found after declining quote`)
+    }
+    return updated
+  }
+
+  async recordServiceReview(params: {
+    subOrderId: number
+    rating: number
+    comment?: string
+  }): Promise<CommerceVendorSuborder> {
+    const updated = await this.prisma.upward_commerce_vendor_suborder.update({
+      where: { id: params.subOrderId },
+      data: {
+        serviceRating: params.rating,
+        serviceReviewComment: params.comment?.trim() || null,
+        reviewedAt: new Date(),
+      },
+      include: {
+        items: true,
+        fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
+        messages: { orderBy: { createdAt: 'asc' } },
+        vendor: true,
+        order: true,
+      },
+    })
+    return updated as unknown as CommerceVendorSuborder
   }
 }

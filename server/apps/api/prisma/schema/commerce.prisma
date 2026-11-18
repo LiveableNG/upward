@@ -19,6 +19,8 @@ enum CommercePaymentStatus {
 }
 
 enum CustomerFulfilmentStatus {
+  QUOTE_REQUESTED
+  QUOTE_PROVIDED
   ORDER_CONFIRMED
   PROCESSING
   DISPATCHED
@@ -146,6 +148,11 @@ model upward_commerce_vendor_suborder {
   technicianPhone       String?                  @db.VarChar(50)
   
   adminOperationalNotes String?                  @db.Text
+  quoteNotes            String?                  @db.Text
+  quotedAt              DateTime?
+  serviceRating         Int?
+  serviceReviewComment  String?                  @db.Text
+  reviewedAt            DateTime?
   
   deliveredAt           DateTime?
   tenantConfirmedAt     DateTime?
@@ -155,6 +162,7 @@ model upward_commerce_vendor_suborder {
   vendor                upward_commerce_vendor   @relation(fields: [vendorId], references: [id], onDelete: Restrict)
   items                 upward_commerce_order_item[]
   fulfilmentEvents      upward_commerce_fulfilment_event[]
+  messages              upward_commerce_order_message[]
   disputes              upward_commerce_dispute[]
   refunds               upward_commerce_refund[]
   payableRecord         upward_commerce_vendor_payable?
@@ -204,6 +212,21 @@ model upward_commerce_fulfilment_event {
   
   actorType             String                   @db.VarChar(20)
   actorId               String?                  @db.VarChar(100)
+  createdAt             DateTime                 @default(now())
+
+  subOrder              upward_commerce_vendor_suborder @relation(fields: [subOrderId], references: [id], onDelete: Cascade)
+
+  @@index([subOrderId, createdAt])
+}
+
+model upward_commerce_order_message {
+  id                    Int                      @id @default(autoincrement())
+  uuid                  String                   @unique @default(uuid())
+  subOrderId            Int
+  senderType            String                   @db.VarChar(20) // 'TENANT' | 'ADMIN'
+  senderId              String?                  @db.VarChar(100)
+  senderName            String?                  @db.VarChar(150)
+  message               String                   @db.Text
   createdAt             DateTime                 @default(now())
 
   subOrder              upward_commerce_vendor_suborder @relation(fields: [subOrderId], references: [id], onDelete: Cascade)

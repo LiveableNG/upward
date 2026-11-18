@@ -1,4 +1,6 @@
 export type CustomerFulfilmentStatus =
+  | 'QUOTE_REQUESTED'
+  | 'QUOTE_PROVIDED'
   | 'ORDER_CONFIRMED'
   | 'PROCESSING'
   | 'DISPATCHED'
@@ -75,11 +77,23 @@ export interface TenantSubOrderDetailDto {
   serviceWindowNotes?: string | null
   technicianName?: string | null
   technicianPhone?: string | null
+  quoteNotes?: string | null
+  quotedAt?: string | null
+  serviceRating?: number | null
+  serviceReviewComment?: string | null
+  reviewedAt?: string | null
   deliveredAt?: string | null
   tenantConfirmedAt?: string | null
   adminOperationalNotes?: string | null
   items: CommerceOrderItemDto[]
   fulfilmentEvents: CommerceFulfilmentEventDto[]
+  messages?: Array<{
+    uuid: string
+    senderType: 'TENANT' | 'ADMIN' | string
+    senderName?: string | null
+    message: string
+    createdAt: string
+  }>
 }
 
 export interface TenantOrderDetailDto {

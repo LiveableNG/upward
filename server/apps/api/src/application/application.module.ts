@@ -49,6 +49,10 @@ import { ConfirmCommercePaymentUseCase } from './commerce/use-cases/confirm-comm
 import { AdminGetCommerceOrdersUseCase } from './commerce/use-cases/admin/admin-get-commerce-orders.use-case'
 import { AdminGetCommerceOrderDetailUseCase } from './commerce/use-cases/admin/admin-get-commerce-order-detail.use-case'
 import { AdminCancelCommerceOrderUseCase } from './commerce/use-cases/admin/admin-cancel-commerce-order.use-case'
+import { AdminSetServiceQuoteUseCase } from './commerce/use-cases/admin/admin-set-service-quote.use-case'
+import { CreateServiceQuoteOrderUseCase } from './commerce/use-cases/create-service-quote-order.use-case'
+import { PostCommerceOrderMessageUseCase } from './commerce/use-cases/post-commerce-order-message.use-case'
+import { DeclineServiceQuoteUseCase } from './commerce/use-cases/decline-service-quote.use-case'
 import { AdminUpdateSubOrderFulfilmentUseCase } from './commerce/use-cases/admin/admin-update-sub-order-fulfilment.use-case'
 import { TenantConfirmSubOrderReceiptUseCase } from './commerce/use-cases/tenant-confirm-sub-order-receipt.use-case'
 import { GetCommerceReceiptPdfUseCase } from './commerce/use-cases/get-commerce-receipt-pdf.use-case'
@@ -1189,6 +1193,10 @@ const UseCases: any[] = [
   AdminGetCommerceOrdersUseCase,
   AdminGetCommerceOrderDetailUseCase,
   AdminCancelCommerceOrderUseCase,
+  AdminSetServiceQuoteUseCase,
+  CreateServiceQuoteOrderUseCase,
+  PostCommerceOrderMessageUseCase,
+  DeclineServiceQuoteUseCase,
   AdminUpdateSubOrderFulfilmentUseCase,
   TenantConfirmSubOrderReceiptUseCase,
   GetCommerceReceiptPdfUseCase,

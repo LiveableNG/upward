@@ -225,6 +225,11 @@ describe('Phase 6B.4: Admin-Managed Fulfilment APIs & Milestone Dispatch', () =>
       findActivePaymentAttempt: jest.fn(),
       confirmOrderPayment: jest.fn(),
       releaseInventory: jest.fn(),
+      createServiceQuoteOrder: jest.fn(),
+      addSubOrderMessage: jest.fn(),
+      setSubOrderQuotePrice: jest.fn(),
+      declineQuoteOrder: jest.fn(),
+      recordServiceReview: jest.fn(),
     }
 
     mockUserRepo = {

@@ -48,6 +48,20 @@ function formatDate(dateStr: string): string {
 
 function getFulfilmentBadge(status: string) {
   switch (status) {
+    case 'QUOTE_REQUESTED':
+      return {
+        label: 'Quote Requested',
+        bg: 'rgba(217, 119, 87, 0.12)',
+        color: '#C2501F',
+        border: 'rgba(217, 119, 87, 0.3)',
+      }
+    case 'QUOTE_PROVIDED':
+      return {
+        label: 'Quote Sent',
+        bg: 'rgba(99, 102, 241, 0.1)',
+        color: '#4F46E5',
+        border: 'rgba(99, 102, 241, 0.28)',
+      }
     case 'ORDER_CONFIRMED':
       return {
         label: 'Awaiting Vendor',
@@ -135,6 +149,11 @@ interface CommerceOrdersTableProps {
     },
   ) => Promise<any>
   onCancelOrder?: (orderUuid: string, reason: string) => Promise<any>
+  onSetSubOrderQuote?: (
+    subOrderUuid: string,
+    payload: { quotedPriceNgn: number; quoteNotes?: string },
+  ) => Promise<any>
+  onPostSubOrderMessage?: (subOrderUuid: string, message: string) => Promise<any>
 }
 
 export function CommerceOrdersTable({
@@ -143,6 +162,8 @@ export function CommerceOrdersTable({
   loading,
   onUpdateSubOrder,
   onCancelOrder,
+  onSetSubOrderQuote,
+  onPostSubOrderMessage,
 }: CommerceOrdersTableProps) {
   const [activeSubOrderForEdit, setActiveSubOrderForEdit] = useState<AdminCommerceSubOrder | null>(null)
   const [orderToCancel, setOrderToCancel] = useState<AdminCommerceOrder | null>(null)
@@ -699,6 +720,28 @@ export function CommerceOrdersTable({
                                             <Truck size={13} />
                                             <span>Update Milestone</span>
                                           </button>
+                                        ) : subOrder.customerStatus === 'QUOTE_REQUESTED' ||
+                                          subOrder.customerStatus === 'QUOTE_PROVIDED' ? (
+                                          <button
+                                            type="button"
+                                            onClick={() => setActiveSubOrderForEdit(subOrder)}
+                                            className="btn btn-primary"
+                                            style={{
+                                              height: 32,
+                                              padding: '0 12px',
+                                              fontSize: 12,
+                                              fontWeight: 700,
+                                              display: 'inline-flex',
+                                              alignItems: 'center',
+                                              gap: 6,
+                                            }}
+                                          >
+                                            <span>
+                                              {subOrder.customerStatus === 'QUOTE_PROVIDED'
+                                                ? 'Edit Quote / Chat'
+                                                : 'Review & Quote'}
+                                            </span>
+                                          </button>
                                         ) : (
                                           <span
                                             style={{
@@ -742,6 +785,8 @@ export function CommerceOrdersTable({
           subOrder={activeSubOrderForEdit}
           onClose={() => setActiveSubOrderForEdit(null)}
           onUpdate={onUpdateSubOrder}
+          onSetQuote={onSetSubOrderQuote}
+          onPostMessage={onPostSubOrderMessage}
         />
       )}
 

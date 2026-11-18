@@ -737,7 +737,7 @@ export async function seedLifestyleAndCommerce(client: PrismaClient) {
     data: {
       offeringId: serviceCarpenter.id,
       mediaUrl:
-        'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=1200&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=1200&auto=format&fit=crop&q=80',
       isPrimary: true,
       sortOrder: 0,
     },

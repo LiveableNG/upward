@@ -81,6 +81,8 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
     fetchOrders,
     updateSubOrderFulfilment,
     cancelOrder,
+    setSubOrderQuote,
+    postSubOrderMessage,
     disputes,
     disputesTotal,
     loadingDisputes,
@@ -595,10 +597,15 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
               style={{ padding: '9px 14px', borderRadius: 8, border: '1px solid #ddd', fontSize: 13, backgroundColor: '#fff' }}
             >
               <option value="ALL">All Fulfilment Stages</option>
+              <option value="QUOTE_REQUESTED">Quote Requested</option>
+              <option value="QUOTE_PROVIDED">Quote Provided (Awaiting Payment)</option>
               <option value="ORDER_CONFIRMED">Awaiting Confirmation</option>
               <option value="PROCESSING">In Preparation</option>
+              <option value="SERVICE_SCHEDULED">Service Scheduled</option>
+              <option value="TECHNICIAN_EN_ROUTE">Service Team En Route</option>
               <option value="DISPATCHED">Dispatched & En Route</option>
               <option value="DELIVERED">Delivered</option>
+              <option value="SERVICE_COMPLETED">Service Completed</option>
               <option value="RECEIVED_CONFIRMED">Received & Confirmed</option>
               <option value="DISPUTED">Disputed</option>
             </select>
@@ -614,6 +621,21 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
                 search: orderSearch || undefined,
                 paymentStatus: paymentStatusFilter !== 'ALL' ? paymentStatusFilter : undefined,
               })
+            }}
+            onSetSubOrderQuote={async (subOrderUuid, payload) => {
+              await setSubOrderQuote(subOrderUuid, payload)
+              fetchOrders({
+                search: orderSearch || undefined,
+                paymentStatus: paymentStatusFilter !== 'ALL' ? paymentStatusFilter : undefined,
+              })
+            }}
+            onPostSubOrderMessage={async (subOrderUuid, message) => {
+              const res = await postSubOrderMessage(subOrderUuid, message)
+              fetchOrders({
+                search: orderSearch || undefined,
+                paymentStatus: paymentStatusFilter !== 'ALL' ? paymentStatusFilter : undefined,
+              })
+              return res
             }}
             onCancelOrder={async (orderUuid, reason) => {
               await cancelOrder(orderUuid, reason)

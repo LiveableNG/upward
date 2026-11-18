@@ -116,6 +116,14 @@ export class TenantConfirmSubOrderReceiptUseCase {
       },
     })
 
+    if (input?.rating && input.rating >= 1 && input.rating <= 5) {
+      await this.orderRepo.recordServiceReview({
+        subOrderId: subOrder.id!,
+        rating: input.rating,
+        comment: input.feedback,
+      })
+    }
+
     const parentOrder = await this.orderRepo.findOrderById(order.id!)
 
     if (this.thankYouEmailUseCase) {

@@ -19,6 +19,8 @@ import { Roles } from '../../../application/auth/decorators/roles.decorator'
 import { AdminGetCommerceOrdersUseCase } from '../../../application/commerce/use-cases/admin/admin-get-commerce-orders.use-case'
 import { AdminGetCommerceOrderDetailUseCase } from '../../../application/commerce/use-cases/admin/admin-get-commerce-order-detail.use-case'
 import { AdminCancelCommerceOrderUseCase } from '../../../application/commerce/use-cases/admin/admin-cancel-commerce-order.use-case'
+import { AdminSetServiceQuoteUseCase } from '../../../application/commerce/use-cases/admin/admin-set-service-quote.use-case'
+import { PostCommerceOrderMessageUseCase } from '../../../application/commerce/use-cases/post-commerce-order-message.use-case'
 import { AdminUpdateSubOrderFulfilmentUseCase } from '../../../application/commerce/use-cases/admin/admin-update-sub-order-fulfilment.use-case'
 import { AdminResolveCommerceDisputeUseCase } from '../../../application/commerce/use-cases/admin/admin-resolve-commerce-dispute.use-case'
 import { AdminGetCommerceDisputesUseCase } from '../../../application/commerce/use-cases/admin/admin-get-commerce-disputes.use-case'
@@ -32,6 +34,10 @@ import {
   AdminUpdateFulfilmentDto,
 } from '../../../application/commerce/dto/admin-commerce.dto'
 import { AdminCancelOrderDto } from '../../../application/commerce/dto/admin-cancel-order.dto'
+import {
+  AdminSetServiceQuoteDto,
+  PostCommerceOrderMessageDto,
+} from '../../../application/commerce/dto/service-quote.dto'
 import { ResolveCommerceDisputeDto } from '../../../application/commerce/dto/commerce-dispute.dto'
 import {
   CreateDeliveryZoneDto,
@@ -46,6 +52,8 @@ export class AdminCommerceController {
     private readonly getCommerceOrdersUseCase: AdminGetCommerceOrdersUseCase,
     private readonly getCommerceOrderDetailUseCase: AdminGetCommerceOrderDetailUseCase,
     private readonly cancelCommerceOrderUseCase: AdminCancelCommerceOrderUseCase,
+    private readonly setServiceQuoteUseCase: AdminSetServiceQuoteUseCase,
+    private readonly postCommerceOrderMessageUseCase: PostCommerceOrderMessageUseCase,
     private readonly updateSubOrderFulfilmentUseCase: AdminUpdateSubOrderFulfilmentUseCase,
     private readonly resolveCommerceDisputeUseCase: AdminResolveCommerceDisputeUseCase,
     private readonly getCommerceDisputesUseCase: AdminGetCommerceDisputesUseCase,
@@ -103,6 +111,43 @@ export class AdminCommerceController {
   ) {
     const adminId = req.user?.uuid || String(req.user?.id || 'admin')
     const data = await this.updateSubOrderFulfilmentUseCase.execute(uuid, adminId, dto)
+    return { data }
+  }
+
+  @Post('sub-orders/:uuid/quote')
+  @Roles(AdminRole.SUPERADMIN, AdminRole.CUSTOMER_SUPPORT, AdminRole.DEVELOPER)
+  @HttpCode(HttpStatus.OK)
+  async setSubOrderQuote(
+    @Req() req: any,
+    @Param('uuid') uuid: string,
+    @Body() dto: AdminSetServiceQuoteDto,
+  ) {
+    const adminId = req.user?.uuid || String(req.user?.id || 'admin')
+    const data = await this.setServiceQuoteUseCase.execute({
+      subOrderUuid: uuid,
+      adminActorId: adminId,
+      dto,
+    })
+    return { data }
+  }
+
+  @Post('sub-orders/:uuid/messages')
+  @Roles(AdminRole.SUPERADMIN, AdminRole.CUSTOMER_SUPPORT, AdminRole.DEVELOPER)
+  @HttpCode(HttpStatus.CREATED)
+  async postSubOrderMessage(
+    @Req() req: any,
+    @Param('uuid') uuid: string,
+    @Body() dto: PostCommerceOrderMessageDto,
+  ) {
+    const adminId = req.user?.uuid || String(req.user?.id || 'admin')
+    const adminName = req.user?.name || req.user?.email || 'Upward Team'
+    const data = await this.postCommerceOrderMessageUseCase.execute({
+      subOrderUuid: uuid,
+      senderType: 'ADMIN',
+      senderUserId: adminId,
+      senderName: adminName,
+      message: dto.message,
+    })
     return { data }
   }
 

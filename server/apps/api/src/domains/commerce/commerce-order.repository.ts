@@ -17,6 +17,8 @@ export type CommercePaymentStatus =
   | 'REVERSED'
 
 export type CustomerFulfilmentStatus =
+  | 'QUOTE_REQUESTED'
+  | 'QUOTE_PROVIDED'
   | 'ORDER_CONFIRMED'
   | 'PROCESSING'
   | 'DISPATCHED'
@@ -70,6 +72,17 @@ export interface CommerceFulfilmentEvent {
   createdAt?: Date
 }
 
+export interface CommerceOrderMessage {
+  id?: number
+  uuid: string
+  subOrderId: number
+  senderType: 'TENANT' | 'ADMIN' | string
+  senderId?: string | null
+  senderName?: string | null
+  message: string
+  createdAt?: Date
+}
+
 export interface CommerceVendorSuborder {
   id?: number
   uuid: string
@@ -91,11 +104,17 @@ export interface CommerceVendorSuborder {
   technicianName?: string | null
   technicianPhone?: string | null
   adminOperationalNotes?: string | null
+  quoteNotes?: string | null
+  quotedAt?: Date | null
+  serviceRating?: number | null
+  serviceReviewComment?: string | null
+  reviewedAt?: Date | null
   deliveredAt?: Date | null
   tenantConfirmedAt?: Date | null
   coolingPeriodEndsAt?: Date | null
   items?: CommerceOrderItem[]
   fulfilmentEvents?: CommerceFulfilmentEvent[]
+  messages?: CommerceOrderMessage[]
   vendor?: any
   order?: CommerceOrder
   payableRecord?: any
@@ -312,6 +331,46 @@ export interface CommerceOrderRepository {
     audit: { event: string; fromState?: string; toState: string; actorType: string; actorId?: string; details?: Record<string, any> },
   ): Promise<CommerceOrderAudit>
   releaseInventory(orderId: number, reason?: string): Promise<void>
+  createServiceQuoteOrder(data: {
+    userId: number
+    orderNumber: string
+    subOrderNumber: string
+    currency: string
+    vendorId: number
+    offeringId: number
+    offeringSnapshot: Record<string, any>
+    recipientName: string
+    recipientPhone: string
+    deliveryAddress: string
+    deliveryNotes?: string
+    deliveryZoneTag?: string
+    initialMessage: string
+  }): Promise<CommerceOrder>
+  addSubOrderMessage(params: {
+    subOrderId: number
+    senderType: 'TENANT' | 'ADMIN'
+    senderId?: string
+    senderName?: string
+    message: string
+  }): Promise<CommerceOrderMessage>
+  setSubOrderQuotePrice(params: {
+    orderId: number
+    subOrderId: number
+    quotedPriceKobo: bigint
+    quoteNotes?: string
+    adminActorId?: string
+  }): Promise<CommerceOrder>
+  declineQuoteOrder(params: {
+    orderId: number
+    subOrderId: number
+    userId: number
+    reason?: string
+  }): Promise<CommerceOrder>
+  recordServiceReview(params: {
+    subOrderId: number
+    rating: number
+    comment?: string
+  }): Promise<CommerceVendorSuborder>
 }
 
 export const COMMERCE_ORDER_REPOSITORY = Symbol('COMMERCE_ORDER_REPOSITORY')

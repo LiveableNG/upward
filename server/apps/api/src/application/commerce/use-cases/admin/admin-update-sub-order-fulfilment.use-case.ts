@@ -22,6 +22,7 @@ import {
 } from '../../dto/admin-commerce.dto'
 import { NotificationService } from '../../../../shared/infrastructure/common/notification.service'
 import { EmailService } from '../../../../shared/infrastructure/email/email.service'
+import { SmsService } from '../../../../shared/infrastructure/sms/sms.service'
 import { EncryptionService } from '../../../../shared/infrastructure/common/encryption.service'
 import { USER_REPOSITORY, UserRepository } from '../../../../domains/users/user.repository'
 import { ConfigService } from '@nestjs/config'
@@ -48,6 +49,8 @@ export class AdminUpdateSubOrderFulfilmentUseCase {
     private readonly configService?: ConfigService,
     @Optional()
     private readonly thankYouEmailUseCase?: SendCommerceThankYouEmailUseCase,
+    @Optional()
+    private readonly smsService?: SmsService,
   ) {
     this.frontendUrl = (
       this.configService?.get<string>('FRONTEND_URL') || 'https://upward.goodtenants.io'
@@ -241,7 +244,7 @@ export class AdminUpdateSubOrderFulfilmentUseCase {
 
       case AdminFulfilmentTransitionAction.TECHNICIAN_EN_ROUTE: {
         if (!isServiceSubOrder) {
-          throw new BadRequestException('Cannot set technician en route on a product sub-order')
+          throw new BadRequestException('Cannot set service team en route on a product sub-order')
         }
         if (subOrder.customerStatus === 'TECHNICIAN_EN_ROUTE') {
           return this.mapToAdminSubOrderDto(subOrder)
@@ -255,17 +258,32 @@ export class AdminUpdateSubOrderFulfilmentUseCase {
           )
         }
 
+        const resolvedCrewName = (dto.technicianName || dto.riderName || subOrder.technicianName || '').trim()
+        const resolvedCrewPhone = (dto.technicianPhone || dto.riderPhone || subOrder.technicianPhone || '').trim()
+        if (!resolvedCrewName || !resolvedCrewPhone) {
+          throw new BadRequestException(
+            'Assigned specialist / crew name and contact phone are required before marking en route',
+          )
+        }
+
         targetCustomerStatus = 'TECHNICIAN_EN_ROUTE'
         targetOperationalStatus = 'TECHNICIAN_ASSIGNED'
-        if (dto.technicianName) dispatchData.technicianName = dto.technicianName
-        if (dto.technicianPhone) dispatchData.technicianPhone = dto.technicianPhone
+        dispatchData.technicianName = resolvedCrewName
+        dispatchData.technicianPhone = resolvedCrewPhone
+        if (dto.serviceWindowNotes !== undefined) {
+          dispatchData.serviceWindowNotes = dto.serviceWindowNotes
+        }
+        if (dto.serviceScheduledAt) {
+          const parsedDate = new Date(dto.serviceScheduledAt)
+          if (!isNaN(parsedDate.getTime())) {
+            dispatchData.serviceScheduledAt = parsedDate
+          }
+        }
 
-        eventTitle = eventTitle || 'Technician En Route'
+        eventTitle = eventTitle || 'Service Team En Route'
         eventDescription =
           eventDescription ||
-          (dto.technicianName
-            ? `Technician ${dto.technicianName} is on the way to the delivery address`
-            : 'Technician is en route to the service location')
+          `${resolvedCrewName} (${resolvedCrewPhone}) is on the way to handle your service request.${dto.serviceWindowNotes ? ` Note: ${dto.serviceWindowNotes}` : ''}`
         break
       }
 
@@ -392,13 +410,25 @@ export class AdminUpdateSubOrderFulfilmentUseCase {
         )
     }
 
-    if (this.emailService && this.userRepo && this.encryption && isCustomerVisible) {
+    if ((this.emailService || this.smsService) && this.userRepo && this.encryption && isCustomerVisible) {
       this.userRepo
         .findById(order.userId)
-        .then((user) => {
-          if (!user?.email) return
-          const tenantEmail = this.encryption!.decrypt(user.email)
-          if (!tenantEmail || tenantEmail.endsWith('@upward.com')) return
+        .then(async (user): Promise<void> => {
+          const tenantEmail = user?.email ? this.encryption!.decrypt(user.email) : ''
+          const hasValidEmail = Boolean(tenantEmail && tenantEmail.includes('@') && !tenantEmail.endsWith('@upward.com'))
+
+          if (!hasValidEmail) {
+            const rawPhone = user?.phone ? this.encryption!.decrypt(user.phone) : order.recipientPhone
+            if (rawPhone && this.smsService) {
+              await this.smsService.sendSms({
+                to: rawPhone,
+                message: `Upward (${orderLabel}): ${eventTitle} — ${eventDescription}`,
+              })
+            }
+            return
+          }
+
+          if (!this.emailService) return
 
           const trackingUrl = `${this.frontendUrl}/dashboard/lifestyle/orders/${order.uuid}`
           const subOrderItemsHtml = (subOrder.items || []).map((it) => {
@@ -436,7 +466,7 @@ export class AdminUpdateSubOrderFulfilmentUseCase {
             </div>
           `
 
-          return this.emailService!.sendEmailWithRetry({
+          await this.emailService!.sendEmailWithRetry({
             email: tenantEmail,
             subject: `Order Update: ${eventTitle} (${orderLabel})`,
             html,
