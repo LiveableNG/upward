@@ -1,8 +1,7 @@
 'use client'
 
-import React, { useEffect } from 'react'
+import React from 'react'
 import {
-  X,
   AlertTriangle,
   Clock,
   Calendar,
@@ -11,6 +10,7 @@ import {
   ShieldAlert,
   Flame,
 } from 'lucide-react'
+import { BottomSheetModal } from '@/components/common/BottomSheetModal'
 import { type RentReminderAlert } from './RentReminderManager'
 
 interface RentReminderPopupProps {
@@ -124,93 +124,87 @@ function getPopupConfig(alert: RentReminderAlert) {
 }
 
 export function RentReminderPopup({ alert, onClose, onPayNow }: RentReminderPopupProps) {
-  useEffect(() => {
-    document.body.style.overflow = 'hidden'
-    return () => { document.body.style.overflow = '' }
-  }, [])
-
   const config = getPopupConfig(alert)
 
   return (
-    <div
-      className="rent-reminder-popup"
-      style={{ background: config.overlayBg }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose()
-      }}
-    >
-      <div
-        className={`rent-reminder-popup__card ${config.theme === 'critical' ? 'animate-beam-red' : (config.theme === 'urgent' ? 'animate-beam-clay' : '')}`}
-        style={{ borderColor: config.contentBorder }}
-      >
-        {/* Ambient glow blob */}
-        <div
-          className="rent-reminder-popup__glow"
-          style={{ background: config.pulseColor }}
-        />
-
-        {/* Close */}
-        <button className="rent-reminder-popup__close" onClick={onClose}>
-          <X size={16} />
-        </button>
-
-        {/* Badge */}
+    <BottomSheetModal
+      isOpen={true}
+      onClose={onClose}
+      showHandle={true}
+      showClose={true}
+      maxWidth="480px"
+      className={`rent-reminder-sheet rent-reminder-sheet--${config.theme}`}
+      panelClassName={
+        config.theme === 'critical'
+          ? 'animate-beam-red'
+          : config.theme === 'urgent'
+          ? 'animate-beam-clay'
+          : ''
+      }
+      bodyClassName="rent-reminder-sheet__body"
+      title={
         <div
           className="rent-reminder-popup__badge"
-          style={{ background: config.badgeBg }}
+          style={{ background: config.badgeBg, margin: 0 }}
         >
           {config.badge}
         </div>
+      }
+    >
+      {/* Ambient glow blob */}
+      <div
+        className="rent-reminder-popup__glow"
+        style={{ background: config.pulseColor }}
+      />
 
-        {/* Icon */}
-        <div
-          className="rent-reminder-popup__icon"
-          style={{ background: config.iconBg, color: config.iconColor }}
-        >
-          {config.icon}
-        </div>
-
-        {/* Headline */}
-        <div className="rent-reminder-popup__headline">
-          <h2 className="rent-reminder-popup__title">{config.title}</h2>
-          <span
-            className="rent-reminder-popup__countdown"
-            style={{ color: config.subtitleColor }}
-          >
-            {config.subtitle}
-          </span>
-        </div>
-
-        {/* Body */}
-        <p
-          className="rent-reminder-popup__body"
-          dangerouslySetInnerHTML={{ __html: config.body }}
-        />
-
-        {/* Side note */}
-        <div
-          className="rent-reminder-popup__note"
-          style={{ background: config.sideNoteBg, color: config.sideNoteColor }}
-        >
-          <span className="rent-reminder-popup__note-icon">{config.sideNoteIcon}</span>
-          {config.sideNote}
-        </div>
-
-        {/* CTA */}
-        <button
-          className="rent-reminder-popup__cta"
-          style={{ background: config.ctaBg, color: config.ctaColor }}
-          onClick={onPayNow}
-        >
-          {config.ctaLabel}
-          <ArrowRight size={16} />
-        </button>
-
-        {/* Secondary dismiss */}
-        <button className="rent-reminder-popup__skip" onClick={onClose}>
-          Remind me later
-        </button>
+      {/* Icon */}
+      <div
+        className="rent-reminder-popup__icon"
+        style={{ background: config.iconBg, color: config.iconColor }}
+      >
+        {config.icon}
       </div>
-    </div>
+
+      {/* Headline */}
+      <div className="rent-reminder-popup__headline">
+        <h2 className="rent-reminder-popup__title">{config.title}</h2>
+        <span
+          className="rent-reminder-popup__countdown"
+          style={{ color: config.subtitleColor }}
+        >
+          {config.subtitle}
+        </span>
+      </div>
+
+      {/* Body */}
+      <p
+        className="rent-reminder-popup__body"
+        dangerouslySetInnerHTML={{ __html: config.body }}
+      />
+
+      {/* Side note */}
+      <div
+        className="rent-reminder-popup__note"
+        style={{ background: config.sideNoteBg, color: config.sideNoteColor }}
+      >
+        <span className="rent-reminder-popup__note-icon">{config.sideNoteIcon}</span>
+        {config.sideNote}
+      </div>
+
+      {/* CTA */}
+      <button
+        className="rent-reminder-popup__cta"
+        style={{ background: config.ctaBg, color: config.ctaColor }}
+        onClick={onPayNow}
+      >
+        {config.ctaLabel}
+        <ArrowRight size={16} />
+      </button>
+
+      {/* Secondary dismiss */}
+      <button className="rent-reminder-popup__skip" onClick={onClose}>
+        Remind me later
+      </button>
+    </BottomSheetModal>
   )
 }

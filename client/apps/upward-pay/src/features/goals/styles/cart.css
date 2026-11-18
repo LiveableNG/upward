@@ -414,6 +414,19 @@
   text-align: center;
 }
 
+.cart-item-card__service-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--clay, #c2501f) 8%, var(--surface, #ffffff));
+  border: 1px solid color-mix(in srgb, var(--clay, #c2501f) 22%, transparent);
+  color: var(--clay, #c2501f);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
 /* Cart Footer */
 .cart-drawer__footer {
   padding: 16px 20px calc(16px + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));

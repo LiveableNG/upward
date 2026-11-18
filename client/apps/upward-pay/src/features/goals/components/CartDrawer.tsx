@@ -10,6 +10,7 @@ import {
   ShoppingCart,
   ArrowRight,
   Truck,
+  Wrench,
 } from 'lucide-react'
 import { useCart, type CartItem } from '../context/CartContext'
 import { CommerceCheckoutModal } from './CommerceCheckoutModal'
@@ -53,6 +54,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   const [mounted, setMounted] = useState(false)
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
   const { isFluidNav } = useFluidNav()
+
+  const allServices = React.useMemo(() => {
+    return items.length > 0 && items.every((i) => i.type === 'SERVICE')
+  }, [items])
 
   const activeLocation = propLocation || getStoredDeliveryLocation()
 
@@ -144,11 +149,15 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               </div>
             </header>
 
-            {/* Delivery Destination Snippet */}
+            {/* Delivery / Service Destination Snippet */}
             <div className="cart-drawer__destination-bar">
-              <Truck size={14} className="cart-drawer__destination-icon" />
+              {allServices ? (
+                <Wrench size={14} className="cart-drawer__destination-icon" />
+              ) : (
+                <Truck size={14} className="cart-drawer__destination-icon" />
+              )}
               <div className="cart-drawer__destination-text">
-                <span>Delivering to:</span>{' '}
+                <span>{allServices ? 'Service Location:' : 'Delivering to:'}</span>{' '}
                 <strong>
                   {activeLocation.zoneName ||
                     activeLocation.address ||
@@ -241,31 +250,37 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                             )}
                           </div>
 
-                          <div className="cart-item-card__stepper">
-                            <button
-                              type="button"
-                              className="cart-item-card__stepper-btn"
-                              onClick={() => updateQuantity(item.offeringId, -1)}
-                              aria-label="Decrease quantity"
-                            >
-                              {item.quantity === 1 ? (
-                                <Trash2 size={12} />
-                              ) : (
-                                <Minus size={12} strokeWidth={2.5} />
-                              )}
-                            </button>
-                            <span className="cart-item-card__stepper-value">
-                              {item.quantity}
-                            </span>
-                            <button
-                              type="button"
-                              className="cart-item-card__stepper-btn"
-                              onClick={() => updateQuantity(item.offeringId, 1)}
-                              aria-label="Increase quantity"
-                            >
-                              <Plus size={12} strokeWidth={2.5} />
-                            </button>
-                          </div>
+                          {item.type === 'SERVICE' ? (
+                            <div className="cart-item-card__service-badge">
+                              <span>1 Service Booking</span>
+                            </div>
+                          ) : (
+                            <div className="cart-item-card__stepper">
+                              <button
+                                type="button"
+                                className="cart-item-card__stepper-btn"
+                                onClick={() => updateQuantity(item.offeringId, -1)}
+                                aria-label="Decrease quantity"
+                              >
+                                {item.quantity === 1 ? (
+                                  <Trash2 size={12} />
+                                ) : (
+                                  <Minus size={12} strokeWidth={2.5} />
+                                )}
+                              </button>
+                              <span className="cart-item-card__stepper-value">
+                                {item.quantity}
+                              </span>
+                              <button
+                                type="button"
+                                className="cart-item-card__stepper-btn"
+                                onClick={() => updateQuantity(item.offeringId, 1)}
+                                aria-label="Increase quantity"
+                              >
+                                <Plus size={12} strokeWidth={2.5} />
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -285,10 +300,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 </div>
                 <div className="cart-drawer__summary-row cart-drawer__summary-row--muted">
                   <span className="cart-drawer__summary-label">
-                    Estimated Delivery
+                    {allServices ? 'Service Callout' : 'Estimated Delivery'}
                   </span>
                   <span className="cart-drawer__summary-val">
-                    Calculated at Checkout
+                    {allServices ? 'Free' : 'Calculated at Checkout'}
                   </span>
                 </div>
 
@@ -297,7 +312,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   className="cart-drawer__checkout-btn"
                   onClick={handleProceedToCheckout}
                 >
-                  <span>Proceed to Checkout</span>
+                  <span>{allServices ? 'Proceed to Book' : 'Proceed to Checkout'}</span>
                   <span className="cart-drawer__checkout-total">
                     {formatNgn(subtotal)}
                   </span>

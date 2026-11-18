@@ -619,13 +619,13 @@ export function OrderTrackingScreen({
                     )}
 
                     {/* Service specialist */}
-                    {isService && subOrder.technicianName && (
+                    {isService && (subOrder.technicianName || subOrder.technicianPhone) && (
                       <div className="order-tracking__dispatch-item order-tracking__dispatch-item--rider">
                         <User size={16} color="var(--clay)" />
                         <div className="order-tracking__dispatch-details">
                           <div className="order-tracking__dispatch-label">Assigned Specialist</div>
                           <div className="order-tracking__dispatch-val">
-                            {subOrder.technicianName} (Upward Verified)
+                            {subOrder.technicianName || 'Assigned Specialist'} (Upward Verified)
                             {subOrder.technicianPhone && (
                               <span className="order-tracking__dispatch-phone"> · {subOrder.technicianPhone}</span>
                             )}
@@ -648,7 +648,9 @@ export function OrderTrackingScreen({
 
               {/* Items in this suborder */}
               <div className="order-tracking__items-section">
-                <div className="order-tracking__items-heading">Items in Package</div>
+                <div className="order-tracking__items-heading">
+                  {isService ? 'Service Details' : 'Items in Package'}
+                </div>
                 <div className="order-tracking__items-list">
                   {subOrder.items.map((item) => {
                     const itemTitle = item.title || (item.snapshotData as any)?.title || 'Package Item'
