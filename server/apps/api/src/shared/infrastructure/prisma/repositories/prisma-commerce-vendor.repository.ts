@@ -75,9 +75,11 @@ export class PrismaCommerceVendorRepository implements VendorRepository {
         website: data.website,
         rating: data.rating ?? 5.0,
         isActive: data.isActive ?? true,
+        ...(data.defaultDeliveryCoverage ? { defaultDeliveryCoverage: data.defaultDeliveryCoverage as any } : {}),
+        ...(data.defaultDeliveryZones ? { defaultDeliveryZones: data.defaultDeliveryZones } : {}),
       },
     })
-    return created as CommerceVendor
+    return created as unknown as CommerceVendor
   }
 
   async updateVendor(id: number, data: Partial<CommerceVendor>): Promise<CommerceVendor> {
@@ -92,9 +94,11 @@ export class PrismaCommerceVendorRepository implements VendorRepository {
         ...(data.website !== undefined ? { website: data.website } : {}),
         ...(data.rating !== undefined ? { rating: data.rating } : {}),
         ...(data.isActive !== undefined ? { isActive: data.isActive } : {}),
+        ...(data.defaultDeliveryCoverage !== undefined ? { defaultDeliveryCoverage: data.defaultDeliveryCoverage as any } : {}),
+        ...(data.defaultDeliveryZones !== undefined ? { defaultDeliveryZones: data.defaultDeliveryZones } : {}),
       },
     })
-    return updated as CommerceVendor
+    return updated as unknown as CommerceVendor
   }
 
   async deleteVendor(id: number): Promise<void> {

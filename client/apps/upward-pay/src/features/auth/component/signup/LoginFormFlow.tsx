@@ -14,6 +14,9 @@ import {
   AlertCircle,
   Sparkles,
   Phone,
+  KeyRound,
+  MessageSquare,
+  MessageCircle,
 } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
 import { UpwardLogo } from '@/components/PoweredByUpward'
@@ -25,7 +28,7 @@ import { GoogleSignInButton } from '@/features/auth/components/GoogleSignInButto
 import { AppleSignInButton } from '@/features/auth/components/AppleSignInButton'
 import { isValidEmail } from '@/lib/utils'
 
-type LoginMethod = 'password' | 'code' | null
+type LoginMethod = 'password' | 'code'
 
 interface LoginFormFlowProps {
   onBackToWelcome: () => void
@@ -62,7 +65,7 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
   const [phoneChannel, setPhoneChannel] = useState<'SMS' | 'WHATSAPP'>('SMS')
   const [loginPassword, setLoginPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
-  const [loginMethod, setLoginMethod] = useState<LoginMethod>(null)
+  const [loginMethod, setLoginMethod] = useState<LoginMethod>('password')
   const [step, setStep] = useState<'login' | 'otp'>('login')
   const [isRequestingOTP, setIsRequestingOTP] = useState(false)
   const [effectiveContext, setEffectiveContext] = useState<'LOGIN' | 'WAITLIST' | 'INVITE'>('LOGIN')
@@ -372,17 +375,32 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
           )}
 
           <div className="auth-form__field">
-            <div className="auth-form__label-row">
-              <label htmlFor="login-identifier">{identifierType === 'email' ? 'Email Address' : 'Phone Number'}</label>
+            <div className="auth-identifier-tabs" role="tablist" aria-label="Sign-in with">
               <button
                 type="button"
-                className="auth-form__link auth-form__link--quiet"
+                role="tab"
+                aria-selected={identifierType === 'email'}
+                className={`auth-identifier-tabs__tab ${identifierType === 'email' ? 'is-active' : ''}`}
                 onClick={() => {
-                  setIdentifierType(identifierType === 'email' ? 'phone' : 'email')
+                  setIdentifierType('email')
                   setEmailExists(false)
                 }}
               >
-                Continue with {identifierType === 'email' ? 'Phone Number' : 'Email'}
+                <Mail size={15} />
+                <span>Email</span>
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={identifierType === 'phone'}
+                className={`auth-identifier-tabs__tab ${identifierType === 'phone' ? 'is-active' : ''}`}
+                onClick={() => {
+                  setIdentifierType('phone')
+                  setEmailExists(false)
+                }}
+              >
+                <Phone size={15} />
+                <span>Phone Number</span>
               </button>
             </div>
             
@@ -395,36 +413,27 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
                   placeholder="sarah@email.com"
                   value={loginEmail}
                   onChange={(e) => setLoginEmail(e.target.value)}
-                  autoComplete="email"
+                  autoComplete="username"
                   required={identifierType === 'email'}
                 />
                 {isCheckingEmail && <Loader2 className="input-spinner animate-spin" size={16} />}
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <div className="input-wrapper" style={{ position: 'relative', display: 'flex', alignItems: 'center', border: '1px solid #e2e2e2', borderRadius: '14px', padding: '0 16px', background: '#fff', transition: 'border-color 0.2s', height: '46px' }}>
-                  <span className="country-code" style={{ fontFamily: 'Plus Jakarta Sans', fontSize: '13.5px', color: '#7a7268', borderRight: '1px solid #eee', paddingRight: '8px', marginRight: '8px' }}>+234</span>
-                  <input 
-                    type="tel" 
-                    inputMode="numeric"
-                    placeholder="800 000 0000" 
-                    style={{ border: 'none', outline: 'none', height: '100%', width: '100%', fontFamily: 'Plus Jakarta Sans', fontSize: '13.5px', background: 'transparent' }}
-                    value={loginPhone}
-                    onChange={(e) => setLoginPhone(e.target.value)}
-                    required={identifierType === 'phone'}
-                  />
-                  {isCheckingEmail && <Loader2 className="input-spinner animate-spin" size={16} style={{ position: 'absolute', right: '16px' }} />}
+              <div className="auth-phone-input">
+                <div className="auth-phone-input__prefix">
+                  <span>+234</span>
                 </div>
-                {loginMethod === 'code' && (
-                  <div style={{ display: 'flex', gap: '16px', marginTop: '12px', paddingLeft: '4px' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', color: 'var(--text)' }}>
-                      <input type="radio" name="phoneChannelLogin" checked={phoneChannel === 'SMS'} onChange={() => setPhoneChannel('SMS')} style={{ accentColor: 'var(--clay)' }} /> SMS
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', color: 'var(--text)' }}>
-                      <input type="radio" name="phoneChannelLogin" checked={phoneChannel === 'WHATSAPP'} onChange={() => setPhoneChannel('WHATSAPP')} style={{ accentColor: 'var(--clay)' }} /> WhatsApp
-                    </label>
-                  </div>
-                )}
+                <input 
+                  id="login-phone"
+                  type="tel" 
+                  inputMode="numeric"
+                  placeholder="800 000 0000" 
+                  value={loginPhone}
+                  onChange={(e) => setLoginPhone(e.target.value)}
+                  autoComplete="tel"
+                  required={identifierType === 'phone'}
+                />
+                {isCheckingEmail && <Loader2 className="input-spinner animate-spin" size={16} />}
               </div>
             )}
 
@@ -467,35 +476,14 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
 
           {!isSpecialAccount && (
             <>
-              <div className="auth-method-toggle" role="radiogroup" aria-label="Sign-in method">
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={loginMethod === 'password'}
-                  className={`auth-method-toggle__option${loginMethod === 'password' ? ' is-active' : ''}`}
-                  onClick={() => setLoginMethod('password')}
-                >
-                  Password
-                </button>
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={loginMethod === 'code'}
-                  className={`auth-method-toggle__option${loginMethod === 'code' ? ' is-active' : ''}`}
-                  onClick={() => setLoginMethod('code')}
-                >
-                  Verification code
-                </button>
-              </div>
-
-              {isGoogleOnly && loginMethod === 'password' && (
-                <div className="auth-field-hint auth-field-hint--accent">
+              {isGoogleOnly && (
+                <div className="auth-field-hint auth-field-hint--accent" style={{ marginTop: '10px' }}>
                   <AlertCircle size={12} /> This account uses Google sign-in. Use the Google button above.
                 </div>
               )}
 
-              {isAppleOnly && loginMethod === 'password' && (
-                <div className="auth-field-hint auth-field-hint--accent">
+              {isAppleOnly && (
+                <div className="auth-field-hint auth-field-hint--accent" style={{ marginTop: '10px' }}>
                   <AlertCircle size={12} /> This account uses Apple sign-in. Use the Apple button above.
                 </div>
               )}
@@ -508,7 +496,6 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
                       type="button"
                       className="auth-form__link auth-form__link--quiet"
                       onClick={() => router.push('/forgot-password')}
-                      disabled={isBusy || !loginEmail || !emailExists}
                     >
                       Forgot password?
                     </button>
@@ -527,19 +514,53 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
                       type="button"
                       className="password-toggle"
                       onClick={() => setShowPassword(!showPassword)}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
                     >
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
                 </div>
-              ) : loginMethod === 'code' ? (
-                <p className="auth-form-note">
-                  We&apos;ll email you a 6-digit code to sign in.
-                </p>
               ) : (
-                <p className="auth-form-note">
-                  Choose a sign-in method to continue.
-                </p>
+                <div className="auth-code-card">
+                  <div className="auth-code-card__header">
+                    <KeyRound size={16} className="auth-code-card__icon" />
+                    <span>Instant sign-in with verification code</span>
+                  </div>
+                  <p className="auth-code-card__desc">
+                    We&apos;ll send a 6-digit verification code to{' '}
+                    <strong>
+                      {identifierType === 'email'
+                        ? loginEmail || 'your email'
+                        : loginPhone
+                        ? `+234 ${loginPhone}`
+                        : 'your phone number'}
+                    </strong>
+                    .
+                  </p>
+                  {identifierType === 'phone' && (
+                    <div className="auth-channel-selector">
+                      <span className="auth-channel-selector__label">Send via:</span>
+                      <div className="auth-channel-selector__chips">
+                        <button
+                          type="button"
+                          className={`auth-channel-chip ${phoneChannel === 'SMS' ? 'is-active' : ''}`}
+                          onClick={() => setPhoneChannel('SMS')}
+                        >
+                          <MessageSquare size={13} />
+                          <span>SMS</span>
+                        </button>
+                        <button
+                          type="button"
+                          className={`auth-channel-chip ${phoneChannel === 'WHATSAPP' ? 'is-active' : ''}`}
+                          onClick={() => setPhoneChannel('WHATSAPP')}
+                        >
+                          <MessageCircle size={13} />
+                          <span>WhatsApp</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               )}
 
               <button
@@ -555,12 +576,33 @@ export function LoginFormFlow({ onBackToWelcome, onRedirectToSignup, initialEmai
                   </>
                 ) : (
                   <>
-                    {loginMethod === 'code' ? 'Send verification code' : 'Continue'}
+                    {loginMethod === 'code' ? 'Send verification code' : 'Log in'}
                     <ArrowRight size={17} />
                   </>
                 )}
               </button>
 
+              <div className="auth-secondary-switch">
+                {loginMethod === 'password' ? (
+                  <button
+                    type="button"
+                    className="auth-secondary-switch__btn"
+                    onClick={() => setLoginMethod('code')}
+                  >
+                    <KeyRound size={14} />
+                    <span>Log in with verification code instead</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="auth-secondary-switch__btn"
+                    onClick={() => setLoginMethod('password')}
+                  >
+                    <Lock size={14} />
+                    <span>Use password instead</span>
+                  </button>
+                )}
+              </div>
             </>
           )}
         </form>

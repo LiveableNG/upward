@@ -6,6 +6,9 @@ import {
   ChevronLeft,
   User,
   Mail,
+  Phone,
+  MessageSquare,
+  MessageCircle,
   ArrowRight,
   Lock,
   Eye,
@@ -524,17 +527,32 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
           )}
 
           <div className="auth-form__field">
-            <div className="auth-form__label-row">
-              <label htmlFor="signup-identifier">{identifierType === 'email' ? 'Email Address' : 'Phone Number'}</label>
+            <div className="auth-identifier-tabs" role="tablist" aria-label="Sign up with">
               <button
                 type="button"
-                className="auth-form__link auth-form__link--quiet"
+                role="tab"
+                aria-selected={identifierType === 'email'}
+                className={`auth-identifier-tabs__tab ${identifierType === 'email' ? 'is-active' : ''}`}
                 onClick={() => {
-                  setIdentifierType(identifierType === 'email' ? 'phone' : 'email')
+                  setIdentifierType('email')
                   setEmailExists(false)
                 }}
               >
-                Sign up with {identifierType === 'email' ? 'Phone Number' : 'Email'}
+                <Mail size={15} />
+                <span>Email</span>
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={identifierType === 'phone'}
+                className={`auth-identifier-tabs__tab ${identifierType === 'phone' ? 'is-active' : ''}`}
+                onClick={() => {
+                  setIdentifierType('phone')
+                  setEmailExists(false)
+                }}
+              >
+                <Phone size={15} />
+                <span>Phone Number</span>
               </button>
             </div>
 
@@ -561,30 +579,47 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
                 {isCheckingEmail && <Loader2 className="input-spinner animate-spin" size={16} />}
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <div>
                 <div 
-                  className="input-wrapper" 
-                  style={{ position: 'relative', display: 'flex', alignItems: 'center', border: emailExists && !isInvited && !isWaitlist ? '1px solid #ff4b4b' : '1px solid #e2e2e2', borderRadius: '14px', padding: '0 16px', background: '#fff', transition: 'border-color 0.2s', height: '46px' }}
+                  className={`auth-phone-input ${
+                    emailExists && !isInvited && !isWaitlist ? 'auth-phone-input--error' : ''
+                  }`}
                 >
-                  <span className="country-code" style={{ fontFamily: 'Plus Jakarta Sans', fontSize: '13.5px', color: '#7a7268', borderRight: '1px solid #eee', paddingRight: '8px', marginRight: '8px' }}>+234</span>
+                  <div className="auth-phone-input__prefix">
+                    <span>+234</span>
+                  </div>
                   <input 
+                    id="signup-phone"
                     type="tel" 
                     inputMode="numeric"
                     placeholder="800 000 0000" 
-                    style={{ border: 'none', outline: 'none', height: '100%', width: '100%', fontFamily: 'Plus Jakarta Sans', fontSize: '13.5px', background: 'transparent' }}
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
+                    autoComplete="tel"
                     required={identifierType === 'phone'}
                   />
-                  {isCheckingEmail && <Loader2 className="input-spinner animate-spin" size={16} style={{ position: 'absolute', right: '16px' }} />}
+                  {isCheckingEmail && <Loader2 className="input-spinner animate-spin" size={16} />}
                 </div>
-                <div style={{ display: 'flex', gap: '16px', marginTop: '12px', paddingLeft: '4px' }}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', color: 'var(--text)' }}>
-                    <input type="radio" name="phoneChannelSignup" checked={phoneChannel === 'SMS'} onChange={() => setPhoneChannel('SMS')} style={{ accentColor: 'var(--clay)' }} /> SMS
-                  </label>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', cursor: 'pointer', color: 'var(--text)' }}>
-                    <input type="radio" name="phoneChannelSignup" checked={phoneChannel === 'WHATSAPP'} onChange={() => setPhoneChannel('WHATSAPP')} style={{ accentColor: 'var(--clay)' }} /> WhatsApp
-                  </label>
+                <div className="auth-channel-selector">
+                  <span className="auth-channel-selector__label">Send via:</span>
+                  <div className="auth-channel-selector__chips">
+                    <button
+                      type="button"
+                      className={`auth-channel-chip ${phoneChannel === 'SMS' ? 'is-active' : ''}`}
+                      onClick={() => setPhoneChannel('SMS')}
+                    >
+                      <MessageSquare size={13} />
+                      <span>SMS</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`auth-channel-chip ${phoneChannel === 'WHATSAPP' ? 'is-active' : ''}`}
+                      onClick={() => setPhoneChannel('WHATSAPP')}
+                    >
+                      <MessageCircle size={13} />
+                      <span>WhatsApp</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -655,11 +690,11 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
           <p className="auth-stage__disclaimer">
             By continuing, you agree to our{' '}
             <a href={`${process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}/legal/terms`} target="_blank" rel="noopener noreferrer">
-              Terms of Use
+              Terms&nbsp;of&nbsp;Use
             </a>{' '}
             and{' '}
             <a href={`${process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'}/legal/privacy`} target="_blank" rel="noopener noreferrer">
-              Privacy Policy
+              Privacy&nbsp;Policy
             </a>.
           </p>
 

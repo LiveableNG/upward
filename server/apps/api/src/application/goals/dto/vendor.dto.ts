@@ -1,12 +1,15 @@
 import {
+  IsArray,
   IsBoolean,
   IsEmail,
+  IsEnum,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
   MaxLength,
 } from 'class-validator'
+import { DeliveryCoverageType } from '@prisma/client'
 
 export class CreateVendorDto {
   @IsString()
@@ -71,6 +74,15 @@ export class CreateVendorDto {
   @IsBoolean()
   @IsOptional()
   isVerified?: boolean
+
+  @IsEnum(DeliveryCoverageType)
+  @IsOptional()
+  defaultDeliveryCoverage?: DeliveryCoverageType
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  defaultDeliveryZones?: string[]
 }
 
 export class UpdateVendorDto {
@@ -136,5 +148,14 @@ export class UpdateVendorDto {
   @IsBoolean()
   @IsOptional()
   isVerified?: boolean
+
+  @IsEnum(DeliveryCoverageType)
+  @IsOptional()
+  defaultDeliveryCoverage?: DeliveryCoverageType
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  defaultDeliveryZones?: string[]
 }
 

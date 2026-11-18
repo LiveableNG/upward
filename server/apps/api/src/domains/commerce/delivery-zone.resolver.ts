@@ -2,6 +2,8 @@ export type DeliveryZoneTag =
   | 'LAGOS_ISLAND'
   | 'LAGOS_MAINLAND'
   | 'ABUJA_METRO'
+  | 'PORT_HARCOURT'
+  | 'IBADAN_METRO'
   | 'NATIONWIDE'
   | 'OTHER'
 
@@ -60,6 +62,30 @@ export class DeliveryZoneResolver {
       return 'ABUJA_METRO'
     }
 
+    if (
+      normalized.includes('ibadan') ||
+      normalized.includes('bodija') ||
+      normalized.includes('jericho') ||
+      normalized.includes('oluyole') ||
+      normalized.includes('agodi') ||
+      normalized.includes('dugbe') ||
+      normalized.includes('ring road') ||
+      normalized.includes('samonda') ||
+      normalized.includes('oyo')
+    ) {
+      return 'IBADAN_METRO'
+    }
+
+    if (
+      normalized.includes('port harcourt') ||
+      normalized.includes('trans amadi') ||
+      normalized.includes('peter odili') ||
+      normalized.includes('woji') ||
+      normalized.includes('rivers')
+    ) {
+      return 'PORT_HARCOURT'
+    }
+
     return 'OTHER'
   }
 
@@ -70,31 +96,49 @@ export class DeliveryZoneResolver {
       deliveryAvailable?: boolean
       deliveryCoverageType?: string
       deliveryZones?: string[]
+      vendor?: {
+        name?: string
+        defaultDeliveryCoverage?: string
+        defaultDeliveryZones?: string[]
+      } | null
     },
     address: string,
   ): { isDeliverable: boolean; reason?: string } {
-    if (offering.type === 'SERVICE') {
-      return { isDeliverable: true }
-    }
+    const isService = offering.type === 'SERVICE'
 
     if (offering.deliveryAvailable === false) {
       return {
         isDeliverable: false,
-        reason: `Item '${offering.title}' is available for in-store pickup only.`,
+        reason: isService
+          ? `Service '${offering.title}' is available for in-store / on-premise appointments only.`
+          : `Item '${offering.title}' is available for in-store pickup only.`,
       }
     }
 
+    // Inherit coverage settings from vendor if offering does not define custom zones
+    const effectiveZones =
+      offering.deliveryZones && offering.deliveryZones.length > 0
+        ? offering.deliveryZones
+        : offering.vendor?.defaultDeliveryZones || []
+
+    const effectiveCoverageType =
+      offering.deliveryCoverageType ||
+      offering.vendor?.defaultDeliveryCoverage ||
+      'NATIONWIDE'
+
     if (
-      !offering.deliveryCoverageType ||
-      offering.deliveryCoverageType === 'NATIONWIDE' ||
-      !offering.deliveryZones ||
-      offering.deliveryZones.length === 0
+      effectiveCoverageType === 'NATIONWIDE' ||
+      effectiveZones.length === 0
     ) {
       return { isDeliverable: true }
     }
 
-    const coverageZones = offering.deliveryZones.map((z) => z.toUpperCase())
-    if (coverageZones.includes('NATIONWIDE') || coverageZones.includes('ALL')) {
+    const coverageZones = effectiveZones.map((z) => z.toUpperCase().trim())
+    if (
+      coverageZones.includes('NATIONWIDE') ||
+      coverageZones.includes('ALL') ||
+      (isService && coverageZones.includes('ONLINE'))
+    ) {
       return { isDeliverable: true }
     }
 
@@ -103,9 +147,12 @@ export class DeliveryZoneResolver {
       return { isDeliverable: true }
     }
 
+    const supportedList = coverageZones.map((z) => z.replace(/_/g, ' ')).join(', ')
     return {
       isDeliverable: false,
-      reason: `Offering '${offering.title}' cannot be delivered to ${recipientZone.replace('_', ' ')}. Supported delivery zones: ${coverageZones.join(', ')}.`,
+      reason: isService
+        ? `Service '${offering.title}' is not available in ${recipientZone.replace(/_/g, ' ')}. Supported service areas: ${supportedList}.`
+        : `Offering '${offering.title}' cannot be delivered to ${recipientZone.replace(/_/g, ' ')}. Supported delivery zones: ${supportedList}.`,
     }
   }
 }

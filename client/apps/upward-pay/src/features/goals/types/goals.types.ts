@@ -43,6 +43,8 @@ export interface CommerceVendor {
   isActive?: boolean
   isVerified?: boolean
   rating?: number | null
+  defaultDeliveryCoverage?: string
+  defaultDeliveryZones?: string[]
   createdAt?: string
   updatedAt?: string
 }

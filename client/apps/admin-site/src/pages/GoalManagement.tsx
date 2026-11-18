@@ -109,6 +109,7 @@ export default function GoalManagement({ token }: GoalManagementProps) {
     updateVendor,
     deleteVendor,
     toggleVendorActive,
+    deliveryZones,
   } = useGoalManagement(token)
 
   // Modal States
@@ -440,6 +441,7 @@ export default function GoalManagement({ token }: GoalManagementProps) {
         isOpen={vendorModalOpen}
         onClose={() => setVendorModalOpen(false)}
         vendor={editingVendor}
+        availableZones={deliveryZones}
         onSubmit={async (data) => {
           if (editingVendor) {
             await updateVendor(editingVendor.id, data)

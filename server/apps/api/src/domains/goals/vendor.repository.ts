@@ -9,6 +9,8 @@ export interface CommerceVendor {
   website?: string | null
   rating: number
   isActive: boolean
+  defaultDeliveryCoverage?: string
+  defaultDeliveryZones?: string[]
   createdAt?: Date
   updatedAt?: Date
   _count?: {

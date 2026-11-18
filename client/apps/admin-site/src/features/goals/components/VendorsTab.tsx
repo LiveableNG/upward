@@ -140,6 +140,75 @@ export const VendorsTab: React.FC<VendorsTabProps> = ({
       ),
     },
     {
+      key: 'coverage',
+      label: 'Service & Delivery Coverage',
+      render: (vendor) => {
+        const coverage = vendor.defaultDeliveryCoverage || 'NATIONWIDE'
+        const zones = vendor.defaultDeliveryZones || []
+
+        if (coverage === 'NATIONWIDE') {
+          return (
+            <span
+              style={{
+                fontSize: '11.5px',
+                color: '#10b981',
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px',
+              }}
+            >
+              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }} />
+              Nationwide
+            </span>
+          )
+        }
+
+        if (coverage === 'PICKUP_ONLY') {
+          return (
+            <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
+              In-Store Only
+            </span>
+          )
+        }
+
+        if (zones.length === 0) {
+          return (
+            <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
+              No zones configured
+            </span>
+          )
+        }
+
+        return (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', maxWidth: '220px' }}>
+            {zones.map((z) => {
+              const label = z
+                .replace('LAGOS_', '')
+                .replace('_METRO', '')
+                .replace(/_/g, ' ')
+              return (
+                <span
+                  key={z}
+                  style={{
+                    fontSize: '10.5px',
+                    fontWeight: 700,
+                    padding: '2px 6px',
+                    borderRadius: '6px',
+                    background: 'rgba(var(--accent-rgb, 194, 80, 31), 0.08)',
+                    color: 'var(--accent)',
+                    border: '1px solid rgba(var(--accent-rgb, 194, 80, 31), 0.15)',
+                  }}
+                >
+                  {label}
+                </span>
+              )
+            })}
+          </div>
+        )
+      },
+    },
+    {
       key: 'offeringsCount',
       label: 'Offerings',
       width: '100px',

@@ -35,6 +35,8 @@ export class GetOfferingDetailUseCase {
         logoUrl: offering.vendor.logoUrl,
         rating: offering.vendor.rating,
         isActive: offering.vendor.isActive,
+        defaultDeliveryCoverage: (offering.vendor as any).defaultDeliveryCoverage,
+        defaultDeliveryZones: (offering.vendor as any).defaultDeliveryZones,
       }
     }
 

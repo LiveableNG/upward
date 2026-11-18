@@ -153,6 +153,8 @@ export interface CommerceVendor {
   accountName?: string | null
   isVerified: boolean
   isActive: boolean
+  defaultDeliveryCoverage?: string
+  defaultDeliveryZones?: string[]
   createdAt: string
   _count?: {
     offerings?: number

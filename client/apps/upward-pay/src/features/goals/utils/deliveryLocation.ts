@@ -243,48 +243,62 @@ export function formatShortLocation(location: UserDeliveryLocation): string {
 }
 
 /**
- * Checks if a physical offering or package can be delivered to the user's location.
+ * Checks if a physical offering or service can be delivered / serviced at the user's location.
  */
 export function isOfferingDeliverableToLocation(
   offering: GoalOffering,
   location: UserDeliveryLocation,
 ): { isDeliverable: boolean; reason?: string } {
-  // Services are appointment or execution based
-  if (offering.type === 'SERVICE') {
-    return { isDeliverable: true }
-  }
+  const isService = offering.type === 'SERVICE'
 
-  // Location itself is not currently receiving deliveries
+  // Location itself is not currently receiving deliveries/services
   if (location.isDelivering === false) {
     return {
       isDeliverable: false,
       reason:
         location.pauseReason ||
-        'Delivery is not currently supported or is suspended for this location.',
+        (isService
+          ? 'Service is not currently supported or is suspended for this location.'
+          : 'Delivery is not currently supported or is suspended for this location.'),
     }
   }
 
-  // Explicitly marked as no delivery available
+  // Explicitly marked as no home delivery / in-store only
   if (offering.deliveryAvailable === false) {
     return {
       isDeliverable: false,
-      reason: 'In-store pickup only. Home delivery unavailable.',
+      reason: isService
+        ? 'In-store / on-premise service only. Home visit unavailable.'
+        : 'In-store pickup only. Home delivery unavailable.',
     }
   }
 
-  // If nationwide or no specific zones configured, deliverable everywhere supported
+  // Inherit coverage settings from vendor if offering does not define custom zones
+  const effectiveZones =
+    offering.deliveryZones && offering.deliveryZones.length > 0
+      ? offering.deliveryZones
+      : offering.vendor?.defaultDeliveryZones || []
+
+  const effectiveCoverageType =
+    offering.deliveryCoverageType ||
+    offering.vendor?.defaultDeliveryCoverage ||
+    'NATIONWIDE'
+
+  // If nationwide or no specific zones configured, available everywhere supported
   if (
-    !offering.deliveryCoverageType ||
-    offering.deliveryCoverageType === 'NATIONWIDE' ||
-    !offering.deliveryZones ||
-    offering.deliveryZones.length === 0
+    effectiveCoverageType === 'NATIONWIDE' ||
+    effectiveZones.length === 0
   ) {
     return { isDeliverable: true }
   }
 
   // Regional zones enforcement
-  const coverageZones = offering.deliveryZones.map((z) => z.toUpperCase())
-  if (coverageZones.includes('NATIONWIDE') || coverageZones.includes('ALL')) {
+  const coverageZones = effectiveZones.map((z) => z.toUpperCase().trim())
+  if (
+    coverageZones.includes('NATIONWIDE') ||
+    coverageZones.includes('ALL') ||
+    (isService && coverageZones.includes('ONLINE'))
+  ) {
     return { isDeliverable: true }
   }
 
@@ -300,7 +314,9 @@ export function isOfferingDeliverableToLocation(
 
   return {
     isDeliverable: false,
-    reason: `Delivery only available in ${friendlyNames}`,
+    reason: isService
+      ? `Service only available in ${friendlyNames}`
+      : `Delivery only available in ${friendlyNames}`,
   }
 }
 

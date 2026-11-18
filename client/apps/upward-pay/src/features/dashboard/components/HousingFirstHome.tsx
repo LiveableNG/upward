@@ -440,7 +440,7 @@ export function HousingFirstHome({
       icon: <Sofa size={16} strokeWidth={2} />,
       title: 'Improve my home feel',
       desc: 'Furniture, decoration and space improvements',
-      href: '/dashboard/lifestyle?goal=improve-my-home-feel',
+      href: '/dashboard/lifestyle?category=housing',
       pinned: false,
     },
   ]

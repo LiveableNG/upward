@@ -134,6 +134,18 @@ export function useGoalManagement(token?: string) {
   const [vendorsSearch, setVendorsSearch] = useState('')
   const [vendorsActiveFilter, setVendorsActiveFilter] = useState<boolean | undefined>(undefined)
   const [loadingVendors, setLoadingVendors] = useState(false)
+  const [deliveryZones, setDeliveryZones] = useState<Array<{ tag: string; name: string }>>([])
+
+  const fetchDeliveryZones = useCallback(async () => {
+    try {
+      const res = await apiService.get('/admin/commerce/delivery-zones', token)
+      if (res && res.data && Array.isArray(res.data)) {
+        setDeliveryZones(res.data)
+      }
+    } catch {
+      // ignore
+    }
+  }, [token])
 
   const fetchVendors = useCallback(async () => {
     setLoadingVendors(true)
@@ -483,8 +495,9 @@ export function useGoalManagement(token?: string) {
       fetchGoals(1)
       fetchOfferings(1)
       fetchVendors()
+      fetchDeliveryZones()
     }
-  }, [token, fetchOverview, fetchCategories, fetchGoals, fetchOfferings, fetchVendors])
+  }, [token, fetchOverview, fetchCategories, fetchGoals, fetchOfferings, fetchVendors, fetchDeliveryZones])
 
   return {
     overview,
@@ -554,5 +567,7 @@ export function useGoalManagement(token?: string) {
     updateVendor,
     deleteVendor,
     toggleVendorActive,
+    deliveryZones,
+    fetchDeliveryZones,
   }
 }

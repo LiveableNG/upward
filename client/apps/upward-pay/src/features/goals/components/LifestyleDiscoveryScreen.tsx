@@ -215,18 +215,9 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
   const [selectedType, setSelectedType] = useState<OfferingType | 'ALL'>('ALL')
 
   const queryCategoryParam = searchParams?.get('category') || searchParams?.get('cat') || 'ALL'
-  const [selectedCategorySlug, setSelectedCategorySlug] = useState<string>(queryCategoryParam)
-
-  const [prevQueryCategoryParam, setPrevQueryCategoryParam] = useState(queryCategoryParam)
-  if (queryCategoryParam !== prevQueryCategoryParam) {
-    setPrevQueryCategoryParam(queryCategoryParam)
-    setSelectedCategorySlug(queryCategoryParam)
-  }
-
   const isQueryGoalsOpen = searchParams?.get('goals') === 'open'
   const queryGoalId = searchParams?.get('goalId')
   const queryGoalSlug = searchParams?.get('goal')
-  const queryCategorySlug = searchParams?.get('category') || searchParams?.get('cat')
   const parsedQueryGoalId = queryGoalId ? Number(queryGoalId) : null
 
   // Flat list of all system goals from published categories
@@ -240,20 +231,48 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
     )
   }, [categories])
 
+  // Resolve category slug taking into account aliases or fallback from queryGoalSlug
+  const resolvedCategorySlug = useMemo(() => {
+    if (queryCategoryParam && queryCategoryParam !== 'ALL') {
+      const directMatch = categories.find(
+        (c) => c.slug.toLowerCase() === queryCategoryParam.toLowerCase() || String(c.id) === queryCategoryParam,
+      )
+      if (directMatch) return directMatch.slug
+
+      const alias = queryCategoryParam.toLowerCase()
+      if (['home-and-lifestyle', 'home-lifestyle', 'lifestyle', 'home'].includes(alias)) {
+        const homeCat = categories.find(
+          (c) => c.slug === 'housing' || (c.title && c.title.toLowerCase().includes('home')),
+        )
+        if (homeCat) return homeCat.slug
+      }
+      return queryCategoryParam
+    }
+
+    // If no category param was specified but a goal slug is provided (e.g. goal=improve-my-home-feel),
+    // resolve to that goal's parent category
+    if (queryGoalSlug && allSystemGoals.length > 0) {
+      const match = allSystemGoals.find((g) => g.slug === queryGoalSlug)
+      if (match?.categorySlug) return match.categorySlug
+    }
+
+    return 'ALL'
+  }, [queryCategoryParam, queryGoalSlug, allSystemGoals, categories])
+
+  const [selectedCategorySlug, setSelectedCategorySlug] = useState<string>(resolvedCategorySlug)
+
+  const [prevResolvedCategorySlug, setPrevResolvedCategorySlug] = useState(resolvedCategorySlug)
+  if (resolvedCategorySlug !== prevResolvedCategorySlug) {
+    setPrevResolvedCategorySlug(resolvedCategorySlug)
+    setSelectedCategorySlug(resolvedCategorySlug)
+  }
+
   const initialGoalId = useMemo<number | 'ALL'>(() => {
     if (parsedQueryGoalId && !isNaN(parsedQueryGoalId)) {
       return parsedQueryGoalId
     }
-    if (queryGoalSlug && allSystemGoals.length > 0) {
-      const match = allSystemGoals.find((g) => g.slug === queryGoalSlug)
-      if (match) return match.id
-    }
-    if (queryCategorySlug && allSystemGoals.length > 0) {
-      const match = allSystemGoals.find((g) => g.categorySlug === queryCategorySlug)
-      if (match) return match.id
-    }
     return 'ALL'
-  }, [parsedQueryGoalId, queryGoalSlug, queryCategorySlug, allSystemGoals])
+  }, [parsedQueryGoalId])
 
   const [isGoalSheetOpen, setIsGoalSheetOpen] = useState(() => isQueryGoalsOpen)
   const [selectedActiveGoalId, setSelectedActiveGoalId] = useState<number | 'ALL'>(initialGoalId)
@@ -382,12 +401,27 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
 
   const isLoading = isCategoriesLoading || isOfferingsLoading
 
+  const isSpotlightInCategory = useMemo(() => {
+    if (!spotlightOffering || selectedCategorySlug === 'ALL') return true
+    const targetCat = categories.find(
+      (c) => c.slug === selectedCategorySlug || String(c.id) === selectedCategorySlug,
+    )
+    const catGoalIds = new Set(targetCat?.goals?.map((g) => g.id) || [])
+    const offeringGoalLinks = spotlightOffering.goalLinks || (spotlightOffering as any).goals || []
+    return offeringGoalLinks.some((l: any) => {
+      if (catGoalIds.has(l.goalId)) return true
+      if (l.goal?.categoryId && targetCat && l.goal.categoryId === targetCat.id) return true
+      if (l.goal?.category?.slug === selectedCategorySlug) return true
+      return false
+    })
+  }, [spotlightOffering, selectedCategorySlug, categories])
+
   const showSpotlightHero =
     !isLoading &&
     Boolean(spotlightOffering) &&
     !searchQuery &&
     selectedType === 'ALL' &&
-    selectedCategorySlug === 'ALL'
+    (selectedCategorySlug === 'ALL' || isSpotlightInCategory)
 
   // If spotlight hero is active, avoid duplicating the exact same offering as item #1 in the grid
   const gridItems = useMemo<RecommendedOfferingItem[]>(() => {
@@ -400,6 +434,27 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
     }
     return displayItems
   }, [displayItems, showSpotlightHero, spotlightOffering])
+
+  const activeCategory = useMemo(() => {
+    if (selectedCategorySlug === 'ALL') return null
+    return categories.find(
+      (c) => c.slug === selectedCategorySlug || String(c.id) === selectedCategorySlug,
+    )
+  }, [categories, selectedCategorySlug])
+
+  const handleCategoryChange = (slug: string) => {
+    setSelectedCategorySlug(slug)
+    if (selectedActiveGoalId !== 'ALL') {
+      setSelectedActiveGoalId('ALL')
+    }
+    if (slug === 'ALL') {
+      if (searchParams?.get('category') || searchParams?.get('cat') || searchParams?.get('goal')) {
+        router.replace('/dashboard/lifestyle', { scroll: false })
+      }
+    } else {
+      router.replace(`/dashboard/lifestyle?category=${encodeURIComponent(slug)}`, { scroll: false })
+    }
+  }
 
   const handleOfferingClick = (offering: GoalOffering) => {
     const identifier = offering.uuid || offering.slug || String(offering.id)
@@ -565,7 +620,7 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
             <select
               className="lifestyle-discovery__category-select"
               value={selectedCategorySlug}
-              onChange={(e) => setSelectedCategorySlug(e.target.value)}
+              onChange={(e) => handleCategoryChange(e.target.value)}
               aria-label="Filter by category"
             >
               <option value="ALL">All Categories</option>
@@ -581,7 +636,7 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
             <button
               type="button"
               className="lifestyle-discovery__category-reset"
-              onClick={() => setSelectedCategorySlug('ALL')}
+              onClick={() => handleCategoryChange('ALL')}
             >
               Reset
             </button>
@@ -676,7 +731,9 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
           <h2 className="lifestyle-discovery__section-title">
             {selectedActiveGoalId !== 'ALL'
               ? allSystemGoals.find((g) => g.id === selectedActiveGoalId)?.title || 'Curated for You'
-              : 'Explore Perks'}
+              : activeCategory
+                ? activeCategory.title || activeCategory.name
+                : 'Explore Perks'}
           </h2>
           {!isLoading && (
             <span className="lifestyle-discovery__count-badge">
@@ -757,6 +814,7 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
                   </p>
                   {(searchQuery ||
                     selectedType !== 'ALL' ||
+                    selectedCategorySlug !== 'ALL' ||
                     selectedActiveGoalId !== 'ALL') && (
                     <button
                       type="button"
@@ -764,7 +822,7 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
                       onClick={() => {
                         setSearchQuery('')
                         setSelectedType('ALL')
-                        setSelectedActiveGoalId('ALL')
+                        handleCategoryChange('ALL')
                       }}
                     >
                       View All Perks

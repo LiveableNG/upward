@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { Store } from 'lucide-react'
 import { Modal } from '../../../components/common/modal/Modal'
 import { slugify } from '../utils'
@@ -8,6 +8,7 @@ interface VendorModalProps {
   isOpen: boolean
   onClose: () => void
   vendor: CommerceVendor | null
+  availableZones?: Array<{ tag: string; name: string }>
   onSubmit: (data: Record<string, unknown>) => Promise<void>
 }
 
@@ -15,6 +16,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
   isOpen,
   onClose,
   vendor,
+  availableZones = [],
   onSubmit,
 }) => {
   const isEditing = Boolean(vendor)
@@ -32,7 +34,20 @@ export const VendorModal: React.FC<VendorModalProps> = ({
   const [accountName, setAccountName] = useState('')
   const [isVerified, setIsVerified] = useState(false)
   const [isActive, setIsActive] = useState(true)
+  const [defaultDeliveryCoverage, setDefaultDeliveryCoverage] = useState('NATIONWIDE')
+  const [defaultDeliveryZones, setDefaultDeliveryZones] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
+
+  // Dynamically populated from database configured delivery zones
+  const zonesToDisplay = useMemo(() => {
+    const list = [...availableZones]
+    for (const z of defaultDeliveryZones) {
+      if (!list.some((item) => item.tag.toUpperCase() === z.toUpperCase())) {
+        list.push({ tag: z, name: z.replace(/_/g, ' ') })
+      }
+    }
+    return list
+  }, [availableZones, defaultDeliveryZones])
 
   useEffect(() => {
     if (vendor) {
@@ -50,6 +65,8 @@ export const VendorModal: React.FC<VendorModalProps> = ({
       setAccountName(vendor.accountName || '')
       setIsVerified(vendor.isVerified ?? false)
       setIsActive(vendor.isActive ?? true)
+      setDefaultDeliveryCoverage(vendor.defaultDeliveryCoverage || 'NATIONWIDE')
+      setDefaultDeliveryZones(vendor.defaultDeliveryZones || [])
     } else {
       setName('')
       setSlug('')
@@ -65,6 +82,8 @@ export const VendorModal: React.FC<VendorModalProps> = ({
       setAccountName('')
       setIsVerified(false)
       setIsActive(true)
+      setDefaultDeliveryCoverage('NATIONWIDE')
+      setDefaultDeliveryZones([])
     }
   }, [vendor, isOpen])
 
@@ -96,6 +115,8 @@ export const VendorModal: React.FC<VendorModalProps> = ({
         accountName: accountName.trim() || undefined,
         isVerified,
         isActive,
+        defaultDeliveryCoverage,
+        defaultDeliveryZones,
       })
       onClose()
     } catch {
@@ -212,6 +233,101 @@ export const VendorModal: React.FC<VendorModalProps> = ({
               onChange={(e) => setLogoUrl(e.target.value)}
             />
           </div>
+        </div>
+
+        {/* Service & Delivery Operating Zones */}
+        <div
+          style={{
+            padding: '14px',
+            background: 'var(--surface-hover)',
+            borderRadius: '10px',
+            border: '1px solid var(--border)',
+          }}
+        >
+          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '8px' }}>
+            SERVICE & DELIVERY OPERATING COVERAGE
+          </div>
+          <div style={{ marginBottom: defaultDeliveryCoverage === 'REGIONAL_ZONES' || defaultDeliveryCoverage === 'LOCAL_RADIUS' ? '12px' : '0' }}>
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, marginBottom: '4px' }}>
+              Coverage Model
+            </label>
+            <select
+              className="input"
+              value={defaultDeliveryCoverage}
+              onChange={(e) => setDefaultDeliveryCoverage(e.target.value)}
+              style={{ height: '36px', fontSize: '13px' }}
+            >
+              <option value="NATIONWIDE">Nationwide (All States & Cities)</option>
+              <option value="REGIONAL_ZONES">Regional Operating Zones (Mainland, Island, Oyo, etc.)</option>
+              <option value="LOCAL_RADIUS">Local City Only</option>
+              <option value="PICKUP_ONLY">In-Store / On-Premise Only</option>
+            </select>
+          </div>
+
+          {(defaultDeliveryCoverage === 'REGIONAL_ZONES' || defaultDeliveryCoverage === 'LOCAL_RADIUS') && (
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <label style={{ fontSize: '11px', fontWeight: 600 }}>
+                  Active Operating Zones ({defaultDeliveryZones.length} selected)
+                </label>
+                {defaultDeliveryZones.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setDefaultDeliveryZones([])}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--text-muted)',
+                      fontSize: '11px',
+                      cursor: 'pointer',
+                      padding: 0,
+                    }}
+                  >
+                    Clear all
+                  </button>
+                )}
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {zonesToDisplay.length > 0 ? (
+                  zonesToDisplay.map((zone) => {
+                    const isSelected = defaultDeliveryZones.includes(zone.tag)
+                    return (
+                      <button
+                        key={zone.tag}
+                        type="button"
+                        onClick={() => {
+                          setDefaultDeliveryZones((prev) =>
+                            isSelected ? prev.filter((t) => t !== zone.tag) : [...prev, zone.tag],
+                          )
+                        }}
+                        style={{
+                          padding: '4px 10px',
+                          borderRadius: '16px',
+                          fontSize: '11.5px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          border: isSelected ? '1px solid var(--accent)' : '1px solid var(--border)',
+                          background: isSelected ? 'var(--accent)' : 'var(--surface)',
+                          color: isSelected ? '#fff' : 'var(--text)',
+                          transition: 'all 0.15s ease',
+                        }}
+                      >
+                        {isSelected ? '✓ ' : '+ '}
+                        {zone.name}
+                      </button>
+                    )
+                  })
+                ) : (
+                  <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                    No zones configured in the Delivery Zones table yet. Configure zones in Commerce Workspace &gt; Delivery Zones.
+                  </span>
+                )}
+              </div>
+              <p style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', marginBottom: 0 }}>
+                Services (cleaners, painters, artisans) and products from this vendor will only be deliverable in these zones.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Settlement Account Box */}

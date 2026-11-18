@@ -40,6 +40,8 @@ export class GetOfferingsUseCase {
           logoUrl: item.vendor.logoUrl,
           rating: item.vendor.rating,
           isActive: item.vendor.isActive,
+          defaultDeliveryCoverage: item.vendor.defaultDeliveryCoverage,
+          defaultDeliveryZones: item.vendor.defaultDeliveryZones,
         }
       }
     })

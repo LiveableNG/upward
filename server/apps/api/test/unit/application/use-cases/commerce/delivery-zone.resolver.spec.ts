@@ -49,26 +49,104 @@ describe('Phase 1: Location Exclusivity & Delivery Coverage Engine', () => {
       })
     })
 
+    it('resolves Ibadan / Oyo addresses to IBADAN_METRO', () => {
+      expect(DeliveryZoneResolver.resolveZoneFromAddress('Bodija GRA, Ibadan, Oyo State')).toBe('IBADAN_METRO')
+      expect(DeliveryZoneResolver.resolveZoneFromAddress('Jericho, Ibadan')).toBe('IBADAN_METRO')
+      expect(DeliveryZoneResolver.resolveZoneFromAddress('Oluyole Estate, Oyo State')).toBe('IBADAN_METRO')
+    })
+
+    it('resolves Port Harcourt addresses to PORT_HARCOURT', () => {
+      expect(DeliveryZoneResolver.resolveZoneFromAddress('Trans Amadi Industrial Layout, Port Harcourt, Rivers State')).toBe('PORT_HARCOURT')
+      expect(DeliveryZoneResolver.resolveZoneFromAddress('Peter Odili Road, Port Harcourt')).toBe('PORT_HARCOURT')
+    })
+
     it('defaults unknown or unspecified addresses to OTHER', () => {
-      expect(DeliveryZoneResolver.resolveZoneFromAddress('Port Harcourt, Rivers State')).toBe('OTHER')
-      expect(DeliveryZoneResolver.resolveZoneFromAddress('Ibadan, Oyo State')).toBe('OTHER')
+      expect(DeliveryZoneResolver.resolveZoneFromAddress('Enugu City, Enugu State')).toBe('OTHER')
+      expect(DeliveryZoneResolver.resolveZoneFromAddress('Kano City, Kano State')).toBe('OTHER')
     })
   })
 
   describe('DeliveryZoneResolver.validateOfferingDelivery', () => {
-    it('always permits service offerings regardless of location', () => {
-      const result = DeliveryZoneResolver.validateOfferingDelivery(
-        {
-          title: 'Deep House Cleaning Service',
-          type: 'SERVICE',
-          deliveryAvailable: false,
-          deliveryCoverageType: 'REGIONAL_ZONES',
-          deliveryZones: ['LAGOS_ISLAND'],
+    it('validates on-site service against vendor coverage (e.g. cleaner covering Mainland, Island & Ibadan)', () => {
+      const cleanerOffering = {
+        title: 'Deep Apartment Sanitization & Cleaning',
+        type: 'SERVICE',
+        deliveryAvailable: true,
+        vendor: {
+          name: 'Pristine Cleaners',
+          defaultDeliveryCoverage: 'REGIONAL_ZONES',
+          defaultDeliveryZones: ['LAGOS_MAINLAND', 'LAGOS_ISLAND', 'IBADAN_METRO'],
         },
-        'Port Harcourt, Rivers State',
-      )
+      }
 
-      expect(result.isDeliverable).toBe(true)
+      // Mainland tenant
+      expect(
+        DeliveryZoneResolver.validateOfferingDelivery(cleanerOffering, '12 Allen Avenue, Ikeja, Lagos').isDeliverable,
+      ).toBe(true)
+
+      // Island tenant
+      expect(
+        DeliveryZoneResolver.validateOfferingDelivery(cleanerOffering, 'Admiralty Way, Lekki Phase 1, Lagos').isDeliverable,
+      ).toBe(true)
+
+      // Ibadan / Oyo tenant
+      expect(
+        DeliveryZoneResolver.validateOfferingDelivery(cleanerOffering, 'Bodija GRA, Ibadan, Oyo State').isDeliverable,
+      ).toBe(true)
+
+      // Abuja tenant (outside cleaner coverage)
+      const abujaCheck = DeliveryZoneResolver.validateOfferingDelivery(
+        cleanerOffering,
+        'Maitama District, Abuja FCT',
+      )
+      expect(abujaCheck.isDeliverable).toBe(false)
+      expect(abujaCheck.reason).toContain('Service \'Deep Apartment Sanitization & Cleaning\' is not available in ABUJA METRO')
+    })
+
+    it('rejects on-site service when vendor only works on the Mainland (e.g. painter)', () => {
+      const painterOffering = {
+        title: 'Interior Wall Painting & Priming',
+        type: 'SERVICE',
+        deliveryAvailable: true,
+        vendor: {
+          name: 'Mainland Artisan Painters',
+          defaultDeliveryCoverage: 'REGIONAL_ZONES',
+          defaultDeliveryZones: ['LAGOS_MAINLAND'],
+        },
+      }
+
+      // Mainland tenant - permitted
+      expect(
+        DeliveryZoneResolver.validateOfferingDelivery(painterOffering, 'Yaba, Lagos Mainland').isDeliverable,
+      ).toBe(true)
+
+      // Island / Lekki tenant - rejected
+      const lekkiCheck = DeliveryZoneResolver.validateOfferingDelivery(
+        painterOffering,
+        'Plot 12 Admiralty Way, Lekki Phase 1, Lagos',
+      )
+      expect(lekkiCheck.isDeliverable).toBe(false)
+      expect(lekkiCheck.reason).toContain('Service \'Interior Wall Painting & Priming\' is not available in LAGOS ISLAND')
+      expect(lekkiCheck.reason).toContain('Supported service areas: LAGOS MAINLAND')
+    })
+
+    it('allows offering custom zones to override vendor defaults', () => {
+      const offeringWithOverride = {
+        title: 'Specialty Concrete Floor Coating',
+        type: 'SERVICE',
+        deliveryAvailable: true,
+        deliveryCoverageType: 'REGIONAL_ZONES',
+        deliveryZones: ['LAGOS_MAINLAND', 'LAGOS_ISLAND'], // override expands to island
+        vendor: {
+          name: 'Local Mainland Applicators',
+          defaultDeliveryCoverage: 'REGIONAL_ZONES',
+          defaultDeliveryZones: ['LAGOS_MAINLAND'],
+        },
+      }
+
+      expect(
+        DeliveryZoneResolver.validateOfferingDelivery(offeringWithOverride, 'Victoria Island, Lagos').isDeliverable,
+      ).toBe(true)
     })
 
     it('rejects physical goods with deliveryAvailable = false as pickup only', () => {
@@ -129,7 +207,7 @@ describe('Phase 1: Location Exclusivity & Delivery Coverage Engine', () => {
 
       expect(result.isDeliverable).toBe(false)
       expect(result.reason).toContain('cannot be delivered to LAGOS MAINLAND')
-      expect(result.reason).toContain('Supported delivery zones: LAGOS_ISLAND')
+      expect(result.reason).toContain('Supported delivery zones: LAGOS ISLAND')
     })
   })
 })

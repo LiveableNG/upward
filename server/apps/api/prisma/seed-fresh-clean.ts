@@ -194,7 +194,7 @@ async function main() {
       rating: 4.8,
       isActive: true,
       defaultDeliveryCoverage: DeliveryCoverageType.REGIONAL_ZONES,
-      defaultDeliveryZones: ['Lagos Mainland', 'Lagos Island', 'Ikeja', 'Lekki / Ajah'],
+      defaultDeliveryZones: ['Lagos Mainland', 'Lagos Island', 'Ikeja', 'Lekki / Ajah', 'Ibadan / Oyo'],
     },
   })
 
@@ -442,12 +442,24 @@ async function main() {
     ],
   })
 
-  // Link the bundle to its goal: prepare-for-the-new-year
+  // Link the bundle to its goals: prepare-for-the-new-year and improve-my-home-feel
   const homeRefreshGoalId = goalIdMap.get('prepare-for-the-new-year')
+  const homeFeelGoalId = goalIdMap.get('improve-my-home-feel')
   if (homeRefreshGoalId) {
     await prisma.upward_goal_offering.create({
       data: {
         goalId: homeRefreshGoalId,
+        offeringId: promoBundle.id,
+        isRecommended: true,
+        relevanceScore: 100,
+        sortOrder: 0,
+      },
+    })
+  }
+  if (homeFeelGoalId) {
+    await prisma.upward_goal_offering.create({
+      data: {
+        goalId: homeFeelGoalId,
         offeringId: promoBundle.id,
         isRecommended: true,
         relevanceScore: 100,
@@ -462,6 +474,17 @@ async function main() {
       await prisma.upward_goal_offering.create({
         data: {
           goalId: homeRefreshGoalId,
+          offeringId: c.id,
+          isRecommended: false,
+          relevanceScore: 80,
+          sortOrder: 1,
+        },
+      })
+    }
+    if (homeFeelGoalId) {
+      await prisma.upward_goal_offering.create({
+        data: {
+          goalId: homeFeelGoalId,
           offeringId: c.id,
           isRecommended: false,
           relevanceScore: 80,

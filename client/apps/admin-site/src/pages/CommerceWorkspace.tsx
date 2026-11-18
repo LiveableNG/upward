@@ -737,6 +737,7 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
         isOpen={vendorModalOpen}
         onClose={() => setVendorModalOpen(false)}
         vendor={editingVendor}
+        availableZones={deliveryZones}
         onSubmit={async (data) => {
           if (editingVendor) {
             await updateVendor(editingVendor.id, data)
