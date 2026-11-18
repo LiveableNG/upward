@@ -414,6 +414,27 @@ export class SubmitUnitRequestUseCase {
       } catch (e: any) {
         this.logger.warn(`Failed to save manual account: ${e.message}`)
       }
+    } else if (pm && savedProperty?.id) {
+      try {
+        const existingProperty = await this.prisma.upward_user_property.findUnique({
+          where: { id: savedProperty.id },
+          select: { id: true, manualAccountId: true }
+        });
+        if (existingProperty?.manualAccountId) {
+          const currentAcc = await this.prisma.upward_manual_account.findUnique({
+            where: { id: existingProperty.manualAccountId },
+            select: { id: true, pmId: true }
+          });
+          if (currentAcc && currentAcc.pmId === null) {
+            await this.prisma.upward_user_property.update({
+              where: { id: savedProperty.id },
+              data: { manualAccountId: null }
+            });
+          }
+        }
+      } catch (e: any) {
+        this.logger.warn(`Failed to clean up obsolete manual account on PM link: ${e.message}`);
+      }
     }
 
     // When property is connected with a PM, the default settlement account of the PM overrides any tenant-provided manual account

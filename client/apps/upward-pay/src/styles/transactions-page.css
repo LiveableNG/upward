@@ -14,7 +14,7 @@
 }
 
 .tx-page__header {
-  padding: 6px 0 18px;
+  padding: calc(var(--safe-top, 0px) + 6px) 0 18px;
 }
 
 .tx-page__header-row {
@@ -291,6 +291,13 @@
   height: auto;
   border-right: none;
   padding: 14px 16px;
+  color: var(--shell-ink, #201a18);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.tx-page .dash-home__activity-item-title {
+  color: var(--shell-ink, #201a18);
 }
 
 .tx-page .dash-home__activity-item + .dash-home__activity-item {

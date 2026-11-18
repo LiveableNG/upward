@@ -39,6 +39,7 @@ import { BulkImportDetail } from './pages/BulkImportDetail'
 import Requests from './pages/Requests'
 import UpwardUniversity from './pages/UpwardUniversity'
 import Settlements from './pages/Settlements'
+import CommerceWorkspace from './pages/CommerceWorkspace'
 
 import ChangePassword from './components/ChangePassword'
 import './App.css'
@@ -124,6 +125,23 @@ function AppRoutes() {
             path="/university-early-access"
             element={<UpwardUniversity token={auth.token} adminRole={auth.user.role} />}
           />
+
+          {/* Legacy Goal Management redirects to Commerce Workspace */}
+          <Route path="/goals" element={<Navigate to="/commerce/goals" replace />} />
+          <Route path="/goals/offerings" element={<Navigate to="/commerce/offerings" replace />} />
+          <Route path="/goals/vendors" element={<Navigate to="/commerce/vendors" replace />} />
+          <Route path="/goals/analytics" element={<Navigate to="/commerce/overview" replace />} />
+
+          {/* Dedicated Commerce & Lifestyle Workspace */}
+          <Route path="/commerce" element={<CommerceWorkspace token={auth.token} adminRole={auth.user.role} />} />
+          <Route path="/commerce/overview" element={<CommerceWorkspace token={auth.token} adminRole={auth.user.role} />} />
+          <Route path="/commerce/goals" element={<CommerceWorkspace token={auth.token} adminRole={auth.user.role} />} />
+          <Route path="/commerce/categories" element={<CommerceWorkspace token={auth.token} adminRole={auth.user.role} />} />
+          <Route path="/commerce/offerings" element={<CommerceWorkspace token={auth.token} adminRole={auth.user.role} />} />
+          <Route path="/commerce/vendors" element={<CommerceWorkspace token={auth.token} adminRole={auth.user.role} />} />
+          <Route path="/commerce/orders" element={<CommerceWorkspace token={auth.token} adminRole={auth.user.role} />} />
+          <Route path="/commerce/disputes" element={<CommerceWorkspace token={auth.token} adminRole={auth.user.role} />} />
+          <Route path="/commerce/zones" element={<CommerceWorkspace token={auth.token} adminRole={auth.user.role} />} />
           {showSandboxTools && (
             <Route path="/demo-bank" element={<DemoBank token={auth.token} />} />
           )}

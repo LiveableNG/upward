@@ -1,5 +1,5 @@
 import React from 'react'
-import { MapPin, Wallet, Info } from 'lucide-react'
+import { MapPin, Wallet, Info, ShieldCheck } from 'lucide-react'
 import { type Landlord } from './types'
 import { LandlordAvatar } from './LandlordAvatar'
 import { PayFlowPrimaryButton } from './PayPageShell'
@@ -151,7 +151,10 @@ export function StepConfirm({
         </PayFlowPrimaryButton>
       </div>
 
-      <p className="pay-flow__secure">🔒 Secured by Upward</p>
+      <p className="pay-flow__secure">
+        <ShieldCheck size={14} style={{ display: 'inline-block', verticalAlign: '-2px', marginRight: 5 }} aria-hidden />
+        Secured by Upward
+      </p>
     </div>
   )
 }

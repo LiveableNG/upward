@@ -1,3 +1,5 @@
+import { Capacitor } from '@capacitor/core'
+
 export function formatCurrency(amount: number | undefined | null, currency = 'NGN'): string {
   const val = amount || 0
   return new Intl.NumberFormat('en-NG', {
@@ -128,5 +130,62 @@ export function isValidEmail(email: string | null | undefined): boolean {
   const trimmed = email.trim()
   if (trimmed.length > 254) return false
   return EMAIL_REGEX.test(trimmed)
+}
+
+export function getPublicWebUrl(path?: string): string {
+  const configuredWebUrl = (process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io').replace(/\/$/, '')
+  
+  let base = configuredWebUrl
+  if (typeof window !== 'undefined') {
+    const isCapacitor =
+      Capacitor.isNativePlatform() ||
+      window.location.protocol === 'capacitor:' ||
+      window.location.protocol === 'ionic:' ||
+      (window.location.hostname === 'localhost' && window.location.port === '')
+
+    if (!isCapacitor && window.location.origin && !window.location.origin.includes('localhost:80')) {
+      base = window.location.origin
+    }
+  }
+
+  const resolvedPath = path !== undefined 
+    ? path 
+    : typeof window !== 'undefined' 
+      ? `${window.location.pathname}${window.location.search}` 
+      : ''
+
+  const cleanPath = resolvedPath.startsWith('/') ? resolvedPath : `/${resolvedPath}`
+  return `${base}${cleanPath}`
+}
+
+export async function copyTextToClipboard(text: string): Promise<boolean> {
+  if (typeof window === 'undefined') return false
+
+  try {
+    if (navigator?.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text)
+      return true
+    }
+  } catch (err) {
+    console.warn('[copyTextToClipboard] navigator.clipboard failed, attempting fallback', err)
+  }
+
+  try {
+    const textArea = document.createElement('textarea')
+    textArea.value = text
+    textArea.style.position = 'fixed'
+    textArea.style.top = '0'
+    textArea.style.left = '-9999px'
+    textArea.style.opacity = '0'
+    document.body.appendChild(textArea)
+    textArea.focus()
+    textArea.select()
+    const successful = document.execCommand('copy')
+    document.body.removeChild(textArea)
+    return successful
+  } catch (err) {
+    console.error('[copyTextToClipboard] Fallback failed', err)
+    return false
+  }
 }
 

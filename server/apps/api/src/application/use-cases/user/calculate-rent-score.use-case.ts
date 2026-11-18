@@ -224,7 +224,25 @@ export class CalculateRentScoreUseCase {
       where: { userId: user.id }
     })
     const goalsBalance = savingsGoals.reduce((sum, goal) => sum + goal.currentAmount, 0)
-    const totalSaved = walletBalance + goalsBalance
+
+    const activeVaults = this.prisma.upward_rent_vault
+      ? await this.prisma.upward_rent_vault.findMany({
+          where: { userId: user.id, lockStatus: { notIn: ['SETTLED', 'BROKEN_OUT'] } },
+        })
+      : []
+    const vaultBalanceNaira = activeVaults.reduce(
+      (sum, v) => sum + Number(BigInt(v.currentPrincipalKobo || 0) + BigInt(v.accruedYieldKobo || 0)) / 100,
+      0,
+    )
+
+    const depositBalances = this.prisma.upward_rent_deposit_balance
+      ? await this.prisma.upward_rent_deposit_balance.findMany({
+          where: { userId: user.id },
+        })
+      : []
+    const depositBalanceNaira = depositBalances.reduce((sum, b) => sum + (b.balance || 0), 0)
+
+    const totalSaved = walletBalance + goalsBalance + vaultBalanceNaira + depositBalanceNaira
 
     const oneYearAgo = new Date()
     oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1)
@@ -238,8 +256,31 @@ export class CalculateRentScoreUseCase {
       select: { createdAt: true }
     })
 
+    const vaultDepositTx = this.prisma.upward_rent_vault_transaction
+      ? await this.prisma.upward_rent_vault_transaction.findMany({
+          where: {
+            userId: user.id,
+            type: 'DEPOSIT',
+            createdAt: { gte: oneYearAgo },
+          },
+          select: { createdAt: true },
+        })
+      : []
+
+    const rentDepositTx = this.prisma.upward_rent_deposit_transaction
+      ? await this.prisma.upward_rent_deposit_transaction.findMany({
+          where: {
+            userId: user.id,
+            type: 'CREDIT',
+            status: 'SUCCESS',
+            createdAt: { gte: oneYearAgo },
+          },
+          select: { createdAt: true },
+        })
+      : []
+
     const uniqueMonths = new Set(
-      savingsTx.map(tx => {
+      [...savingsTx, ...vaultDepositTx, ...rentDepositTx].map(tx => {
         const d = new Date(tx.createdAt)
         return `${d.getFullYear()}-${d.getMonth()}`
       })

@@ -113,6 +113,14 @@ export interface IPaymentGateway {
     reference: string
     narration?: string
   }): Promise<any>
+  validateCustomerIdentification?(data: {
+    customerCode: string
+    country?: string
+    type: 'bvn' | 'bank_account'
+    value: string
+    firstName: string
+    lastName: string
+  }): Promise<{ status: boolean; message: string }>
 }
 
 export interface PaymentLineItem {

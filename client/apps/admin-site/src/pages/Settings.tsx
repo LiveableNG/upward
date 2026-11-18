@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { UserPlus } from 'lucide-react'
+import { Percent, Power, RotateCcw, Save, UserPlus } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
 import { AdminTable, type AdminUser } from '../features/settings/components/AdminTable'
@@ -12,9 +12,29 @@ interface SettingsProps {
   currentAdminId: string
 }
 
+const DEFAULT_PLATFORM_RATES = {
+  savingsAnnualRatePct: 14,
+  rentProtecRatePct: 10,
+  insurancePremiumPct: 2,
+  rentProtecMinMonths: 6,
+  maxSavingsMonths: 11,
+}
+
 const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
   const [admins, setAdmins] = useState<AdminUser[]>([])
   const [loading, setLoading] = useState(true)
+
+  // Platform Rates State
+  const [savingsEnabled, setSavingsEnabled] = useState(true)
+  const [togglingSavings, setTogglingSavings] = useState(false)
+  const [savingsRatePct, setSavingsRatePct] = useState('14')
+  const [rentProtecRatePct, setRentProtecRatePct] = useState('10')
+  const [insurancePremiumPct, setInsurancePremiumPct] = useState('2')
+  const [rentProtecMinMonths, setRentProtecMinMonths] = useState('6')
+  const [maxSavingsMonths, setMaxSavingsMonths] = useState('11')
+  const [ratesLoading, setRatesLoading] = useState(true)
+  const [savingRates, setSavingRates] = useState(false)
+  const [ratesUpdatedAt, setRatesUpdatedAt] = useState<string | null>(null)
 
   // Add Admin State
   const [showAddModal, setShowAddModal] = useState(false)
@@ -34,7 +54,147 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
 
   useEffect(() => {
     fetchAdmins()
+    fetchPlatformRates()
   }, [token])
+
+  const fetchPlatformRates = async () => {
+    try {
+      setRatesLoading(true)
+      const result = await apiService.get('/admin/fees/rates', token)
+      const data = result?.data || result
+      if (data) {
+        if (data.savingsEnabled !== undefined) {
+          setSavingsEnabled(Boolean(data.savingsEnabled))
+        }
+        if (data.savingsAnnualRatePct !== undefined) {
+          setSavingsRatePct(String(data.savingsAnnualRatePct))
+        }
+        if (data.rentProtecRatePct !== undefined) {
+          setRentProtecRatePct(String(data.rentProtecRatePct))
+        }
+        if (data.insurancePremiumPct !== undefined) {
+          setInsurancePremiumPct(String(data.insurancePremiumPct))
+        }
+        if (data.rentProtecMinMonths !== undefined) {
+          setRentProtecMinMonths(String(data.rentProtecMinMonths))
+        }
+        if (data.maxSavingsMonths !== undefined) {
+          setMaxSavingsMonths(String(data.maxSavingsMonths))
+        }
+        setRatesUpdatedAt(data.updatedAt || null)
+      }
+    } catch (err) {
+      console.error('Failed to fetch platform rates', err)
+    } finally {
+      setRatesLoading(false)
+    }
+  }
+
+  const persistPlatformRates = async (
+    payload: {
+      savingsEnabled: boolean
+      savingsAnnualRatePct: number
+      rentProtecRatePct: number
+      insurancePremiumPct: number
+      rentProtecMinMonths: number
+      maxSavingsMonths: number
+    },
+    successMessage: string,
+  ) => {
+    try {
+      setSavingRates(true)
+      const result = await apiService.post('/admin/fees/rates', payload, token)
+      const data = result?.data || result
+      if (data?.updatedAt) setRatesUpdatedAt(data.updatedAt)
+      showToast(successMessage)
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update platform rates', true)
+    } finally {
+      setSavingRates(false)
+    }
+  }
+
+  const handleSaveRates = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const parsedSavings = parseFloat(savingsRatePct)
+    const parsedRentProtec = parseFloat(rentProtecRatePct)
+    const parsedInsurance = parseFloat(insurancePremiumPct)
+    const parsedMinMonths = parseInt(rentProtecMinMonths, 10)
+    const parsedMaxMonths = parseInt(maxSavingsMonths, 10)
+
+    if (!Number.isFinite(parsedSavings) || parsedSavings < 0 || parsedSavings > 100) {
+      showToast('Save & Earn annual rate must be between 0% and 100%', true)
+      return
+    }
+    if (!Number.isFinite(parsedRentProtec) || parsedRentProtec < 0 || parsedRentProtec > 100) {
+      showToast('Rent Protec annual rate must be between 0% and 100%', true)
+      return
+    }
+    if (!Number.isFinite(parsedInsurance) || parsedInsurance < 0 || parsedInsurance > 100) {
+      showToast('Insurance premium percentage must be between 0% and 100%', true)
+      return
+    }
+    if (!Number.isFinite(parsedMinMonths) || parsedMinMonths < 1 || parsedMinMonths > 12) {
+      showToast('Rent Protec minimum months must be between 1 and 12', true)
+      return
+    }
+    if (!Number.isFinite(parsedMaxMonths) || parsedMaxMonths < 1 || parsedMaxMonths > 11) {
+      showToast('Max savings horizon must be between 1 and 11 months', true)
+      return
+    }
+
+    await persistPlatformRates(
+      {
+        savingsEnabled,
+        savingsAnnualRatePct: parsedSavings,
+        rentProtecRatePct: parsedRentProtec,
+        insurancePremiumPct: parsedInsurance,
+        rentProtecMinMonths: parsedMinMonths,
+        maxSavingsMonths: parsedMaxMonths,
+      },
+      'Platform savings & insurance rates updated!',
+    )
+  }
+
+  const handleResetDefaultRates = async () => {
+    setSavingsRatePct(String(DEFAULT_PLATFORM_RATES.savingsAnnualRatePct))
+    setRentProtecRatePct(String(DEFAULT_PLATFORM_RATES.rentProtecRatePct))
+    setInsurancePremiumPct(String(DEFAULT_PLATFORM_RATES.insurancePremiumPct))
+    setRentProtecMinMonths(String(DEFAULT_PLATFORM_RATES.rentProtecMinMonths))
+    setMaxSavingsMonths(String(DEFAULT_PLATFORM_RATES.maxSavingsMonths))
+
+    await persistPlatformRates(
+      {
+        savingsEnabled,
+        ...DEFAULT_PLATFORM_RATES,
+      },
+      'Platform rates reset to defaults (14% / 10% / 2%).',
+    )
+  }
+
+  const handleToggleSavingsAvailability = async () => {
+    const nextEnabled = !savingsEnabled
+    try {
+      setTogglingSavings(true)
+      const result = await apiService.post(
+        '/admin/fees/rates',
+        { savingsEnabled: nextEnabled },
+        token,
+      )
+      const data = result?.data || result
+      setSavingsEnabled(nextEnabled)
+      if (data?.updatedAt) setRatesUpdatedAt(data.updatedAt)
+      showToast(
+        nextEnabled
+          ? 'Rent Savings is now LIVE in the app!'
+          : 'Rent Savings turned OFF — users cannot enter the savings flow.',
+      )
+    } catch (err: any) {
+      showToast(err.message || 'Failed to toggle Rent Savings availability', true)
+    } finally {
+      setTogglingSavings(false)
+    }
+  }
 
   const fetchAdmins = async () => {
     try {
@@ -165,7 +325,271 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
         )}
       </div>
 
-      <div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div className="card" style={{ padding: '24px' }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+              marginBottom: '20px',
+              gap: '16px',
+              flexWrap: 'wrap',
+            }}
+          >
+            <div>
+              <h3
+                style={{
+                  fontSize: '18px',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                <Percent size={18} style={{ color: 'var(--accent)' }} />
+                Platform Rates Configuration
+              </h3>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Configure global Rent Savings annual yield and Rent Support Insurance premium
+                percentage. Changes apply immediately across calculations and new purchases.
+              </p>
+            </div>
+            {ratesUpdatedAt && (
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                Last updated: {new Date(ratesUpdatedAt).toLocaleString()}
+              </span>
+            )}
+          </div>
+
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '12px',
+              padding: '14px 16px',
+              borderRadius: '12px',
+              marginBottom: '20px',
+              border: savingsEnabled ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)',
+              background: savingsEnabled ? 'rgba(16, 185, 129, 0.06)' : 'rgba(239, 68, 68, 0.06)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <Power
+                size={18}
+                style={{ color: savingsEnabled ? '#059669' : '#dc2626', flexShrink: 0 }}
+              />
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>
+                    Rent Savings Feature Availability
+                  </span>
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: '999px',
+                      background: savingsEnabled ? 'rgba(16, 185, 129, 0.16)' : 'rgba(239, 68, 68, 0.16)',
+                      color: savingsEnabled ? '#047857' : '#b91c1c',
+                    }}
+                  >
+                    {savingsEnabled ? 'LIVE FOR USERS' : 'OFF (PAUSED)'}
+                  </span>
+                </div>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '3px 0 0' }}>
+                  {savingsEnabled
+                    ? 'Users can tap into Rent Savings and open a vault.'
+                    : 'Turned off until ARM activates production — clicking Rent Savings in the app will not proceed.'}
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleToggleSavingsAvailability}
+              disabled={ratesLoading || togglingSavings}
+              className={savingsEnabled ? 'btn btn-secondary' : 'btn btn-primary'}
+              style={{ minWidth: '150px' }}
+            >
+              {togglingSavings
+                ? 'Updating...'
+                : savingsEnabled
+                  ? 'Turn Off Savings'
+                  : 'Turn On Savings'}
+            </button>
+          </div>
+
+          <form
+            onSubmit={handleSaveRates}
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gap: '16px',
+              alignItems: 'end',
+            }}
+          >
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  color: 'var(--text-secondary)',
+                  marginBottom: '6px',
+                }}
+              >
+                Save & Earn Rate (% p.a.)
+              </label>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                max="100"
+                value={savingsRatePct}
+                onChange={(e) => setSavingsRatePct(e.target.value)}
+                className="input"
+                disabled={ratesLoading || savingRates}
+                required
+              />
+            </div>
+
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  color: 'var(--text-secondary)',
+                  marginBottom: '6px',
+                }}
+              >
+                Rent Protec Rate (% p.a.)
+              </label>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                max="100"
+                value={rentProtecRatePct}
+                onChange={(e) => setRentProtecRatePct(e.target.value)}
+                className="input"
+                disabled={ratesLoading || savingRates}
+                required
+              />
+            </div>
+
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  color: 'var(--text-secondary)',
+                  marginBottom: '6px',
+                }}
+              >
+                Insurance Premium (% of Rent)
+              </label>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                max="100"
+                value={insurancePremiumPct}
+                onChange={(e) => setInsurancePremiumPct(e.target.value)}
+                className="input"
+                disabled={ratesLoading || savingRates}
+                required
+              />
+            </div>
+
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  color: 'var(--text-secondary)',
+                  marginBottom: '6px',
+                }}
+              >
+                Rent Protec Min Months (X_min)
+              </label>
+              <input
+                type="number"
+                step="1"
+                min="1"
+                max="12"
+                value={rentProtecMinMonths}
+                onChange={(e) => setRentProtecMinMonths(e.target.value)}
+                className="input"
+                disabled={ratesLoading || savingRates}
+                required
+              />
+            </div>
+
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  color: 'var(--text-secondary)',
+                  marginBottom: '6px',
+                }}
+              >
+                Max Savings Horizon (Months)
+              </label>
+              <input
+                type="number"
+                step="1"
+                min="1"
+                max="11"
+                value={maxSavingsMonths}
+                onChange={(e) => setMaxSavingsMonths(e.target.value)}
+                className="input"
+                disabled={ratesLoading || savingRates}
+                required
+              />
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={ratesLoading || savingRates}
+                style={{
+                  height: '44px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                <Save size={16} />
+                {savingRates ? 'Saving...' : 'Save Rates'}
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={handleResetDefaultRates}
+                disabled={ratesLoading || savingRates}
+                style={{
+                  height: '44px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                <RotateCcw size={15} />
+                Reset to Default
+              </button>
+            </div>
+          </form>
+        </div>
+
         <div className="card" style={{ padding: '0' }}>
           <div style={{ padding: '24px', borderBottom: '1px solid var(--border)' }}>
             <h3 style={{ fontSize: '18px', fontWeight: 700 }}>Team Management</h3>

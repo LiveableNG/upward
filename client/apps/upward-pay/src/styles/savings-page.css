@@ -1,5 +1,16 @@
 /* Savings — prototype skin (setup / pay-flow pattern) */
 
+.savings-page {
+  font-family: var(--font-auth, var(--font));
+}
+
+.savings-page button,
+.savings-page input,
+.savings-page select,
+.savings-page textarea {
+  font-family: inherit;
+}
+
 .savings-page__section {
   margin-bottom: 22px;
 }

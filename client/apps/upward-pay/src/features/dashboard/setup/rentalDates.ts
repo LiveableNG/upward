@@ -92,3 +92,18 @@ export function validateRentDates(start: string, end: string): string | null {
   }
   return null
 }
+
+export function formatDisplayDate(dateStr?: string | null): string {
+  if (!dateStr) return ''
+  try {
+    const clean = toDateInputValue(dateStr)
+    const parts = clean.split('-')
+    if (parts.length !== 3) return dateStr
+    const [year, month, day] = parts
+    const d = new Date(Number(year), Number(month) - 1, Number(day))
+    if (Number.isNaN(d.getTime())) return dateStr
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+  } catch {
+    return dateStr || ''
+  }
+}

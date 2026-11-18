@@ -39,8 +39,11 @@ const AnnouncementManager = dynamic(() => import('@/features/dashboard/component
 const RentReminderManager = dynamic(() => import('@/features/dashboard/components/RentReminderManager').then(mod => mod.RentReminderManager), { ssr: false })
 const ProfileSetupBlocker = dynamic(() => import('@/features/dashboard/components/ProfileSetupBlocker').then(mod => mod.ProfileSetupBlocker), { ssr: false })
 const TermsAcceptanceModal = dynamic(() => import('@/features/auth/components/TermsAcceptanceModal').then(mod => mod.TermsAcceptanceModal), { ssr: false })
+import { useUserGoals, useGoalCategories } from '@/features/goals/hooks/useGoals'
 import { PageTransition } from '@/components/common/PageTransition'
 import { DashboardSkeleton } from '@/features/dashboard/components/DashboardSkeleton'
+import { CartProvider } from '@/features/goals/context/CartContext'
+import { CartDrawer } from '@/features/goals/components/CartDrawer'
 import { api } from '@/lib/api'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -49,22 +52,46 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { isLoggedIn, loading, user, isPinLocked } = useAuth()
   const { data: scoreProfile } = useScoreProfile()
   const [blockerDismissed, setBlockerDismissed] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const dashboardEnteredTrackedRef = useRef(false)
+
+  useEffect(() => {
+    setMounted(true)
+    if (typeof window !== 'undefined' && user?.uuid) {
+      // Clean up legacy permanent localStorage skip key so incomplete users can complete profile setup
+      localStorage.removeItem(`upward_profile_setup_skipped_${user.uuid}`)
+    }
+  }, [user?.uuid])
+
+  const {
+    data: userGoals = [],
+    isLoading: isUserGoalsLoading,
+  } = useUserGoals({ enabled: !!user?.uuid })
+  const {
+    data: goalCategories = [],
+    isLoading: isGoalCategoriesLoading,
+  } = useGoalCategories()
+  const hasGoals = userGoals.filter((g) => g.status === 'ACTIVE').length > 0
+  const totalGoalsCount = goalCategories.reduce((acc, cat) => acc + (cat.goals?.length || 0), 0)
+  const goalsAvailable = totalGoalsCount > 0
+  const isGoalsReady = !isGoalCategoriesLoading && (!user?.uuid || !isUserGoalsLoading)
 
   const { variant, isRequired, isLoading: isExperimentLoading } = useRentalExperiment()
   const { isGated: isRentalGated, notifyGated } = useRentalGate()
   const hasRental = hasRentalInfo(user)
 
-  // Stale local storage skip state must NOT override the required variant
+  // Skip state: check session and local storage
   const isSkippedInStorage =
     typeof window !== 'undefined' && user?.uuid
-      ? localStorage.getItem(`upward_profile_setup_skipped_${user.uuid}`) === 'true'
+      ? (sessionStorage.getItem(`upward_profile_setup_skipped_${user.uuid}`) === 'true' ||
+         localStorage.getItem(`upward_profile_setup_skipped_${user.uuid}`) === 'true')
       : false
 
   const isDismissed = isRequired ? false : (blockerDismissed || isSkippedInStorage)
 
   const handleSkipBlocker = () => {
     if (typeof window !== 'undefined' && user?.uuid) {
+      sessionStorage.setItem(`upward_profile_setup_skipped_${user.uuid}`, 'true')
       localStorage.setItem(`upward_profile_setup_skipped_${user.uuid}`, 'true')
     }
     setBlockerDismissed(true)
@@ -89,12 +116,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (!loading && !isLoggedIn && !isPinLocked) {
       const redirectUrl = pathname ? `/login?redirect=${encodeURIComponent(pathname)}` : '/login'
       router.replace(redirectUrl)
+      const timer = setTimeout(() => {
+        if (typeof window !== 'undefined') {
+          window.location.href = redirectUrl
+        }
+      }, 1500)
+      return () => clearTimeout(timer)
     }
   }, [loading, isLoggedIn, isPinLocked, router, pathname])
 
   const isDashboardHome = pathname === '/dashboard'
   const isHomeRequestRoute = pathname?.startsWith('/dashboard/exclusive-homes/request')
-  const showTermsGate = !!(user && !user.termsAcceptedAt)
+  const showTermsGate = mounted && !!(user && !user.termsAcceptedAt)
 
   // Gated users may only reach rental/personal setup and the profile screen (personal details + sign out)
   const isSetupRoute = !!pathname?.startsWith('/dashboard/setup')
@@ -108,46 +141,44 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isSignupDevice = !!signupDeviceKey && (isFreshSignup || readStorageFlag('local', signupDeviceKey))
   const hasAutoOpenedThisSession = !!autoOpenSessionKey && readStorageFlag('session', autoOpenSessionKey)
 
-  // On the signup device, open the rental form directly once per session instead of showing the blocker
-  const shouldAutoOpenRental =
-    isRentalGated && !showTermsGate && !isExemptRoute && isSignupDevice && !hasAutoOpenedThisSession
+  // Do not force-redirect away from dashboard on fresh signup so user sees the setup blocker welcome screen
+  const shouldAutoOpenRental = false
 
-  useEffect(() => {
-    if (loading || !user?.uuid || !isRentalGated || showTermsGate || isExemptRoute) return
+  // Temporarily commented out rental gate redirect
+  // useEffect(() => {
+  //   if (loading || !user?.uuid || !isRentalGated || showTermsGate || isExemptRoute) return
+  //
+  //   if (!isDashboardHome) {
+  //     notifyGated()
+  //     router.replace('/dashboard')
+  //   }
+  // }, [
+  //   loading,
+  //   user?.uuid,
+  //   isRentalGated,
+  //   showTermsGate,
+  //   isExemptRoute,
+  //   isDashboardHome,
+  //   notifyGated,
+  //   router,
+  // ])
 
-    if (shouldAutoOpenRental) {
-      writeStorageFlag('local', signupDeviceKey)
-      writeStorageFlag('session', autoOpenSessionKey)
-      router.replace(getStandaloneRentalPath())
-      return
-    }
+  const isSetupComplete = isProfileSetupComplete(user, {
+    hasGoals,
+    goalsAvailable: true,
+  })
 
-    if (!isDashboardHome) {
-      notifyGated()
-      router.replace('/dashboard')
-    }
-  }, [
-    loading,
-    user?.uuid,
-    isRentalGated,
-    showTermsGate,
-    isExemptRoute,
-    shouldAutoOpenRental,
-    signupDeviceKey,
-    autoOpenSessionKey,
-    isDashboardHome,
-    notifyGated,
-    router,
-  ])
-
-  const showProfileBlocker =
-    !showTermsGate &&
-    !!user &&
-    !isExperimentLoading &&
-    !shouldAutoOpenRental &&
-    (isRequired
-      ? isRentalGated && !isExemptRoute
-      : isDashboardHome && !isProfileSetupComplete(user) && !isDismissed)
+  // Temporarily commented out profile setup blocker after signup/signin
+  // const showProfileBlocker =
+  //   mounted &&
+  //   !loading &&
+  //   !showTermsGate &&
+  //   !!user &&
+  //   !isExperimentLoading &&
+  //   !shouldAutoOpenRental &&
+  //   ((isRequired && isRentalGated && !isExemptRoute) ||
+  //     (isDashboardHome && !isSetupComplete && !isDismissed))
+  const showProfileBlocker = false
 
   useEffect(() => {
     if (!loading && isLoggedIn && user && !showProfileBlocker && !showTermsGate) {
@@ -171,47 +202,47 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return <FallbackSuspense message="Setting up your rental details..." />
   }
 
+  const normalizedPath = (pathname || '').replace(/\/$/, '')
+  const ROOT_NAV_PATHS = new Set([
+    '/dashboard',
+    '/dashboard/lifestyle',
+    '/dashboard/pay-rent',
+    '/dashboard/transactions',
+    '/dashboard/me',
+    '/dashboard/my-home',
+  ])
+
+  const isRootTab = ROOT_NAV_PATHS.has(normalizedPath)
+
   const hideBottomNav =
-    !!showProfileBlocker ||
-    isRentalGated ||
-    !!pathname?.startsWith('/dashboard/setup') ||
-    !!isHomeRequestRoute ||
-    !!pathname?.startsWith('/dashboard/savings/deposit') ||
-    !!pathname?.startsWith('/dashboard/notifications') ||
-    !!pathname?.startsWith('/dashboard/kyc') ||
-    !!pathname?.startsWith('/dashboard/my-home/complaints') ||
-    !!pathname?.startsWith('/dashboard/my-home/visitors')
+    !isRootTab ||
+    !!showProfileBlocker
+    // || isRentalGated
 
   return (
-    <div className={`dashboard-layout${showProfileBlocker || showTermsGate ? ' dashboard-layout--blocker' : ''}`}>
-      {showTermsGate && (
-        <TermsAcceptanceModal onAccepted={() => window.location.reload()} />
-      )}
-      {showProfileBlocker && user && (
-        <ProfileSetupBlocker
-          user={user}
-          score={scoreProfile?.data?.score}
-          maxScore={scoreProfile?.data?.maxScore}
-          profileCompletion={scoreProfile?.data?.profile?.profileCompletion}
-          onSkip={handleSkipBlocker}
-        />
-      )}
-      {/* Desktop Global Header */}
-      {!showProfileBlocker && (
-        <div className="desktop-only">
-          <DashboardHeader />
-        </div>
-      )}
+    <CartProvider>
+      <div className={`dashboard-layout${showProfileBlocker || showTermsGate ? ' dashboard-layout--blocker' : ''}${hideBottomNav ? ' dashboard-layout--no-bottom-nav' : ''}`}>
+        {showTermsGate && (
+          <TermsAcceptanceModal onAccepted={() => window.location.reload()} />
+        )}
+        {/* Desktop Global Header */}
+        {!showProfileBlocker && (
+          <div className="desktop-only">
+            <DashboardHeader />
+          </div>
+        )}
 
-      <AnnouncementManager />
-      <RentReminderManager />
-      <main className="dashboard-layout__content">
-        <Suspense fallback={<DashboardSkeleton />}>
-          <PageTransition>{children}</PageTransition>
-        </Suspense>
-      </main>
-      {!hideBottomNav && <BottomNav />}
-    </div>
+        <AnnouncementManager />
+        <RentReminderManager />
+        <main className="dashboard-layout__content">
+          <Suspense fallback={<DashboardSkeleton />}>
+            <PageTransition>{children}</PageTransition>
+          </Suspense>
+        </main>
+        {!hideBottomNav && <BottomNav />}
+        <CartDrawer />
+      </div>
+    </CartProvider>
   )
 }
 

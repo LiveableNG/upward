@@ -206,31 +206,85 @@ export function PmSearchSelect({
   if (isSelected) {
     const defaultAcc = value.pmDetails?.defaultSettlementAccount
     return (
-      <div className="setup-page__pm-card" style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: '14px 16px', background: '#f8fafc', border: '1.5px solid #cbd5e1', borderRadius: 14 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 40, height: 40, borderRadius: 10, background: '#e0f2fe', color: '#0369a1', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 16 }}>
+      <div
+        className="setup-page__pm-card"
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 10,
+          padding: '14px 16px',
+          background: '#faf8f5',
+          border: '1.5px solid #eae2d7',
+          borderRadius: 14,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', width: '100%', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, minWidth: 0, flex: 1 }}>
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                background: '#fef3c7',
+                color: '#b45309',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 700,
+                fontSize: 16,
+                flexShrink: 0,
+                marginTop: 2,
+              }}
+            >
               <Building2 size={22} />
             </div>
-            <div>
+            <div style={{ minWidth: 0, flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                <strong style={{ fontSize: 14.5, color: '#0f172a' }}>{value.pmDetails?.name}</strong>
-                <ShieldCheck size={16} color="#0284c7" />
+                <strong style={{ fontSize: 14.5, color: '#1a1714', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {value.pmDetails?.name}
+                </strong>
+                <ShieldCheck size={16} color="#0284c7" style={{ flexShrink: 0 }} />
                 {value.pmDetails?.isExternal ? (
-                  <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
+                  <span
+                    style={{
+                      fontSize: 10.5,
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: 999,
+                      background: '#eff6ff',
+                      color: '#1d4ed8',
+                      border: '1px solid #bfdbfe',
+                      flexShrink: 0,
+                    }}
+                  >
                     External Platform
                   </span>
                 ) : (
-                  <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' }}>
+                  <span
+                    style={{
+                      fontSize: 10.5,
+                      fontWeight: 700,
+                      padding: '2px 8px',
+                      borderRadius: 999,
+                      background: '#f0fdf4',
+                      color: '#15803d',
+                      border: '1px solid #bbf7d0',
+                      flexShrink: 0,
+                    }}
+                  >
                     Upward PM
                   </span>
                 )}
               </div>
               {value.pmDetails?.businessName && value.pmDetails.businessName !== value.pmDetails.name ? (
-                <span style={{ fontSize: 12.5, color: '#64748b', display: 'block' }}>{value.pmDetails.businessName}</span>
+                <span style={{ fontSize: 12.5, color: '#5c544b', display: 'block', marginTop: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {value.pmDetails.businessName}
+                </span>
               ) : null}
               {value.pmEmail ? (
-                <span style={{ fontSize: 11.5, color: '#94a3b8' }}>{value.pmEmail}</span>
+                <span style={{ fontSize: 11.5, color: '#7a7268', display: 'block', marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {value.pmEmail}
+                </span>
               ) : null}
             </div>
           </div>
@@ -240,7 +294,18 @@ export function PmSearchSelect({
               type="button"
               className="setup-page__change-contact"
               onClick={handleReset}
-              style={{ padding: '6px 12px', fontSize: 12.5, fontWeight: 600, color: '#c2501f', background: 'none', border: '1px solid #fed7aa', borderRadius: 8, cursor: 'pointer' }}
+              style={{
+                padding: '5px 12px',
+                fontSize: 12,
+                fontWeight: 600,
+                color: 'var(--skin-primary, #c2501f)',
+                background: '#fff',
+                border: '1px solid #fed7aa',
+                borderRadius: 8,
+                cursor: 'pointer',
+                flexShrink: 0,
+                boxShadow: '0 1px 2px rgba(0,0,0,0.03)',
+              }}
             >
               Change
             </button>
@@ -248,22 +313,50 @@ export function PmSearchSelect({
         </div>
 
         {defaultAcc && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', borderRadius: 10, background: '#fff', border: '1px solid #e2e8f0', width: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Landmark size={15} color="#0284c7" />
-              <div>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-                  Payout Account:
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 8,
+              padding: '8px 12px',
+              borderRadius: 10,
+              background: '#fff',
+              border: '1px solid #eae2d7',
+              width: '100%',
+              boxSizing: 'border-box',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flex: 1 }}>
+              <Landmark size={15} color="var(--skin-primary, #c2501f)" style={{ flexShrink: 0 }} />
+              <div style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#7a7268', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+                  Payout:
                 </span>{' '}
-                <strong style={{ fontSize: 12.5, color: '#0f172a' }}>
-                  {defaultAcc.bankName} • •••• {defaultAcc.accountNumber.slice(-4)}
+                <strong style={{ fontSize: 12.5, color: '#1a1714' }}>
+                  {defaultAcc.bankName} •••• {defaultAcc.accountNumber.slice(-4)}
                 </strong>
-                <span style={{ fontSize: 11.5, color: '#64748b', marginLeft: 6 }}>
-                  ({defaultAcc.accountName})
-                </span>
+                {defaultAcc.accountName && (
+                  <span style={{ fontSize: 11.5, color: '#7a7268', marginLeft: 6 }}>
+                    ({defaultAcc.accountName})
+                  </span>
+                )}
               </div>
             </div>
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#15803d', background: '#f0fdf4', padding: '2px 6px', borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+            <span
+              style={{
+                fontSize: 11,
+                fontWeight: 700,
+                color: '#15803d',
+                background: '#f0fdf4',
+                padding: '2px 7px',
+                borderRadius: 6,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 3,
+                flexShrink: 0,
+              }}
+            >
               <ShieldCheck size={11} /> Verified
             </span>
           </div>
@@ -411,56 +504,200 @@ export function PmSearchSelect({
                   style={{
                     width: '100%',
                     display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    gap: 12,
                     padding: '12px 14px',
                     border: 'none',
                     borderBottom: '1px solid #f1f5f9',
                     background: '#fff',
                     textAlign: 'left',
                     cursor: 'pointer',
-                    transition: 'background 0.15s',
+                    transition: 'background 0.15s ease',
+                    boxSizing: 'border-box',
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = '#faf8f5')}
                   onMouseLeave={(e) => (e.currentTarget.style.background = '#fff')}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 34, height: 34, borderRadius: 8, background: '#fef3c7', color: '#b45309', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13 }}>
-                      {pm.businessName ? <Building2 size={18} /> : <User size={18} />}
-                    </div>
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                        <strong style={{ fontSize: 13.5, color: '#0f172a' }}>{pm.name}</strong>
-                        {pm.isVerified && <ShieldCheck size={14} color="#0284c7" />}
+                  <div
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 10,
+                      background: '#fef3c7',
+                      color: '#b45309',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: 700,
+                      fontSize: 13,
+                      flexShrink: 0,
+                      marginTop: 2,
+                    }}
+                  >
+                    {pm.businessName ? <Building2 size={18} /> : <User size={18} />}
+                  </div>
+
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    {/* Header: Name + Badges + Connect Pill */}
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 8,
+                        marginBottom: 3,
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 6,
+                          minWidth: 0,
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        <strong
+                          style={{
+                            fontSize: 13.5,
+                            color: '#1a1714',
+                            fontWeight: 600,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          {pm.name}
+                        </strong>
+                        {pm.isVerified && <ShieldCheck size={14} color="#0284c7" style={{ flexShrink: 0 }} />}
                         {pm.isExternal ? (
-                          <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 999, background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
+                          <span
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 700,
+                              padding: '1px 6px',
+                              borderRadius: 999,
+                              background: '#eff6ff',
+                              color: '#1d4ed8',
+                              border: '1px solid #bfdbfe',
+                              flexShrink: 0,
+                            }}
+                          >
                             External Platform
                           </span>
                         ) : (
-                          <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 999, background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' }}>
+                          <span
+                            style={{
+                              fontSize: 10,
+                              fontWeight: 700,
+                              padding: '1px 6px',
+                              borderRadius: 999,
+                              background: '#f0fdf4',
+                              color: '#15803d',
+                              border: '1px solid #bbf7d0',
+                              flexShrink: 0,
+                            }}
+                          >
                             Upward PM
                           </span>
                         )}
                       </div>
-                      {pm.businessName && pm.businessName !== pm.name ? (
-                        <span style={{ fontSize: 12, color: '#64748b', display: 'block' }}>{pm.businessName}</span>
-                      ) : null}
-                      <div style={{ fontSize: 11.5, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
-                        {pm.email && <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><Mail size={11} /> {pm.email}</span>}
-                        {pm.phone && <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}><Phone size={11} /> {pm.phone}</span>}
+
+                      <span
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 600,
+                          color: 'var(--skin-primary, #c2501f)',
+                          padding: '3px 8px',
+                          borderRadius: 6,
+                          background: '#fff7ed',
+                          border: '1px solid #ffedd5',
+                          flexShrink: 0,
+                        }}
+                      >
+                        Connect
+                      </span>
+                    </div>
+
+                    {/* Company / Estate Name */}
+                    {pm.businessName && pm.businessName !== pm.name ? (
+                      <div
+                        style={{
+                          fontSize: 12,
+                          color: '#5c544b',
+                          marginBottom: 3,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                        }}
+                      >
+                        {pm.businessName}
                       </div>
-                      {pm.defaultSettlementAccount && (
-                        <div style={{ fontSize: 11, color: '#0369a1', display: 'flex', alignItems: 'center', gap: 4, marginTop: 3 }}>
-                          <Landmark size={11} />
-                          <span>Payout: {pm.defaultSettlementAccount.bankName} (•••• {pm.defaultSettlementAccount.accountNumber.slice(-4)})</span>
-                        </div>
+                    ) : null}
+
+                    {/* Contact Details (Email & Phone) */}
+                    <div
+                      style={{
+                        fontSize: 11.5,
+                        color: '#7a7268',
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: '4px 10px',
+                        marginTop: 2,
+                      }}
+                    >
+                      {pm.email && (
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            minWidth: 0,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          <Mail size={11} style={{ flexShrink: 0 }} />
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {pm.email}
+                          </span>
+                        </span>
+                      )}
+                      {pm.phone && (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                          <Phone size={11} style={{ flexShrink: 0 }} />
+                          <span>{pm.phone}</span>
+                        </span>
                       )}
                     </div>
-                  </div>
 
-                  <span style={{ fontSize: 12, fontWeight: 600, color: '#c2501f', padding: '4px 8px', borderRadius: 6, background: '#fff7ed', border: '1px solid #ffedd5' }}>
-                    Connect
-                  </span>
+                    {/* Settlement Account Preview */}
+                    {pm.defaultSettlementAccount && (
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: '#0369a1',
+                          background: '#f0f9ff',
+                          border: '1px solid #e0f2fe',
+                          borderRadius: 6,
+                          padding: '3px 7px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 5,
+                          marginTop: 6,
+                          maxWidth: '100%',
+                          boxSizing: 'border-box',
+                        }}
+                      >
+                        <Landmark size={11} style={{ flexShrink: 0 }} />
+                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          Payout: {pm.defaultSettlementAccount.bankName} (••••{' '}
+                          {pm.defaultSettlementAccount.accountNumber.slice(-4)})
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </button>
               ))}
 

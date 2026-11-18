@@ -2,12 +2,16 @@
 
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowUpRight, Sparkles, Building } from 'lucide-react'
+import { ArrowUpRight, PiggyBank, Building } from 'lucide-react'
 import { api } from '@/lib/api'
 import { formatCurrency } from '@/lib/utils'
+import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
+import { useToast } from '@/components/common/Toast'
 
 export function RentDepositCard() {
   const router = useRouter()
+  const toast = useToast()
+  const { rates: platformRates, isLoading: ratesLoading } = usePlatformRates()
 
   const { data: summary } = useQuery({
     queryKey: ['rent-deposit-summary'],
@@ -26,7 +30,14 @@ export function RentDepositCard() {
   return (
     <div
       className="dashboard__deposit-card"
-      onClick={() => router.push('/dashboard/deposit-balance')}
+      onClick={() => {
+        if (ratesLoading) return
+        if (platformRates.savingsEnabled === false) {
+          toast.info('Savings is coming soon.')
+          return
+        }
+        router.push('/dashboard/savings')
+      }}
       style={{
         background: '#ffffff',
         border: hasBalance
@@ -60,7 +71,7 @@ export function RentDepositCard() {
             boxShadow: 'inset 0 0 0 1px rgba(217, 119, 87, 0.15)',
           }}
         >
-          {hasBalance ? <Sparkles size={20} /> : <Building size={20} />}
+          {hasBalance ? <PiggyBank size={20} /> : <Building size={20} />}
         </div>
 
         <div style={{ minWidth: 0 }}>
@@ -73,7 +84,7 @@ export function RentDepositCard() {
                 letterSpacing: '-0.01em',
               }}
             >
-              Rent Deposit Balance
+              Rent Savings &amp; Deposit
             </span>
             {hasBalance && (
               <span

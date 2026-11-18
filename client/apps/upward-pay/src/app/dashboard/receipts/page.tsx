@@ -5,8 +5,8 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { Capacitor } from '@capacitor/core'
-import FallbackSuspense from '@/components/FallbackSuspense'
 import ReceiptTemplate, {
+  ReceiptSkeleton,
   type ReceiptData,
 } from '@/features/dashboard/components/payment/ReceiptTemplate'
 
@@ -370,7 +370,17 @@ export default function ReceiptsPage() {
   }
 
   if (loading) {
-    return <FallbackSuspense message="Loading receipt details..." />
+    return (
+      <ReceiptSkeleton
+        onClose={() => {
+          if (typeof window !== 'undefined' && window.history.length > 1) {
+            router.back()
+            return
+          }
+          router.push('/dashboard/transactions')
+        }}
+      />
+    )
   }
 
   if (!receipt) {

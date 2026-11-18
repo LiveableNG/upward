@@ -940,3 +940,123 @@
   background: rgba(20, 20, 19, 0.65);
   border-color: rgba(255, 255, 255, 0.06);
 }
+
+/* ── Scoring Actions Grid ── */
+.score-page__actions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .score-page__actions-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.score-page__action-card {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 18px;
+  padding: 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  box-shadow: 0 4px 14px rgba(45, 30, 20, 0.03);
+}
+
+.score-page__action-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(45, 30, 20, 0.07);
+  border-color: rgba(194, 80, 31, 0.3);
+}
+
+.score-page__action-card:active {
+  transform: scale(0.98);
+}
+
+.score-page__action-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.score-page__action-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  background: rgba(194, 80, 31, 0.1);
+  color: var(--clay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.score-page__action-badge {
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 99px;
+}
+
+.score-page__action-badge--clay {
+  background: rgba(194, 80, 31, 0.1);
+  color: var(--clay);
+}
+
+.score-page__action-badge--success {
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+}
+
+.score-page__action-badge--info {
+  background: rgba(59, 130, 246, 0.1);
+  color: #2563eb;
+}
+
+.score-page__action-badge--warning {
+  background: rgba(245, 158, 11, 0.12);
+  color: #d97706;
+}
+
+.score-page__action-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--text);
+  margin-top: 2px;
+}
+
+.score-page__action-desc {
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin: 0;
+  flex: 1;
+}
+
+.score-page__action-footer {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--clay);
+  margin-top: 6px;
+}
+
+:root.theme--dark .score-page__action-card {
+  background: rgba(20, 20, 19, 0.65);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+:root.theme--dark .score-page__action-title {
+  color: #faf9f5;
+}
+
+:root.theme--dark .score-page__action-desc {
+  color: #a39c91;
+}

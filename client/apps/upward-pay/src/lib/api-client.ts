@@ -139,10 +139,10 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
       clearTimeout(timeoutId)
       console.error(`[api-client] Network error requesting ${url}:`, err)
       if (err.name === 'AbortError') {
-        throw new Error(`Request timed out for ${url}. Please check your internet connection.`)
+        throw new Error('Request timed out. Please check your internet connection and try again.')
       }
       if (err.message === 'Load failed' || err.message === 'Failed to fetch') {
-        throw new Error(`Unable to reach server at ${url}. Please check your internet connection or server availability.`)
+        throw new Error('Unable to reach the server. Please check your internet connection and try again.')
       }
       throw err
     }
@@ -238,10 +238,10 @@ export async function requestBlob(path: string, options: RequestInit = {}): Prom
       clearTimeout(timeoutId)
       console.error(`[api-client] Network error requesting blob ${url}:`, err)
       if (err.name === 'AbortError') {
-        throw new Error(`Download timed out for ${url}. Please check your internet connection.`)
+        throw new Error('Download timed out. Please check your internet connection and try again.')
       }
       if (err.message === 'Load failed' || err.message === 'Failed to fetch') {
-        throw new Error(`Unable to reach server at ${url}. Please check your internet connection or server availability.`)
+        throw new Error('Unable to reach the server. Please check your internet connection and try again.')
       }
       throw err
     }

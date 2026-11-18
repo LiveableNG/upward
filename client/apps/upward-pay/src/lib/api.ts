@@ -10,6 +10,8 @@ import * as supportService from '@/features/support/services/supportService'
 import * as credibilityService from '@/features/dashboard/services/credibilityService'
 import * as locationService from '@/features/auth/services/locationService'
 import * as myHomeService from '@/features/my-home/services/myHomeService'
+import * as goalsService from '@/features/goals/services/goalsService'
+import * as savingsService from '@/features/savings/services/savingsService'
 
 export const api = {
   // Auth & Profile
@@ -78,10 +80,22 @@ export const api = {
   getSavingsGoals: financeService.getSavingsGoals,
   createSavingsGoal: financeService.createSavingsGoal,
   updateSavingsGoal: financeService.updateSavingsGoal,
+  getSavingsOnboardingPrefill: savingsService.getSavingsOnboardingPrefill,
 
   // Support Tickets
   createSupportTicket: supportService.createSupportTicket,
   getMyTickets: supportService.getMyTickets,
+
+  // Goals & Lifestyle Commerce
+  getGoalCategories: goalsService.fetchGoalCategories,
+  getGoals: goalsService.fetchGoalsList,
+  getGoalDetail: goalsService.fetchGoalDetail,
+  getGoalOfferings: goalsService.fetchGoalOfferings,
+  getGoalOfferingDetail: goalsService.fetchGoalOfferingDetail,
+  getUserGoals: goalsService.fetchUserGoals,
+  setUserGoals: goalsService.setUserGoals,
+  updateUserGoal: goalsService.updateUserGoal,
+  removeUserGoal: goalsService.removeUserGoal,
 
   // Credibility Profile Records
   submitRequestRecords: credibilityService.submitRequestRecords,

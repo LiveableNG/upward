@@ -44,7 +44,11 @@ export class InitializePaymentUseCase {
 
     let user: any = null
     if (data.userId) {
-      user = await this.userRepository.findByUuid(data.userId)
+      if (typeof data.userId === 'number' || /^\d+$/.test(String(data.userId))) {
+        user = await this.userRepository.findById(Number(data.userId))
+      } else {
+        user = await this.userRepository.findByUuid(String(data.userId))
+      }
     }
     if (!user && pr) {
       user = await this.userRepository.findById(pr.userId)
@@ -102,7 +106,9 @@ export class InitializePaymentUseCase {
     const excludeBenefits = data.metadata?.excludeBenefits === true
     const isBenefitsOnly =
       data.metadata?.paymentKind === 'BENEFITS_SUBSCRIPTION' ||
-      data.metadata?.type === 'BENEFITS_SUBSCRIPTION'
+      data.metadata?.type === 'BENEFITS_SUBSCRIPTION' ||
+      data.metadata?.paymentKind === 'RENT_SUPPORT_INSURANCE' ||
+      data.metadata?.type === 'RENT_SUPPORT_INSURANCE'
     const activeBenefitsFee = (rates.benefitsPaid || excludeBenefits) ? 0 : rates.benefitsFee
     flatFee = isBenefitsOnly ? 0 : rates.transactionFee + activeBenefitsFee
     const forcePaystack = isBenefitsOnly || data.metadata?.forcePaystack === true
@@ -225,7 +231,7 @@ export class InitializePaymentUseCase {
       amount: finalAmountToPay,
       reference: `PAY-${randomUUID()}`,
       metadata,
-      channels: ['bank', 'bank_transfer']
+      channels: isBenefitsOnly ? ['card', 'bank', 'bank_transfer', 'ussd'] : ['bank', 'bank_transfer']
     })
 
     return {

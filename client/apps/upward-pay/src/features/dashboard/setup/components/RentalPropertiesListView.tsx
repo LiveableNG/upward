@@ -6,7 +6,6 @@ import { PayPageShell } from '@/features/dashboard/components/payment/PayPageShe
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { type UserProfile } from '@/features/auth/types'
 import { setupAddPropertyEditPath, setupEditPropertyPath, SETUP_PATHS } from '../setupPaths'
-import { ManualAccountModal } from '@/features/dashboard/components/payment/ManualAccountModal'
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
@@ -42,7 +41,6 @@ interface RentalPropertiesListViewProps {
 
 export function RentalPropertiesListView({ properties }: RentalPropertiesListViewProps) {
   const router = useRouter()
-  const [manualAccountModalProperty, setManualAccountModalProperty] = useState<{ id: number, name: string, initialData?: any } | null>(null)
 
   const { data: pendingPayments } = useQuery({
     queryKey: ['pendingPayments'],
@@ -141,58 +139,72 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
                     </div>
                   ) : null}
 
-                  {/* Sleek Mobile-Optimized Renewal Progress Banner */}
+                  {/* Sleek, Lightweight Integrated Payment / Renewal Inset */}
                   {showRenewalCard && (
                     <div
                       style={{
                         marginTop: 10,
                         padding: '10px 12px',
-                        borderRadius: 10,
-                        background: 'rgba(194, 80, 31, 0.05)',
-                        border: '1px solid rgba(194, 80, 31, 0.18)',
+                        borderRadius: 12,
+                        background: '#fbf9f6',
+                        border: '1px solid #eee7dc',
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: 6,
+                        gap: 7,
                       }}
-                      onClick={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        router.push('/dashboard/pay-rent')
+                      }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, color: 'var(--skin-primary, #c2501f)', minWidth: 0 }}>
-                          <Activity size={12} style={{ flexShrink: 0 }} />
-                          <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            Renewal ({pctPaid}% Paid)
+                      {/* Top Row: Contextual Status Badge + Action Pill */}
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: 8,
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 5,
+                            fontSize: 11,
+                            fontWeight: 600,
+                            color: 'var(--skin-primary, #c2501f)',
+                            minWidth: 0,
+                          }}
+                        >
+                          {amountPaid > 0 ? (
+                            <Activity size={12} style={{ flexShrink: 0 }} />
+                          ) : (
+                            <Clock size={12} style={{ flexShrink: 0 }} />
+                          )}
+                          <span style={{ whiteSpace: 'nowrap' }}>
+                            {amountPaid > 0 ? `Partial payment · ${pctPaid}%` : 'Rent payment due'}
                           </span>
                         </div>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: '#1a1714', flexShrink: 0 }}>
-                          {formatCurrency(remainingAmount)} left
-                        </span>
-                      </div>
 
-                      {/* Progress Bar */}
-                      <div style={{ width: '100%', height: 4, borderRadius: 99, background: 'rgba(194, 80, 31, 0.12)', overflow: 'hidden' }}>
-                        <div style={{ width: `${pctPaid}%`, height: '100%', background: 'var(--skin-primary, #c2501f)', borderRadius: 99, transition: 'width 300ms ease' }} />
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 2 }}>
-                        <span style={{ fontSize: 11, color: '#7a7268', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          Paid {formatCurrency(amountPaid)} of {formatCurrency(totalRent)}
-                        </span>
                         <button
                           type="button"
                           style={{
                             fontSize: 11,
-                            fontWeight: 700,
-                            padding: '4px 10px',
-                            borderRadius: 6,
+                            fontWeight: 600,
+                            padding: '3px 9px',
+                            borderRadius: 99,
                             border: 'none',
                             background: 'var(--skin-primary, #c2501f)',
                             color: '#fff',
                             cursor: 'pointer',
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: 4,
+                            gap: 3,
                             whiteSpace: 'nowrap',
                             flexShrink: 0,
+                            boxShadow: '0 1px 2px rgba(194, 80, 31, 0.15)',
                           }}
                           onClick={(e) => {
                             e.preventDefault()
@@ -200,21 +212,63 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
                             router.push('/dashboard/pay-rent')
                           }}
                         >
-                          Pay balance <ArrowRight size={11} />
+                          {amountPaid > 0 ? 'Pay balance' : 'Pay rent'}
+                          <ArrowRight size={11} />
                         </button>
+                      </div>
+
+                      {/* Progress Bar Track */}
+                      <div
+                        style={{
+                          width: '100%',
+                          height: 4,
+                          borderRadius: 99,
+                          background: '#ede5da',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: `${pctPaid}%`,
+                            height: '100%',
+                            background: 'var(--skin-primary, #c2501f)',
+                            borderRadius: 99,
+                            transition: 'width 300ms ease',
+                          }}
+                        />
+                      </div>
+
+                      {/* Bottom Row: Clear amounts that NEVER truncate */}
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: 8,
+                          fontSize: 11,
+                          color: '#7a7268',
+                        }}
+                      >
+                        <span style={{ whiteSpace: 'nowrap' }}>
+                          Paid <strong style={{ color: '#1a1714', fontWeight: 600 }}>{formatCurrency(amountPaid)}</strong>
+                        </span>
+                        <span style={{ whiteSpace: 'nowrap' }}>
+                          <strong style={{ color: '#1a1714', fontWeight: 600 }}>{formatCurrency(remainingAmount)}</strong>{' '}
+                          {amountPaid > 0 ? 'left' : 'due'}
+                        </span>
                       </div>
                     </div>
                   )}
-                  <div style={{ marginTop: 12 }}>
+                  <div style={{ marginTop: 8 }}>
                     {prop.pmManualAccount || (prop.isVerified && (prop.isManaged || prop.isPlatformLinked || prop.companyName) && prop.manualAccount) ? (
-                      <div className="pay-flow__card-meta pay-flow__card-meta--muted" style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6, color: 'var(--forest)' }}>
+                      <div className="pay-flow__card-meta pay-flow__card-meta--muted" style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--forest)' }}>
                         <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--forest)', flexShrink: 0 }} />
                         <span>
                           Bank: {(prop.pmManualAccount || prop.manualAccount)?.bankName || 'Bank'} · {(prop.pmManualAccount || prop.manualAccount)?.accountNumber}
                         </span>
                       </div>
                     ) : (prop.isPlatformLinked || pAny.pmId || pAny.pm || pAny.managerId || pAny.manager || prop.managerName || prop.companyName || prop.isManaged) ? (
-                      <div style={{ marginTop: 8 }}>
+                      <div>
                         {prop.manualAccount ? (
                           <div className="pay-flow__card-meta pay-flow__card-meta--muted" style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#92400e' }}>
                             <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#f59e0b', flexShrink: 0 }} />
@@ -232,32 +286,11 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
                           </div>
                         )}
                       </div>
-                    ) : (
-                      <>
-                        <button
-                          type="button"
-                          className="btn btn--secondary btn--sm"
-                          onClick={(e) => {
-                            e.preventDefault()
-                            e.stopPropagation()
-                            setManualAccountModalProperty({ 
-                              id: prop.id, 
-                              name: prop.location?.area || prop.address || 'Property',
-                              initialData: prop.manualAccount
-                            })
-                          }}
-                          onPointerDown={(e) => e.stopPropagation()}
-                          style={{ fontSize: 12, padding: '6px 12px', borderRadius: 8, position: 'relative', zIndex: 10 }}
-                        >
-                          {prop.manualAccount ? 'Edit Manual Transfer' : 'Setup Manual Transfer'}
-                        </button>
-                        {prop.manualAccount && (
-                          <div className="pay-flow__card-meta pay-flow__card-meta--muted" style={{ marginTop: 8 }}>
-                            Bank: {prop.manualAccount.bankName} - {prop.manualAccount.accountNumber}
-                          </div>
-                        )}
-                      </>
-                    )}
+                    ) : prop.manualAccount ? (
+                      <div className="pay-flow__card-meta pay-flow__card-meta--muted">
+                        Bank: {prop.manualAccount.bankName} - {prop.manualAccount.accountNumber}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
                 <ChevronRight size={18} className="pay-flow__card-trailing" />
@@ -285,15 +318,6 @@ export function RentalPropertiesListView({ properties }: RentalPropertiesListVie
           </button>
         </div>
       </section>
-
-      {manualAccountModalProperty && (
-        <ManualAccountModal
-          propertyId={manualAccountModalProperty.id}
-          propertyName={manualAccountModalProperty.name}
-          initialData={manualAccountModalProperty.initialData}
-          onClose={() => setManualAccountModalProperty(null)}
-        />
-      )}
     </PayPageShell>
   )
 }

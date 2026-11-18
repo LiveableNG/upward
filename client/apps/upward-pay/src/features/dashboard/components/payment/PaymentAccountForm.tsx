@@ -24,9 +24,49 @@ type PaymentAccountFormProps = {
 export function isPaymentAccountResolved(value: PaymentAccountFormValue): boolean {
   return (
     value.accountNumber.length === 10 &&
-    !!value.bankCode &&
-    !!value.accountName.trim()
+    (!!value.bankCode || !!value.bankName?.trim()) &&
+    !!value.accountName?.trim()
   )
+}
+
+function findMatchingBank(
+  bankName: string,
+  bankList: { code: string; name: string }[]
+): { code: string; name: string } | null {
+  if (!bankName || !bankList.length) return null
+  const clean = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '')
+  const queryClean = clean(bankName)
+  if (!queryClean) return null
+
+  // 1. Exact clean match
+  const exact = bankList.find((b) => clean(b.name) === queryClean)
+  if (exact) return exact
+
+  // 2. Starts with / includes match
+  const includes = bankList.find((b) => {
+    const bClean = clean(b.name)
+    return bClean.includes(queryClean) || queryClean.includes(bClean)
+  })
+  if (includes) return includes
+
+  // 3. Token-based match (e.g. "Moniepoint", "OPay", "Kuda", "Zenith", "Access", "GTBank")
+  const tokens = bankName
+    .toLowerCase()
+    .split(/[\s(),.-]+/)
+    .filter(
+      (t) =>
+        t.length >= 3 &&
+        !['bank', 'mfb', 'microfinance', 'limited', 'services', 'digital', 'plc'].includes(t)
+    )
+  if (tokens.length > 0) {
+    const tokenMatch = bankList.find((b) => {
+      const bLower = b.name.toLowerCase()
+      return tokens.some((t) => bLower.includes(t))
+    })
+    if (tokenMatch) return tokenMatch
+  }
+
+  return null
 }
 
 export function PaymentAccountForm({
@@ -101,7 +141,24 @@ export function PaymentAccountForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value.accountNumber, value.bankCode])
 
-  const selectedBank = banks.find((b) => b.code === value.bankCode)
+  // Auto-resolve bankCode if bankName is provided but bankCode is missing or mismatched
+  useEffect(() => {
+    if (banks.length > 0 && value.bankName && (!value.bankCode || !banks.some((b) => b.code === value.bankCode))) {
+      const matched = findMatchingBank(value.bankName, banks)
+      if (matched && matched.code !== value.bankCode) {
+        onChange({
+          ...value,
+          bankCode: matched.code,
+          bankName: matched.name,
+        })
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [banks, value.bankName, value.bankCode])
+
+  const selectedBank =
+    banks.find((b) => b.code === value.bankCode) ||
+    (value.bankName ? findMatchingBank(value.bankName, banks) : null)
 
   const inputWrapClass = [
     'pay-flow__input-wrap',
@@ -133,6 +190,8 @@ export function PaymentAccountForm({
           </span>
           {selectedBank ? (
             <span className="pay-flow__select-value">{selectedBank.name}</span>
+          ) : value.bankName ? (
+            <span className="pay-flow__select-value">{value.bankName}</span>
           ) : (
             <span className="pay-flow__select-placeholder">
               {loadingBanks ? 'Loading banks...' : 'Select bank'}

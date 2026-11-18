@@ -1,5 +1,5 @@
-import { SaveForHomeFlow } from '@/features/dashboard/components/SaveForHomeFlow'
+import { redirect } from 'next/navigation'
 
 export default function SaveForHomePage() {
-  return <SaveForHomeFlow />
+  redirect('/dashboard/savings')
 }

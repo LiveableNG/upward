@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { ChevronRight, X } from 'lucide-react'
+import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import type { DashboardFeatureSectionView } from '../hooks/useDashboardFeatureSections'
 
 interface FeaturesBottomSheetProps {
@@ -14,14 +15,7 @@ interface FeaturesBottomSheetProps {
 export function FeaturesBottomSheet({ isOpen, onClose, sections }: FeaturesBottomSheetProps) {
   const router = useRouter()
 
-  useEffect(() => {
-    if (!isOpen) return
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = previousOverflow
-    }
-  }, [isOpen])
+  useBodyScrollLock(isOpen)
 
   if (!isOpen) return null
 

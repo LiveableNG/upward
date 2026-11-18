@@ -24,26 +24,41 @@ fi
 echo "Repository Root: $REPO_ROOT"
 cd "$REPO_ROOT"
 
-# Ensure Node.js is available on Xcode Cloud runner
+# Ensure Node.js is available and meets Capacitor 8 requirements (>=22.0.0)
+NEED_NODE_INSTALL=0
 if ! command -v node >/dev/null 2>&1; then
-    echo "Node.js not found in PATH. Attempting Homebrew install..."
-    if command -v brew >/dev/null 2>&1; then
-        brew install node || true
+    NEED_NODE_INSTALL=1
+else
+    NODE_MAJOR=$(node -v | cut -d'.' -f1 | tr -d 'v')
+    if [ "$NODE_MAJOR" -lt 22 ]; then
+        echo "Found Node.js $(node -v), but Capacitor 8 requires >= 22.0.0. Upgrading..."
+        NEED_NODE_INSTALL=1
     fi
 fi
 
-# Fallback: Download portable Node.js binary if brew didn't install node
-if ! command -v node >/dev/null 2>&1; then
-    echo "Downloading standalone Node.js binary..."
-    NODE_VERSION="v20.18.0"
-    ARCH="$(uname -m)"
-    if [ "$ARCH" = "arm64" ]; then
-        NODE_DIST="node-${NODE_VERSION}-darwin-arm64"
-    else
-        NODE_DIST="node-${NODE_VERSION}-darwin-x64"
+if [ "$NEED_NODE_INSTALL" -eq 1 ]; then
+    echo "Installing Node.js 22..."
+    if command -v brew >/dev/null 2>&1; then
+        (brew install node@22 && brew link --overwrite --force node@22) || brew install node || true
     fi
-    curl -fsSL "https://nodejs.org/dist/${NODE_VERSION}/${NODE_DIST}.tar.gz" | tar -xz -C /tmp
-    export PATH="/tmp/${NODE_DIST}/bin:$PATH"
+
+    # Fallback: Download portable Node.js 22 binary if brew didn't supply Node >= 22
+    NODE_MAJOR=0
+    if command -v node >/dev/null 2>&1; then
+        NODE_MAJOR=$(node -v | cut -d'.' -f1 | tr -d 'v')
+    fi
+    if [ "$NODE_MAJOR" -lt 22 ]; then
+        echo "Downloading standalone Node.js 22 binary..."
+        NODE_VERSION="v22.14.0"
+        ARCH="$(uname -m)"
+        if [ "$ARCH" = "arm64" ]; then
+            NODE_DIST="node-${NODE_VERSION}-darwin-arm64"
+        else
+            NODE_DIST="node-${NODE_VERSION}-darwin-x64"
+        fi
+        curl -fsSL "https://nodejs.org/dist/${NODE_VERSION}/${NODE_DIST}.tar.gz" | tar -xz -C /tmp
+        export PATH="/tmp/${NODE_DIST}/bin:$PATH"
+    fi
 fi
 
 echo "Node version: $(node -v)"
@@ -56,9 +71,9 @@ fi
 
 echo "pnpm version: $(pnpm -v)"
 
-# Install dependencies for the workspace
-echo "Installing JS dependencies..."
-pnpm install --frozen-lockfile || pnpm install
+# Install dependencies specifically for upward-pay and its workspace dependencies
+echo "Installing JS dependencies for upward-pay..."
+pnpm install --filter upward-pay... --frozen-lockfile || pnpm install --filter upward-pay...
 
 # Validate required environment variables configured in Xcode Cloud workflow
 echo "Validating environment configuration for upward-pay build..."
@@ -80,10 +95,44 @@ echo "✅ NEXT_PUBLIC_API_URL is set: $NEXT_PUBLIC_API_URL"
 
 PAY_DIR="$REPO_ROOT/client/apps/upward-pay"
 
-# Run Capacitor sync for iOS
-echo "Syncing Capacitor iOS..."
+# Clear any stale or corrupted SwiftPM caches from previous runs
+echo "Cleaning SwiftPM caches..."
+rm -rf ~/Library/Caches/org.swift.swiftpm
+rm -rf ~/Library/Developer/Xcode/DerivedData
+
+# Build static web export
+echo "Building Next.js static export for upward-pay..."
 cd "$PAY_DIR"
-pnpm cap:sync || (NEXT_OUTPUT=export pnpm exec next build && pnpm exec cap sync ios)
+NEXT_OUTPUT=export pnpm exec next build
+
+# Copy web assets to iOS without triggering xcodebuild clean
+echo "Copying web assets to Capacitor iOS..."
+pnpm exec cap copy ios
+
+# Resilient package resolution with retries for binary targets
+echo "Resolving Swift Package dependencies (with retries for network resilience)..."
+cd "$PAY_DIR/ios/App"
+MAX_RETRIES=4
+attempt=1
+resolved=0
+
+while [ $attempt -le $MAX_RETRIES ]; do
+    echo "Attempt $attempt of $MAX_RETRIES: resolving Swift packages..."
+    if xcodebuild -resolvePackageDependencies -project App.xcodeproj; then
+        echo "✅ Swift package dependencies resolved successfully."
+        resolved=1
+        break
+    else
+        echo "⚠️ Attempt $attempt failed (network timeout). Retrying in 5s..."
+        sleep 5
+        attempt=$((attempt + 1))
+    fi
+done
+
+if [ $resolved -eq 0 ]; then
+    echo "❌ Failed to resolve Swift packages after $MAX_RETRIES attempts."
+    exit 1
+fi
 
 echo "=========================================="
 echo "  Xcode Cloud Setup Completed Successfully"

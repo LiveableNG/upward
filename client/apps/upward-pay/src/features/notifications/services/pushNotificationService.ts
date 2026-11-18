@@ -4,9 +4,11 @@ import { useEffect } from 'react'
 import { api } from '@/lib/api'
 import { Capacitor } from '@capacitor/core'
 import { PushNotifications } from '@capacitor/push-notifications'
+import { App } from '@capacitor/app'
 import { useRouter } from 'next/navigation'
 
 export const APP_NAVIGATE_EVENT = 'app:navigate'
+const TOKEN_STORAGE_KEY = 'upward_device_push_token'
 let cachedToken: string | null = null
 
 export class PushNotificationService {
@@ -26,11 +28,39 @@ export class PushNotificationService {
     return result.receive === 'granted'
   }
 
+  static async clearBadge(): Promise<void> {
+    if (!Capacitor.isNativePlatform()) return
+    try {
+      await PushNotifications.removeAllDeliveredNotifications()
+    } catch (err) {
+      console.warn('[Push] Failed to clear badge / delivered notifications:', err)
+    }
+  }
+
+  static async openSystemSettings(): Promise<void> {
+    if (!Capacitor.isNativePlatform()) return
+    const platform = Capacitor.getPlatform()
+    if (platform === 'ios') {
+      window.location.href = 'app-settings:'
+    } else if (platform === 'android') {
+      try {
+        window.location.href =
+          'intent:#Intent;action=android.settings.APP_NOTIFICATION_SETTINGS;S.android.provider.extra.APP_PACKAGE=com.goodtenants.upward;end'
+      } catch {
+        window.location.href =
+          'intent:#Intent;action=android.settings.APPLICATION_DETAILS_SETTINGS;data=package:com.goodtenants.upward;end'
+      }
+    }
+  }
+
   static async registerDevice(): Promise<void> {
     if (!Capacitor.isNativePlatform()) return
     
     try {
-      // 1. Check existing permission status
+      // 1. Clear badge / delivered notifications on open
+      await this.clearBadge()
+
+      // 2. Check existing permission status
       const status = await this.getPermissionStatus()
       if (status !== 'granted') {
         console.warn('[Push] Registration skipped: Permission not granted')
@@ -39,13 +69,26 @@ export class PushNotificationService {
 
       // 2. Clear existing listeners to prevent leaks
       await PushNotifications.removeAllListeners()
+
+      // Create high-priority notification channel for Android with custom sound
+      if (Capacitor.getPlatform() === 'android') {
+        await PushNotifications.createChannel({
+          id: 'upward_alerts',
+          name: 'Upward Alerts',
+          description: 'Payment alerts and important updates',
+          importance: 5,
+          visibility: 1,
+          sound: 'upward_chime',
+          vibration: true,
+        }).catch((err) => console.warn('[Push] Channel creation failed:', err))
+      }
       
       // 3. Add listeners before registering
       await PushNotifications.addListener('registration', async (token) => {
-        if (cachedToken === token.value) return
         cachedToken = token.value
-
-        console.log('[Push] Device Token Generated:', token.value) // <--- ADDED LOG FOR YOU
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(TOKEN_STORAGE_KEY, token.value)
+        }
 
         const platform = Capacitor.getPlatform()
         try {
@@ -53,7 +96,6 @@ export class PushNotificationService {
             token: token.value,
             platform,
           })
-          console.log('[Push] Token successfully sent to backend')
         } catch (err) {
           console.error('[Push] Backend token registration failed', err)
         }
@@ -65,6 +107,7 @@ export class PushNotificationService {
 
       // Handle incoming notifications and taps
       await PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+        PushNotificationService.clearBadge()
         const url = action.notification.data?.url
         if (url && typeof window !== 'undefined') {
           // Dispatch custom event for client-side navigation
@@ -83,13 +126,19 @@ export class PushNotificationService {
     if (!Capacitor.isNativePlatform()) return
     
     try {
-      if (cachedToken) {
+      const tokenToUnregister =
+        cachedToken || (typeof window !== 'undefined' ? localStorage.getItem(TOKEN_STORAGE_KEY) : null)
+
+      if (tokenToUnregister) {
         const { request } = await import('@/lib/api-client')
         await request('/user/notifications/device-token', {
           method: 'DELETE',
-          body: JSON.stringify({ token: cachedToken }),
-        })
+          body: JSON.stringify({ token: tokenToUnregister }),
+        }).catch(() => {})
         cachedToken = null
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem(TOKEN_STORAGE_KEY)
+        }
       }
       await PushNotifications.removeAllListeners()
     } catch (err) {
@@ -116,6 +165,36 @@ export function usePushNotifications(isLoggedIn: boolean) {
     window.addEventListener(APP_NAVIGATE_EVENT, handleNavigate)
     return () => window.removeEventListener(APP_NAVIGATE_EVENT, handleNavigate)
   }, [router])
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return
+
+    PushNotificationService.clearBadge()
+
+    const handleAppState = App.addListener('appStateChange', (state) => {
+      if (state.isActive) {
+        PushNotificationService.clearBadge()
+        if (isLoggedIn) {
+          PushNotificationService.getPermissionStatus().then((status) => {
+            if (status === 'granted') {
+              PushNotificationService.registerDevice()
+            }
+          })
+        }
+      }
+    })
+
+    return () => {
+      handleAppState.then((h) => h.remove()).catch(() => {})
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return
+    if (!isLoggedIn) {
+      PushNotificationService.unregisterDevice()
+    }
+  }, [isLoggedIn])
 
   useEffect(() => {
     const setup = async () => {

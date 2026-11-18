@@ -21,6 +21,7 @@ import { RequestCredibilityRecordsUseCase } from '../../../application/use-cases
 import { GetCredibilityRequestsUseCase } from '../../../application/use-cases/user/get-credibility-requests.use-case'
 import { GenerateKYCReportPdfUseCase } from '../../../application/use-cases/user/generate-kyc-report-pdf.use-case'
 import { VerifyBvnUseCase } from '../../../application/use-cases/user/verify-bvn.use-case'
+import { VerifyKycUseCase } from '../../../application/use-cases/user/verify-kyc.use-case'
 
 import { CheckSlugAvailabilityUseCase } from '../../../application/use-cases/user/check-slug-availability.use-case'
 import { AcceptTermsUseCase } from '../../../application/use-cases/user/accept-terms.use-case'
@@ -108,6 +109,7 @@ export class UserController {
     private readonly generateKYCPdf: GenerateKYCReportPdfUseCase,
     private readonly checkSlugAvailability: CheckSlugAvailabilityUseCase,
     private readonly verifyBvnUseCase: VerifyBvnUseCase,
+    private readonly verifyKycUseCase: VerifyKycUseCase,
     private readonly acceptTermsUseCase: AcceptTermsUseCase,
     private readonly deleteUserAccountUseCase: DeleteUserAccountUseCase,
     private readonly requestDeleteAccountOtpUseCase: RequestDeleteAccountOtpUseCase,
@@ -410,6 +412,19 @@ export class UserController {
       throw new UnauthorizedException('No user in request')
     }
     return this.verifyBvnUseCase.execute(req.user.id, body.bvn)
+  }
+
+  @Post('verify-kyc')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async verifyKyc(
+    @Req() req: FastifyRequest,
+    @Body() body: { type: 'BVN' | 'NIN'; idNumber: string },
+  ) {
+    if (!req.user?.id) {
+      throw new UnauthorizedException('No user in request')
+    }
+    return this.verifyKycUseCase.execute(req.user.id, body)
   }
 
   @Post('past-records')

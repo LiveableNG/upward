@@ -35,6 +35,7 @@ export async function getPendingPaymentsParsed() {
       userPropertyUuid: p.userPropertyUuid || null,
       description: p.description,
       due_date: p.due_date || p.dueDate,
+      dueDate: p.dueDate || p.due_date,
       payment_link_token: p.uuid,
       invoice_number: p.invoice_number || p.uuid.slice(0, 8),
       notes: p.description,

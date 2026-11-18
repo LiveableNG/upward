@@ -13,6 +13,10 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
 import { useRentalExperiment } from '../hooks/useRentalExperiment'
 import { sessionTracker } from '@/lib/sessionTracker'
+import { useGoalCategories, useUserGoals } from '@/features/goals/hooks/useGoals'
+import { getMe } from '@/features/auth/services/authService'
+import { hasContactDetails } from '@/features/dashboard/utils/profileCompletion'
+import { ShieldCheck } from 'lucide-react'
 
 const STEP_NAMES = ['Location', 'Tenancy', 'Landlord', 'Review']
 
@@ -24,6 +28,10 @@ export function RentalConfirmView() {
   const queryClient = useQueryClient()
   const { isEdit, withMode, returnTo } = useSetupMode()
   const { trackCompletion, variant } = useRentalExperiment()
+  const { data: goalCategories = [] } = useGoalCategories()
+  const { data: userGoals = [] } = useUserGoals()
+  const hasGoalsConfigured = goalCategories.some((cat) => (cat.goals?.length || 0) > 0)
+  const hasActiveGoals = userGoals.some((g) => g.status === 'ACTIVE')
 
   const addressLine = [draft.formData.address, draft.formData.area, draft.formData.state]
     .filter(Boolean)
@@ -72,7 +80,14 @@ export function RentalConfirmView() {
         router.push(setupRentalListPath())
       } else {
         toast.success('Your property has been saved.', 'Saved')
-        router.push(SETUP_PATHS.dashboard)
+        const freshUser = await getMe().catch(() => null)
+        if (freshUser && !hasContactDetails(freshUser)) {
+          router.push(SETUP_PATHS.phone)
+        } else if (hasGoalsConfigured && !hasActiveGoals) {
+          router.push(SETUP_PATHS.goals)
+        } else {
+          router.push('/dashboard')
+        }
       }
     },
     onError: (err: any) => {
@@ -122,7 +137,7 @@ export function RentalConfirmView() {
       </div>
 
       <div className="setup-page__notice">
-        <span aria-hidden="true">🔒</span>
+        <ShieldCheck size={18} className="setup-page__notice-icon" aria-hidden />
         <div>
           {draft.landlordSkipped
             ? 'Your property and payment details will be saved securely. You can invite your landlord anytime.'

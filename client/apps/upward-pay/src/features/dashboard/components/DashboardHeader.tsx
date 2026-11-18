@@ -110,7 +110,9 @@ export function DashboardHeader({
             <div className="dashboard__greeting-block">
               <span className="dashboard__greeting-eyebrow">Hey,</span>
               <div className="dashboard__greeting">
-                <span className="dashboard__greeting-name">{firstName}</span>
+                <span className="dashboard__greeting-name" suppressHydrationWarning>
+                  {firstName}
+                </span>
               </div>
               <div className="dashboard__email" onClick={() => router.push('/dashboard/me')}>
                 View Profile
@@ -130,6 +132,12 @@ export function DashboardHeader({
                 if (!pathname) return false
                 if (href === '/dashboard/my-home') {
                   return pathname === href || pathname.startsWith(`${href}/`)
+                }
+                if (href === '/dashboard/lifestyle') {
+                  return (
+                    pathname === '/dashboard/lifestyle' ||
+                    pathname.startsWith('/dashboard/lifestyle/')
+                  )
                 }
                 const normalizedPath = pathname.endsWith('/') ? pathname : `${pathname}/`
                 const normalizedHref = href.endsWith('/') ? href : `${href}/`
@@ -154,6 +162,7 @@ export function DashboardHeader({
                   {hasMyHome && !isMyHomeRoute && !isPayRentRoute && !isTransactionsRoute && !isProfileRoute ? (
                     <Link href="/dashboard/my-home" className={isActive('/dashboard/my-home') ? 'active' : ''}>My Home</Link>
                   ) : null}
+                  <Link href="/dashboard/lifestyle" className={isActive('/dashboard/lifestyle') ? 'active' : ''}>Explore</Link>
                   <Link href="/dashboard/pay-rent" className={isActive('/dashboard/pay-rent') ? 'active' : ''}>Pay Rent</Link>
                   {showMarketplace && (
                     <Link href="/dashboard/alliance" className={isActive('/dashboard/alliance') ? 'active' : ''}>Marketplace</Link>

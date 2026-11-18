@@ -24,6 +24,7 @@ import { AlliancePmProfileCard } from '@/features/alliance/components/AlliancePm
 import { AllianceInquiryModal } from '@/features/alliance/components/AllianceInquiryModal';
 import { AllianceRatingModal } from '@/features/alliance/components/AllianceRatingModal';
 import { AllianceReferralBanner } from '@/features/alliance/components/AllianceReferralBanner';
+import { getPublicWebUrl, copyTextToClipboard } from '@/lib/utils';
 
 export function AllianceListingDetailClient() {
   const params = useParams();
@@ -40,9 +41,10 @@ export function AllianceListingDetailClient() {
   const { data: listing, isLoading, isError, error } = useAllianceListingDetail(uuid);
   const { data: referralContext } = useAllianceReferral(refToken);
 
-  const handleShare = () => {
-    if (navigator?.clipboard && typeof window !== 'undefined') {
-      navigator.clipboard.writeText(window.location.href);
+  const handleShare = async () => {
+    const shareUrl = getPublicWebUrl();
+    const success = await copyTextToClipboard(shareUrl);
+    if (success) {
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2000);
     }

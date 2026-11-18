@@ -16,6 +16,8 @@ import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.serv
 import { PaymentConfigurationService } from '../../../shared/infrastructure/common/payment-config.service'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 import { UnifiedCommunicationService } from '../../../shared/infrastructure/communication/unified-communication.service'
+import { ConfirmCommercePaymentUseCase } from '../../commerce/use-cases/confirm-commerce-payment.use-case'
+import { isProductionRuntime } from '../../../shared/utils/runtime-env'
 
 @Injectable()
 export class ProcessPaymentWebhookUseCase {
@@ -36,6 +38,7 @@ export class ProcessPaymentWebhookUseCase {
     private readonly encryption: EncryptionService,
     private readonly creditWalletUseCase: CreditWalletUseCase,
     private readonly unifiedCommService: UnifiedCommunicationService,
+    private readonly confirmCommercePaymentUseCase: ConfirmCommercePaymentUseCase,
   ) { }
 
   async execute(payload: any, signature?: string, url: string = '/payments/webhook') {
@@ -87,7 +90,16 @@ export class ProcessPaymentWebhookUseCase {
       throw new UnauthorizedException('Missing webhook signature')
     }
 
-    const secret = this.configService.get<string>('PAYSTACK_SECRET_KEY') || process.env.PAYSTACK_SECRET_KEY || 'sk_test_fallback'
+    const configuredSecret =
+      this.configService.get<string>('PAYSTACK_SECRET_KEY') ||
+      process.env.PAYSTACK_SECRET_KEY ||
+      ''
+    const isProd = isProductionRuntime(configuredSecret)
+    if (isProd && !configuredSecret) {
+      this.logger.error('PAYSTACK_SECRET_KEY is missing in production; rejecting webhook')
+      throw new UnauthorizedException('Webhook secret is not configured')
+    }
+    const secret = configuredSecret || 'sk_test_fallback'
 
     // Verify HMAC SHA512 signature
     const bodyString = JSON.stringify(payload)
@@ -99,8 +111,8 @@ export class ProcessPaymentWebhookUseCase {
       this.logger.warn(`Invalid webhook signature attempt. Received: ${signature.slice(0, 8)}..., Expected: ${hash.slice(0, 8)}...`)
       this.logger.debug(`Hashed string: ${bodyString}`)
 
-      if (secret.startsWith('sk_test_')) {
-        this.logger.warn('BYPASS: Allowing invalid signature because sk_test key is in use. Fix stringification for production!')
+      if (!isProd && secret.startsWith('sk_test_')) {
+        this.logger.warn('BYPASS: Allowing invalid signature in non-prod because sk_test key is in use.')
       } else {
         throw new UnauthorizedException('Invalid signature')
       }
@@ -130,6 +142,19 @@ export class ProcessPaymentWebhookUseCase {
         } catch (e) {
           this.logger.warn(`Failed to parse metadata string for reference ${reference}`)
         }
+      }
+
+      const isCommerceOrder =
+        (typeof reference === 'string' &&
+          (reference.startsWith('UPW_ORD_PAY_') ||
+            reference.startsWith('UPW_ORD_') ||
+            reference.startsWith('UPW_COMM_'))) ||
+        metadata?.paymentKind === 'COMMERCE_ORDER' ||
+        metadata?.type === 'COMMERCE_ORDER'
+
+      if (isCommerceOrder) {
+        this.logger.log(`Commerce order payment detected for reference ${reference}`)
+        return this.confirmCommercePaymentUseCase.execute(payload.data)
       }
 
       const isAcademyApp =

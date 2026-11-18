@@ -101,7 +101,9 @@ export function DatePicker({ value, onChange, id, required }: DatePickerProps) {
               <option key={d} value={d}>{d}</option>
             ))}
           </select>
-          <ChevronDown size={14} className="dob-select__chevron" />
+          <span className="dob-select__chevron" aria-hidden="true">
+            <ChevronDown size={14} />
+          </span>
         </div>
       </div>
 
@@ -120,7 +122,9 @@ export function DatePicker({ value, onChange, id, required }: DatePickerProps) {
               <option key={m.value} value={m.value}>{m.label}</option>
             ))}
           </select>
-          <ChevronDown size={14} className="dob-select__chevron" />
+          <span className="dob-select__chevron" aria-hidden="true">
+            <ChevronDown size={14} />
+          </span>
         </div>
       </div>
 
@@ -139,7 +143,9 @@ export function DatePicker({ value, onChange, id, required }: DatePickerProps) {
               <option key={y} value={y}>{y}</option>
             ))}
           </select>
-          <ChevronDown size={14} className="dob-select__chevron" />
+          <span className="dob-select__chevron" aria-hidden="true">
+            <ChevronDown size={14} />
+          </span>
         </div>
       </div>
 
@@ -173,8 +179,8 @@ export function DatePicker({ value, onChange, id, required }: DatePickerProps) {
         }
         .dob-select {
           width: 100%;
-          height: 48px;
-          padding: 0 24px 0 10px;
+          height: 52px;
+          padding: 0 28px 0 12px;
           border: 1.5px solid var(--border-solid, #ece4d9);
           border-radius: 12px;
           background: var(--surface, #fff);
@@ -192,6 +198,9 @@ export function DatePicker({ value, onChange, id, required }: DatePickerProps) {
           white-space: nowrap;
           overflow: hidden;
         }
+        .dob-select::-ms-expand {
+          display: none;
+        }
         .dob-select.has-value {
           color: var(--text, #1a1714);
         }
@@ -204,21 +213,28 @@ export function DatePicker({ value, onChange, id, required }: DatePickerProps) {
         }
         .dob-select__chevron {
           position: absolute;
-          right: 8px;
+          right: 10px;
+          top: 50%;
+          transform: translateY(-50%);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
           color: var(--text-muted, #7a7268);
           pointer-events: none;
           flex-shrink: 0;
+          line-height: 0;
+          z-index: 1;
         }
         @media (max-width: 380px) {
           .dob-picker {
             gap: 6px;
           }
           .dob-select {
-            padding: 0 20px 0 8px;
+            padding: 0 24px 0 8px;
             font-size: 13px;
           }
           .dob-select__chevron {
-            right: 6px;
+            right: 7px;
           }
         }
       `}</style>

@@ -1653,6 +1653,7 @@
   margin-right: calc(var(--space-5) * -1);
   padding-left: var(--space-5);
   padding-right: var(--space-5);
+  padding-top: calc(var(--safe-top, 0px) + 6px);
 }
 
 
@@ -4122,32 +4123,57 @@
    RENT REMINDER POPUP
 ═══════════════════════════════════════════════════════════════ */
 
-.rent-reminder-popup {
-  position: fixed;
-  inset: 0;
-  z-index: 99999;
-  display: flex;
-  align-items: flex-end;       /* Mobile: sheet slides from bottom */
-  justify-content: center;
-  padding: 0;
-  background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(14px) saturate(160%);
-  -webkit-backdrop-filter: blur(14px) saturate(160%);
-  animation: fadeIn 0.3s ease-out;
+/* ==========================================================================
+   Rent Reminder Sheet (.rent-reminder-sheet)
+   Integrates with global BottomSheetModal
+   ========================================================================== */
+
+.rent-reminder-sheet .sheet-modal__panel {
+  position: relative;
+  overflow: hidden;
+  background: var(--bg);
 }
 
-.rent-reminder-popup__card {
-  position: relative;
-  background: var(--bg);
-  border: 1px solid;
+.rent-reminder-sheet--critical .sheet-modal__panel {
+  border-color: rgba(239, 68, 68, 0.25);
+}
+
+.rent-reminder-sheet--urgent .sheet-modal__panel {
+  border-color: rgba(217, 119, 87, 0.25);
+}
+
+.rent-reminder-sheet--warning .sheet-modal__panel {
+  border-color: rgba(245, 158, 11, 0.25);
+}
+
+.rent-reminder-sheet--notice .sheet-modal__panel {
+  border-color: rgba(217, 119, 87, 0.15);
+}
+
+.rent-reminder-sheet .sheet-modal__header {
   border-bottom: none;
-  border-radius: 28px 28px 0 0;
-  width: 100%;
-  max-width: 520px;
-  padding: 32px 28px 40px;
+  padding: 16px 20px 4px;
+  align-items: center;
+}
+
+.rent-reminder-sheet .sheet-modal__body {
+  padding: 4px 20px 24px;
+  position: relative;
   overflow: hidden;
-  animation: slideInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.14);
+}
+
+.rent-reminder-sheet .sheet-modal__body > *:not(.rent-reminder-popup__glow) {
+  position: relative;
+  z-index: 1;
+}
+
+@media (min-width: 640px) {
+  .rent-reminder-sheet .sheet-modal__header {
+    padding: 20px 28px 6px;
+  }
+  .rent-reminder-sheet .sheet-modal__body {
+    padding: 6px 28px 32px;
+  }
 }
 
 /* Ambient glow blob */
@@ -4161,36 +4187,6 @@
   filter: blur(50px);
   pointer-events: none;
   z-index: 0;
-}
-
-/* All direct children float above the glow */
-.rent-reminder-popup__card > *:not(.rent-reminder-popup__glow) {
-  position: relative;
-  z-index: 1;
-}
-
-.rent-reminder-popup__close {
-  position: absolute;
-  top: 16px;
-  right: 16px;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: 1px solid var(--border-solid);
-  background: var(--surface2);
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  z-index: 10;
-}
-
-.rent-reminder-popup__close:hover {
-  background: var(--surface);
-  color: var(--text);
-  border-color: var(--clay);
 }
 
 .rent-reminder-popup__badge {
@@ -4310,22 +4306,8 @@
   color: var(--text);
 }
 
-/* Desktop: switch from bottom sheet to centred modal */
+/* Desktop: typography scaling */
 @media (min-width: 640px) {
-  .rent-reminder-popup {
-    align-items: center;
-    padding: 20px;
-  }
-
-  .rent-reminder-popup__card {
-    border: 1px solid;
-    border-radius: 28px;
-    max-width: 440px;
-    padding: 36px 32px 36px;
-    animation: slideInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
-  }
-
   .rent-reminder-popup__title {
     font-size: 28px;
   }

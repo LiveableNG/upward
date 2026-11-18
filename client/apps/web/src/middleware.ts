@@ -65,6 +65,9 @@ const PAY_ROUTE_PREFIXES = [
   '/kyc',
   '/transactions',
   '/invite',
+  '/lifestyle',
+  '/orders',
+  '/goals',
 ]
 
 function matchesRoutePrefix(path: string, prefixes: string[]): boolean {
@@ -173,6 +176,29 @@ export async function middleware(request: NextRequest) {
 
   if (pathname === '/pm') {
     return NextResponse.redirect(new URL('/pm-login', request.url))
+  }
+
+  // Canonical shortcuts for lifestyle, orders, and goals
+  if (pathname === '/lifestyle') {
+    return NextResponse.redirect(new URL(`/dashboard/lifestyle${search}`, request.url))
+  }
+  if (pathname.startsWith('/lifestyle/orders')) {
+    const sub = pathname.replace('/lifestyle/orders', '/dashboard/lifestyle/orders')
+    return NextResponse.redirect(new URL(`${sub}${search}`, request.url))
+  }
+  if (pathname.startsWith('/lifestyle/')) {
+    const sub = pathname.replace('/lifestyle/', '/dashboard/lifestyle/')
+    return NextResponse.redirect(new URL(`${sub}${search}`, request.url))
+  }
+  if (pathname === '/orders') {
+    return NextResponse.redirect(new URL(`/dashboard/lifestyle/orders${search}`, request.url))
+  }
+  if (pathname.startsWith('/orders/')) {
+    const sub = pathname.replace('/orders/', '/dashboard/lifestyle/orders/')
+    return NextResponse.redirect(new URL(`${sub}${search}`, request.url))
+  }
+  if (pathname === '/goals' || pathname.startsWith('/goals/')) {
+    return NextResponse.redirect(new URL(`/dashboard/lifestyle?goals=open`, request.url))
   }
 
   let isPmInvite = false
@@ -314,6 +340,30 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/settings') ||
     pathname.startsWith('/invite')
 
+  const isPayOnlyRoute =
+    pathname.startsWith('/dashboard/lifestyle') ||
+    pathname.startsWith('/dashboard/goals') ||
+    pathname.startsWith('/dashboard/pay-rent') ||
+    pathname.startsWith('/dashboard/save-for-rent') ||
+    pathname.startsWith('/dashboard/save-for-home') ||
+    pathname.startsWith('/dashboard/savings') ||
+    pathname.startsWith('/dashboard/deposit-balance') ||
+    pathname.startsWith('/dashboard/score-breakdown') ||
+    pathname.startsWith('/dashboard/benefits') ||
+    pathname.startsWith('/dashboard/rent-support-insurance') ||
+    pathname.startsWith('/dashboard/exclusive-homes') ||
+    pathname.startsWith('/dashboard/verify-identity') ||
+    pathname.startsWith('/dashboard/my-home') ||
+    pathname.startsWith('/dashboard/setup') ||
+    pathname.startsWith('/dashboard/request-records') ||
+    pathname.startsWith('/dashboard/receipts') ||
+    pathname.startsWith('/dashboard/coming-soon') ||
+    pathname.startsWith('/dashboard/me') ||
+    pathname.startsWith('/dashboard/help') ||
+    pathname.startsWith('/lifestyle') ||
+    pathname.startsWith('/orders') ||
+    pathname.startsWith('/goals')
+
   // Rule: Should this request route to the PM app instead of the Pay app?
   let routeToPm = isPmPath || isPmInvite
   if (!routeToPm && isSharedRoute) {
@@ -336,6 +386,11 @@ export async function middleware(request: NextRequest) {
         routeToPm = hasPmSession
       }
     }
+  }
+
+  // Tenant / Pay-specific routes must always target upward-pay even if PM cookies exist
+  if (isPayOnlyRoute) {
+    routeToPm = false
   }
 
   const targetBase = routeToPm ? PM_URL : APP_URL
@@ -413,6 +468,9 @@ export async function middleware(request: NextRequest) {
   // 8. Protected Routes Logic
   const isProtectedRoute =
     pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/lifestyle') ||
+    pathname.startsWith('/orders') ||
+    pathname.startsWith('/goals') ||
     pathname.startsWith('/properties') ||
     pathname.startsWith('/landlords') ||
     pathname.startsWith('/tenants') ||
@@ -491,6 +549,9 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/transactions') ||
     pathname.startsWith('/portal') ||
     pathname.startsWith('/public/requests') ||
+    pathname.startsWith('/lifestyle') ||
+    pathname.startsWith('/orders') ||
+    pathname.startsWith('/goals') ||
     pathname.startsWith('/.well-known')
 
   if (shouldProxy) {
@@ -709,6 +770,12 @@ export const config = {
     '/alliance/commissions/:path*',
     '/public/requests/:path*',
     '/dashboard/:path*',
+    '/lifestyle',
+    '/lifestyle/:path*',
+    '/orders',
+    '/orders/:path*',
+    '/goals',
+    '/goals/:path*',
     '/profile/:path*',
     '/pay/:path*',
     '/waitlist/:path*',

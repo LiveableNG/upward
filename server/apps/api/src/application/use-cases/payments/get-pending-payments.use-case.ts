@@ -75,6 +75,8 @@ export class GetPendingPaymentsUseCase {
         isManual: p.isManual,
         isVerified: pmPR?.pm?.isVerified || false,
         lineItemRecords,
+        dueDate: p.dueDate || p.userProperty?.rentEndDate || null,
+        due_date: p.dueDate || p.userProperty?.rentEndDate || null,
         type: 'invoice',
         latestProof: latestProof ? {
           id: latestProof.id,
@@ -132,6 +134,8 @@ export class GetPendingPaymentsUseCase {
         manager_name: null,
         property_address,
         userPropertyUuid: p?.uuid,
+        dueDate: p?.rentEndDate || proof.createdAt,
+        due_date: p?.rentEndDate || proof.createdAt,
         isManual: true,
         isVerified: false,
         lineItemRecords: [],

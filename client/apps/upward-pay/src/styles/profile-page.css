@@ -18,7 +18,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  padding: 6px 0 18px;
+  padding: calc(var(--safe-top, 0px) + 6px) 0 18px;
 }
 
 .profile-page__header-text {

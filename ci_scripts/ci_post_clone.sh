@@ -56,9 +56,9 @@ fi
 
 echo "pnpm version: $(pnpm -v)"
 
-# Install dependencies for the workspace
-echo "Installing JS dependencies..."
-pnpm install --frozen-lockfile || pnpm install
+# Install dependencies specifically for upward-pay and its workspace dependencies
+echo "Installing JS dependencies for upward-pay..."
+pnpm install --filter upward-pay... --frozen-lockfile || pnpm install --filter upward-pay...
 
 # Validate required environment variables configured in Xcode Cloud workflow
 echo "Validating environment configuration for upward-pay build..."

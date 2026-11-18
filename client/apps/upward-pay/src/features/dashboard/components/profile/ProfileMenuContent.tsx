@@ -51,6 +51,15 @@ function ProfileMenuContentInner() {
     }
   }
 
+  useEffect(() => {
+    const currentView = searchParams.get('view')
+    if (currentView === 'personal' || currentView === 'banking') {
+      setView(currentView)
+    } else {
+      setView('menu')
+    }
+  }, [searchParams])
+
   if (!profile) return <ProfileMenuSkeleton />
 
   if (view === 'personal') {
@@ -58,7 +67,10 @@ function ProfileMenuContentInner() {
       <PersonalDetailsView
         user={profile}
         refreshUser={refreshUser}
-        onBack={() => setView('menu')}
+        onBack={() => {
+          setView('menu')
+          router.push('/dashboard/me', { scroll: false })
+        }}
         initialEditing={startInEditMode}
       />
     )
@@ -67,7 +79,10 @@ function ProfileMenuContentInner() {
   if (view === 'banking') {
     return (
       <BankingPayoutsView
-        onBack={() => setView('menu')}
+        onBack={() => {
+          setView('menu')
+          router.push('/dashboard/me', { scroll: false })
+        }}
         initialEditing={startInEditMode}
       />
     )
@@ -84,7 +99,10 @@ function ProfileMenuContentInner() {
         contracts={contracts}
         refreshUser={refreshUser}
         logout={logout}
-        onNavigate={(v) => setView(v)}
+        onNavigate={(v) => {
+          setView(v)
+          router.push(`/dashboard/me?view=${v}`, { scroll: false })
+        }}
       />
     </ProfilePageShell>
   )

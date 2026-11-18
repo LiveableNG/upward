@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
@@ -33,11 +34,16 @@ interface ManualAccountModalProps {
 }
 
 export function ManualAccountModal({ propertyId, propertyName, initialData, onClose }: ManualAccountModalProps) {
+  const [mounted, setMounted] = useState(false)
   const toast = useToast()
   const queryClient = useQueryClient()
   const [isVerifying, setIsVerifying] = useState(false)
   const [isConfirmed, setIsConfirmed] = useState(false)
   const [isBankModalOpen, setIsBankModalOpen] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const { register, handleSubmit, setValue, control, reset, formState: { errors, isDirty } } = useForm<ManualAccountForm>({
     resolver: zodResolver(manualAccountSchema),
@@ -118,7 +124,9 @@ export function ManualAccountModal({ propertyId, propertyName, initialData, onCl
 
   const selectedBank = banks.find(b => b.code === selectedBankCode)
 
-  return (
+  if (!mounted) return null
+
+  return createPortal(
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-card animate-in zoom-in-95 duration-200" onClick={(e) => e.stopPropagation()}>
         <div className="modal-card__header">
@@ -218,7 +226,7 @@ export function ManualAccountModal({ propertyId, propertyName, initialData, onCl
           display: flex;
           align-items: center;
           justify-content: center;
-          z-index: 1000;
+          z-index: 9000;
           padding: 20px;
           backdrop-filter: blur(4px);
         }
@@ -318,6 +326,7 @@ export function ManualAccountModal({ propertyId, propertyName, initialData, onCl
           box-sizing: border-box;
         }
       `}</style>
-    </div>
+    </div>,
+    document.body
   )
 }

@@ -13,6 +13,7 @@ import {
   User,
   ShieldCheck,
   LogOut,
+  Target,
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { UserAvatar } from '@/components/common/UserAvatar'
@@ -29,6 +30,9 @@ import {
 import { isSavingsWalletEnabled } from '../utils/savingsWallet'
 import { useRentalExperiment } from '../setup/hooks/useRentalExperiment'
 import { useRentalGate } from '../setup/hooks/useRentalGate'
+import { useUserGoals, useGoalCategories } from '@/features/goals/hooks/useGoals'
+import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
+import { useToast } from '@/components/common/Toast'
 
 interface ProfileSetupBlockerProps {
   user: UserProfile
@@ -38,7 +42,7 @@ interface ProfileSetupBlockerProps {
   onSkip: () => void
 }
 
-type SetupStepId = 'rental' | 'phone' | 'identity'
+type SetupStepId = 'rental' | 'phone' | 'identity' | 'goals'
 
 interface SetupStep {
   id: SetupStepId
@@ -58,9 +62,11 @@ interface QuickAction {
 
 export function ProfileSetupBlocker({ user, score, maxScore, onSkip }: ProfileSetupBlockerProps) {
   const router = useRouter()
+  const toast = useToast()
   const { logout } = useAuth()
   const { trackExposure, trackDeferral } = useRentalExperiment()
   const { isGated, guard, notifyGated } = useRentalGate()
+  const { rates: platformRates, isLoading: ratesLoading } = usePlatformRates()
 
   useEffect(() => {
     trackExposure('ProfileSetupBlocker')
@@ -68,7 +74,10 @@ export function ProfileSetupBlocker({ user, score, maxScore, onSkip }: ProfileSe
 
   const firstName = user.firstName || 'there'
   const rentalDone = hasRentalInfo(user)
-  const showIdentityStep = (user.verificationOn ?? true) && !isGated
+  const showIdentityStep = Boolean(user.verificationOn) && !isGated
+  const { data: userGoals = [] } = useUserGoals()
+  const showGoalsStep = true
+  const goalsDone = userGoals.filter((g) => g.status === 'ACTIVE').length > 0
 
   const steps: SetupStep[] = [
     {
@@ -87,6 +96,18 @@ export function ProfileSetupBlocker({ user, score, maxScore, onSkip }: ProfileSe
       done: hasContactDetails(user),
       href: getStandalonePhonePath(),
     },
+    ...(showGoalsStep
+      ? [
+          {
+            id: 'goals' as const,
+            label: '2027 Goals',
+            hint: goalsDone ? 'Completed' : 'Review',
+            icon: Target,
+            done: goalsDone,
+            href: '/dashboard/goals',
+          },
+        ]
+      : []),
     ...(showIdentityStep
       ? [
           {
@@ -106,16 +127,19 @@ export function ProfileSetupBlocker({ user, score, maxScore, onSkip }: ProfileSe
 
   const quickActions: QuickAction[] = [
     { label: 'Pay Rent', icon: CreditCard, href: '/dashboard/pay-rent' },
-    { label: 'Save for Home', icon: Home, href: '/dashboard/save-for-home' },
-    isSavingsWalletEnabled(user)
-      ? { label: 'Save Rent', icon: PiggyBank, href: '/dashboard/savings' }
-      : { label: 'Save Rent', icon: PiggyBank, href: '/dashboard/save-for-rent', comingSoon: true },
+    {
+      label: 'Save for Rent',
+      icon: PiggyBank,
+      href: '/dashboard/savings',
+      comingSoon: platformRates.savingsEnabled === false,
+    },
+    ...(showGoalsStep ? [{ label: 'Living Goals', icon: Target, href: '/dashboard/lifestyle' }] : []),
   ]
 
   const title = isGated ? 'Add your rental details' : `Welcome, ${firstName}`
   const subtitle = isGated
     ? 'Takes about a minute. Unlocks rent payments, savings and your Rent Passport.'
-    : 'Finish setup to unlock your full Upward Score.'
+    : 'Complete your profile.'
 
   return (
     <div className="setup-gate" role="dialog" aria-modal="true" aria-labelledby="setup-gate-title">
@@ -145,12 +169,10 @@ export function ProfileSetupBlocker({ user, score, maxScore, onSkip }: ProfileSe
               <span className="setup-gate__hero-icon" aria-hidden="true">
                 <Home size={22} strokeWidth={2.2} />
               </span>
-              {score !== undefined && (
-                <span className="setup-gate__score-chip">
-                  <strong>{score}</strong>
-                  {maxScore ? <span>/ {maxScore}</span> : null}
-                </span>
-              )}
+              {/* <span className="setup-gate__score-chip">
+                <strong>{score ?? 500}</strong>
+                <span>/ {maxScore ?? 900}</span>
+              </span> */}
             </div>
             <h1 id="setup-gate-title" className="setup-gate__title">
               {title}
@@ -209,7 +231,10 @@ export function ProfileSetupBlocker({ user, score, maxScore, onSkip }: ProfileSe
             <h2 className="setup-gate__section-label">
               {isGated ? 'Unlocks after setup' : 'Quick actions'}
             </h2>
-            <div className="setup-gate__tiles">
+            <div
+              className="setup-gate__tiles"
+              style={{ gridTemplateColumns: `repeat(${quickActions.length || 3}, 1fr)` }}
+            >
               {quickActions.map((action) => {
                 const Icon = action.icon
                 const locked = isGated || !!action.comingSoon
@@ -220,6 +245,13 @@ export function ProfileSetupBlocker({ user, score, maxScore, onSkip }: ProfileSe
                     className={`setup-gate__tile${locked ? ' setup-gate__tile--locked' : ''}`}
                     aria-disabled={locked ? 'true' : undefined}
                     onClick={() => {
+                      if (action.href === '/dashboard/savings') {
+                        if (ratesLoading) return
+                        if (platformRates.savingsEnabled === false) {
+                          toast.info('Savings is coming soon.')
+                          return
+                        }
+                      }
                       if (action.comingSoon) return
                       if (isGated) {
                         notifyGated(action.label)

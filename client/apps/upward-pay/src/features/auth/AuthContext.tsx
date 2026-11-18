@@ -1,6 +1,6 @@
 'use client'
 
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react'
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react'
 import { type UserProfile } from './types'
 import { getMe, logout as authLogout } from './services/authService'
 import { useQueryClient } from '@tanstack/react-query'
@@ -105,6 +105,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           })
           
           window.dispatchEvent(new CustomEvent('upward:payment.request.changed', { detail: data }))
+        } else if (data.type === 'user.goals.updated') {
+          queryClient.invalidateQueries({ queryKey: ['user-goals'] })
+          window.dispatchEvent(new CustomEvent('upward:user.goals.updated', { detail: data }))
+        } else if (data.type === 'goals.catalog.updated') {
+          queryClient.invalidateQueries({ queryKey: ['goal-categories'] })
+          queryClient.invalidateQueries({ queryKey: ['goals'] })
+          queryClient.invalidateQueries({ queryKey: ['goal-offerings'] })
+          window.dispatchEvent(new CustomEvent('upward:goals.catalog.updated', { detail: data }))
         }
       } catch (err) {
         console.error('[SSE] Error processing event:', err)
@@ -122,7 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user?.uuid, queryClient])
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     try {
       const profile = await getMe()
       setUser(profile)
@@ -134,8 +142,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (err: any) {
       console.warn('[Auth] refreshUser error:', err)
       const isAuthRejected = err?.status === 401 || err?.message === 'Session expired'
-      if (Capacitor.isNativePlatform() && !isAuthRejected && userRef.current) {
-        console.warn('[Auth] Retaining session on native platform during temporary network fluctuation.')
+      if (!isAuthRejected && userRef.current) {
+        console.warn('[Auth] Retaining session during temporary network fluctuation.')
       } else {
         setUser(null)
         userRef.current = null
@@ -145,11 +153,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (typeof window !== 'undefined') {
           localStorage.removeItem('upward_cached_user_profile')
         }
+        authLogout().catch(() => {})
       }
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     const initSession = async () => {
@@ -160,14 +169,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const refreshToken = getRefreshToken()
 
       if (!token && !refreshToken) {
-        console.log('[Auth] No stored tokens found. Starting in logged-out state.')
-        setUser(null)
-        userRef.current = null
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('upward_cached_user_profile')
+        // Even if localStorage tokens are absent, check if an active HTTP-Only cookie session exists on web
+        try {
+          const profile = await getMe()
+          setUser(profile)
+          userRef.current = profile
+          sessionTracker.identify({ id: profile.id ? Number(profile.id) : undefined, email: profile.email, role: profile.role || 'TENANT' })
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('upward_cached_user_profile', JSON.stringify(profile))
+          }
+          setLoading(false)
+          return
+        } catch {
+          console.log('[Auth] No stored tokens found and no active cookie session. Starting in logged-out state.')
+          setUser(null)
+          userRef.current = null
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('upward_cached_user_profile')
+          }
+          setLoading(false)
+          return
         }
-        setLoading(false)
-        return
       }
 
       if (Capacitor.isNativePlatform()) {
@@ -242,6 +264,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('app_backgrounded_at')
       localStorage.removeItem('upward_cached_user_profile')
+      localStorage.removeItem('upward:housing-card-expanded')
     }
 
     try {
@@ -268,6 +291,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           'exclusive_home_requests',
           'upward_session_id',
           'upward_session_last_active',
+          'upward_savings_rent_plan',
+          'upward_setup_draft',
+          'has_seen_complete_profile_popup',
         ]
         keysToRemove.forEach((k) => localStorage.removeItem(k))
 
@@ -276,7 +302,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (
             k.startsWith('profile_popup_dismissed_') ||
             k.startsWith('rent_support_policy_') ||
-            k.startsWith('upward_profile_setup_skipped_')
+            k.startsWith('upward_profile_setup_skipped_') ||
+            k.startsWith('upward_cached_user_goals_') ||
+            k.startsWith('upward_savings_') ||
+            k.startsWith('upward_setup_')
           ) {
             localStorage.removeItem(k)
           }

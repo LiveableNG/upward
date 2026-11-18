@@ -22,6 +22,7 @@ import { PayFlowPrimaryButton, PayPageShell } from '@/features/dashboard/compone
 import { useToast } from '@/components/common/Toast'
 import { useScoreProfile, usePublicScoreProfile } from '../../services/scoreService'
 import { PublicProfileShell } from './PublicProfileShell'
+import { getPublicWebUrl, copyTextToClipboard } from '@/lib/utils'
 
 interface KYCReportContentProps {
   isPublic?: boolean
@@ -79,28 +80,14 @@ export function KYCReportContent({ isPublic = false, publicSlug }: KYCReportCont
       toastError('Profile link not available')
       return
     }
-    const defaultWebUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'
-    const baseUrl = Capacitor.isNativePlatform()
-      ? defaultWebUrl
-      : (typeof window !== 'undefined' ? window.location.origin : defaultWebUrl)
+    const url = getPublicWebUrl(`/profile/${identifier}`)
 
-    const url = `${baseUrl}/profile/${identifier}`
-
-    try {
-      if (navigator?.clipboard?.writeText) {
-        await navigator.clipboard.writeText(url)
-      } else {
-        const textArea = document.createElement('textarea')
-        textArea.value = url
-        document.body.appendChild(textArea)
-        textArea.select()
-        document.execCommand('copy')
-        document.body.removeChild(textArea)
-      }
+    const copiedSuccess = await copyTextToClipboard(url)
+    if (copiedSuccess) {
       setCopied(true)
       success('Link copied to clipboard!')
       setTimeout(() => setCopied(false), 2500)
-    } catch {
+    } else {
       toastError('Failed to copy link')
     }
   }

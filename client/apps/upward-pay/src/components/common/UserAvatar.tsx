@@ -44,6 +44,7 @@ export function UserAvatar({ src, alt, color, size = 40, className = '' }: UserA
   return (
     <div
       className={`user-avatar user-avatar--initials ${className}`}
+      suppressHydrationWarning
       style={{
         width: size,
         height: size,

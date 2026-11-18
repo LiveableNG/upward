@@ -168,6 +168,97 @@ export class StaticLocationRepository implements LocationRepository {
     ],
   }
 
+  private readonly STATES_DATA: Record<string, string[]> = {
+    nigeria: [
+      'Abia',
+      'Adamawa',
+      'Akwa Ibom',
+      'Anambra',
+      'Bauchi',
+      'Bayelsa',
+      'Benue',
+      'Borno',
+      'Cross River',
+      'Delta',
+      'Ebonyi',
+      'Edo',
+      'Ekiti',
+      'Enugu',
+      'FCT Abuja',
+      'Gombe',
+      'Imo',
+      'Jigawa',
+      'Kaduna',
+      'Kano',
+      'Katsina',
+      'Kebbi',
+      'Kogi',
+      'Kwara',
+      'Lagos',
+      'Nasarawa',
+      'Niger',
+      'Ogun',
+      'Ondo',
+      'Osun',
+      'Oyo',
+      'Plateau',
+      'Rivers',
+      'Sokoto',
+      'Taraba',
+      'Yobe',
+      'Zamfara',
+    ],
+    kenya: [
+      'Baringo',
+      'Bomet',
+      'Bungoma',
+      'Busia',
+      'Elgeyo Marakwet',
+      'Embu',
+      'Garissa',
+      'Homa Bay',
+      'Isiolo',
+      'Kajiado',
+      'Kakamega',
+      'Kericho',
+      'Kiambu',
+      'Kilifi',
+      'Kirinyaga',
+      'Kisii',
+      'Kisumu',
+      'Kitui',
+      'Kwale',
+      'Laikipia',
+      'Lamu',
+      'Machakos',
+      'Makueni',
+      'Mandera',
+      'Marsabit',
+      'Meru',
+      'Migori',
+      'Mombasa',
+      'Muranga',
+      'Nairobi',
+      'Nakuru',
+      'Nandi',
+      'Narok',
+      'Nyamira',
+      'Nyandarua',
+      'Nyeri',
+      'Samburu',
+      'Siaya',
+      'Taita Taveta',
+      'Tana River',
+      'Tharaka Nithi',
+      'Trans Nzoia',
+      'Turkana',
+      'Uasin Gishu',
+      'Vihiga',
+      'Wajir',
+      'West Pokot',
+    ],
+  }
+
   async getCountries(): Promise<Country[]> {
     return this.countries
   }
@@ -175,5 +266,10 @@ export class StaticLocationRepository implements LocationRepository {
   async getCities(countryId: string): Promise<string[]> {
     const key = countryId.toLowerCase()
     return this.CITIES_DATA[key] || []
+  }
+
+  async getStates(countryId: string = 'nigeria'): Promise<string[]> {
+    const key = (countryId || 'nigeria').toLowerCase()
+    return this.STATES_DATA[key] || this.STATES_DATA['nigeria'] || []
   }
 }

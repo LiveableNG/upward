@@ -57,6 +57,31 @@ export class GetRentDepositSummaryUseCase {
       this.logger.warn(`Could not load rent deposit balances for user ${userId}: ${err?.message || err}`)
     }
 
+    // Consolidate active Rent Savings Vault balance & DVA into Deposit Summary
+    let activeVault: any = null
+    let vaultBalanceNaira = 0
+    try {
+      if (this.prisma.upward_rent_vault) {
+        activeVault = await this.prisma.upward_rent_vault.findFirst({
+          where: {
+            userId,
+            lockStatus: { notIn: ['SETTLED', 'BROKEN_OUT'] },
+          },
+          orderBy: { createdAt: 'desc' },
+        })
+        if (activeVault) {
+          const vaultKobo =
+            BigInt(activeVault.currentPrincipalKobo || 0) +
+            BigInt(activeVault.accruedYieldKobo || 0)
+          vaultBalanceNaira = Number(vaultKobo) / 100
+          totalBalance += vaultBalanceNaira
+          propertyBalance += vaultBalanceNaira
+        }
+      }
+    } catch (vErr: any) {
+      this.logger.warn(`Could not load rent vault for deposit summary (user ${userId}): ${vErr?.message || vErr}`)
+    }
+
     let dvaInfo: any = null
     let propertyAddress = 'Primary Residence'
 
@@ -79,6 +104,15 @@ export class GetRentDepositSummaryUseCase {
           bankName: dedicatedAccount.bankName,
           bankCode: dedicatedAccount.bankCode,
         }
+      }
+    }
+
+    if (!dvaInfo && activeVault?.dvaAccountNumber) {
+      dvaInfo = {
+        accountNumber: activeVault.dvaAccountNumber,
+        accountName: activeVault.dvaAccountName || 'Upward Rent Savings',
+        bankName: activeVault.dvaBankName || 'Wema Bank',
+        bankCode: '035',
       }
     }
 

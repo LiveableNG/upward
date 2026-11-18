@@ -6,6 +6,11 @@ import { formatCurrency } from '@/lib/utils'
 import { type PendingPayment } from '../types'
 import { isSelfInitiatedPayment } from './payment/paymentOrigin'
 import type { GtActivityBill } from '@/features/my-home/hooks/useMyHome'
+import {
+  type TenantOrderSummaryDto,
+  type GoalOffering,
+  usePublicOfferings,
+} from '@/features/goals'
 
 interface ActionCarouselProps {
   pendingPayments: PendingPayment[]
@@ -15,8 +20,11 @@ interface ActionCarouselProps {
   rentReminders: any[]
   isIdentityVerified: boolean
   skin?: 'default' | 'proto'
-  showBenefitsUpsell?: boolean
   benefitsEndsAt?: string | null
+  activeOrder?: TenantOrderSummaryDto | null
+  activeOrders?: TenantOrderSummaryDto[]
+  unpaidOrder?: TenantOrderSummaryDto | null
+  promotedOffering?: GoalOffering | null
 }
 
 type Urgency = 'critical' | 'pending' | 'neutral'
@@ -29,6 +37,8 @@ interface ActionItem {
   actionLabel: string
   action: () => void
   urgency: Urgency
+  badgePill?: string
+  backgroundImageUrl?: string
 }
 
 function formatShortDue(date: string | Date | undefined): string {
@@ -124,10 +134,103 @@ export function ActionCarousel({
   rentReminders,
   isIdentityVerified,
   skin = 'default',
-  showBenefitsUpsell = false,
+  activeOrder,
+  activeOrders,
+  unpaidOrder,
+  promotedOffering,
 }: ActionCarouselProps) {
   const router = useRouter()
+  const { data: publicOfferings } = usePublicOfferings()
+
+  const defaultHomeRefreshPromo: GoalOffering = {
+    id: 2027,
+    uuid: 'home-refresh-2027',
+    name: 'Prepare Your Home for the New Year',
+    slug: 'home-refresh-2027',
+    type: 'PRODUCT',
+    priceKobo: 0,
+    currency: 'NGN',
+    status: 'PUBLISHED',
+    isPromoted: true,
+    promoTitle: 'Prepare Your Home for the New Year',
+    promoSubtitle: 'Curated home refresh packages for the new year',
+    promoCoverImage:
+      'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=900&q=80',
+  } as unknown as GoalOffering
+
+  const activePromo =
+    promotedOffering !== undefined
+      ? promotedOffering
+      : (publicOfferings?.find((o) => (o.status === 'PUBLISHED' || !o.status) && o.isPromoted) || defaultHomeRefreshPromo)
+
   const items: ActionItem[] = []
+
+  const effectiveActiveOrders = activeOrders ?? (activeOrder ? [activeOrder] : [])
+
+  if (effectiveActiveOrders.length > 1) {
+    items.push({
+      type: 'live_order_multiple',
+      id: 'live-orders-multiple',
+      title: `${effectiveActiveOrders.length} Active Orders in Progress`,
+      meta: 'Multiple shipments and services underway · Track all updates',
+      actionLabel: 'View All Orders',
+      action: () => router.push('/dashboard/lifestyle/orders'),
+      urgency: 'pending',
+    })
+  } else if (effectiveActiveOrders.length === 1) {
+    const singleOrder = effectiveActiveOrders[0]
+    const isService = (singleOrder.itemsPreview || []).some((i) => i.offeringType === 'SERVICE')
+    const firstItem = (singleOrder.itemsPreview || [])[0]
+    const statusLabel =
+      singleOrder.primaryStatus === 'OUT_FOR_DELIVERY'
+        ? 'Out for Delivery'
+        : singleOrder.primaryStatus === 'TECHNICIAN_EN_ROUTE'
+        ? 'Technician En Route'
+        : singleOrder.primaryStatus === 'DISPATCHED'
+        ? 'Dispatched to Carrier'
+        : singleOrder.primaryStatus === 'PROCESSING'
+        ? 'Order in Preparation'
+        : singleOrder.primaryStatus === 'SERVICE_SCHEDULED'
+        ? 'Service Scheduled'
+        : singleOrder.primaryStatus === 'DISPUTED'
+        ? 'Inquiry Logged'
+        : isService
+        ? 'Booking Confirmed'
+        : 'Order Confirmed'
+
+    const itemTitle = firstItem ? firstItem.title : 'Lifestyle Order'
+    const count = singleOrder.itemsCount ?? (singleOrder.itemsPreview?.length || 1)
+    const countBadge = count > 1 ? ` (+${count - 1} more)` : ''
+
+    items.push({
+      type: 'live_order',
+      id: `live-order-${singleOrder.uuid}`,
+      title: `${statusLabel} · ${singleOrder.orderNumber}`,
+      meta: `${itemTitle}${countBadge} · Tracking in progress`,
+      actionLabel: 'Track Live',
+      action: () => router.push(`/dashboard/lifestyle/orders?uuid=${singleOrder.uuid}`),
+      urgency: 'pending',
+    })
+  }
+
+  if (unpaidOrder) {
+    const formattedAmt = new Intl.NumberFormat('en-NG', {
+      style: 'currency',
+      currency: 'NGN',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(Number(unpaidOrder.totalAmountKobo) / 100)
+
+    items.push({
+      type: 'unpaid_order',
+      id: `unpaid-order-${unpaidOrder.uuid}`,
+      title: `Payment Pending · ${unpaidOrder.orderNumber}`,
+      meta: `Complete payment of ${formattedAmt} to begin merchant fulfilment`,
+      actionLabel: 'Pay Now',
+      action: () => router.push(`/dashboard/lifestyle/orders?uuid=${unpaidOrder.uuid}`),
+      urgency: 'critical',
+    })
+  }
 
   if (!isIdentityVerified) {
     items.push({
@@ -220,48 +323,64 @@ export function ActionCarousel({
       })
     })
 
-  if (items.length === 0) {
-    if (showBenefitsUpsell) {
-      items.push({
-        type: 'benefits',
-        id: 'benefits-upsell',
-        title: 'Get Rent Protection',
-        meta: 'Activate Upward Benefits for one year',
-        actionLabel: 'View Benefits',
-        action: () => router.push('/dashboard/benefits'),
-        urgency: 'pending',
-      })
-    } else if (showKYC) {
-      items.push({
-        type: 'kyc',
-        id: 'kyc-alert',
-        title: 'Complete Your Profile',
-        meta: 'Add property details to build your score',
-        actionLabel: 'Add Property',
-        action: () => router.push('/dashboard/setup'),
-        urgency: 'pending',
-      })
-    } else {
-      items.push({
-        type: 'welcome',
-        id: 'welcome',
-        title: 'Dashboard Active',
-        meta: 'Rent tracking and credibility building are on',
-        actionLabel: 'View Profile',
-        action: () => router.push('/dashboard/me'),
-        urgency: 'neutral',
-      })
-    }
-  } else if (showBenefitsUpsell) {
+  if (showKYC) {
     items.push({
-      type: 'benefits',
-      id: 'benefits-upsell',
-      title: 'Get Rent Protection',
-      meta: 'Optional annual Upward Benefits cover',
-      actionLabel: 'Protect Now',
-      action: () => router.push('/dashboard/benefits'),
+      type: 'kyc',
+      id: 'kyc-alert',
+      title: 'Add Your Rental Details',
+      meta: 'Add your property details to track rent and build your score',
+      actionLabel: 'Add Property',
+      action: () => router.push('/dashboard/setup/rental'),
+      urgency: 'pending',
+    })
+  }
+
+  if (activePromo) {
+    const promoCover =
+      activePromo.promoCoverImage ||
+      activePromo.media?.find((m) => m.isPrimary)?.mediaUrl ||
+      activePromo.media?.[0]?.mediaUrl ||
+      activePromo.imageUrl ||
+      'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=900&q=80'
+
+    const promoTarget = activePromo.uuid || activePromo.slug || String(activePromo.id)
+
+    items.push({
+      type: 'promoted_bundle_ad',
+      id: `promo-bundle-${activePromo.id || activePromo.uuid}`,
+      title: activePromo.promoTitle || activePromo.title || activePromo.name || 'Featured Bundle',
+      meta:
+        activePromo.promoSubtitle ||
+        activePromo.subtitle ||
+        activePromo.description ||
+        'Curated essentials bundle for tenants',
+      actionLabel: 'Explore Bundle',
+      action: () => router.push(`/dashboard/lifestyle?id=${encodeURIComponent(promoTarget)}`),
+      urgency: 'neutral',
+      backgroundImageUrl: promoCover,
+    })
+  }
+
+  if (items.length === 0) {
+    items.push({
+      type: 'welcome',
+      id: 'welcome',
+      title: 'Dashboard Active',
+      meta: 'Rent tracking and credibility building are on',
+      actionLabel: 'View Profile',
+      action: () => router.push('/dashboard/me'),
       urgency: 'neutral',
     })
+  }
+
+  // If there are no critical alerts (e.g. no overdue rent), elevate the Home Refresh / Promoted Bundle card to the front
+  const hasCriticalAlert = items.some((item) => item.urgency === 'critical')
+  if (!hasCriticalAlert) {
+    const promoIdx = items.findIndex((item) => item.type === 'promoted_bundle_ad')
+    if (promoIdx > 0) {
+      const [promoItem] = items.splice(promoIdx, 1)
+      items.unshift(promoItem)
+    }
   }
 
   const rootClass = skin === 'proto' ? 'activity-alerts activity-alerts--proto' : 'activity-alerts'
@@ -276,7 +395,16 @@ export function ActionCarousel({
       {items.map((item) => (
         <article
           key={item.id}
-          className={`activity-alerts__item activity-alerts__item--${item.urgency}`}
+          className={`activity-alerts__item activity-alerts__item--${item.urgency} ${item.type.startsWith('live_order') ? 'activity-alerts__item--live-order' : ''} ${item.type === 'unpaid_order' ? 'activity-alerts__item--unpaid-order' : ''} ${item.type === 'promoted_bundle_ad' ? 'activity-alerts__item--ad-bg' : ''}`}
+          style={
+            item.backgroundImageUrl
+              ? {
+                  backgroundImage: `linear-gradient(92deg, rgba(16, 12, 10, 0.65) 0%, rgba(16, 12, 10, 0.42) 55%, rgba(16, 12, 10, 0.15) 100%), url(${item.backgroundImageUrl})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                }
+              : undefined
+          }
           onClick={item.action}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
@@ -288,7 +416,28 @@ export function ActionCarousel({
           tabIndex={0}
         >
           <div className="activity-alerts__body">
-            <h4 className="activity-alerts__title">{item.title}</h4>
+            {item.badgePill && (
+              <span className="activity-alerts__ad-pill">{item.badgePill}</span>
+            )}
+            <div className="activity-alerts__header-row">
+              {(item.type === 'live_order' || item.type === 'live_order_multiple') && (
+                <span
+                  className="live-order-card__beacon live-order-card__beacon--pulse"
+                  style={{ backgroundColor: '#059669', flexShrink: 0, display: 'inline-block' }}
+                  aria-hidden="true"
+                />
+              )}
+              {item.type === 'unpaid_order' && (
+                <span
+                  className="live-order-card__beacon"
+                  style={{ backgroundColor: '#D97706', flexShrink: 0, display: 'inline-block' }}
+                  aria-hidden="true"
+                />
+              )}
+              <h4 className="activity-alerts__title">
+                {item.title}
+              </h4>
+            </div>
             {item.meta ? <p className="activity-alerts__meta">{item.meta}</p> : null}
             <span className="activity-alerts__cta">
               {item.actionLabel}

@@ -42,7 +42,7 @@ export function StepPaymentMethod({
         </div>
         <div className="pay-flow__method-card-body">
           <p className="pay-flow__method-card-title">Pay online</p>
-          <p className="pay-flow__method-card-desc">Instant confirmation · processing fee applies at checkout</p>
+          <p className="pay-flow__method-card-desc">Instant payment through Upward · Immediate confirmation</p>
         </div>
       </button>
 
@@ -56,11 +56,11 @@ export function StepPaymentMethod({
           <Landmark size={22} />
         </div>
         <div className="pay-flow__method-card-body">
-          <p className="pay-flow__method-card-title">Bank transfer</p>
+          <p className="pay-flow__method-card-title">Upload payment proof</p>
           <p className="pay-flow__method-card-desc">
             {bankTransferDisabled
-              ? bankTransferDisabledReason || 'Bank transfer is unavailable for this property.'
-              : 'Pay directly to landlord · no platform fees · upload proof after'}
+              ? bankTransferDisabledReason || 'Direct transfer is unavailable for this property.'
+              : 'Already made or making a direct transfer? Upload receipt for manual review'}
           </p>
         </div>
       </button>

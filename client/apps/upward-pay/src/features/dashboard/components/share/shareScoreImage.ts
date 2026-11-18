@@ -1,4 +1,5 @@
 import { Capacitor } from '@capacitor/core'
+import { getPublicWebUrl } from '@/lib/utils'
 
 export const SHARE_SCORE_CAPTURE_ID = 'share-score-story-capture'
 
@@ -12,14 +13,7 @@ export function getScoreRankColor(rank: string, isScorable: boolean, isVerified:
 }
 
 export function getProfileShareUrl(profileUuid: string): string {
-  const defaultWebUrl = process.env.NEXT_PUBLIC_WEB_URL || 'https://upward.goodtenants.io'
-  const baseUrl = Capacitor.isNativePlatform()
-    ? defaultWebUrl
-    : typeof window !== 'undefined'
-      ? window.location.origin
-      : defaultWebUrl
-
-  return `${baseUrl}/profile/${profileUuid}`
+  return getPublicWebUrl(`/profile/${profileUuid}`)
 }
 
 export async function generateQrDataUrl(url: string): Promise<string> {

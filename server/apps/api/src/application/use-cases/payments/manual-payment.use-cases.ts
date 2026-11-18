@@ -630,9 +630,9 @@ export class ReviewManualPaymentUseCase {
     const address = property?.location?.address || property?.location?.area || 'your property'
     
     await this.notificationService.notifyUser(user.id, {
-      title: 'Payment Approved ✅',
-      message: `Your manual payment for ${address} has been approved. Your Upward Score has been updated!`,
-      type: 'SYSTEM',
+      title: 'Payment proof approved',
+      message: `Your payment confirmation for ${address} has been approved.`,
+      type: 'PAYMENT',
       url: transactionId ? `/dashboard/receipts?id=${transactionId}` : '/dashboard/receipts',
     })
   }
@@ -644,9 +644,9 @@ export class ReviewManualPaymentUseCase {
     const reasonText = remarks ? ` Reason: ${remarks}` : ''
     
     await this.notificationService.notifyUser(user.id, {
-      title: 'Payment Proof Rejected ❌',
-      message: `Your uploaded proof of payment for ${address} was rejected.${reasonText}`,
-      type: 'SYSTEM',
+      title: 'Payment proof rejected',
+      message: `Your payment confirmation for ${address} could not be verified.${reasonText}`,
+      type: 'PAYMENT',
       url: '/dashboard/pay-rent'
     })
     
