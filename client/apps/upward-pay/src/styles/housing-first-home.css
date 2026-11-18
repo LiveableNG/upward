@@ -1285,10 +1285,16 @@
   width: 100%;
   max-width: 480px;
   margin: 0 auto;
-  padding: 18px 20px 100px;
+  padding: calc(var(--safe-top, env(safe-area-inset-top, 0px)) + 14px) 20px calc(100px + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
+}
+
+@media (max-width: 540px) {
+  .proto-goals {
+    padding: calc(var(--safe-top, env(safe-area-inset-top, 0px)) + 12px) var(--shell-px, 16px) calc(90px + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
+  }
 }
 
 .proto-goals__header {

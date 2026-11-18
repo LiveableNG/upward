@@ -38,12 +38,12 @@
   max-height: 90vh;
   max-height: 90dvh;
   background: var(--surface, #ffffff);
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--shell-border, #f0e9df);
   border-radius: 22px 22px 0 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.25);
   animation: sheetModalUp 280ms cubic-bezier(0.16, 1, 0.3, 1);
   overscroll-behavior: contain;
   touch-action: auto;
@@ -67,11 +67,11 @@
 
 @media (min-width: 640px) {
   .sheet-modal__panel {
-    border: 1px solid var(--border);
+    border: 1px solid var(--shell-border, #f0e9df);
     border-radius: 22px;
     height: auto;
     max-height: 85vh;
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
   }
 }
 
@@ -107,8 +107,14 @@
   justify-content: space-between;
   gap: 12px;
   padding: 14px 20px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--shell-border, #f0e9df);
   flex-shrink: 0;
+}
+
+@media (max-width: 639px) {
+  .sheet-modal__header {
+    padding: 14px 16px;
+  }
 }
 
 .sheet-modal__header-left {
@@ -156,8 +162,8 @@
 
 .sheet-modal__back,
 .sheet-modal__close {
-  background: var(--surface2, #f5f5f5);
-  border: 1px solid var(--border);
+  background: var(--surface, #ffffff);
+  border: 1.5px solid var(--shell-border, #ece4d9);
   color: var(--text-secondary);
   width: 32px;
   height: 32px;
@@ -172,7 +178,7 @@
 
 .sheet-modal__back:hover,
 .sheet-modal__close:hover {
-  background: var(--border-solid, #e5e5e5);
+  background: #f5f0e8;
 }
 
 .sheet-modal__back:active,
@@ -181,13 +187,19 @@
 }
 
 .sheet-modal__body {
-  padding: 14px 18px;
+  padding: 16px 20px;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;
   overscroll-behavior-y: contain;
   flex: 1;
   min-height: 0;
+}
+
+@media (max-width: 639px) {
+  .sheet-modal__body {
+    padding: 14px 16px max(24px, calc(env(safe-area-inset-bottom, 0px) + 16px));
+  }
 }
 
 .sheet-modal__footer {

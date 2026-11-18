@@ -18,15 +18,21 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
-  border-radius: 9999px;
+  height: 36px;
+  padding: 0 13px;
+  border-radius: var(--radius-full, 9999px);
   background: var(--surface, #ffffff);
-  border: 1px solid var(--border, #eee7df);
+  border: 1.5px solid var(--border-solid, #ece4d9);
   font-size: 12.5px;
   font-weight: 700;
-  color: var(--text, #1a1714);
+  color: #5c544b;
   cursor: pointer;
-  transition: transform 100ms ease;
+  box-shadow: 0 1px 2px rgba(60, 40, 20, 0.04);
+  transition: transform 100ms ease, background 150ms ease;
+}
+
+.bundle-showcase__cart-trigger:hover {
+  background: #f5f0e8;
 }
 
 .bundle-showcase__cart-trigger:active {
@@ -44,11 +50,11 @@
 
 /* Clean Bright Hero Card */
 .bundle-showcase__hero {
-  border-radius: 16px;
+  border-radius: 20px;
   overflow: hidden;
   background: var(--surface, #ffffff);
-  border: 1px solid var(--border, #eee7df);
-  box-shadow: 0 2px 10px rgba(15, 12, 10, 0.03);
+  border: 1px solid var(--shell-border, #f0e9df);
+  box-shadow: 0 2px 10px rgba(60, 40, 20, 0.03);
 }
 
 .bundle-showcase__hero-img {
@@ -251,64 +257,81 @@
   }
 }
 
-/* Included Items Section */
+/* Included Items Section (Canvas-first layout) */
 .bundle-showcase__items-section {
-  background: var(--surface, #ffffff);
-  border: 1px solid var(--border, #eee7df);
-  border-radius: 16px;
-  padding: 16px 18px;
-  box-shadow: 0 2px 10px rgba(15, 12, 10, 0.03);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
 }
 
 .bundle-showcase__items-header {
-  margin-bottom: 12px;
+  padding: 4px 4px 10px;
+  margin-bottom: 0;
 }
 
 .bundle-showcase__items-title {
   margin: 0;
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 800;
+  letter-spacing: -0.015em;
   color: var(--text, #1a1714);
 }
 
 .bundle-showcase__items-desc {
   margin: 3px 0 0;
-  font-size: 12px;
+  font-size: 12.5px;
+  line-height: 1.45;
   color: var(--text-muted, #7c7267);
 }
 
+/* Apple-style Unified Grouped Surface for Items */
 .bundle-showcase__items-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 0;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--shell-border, #f0e9df);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(60, 40, 20, 0.03);
 }
 
 .bundle-showcase__item-card {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid var(--border, #eee7df);
+  padding: 13px 16px;
+  border-radius: 0;
+  border: none;
+  border-bottom: 1px solid var(--shell-border, #f0e9df);
   background: var(--surface, #ffffff);
   cursor: pointer;
-  transition: all 120ms ease;
+  transition: background 120ms ease;
   user-select: none;
 }
 
+.bundle-showcase__item-card:last-child {
+  border-bottom: none;
+}
+
+.bundle-showcase__item-card:hover {
+  background: #faf8f5;
+}
+
 .bundle-showcase__item-card--selected {
-  border-color: var(--clay, #c2501f);
   background: #ffffff;
 }
 
 .bundle-showcase__item-card--deselected {
-  border-color: var(--border, #eee7df);
-  opacity: 0.42;
+  opacity: 0.45;
   background: var(--bg, #fbf9f6);
 }
 
 .bundle-showcase__item-card:active {
-  transform: scale(0.99);
+  transform: scale(0.995);
+  background: #f7f3ee;
 }
 
 .bundle-showcase__checkbox {

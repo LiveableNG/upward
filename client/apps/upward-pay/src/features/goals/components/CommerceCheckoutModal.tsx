@@ -207,7 +207,7 @@ export function CommerceCheckoutModal({
     (acc, it) => acc + it.price * it.quantity,
     0,
   )
-  const allServices = effectiveItems.every((it) => it.type === 'SERVICE')
+  const allServices = effectiveItems.length > 0 && effectiveItems.every((it) => it.type === 'SERVICE')
   const deliveryFee = allServices
     ? 0
     : selectedLocation?.deliveryFeeKobo
@@ -221,7 +221,7 @@ export function CommerceCheckoutModal({
     offering?.imageUrl ||
     offering?.media?.find((m) => m.isPrimary)?.mediaUrl ||
     offering?.media?.[0]?.mediaUrl
-  const isService = offering?.type === 'SERVICE'
+  const isService = (offering?.type === 'SERVICE') || allServices
 
   const isZoneDeliverable = Boolean(
     selectedLocation.isDelivering &&
@@ -233,7 +233,9 @@ export function CommerceCheckoutModal({
   const onSubmit = async (data: CheckoutFormData) => {
     if (!isZoneDeliverable) {
       setErrorMessage(
-        'Delivery is not currently supported for this zone. Please select a supported delivery zone to proceed.',
+        isService
+          ? 'Service coverage is not currently supported for this zone. Please select a supported location to proceed.'
+          : 'Delivery is not currently supported for this zone. Please select a supported delivery zone to proceed.',
       )
       return
     }
@@ -336,9 +338,13 @@ export function CommerceCheckoutModal({
         {/* Modal Header */}
         <div className="checkout-sheet__header">
           <div>
-            <h3 className="checkout-sheet__title">Secure Checkout</h3>
+            <h3 className="checkout-sheet__title">
+              {isService ? 'Secure Booking' : 'Secure Checkout'}
+            </h3>
             <p className="checkout-sheet__subtitle">
-              Verify your delivery address &amp; checkout securely.
+              {isService
+                ? 'Verify your service location & schedule securely.'
+                : 'Verify your delivery address & checkout securely.'}
             </p>
           </div>
           <button
@@ -511,11 +517,12 @@ export function CommerceCheckoutModal({
             </div>
           </div>
 
-          {/* Delivery Coverage Zone Section */}
+          {/* Delivery / Service Coverage Zone Section */}
           <div className="checkout-sheet__section">
             <div className="checkout-sheet__section-header">
               <h4 className="checkout-sheet__section-title">
-                Delivery Coverage Zone <span style={{ color: 'var(--clay)' }}>*</span>
+                {isService ? 'Service Coverage Zone' : 'Delivery Coverage Zone'}{' '}
+                <span style={{ color: 'var(--clay)' }}>*</span>
               </h4>
             </div>
 
@@ -611,17 +618,24 @@ export function CommerceCheckoutModal({
                 >
                   <span style={{ color: 'var(--text)', fontWeight: 600 }}>
                     {selectedLocation.pauseReason ||
-                      'We are working towards expanding our delivery coverage to other locations soon!'}
+                      (isService
+                        ? 'We are working towards expanding our service coverage to other locations soon!'
+                        : 'We are working towards expanding our delivery coverage to other locations soon!')}
                   </span>
                   <br />
-                  Delivery to this zone is currently paused or pending rollout. You cannot place orders to this location at this time.
+                  {isService
+                    ? 'Service coverage in this zone is currently paused or pending rollout. You cannot book services for this location at this time.'
+                    : 'Delivery to this zone is currently paused or pending rollout. You cannot place orders to this location at this time.'}
                 </div>
               </div>
             )}
 
             <div className="checkout-sheet__field">
               <label className="checkout-sheet__label" htmlFor="streetAddress">
-                Specific Street Address &amp; House / Unit Number <span style={{ color: 'var(--clay)' }}>*</span>
+                {isService
+                  ? 'Service Address & House / Apartment Number'
+                  : 'Specific Street Address & House / Unit Number'}{' '}
+                <span style={{ color: 'var(--clay)' }}>*</span>
               </label>
               <div className="checkout-sheet__input-with-icon">
                 <MapPin size={16} className="checkout-sheet__input-icon" />
@@ -631,7 +645,11 @@ export function CommerceCheckoutModal({
                   className={`checkout-sheet__input checkout-sheet__input--icon ${
                     errors.streetAddress ? 'checkout-sheet__input--error' : ''
                   }`}
-                  placeholder="e.g. 14 Adeleke Street, Block B Flat 4"
+                  placeholder={
+                    isService
+                      ? 'e.g. 14 Adeleke Street, Block B Flat 4'
+                      : 'e.g. 14 Adeleke Street, Block B Flat 4'
+                  }
                   disabled={isProcessing}
                   {...register('streetAddress')}
                 />
@@ -643,7 +661,7 @@ export function CommerceCheckoutModal({
               )}
             </div>
 
-            {/* Nearest Landmark & Driver Notes */}
+            {/* Nearest Landmark & Driver/Specialist Notes */}
             <div className="checkout-sheet__grid">
               <div className="checkout-sheet__field">
                 <label className="checkout-sheet__label" htmlFor="landmark">
@@ -661,13 +679,19 @@ export function CommerceCheckoutModal({
 
               <div className="checkout-sheet__field">
                 <label className="checkout-sheet__label" htmlFor="deliveryNotes">
-                  Gate Code / Driver Notes (Optional)
+                  {isService
+                    ? 'Gate Code / Specialist Notes (Optional)'
+                    : 'Gate Code / Driver Notes (Optional)'}
                 </label>
                 <input
                   id="deliveryNotes"
                   type="text"
                   className="checkout-sheet__input"
-                  placeholder="e.g. Call at the main gate"
+                  placeholder={
+                    isService
+                      ? 'e.g. Call at the main gate, apartment floor or specialist access notes'
+                      : 'e.g. Call at the main gate'
+                  }
                   disabled={isProcessing}
                   {...register('deliveryNotes')}
                 />
@@ -736,7 +760,9 @@ export function CommerceCheckoutModal({
               ) : (
                 <>
                   <Lock size={16} />
-                  <span>Pay {formatNgn(grandTotal)} with Paystack</span>
+                  <span>
+                    {isService ? 'Book & Pay' : 'Pay'} {formatNgn(grandTotal)} with Paystack
+                  </span>
                 </>
               )}
             </button>

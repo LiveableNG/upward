@@ -25,6 +25,7 @@ import {
   Send,
   MapPin,
   ShoppingCart,
+  Wrench,
 } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useCart, type CartItem } from '../context/CartContext'
@@ -119,8 +120,7 @@ export function OfferingDetailSkeleton({ onBack }: { onBack?: () => void }) {
           onClick={handleBack}
           aria-label="Back"
         >
-          <ArrowLeft size={16} />
-          <span>Back</span>
+          <ArrowLeft size={18} />
         </button>
       </header>
       <div className="offering-detail__container animate-pulse">
@@ -543,9 +543,9 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
             type="button"
             className="offering-detail__back-btn"
             onClick={handleBack}
+            aria-label="Back to Lifestyle"
           >
-            <ArrowLeft size={16} />
-            <span>Back to Lifestyle</span>
+            <ArrowLeft size={18} />
           </button>
         </header>
         <div className="offering-detail__container">
@@ -619,9 +619,9 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
               type="button"
               className="offering-detail__back-btn"
               onClick={handleBack}
+              aria-label="Back to Lifestyle"
             >
-              <ArrowLeft size={16} />
-              <span>Lifestyle & Perks</span>
+              <ArrowLeft size={18} />
             </button>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -898,19 +898,35 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
             type="button"
             className="offering-detail__back-btn"
             onClick={handleBack}
+            aria-label="Back to Lifestyle"
           >
-            <ArrowLeft size={16} />
-            <span>Lifestyle & Perks</span>
+            <ArrowLeft size={18} />
           </button>
 
-          <button
-            type="button"
-            className="offering-detail__share-btn"
-            onClick={handleShare}
-          >
-            {copied ? <Check size={15} /> : <Share2 size={15} />}
-            <span>{copied ? 'Copied' : 'Share'}</span>
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button
+              type="button"
+              className="bundle-showcase__cart-trigger"
+              onClick={cart.openCart}
+            >
+              <ShoppingCart size={15} />
+              <span>Cart</span>
+              {cart.totalCount > 0 && (
+                <span className="bundle-showcase__cart-badge">
+                  {cart.totalCount}
+                </span>
+              )}
+            </button>
+
+            <button
+              type="button"
+              className="offering-detail__share-btn"
+              onClick={handleShare}
+            >
+              {copied ? <Check size={15} /> : <Share2 size={15} />}
+              <span>{copied ? 'Copied' : 'Share'}</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -1120,16 +1136,18 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
               <div className="offering-detail__delivery-snippet">
                 <div className="offering-detail__delivery-snippet-info">
                   <div className="offering-detail__delivery-snippet-icon-wrap">
-                    <Truck size={16} />
+                    {offering.type === 'SERVICE' ? <Wrench size={16} /> : <Truck size={16} />}
                   </div>
                   <div>
                     <div className="offering-detail__delivery-snippet-main">
                       <span>
-                        {offering.leadTimeDays == null
+                        {offering.type === 'SERVICE'
                           ? 'Flexible Scheduling'
-                          : offering.leadTimeDays === 0
-                            ? 'Same-Day Turnaround'
-                            : `${offering.leadTimeDays}-Day Delivery`}
+                          : offering.leadTimeDays == null
+                            ? 'Flexible Scheduling'
+                            : offering.leadTimeDays === 0
+                              ? 'Same-Day Turnaround'
+                              : `${offering.leadTimeDays}-Day Delivery`}
                       </span>
                       {deliveryCheck.isDeliverable ? (
                         <span className="offering-detail__delivery-snippet-pill">
@@ -1142,9 +1160,11 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                       )}
                     </div>
                     <div className="offering-detail__delivery-snippet-sub">
-                      {offering.deliveryAvailable
-                        ? 'Doorstep delivery to your home'
-                        : 'Merchant scheduled fulfillment'}
+                      {offering.type === 'SERVICE'
+                        ? 'On-site or scheduled service visit'
+                        : offering.deliveryAvailable
+                          ? 'Doorstep delivery to your home'
+                          : 'Merchant scheduled fulfillment'}
                     </div>
                   </div>
                 </div>
@@ -1162,7 +1182,9 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                   <AlertCircle size={14} style={{ flexShrink: 0 }} />
                   <span>
                     {deliveryLocation.pauseReason ||
-                      `Delivery is not supported yet in ${formatShortLocation(deliveryLocation)}. We are working towards expanding our delivery coverage to other locations soon!`}
+                      (offering.type === 'SERVICE'
+                        ? `Service coverage is not supported yet in ${formatShortLocation(deliveryLocation)}. We are working towards expanding our coverage to other locations soon!`
+                        : `Delivery is not supported yet in ${formatShortLocation(deliveryLocation)}. We are working towards expanding our delivery coverage to other locations soon!`)}
                   </span>
                 </div>
               )}
@@ -1193,7 +1215,9 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                       <span>
                         {packageItems.length > 0
                           ? `Add ${selectedPackageItems.length} Items to Cart`
-                          : 'Add to Cart'}
+                          : offering.type === 'SERVICE'
+                            ? 'Add Service to Cart'
+                            : 'Add to Cart'}
                       </span>
                     </button>
                   </>

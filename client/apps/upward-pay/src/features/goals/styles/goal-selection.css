@@ -9,11 +9,11 @@
   min-height: 100dvh;
   background-color: var(--shell-page-bg, #faf9f5);
   color: var(--text, #1a1714);
-  padding-bottom: calc(40px + var(--safe-bottom));
+  padding-bottom: calc(40px + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
 }
 
 .goal-selection__header {
-  padding: calc(var(--safe-top) + 14px) var(--shell-px) 14px;
+  padding: calc(var(--safe-top, env(safe-area-inset-top, 0px)) + 14px) var(--shell-px, 20px) 14px;
   position: sticky;
   top: 0;
   z-index: 20;
@@ -417,7 +417,7 @@
 }
 
 .goal-sheet__body {
-  padding: 16px 20px calc(24px + var(--safe-bottom));
+  padding: 16px 20px calc(24px + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior: contain;

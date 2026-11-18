@@ -196,15 +196,19 @@ export const OfferingCard: React.FC<OfferingCardProps> = ({
             <button
               type="button"
               className="offering-card__cart-btn"
-              title="Add to Cart"
+              title={offering.type === 'SERVICE' ? 'Book Service' : 'Add to Cart'}
               onClick={(e) => {
                 e.stopPropagation()
                 cart.addItem(offering, { quantity: 1 })
                 cart.openCart()
               }}
             >
-              <ShoppingCart size={12} strokeWidth={2.4} />
-              <span>Add</span>
+              {offering.type === 'SERVICE' ? (
+                <Wrench size={12} strokeWidth={2.4} />
+              ) : (
+                <ShoppingCart size={12} strokeWidth={2.4} />
+              )}
+              <span>{offering.type === 'SERVICE' ? 'Book' : 'Add'}</span>
             </button>
             <span className="offering-card__action-btn" aria-hidden="true">
               <span>Details</span>

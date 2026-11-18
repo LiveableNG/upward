@@ -14,6 +14,7 @@ const fraunces = Fraunces({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-fraunces',
+  weight: ['400', '500', '600', '700'],
 })
 
 import { Providers } from "@/components/common/Providers";

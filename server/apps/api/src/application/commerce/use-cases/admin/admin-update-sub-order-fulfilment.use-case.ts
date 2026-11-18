@@ -198,13 +198,23 @@ export class AdminUpdateSubOrderFulfilmentUseCase {
         if (dto.serviceWindowNotes) {
           dispatchData.serviceWindowNotes = dto.serviceWindowNotes
         }
+        if (effectiveRiderName !== undefined) {
+          dispatchData.technicianName = effectiveRiderName
+        }
+        if (effectiveRiderPhone !== undefined) {
+          dispatchData.technicianPhone = effectiveRiderPhone
+        }
+
+        const specialistInfo = effectiveRiderName
+          ? ` with specialist ${effectiveRiderName}${effectiveRiderPhone ? ` (${effectiveRiderPhone})` : ''}`
+          : ''
 
         eventTitle = eventTitle || 'Service Scheduled'
         eventDescription =
           eventDescription ||
           `Service appointment confirmed for ${scheduledDate.toLocaleDateString('en-NG', {
             dateStyle: 'medium',
-          })}`
+          })}${specialistInfo}`
         break
       }
 
@@ -221,7 +231,7 @@ export class AdminUpdateSubOrderFulfilmentUseCase {
         dispatchData.technicianName = dto.technicianName
         if (dto.technicianPhone) dispatchData.technicianPhone = dto.technicianPhone
 
-        isCustomerVisible = dto.isCustomerVisible ?? false
+        isCustomerVisible = dto.isCustomerVisible ?? true
         eventTitle = eventTitle || 'Technician Assigned'
         eventDescription =
           eventDescription ||

@@ -126,6 +126,10 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
       setItems((prev) => {
         const existingIdx = prev.findIndex((i) => i.offeringId === offering.id)
         if (existingIdx >= 0) {
+          // Services are booked per session/engagement; keep quantity at 1
+          if (offering.type === 'SERVICE') {
+            return prev
+          }
           const updated = [...prev]
           updated[existingIdx] = {
             ...updated[existingIdx],
@@ -236,6 +240,9 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
       return prev
         .map((item) => {
           if (item.offeringId === offeringId) {
+            if (item.type === 'SERVICE' && delta > 0) {
+              return item
+            }
             const nextQty = item.quantity + delta
             return nextQty > 0 ? { ...item, quantity: nextQty } : null
           }
