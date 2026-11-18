@@ -30,7 +30,7 @@ interface DeliveryLocationBarProps {
   location: UserDeliveryLocation
   onLocationChange: (loc: UserDeliveryLocation) => void
   offering?: GoalOffering
-  variant?: 'card' | 'pill'
+  variant?: 'card' | 'pill' | 'none'
   isOpen?: boolean
   onOpenChange?: (open: boolean) => void
 }
@@ -144,7 +144,7 @@ export const DeliveryLocationBar: React.FC<DeliveryLocationBarProps> = ({
 
   return (
     <>
-      {variant === 'card' ? (
+      {variant === 'none' ? null : variant === 'card' ? (
         <button
           type="button"
           className={`delivery-card-trigger ${

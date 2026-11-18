@@ -283,9 +283,14 @@ export function isOfferingDeliverableToLocation(
     return { isDeliverable: true }
   }
 
-  // Build friendly zone names
+  // Build friendly, human-readable zone names in clean Title Case
   const friendlyNames = coverageZones
-    .map((z) => z.replace(/_/g, ' '))
+    .map((z) =>
+      z
+        .replace(/_/g, ' ')
+        .toLowerCase()
+        .replace(/\b\w/g, (c) => c.toUpperCase()),
+    )
     .join(', ')
 
   return {
@@ -293,11 +298,11 @@ export function isOfferingDeliverableToLocation(
     reason:
       location.zoneTag === 'UNCOVERED'
         ? (isService
-            ? `We're working towards expanding our service coverage to reach ${formatShortLocation(location)} soon!`
-            : `We're working towards expanding our delivery coverage to reach ${formatShortLocation(location)} soon!`)
+            ? `We're working towards expanding service coverage to reach ${formatShortLocation(location)} soon!`
+            : `We're working towards expanding delivery coverage to reach ${formatShortLocation(location)} soon!`)
         : (isService
-            ? `Service only available in ${friendlyNames}`
-            : `Delivery only available in ${friendlyNames}`),
+            ? `Service is only available in ${friendlyNames}`
+            : `Delivery is only available in ${friendlyNames}`),
   }
 }
 

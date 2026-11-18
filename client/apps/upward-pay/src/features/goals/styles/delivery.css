@@ -113,8 +113,8 @@
 }
 
 .delivery-card-trigger--warn {
-  border-color: rgba(245, 158, 11, 0.35);
-  background: rgba(245, 158, 11, 0.03);
+  border-color: rgba(220, 38, 38, 0.25);
+  background: rgba(220, 38, 38, 0.02);
 }
 
 .delivery-card-trigger__left {
@@ -126,11 +126,11 @@
 }
 
 .delivery-card-trigger__icon-wrap {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  background: rgba(22, 163, 74, 0.1);
-  color: #15803d;
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -139,8 +139,8 @@
 }
 
 .delivery-card-trigger__icon-wrap--warn {
-  background: rgba(245, 158, 11, 0.14);
-  color: #b45309;
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
 }
 
 .delivery-card-trigger__content {
@@ -151,16 +151,14 @@
 .delivery-card-trigger__meta {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   margin-bottom: 2px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 
 .delivery-card-trigger__label {
   font-size: 11px;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
   color: var(--text-muted);
 }
 
@@ -170,18 +168,19 @@
   gap: 3px;
   font-size: 10.5px;
   font-weight: 700;
-  padding: 1px 7px;
-  border-radius: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  white-space: nowrap;
 }
 
 .delivery-card-trigger__status-pill--ok {
-  background: rgba(22, 163, 74, 0.12);
-  color: #15803d;
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
 }
 
 .delivery-card-trigger__status-pill--warn {
-  background: rgba(245, 158, 11, 0.14);
-  color: #b45309;
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
 }
 
 .delivery-card-trigger__value {

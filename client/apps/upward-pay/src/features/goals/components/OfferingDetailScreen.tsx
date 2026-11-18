@@ -1160,82 +1160,83 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                 </p>
               )}
 
-              {/* Compact Delivery & Eligibility Snippet */}
-              <div className="offering-detail__delivery-snippet">
-                <div className="offering-detail__delivery-snippet-info">
-                  <div className="offering-detail__delivery-snippet-icon-wrap">
-                    {offering.type === 'SERVICE' ? <Wrench size={16} /> : <Truck size={16} />}
+              {/* Clean, Unified Fulfillment & Coverage Row */}
+              <div
+                className={`offering-detail__fulfillment-row ${
+                  !deliveryCheck.isDeliverable
+                    ? 'offering-detail__fulfillment-row--warn'
+                    : ''
+                }`}
+                onClick={() => setIsLocationPickerOpen(true)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    setIsLocationPickerOpen(true)
+                  }
+                }}
+              >
+                <div
+                  className={`offering-detail__fulfillment-icon ${
+                    !deliveryCheck.isDeliverable
+                      ? 'offering-detail__fulfillment-icon--warn'
+                      : ''
+                  }`}
+                >
+                  <MapPin size={17} />
+                </div>
+
+                <div className="offering-detail__fulfillment-body">
+                  <div className="offering-detail__fulfillment-head">
+                    <span className="offering-detail__fulfillment-dest">
+                      {offering.type === 'SERVICE' ? 'Service in' : 'Delivery to'}{' '}
+                      <strong>{formatShortLocation(deliveryLocation)}</strong>
+                    </span>
+                    {deliveryCheck.isDeliverable ? (
+                      <span className="offering-detail__fulfillment-badge offering-detail__fulfillment-badge--ok">
+                        Eligible
+                      </span>
+                    ) : (
+                      <span className="offering-detail__fulfillment-badge offering-detail__fulfillment-badge--warn">
+                        Outside Area
+                      </span>
+                    )}
                   </div>
-                  <div>
-                    <div className="offering-detail__delivery-snippet-main">
+
+                  <div className="offering-detail__fulfillment-note">
+                    {deliveryCheck.isDeliverable ? (
                       <span>
                         {offering.type === 'SERVICE'
-                          ? 'Flexible Scheduling'
-                          : offering.leadTimeDays == null
-                            ? 'Flexible Scheduling'
-                            : offering.leadTimeDays === 0
-                              ? 'Same-Day Turnaround'
-                              : `${offering.leadTimeDays}-Day Delivery`}
+                          ? 'On-site service visit • Flexible scheduling'
+                          : offering.leadTimeDays === 0
+                            ? 'Same-day delivery turnaround'
+                            : `${offering.leadTimeDays || 1}-day doorstep delivery`}
                       </span>
-                      {deliveryCheck.isDeliverable ? (
-                        <span className="offering-detail__delivery-snippet-pill">
-                          <CheckCircle2 size={11} /> Eligible
-                        </span>
-                      ) : (
-                        <span className="offering-detail__delivery-snippet-pill offering-detail__delivery-snippet-pill--warn">
-                          <AlertCircle size={11} /> Unavailable
-                        </span>
-                      )}
-                    </div>
-                    <div className="offering-detail__delivery-snippet-sub">
-                      {offering.type === 'SERVICE'
-                        ? 'On-site or scheduled service visit'
-                        : offering.deliveryAvailable
-                          ? 'Doorstep delivery to your home'
-                          : 'Merchant scheduled fulfillment'}
-                    </div>
+                    ) : (
+                      <span className="offering-detail__fulfillment-reason">
+                        {deliveryCheck.reason ||
+                          `${offering.vendor?.name || 'Merchant'} does not service this zone.`}
+                      </span>
+                    )}
                   </div>
                 </div>
 
-                <div className="offering-detail__delivery-snippet-trigger">
-                  <DeliveryLocationBar
-                    location={deliveryLocation}
-                    onLocationChange={(loc) => setDeliveryLocation(loc)}
-                    offering={offering}
-                    variant="card"
-                    isOpen={isLocationPickerOpen}
-                    onOpenChange={setIsLocationPickerOpen}
-                  />
+                <div className="offering-detail__fulfillment-action">
+                  <span>Change</span>
+                  <ChevronRight size={13} />
                 </div>
               </div>
 
-              {!deliveryCheck.isDeliverable && (
-                <div className="offering-detail__delivery-warning-interactive">
-                  <div className="offering-detail__delivery-warning-body">
-                    <AlertCircle size={18} className="offering-detail__delivery-warning-icon" />
-                    <div className="offering-detail__delivery-warning-text">
-                      <span className="offering-detail__delivery-warning-strong">
-                        Outside Current Coverage Area
-                      </span>
-                      <span className="offering-detail__delivery-warning-desc">
-                        {deliveryCheck.reason ||
-                          deliveryLocation.pauseReason ||
-                          (offering.type === 'SERVICE'
-                            ? `We're working towards expanding our service coverage to reach ${formatShortLocation(deliveryLocation)} soon!`
-                            : `We're working towards expanding our delivery coverage to reach ${formatShortLocation(deliveryLocation)} soon!`)}
-                      </span>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className="offering-detail__delivery-warning-btn"
-                    onClick={() => setIsLocationPickerOpen(true)}
-                  >
-                    <MapPin size={13} />
-                    <span>Change Zone</span>
-                  </button>
-                </div>
-              )}
+              {/* Seamless Zone Chooser Modal */}
+              <DeliveryLocationBar
+                location={deliveryLocation}
+                onLocationChange={(loc) => setDeliveryLocation(loc)}
+                offering={offering}
+                variant="none"
+                isOpen={isLocationPickerOpen}
+                onOpenChange={setIsLocationPickerOpen}
+              />
 
               <div className="offering-detail__cta-stack">
                 {deliveryCheck.isDeliverable ? (
@@ -1272,11 +1273,11 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                 ) : (
                   <button
                     type="button"
-                    className="offering-detail__primary-cta offering-detail__primary-cta--warning"
+                    className="offering-detail__primary-cta"
                     onClick={() => setIsLocationPickerOpen(true)}
                   >
                     <MapPin size={16} />
-                    <span>Change Location to Book</span>
+                    <span>Select Covered Location to Book</span>
                   </button>
                 )}
 
