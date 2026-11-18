@@ -33,7 +33,7 @@ export function RentDepositCard() {
       onClick={() => {
         if (ratesLoading) return
         if (platformRates.savingsEnabled === false) {
-          toast.info('Rent savings is coming soon — we are finalizing partner activation.')
+          toast.info('Savings is coming soon.')
           return
         }
         router.push('/dashboard/savings')

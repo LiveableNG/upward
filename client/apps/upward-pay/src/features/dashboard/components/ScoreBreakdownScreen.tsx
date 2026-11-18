@@ -543,7 +543,7 @@ export function ScoreBreakdownScreen() {
               onClick={() => {
                 if (ratesLoading) return
                 if (platformRates.savingsEnabled === false) {
-                  toastInfo('Rent savings is coming soon — we are finalizing partner activation.')
+                  toastInfo('Savings is coming soon.')
                   return
                 }
                 router.push('/dashboard/savings')
