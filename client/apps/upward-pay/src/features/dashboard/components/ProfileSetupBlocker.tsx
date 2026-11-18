@@ -248,7 +248,7 @@ export function ProfileSetupBlocker({ user, score, maxScore, onSkip }: ProfileSe
                       if (action.href === '/dashboard/savings') {
                         if (ratesLoading) return
                         if (platformRates.savingsEnabled === false) {
-                          toast.info('Rent savings is coming soon — we are finalizing partner activation.')
+                          toast.info('Savings is coming soon.')
                           return
                         }
                       }

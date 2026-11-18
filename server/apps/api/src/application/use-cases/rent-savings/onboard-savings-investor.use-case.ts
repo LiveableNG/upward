@@ -325,9 +325,7 @@ export class OnboardSavingsInvestorUseCase {
     if (this.platformRates) {
       const rates = await this.platformRates.getRates()
       if (rates?.savingsEnabled === false) {
-        throw new ForbiddenException(
-          'Rent savings is launching soon. Please check back once partner activation completes.',
-        )
+        throw new ForbiddenException('Savings is coming soon.')
       }
     }
 

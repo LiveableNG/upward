@@ -264,6 +264,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('app_backgrounded_at')
       localStorage.removeItem('upward_cached_user_profile')
+      localStorage.removeItem('upward:housing-card-expanded')
     }
 
     try {

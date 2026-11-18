@@ -68,7 +68,7 @@ export function RentSavingsMainView() {
         <div className="rent-calculator__card" style={{ textAlign: 'center', padding: '40px 24px' }}>
           <PiggyBank size={36} color="var(--clay)" style={{ margin: '0 auto 12px' }} />
           <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text)' }}>
-            Rent Savings Is Launching Soon
+            Savings Is Coming Soon
           </h3>
           <p
             style={{
@@ -79,7 +79,7 @@ export function RentSavingsMainView() {
               lineHeight: 1.5,
             }}
           >
-            We are finalizing partner activation so you can start saving towards your next rent. Please check back shortly.
+            Savings is coming soon. Please check back shortly.
           </p>
           <button
             type="button"

@@ -31,10 +31,7 @@ export class AdminFeesController {
     return { success: true, data }
   }
 
-  @Put('rates')
-  @Post('rates')
-  async updatePlatformRates(
-    @Body()
+  private async savePlatformRates(
     body: {
       savingsEnabled?: boolean
       savingsAnnualRatePct?: number
@@ -45,7 +42,7 @@ export class AdminFeesController {
       partnerName?: string
       partnerShortName?: string
     },
-    @Req() req: any,
+    req: any,
   ) {
     const data = await this.platformRatesService.updateRates({
       savingsEnabled: body.savingsEnabled,
@@ -59,6 +56,16 @@ export class AdminFeesController {
       updatedByAdminId: req.user?.id || req.user?.sub,
     })
     return { success: true, data }
+  }
+
+  @Put('rates')
+  async updatePlatformRatesPut(@Body() body: any, @Req() req: any) {
+    return this.savePlatformRates(body, req)
+  }
+
+  @Post('rates')
+  async updatePlatformRates(@Body() body: any, @Req() req: any) {
+    return this.savePlatformRates(body, req)
   }
 
   @Get('overrides')

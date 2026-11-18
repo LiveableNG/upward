@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useSyncExternalStore } from 'react'
+import React, { useCallback, useState, useSyncExternalStore } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Home,
@@ -58,8 +58,12 @@ interface HousingRow {
   pinned: boolean
 }
 
-const HOUSING_EXPANDED_KEY = 'upward:housing-card-expanded'
+const HOUSING_EXPANDED_KEY_PREFIX = 'upward:housing-card-expanded'
 const HOUSING_EXPANDED_EVENT = 'upward:housing-card-expanded-change'
+
+function getHousingExpandedKey(userKey?: string | number | null) {
+  return userKey ? `${HOUSING_EXPANDED_KEY_PREFIX}:${userKey}` : HOUSING_EXPANDED_KEY_PREFIX
+}
 
 function subscribeHousingExpanded(callback: () => void) {
   window.addEventListener('storage', callback)
@@ -70,17 +74,17 @@ function subscribeHousingExpanded(callback: () => void) {
   }
 }
 
-function getHousingExpandedSnapshot() {
+function getHousingExpandedSnapshot(storageKey: string) {
   try {
-    return window.localStorage.getItem(HOUSING_EXPANDED_KEY) === '1'
+    return window.localStorage.getItem(storageKey) === '1'
   } catch {
     return false
   }
 }
 
-function setHousingExpanded(expanded: boolean) {
+function setHousingExpanded(expanded: boolean, storageKey: string) {
   try {
-    window.localStorage.setItem(HOUSING_EXPANDED_KEY, expanded ? '1' : '0')
+    window.localStorage.setItem(storageKey, expanded ? '1' : '0')
   } catch {
     // Storage unavailable (private mode); preference just won't persist
   }
@@ -199,7 +203,7 @@ export function HousingFirstHome({
   const handleOpenRentSavings = () => {
     if (ratesLoading) return
     if (platformRates.savingsEnabled === false) {
-      toast.info('Rent savings is coming soon — we are finalizing partner activation.')
+      toast.info('Savings is coming soon.')
       return
     }
     router.push('/dashboard/savings')
@@ -288,10 +292,15 @@ export function HousingFirstHome({
     return { coreCategories, extraCustom }
   }, [userGoals])
 
-  // Housing card expanded/collapsed preference (persisted per device, hydration-safe)
+  // Housing card expanded/collapsed preference (scoped per user on device, hydration-safe)
+  const housingExpandedKey = getHousingExpandedKey(user?.uuid || user?.id)
+  const getScopedHousingExpandedSnapshot = useCallback(
+    () => getHousingExpandedSnapshot(housingExpandedKey),
+    [housingExpandedKey],
+  )
   const isHousingExpanded = useSyncExternalStore(
     subscribeHousingExpanded,
-    getHousingExpandedSnapshot,
+    getScopedHousingExpandedSnapshot,
     () => false,
   )
 
@@ -336,7 +345,7 @@ export function HousingFirstHome({
           : 'Set target'
 
   const toggleHousingExpanded = () => {
-    setHousingExpanded(!isHousingExpanded)
+    setHousingExpanded(!isHousingExpanded, housingExpandedKey)
   }
 
   const hasRental = Boolean(user?.properties && user.properties.length > 0) || hasRentalInfo(user)

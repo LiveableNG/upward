@@ -75,7 +75,7 @@ export function useDashboardFeatureSections() {
                   ...item,
                   href: '#',
                   comingSoon: true,
-                  description: 'Launching soon while partner activation completes',
+                  description: 'Savings is coming soon',
                   badge: 'Soon',
                 }
               }
