@@ -125,114 +125,20 @@ export function resolveDeliveryZone(
     }
   }
 
-  // 3. Match against configured Nigerian metropolitan zones
-  if (
-    normalized.includes('victoria island') ||
-    normalized.includes(' vi ') ||
-    normalized.endsWith(' vi') ||
-    normalized.includes('ikoyi') ||
-    normalized.includes('lekki') ||
-    normalized.includes('ajah') ||
-    normalized.includes('oniru') ||
-    normalized.includes('banana island')
-  ) {
-    const lagosIsland = configuredZones.find((z) => z.tag === 'LAGOS_ISLAND')
-    if (lagosIsland) {
-      return {
-        zoneTag: lagosIsland.tag,
-        zoneName: lagosIsland.name,
-        state: lagosIsland.state,
-        isDelivering: lagosIsland.isDelivering,
-        pauseReason: lagosIsland.pauseReason,
-        deliveryFeeKobo: lagosIsland.deliveryFeeKobo,
-        isSupported: true,
-      }
-    }
-  }
-
-  if (
-    normalized.includes('ikeja') ||
-    normalized.includes('surulere') ||
-    normalized.includes('yaba') ||
-    normalized.includes('maryland') ||
-    normalized.includes('magodo') ||
-    normalized.includes('gbagada') ||
-    normalized.includes('ogudu') ||
-    normalized.includes('ilupeju') ||
-    normalized.includes('festac')
-  ) {
-    const lagosMainland = configuredZones.find((z) => z.tag === 'LAGOS_MAINLAND')
-    if (lagosMainland) {
-      return {
-        zoneTag: lagosMainland.tag,
-        zoneName: lagosMainland.name,
-        state: lagosMainland.state,
-        isDelivering: lagosMainland.isDelivering,
-        pauseReason: lagosMainland.pauseReason,
-        deliveryFeeKobo: lagosMainland.deliveryFeeKobo,
-        isSupported: true,
-      }
-    }
-  }
-
-  if (
-    normalized.includes('abuja') ||
-    normalized.includes('maitama') ||
-    normalized.includes('asokoro') ||
-    normalized.includes('wuse') ||
-    normalized.includes('garki') ||
-    normalized.includes('fct')
-  ) {
-    const abuja = configuredZones.find((z) => z.tag === 'ABUJA_METRO')
-    if (abuja) {
-      return {
-        zoneTag: abuja.tag,
-        zoneName: abuja.name,
-        state: abuja.state,
-        isDelivering: abuja.isDelivering,
-        pauseReason: abuja.pauseReason,
-        deliveryFeeKobo: abuja.deliveryFeeKobo,
-        isSupported: true,
-      }
-    }
-  }
-
-  if (
-    normalized.includes('port harcourt') ||
-    normalized.includes('rivers') ||
-    normalized.includes('trans amadi')
-  ) {
-    const ph = configuredZones.find((z) => z.tag === 'PORT_HARCOURT')
-    if (ph) {
-      return {
-        zoneTag: ph.tag,
-        zoneName: ph.name,
-        state: ph.state,
-        isDelivering: ph.isDelivering,
-        pauseReason: ph.pauseReason,
-        deliveryFeeKobo: ph.deliveryFeeKobo,
-        isSupported: true,
-      }
-    }
-  }
-
-  if (
-    normalized.includes('ibadan') ||
-    normalized.includes('oyo') ||
-    normalized.includes('bodija') ||
-    normalized.includes('oluyole') ||
-    normalized.includes('jericho')
-  ) {
-    const ibadan = configuredZones.find((z) => z.tag === 'IBADAN_METRO')
-    if (ibadan) {
-      return {
-        zoneTag: ibadan.tag,
-        zoneName: ibadan.name,
-        state: ibadan.state,
-        isDelivering: ibadan.isDelivering,
-        pauseReason: ibadan.pauseReason,
-        deliveryFeeKobo: ibadan.deliveryFeeKobo,
-        isSupported: true,
+  // 3. Match with state from database configured zones
+  for (const zone of configuredZones) {
+    if (zone.state && zone.state.toLowerCase() !== 'n/a') {
+      const stateLower = zone.state.toLowerCase()
+      if (normalized.includes(stateLower)) {
+        return {
+          zoneTag: zone.tag,
+          zoneName: zone.name,
+          state: zone.state,
+          isDelivering: zone.isDelivering,
+          pauseReason: zone.pauseReason,
+          deliveryFeeKobo: zone.deliveryFeeKobo,
+          isSupported: true,
+        }
       }
     }
   }
@@ -264,6 +170,46 @@ export function formatShortLocation(location: UserDeliveryLocation): string {
 }
 
 /**
+ * Checks whether a specific delivery zone is covered by an offering or vendor.
+ */
+export function isZoneSupportedByOffering(
+  zoneOrTag: string | DeliveryZoneItem,
+  offering?: GoalOffering | null,
+): boolean {
+  if (!offering) return true
+  const zoneTag = typeof zoneOrTag === 'string' ? zoneOrTag : zoneOrTag?.tag
+
+  const isService = offering.type === 'SERVICE'
+  const hasCustomOfferingZones =
+    Array.isArray(offering.deliveryZones) && offering.deliveryZones.length > 0
+
+  const effectiveZones: string[] =
+    (hasCustomOfferingZones
+      ? offering.deliveryZones
+      : offering.vendor?.defaultDeliveryZones) || []
+
+  const effectiveCoverageType = hasCustomOfferingZones
+    ? (offering.deliveryCoverageType || 'REGIONAL_ZONES')
+    : (offering.vendor?.defaultDeliveryCoverage || offering.deliveryCoverageType || 'NATIONWIDE')
+
+  // If nationwide or no specific zones restricted: available in all active zones
+  if (effectiveCoverageType === 'NATIONWIDE' || effectiveZones.length === 0) {
+    return true
+  }
+
+  const coverageZones = effectiveZones.map((z) => z.toUpperCase().trim())
+  if (
+    coverageZones.includes('NATIONWIDE') ||
+    coverageZones.includes('ALL')
+  ) {
+    return true
+  }
+
+  const tag = (zoneTag || '').toUpperCase().trim()
+  return coverageZones.includes(tag)
+}
+
+/**
  * Checks if a physical offering or service can be delivered / serviced at the user's location.
  */
 export function isOfferingDeliverableToLocation(
@@ -272,16 +218,18 @@ export function isOfferingDeliverableToLocation(
 ): { isDeliverable: boolean; reason?: string } {
   const isService = offering.type === 'SERVICE'
 
-  // Inherit coverage settings from vendor if offering does not define custom zones
-  const effectiveZones =
-    offering.deliveryZones && offering.deliveryZones.length > 0
-      ? offering.deliveryZones
-      : offering.vendor?.defaultDeliveryZones || []
+  const hasCustomOfferingZones =
+    Array.isArray(offering.deliveryZones) && offering.deliveryZones.length > 0
 
-  const effectiveCoverageType =
-    offering.deliveryCoverageType ||
-    offering.vendor?.defaultDeliveryCoverage ||
-    'NATIONWIDE'
+  // Inherit coverage settings from vendor if offering does not define custom zones
+  const effectiveZones: string[] =
+    (hasCustomOfferingZones
+      ? offering.deliveryZones
+      : offering.vendor?.defaultDeliveryZones) || []
+
+  const effectiveCoverageType = hasCustomOfferingZones
+    ? (offering.deliveryCoverageType || 'REGIONAL_ZONES')
+    : (offering.vendor?.defaultDeliveryCoverage || offering.deliveryCoverageType || 'NATIONWIDE')
 
   // 1. Explicitly marked as no home delivery / in-store pickup only (physical products only)
   // For services, appointments/visits are governed by the vendor operating zones or nationwide policy
@@ -300,12 +248,11 @@ export function isOfferingDeliverableToLocation(
     return { isDeliverable: true }
   }
 
-  // 3. Regional zones enforcement - check if NATIONWIDE, ALL, or ONLINE tag is present
+  // 3. Regional zones enforcement
   const coverageZones = effectiveZones.map((z) => z.toUpperCase().trim())
   if (
     coverageZones.includes('NATIONWIDE') ||
-    coverageZones.includes('ALL') ||
-    (isService && coverageZones.includes('ONLINE'))
+    coverageZones.includes('ALL')
   ) {
     return { isDeliverable: true }
   }
@@ -324,71 +271,7 @@ export function isOfferingDeliverableToLocation(
 
   // 4. Regional zone matching
   const userTag = (location.zoneTag || '').toUpperCase().trim()
-  const userAddress = (location.address || '').toLowerCase()
-  const userName = (location.zoneName || '').toLowerCase()
-
-  const isMatched = coverageZones.some((z) => {
-    if (z === userTag) return true
-    const zNorm = z.replace(/_/g, ' ').toLowerCase()
-    if (userAddress.includes(zNorm) || userName.includes(zNorm)) return true
-    if (
-      z === 'LAGOS_MAINLAND' &&
-      (userAddress.includes('mainland') ||
-        userAddress.includes('ikeja') ||
-        userAddress.includes('yaba') ||
-        userAddress.includes('surulere') ||
-        userAddress.includes('maryland') ||
-        userAddress.includes('magodo') ||
-        userAddress.includes('gbagada') ||
-        userAddress.includes('ogudu') ||
-        userAddress.includes('ilupeju') ||
-        userAddress.includes('festac'))
-    ) {
-      return true
-    }
-    if (
-      z === 'LAGOS_ISLAND' &&
-      (userAddress.includes('island') ||
-        userAddress.includes('lekki') ||
-        userAddress.includes('ajah') ||
-        userAddress.includes('ikoyi') ||
-        userAddress.includes('vi') ||
-        userAddress.includes('victoria island') ||
-        userAddress.includes('oniru') ||
-        userAddress.includes('banana island'))
-    ) {
-      return true
-    }
-    if (
-      z === 'ABUJA_METRO' &&
-      (userAddress.includes('abuja') ||
-        userAddress.includes('wuse') ||
-        userAddress.includes('maitama') ||
-        userAddress.includes('asokoro') ||
-        userAddress.includes('garki'))
-    ) {
-      return true
-    }
-    if (
-      z === 'PORT_HARCOURT' &&
-      (userAddress.includes('port harcourt') ||
-        userAddress.includes('rivers') ||
-        userAddress.includes('trans amadi'))
-    ) {
-      return true
-    }
-    if (
-      z === 'IBADAN_METRO' &&
-      (userAddress.includes('ibadan') ||
-        userAddress.includes('oyo') ||
-        userAddress.includes('bodija') ||
-        userAddress.includes('jericho') ||
-        userAddress.includes('oluyole'))
-    ) {
-      return true
-    }
-    return false
-  })
+  const isMatched = coverageZones.includes(userTag)
 
   if (isMatched) {
     if (location.isDelivering === false && location.pauseReason) {

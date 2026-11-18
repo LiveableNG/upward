@@ -19,7 +19,7 @@ function normalizeZoneTag(
   if (!raw) return ''
   const trimmed = raw.trim()
 
-  // 1. Exact match with a tag (case-insensitive)
+  // 1. Exact match with a database tag (case-insensitive)
   const exactTag = zones.find(
     (z) => z.tag.toUpperCase() === trimmed.toUpperCase(),
   )
@@ -32,47 +32,14 @@ function normalizeZoneTag(
   )
   if (underscoreMatch) return underscoreMatch.tag
 
-  // 3. Name or substring match
+  // 3. Name match against database configured zones
   const lower = trimmed.toLowerCase()
   const nameMatch = zones.find(
     (z) => z.name.toLowerCase() === lower,
   )
   if (nameMatch) return nameMatch.tag
 
-  // 4. Common legacy aliases from older seeds
-  if (
-    lower.includes('mainland') ||
-    lower.includes('ikeja') ||
-    lower.includes('surulere') ||
-    lower.includes('yaba')
-  ) {
-    const mainland = zones.find((z) => z.tag === 'LAGOS_MAINLAND')
-    if (mainland) return mainland.tag
-  }
-  if (
-    lower.includes('island') ||
-    lower.includes('lekki') ||
-    lower.includes('ajah') ||
-    lower.includes('vi') ||
-    lower.includes('ikoyi')
-  ) {
-    const island = zones.find((z) => z.tag === 'LAGOS_ISLAND')
-    if (island) return island.tag
-  }
-  if (lower.includes('abuja')) {
-    const abuja = zones.find((z) => z.tag === 'ABUJA_METRO')
-    if (abuja) return abuja.tag
-  }
-  if (lower.includes('ibadan') || lower.includes('oyo')) {
-    const ibadan = zones.find((z) => z.tag === 'IBADAN_METRO')
-    if (ibadan) return ibadan.tag
-  }
-  if (lower.includes('port harcourt') || lower.includes('rivers')) {
-    const ph = zones.find((z) => z.tag === 'PORT_HARCOURT')
-    if (ph) return ph.tag
-  }
-
-  return trimmed
+  return ''
 }
 
 export const VendorModal: React.FC<VendorModalProps> = ({
@@ -101,16 +68,10 @@ export const VendorModal: React.FC<VendorModalProps> = ({
   const [defaultDeliveryZones, setDefaultDeliveryZones] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
 
-  // Dynamically populated from database configured delivery zones
+  // Strictly populated from live database configured delivery zones only
   const zonesToDisplay = useMemo(() => {
-    const list = [...availableZones]
-    for (const z of defaultDeliveryZones) {
-      if (!list.some((item) => item.tag === z)) {
-        list.push({ tag: z, name: z.replace(/_/g, ' ') })
-      }
-    }
-    return list
-  }, [availableZones, defaultDeliveryZones])
+    return availableZones
+  }, [availableZones])
 
   useEffect(() => {
     if (vendor) {
@@ -133,7 +94,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
         new Set(
           (vendor.defaultDeliveryZones || [])
             .map((z) => normalizeZoneTag(z, availableZones))
-            .filter(Boolean),
+            .filter((tag) => availableZones.some((az) => az.tag === tag)),
         ),
       )
       setDefaultDeliveryZones(normalized)

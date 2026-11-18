@@ -538,18 +538,94 @@
   width: 100%;
 }
 
-.offering-detail__delivery-warning-compact {
+.offering-detail__delivery-warning-compact,
+.offering-detail__delivery-warning-interactive {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  margin-bottom: 12px;
-  background: rgba(245, 158, 11, 0.08);
-  border: 1px solid rgba(245, 158, 11, 0.25);
-  border-radius: var(--radius-md);
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  background: #fffbeb;
+  border: 1.5px solid #fde68a;
+  border-radius: var(--radius-md, 12px);
+  color: #92400e;
+  box-shadow: 0 1px 3px rgba(180, 83, 9, 0.05);
+  flex-wrap: wrap;
+}
+
+.offering-detail__delivery-warning-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.offering-detail__delivery-warning-icon {
   color: #d97706;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.offering-detail__delivery-warning-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   font-size: 12px;
   line-height: 1.35;
+}
+
+.offering-detail__delivery-warning-strong {
+  font-weight: 750;
+  color: #78350f;
+}
+
+.offering-detail__delivery-warning-desc {
+  color: #92400e;
+}
+
+.offering-detail__delivery-warning-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1.5px solid #f59e0b;
+  color: #b45309;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: all 150ms ease;
+  box-shadow: 0 1px 2px rgba(180, 83, 9, 0.1);
+}
+
+.offering-detail__delivery-warning-btn:hover {
+  background: #f59e0b;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.offering-detail__delivery-warning-btn:active {
+  transform: scale(0.97);
+}
+
+.offering-detail__primary-cta--warning {
+  background: #f59e0b !important;
+  color: #ffffff !important;
+  border-color: #d97706 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+}
+
+.offering-detail__primary-cta--warning:hover {
+  background: #d97706 !important;
 }
 
 /* Merchant Aside Card */

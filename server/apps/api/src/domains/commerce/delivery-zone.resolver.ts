@@ -115,15 +115,16 @@ export class DeliveryZoneResolver {
     }
 
     // Inherit coverage settings from vendor if offering does not define custom zones
-    const effectiveZones =
-      offering.deliveryZones && offering.deliveryZones.length > 0
-        ? offering.deliveryZones
-        : offering.vendor?.defaultDeliveryZones || []
+    const hasCustomOfferingZones =
+      Array.isArray(offering.deliveryZones) && offering.deliveryZones.length > 0
 
-    const effectiveCoverageType =
-      offering.deliveryCoverageType ||
-      offering.vendor?.defaultDeliveryCoverage ||
-      'NATIONWIDE'
+    const effectiveZones: string[] = hasCustomOfferingZones
+      ? (offering.deliveryZones || [])
+      : (offering.vendor?.defaultDeliveryZones || [])
+
+    const effectiveCoverageType = hasCustomOfferingZones
+      ? (offering.deliveryCoverageType || 'REGIONAL_ZONES')
+      : (offering.vendor?.defaultDeliveryCoverage || offering.deliveryCoverageType || 'NATIONWIDE')
 
     if (
       effectiveCoverageType === 'NATIONWIDE' ||
@@ -135,8 +136,7 @@ export class DeliveryZoneResolver {
     const coverageZones = effectiveZones.map((z) => z.toUpperCase().trim())
     if (
       coverageZones.includes('NATIONWIDE') ||
-      coverageZones.includes('ALL') ||
-      (isService && coverageZones.includes('ONLINE'))
+      coverageZones.includes('ALL')
     ) {
       return { isDeliverable: true }
     }

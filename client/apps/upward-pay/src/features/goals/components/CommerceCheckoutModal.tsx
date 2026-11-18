@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
@@ -16,6 +16,9 @@ import {
   Loader2,
   AlertCircle,
   ShoppingBag,
+  ChevronDown,
+  Check,
+  Search,
 } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
@@ -32,10 +35,13 @@ import {
   saveStoredDeliveryLocation,
   type UserDeliveryLocation,
   type DeliveryZoneItem,
+  isZoneSupportedByOffering,
 } from '../utils/deliveryLocation'
 import { fetchDeliveryZones } from '../services/goalsService'
+import { BottomSheetModal } from '@/components/common/BottomSheetModal'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import '../styles/goals.css'
+import '../styles/checkout.css'
 
 interface CommerceCheckoutModalProps {
   offering?: GoalOffering
@@ -44,6 +50,7 @@ interface CommerceCheckoutModalProps {
   onClose: () => void
   onSuccess?: () => void
   deliveryLocation?: UserDeliveryLocation
+  onLocationChange?: (loc: UserDeliveryLocation) => void
 }
 
 const checkoutSchema = z.object({
@@ -74,6 +81,7 @@ export function CommerceCheckoutModal({
   onClose,
   onSuccess,
   deliveryLocation,
+  onLocationChange,
 }: CommerceCheckoutModalProps) {
   const router = useRouter()
   const { user } = useAuth()
@@ -88,6 +96,8 @@ export function CommerceCheckoutModal({
   const [selectedLocation, setSelectedLocation] = useState<UserDeliveryLocation>(() =>
     deliveryLocation || getStoredDeliveryLocation(),
   )
+  const [isZonePickerOpen, setIsZonePickerOpen] = useState(false)
+  const [zoneSearch, setZoneSearch] = useState('')
 
   const createOrder = useCreateCommerceOrder()
   const initializePayment = useInitializeCommercePayment()
@@ -104,6 +114,21 @@ export function CommerceCheckoutModal({
       setSelectedLocation(loc)
     }
   }, [isOpen, deliveryLocation])
+
+  // Filter available zones by search query
+  const filteredZones = useMemo(() => {
+    let result = availableZones
+    if (zoneSearch.trim()) {
+      const q = zoneSearch.toLowerCase().trim()
+      result = result.filter(
+        (z) =>
+          z.name.toLowerCase().includes(q) ||
+          z.areasCovered?.toLowerCase().includes(q) ||
+          z.state?.toLowerCase().includes(q),
+      )
+    }
+    return result
+  }, [availableZones, zoneSearch])
 
   // Fetch available zones from API to ensure freshest data
   useEffect(() => {
@@ -223,8 +248,14 @@ export function CommerceCheckoutModal({
     offering?.media?.[0]?.mediaUrl
   const isService = (offering?.type === 'SERVICE') || allServices
 
+  const matchedZone = availableZones.find((z) => z.tag === selectedLocation.zoneTag)
+  const isOfferingSupported = offering && matchedZone
+    ? isZoneSupportedByOffering(matchedZone, offering)
+    : true
+
   const isZoneDeliverable = Boolean(
     selectedLocation.isDelivering &&
+      isOfferingSupported &&
       selectedLocation.zoneTag &&
       selectedLocation.zoneTag !== 'UNCONFIGURED' &&
       selectedLocation.zoneTag !== 'UNCOVERED',
@@ -526,107 +557,98 @@ export function CommerceCheckoutModal({
               </h4>
             </div>
 
-            {/* Prefilled Locked Zone Card */}
+            {/* Interactive Zone Card */}
             <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                padding: '12px 14px',
-                borderRadius: 'var(--radius-md, 12px)',
-                background: 'var(--surface)',
-                border: '1px solid var(--border)',
-                width: '100%',
-                boxSizing: 'border-box',
+              className={`checkout-sheet__zone-card ${
+                !isZoneDeliverable ? 'checkout-sheet__zone-card--warning' : ''
+              }`}
+              onClick={() => setIsZonePickerOpen(true)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  setIsZonePickerOpen(true)
+                }
               }}
             >
               <div
-                style={{
-                  width: '38px',
-                  height: '38px',
-                  borderRadius: '10px',
-                  background: isZoneDeliverable
-                    ? 'var(--success-bg, rgba(34, 197, 94, 0.08))'
-                    : 'var(--surface2)',
-                  color: isZoneDeliverable
-                    ? 'var(--success, #22c55e)'
-                    : 'var(--text-muted)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
+                className={`checkout-sheet__zone-icon ${
+                  isZoneDeliverable
+                    ? 'checkout-sheet__zone-icon--active'
+                    : 'checkout-sheet__zone-icon--warn'
+                }`}
               >
                 <MapPin size={18} />
               </div>
 
-              <div style={{ flex: 1, minWidth: 0 }}>
-
-                <div
-                  style={{
-                    fontWeight: 700,
-                    fontSize: '13.5px',
-                    color: 'var(--text)',
-                    lineHeight: 1.35,
-                    wordBreak: 'break-word',
-                  }}
-                >
-                  {selectedLocation.zoneName || selectedLocation.address}
+              <div className="checkout-sheet__zone-details">
+                <div className="checkout-sheet__zone-header-row">
+                  <span className="checkout-sheet__zone-name">
+                    {selectedLocation.zoneName || selectedLocation.address}
+                  </span>
+                  {isZoneDeliverable ? (
+                    <span className="checkout-sheet__zone-status-badge checkout-sheet__zone-status-badge--deliverable">
+                      Eligible
+                    </span>
+                  ) : (
+                    <span className="checkout-sheet__zone-status-badge checkout-sheet__zone-status-badge--unsupported">
+                      Outside Service Area
+                    </span>
+                  )}
                 </div>
 
-                {selectedLocation.state && (
-                  <div
-                    style={{
-                      fontSize: '11.5px',
-                      color: 'var(--text-secondary)',
-                      marginTop: '2px',
-                    }}
-                  >
-                    {selectedLocation.state}
-                  </div>
-                )}
+                <div className="checkout-sheet__zone-sub">
+                  {selectedLocation.state && <span>{selectedLocation.state} • </span>}
+                  {allServices
+                    ? 'On-site service area'
+                    : selectedLocation.deliveryFeeKobo
+                      ? `Delivery Fee: ${formatNgn(Number(BigInt(selectedLocation.deliveryFeeKobo) / BigInt(100)))}`
+                      : 'Free Delivery'}
+                </div>
               </div>
+
+              <button
+                type="button"
+                className="checkout-sheet__zone-change-btn"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setIsZonePickerOpen(true)
+                }}
+              >
+                <span>Change</span>
+                <ChevronDown size={13} />
+              </button>
             </div>
 
             {!isZoneDeliverable && (
-              <div
-                style={{
-                  background: 'var(--surface)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius-md, 10px)',
-                  padding: '12px 14px',
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: '10px',
-                  marginTop: '8px',
-                }}
-              >
-                <AlertCircle
-                  size={16}
-                  style={{
-                    color: 'var(--clay)',
-                    flexShrink: 0,
-                    marginTop: '2px',
-                  }}
-                />
-                <div
-                  style={{
-                    fontSize: '12.5px',
-                    color: 'var(--text-secondary)',
-                    lineHeight: 1.4,
-                  }}
-                >
-                  <span style={{ color: 'var(--text)', fontWeight: 600 }}>
-                    {selectedLocation.pauseReason ||
-                      (isService
-                        ? 'We are working towards expanding our service coverage to other locations soon!'
-                        : 'We are working towards expanding our delivery coverage to other locations soon!')}
-                  </span>
-                  <br />
-                  {isService
-                    ? 'Service coverage in this zone is currently paused or pending rollout. You cannot book services for this location at this time.'
-                    : 'Delivery to this zone is currently paused or pending rollout. You cannot place orders to this location at this time.'}
+              <div className="checkout-sheet__zone-alert">
+                <div className="checkout-sheet__zone-alert-body">
+                  <AlertCircle size={16} className="checkout-sheet__zone-alert-icon" />
+                  <div className="checkout-sheet__zone-alert-text">
+                    <span className="checkout-sheet__zone-alert-title">
+                      {isService
+                        ? 'Service coverage is unavailable in this zone'
+                        : 'Delivery is unavailable in this zone'}
+                    </span>
+                    <span className="checkout-sheet__zone-alert-desc">
+                      {selectedLocation.pauseReason ||
+                        (!isOfferingSupported
+                          ? `This vendor does not currently deliver to ${selectedLocation.zoneName || selectedLocation.address}. Please select a covered zone to continue.`
+                          : isService
+                            ? `We are expanding our service coverage to reach ${selectedLocation.zoneName || selectedLocation.address} soon! Please select a covered zone to book.`
+                            : `We are expanding our delivery coverage to reach ${selectedLocation.zoneName || selectedLocation.address} soon! Please select a covered zone to order.`)}
+                    </span>
+                  </div>
                 </div>
+                <button
+                  type="button"
+                  className="checkout-sheet__zone-alert-action"
+                  onClick={() => setIsZonePickerOpen(true)}
+                >
+                  <MapPin size={12} />
+                  <span>Select Covered Zone</span>
+                </button>
               </div>
             )}
 
@@ -735,43 +757,163 @@ export function CommerceCheckoutModal({
 
           {/* Checkout CTA */}
           <div className="checkout-sheet__footer">
-            <button
-              type="submit"
-              className="checkout-sheet__pay-btn"
-              disabled={isProcessing || !isZoneDeliverable}
-              style={{
-                opacity: !isZoneDeliverable ? 0.5 : 1,
-                cursor: !isZoneDeliverable ? 'not-allowed' : 'pointer',
-                background: !isZoneDeliverable ? 'var(--surface2)' : undefined,
-                color: !isZoneDeliverable ? 'var(--text-muted)' : undefined,
-                border: !isZoneDeliverable ? '1px solid var(--border)' : undefined,
-              }}
-            >
-              {isProcessing ? (
-                <>
-                  <Loader2 size={18} className="animate-spin" />
-                  <span>Connecting to Paystack...</span>
-                </>
-              ) : !isZoneDeliverable ? (
-                <>
-                  <MapPin size={16} />
-                  <span>Location Not Supported Yet</span>
-                </>
-              ) : (
-                <>
-                  <Lock size={16} />
-                  <span>
-                    {isService ? 'Book & Pay' : 'Pay'} {formatNgn(grandTotal)} with Paystack
-                  </span>
-                </>
-              )}
-            </button>
+            {!isZoneDeliverable ? (
+              <button
+                type="button"
+                className="checkout-sheet__pay-btn checkout-sheet__pay-btn--warning"
+                onClick={() => setIsZonePickerOpen(true)}
+              >
+                <MapPin size={17} />
+                <span>Select Supported Zone to Continue</span>
+              </button>
+            ) : (
+              <button
+                type="submit"
+                className="checkout-sheet__pay-btn"
+                disabled={isProcessing}
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" />
+                    <span>Connecting to Paystack...</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock size={16} />
+                    <span>
+                      {isService ? 'Book & Pay' : 'Pay'} {formatNgn(grandTotal)} with Paystack
+                    </span>
+                  </>
+                )}
+              </button>
+            )}
             <p className="checkout-sheet__security-note">
               Payments are processed securely via Paystack.
             </p>
           </div>
         </form>
       </div>
+
+      {/* Zone Chooser Modal for In-Checkout Selection */}
+      <BottomSheetModal
+        isOpen={isZonePickerOpen}
+        onClose={() => {
+          setIsZonePickerOpen(false)
+          setZoneSearch('')
+        }}
+        title={isService ? 'Choose Service Coverage Zone' : 'Choose Delivery Coverage Zone'}
+        subtitle="Select a covered region to update delivery fees and proceed with checkout."
+        maxWidth="500px"
+      >
+        <div className="delivery-sheet__search-box">
+          <Search size={16} className="delivery-sheet__search-icon" />
+          <input
+            type="text"
+            placeholder="Search zones by city, state, or area..."
+            value={zoneSearch}
+            onChange={(e) => setZoneSearch(e.target.value)}
+            className="delivery-sheet__search-input"
+            autoFocus
+          />
+          {zoneSearch && (
+            <button
+              type="button"
+              onClick={() => setZoneSearch('')}
+              className="delivery-sheet__search-clear"
+              aria-label="Clear search"
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
+
+        <div className="delivery-sheet__content" style={{ maxHeight: '55vh', overflowY: 'auto' }}>
+          {filteredZones.length === 0 ? (
+            <div
+              style={{
+                padding: '24px 16px',
+                textAlign: 'center',
+                background: 'var(--surface)',
+                borderRadius: '16px',
+                border: '1px solid var(--shell-border, #f0e9df)',
+              }}
+            >
+              <h4 style={{ margin: '0 0 6px', fontSize: '14.5px', fontWeight: 700, color: 'var(--text)' }}>
+                No Matching Zones
+              </h4>
+              <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)' }}>
+                We could not find any active coverage zone matching &quot;{zoneSearch}&quot;.
+              </p>
+            </div>
+          ) : (
+            filteredZones.map((zone) => {
+              const isSupported = offering
+                ? isZoneSupportedByOffering(zone, offering)
+                : zone.isDelivering
+              const isSelected = selectedLocation.zoneTag === zone.tag
+              return (
+                <button
+                  key={zone.tag}
+                  type="button"
+                  className={`delivery-sheet__option ${
+                    isSelected ? 'delivery-sheet__option--selected' : ''
+                  }`}
+                  onClick={() => {
+                    const updated: UserDeliveryLocation = {
+                      address: zone.areasCovered?.split(',')?.[0]?.trim() || zone.name,
+                      label: zone.name,
+                      zoneTag: zone.tag,
+                      zoneName: zone.name,
+                      state: zone.state,
+                      isDelivering: isSupported && zone.isDelivering,
+                      pauseReason: zone.pauseReason,
+                      deliveryFeeKobo: zone.deliveryFeeKobo,
+                    }
+                    setSelectedLocation(updated)
+                    saveStoredDeliveryLocation(updated)
+                    onLocationChange?.(updated)
+                    setIsZonePickerOpen(false)
+                    setZoneSearch('')
+                  }}
+                >
+                  <div className="delivery-sheet__option-icon">
+                    <MapPin size={16} />
+                  </div>
+                  <div className="delivery-sheet__option-details">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <span className="delivery-sheet__option-title">{zone.name}</span>
+                      {isSupported && zone.isDelivering ? (
+                        <span className="delivery-sheet__tag delivery-sheet__tag--active">
+                          Covered
+                        </span>
+                      ) : (
+                        <span className="delivery-sheet__tag delivery-sheet__tag--unsupported">
+                          Unavailable
+                        </span>
+                      )}
+                    </div>
+                    {zone.areasCovered && (
+                      <span className="delivery-sheet__option-areas">{zone.areasCovered}</span>
+                    )}
+                    <span className="delivery-sheet__option-fee">
+                      {allServices
+                        ? 'Service Area'
+                        : zone.deliveryFeeKobo
+                          ? `Fee: ${formatNgn(Number(BigInt(zone.deliveryFeeKobo) / BigInt(100)))}`
+                          : 'Free Delivery'}
+                    </span>
+                  </div>
+                  {isSelected && (
+                    <div className="delivery-sheet__check">
+                      <Check size={14} strokeWidth={2.5} />
+                    </div>
+                  )}
+                </button>
+              )
+            })
+          )}
+        </div>
+      </BottomSheetModal>
     </div>,
     document.body,
   )

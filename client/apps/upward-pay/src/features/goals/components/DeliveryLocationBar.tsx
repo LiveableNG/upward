@@ -19,7 +19,9 @@ import {
   resolveDeliveryZone,
   formatShortLocation,
   saveStoredDeliveryLocation,
+  isZoneSupportedByOffering,
 } from '../utils/deliveryLocation'
+import type { GoalOffering } from '../types/goals.types'
 import { fetchDeliveryZones } from '../services/goalsService'
 import { BottomSheetModal } from '@/components/common/BottomSheetModal'
 import '../styles/goals.css'
@@ -27,14 +29,28 @@ import '../styles/goals.css'
 interface DeliveryLocationBarProps {
   location: UserDeliveryLocation
   onLocationChange: (loc: UserDeliveryLocation) => void
+  offering?: GoalOffering
+  variant?: 'card' | 'pill'
+  isOpen?: boolean
+  onOpenChange?: (open: boolean) => void
 }
 
 export const DeliveryLocationBar: React.FC<DeliveryLocationBarProps> = ({
   location,
   onLocationChange,
+  offering,
+  variant = 'card',
+  isOpen: propIsOpen,
+  onOpenChange,
 }) => {
   const { user } = useAuth()
-  const [isOpen, setIsOpen] = useState(false)
+  const [internalIsOpen, setInternalIsOpen] = useState(false)
+  const isControlled = propIsOpen !== undefined
+  const isOpen = isControlled ? propIsOpen : internalIsOpen
+  const setModalOpen = (open: boolean) => {
+    if (onOpenChange) onOpenChange(open)
+    if (!isControlled) setInternalIsOpen(open)
+  }
   const [mounted, setMounted] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [zones, setZones] = useState<DeliveryZoneItem[]>([])
@@ -66,8 +82,6 @@ export const DeliveryLocationBar: React.FC<DeliveryLocationBarProps> = ({
     }
   }, [])
 
-
-
   const rentalProperty = user?.properties?.[0]
   const rentalAddress = rentalProperty?.address
 
@@ -98,7 +112,7 @@ export const DeliveryLocationBar: React.FC<DeliveryLocationBarProps> = ({
     }
     saveStoredDeliveryLocation(newLoc)
     onLocationChange(newLoc)
-    setIsOpen(false)
+    setModalOpen(false)
     setSearchQuery('')
   }
 
@@ -118,53 +132,110 @@ export const DeliveryLocationBar: React.FC<DeliveryLocationBarProps> = ({
     }
     saveStoredDeliveryLocation(newLoc)
     onLocationChange(newLoc)
-    setIsOpen(false)
+    setModalOpen(false)
     setSearchQuery('')
   }
 
+  const isCurrentLocationSupported = isZoneSupportedByOffering(
+    location.zoneTag,
+    offering,
+  )
+  const isService = offering?.type === 'SERVICE'
+
   return (
     <>
-      <div className="delivery-bar">
+      {variant === 'card' ? (
         <button
           type="button"
-          className="delivery-bar__trigger"
-          onClick={() => setIsOpen(true)}
-          aria-label="Change delivery location"
+          className={`delivery-card-trigger ${
+            !isCurrentLocationSupported ? 'delivery-card-trigger--warn' : ''
+          }`}
+          onClick={() => setModalOpen(true)}
+          aria-label="Change service or delivery location"
         >
-          <div className="delivery-bar__icon-wrap">
-            <MapPin size={14} className="delivery-bar__icon" />
-          </div>
-          <div className="delivery-bar__text">
-            <span className="delivery-bar__label">Delivering to:</span>
-            <span className="delivery-bar__value">
-              {formatShortLocation(location)}
-            </span>
-          </div>
-          {!location.isDelivering && (
-            <span
-              style={{
-                fontSize: '11px',
-                fontWeight: 700,
-                color: 'var(--text-muted)',
-                background: 'var(--surface2)',
-                border: '1px solid var(--border)',
-                padding: '2px 6px',
-                borderRadius: 'var(--radius-sm, 6px)',
-                marginLeft: '4px',
-                flexShrink: 0,
-                whiteSpace: 'nowrap',
-              }}
+          <div className="delivery-card-trigger__left">
+            <div
+              className={`delivery-card-trigger__icon-wrap ${
+                !isCurrentLocationSupported
+                  ? 'delivery-card-trigger__icon-wrap--warn'
+                  : ''
+              }`}
             >
-              Paused
-            </span>
-          )}
-          <ChevronDown size={14} className="delivery-bar__chevron" />
+              <MapPin size={18} />
+            </div>
+            <div className="delivery-card-trigger__content">
+              <div className="delivery-card-trigger__meta">
+                <span className="delivery-card-trigger__label">
+                  {isService ? 'Service Location' : 'Delivery Destination'}
+                </span>
+                {!isCurrentLocationSupported ? (
+                  <span className="delivery-card-trigger__status-pill delivery-card-trigger__status-pill--warn">
+                    Outside Service Area
+                  </span>
+                ) : !location.isDelivering ? (
+                  <span className="delivery-card-trigger__status-pill delivery-card-trigger__status-pill--warn">
+                    Paused
+                  </span>
+                ) : (
+                  <span className="delivery-card-trigger__status-pill delivery-card-trigger__status-pill--ok">
+                    Eligible
+                  </span>
+                )}
+              </div>
+              <div className="delivery-card-trigger__value">
+                {formatShortLocation(location)}
+              </div>
+            </div>
+          </div>
+
+          <div className="delivery-card-trigger__action">
+            <span>Change</span>
+            <ChevronDown size={14} className="delivery-card-trigger__chevron" />
+          </div>
         </button>
-      </div>
+      ) : (
+        <div className="delivery-bar">
+          <button
+            type="button"
+            className="delivery-bar__trigger"
+            onClick={() => setModalOpen(true)}
+            aria-label="Change delivery location"
+          >
+            <div className="delivery-bar__icon-wrap">
+              <MapPin size={14} className="delivery-bar__icon" />
+            </div>
+            <div className="delivery-bar__text">
+              <span className="delivery-bar__label">Delivering to:</span>
+              <span className="delivery-bar__value">
+                {formatShortLocation(location)}
+              </span>
+            </div>
+            {!location.isDelivering && (
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  color: 'var(--text-muted)',
+                  background: 'var(--surface2)',
+                  border: '1px solid var(--border)',
+                  padding: '2px 6px',
+                  borderRadius: 'var(--radius-sm, 6px)',
+                  marginLeft: '4px',
+                  flexShrink: 0,
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Paused
+              </span>
+            )}
+            <ChevronDown size={14} className="delivery-bar__chevron" />
+          </button>
+        </div>
+      )}
 
       <BottomSheetModal
         isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
+        onClose={() => setModalOpen(false)}
         title="Choose Delivery Coverage Zone"
         subtitle="Select your region to verify delivery logistics coverage."
         maxWidth="520px"
@@ -332,6 +403,8 @@ export const DeliveryLocationBar: React.FC<DeliveryLocationBarProps> = ({
               {filteredZones.map((zone) => {
                 const isSelected =
                   !location.isRentalDefault && location.zoneTag === zone.tag
+                const isSupported = isZoneSupportedByOffering(zone.tag, offering)
+
                 return (
                   <button
                     key={zone.tag}
@@ -344,8 +417,16 @@ export const DeliveryLocationBar: React.FC<DeliveryLocationBarProps> = ({
                     <div
                       className="delivery-sheet__option-icon"
                       style={{
-                        color: zone.isDelivering ? 'var(--success, #15803d)' : 'var(--text-muted)',
-                        background: zone.isDelivering ? 'rgba(22, 163, 74, 0.1)' : 'var(--surface2)',
+                        color: !isSupported
+                          ? 'var(--text-muted)'
+                          : zone.isDelivering
+                            ? 'var(--success, #15803d)'
+                            : 'var(--text-muted)',
+                        background: !isSupported
+                          ? 'var(--surface2)'
+                          : zone.isDelivering
+                            ? 'rgba(22, 163, 74, 0.1)'
+                            : 'var(--surface2)',
                       }}
                     >
                       <MapPin size={16} />
@@ -356,7 +437,22 @@ export const DeliveryLocationBar: React.FC<DeliveryLocationBarProps> = ({
                         <span className="delivery-sheet__option-title">
                           {zone.name}
                         </span>
-                        {zone.isDelivering ? (
+                        {!isSupported ? (
+                          <span
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              color: 'var(--text-muted)',
+                              background: 'var(--surface2)',
+                              border: '1px solid var(--shell-border, #f0e9df)',
+                              padding: '2px 8px',
+                              borderRadius: '10px',
+                              flexShrink: 0,
+                            }}
+                          >
+                            Unavailable
+                          </span>
+                        ) : zone.isDelivering ? (
                           <span
                             style={{
                               fontSize: '11px',
@@ -368,7 +464,7 @@ export const DeliveryLocationBar: React.FC<DeliveryLocationBarProps> = ({
                               flexShrink: 0,
                             }}
                           >
-                            Delivering
+                            {offering?.type === 'SERVICE' ? 'Available' : 'Delivering'}
                           </span>
                         ) : (
                           <span

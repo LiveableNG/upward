@@ -207,7 +207,7 @@ async function main() {
       rating: 5.0,
       isActive: true,
       defaultDeliveryCoverage: DeliveryCoverageType.NATIONWIDE,
-      defaultDeliveryZones: ['LAGOS_MAINLAND', 'LAGOS_ISLAND', 'ABUJA_METRO', 'ONLINE'],
+      defaultDeliveryZones: ['LAGOS_MAINLAND', 'LAGOS_ISLAND', 'ABUJA_METRO'],
     },
   })
 
@@ -220,7 +220,7 @@ async function main() {
       rating: 4.9,
       isActive: true,
       defaultDeliveryCoverage: DeliveryCoverageType.NATIONWIDE,
-      defaultDeliveryZones: ['LAGOS_MAINLAND', 'LAGOS_ISLAND', 'ONLINE'],
+      defaultDeliveryZones: ['LAGOS_MAINLAND', 'LAGOS_ISLAND'],
     },
   })
 

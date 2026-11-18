@@ -59,7 +59,15 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
     return items.length > 0 && items.every((i) => i.type === 'SERVICE')
   }, [items])
 
-  const activeLocation = propLocation || getStoredDeliveryLocation()
+  const [currentLocation, setCurrentLocation] = useState<UserDeliveryLocation>(() =>
+    propLocation || getStoredDeliveryLocation(),
+  )
+
+  useEffect(() => {
+    if (propLocation) setCurrentLocation(propLocation)
+  }, [propLocation])
+
+  const activeLocation = currentLocation
 
   useEffect(() => {
     setMounted(true)
@@ -357,6 +365,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
           onClose={() => setIsCheckoutOpen(false)}
           onSuccess={handleCheckoutSuccess}
           deliveryLocation={activeLocation}
+          onLocationChange={setCurrentLocation}
         />
       )}
     </>

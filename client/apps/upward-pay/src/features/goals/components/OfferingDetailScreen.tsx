@@ -170,6 +170,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
   const [deliveryLocation, setDeliveryLocation] = useState<UserDeliveryLocation>(() =>
     getStoredDeliveryLocation(user?.properties?.[0]?.address),
   )
+  const [isLocationPickerOpen, setIsLocationPickerOpen] = useState(false)
   const [isInquiryOpen, setIsInquiryOpen] = useState(false)
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
   const [inquiryCategory, setInquiryCategory] = useState('GENERAL')
@@ -909,6 +910,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
             isOpen={isCheckoutOpen}
             onClose={() => setIsCheckoutOpen(false)}
             deliveryLocation={deliveryLocation}
+            onLocationChange={(loc) => setDeliveryLocation(loc)}
           />
         )}
       </div>
@@ -1199,20 +1201,39 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                   <DeliveryLocationBar
                     location={deliveryLocation}
                     onLocationChange={(loc) => setDeliveryLocation(loc)}
+                    offering={offering}
+                    variant="card"
+                    isOpen={isLocationPickerOpen}
+                    onOpenChange={setIsLocationPickerOpen}
                   />
                 </div>
               </div>
 
               {!deliveryCheck.isDeliverable && (
-                <div className="offering-detail__delivery-warning-compact">
-                  <AlertCircle size={14} style={{ flexShrink: 0 }} />
-                  <span>
-                    {deliveryCheck.reason ||
-                      deliveryLocation.pauseReason ||
-                      (offering.type === 'SERVICE'
-                        ? `We're working towards expanding our service coverage to reach ${formatShortLocation(deliveryLocation)} soon!`
-                        : `We're working towards expanding our delivery coverage to reach ${formatShortLocation(deliveryLocation)} soon!`)}
-                  </span>
+                <div className="offering-detail__delivery-warning-interactive">
+                  <div className="offering-detail__delivery-warning-body">
+                    <AlertCircle size={18} className="offering-detail__delivery-warning-icon" />
+                    <div className="offering-detail__delivery-warning-text">
+                      <span className="offering-detail__delivery-warning-strong">
+                        Outside Current Coverage Area
+                      </span>
+                      <span className="offering-detail__delivery-warning-desc">
+                        {deliveryCheck.reason ||
+                          deliveryLocation.pauseReason ||
+                          (offering.type === 'SERVICE'
+                            ? `We're working towards expanding our service coverage to reach ${formatShortLocation(deliveryLocation)} soon!`
+                            : `We're working towards expanding our delivery coverage to reach ${formatShortLocation(deliveryLocation)} soon!`)}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="offering-detail__delivery-warning-btn"
+                    onClick={() => setIsLocationPickerOpen(true)}
+                  >
+                    <MapPin size={13} />
+                    <span>Change Zone</span>
+                  </button>
                 </div>
               )}
 
@@ -1251,11 +1272,11 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                 ) : (
                   <button
                     type="button"
-                    className="offering-detail__primary-cta offering-detail__primary-cta--disabled"
-                    disabled
+                    className="offering-detail__primary-cta offering-detail__primary-cta--warning"
+                    onClick={() => setIsLocationPickerOpen(true)}
                   >
                     <MapPin size={16} />
-                    <span>Location Not Supported Yet</span>
+                    <span>Change Location to Book</span>
                   </button>
                 )}
 
@@ -1563,6 +1584,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
           isOpen={isCheckoutOpen}
           onClose={() => setIsCheckoutOpen(false)}
           deliveryLocation={deliveryLocation}
+          onLocationChange={(loc) => setDeliveryLocation(loc)}
         />
       )}
     </div>
