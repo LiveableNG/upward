@@ -140,6 +140,125 @@ export function OfferingDetailSkeleton({ onBack }: { onBack?: () => void }) {
   )
 }
 
+function renderStructuredOverview(description: string, offering: GoalOffering) {
+  if (!description.includes('•') && !description.includes('🧹') && !description.includes('🚿')) {
+    return <p className="offering-detail__description">{description}</p>
+  }
+
+  const lines = description.split('\n').map((l) => l.trim()).filter(Boolean)
+  const introLines: string[] = []
+  const categories: Array<{ title: string; items: Array<{ name: string; price?: string }> }> = []
+  let currentCategory: { title: string; items: Array<{ name: string; price?: string }> } | null = null
+
+  for (const line of lines) {
+    if (line.startsWith('•') || line.startsWith('-')) {
+      const cleanLine = line.replace(/^[•\-]\s*/, '')
+      const parts = cleanLine.split(/\s+[—–-]\s+(₦[\d,]+)/)
+      if (parts.length >= 2) {
+        currentCategory?.items.push({ name: parts[0].trim(), price: parts[1].trim() })
+      } else {
+        const altMatch = cleanLine.match(/^(.*?)\s*\((₦[\d,]+)\)\s*$/)
+        if (altMatch) {
+          currentCategory?.items.push({ name: altMatch[1].trim(), price: altMatch[2].trim() })
+        } else {
+          currentCategory?.items.push({ name: cleanLine })
+        }
+      }
+    } else if (
+      line.includes('FLOOR') ||
+      line.includes('BATHROOM') ||
+      line.includes('KITCHEN') ||
+      line.includes('CHEMICALS') ||
+      line.includes('SANITIZ') ||
+      line.startsWith('🧹') ||
+      line.startsWith('🚿') ||
+      line.startsWith('🍳') ||
+      line.startsWith('✨')
+    ) {
+      currentCategory = { title: line, items: [] }
+      categories.push(currentCategory)
+    } else if (
+      line.toLowerCase().includes('total') ||
+      line.toLowerCase().includes('retail value') ||
+      line.toLowerCase().includes('package price') ||
+      line.toLowerCase().includes('savings')
+    ) {
+      // Handled in dedicated value banner
+    } else if (categories.length === 0) {
+      introLines.push(line)
+    }
+  }
+
+  const totalItemCount = categories.reduce((sum, c) => sum + c.items.length, 0)
+  const compareAt = offering.maxPrice || 104000
+  const packagePrice = offering.price || 84000
+  const savings = compareAt > packagePrice ? compareAt - packagePrice : 0
+  const discountPct = compareAt > packagePrice ? Math.round((savings / compareAt) * 100) : 0
+
+  return (
+    <div className="offering-detail__overview-wrap">
+      {introLines.length > 0 && (
+        <p className="offering-detail__description" style={{ marginBottom: 14 }}>
+          {introLines.join('\n\n')}
+        </p>
+      )}
+
+      {/* High-Impact Value Breakdown Banner */}
+      <div className="offering-detail__value-banner">
+        <div className="offering-detail__value-stat">
+          <span className="offering-detail__value-stat-label">Package Size</span>
+          <span className="offering-detail__value-stat-num">{totalItemCount || 23} Pieces</span>
+        </div>
+
+        {compareAt != null && compareAt > packagePrice && (
+          <div className="offering-detail__value-stat">
+            <span className="offering-detail__value-stat-label">Individual Retail</span>
+            <span className="offering-detail__value-stat-num offering-detail__value-stat-num--strike">
+              {formatCurrencyValue(compareAt, offering.currency)}
+            </span>
+          </div>
+        )}
+
+        <div className="offering-detail__value-stat">
+          <span className="offering-detail__value-stat-label">Bundle Deal</span>
+          <span className="offering-detail__value-stat-num offering-detail__value-stat-num--highlight">
+            {formatCurrencyValue(packagePrice, offering.currency)}
+          </span>
+        </div>
+
+        {savings > 0 && (
+          <div className="offering-detail__value-badge">
+            Save {formatCurrencyValue(savings, offering.currency)} ({discountPct}% OFF)
+          </div>
+        )}
+      </div>
+
+      {/* Categorized Included Items */}
+      {categories.map((cat, cIdx) => (
+        <div key={cIdx} className="offering-detail__package-cat">
+          <div className="offering-detail__package-cat-header">
+            <span className="offering-detail__package-cat-title">{cat.title}</span>
+            <span className="offering-detail__package-cat-count">{cat.items.length} items</span>
+          </div>
+          <div className="offering-detail__package-cat-items">
+            {cat.items.map((item, iIdx) => (
+              <div key={iIdx} className="offering-detail__package-item-card">
+                <div className="offering-detail__package-item-left">
+                  <CheckCircle2 size={16} className="offering-detail__package-item-check" />
+                  <span className="offering-detail__package-item-name">{item.name}</span>
+                </div>
+                {item.price && (
+                  <span className="offering-detail__package-item-price">{item.price}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
   identifier: propIdentifier,
 }) => {
@@ -393,7 +512,10 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
 
   const cart = useCart()
 
-  const isBundle = Boolean(offering && offering.type === 'BUNDLE')
+  const isBundle = Boolean(
+    offering && (offering.type === 'BUNDLE' || offering.type === 'PACKAGE'),
+  )
+  const isLockedPackage = Boolean(offering && offering.type === 'PACKAGE')
 
   const effectivePackageItems = useMemo(() => {
     if (!offering || !isBundle) return []
@@ -419,6 +541,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
   }, [offering?.id, packageItems])
 
   const toggleComponent = (compId: number) => {
+    if (isLockedPackage) return
     setSelectedComponentIds((prev) => {
       const next = new Set(prev)
       if (next.has(compId)) {
@@ -500,6 +623,35 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
 
   const customCheckoutItems: CartItem[] = useMemo(() => {
     if (!offering) return []
+    if (isLockedPackage) {
+      const primaryImg =
+        offering.promoCoverImage ||
+        offering.media?.find((m) => m.isPrimary)?.mediaUrl ||
+        offering.media?.[0]?.mediaUrl ||
+        offering.imageUrl ||
+        null
+
+      return [
+        {
+          offeringId: offering.id,
+          offeringUuid: offering.uuid || String(offering.id),
+          title: offering.title || offering.name || 'Curated Package',
+          subtitle: offering.subtitle,
+          imageUrl: primaryImg,
+          price: Number(offering.price || 0),
+          currency: offering.currency || 'NGN',
+          quantity: 1,
+          vendorName: offering.vendor?.name || 'Upward Partner',
+          vendorVerified: offering.vendor?.isVerified || false,
+          type: 'PACKAGE',
+          deliveryAvailable: offering.deliveryAvailable,
+          deliveryCoverageType: offering.deliveryCoverageType,
+          deliveryZones: offering.deliveryZones,
+          vendorDefaultCoverage: offering.vendor?.defaultDeliveryCoverage,
+          vendorDefaultZones: offering.vendor?.defaultDeliveryZones,
+        },
+      ]
+    }
     if (packageItems.length > 0) {
       return selectedPackageItems.map((p) => {
         const comp = (p.component || p.itemOffering || offering) as GoalOffering
@@ -532,10 +684,15 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
       })
     }
     return []
-  }, [offering, packageItems, selectedPackageItems])
+  }, [offering, packageItems, selectedPackageItems, isLockedPackage])
 
   const handleAddToCart = () => {
     if (!offering) return
+    if (isLockedPackage) {
+      cart.addItem(offering, { quantity: 1 })
+      cart.openCart()
+      return
+    }
     if (packageItems.length > 0) {
       const componentsToAdd = selectedPackageItems.map((p) => {
         const comp = (p.component || p.itemOffering || offering) as GoalOffering
@@ -739,9 +896,11 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                 >
                   <ShoppingCart size={15} strokeWidth={2.3} />
                   <span>
-                    {isAllComponentsSelected
-                      ? 'Add to Cart'
-                      : `Add (${selectedPackageItems.length}) to Cart`}
+                    {isLockedPackage
+                      ? 'Add Package to Cart'
+                      : isAllComponentsSelected
+                        ? 'Add to Cart'
+                        : `Add (${selectedPackageItems.length}) to Cart`}
                   </span>
                 </button>
                 <button
@@ -760,10 +919,14 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
             <div className="bundle-showcase__items-header">
               <div>
                 <h2 className="bundle-showcase__items-title">
-                  What’s included ({selectedPackageItems.length} of {packageItems.length})
+                  {isLockedPackage
+                    ? `What’s included (${packageItems.length} items)`
+                    : `What’s included (${selectedPackageItems.length} of ${packageItems.length})`}
                 </h2>
                 <p className="bundle-showcase__items-desc">
-                  Tap any item to include or remove it from your set. Total updates in real time.
+                  {isLockedPackage
+                    ? `All ${packageItems.length} verified items are included in this complete package deal.`
+                    : 'Tap any item to include or remove it from your set. Total updates in real time.'}
                 </p>
               </div>
             </div>
@@ -797,13 +960,13 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                       isSelected
                         ? 'bundle-showcase__item-card--selected'
                         : 'bundle-showcase__item-card--deselected'
-                    }`}
-                    onClick={() => toggleComponent(compId)}
-                    role="checkbox"
+                    } ${isLockedPackage ? 'bundle-showcase__item-card--locked' : ''}`}
+                    onClick={() => !isLockedPackage && toggleComponent(compId)}
+                    role={isLockedPackage ? 'listitem' : 'checkbox'}
                     aria-checked={isSelected}
-                    tabIndex={0}
+                    tabIndex={isLockedPackage ? -1 : 0}
                     onKeyDown={(e) => {
-                      if (e.key === ' ' || e.key === 'Enter') {
+                      if (!isLockedPackage && (e.key === ' ' || e.key === 'Enter')) {
                         e.preventDefault()
                         toggleComponent(compId)
                       }
@@ -844,21 +1007,24 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                       )}
                     </div>
 
-                    <div className="bundle-showcase__item-pricing">
-                      {itemPrice != null && (
-                        <span className="bundle-showcase__item-price">
-                          {formatNgn(itemPrice * (pkgItem.quantity || 1))}
-                        </span>
-                      )}
-                      {originalPrice != null &&
-                        originalPrice > (itemPrice || 0) && (
-                          <span className="bundle-showcase__item-original">
-                            {formatNgn(
-                              originalPrice * (pkgItem.quantity || 1),
-                            )}
+                    {/* Hide individual item prices for packages */}
+                    {!isLockedPackage && (
+                      <div className="bundle-showcase__item-pricing">
+                        {itemPrice != null && (
+                          <span className="bundle-showcase__item-price">
+                            {formatNgn(itemPrice * (pkgItem.quantity || 1))}
                           </span>
                         )}
-                    </div>
+                        {originalPrice != null &&
+                          originalPrice > (itemPrice || 0) && (
+                            <span className="bundle-showcase__item-original">
+                              {formatNgn(
+                                originalPrice * (pkgItem.quantity || 1),
+                              )}
+                            </span>
+                          )}
+                      </div>
+                    )}
                   </div>
                 )
               })}
@@ -1094,10 +1260,8 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
 
               {offering.description && (
                 <div className="offering-detail__description-block">
-                  <h2 className="offering-detail__section-label">Overview</h2>
-                  <p className="offering-detail__description">
-                    {offering.description}
-                  </p>
+                  <h2 className="offering-detail__section-label">Overview & Included Items</h2>
+                  {renderStructuredOverview(offering.description, offering)}
                 </div>
               )}
 
@@ -1239,7 +1403,35 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
               />
 
               <div className="offering-detail__cta-stack">
-                {deliveryCheck.isDeliverable ? (
+                {offering.type === 'SERVICE' ||
+                offering.pricingModel === 'QUOTE_REQUIRED' ||
+                !offering.price ? (
+                  <>
+                    <button
+                      type="button"
+                      className="offering-detail__primary-cta"
+                      onClick={() => {
+                        setInquiryCategory('PRICING')
+                        setIsInquiryOpen(true)
+                        setInquirySent(false)
+                      }}
+                    >
+                      <MessageSquare size={16} />
+                      <span>Request a Custom Quote</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="offering-detail__secondary-cta"
+                      onClick={() => {
+                        setInquiryCategory('GENERAL')
+                        setIsInquiryOpen(true)
+                        setInquirySent(false)
+                      }}
+                    >
+                      <span>Ask Upward Support</span>
+                    </button>
+                  </>
+                ) : deliveryCheck.isDeliverable ? (
                   <>
                     <button
                       type="button"
@@ -1247,11 +1439,9 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                       onClick={() => setIsCheckoutOpen(true)}
                     >
                       <span>
-                        {offering.type === 'SERVICE'
-                          ? 'Book Service'
-                          : packageItems.length > 0
-                            ? `Order Selected (${selectedPackageItems.length}) • ${formatNgn(customBundlePrice)}`
-                            : 'Order Now'}
+                        {packageItems.length > 0
+                          ? `Order Selected (${selectedPackageItems.length}) • ${formatNgn(customBundlePrice)}`
+                          : 'Order Now'}
                       </span>
                     </button>
 
@@ -1264,9 +1454,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                       <span>
                         {packageItems.length > 0
                           ? `Add ${selectedPackageItems.length} Items to Cart`
-                          : offering.type === 'SERVICE'
-                            ? 'Add Service to Cart'
-                            : 'Add to Cart'}
+                          : 'Add to Cart'}
                       </span>
                     </button>
                   </>
@@ -1277,7 +1465,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                     onClick={() => setIsLocationPickerOpen(true)}
                   >
                     <MapPin size={16} />
-                    <span>Select Covered Location to Book</span>
+                    <span>Select Covered Location to Order</span>
                   </button>
                 )}
 
@@ -1458,12 +1646,20 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
           document.body,
         )}
 
-      {/* Upward Support & Inquiry Modal */}
+      {/* Upward Support & Quote Inquiry Modal */}
       <BottomSheetModal
         isOpen={isInquiryOpen}
         onClose={() => setIsInquiryOpen(false)}
-        title="Ask Upward Support"
-        subtitle={`Inquiry regarding ${title}`}
+        title={
+          offering.type === 'SERVICE' || inquiryCategory === 'PRICING'
+            ? 'Request a Custom Quote'
+            : 'Ask Upward Support'
+        }
+        subtitle={
+          offering.type === 'SERVICE' || inquiryCategory === 'PRICING'
+            ? `Verified service quote for ${title}`
+            : `Inquiry regarding ${title}`
+        }
         maxWidth="500px"
       >
         {inquirySent ? (
@@ -1472,11 +1668,14 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
               <Check size={24} strokeWidth={2.5} />
             </div>
             <h4 className="inquiry-sheet__success-title">
-              Inquiry Received
+              {offering.type === 'SERVICE' || inquiryCategory === 'PRICING'
+                ? 'Quote Request Received'
+                : 'Inquiry Received'}
             </h4>
             <p className="inquiry-sheet__success-desc">
-              We’ve logged your request with the Upward Support team and sent
-              a confirmation email. We will update you via email and app notification.
+              {offering.type === 'SERVICE' || inquiryCategory === 'PRICING'
+                ? 'We’ve logged your service request with Upward Operations and notified our verified partner. We will coordinate your scope and provide a custom quote for payment.'
+                : 'We’ve logged your request with the Upward Support team and sent a confirmation email. We will update you via email and app notification.'}
             </p>
             <button
               type="button"
@@ -1521,17 +1720,25 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                 onChange={(e) => setInquiryCategory(e.target.value)}
                 className="inquiry-form__select"
               >
-                <option value="GENERAL">General Product / Service Question</option>
+                <option value="PRICING">Pricing & Custom Service Quote</option>
                 <option value="DELIVERY">Delivery Area & Scheduling Inquiry</option>
-                <option value="CUSTOMIZATION">Customization / Special Request</option>
-                <option value="PRICING">Pricing & Corporate Volume Quote</option>
+                <option value="CUSTOMIZATION">Customization / Scope Request</option>
+                <option value="GENERAL">General Product / Service Question</option>
               </select>
             </div>
 
             <div className="inquiry-form__field">
-              <label className="inquiry-form__label">Your Message</label>
+              <label className="inquiry-form__label">
+                {offering.type === 'SERVICE' || inquiryCategory === 'PRICING'
+                  ? 'Service Requirements & Scope'
+                  : 'Your Message'}
+              </label>
               <textarea
-                placeholder="Ask any question about this item, specifications, or delivery..."
+                placeholder={
+                  offering.type === 'SERVICE' || inquiryCategory === 'PRICING'
+                    ? 'Please describe your apartment size/rooms, preferred service date/time, and any specific requirements for our verified team...'
+                    : 'Ask any question about this item, specifications, or delivery...'
+                }
                 value={inquiryMessage}
                 onChange={(e) => setInquiryMessage(e.target.value)}
                 className="inquiry-form__textarea"

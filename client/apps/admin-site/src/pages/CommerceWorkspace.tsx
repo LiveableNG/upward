@@ -80,6 +80,7 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
     loadingOrders,
     fetchOrders,
     updateSubOrderFulfilment,
+    cancelOrder,
     disputes,
     disputesTotal,
     loadingDisputes,
@@ -609,6 +610,13 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
             loading={loadingOrders}
             onUpdateSubOrder={async (subOrderUuid, payload) => {
               await updateSubOrderFulfilment(subOrderUuid, payload)
+              fetchOrders({
+                search: orderSearch || undefined,
+                paymentStatus: paymentStatusFilter !== 'ALL' ? paymentStatusFilter : undefined,
+              })
+            }}
+            onCancelOrder={async (orderUuid, reason) => {
+              await cancelOrder(orderUuid, reason)
               fetchOrders({
                 search: orderSearch || undefined,
                 paymentStatus: paymentStatusFilter !== 'ALL' ? paymentStatusFilter : undefined,

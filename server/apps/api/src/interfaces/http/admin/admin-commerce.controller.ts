@@ -18,6 +18,7 @@ import { RolesGuard } from '../../../application/auth/guards/roles.guard'
 import { Roles } from '../../../application/auth/decorators/roles.decorator'
 import { AdminGetCommerceOrdersUseCase } from '../../../application/commerce/use-cases/admin/admin-get-commerce-orders.use-case'
 import { AdminGetCommerceOrderDetailUseCase } from '../../../application/commerce/use-cases/admin/admin-get-commerce-order-detail.use-case'
+import { AdminCancelCommerceOrderUseCase } from '../../../application/commerce/use-cases/admin/admin-cancel-commerce-order.use-case'
 import { AdminUpdateSubOrderFulfilmentUseCase } from '../../../application/commerce/use-cases/admin/admin-update-sub-order-fulfilment.use-case'
 import { AdminResolveCommerceDisputeUseCase } from '../../../application/commerce/use-cases/admin/admin-resolve-commerce-dispute.use-case'
 import { AdminGetCommerceDisputesUseCase } from '../../../application/commerce/use-cases/admin/admin-get-commerce-disputes.use-case'
@@ -30,6 +31,7 @@ import {
   AdminGetCommerceOrdersFilterDto,
   AdminUpdateFulfilmentDto,
 } from '../../../application/commerce/dto/admin-commerce.dto'
+import { AdminCancelOrderDto } from '../../../application/commerce/dto/admin-cancel-order.dto'
 import { ResolveCommerceDisputeDto } from '../../../application/commerce/dto/commerce-dispute.dto'
 import {
   CreateDeliveryZoneDto,
@@ -43,6 +45,7 @@ export class AdminCommerceController {
   constructor(
     private readonly getCommerceOrdersUseCase: AdminGetCommerceOrdersUseCase,
     private readonly getCommerceOrderDetailUseCase: AdminGetCommerceOrderDetailUseCase,
+    private readonly cancelCommerceOrderUseCase: AdminCancelCommerceOrderUseCase,
     private readonly updateSubOrderFulfilmentUseCase: AdminUpdateSubOrderFulfilmentUseCase,
     private readonly resolveCommerceDisputeUseCase: AdminResolveCommerceDisputeUseCase,
     private readonly getCommerceDisputesUseCase: AdminGetCommerceDisputesUseCase,
@@ -75,6 +78,19 @@ export class AdminCommerceController {
   async getOrderDetail(@Param('uuid') uuid: string) {
     const data = await this.getCommerceOrderDetailUseCase.execute(uuid)
     return { data }
+  }
+
+  @Post('orders/:uuid/cancel')
+  @Roles(AdminRole.SUPERADMIN, AdminRole.CUSTOMER_SUPPORT, AdminRole.DEVELOPER)
+  @HttpCode(HttpStatus.OK)
+  async cancelOrder(
+    @Req() req: any,
+    @Param('uuid') uuid: string,
+    @Body() dto: AdminCancelOrderDto,
+  ) {
+    const adminId = req.user?.uuid || String(req.user?.id || 'admin')
+    const result = await this.cancelCommerceOrderUseCase.execute(uuid, adminId, dto)
+    return { data: result }
   }
 
   @Patch('sub-orders/:uuid/fulfilment')

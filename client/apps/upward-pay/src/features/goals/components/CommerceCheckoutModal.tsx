@@ -38,6 +38,7 @@ import {
   type DeliveryZoneItem,
   isZoneSupportedByOffering,
   isItemDeliverableToZone,
+  parseKoboToNgn,
 } from '../utils/deliveryLocation'
 import { fetchDeliveryZones } from '../services/goalsService'
 import { BottomSheetModal } from '@/components/common/BottomSheetModal'
@@ -237,9 +238,7 @@ export function CommerceCheckoutModal({
   const allServices = effectiveItems.length > 0 && effectiveItems.every((it) => it.type === 'SERVICE')
   const deliveryFee = allServices
     ? 0
-    : selectedLocation?.deliveryFeeKobo
-      ? Number(BigInt(selectedLocation.deliveryFeeKobo) / BigInt(100))
-      : 0
+    : parseKoboToNgn(selectedLocation?.deliveryFeeKobo)
   const grandTotal = itemsSubtotal + deliveryFee
 
   const offeringTitle = offering?.title || offering?.name || 'Commerce Offering'
@@ -293,6 +292,13 @@ export function CommerceCheckoutModal({
           (isService
             ? 'Service coverage is not currently supported for this zone. Please select a supported location to proceed.'
             : 'Delivery is not currently supported for this zone. Please select a supported delivery zone to proceed.'),
+      )
+      return
+    }
+
+    if (grandTotal <= 0) {
+      setErrorMessage(
+        'Services requiring custom quotes cannot be checked out with ₦0. Please submit a Quote Request instead.',
       )
       return
     }
@@ -617,7 +623,7 @@ export function CommerceCheckoutModal({
                       {allServices
                         ? 'On-site service'
                         : selectedLocation.deliveryFeeKobo
-                          ? `Delivery: ${formatNgn(Number(BigInt(selectedLocation.deliveryFeeKobo) / BigInt(100)))}`
+                          ? `Delivery: ${formatNgn(parseKoboToNgn(selectedLocation.deliveryFeeKobo))}`
                           : 'Free Delivery'}
                     </span>
                   ) : (
@@ -886,7 +892,7 @@ export function CommerceCheckoutModal({
                       {allServices
                         ? 'Service Area'
                         : zone.deliveryFeeKobo
-                          ? `Fee: ${formatNgn(Number(BigInt(zone.deliveryFeeKobo) / BigInt(100)))}`
+                          ? `Fee: ${formatNgn(parseKoboToNgn(zone.deliveryFeeKobo))}`
                           : 'Free Delivery'}
                     </span>
                   </div>
