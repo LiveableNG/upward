@@ -103,6 +103,7 @@ export class DeliveryZoneResolver {
       } | null
     },
     address: string,
+    zoneTag?: string,
   ): { isDeliverable: boolean; reason?: string } {
     const isService = offering.type === 'SERVICE'
 
@@ -141,7 +142,10 @@ export class DeliveryZoneResolver {
       return { isDeliverable: true }
     }
 
-    const recipientZone = this.resolveZoneFromAddress(address)
+    const recipientZone = zoneTag && zoneTag.trim()
+      ? zoneTag.toUpperCase().trim()
+      : this.resolveZoneFromAddress(address)
+
     if (coverageZones.includes(recipientZone)) {
       return { isDeliverable: true }
     }

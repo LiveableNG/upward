@@ -103,11 +103,12 @@ export class PreviewCommerceOrderUseCase {
     let deliveryEligible = true
     let deliveryMessage: string | undefined = undefined
 
-    if (dto.deliveryAddress) {
+    if (dto.deliveryAddress || dto.deliveryZoneTag) {
       for (const item of priceableItems) {
         const check = DeliveryZoneResolver.validateOfferingDelivery(
           item.offering,
-          dto.deliveryAddress,
+          dto.deliveryAddress || '',
+          dto.deliveryZoneTag,
         )
         if (!check.isDeliverable) {
           deliveryEligible = false

@@ -11,12 +11,14 @@ import {
   ArrowRight,
   Truck,
   Wrench,
+  AlertCircle,
 } from 'lucide-react'
 import { useCart, type CartItem } from '../context/CartContext'
 import { CommerceCheckoutModal } from './CommerceCheckoutModal'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import {
   getStoredDeliveryLocation,
+  isItemDeliverableToZone,
   type UserDeliveryLocation,
 } from '../utils/deliveryLocation'
 import { useFluidNav } from '@/features/dashboard/hooks/useFluidNav'
@@ -238,10 +240,24 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                         )}
 
                         {item.vendorName && (
-                          <div className="cart-item-card__vendor-row">
+                          <div className="cart-item-card__vendor-row" style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                             <span className="cart-item-card__vendor-name">
                               {item.vendorName}
                             </span>
+                            {!isItemDeliverableToZone(item, activeLocation.zoneTag) && (
+                              <span
+                                style={{
+                                  fontSize: '10.5px',
+                                  fontWeight: 600,
+                                  color: '#dc2626',
+                                  background: 'rgba(220, 38, 38, 0.08)',
+                                  padding: '1px 6px',
+                                  borderRadius: '4px',
+                                }}
+                              >
+                                Unavailable in {activeLocation.zoneName || 'this zone'}
+                              </span>
+                            )}
                           </div>
                         )}
 

@@ -170,6 +170,57 @@ export function formatShortLocation(location: UserDeliveryLocation): string {
 }
 
 /**
+ * Checks whether an offering or cart item can be fulfilled in a given zone tag.
+ */
+export function isItemDeliverableToZone(
+  item: {
+    type?: string
+    deliveryAvailable?: boolean
+    deliveryCoverageType?: string
+    deliveryZones?: string[]
+    vendorDefaultCoverage?: string
+    vendorDefaultZones?: string[]
+    vendor?: {
+      defaultDeliveryCoverage?: string
+      defaultDeliveryZones?: string[]
+    } | null
+  },
+  zoneTag?: string | null,
+): boolean {
+  if (!zoneTag || zoneTag === 'UNCONFIGURED' || zoneTag === 'UNCOVERED') {
+    return false
+  }
+
+  const isService = item.type === 'SERVICE'
+  if (!isService && item.deliveryAvailable === false) {
+    return false
+  }
+
+  const hasCustomZones =
+    Array.isArray(item.deliveryZones) && item.deliveryZones.length > 0
+
+  const effectiveZones: string[] = hasCustomZones
+    ? (item.deliveryZones || [])
+    : (item.vendorDefaultZones || item.vendor?.defaultDeliveryZones || [])
+
+  const effectiveCoverage = hasCustomZones
+    ? (item.deliveryCoverageType || 'REGIONAL_ZONES')
+    : (item.vendorDefaultCoverage || item.vendor?.defaultDeliveryCoverage || item.deliveryCoverageType || 'NATIONWIDE')
+
+  if (effectiveCoverage === 'NATIONWIDE' || effectiveZones.length === 0) {
+    return true
+  }
+
+  const coverageZones = effectiveZones.map((z) => z.toUpperCase().trim())
+  if (coverageZones.includes('NATIONWIDE') || coverageZones.includes('ALL')) {
+    return true
+  }
+
+  const tag = zoneTag.toUpperCase().trim()
+  return coverageZones.includes(tag)
+}
+
+/**
  * Checks whether a specific delivery zone is covered by an offering or vendor.
  */
 export function isZoneSupportedByOffering(
@@ -178,35 +229,7 @@ export function isZoneSupportedByOffering(
 ): boolean {
   if (!offering) return true
   const zoneTag = typeof zoneOrTag === 'string' ? zoneOrTag : zoneOrTag?.tag
-
-  const isService = offering.type === 'SERVICE'
-  const hasCustomOfferingZones =
-    Array.isArray(offering.deliveryZones) && offering.deliveryZones.length > 0
-
-  const effectiveZones: string[] =
-    (hasCustomOfferingZones
-      ? offering.deliveryZones
-      : offering.vendor?.defaultDeliveryZones) || []
-
-  const effectiveCoverageType = hasCustomOfferingZones
-    ? (offering.deliveryCoverageType || 'REGIONAL_ZONES')
-    : (offering.vendor?.defaultDeliveryCoverage || offering.deliveryCoverageType || 'NATIONWIDE')
-
-  // If nationwide or no specific zones restricted: available in all active zones
-  if (effectiveCoverageType === 'NATIONWIDE' || effectiveZones.length === 0) {
-    return true
-  }
-
-  const coverageZones = effectiveZones.map((z) => z.toUpperCase().trim())
-  if (
-    coverageZones.includes('NATIONWIDE') ||
-    coverageZones.includes('ALL')
-  ) {
-    return true
-  }
-
-  const tag = (zoneTag || '').toUpperCase().trim()
-  return coverageZones.includes(tag)
+  return isItemDeliverableToZone(offering, zoneTag)
 }
 
 /**

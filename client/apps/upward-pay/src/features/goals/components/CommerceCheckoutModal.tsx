@@ -37,6 +37,7 @@ import {
   type UserDeliveryLocation,
   type DeliveryZoneItem,
   isZoneSupportedByOffering,
+  isItemDeliverableToZone,
 } from '../utils/deliveryLocation'
 import { fetchDeliveryZones } from '../services/goalsService'
 import { BottomSheetModal } from '@/components/common/BottomSheetModal'
@@ -249,14 +250,37 @@ export function CommerceCheckoutModal({
     offering?.media?.[0]?.mediaUrl
   const isService = (offering?.type === 'SERVICE') || allServices
 
-  const matchedZone = availableZones.find((z) => z.tag === selectedLocation.zoneTag)
-  const isOfferingSupported = offering && matchedZone
-    ? isZoneSupportedByOffering(matchedZone, offering)
-    : true
+  // Validate which items in the order can be delivered / serviced in the selected zone
+  const undeliverableItems = useMemo(() => {
+    if (
+      !selectedLocation.zoneTag ||
+      selectedLocation.zoneTag === 'UNCONFIGURED' ||
+      selectedLocation.zoneTag === 'UNCOVERED'
+    ) {
+      return effectiveItems
+    }
+    return effectiveItems.filter((item) => {
+      if (offering && item.offeringId === offering.id) {
+        return !isItemDeliverableToZone(offering, selectedLocation.zoneTag)
+      }
+      return !isItemDeliverableToZone(item, selectedLocation.zoneTag)
+    })
+  }, [effectiveItems, offering, selectedLocation.zoneTag])
+
+  const isAllItemsDeliverable = undeliverableItems.length === 0
+
+  const undeliverableSummary = useMemo(() => {
+    if (undeliverableItems.length === 0) return null
+    if (undeliverableItems.length === 1) {
+      const item = undeliverableItems[0]
+      return `"${item.title}" cannot be fulfilled in ${selectedLocation.zoneName || selectedLocation.address} (${item.vendorName || 'Vendor'} does not service this zone)`
+    }
+    return `${undeliverableItems.length} items in your order cannot be fulfilled in ${selectedLocation.zoneName || selectedLocation.address}`
+  }, [undeliverableItems, selectedLocation])
 
   const isZoneDeliverable = Boolean(
     selectedLocation.isDelivering &&
-      isOfferingSupported &&
+      isAllItemsDeliverable &&
       selectedLocation.zoneTag &&
       selectedLocation.zoneTag !== 'UNCONFIGURED' &&
       selectedLocation.zoneTag !== 'UNCOVERED',
@@ -265,9 +289,10 @@ export function CommerceCheckoutModal({
   const onSubmit = async (data: CheckoutFormData) => {
     if (!isZoneDeliverable) {
       setErrorMessage(
-        isService
-          ? 'Service coverage is not currently supported for this zone. Please select a supported location to proceed.'
-          : 'Delivery is not currently supported for this zone. Please select a supported delivery zone to proceed.',
+        undeliverableSummary ||
+          (isService
+            ? 'Service coverage is not currently supported for this zone. Please select a supported location to proceed.'
+            : 'Delivery is not currently supported for this zone. Please select a supported delivery zone to proceed.'),
       )
       return
     }
@@ -597,9 +622,9 @@ export function CommerceCheckoutModal({
                     </span>
                   ) : (
                     <span className="checkout-sheet__location-field-error-msg">
-                      {!isOfferingSupported
-                        ? `Not serviced by ${offering?.vendor?.name || 'this merchant'}`
-                        : selectedLocation.pauseReason || 'Currently outside active coverage area'}
+                      {undeliverableSummary ||
+                        selectedLocation.pauseReason ||
+                        'Currently outside active coverage area'}
                     </span>
                   )}
                 </div>
@@ -806,9 +831,12 @@ export function CommerceCheckoutModal({
             </div>
           ) : (
             filteredZones.map((zone) => {
-              const isSupported = offering
-                ? isZoneSupportedByOffering(zone, offering)
-                : zone.isDelivering
+              const isSupported = effectiveItems.every((item) => {
+                if (offering && item.offeringId === offering.id) {
+                  return isItemDeliverableToZone(offering, zone.tag)
+                }
+                return isItemDeliverableToZone(item, zone.tag)
+              })
               const isSelected = selectedLocation.zoneTag === zone.tag
               return (
                 <button

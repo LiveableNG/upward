@@ -26,6 +26,11 @@ export interface CartItem {
   type: 'PRODUCT' | 'SERVICE' | 'BUNDLE' | 'PACKAGE'
   leadTimeDays?: number | null
   bundleParentTitle?: string | null
+  deliveryAvailable?: boolean
+  deliveryCoverageType?: string
+  deliveryZones?: string[]
+  vendorDefaultCoverage?: string
+  vendorDefaultZones?: string[]
 }
 
 interface CartContextValue {
@@ -154,6 +159,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
           type: (offering.type as CartItem['type']) || 'PRODUCT',
           leadTimeDays: offering.leadTimeDays,
           bundleParentTitle: options?.bundleParentTitle ?? null,
+          deliveryAvailable: offering.deliveryAvailable,
+          deliveryCoverageType: offering.deliveryCoverageType,
+          deliveryZones: offering.deliveryZones,
+          vendorDefaultCoverage: offering.vendor?.defaultDeliveryCoverage,
+          vendorDefaultZones: offering.vendor?.defaultDeliveryZones,
         }
         return [...prev, newItem]
       })
@@ -220,6 +230,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
               type: (offering.type as CartItem['type']) || 'PRODUCT',
               leadTimeDays: offering.leadTimeDays,
               bundleParentTitle: bundleTitle,
+              deliveryAvailable: offering.deliveryAvailable,
+              deliveryCoverageType: offering.deliveryCoverageType,
+              deliveryZones: offering.deliveryZones,
+              vendorDefaultCoverage: offering.vendor?.defaultDeliveryCoverage,
+              vendorDefaultZones: offering.vendor?.defaultDeliveryZones,
             })
           }
         }

@@ -38,5 +38,9 @@ export class PreviewCommerceOrderDto {
 
   @IsString()
   @IsOptional()
+  deliveryZoneTag?: string
+
+  @IsString()
+  @IsOptional()
   discountKobo?: string
 }

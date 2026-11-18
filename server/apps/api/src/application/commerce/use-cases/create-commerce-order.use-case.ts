@@ -143,10 +143,11 @@ export class CreateCommerceOrderUseCase {
         })),
       }
 
-      // Validate delivery coverage for physical offerings against recipient address
+      // Validate delivery coverage for physical offerings and services against recipient zoneTag / address
       const deliveryValidation = DeliveryZoneResolver.validateOfferingDelivery(
         priceableOffering,
         dto.deliveryAddress,
+        dto.deliveryZoneTag,
       )
       if (!deliveryValidation.isDeliverable) {
         throw new BadRequestException(deliveryValidation.reason)
