@@ -353,61 +353,24 @@ export function HousingFirstHome({
     (p: { isPastTenancy?: boolean; rentAmount?: number; rentEndDate?: string }) =>
       !p.isPastTenancy && p.rentAmount,
   )
-  const [nowMs] = useState(() => Date.now())
-
-  const propertyWithEndDate =
-    (user?.properties || []).find(
-      (p: { isPastTenancy?: boolean; rentAmount?: number; rentEndDate?: string }) =>
-        !p.isPastTenancy && p.rentEndDate,
-    ) || user?.properties?.[0]
-
-  const rentDueDate = propertyWithEndDate?.rentEndDate || vault?.contractual_due_date
-
-  const daysToDueDate =
-    vault?.days_remaining !== undefined && vault?.days_remaining !== null
-      ? vault.days_remaining
-      : vault?.days_to_unlock !== undefined && vault?.days_to_unlock !== null
-        ? vault.days_to_unlock
-        : rentDueDate
-          ? Math.ceil((new Date(rentDueDate).getTime() - nowMs) / (1000 * 60 * 60 * 24))
-          : null
-
-  const hasDueDateSet =
-    (vault?.days_remaining !== undefined && vault?.days_remaining !== null) ||
-    (vault?.days_to_unlock !== undefined && vault?.days_to_unlock !== null) ||
-    Boolean(rentDueDate)
-
-  // Show pay rent if:
-  // 1. User has NOT set their rental details (due date), OR
-  // 2. It is within 90 days to due date (or overdue), OR
-  // 3. There is an active pending invoice/payment due
-  const shouldShowPayRent =
-    !hasDueDateSet ||
-    (daysToDueDate !== null && daysToDueDate <= 90) ||
-    pendingPaymentsCount > 0
-
   const nextPendingPayment =
     pendingPayments && pendingPayments.length > 0 ? pendingPayments[0] : null
   const recentPayments = completedPayments.slice(0, 4)
   const pendingGtBillsCount = (gtBillsCount ?? 0) || gtBills.length
 
-  // Secondary housing rows. Rows that need attention are pinned (always visible).
+  // Secondary housing rows. Pinned rows remain visible on the collapsed minimal card.
   const housingRows: HousingRow[] = [
-    ...(shouldShowPayRent
-      ? [
-          {
-            key: 'pay-rent',
-            icon: <CreditCard size={16} strokeWidth={2} />,
-            title: 'Pay rent',
-            badge: pendingPaymentsCount > 0 ? `${pendingPaymentsCount} due` : undefined,
-            desc: nextPendingPayment
-              ? `${formatCurrency(nextPendingPayment.total_amount, 'NGN')} due · Instant receipt`
-              : 'Make my rent payment through Upward.',
-            href: '/dashboard/pay-rent',
-            pinned: pendingPaymentsCount > 0,
-          },
-        ]
-      : []),
+    {
+      key: 'pay-rent',
+      icon: <CreditCard size={16} strokeWidth={2} />,
+      title: 'Pay my rent now',
+      badge: pendingPaymentsCount > 0 ? `${pendingPaymentsCount} due` : undefined,
+      desc: nextPendingPayment
+        ? `${formatCurrency(nextPendingPayment.total_amount, 'NGN')} due · Instant receipt`
+        : 'Make my rent payment through Upward.',
+      href: '/dashboard/pay-rent',
+      pinned: true,
+    },
     ...(hasMyHome
       ? [
           {

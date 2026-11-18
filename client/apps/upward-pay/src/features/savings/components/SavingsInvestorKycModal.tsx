@@ -471,7 +471,7 @@ export function SavingsInvestorKycModal({
           ? undefined
           : step === 3
             ? `Earn ${savingsAnnualRatePct}% p.a. returns and let interest complete your rent`
-            : `Required by CBN & SEC • backed by ${platformRates.partnerShortName || 'ARM'}`
+            : `Required by CBN & SEC • ${platformRates.partnerShortName || 'ARM'} Money Market Fund (MMF)`
       }
       icon={
         step === 4 ? (

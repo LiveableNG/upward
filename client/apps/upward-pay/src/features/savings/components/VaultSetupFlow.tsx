@@ -152,7 +152,7 @@ export function VaultSetupFlow({ initialConfig, onBack, onSuccess }: VaultSetupF
         <div className="vault-setup__badge" style={{ marginBottom: 10 }}>
           <TrendingUp size={12} color="var(--clay)" />
           <span>
-            Powered by {platformRates.partnerShortName || 'ARM'} • {annualRatePct}% p.a.
+            {platformRates.partnerShortName || 'ARM'} Money Market Fund (MMF) • {annualRatePct}% p.a.
             {productOption === 'RENT_PROTEC' ? ' • Rent Protec' : ' • Save & Earn'}
           </span>
         </div>

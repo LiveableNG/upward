@@ -1861,7 +1861,8 @@ export function RentCalculatorView({
           >
             <ShieldCheck size={16} color="var(--clay)" style={{ flexShrink: 0 }} />
             <span>
-              Dedicated virtual account powered by <strong>{platformRates.partnerName || 'Asset & Resource Management Holding Company (ARM)'}</strong>.
+              Funds are invested in a <strong>Money Market Fund (MMF)</strong> managed by{' '}
+              <strong>{platformRates.partnerName || 'Asset & Resource Management Holding Company (ARM)'}</strong>.
             </span>
           </div>
         </div>
