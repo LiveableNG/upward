@@ -152,6 +152,24 @@ export function CommerceCheckoutModal({
                 deliveryFeeKobo: matched.deliveryFeeKobo,
               }
             }
+
+            // Default to the first delivery location configured in the system
+            const first = remote[0]
+            if (first) {
+              const updated: UserDeliveryLocation = {
+                address: first.areasCovered?.split(',')?.[0]?.trim() || first.name,
+                label: first.name,
+                zoneTag: first.tag,
+                zoneName: first.name,
+                state: first.state,
+                isDelivering: first.isDelivering,
+                pauseReason: first.pauseReason,
+                deliveryFeeKobo: first.deliveryFeeKobo,
+              }
+              saveStoredDeliveryLocation(updated)
+              onLocationChange?.(updated)
+              return updated
+            }
             return prev
           })
         }
@@ -163,7 +181,7 @@ export function CommerceCheckoutModal({
     return () => {
       isSubscribed = false
     }
-  }, [])
+  }, [onLocationChange])
 
   // Robust cross-platform body scroll lock & Escape listener
   useBodyScrollLock(isOpen)
@@ -203,8 +221,6 @@ export function CommerceCheckoutModal({
     if (initialName) setValue('recipientName', initialName)
     if (initialPhone) setValue('recipientPhone', initialPhone)
   }, [initialName, initialPhone, setValue])
-
-  if (!isOpen || !mounted) return null
 
   const isMultiItem = Boolean(cartItems && cartItems.length > 0)
   const effectiveItems: CartItem[] = isMultiItem && cartItems
@@ -252,7 +268,7 @@ export function CommerceCheckoutModal({
   // Validate which items in the order can be delivered / serviced in the selected zone
   const undeliverableItems = useMemo(() => {
     if (
-      !selectedLocation.zoneTag ||
+      !selectedLocation?.zoneTag ||
       selectedLocation.zoneTag === 'UNCONFIGURED' ||
       selectedLocation.zoneTag === 'UNCOVERED'
     ) {
@@ -264,7 +280,7 @@ export function CommerceCheckoutModal({
       }
       return !isItemDeliverableToZone(item, selectedLocation.zoneTag)
     })
-  }, [effectiveItems, offering, selectedLocation.zoneTag])
+  }, [effectiveItems, offering, selectedLocation?.zoneTag])
 
   const isAllItemsDeliverable = undeliverableItems.length === 0
 
@@ -272,15 +288,15 @@ export function CommerceCheckoutModal({
     if (undeliverableItems.length === 0) return null
     if (undeliverableItems.length === 1) {
       const item = undeliverableItems[0]
-      return `"${item.title}" cannot be fulfilled in ${selectedLocation.zoneName || selectedLocation.address} (${item.vendorName || 'Vendor'} does not service this zone)`
+      return `"${item.title}" cannot be fulfilled in ${selectedLocation?.zoneName || selectedLocation?.address} (${item.vendorName || 'Vendor'} does not service this zone)`
     }
-    return `${undeliverableItems.length} items in your order cannot be fulfilled in ${selectedLocation.zoneName || selectedLocation.address}`
+    return `${undeliverableItems.length} items in your order cannot be fulfilled in ${selectedLocation?.zoneName || selectedLocation?.address}`
   }, [undeliverableItems, selectedLocation])
 
   const isZoneDeliverable = Boolean(
-    selectedLocation.isDelivering &&
+    selectedLocation?.isDelivering &&
       isAllItemsDeliverable &&
-      selectedLocation.zoneTag &&
+      selectedLocation?.zoneTag &&
       selectedLocation.zoneTag !== 'UNCONFIGURED' &&
       selectedLocation.zoneTag !== 'UNCOVERED',
   )
@@ -381,6 +397,8 @@ export function CommerceCheckoutModal({
       setIsProcessing(false)
     }
   }
+
+  if (!isOpen || !mounted) return null
 
   return createPortal(
     <div

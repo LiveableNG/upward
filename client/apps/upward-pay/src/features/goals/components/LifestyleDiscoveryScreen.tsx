@@ -69,7 +69,9 @@ import { useAuth } from '@/features/auth/AuthContext'
 import {
   type UserDeliveryLocation,
   getStoredDeliveryLocation,
+  saveStoredDeliveryLocation,
 } from '../utils/deliveryLocation'
+import { fetchDeliveryZones } from '../services/goalsService'
 import { BottomSheetModal } from '@/components/common/BottomSheetModal'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useToast } from '@/components/common/Toast'
@@ -208,6 +210,50 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
       setDeliveryLocation(getStoredDeliveryLocation(userAddress))
     }
   }
+
+  // Ensure delivery location is synced with live database zones (defaulting to Yaba & Environs)
+  useEffect(() => {
+    let isMounted = true
+    fetchDeliveryZones()
+      .then((zones) => {
+        if (!isMounted || !zones || zones.length === 0) return
+        setDeliveryLocation((prev) => {
+          const matched = zones.find((z) => z.tag === prev.zoneTag)
+          if (matched) {
+            const updated: UserDeliveryLocation = {
+              ...prev,
+              isDelivering: matched.isDelivering,
+              pauseReason: matched.pauseReason,
+              zoneName: matched.name,
+              deliveryFeeKobo: matched.deliveryFeeKobo,
+            }
+            saveStoredDeliveryLocation(updated)
+            return updated
+          }
+
+          const first = zones[0]
+          if (first) {
+            const updated: UserDeliveryLocation = {
+              address: first.areasCovered?.split(',')?.[0]?.trim() || first.name,
+              label: first.name,
+              zoneTag: first.tag,
+              zoneName: first.name,
+              state: first.state,
+              isDelivering: first.isDelivering,
+              pauseReason: first.pauseReason,
+              deliveryFeeKobo: first.deliveryFeeKobo,
+            }
+            saveStoredDeliveryLocation(updated)
+            return updated
+          }
+          return prev
+        })
+      })
+      .catch(() => {})
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   // Filter & Search State
   const [searchQuery, setSearchQuery] = useState('')

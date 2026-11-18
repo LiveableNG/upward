@@ -45,6 +45,7 @@ import {
 } from './OfferingCard'
 import {
   getStoredDeliveryLocation,
+  saveStoredDeliveryLocation,
   isOfferingDeliverableToLocation,
   formatShortLocation,
   type UserDeliveryLocation,
@@ -311,13 +312,32 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
         setDeliveryLocation((prev) => {
           const matched = zones.find((z) => z.tag === prev.zoneTag)
           if (matched) {
-            return {
+            const updated: UserDeliveryLocation = {
               ...prev,
               isDelivering: matched.isDelivering,
               pauseReason: matched.pauseReason,
               zoneName: matched.name,
               deliveryFeeKobo: matched.deliveryFeeKobo,
             }
+            saveStoredDeliveryLocation(updated)
+            return updated
+          }
+
+          // Default to the first delivery location configured in the system
+          const first = zones[0]
+          if (first) {
+            const updated: UserDeliveryLocation = {
+              address: first.areasCovered?.split(',')?.[0]?.trim() || first.name,
+              label: first.name,
+              zoneTag: first.tag,
+              zoneName: first.name,
+              state: first.state,
+              isDelivering: first.isDelivering,
+              pauseReason: first.pauseReason,
+              deliveryFeeKobo: first.deliveryFeeKobo,
+            }
+            saveStoredDeliveryLocation(updated)
+            return updated
           }
           return prev
         })

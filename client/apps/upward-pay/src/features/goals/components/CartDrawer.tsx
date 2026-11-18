@@ -84,22 +84,34 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
         setAvailableZones(zones)
 
         setCurrentLocation((prev) => {
-          if (!prev.zoneTag || prev.zoneTag === 'UNCONFIGURED' || prev.zoneTag === 'UNCOVERED') {
-            const first = zones.find((z) => z.isDelivering) || zones[0]
-            if (first) {
-              const updated: UserDeliveryLocation = {
-                address: first.areasCovered?.split(',')?.[0]?.trim() || first.name,
-                label: first.name,
-                zoneTag: first.tag,
-                zoneName: first.name,
-                state: first.state,
-                isDelivering: first.isDelivering,
-                pauseReason: first.pauseReason,
-                deliveryFeeKobo: first.deliveryFeeKobo,
-              }
-              saveStoredDeliveryLocation(updated)
-              return updated
+          const matched = zones.find((z) => z.tag === prev.zoneTag)
+          if (matched) {
+            const updated: UserDeliveryLocation = {
+              ...prev,
+              zoneName: matched.name,
+              isDelivering: matched.isDelivering,
+              pauseReason: matched.pauseReason,
+              deliveryFeeKobo: matched.deliveryFeeKobo,
             }
+            saveStoredDeliveryLocation(updated)
+            return updated
+          }
+
+          // Default to the first delivery location configured in the system
+          const first = zones[0]
+          if (first) {
+            const updated: UserDeliveryLocation = {
+              address: first.areasCovered?.split(',')?.[0]?.trim() || first.name,
+              label: first.name,
+              zoneTag: first.tag,
+              zoneName: first.name,
+              state: first.state,
+              isDelivering: first.isDelivering,
+              pauseReason: first.pauseReason,
+              deliveryFeeKobo: first.deliveryFeeKobo,
+            }
+            saveStoredDeliveryLocation(updated)
+            return updated
           }
           return prev
         })
@@ -262,7 +274,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   ))}
                   {availableZones.length === 0 && (
                     <option value={activeLocation.zoneTag}>
-                      {activeLocation.zoneName || 'Lagos Area'}
+                      {activeLocation.zoneName || 'Select Area'}
                     </option>
                   )}
                 </select>

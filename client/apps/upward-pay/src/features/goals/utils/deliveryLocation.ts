@@ -364,58 +364,60 @@ export function getStoredDeliveryLocation(
       const saved = localStorage.getItem(STORAGE_KEY)
       if (saved) {
         const parsed = JSON.parse(saved)
-        // Ensure isDelivering is reflected accurately from latest configured zones if matching
-        const matched = configuredZones.find((z) => z.tag === parsed.zoneTag)
-        if (matched) {
-          parsed.isDelivering = matched.isDelivering
-          parsed.pauseReason = matched.pauseReason
-          parsed.zoneName = matched.name
-          parsed.deliveryFeeKobo = matched.deliveryFeeKobo
+        if (configuredZones.length > 0) {
+          const matched = configuredZones.find((z) => z.tag === parsed.zoneTag)
+          if (matched) {
+            parsed.isDelivering = matched.isDelivering
+            parsed.pauseReason = matched.pauseReason
+            parsed.zoneName = matched.name
+            parsed.deliveryFeeKobo = matched.deliveryFeeKobo
+            return parsed
+          }
+          // Stale zone from localStorage not in configuredZones -> ignore and fall through to configuredZones[0]
+        } else if (parsed.zoneTag && parsed.zoneTag !== 'UNCONFIGURED' && parsed.zoneTag !== 'UNCOVERED') {
+          return parsed
         }
-        return parsed
       }
     } catch {
       // ignore
     }
   }
 
-  // If no delivery zones have been set up in admin yet:
-  if (!configuredZones || configuredZones.length === 0) {
+  // First time or stale storage: default to the first delivery location configured in the system
+  if (configuredZones && configuredZones.length > 0) {
+    const first = configuredZones.find((z) => z.isDelivering) || configuredZones[0]
     return {
-      address: defaultAddress?.trim() || 'No Delivery Address Set',
-      zoneTag: 'UNCONFIGURED',
-      zoneName: 'Coverage Pending',
-      state: 'N/A',
-      isDelivering: false,
-      pauseReason: "We're working towards expanding our coverage to reach your location soon!",
-      deliveryFeeKobo: '0',
-      label: 'Coverage Pending',
+      address: first.areasCovered?.split(',')?.[0]?.trim() || first.name,
+      zoneTag: first.tag,
+      zoneName: first.name,
+      state: first.state,
+      isDelivering: first.isDelivering,
+      pauseReason: first.pauseReason,
+      deliveryFeeKobo: first.deliveryFeeKobo || '0',
+      label: first.name,
       isRentalDefault: false,
     }
   }
 
-  // Fallback to tenant's verified lease address or first available zone
-  const address = defaultAddress?.trim() || configuredZones[0]?.name || 'Nigeria'
-  const resolution = resolveDeliveryZone(address, configuredZones)
-  const zonePreset = configuredZones.find((z) => z.tag === resolution.zoneTag)
-
   return {
-    address,
-    zoneTag: resolution.zoneTag,
-    zoneName: zonePreset?.name || resolution.zoneName,
-    state: resolution.state,
-    isDelivering: resolution.isDelivering,
-    pauseReason: resolution.pauseReason,
-    deliveryFeeKobo: zonePreset?.deliveryFeeKobo || resolution.deliveryFeeKobo || '0',
-    label: zonePreset?.name || 'Your Rental Address',
-    isRentalDefault: Boolean(defaultAddress),
+    address: defaultAddress?.trim() || 'No Delivery Address Set',
+    zoneTag: 'UNCONFIGURED',
+    zoneName: 'Coverage Pending',
+    state: 'N/A',
+    isDelivering: false,
+    pauseReason: "We're currently working towards expanding our coverage to reach your location soon!",
+    deliveryFeeKobo: '0',
+    label: 'Coverage Pending',
+    isRentalDefault: false,
   }
 }
 
 export function saveStoredDeliveryLocation(loc: UserDeliveryLocation): void {
   if (typeof window !== 'undefined') {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(loc))
+      if (loc && loc.zoneTag) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(loc))
+      }
     } catch {
       // ignore
     }
