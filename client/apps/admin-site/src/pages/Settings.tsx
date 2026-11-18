@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Percent, Power, Save, UserPlus } from 'lucide-react'
+import { Percent, Power, RotateCcw, Save, UserPlus } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
 import { AdminTable, type AdminUser } from '../features/settings/components/AdminTable'
@@ -10,6 +10,14 @@ import { useConfirm } from '../components/common/modal/ConfirmModal'
 interface SettingsProps {
   token: string
   currentAdminId: string
+}
+
+const DEFAULT_PLATFORM_RATES = {
+  savingsAnnualRatePct: 14,
+  rentProtecRatePct: 10,
+  insurancePremiumPct: 2,
+  rentProtecMinMonths: 6,
+  maxSavingsMonths: 11,
 }
 
 const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
@@ -82,6 +90,30 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
     }
   }
 
+  const persistPlatformRates = async (
+    payload: {
+      savingsEnabled: boolean
+      savingsAnnualRatePct: number
+      rentProtecRatePct: number
+      insurancePremiumPct: number
+      rentProtecMinMonths: number
+      maxSavingsMonths: number
+    },
+    successMessage: string,
+  ) => {
+    try {
+      setSavingRates(true)
+      const result = await apiService.post('/admin/fees/rates', payload, token)
+      const data = result?.data || result
+      if (data?.updatedAt) setRatesUpdatedAt(data.updatedAt)
+      showToast(successMessage)
+    } catch (err: any) {
+      showToast(err.message || 'Failed to update platform rates', true)
+    } finally {
+      setSavingRates(false)
+    }
+  }
+
   const handleSaveRates = async (e: React.FormEvent) => {
     e.preventDefault()
     const parsedSavings = parseFloat(savingsRatePct)
@@ -111,28 +143,33 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
       return
     }
 
-    try {
-      setSavingRates(true)
-      const result = await apiService.post(
-        '/admin/fees/rates',
-        {
-          savingsEnabled,
-          savingsAnnualRatePct: parsedSavings,
-          rentProtecRatePct: parsedRentProtec,
-          insurancePremiumPct: parsedInsurance,
-          rentProtecMinMonths: parsedMinMonths,
-          maxSavingsMonths: parsedMaxMonths,
-        },
-        token,
-      )
-      const data = result?.data || result
-      if (data?.updatedAt) setRatesUpdatedAt(data.updatedAt)
-      showToast('Platform savings & insurance rates updated!')
-    } catch (err: any) {
-      showToast(err.message || 'Failed to update platform rates', true)
-    } finally {
-      setSavingRates(false)
-    }
+    await persistPlatformRates(
+      {
+        savingsEnabled,
+        savingsAnnualRatePct: parsedSavings,
+        rentProtecRatePct: parsedRentProtec,
+        insurancePremiumPct: parsedInsurance,
+        rentProtecMinMonths: parsedMinMonths,
+        maxSavingsMonths: parsedMaxMonths,
+      },
+      'Platform savings & insurance rates updated!',
+    )
+  }
+
+  const handleResetDefaultRates = async () => {
+    setSavingsRatePct(String(DEFAULT_PLATFORM_RATES.savingsAnnualRatePct))
+    setRentProtecRatePct(String(DEFAULT_PLATFORM_RATES.rentProtecRatePct))
+    setInsurancePremiumPct(String(DEFAULT_PLATFORM_RATES.insurancePremiumPct))
+    setRentProtecMinMonths(String(DEFAULT_PLATFORM_RATES.rentProtecMinMonths))
+    setMaxSavingsMonths(String(DEFAULT_PLATFORM_RATES.maxSavingsMonths))
+
+    await persistPlatformRates(
+      {
+        savingsEnabled,
+        ...DEFAULT_PLATFORM_RATES,
+      },
+      'Platform rates reset to defaults (14% / 10% / 2%).',
+    )
   }
 
   const handleToggleSavingsAvailability = async () => {
@@ -519,7 +556,7 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
               />
             </div>
 
-            <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
               <button
                 type="submit"
                 className="btn btn-primary"
@@ -533,6 +570,21 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
               >
                 <Save size={16} />
                 {savingRates ? 'Saving...' : 'Save Rates'}
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={handleResetDefaultRates}
+                disabled={ratesLoading || savingRates}
+                style={{
+                  height: '44px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}
+              >
+                <RotateCcw size={15} />
+                Reset to Default
               </button>
             </div>
           </form>
