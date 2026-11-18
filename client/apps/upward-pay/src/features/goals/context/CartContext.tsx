@@ -114,6 +114,14 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
         overridePrice?: number
       },
     ) => {
+      // Services requiring quotes should never enter the physical shopping cart
+      if (
+        offering.type === 'SERVICE' &&
+        (offering.pricingModel === 'QUOTE_REQUIRED' || !offering.price)
+      ) {
+        return
+      }
+
       const qtyToAdd = options?.quantity ?? 1
       const price =
         options?.overridePrice ??
@@ -131,8 +139,8 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
       setItems((prev) => {
         const existingIdx = prev.findIndex((i) => i.offeringId === offering.id)
         if (existingIdx >= 0) {
-          // Services are booked per session/engagement; keep quantity at 1
-          if (offering.type === 'SERVICE') {
+          // Services and Packages have fixed quantity 1
+          if (offering.type === 'SERVICE' || offering.type === 'PACKAGE') {
             return prev
           }
           const updated = [...prev]
@@ -255,7 +263,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
       return prev
         .map((item) => {
           if (item.offeringId === offeringId) {
-            if (item.type === 'SERVICE' && delta > 0) {
+            if ((item.type === 'SERVICE' || item.type === 'PACKAGE') && delta > 0) {
               return item
             }
             const nextQty = item.quantity + delta

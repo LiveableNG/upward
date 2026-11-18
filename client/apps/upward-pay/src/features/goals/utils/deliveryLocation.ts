@@ -170,6 +170,21 @@ export function formatShortLocation(location: UserDeliveryLocation): string {
 }
 
 /**
+ * Safely parses kobo (from string, number, or bigint) into Naira without throwing SyntaxError.
+ */
+export function parseKoboToNgn(koboVal?: string | number | bigint | null): number {
+  if (koboVal == null) return 0
+  try {
+    const str = String(koboVal).split('.')[0].trim()
+    if (!str || str === 'NaN' || str === 'undefined' || str === 'null') return 0
+    return Number(BigInt(str) / BigInt(100))
+  } catch {
+    const num = Number(koboVal)
+    return isNaN(num) ? 0 : Math.round(num / 100)
+  }
+}
+
+/**
  * Checks whether an offering or cart item can be fulfilled in a given zone tag.
  */
 export function isItemDeliverableToZone(
@@ -244,15 +259,24 @@ export function isOfferingDeliverableToLocation(
   const hasCustomOfferingZones =
     Array.isArray(offering.deliveryZones) && offering.deliveryZones.length > 0
 
+  const rawVendorZones =
+    offering.vendor?.defaultDeliveryZones ||
+    (offering as any).vendorDefaultZones ||
+    []
+
   // Inherit coverage settings from vendor if offering does not define custom zones
   const effectiveZones: string[] =
     (hasCustomOfferingZones
       ? offering.deliveryZones
-      : offering.vendor?.defaultDeliveryZones) || []
+      : rawVendorZones) || []
+
+  const rawVendorCoverage =
+    offering.vendor?.defaultDeliveryCoverage ||
+    (offering as any).vendorDefaultCoverage
 
   const effectiveCoverageType = hasCustomOfferingZones
     ? (offering.deliveryCoverageType || 'REGIONAL_ZONES')
-    : (offering.vendor?.defaultDeliveryCoverage || offering.deliveryCoverageType || 'NATIONWIDE')
+    : (rawVendorCoverage || offering.deliveryCoverageType || 'NATIONWIDE')
 
   // 1. Explicitly marked as no home delivery / in-store pickup only (physical products only)
   // For services, appointments/visits are governed by the vendor operating zones or nationwide policy

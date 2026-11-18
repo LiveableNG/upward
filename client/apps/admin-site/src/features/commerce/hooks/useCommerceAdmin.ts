@@ -97,6 +97,20 @@ export function useCommerceAdmin(token?: string) {
     [token],
   )
 
+  const cancelOrder = useCallback(
+    async (orderUuid: string, reason: string) => {
+      try {
+        const res = await apiService.post(`/admin/commerce/orders/${orderUuid}/cancel`, { reason }, token)
+        showToast('Order cancelled successfully')
+        return res?.data
+      } catch (err: any) {
+        showToast(err?.message || 'Failed to cancel order', true)
+        throw err
+      }
+    },
+    [token],
+  )
+
   const fetchDisputes = useCallback(
     async (filter: { status?: DisputeStatus; skip?: number; take?: number } = {}) => {
       setLoadingDisputes(true)
@@ -255,6 +269,7 @@ export function useCommerceAdmin(token?: string) {
     loadingOrderDetail,
     fetchOrderDetail,
     updateSubOrderFulfilment,
+    cancelOrder,
     disputes,
     disputesTotal,
     loadingDisputes,

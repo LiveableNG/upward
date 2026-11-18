@@ -304,7 +304,21 @@ export function OrderTrackingScreen({
             Placed on {formatDateTime(order.createdAt)} · {formatKoboToNgn(order.totalAmountKobo)}
           </div>
         </div>
-        {order.paymentStatus === 'PAID' ? (
+        {order.status === 'CANCELLED' ? (
+          <span
+            style={{
+              fontSize: '11px',
+              fontWeight: 700,
+              padding: '4px 10px',
+              borderRadius: '6px',
+              background: 'rgba(107, 114, 128, 0.12)',
+              color: '#4b5563',
+              border: '1px solid rgba(107, 114, 128, 0.25)',
+            }}
+          >
+            Cancelled
+          </span>
+        ) : order.paymentStatus === 'PAID' ? (
           <button
             type="button"
             className="order-tracking__receipt-cta"
@@ -326,8 +340,83 @@ export function OrderTrackingScreen({
         )}
       </header>
 
-      {/* Unpaid Order Alert & Immediate Pay Action */}
-      {order.paymentStatus !== 'PAID' && (
+      {/* Cancelled Order Banner */}
+      {order.status === 'CANCELLED' ? (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 12,
+            padding: '16px',
+            borderRadius: '12px',
+            background: 'rgba(220, 38, 38, 0.06)',
+            border: '1px solid rgba(220, 38, 38, 0.2)',
+            marginBottom: '16px',
+          }}
+        >
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: '50%',
+              background: 'rgba(220, 38, 38, 0.12)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#dc2626',
+              flexShrink: 0,
+            }}
+          >
+            <AlertCircle size={20} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <strong style={{ fontSize: '14px', color: '#1a1714', fontWeight: 700 }}>
+                Order Cancelled
+              </strong>
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  background: 'rgba(220, 38, 38, 0.1)',
+                  color: '#dc2626',
+                }}
+              >
+                Closed
+              </span>
+            </div>
+            <p style={{ fontSize: '13px', color: '#4a4238', margin: '0 0 10px 0', lineHeight: 1.5 }}>
+              This order has been cancelled by Upward Operations.
+              {order.paymentStatus === 'PAID'
+                ? ' A full refund has been initiated to your original payment method.'
+                : ' No payment was captured for this order.'}
+            </p>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{
+                height: 32,
+                padding: '0 12px',
+                fontSize: '12px',
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                backgroundColor: 'var(--surface)',
+                border: '1px solid var(--border)',
+                borderRadius: '6px',
+                cursor: 'pointer',
+              }}
+              onClick={() => setActiveDisputeSubOrder(order.subOrders[0] || null)}
+            >
+              <MessageSquare size={13} />
+              <span>Contact Support Regarding Cancellation</span>
+            </button>
+          </div>
+        </div>
+      ) : order.paymentStatus !== 'PAID' && (
         <div className="order-tracking__unpaid-banner">
           <div className="order-tracking__unpaid-icon">
             <AlertTriangle size={20} color="#D97706" />
@@ -479,69 +568,88 @@ export function OrderTrackingScreen({
                 </div>
               )}
 
-              {/* Stepper Progression */}
-              <div className="order-tracking__stepper">
-                <div className="order-tracking__stepper-track">
-                  <div
-                    className="order-tracking__stepper-fill"
-                    style={{
-                      width: ['DELIVERED', 'RECEIVED_CONFIRMED', 'SERVICE_COMPLETED'].includes(subOrder.customerStatus)
-                        ? '100%'
-                        : `${(activeStepIndex / (steps.length - 1)) * 100}%`,
-                    }}
-                  />
+              {/* Stepper Progression or Cancelled State */}
+              {order.status === 'CANCELLED' || subOrder.customerStatus === 'CANCELLED' ? (
+                <div
+                  style={{
+                    padding: '12px 14px',
+                    background: 'rgba(107, 114, 128, 0.08)',
+                    border: '1px solid rgba(107, 114, 128, 0.2)',
+                    borderRadius: 8,
+                    fontSize: '12.5px',
+                    color: '#4b5563',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}
+                >
+                  <AlertCircle size={15} color="#6b7280" />
+                  <span>This fulfillment package has been cancelled.</span>
                 </div>
-                <div className="order-tracking__stepper-nodes">
-                  {steps.map((step, idx) => {
-                    const isFinalReached = ['DELIVERED', 'RECEIVED_CONFIRMED', 'SERVICE_COMPLETED'].includes(subOrder.customerStatus)
-                    const isAllFinalized = ['RECEIVED_CONFIRMED', 'SERVICE_COMPLETED'].includes(subOrder.customerStatus)
-                    const isDone = isFinalReached ? idx <= activeStepIndex : idx < activeStepIndex
-                    const isCurrent = isFinalReached ? false : idx === activeStepIndex
-                    const isBeamingStep = isCurrent && isDispatchedLive
+              ) : (
+                <div className="order-tracking__stepper">
+                  <div className="order-tracking__stepper-track">
+                    <div
+                      className="order-tracking__stepper-fill"
+                      style={{
+                        width: ['DELIVERED', 'RECEIVED_CONFIRMED', 'SERVICE_COMPLETED'].includes(subOrder.customerStatus)
+                          ? '100%'
+                          : `${(activeStepIndex / (steps.length - 1)) * 100}%`,
+                      }}
+                    />
+                  </div>
+                  <div className="order-tracking__stepper-nodes">
+                    {steps.map((step, idx) => {
+                      const isFinalReached = ['DELIVERED', 'RECEIVED_CONFIRMED', 'SERVICE_COMPLETED'].includes(subOrder.customerStatus)
+                      const isAllFinalized = ['RECEIVED_CONFIRMED', 'SERVICE_COMPLETED'].includes(subOrder.customerStatus)
+                      const isDone = isFinalReached ? idx <= activeStepIndex : idx < activeStepIndex
+                      const isCurrent = isFinalReached ? false : idx === activeStepIndex
+                      const isBeamingStep = isCurrent && isDispatchedLive
 
-                    return (
-                      <div
-                        key={step.key}
-                        className={`order-tracking__node ${isDone
-                          ? 'order-tracking__node--done'
-                          : isCurrent
-                            ? 'order-tracking__node--current'
-                            : ''
-                          }`}
-                      >
+                      return (
                         <div
-                          className={`order-tracking__node-dot ${isBeamingStep ? 'order-tracking__node-dot--beaming' : ''
+                          key={step.key}
+                          className={`order-tracking__node ${isDone
+                            ? 'order-tracking__node--done'
+                            : isCurrent
+                              ? 'order-tracking__node--current'
+                              : ''
                             }`}
                         >
-                          {isBeamingStep ? (
-                            <>
-                              <span className="order-tracking__radar-ring" />
-                              <Truck size={13} className="order-tracking__icon-moving" />
-                            </>
-                          ) : isDone ? (
-                            <CheckCircle2 size={12} />
-                          ) : (
-                            idx + 1
-                          )}
-                        </div>
-                        <div className="order-tracking__node-label">
-                          <span>
-                            {isAllFinalized && idx === steps.length - 1
-                              ? (isService ? 'Service Confirmed' : 'Delivered & Confirmed')
-                              : step.label}
-                          </span>
-                          {isBeamingStep && (
-                            <span className="order-tracking__live-pill">
-                              <span className="order-tracking__live-beacon" />
-                              LIVE
+                          <div
+                            className={`order-tracking__node-dot ${isBeamingStep ? 'order-tracking__node-dot--beaming' : ''
+                              }`}
+                          >
+                            {isBeamingStep ? (
+                              <>
+                                <span className="order-tracking__radar-ring" />
+                                <Truck size={13} className="order-tracking__icon-moving" />
+                              </>
+                            ) : isDone ? (
+                              <CheckCircle2 size={12} />
+                            ) : (
+                              idx + 1
+                            )}
+                          </div>
+                          <div className="order-tracking__node-label">
+                            <span>
+                              {isAllFinalized && idx === steps.length - 1
+                                ? (isService ? 'Service Confirmed' : 'Delivered & Confirmed')
+                                : step.label}
                             </span>
-                          )}
+                            {isBeamingStep && (
+                              <span className="order-tracking__live-pill">
+                                <span className="order-tracking__live-beacon" />
+                                LIVE
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    )
-                  })}
+                      )
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Carrier, Rider, or Appointment Info Box */}
               {(subOrder.carrierName ||

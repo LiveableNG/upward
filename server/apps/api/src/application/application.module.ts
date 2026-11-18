@@ -48,6 +48,7 @@ import { VerifyCommercePaymentUseCase } from './commerce/use-cases/verify-commer
 import { ConfirmCommercePaymentUseCase } from './commerce/use-cases/confirm-commerce-payment.use-case'
 import { AdminGetCommerceOrdersUseCase } from './commerce/use-cases/admin/admin-get-commerce-orders.use-case'
 import { AdminGetCommerceOrderDetailUseCase } from './commerce/use-cases/admin/admin-get-commerce-order-detail.use-case'
+import { AdminCancelCommerceOrderUseCase } from './commerce/use-cases/admin/admin-cancel-commerce-order.use-case'
 import { AdminUpdateSubOrderFulfilmentUseCase } from './commerce/use-cases/admin/admin-update-sub-order-fulfilment.use-case'
 import { TenantConfirmSubOrderReceiptUseCase } from './commerce/use-cases/tenant-confirm-sub-order-receipt.use-case'
 import { GetCommerceReceiptPdfUseCase } from './commerce/use-cases/get-commerce-receipt-pdf.use-case'
@@ -1187,6 +1188,7 @@ const UseCases: any[] = [
   ConfirmCommercePaymentUseCase,
   AdminGetCommerceOrdersUseCase,
   AdminGetCommerceOrderDetailUseCase,
+  AdminCancelCommerceOrderUseCase,
   AdminUpdateSubOrderFulfilmentUseCase,
   TenantConfirmSubOrderReceiptUseCase,
   GetCommerceReceiptPdfUseCase,

@@ -12,6 +12,7 @@ import {
   MessageSquare,
   Key,
   Star,
+  XCircle,
 } from 'lucide-react'
 import type {
   AdminCommerceOrder,
@@ -19,6 +20,7 @@ import type {
   AdminFulfilmentTransitionAction,
 } from '../types'
 import { SubOrderFulfilmentModal } from './SubOrderFulfilmentModal'
+import { CancelOrderModal } from './CancelOrderModal'
 
 function formatKoboToNgn(koboStr: string): string {
   const amount = Number(koboStr) / 100
@@ -132,6 +134,7 @@ interface CommerceOrdersTableProps {
       adminOperationalNotes?: string
     },
   ) => Promise<any>
+  onCancelOrder?: (orderUuid: string, reason: string) => Promise<any>
 }
 
 export function CommerceOrdersTable({
@@ -139,8 +142,10 @@ export function CommerceOrdersTable({
   total,
   loading,
   onUpdateSubOrder,
+  onCancelOrder,
 }: CommerceOrdersTableProps) {
   const [activeSubOrderForEdit, setActiveSubOrderForEdit] = useState<AdminCommerceSubOrder | null>(null)
+  const [orderToCancel, setOrderToCancel] = useState<AdminCommerceOrder | null>(null)
   const [expandedOrderUuids, setExpandedOrderUuids] = useState<Record<string, boolean>>({})
 
   const toggleExpand = (orderUuid: string) => {
@@ -397,26 +402,53 @@ export function CommerceOrdersTable({
                           </div>
                         </td>
 
-                        {/* Expand Button */}
+                        {/* Actions (View & Cancel) */}
                         <td style={{ padding: '14px 16px', verticalAlign: 'top', textAlign: 'right' }}>
-                          <button
-                            type="button"
-                            onClick={() => toggleExpand(order.uuid)}
-                            className="btn btn-secondary"
-                            style={{
-                              height: 32,
-                              padding: '0 12px',
-                              fontSize: 12,
-                              fontWeight: 600,
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 6,
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            <span>{isExpanded ? 'Hide Details' : `View (${subOrdersCount})`}</span>
-                            {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                          </button>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                            {onCancelOrder && order.status !== 'CANCELLED' && order.status !== 'COMPLETED' && (
+                              <button
+                                type="button"
+                                onClick={() => setOrderToCancel(order)}
+                                className="btn btn-secondary"
+                                style={{
+                                  height: 32,
+                                  padding: '0 10px',
+                                  fontSize: 11.5,
+                                  fontWeight: 600,
+                                  color: '#dc2626',
+                                  borderColor: 'rgba(220, 38, 38, 0.25)',
+                                  backgroundColor: 'rgba(220, 38, 38, 0.04)',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 5,
+                                  whiteSpace: 'nowrap',
+                                }}
+                                title="Cancel this order and notify customer"
+                              >
+                                <XCircle size={13} />
+                                <span>Cancel</span>
+                              </button>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={() => toggleExpand(order.uuid)}
+                              className="btn btn-secondary"
+                              style={{
+                                height: 32,
+                                padding: '0 12px',
+                                fontSize: 12,
+                                fontWeight: 600,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              <span>{isExpanded ? 'Hide Details' : `View (${subOrdersCount})`}</span>
+                              {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                            </button>
+                          </div>
                         </td>
                       </tr>
 
@@ -710,6 +742,20 @@ export function CommerceOrdersTable({
           subOrder={activeSubOrderForEdit}
           onClose={() => setActiveSubOrderForEdit(null)}
           onUpdate={onUpdateSubOrder}
+        />
+      )}
+
+      {/* Cancel Order Modal */}
+      {orderToCancel && (
+        <CancelOrderModal
+          isOpen={Boolean(orderToCancel)}
+          order={orderToCancel}
+          onClose={() => setOrderToCancel(null)}
+          onConfirm={async (orderUuid, reason) => {
+            if (onCancelOrder) {
+              await onCancelOrder(orderUuid, reason)
+            }
+          }}
         />
       )}
     </div>
