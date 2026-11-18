@@ -146,7 +146,7 @@ export function RentSavingsMainView() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <span className="savings-kyc-banner__title">Identity Verification Required</span>
               <span className="savings-kyc-banner__partner">
-                powered by {platformRates.partnerShortName || 'ARM'}
+                Money Market Fund (MMF) managed by {platformRates.partnerShortName || 'ARM'}
               </span>
             </div>
             <span className="savings-kyc-banner__desc">
@@ -174,7 +174,7 @@ export function RentSavingsMainView() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <span className="savings-kyc-banner__title">Rent Savings Plan Ready</span>
               <span className="savings-kyc-banner__partner">
-                powered by {platformRates.partnerShortName || 'ARM'}
+                Money Market Fund (MMF) managed by {platformRates.partnerShortName || 'ARM'}
               </span>
             </div>
             <span className="savings-kyc-banner__desc">

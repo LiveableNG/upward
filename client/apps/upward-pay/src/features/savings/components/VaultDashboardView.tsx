@@ -154,7 +154,7 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
           <div className="vault-arm-badge">
             <ShieldCheck size={14} className="vault-arm-badge__icon" />
             <span>
-              Powered by{' '}
+              <strong>Money Market Fund (MMF)</strong> managed by{' '}
               <strong>
                 {platformRates.partnerName || 'Asset & Resource Management Holding Company (ARM)'}
               </strong>
