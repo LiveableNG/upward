@@ -18,6 +18,8 @@ import {
   getStoredDeliveryLocation,
   type UserDeliveryLocation,
 } from '../utils/deliveryLocation'
+import { useFluidNav } from '@/features/dashboard/hooks/useFluidNav'
+import { haptics } from '@/lib/haptics'
 import '../styles/goals.css'
 
 interface CartDrawerProps {
@@ -50,6 +52,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
   const [mounted, setMounted] = useState(false)
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
+  const { isFluidNav } = useFluidNav()
 
   const activeLocation = propLocation || getStoredDeliveryLocation()
 
@@ -311,8 +314,13 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
       {totalCount > 0 && !isOpen && (
         <button
           type="button"
-          className="floating-cart-pill"
-          onClick={openCart}
+          className={`floating-cart-pill ${
+            isFluidNav ? 'floating-cart-pill--ios' : ''
+          }`}
+          onClick={() => {
+            haptics.selection()
+            openCart()
+          }}
           aria-label={`View Cart with ${totalCount} items`}
         >
           <div className="floating-cart-pill__icon-wrap">
@@ -322,6 +330,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
           <span className="floating-cart-pill__label">Cart</span>
           <span className="floating-cart-pill__divider" />
           <span className="floating-cart-pill__price">{formatNgn(subtotal)}</span>
+          <ArrowRight size={13} className="floating-cart-pill__arrow" />
         </button>
       )}
 

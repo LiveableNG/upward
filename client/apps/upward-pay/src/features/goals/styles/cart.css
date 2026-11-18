@@ -416,7 +416,7 @@
 
 /* Cart Footer */
 .cart-drawer__footer {
-  padding: 16px 20px;
+  padding: 16px 20px calc(16px + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
   border-top: 1px solid var(--border, #eee7df);
   background: var(--surface, #ffffff);
   display: flex;
@@ -488,7 +488,7 @@
 
 .floating-cart-pill {
   position: fixed;
-  bottom: 92px;
+  bottom: 84px;
   right: 20px;
   z-index: 999;
   display: flex;
@@ -504,10 +504,48 @@
   transition: transform 120ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 150ms ease;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .floating-cart-pill:active {
-  transform: scale(0.94);
+  transform: scale(0.95);
+}
+
+/* iOS Luxury Fluid Dock Integration */
+.floating-cart-pill--ios,
+.dashboard-layout:has(.bottom-nav--fluid-dock) .floating-cart-pill {
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 78px);
+  right: 18px;
+  z-index: 1005;
+  padding: 9px 16px;
+  gap: 9px;
+  background: linear-gradient(135deg, rgba(194, 80, 31, 0.95) 0%, rgba(168, 63, 18, 0.96) 100%);
+  border: 1.5px solid rgba(255, 255, 255, 0.32);
+  box-shadow: 
+    0 12px 30px -4px rgba(194, 80, 31, 0.48),
+    0 3px 10px rgba(60, 42, 28, 0.12),
+    inset 0 1px 1px 0 rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+@media (min-width: 480px) {
+  .floating-cart-pill--ios,
+  .dashboard-layout:has(.bottom-nav--fluid-dock) .floating-cart-pill {
+    right: max(20px, calc(50vw - 192px));
+  }
+}
+
+.floating-cart-pill__arrow {
+  opacity: 0.85;
+  margin-left: -2px;
+  transition: transform 120ms ease;
+}
+
+.floating-cart-pill:active .floating-cart-pill__arrow {
+  transform: translateX(2px);
 }
 
 .floating-cart-pill__icon-wrap {
