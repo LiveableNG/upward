@@ -345,18 +345,6 @@ export function ActionCarousel({
     })
   }
 
-  if (items.length === 0) {
-    items.push({
-      type: 'welcome',
-      id: 'welcome',
-      title: 'Dashboard Active',
-      meta: 'Rent tracking and credibility building are on',
-      actionLabel: 'View Profile',
-      action: () => router.push('/dashboard/me'),
-      urgency: 'neutral',
-    })
-  }
-
   // If there are no critical alerts (e.g. no overdue rent), elevate the Home Refresh / Promoted Bundle card to the front
   const hasCriticalAlert = items.some((item) => item.urgency === 'critical')
   if (!hasCriticalAlert) {
