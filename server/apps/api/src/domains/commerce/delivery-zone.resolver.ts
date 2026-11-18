@@ -106,12 +106,11 @@ export class DeliveryZoneResolver {
   ): { isDeliverable: boolean; reason?: string } {
     const isService = offering.type === 'SERVICE'
 
-    if (offering.deliveryAvailable === false) {
+    // Physical goods explicitly marked as in-store pickup only
+    if (!isService && offering.deliveryAvailable === false) {
       return {
         isDeliverable: false,
-        reason: isService
-          ? `Service '${offering.title}' is available for in-store / on-premise appointments only.`
-          : `Item '${offering.title}' is available for in-store pickup only.`,
+        reason: `Item '${offering.title}' is available for in-store pickup only.`,
       }
     }
 

@@ -12,6 +12,69 @@ interface VendorModalProps {
   onSubmit: (data: Record<string, unknown>) => Promise<void>
 }
 
+function normalizeZoneTag(
+  raw: string,
+  zones: Array<{ tag: string; name: string }>,
+): string {
+  if (!raw) return ''
+  const trimmed = raw.trim()
+
+  // 1. Exact match with a tag (case-insensitive)
+  const exactTag = zones.find(
+    (z) => z.tag.toUpperCase() === trimmed.toUpperCase(),
+  )
+  if (exactTag) return exactTag.tag
+
+  // 2. Normalized underscore match: e.g. "LAGOS MAINLAND" -> "LAGOS_MAINLAND"
+  const underscored = trimmed.toUpperCase().replace(/\s+/g, '_')
+  const underscoreMatch = zones.find(
+    (z) => z.tag.toUpperCase() === underscored,
+  )
+  if (underscoreMatch) return underscoreMatch.tag
+
+  // 3. Name or substring match
+  const lower = trimmed.toLowerCase()
+  const nameMatch = zones.find(
+    (z) => z.name.toLowerCase() === lower,
+  )
+  if (nameMatch) return nameMatch.tag
+
+  // 4. Common legacy aliases from older seeds
+  if (
+    lower.includes('mainland') ||
+    lower.includes('ikeja') ||
+    lower.includes('surulere') ||
+    lower.includes('yaba')
+  ) {
+    const mainland = zones.find((z) => z.tag === 'LAGOS_MAINLAND')
+    if (mainland) return mainland.tag
+  }
+  if (
+    lower.includes('island') ||
+    lower.includes('lekki') ||
+    lower.includes('ajah') ||
+    lower.includes('vi') ||
+    lower.includes('ikoyi')
+  ) {
+    const island = zones.find((z) => z.tag === 'LAGOS_ISLAND')
+    if (island) return island.tag
+  }
+  if (lower.includes('abuja')) {
+    const abuja = zones.find((z) => z.tag === 'ABUJA_METRO')
+    if (abuja) return abuja.tag
+  }
+  if (lower.includes('ibadan') || lower.includes('oyo')) {
+    const ibadan = zones.find((z) => z.tag === 'IBADAN_METRO')
+    if (ibadan) return ibadan.tag
+  }
+  if (lower.includes('port harcourt') || lower.includes('rivers')) {
+    const ph = zones.find((z) => z.tag === 'PORT_HARCOURT')
+    if (ph) return ph.tag
+  }
+
+  return trimmed
+}
+
 export const VendorModal: React.FC<VendorModalProps> = ({
   isOpen,
   onClose,
@@ -42,7 +105,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
   const zonesToDisplay = useMemo(() => {
     const list = [...availableZones]
     for (const z of defaultDeliveryZones) {
-      if (!list.some((item) => item.tag.toUpperCase() === z.toUpperCase())) {
+      if (!list.some((item) => item.tag === z)) {
         list.push({ tag: z, name: z.replace(/_/g, ' ') })
       }
     }
@@ -66,7 +129,14 @@ export const VendorModal: React.FC<VendorModalProps> = ({
       setIsVerified(vendor.isVerified ?? false)
       setIsActive(vendor.isActive ?? true)
       setDefaultDeliveryCoverage(vendor.defaultDeliveryCoverage || 'NATIONWIDE')
-      setDefaultDeliveryZones(vendor.defaultDeliveryZones || [])
+      const normalized = Array.from(
+        new Set(
+          (vendor.defaultDeliveryZones || [])
+            .map((z) => normalizeZoneTag(z, availableZones))
+            .filter(Boolean),
+        ),
+      )
+      setDefaultDeliveryZones(normalized)
     } else {
       setName('')
       setSlug('')
@@ -85,7 +155,7 @@ export const VendorModal: React.FC<VendorModalProps> = ({
       setDefaultDeliveryCoverage('NATIONWIDE')
       setDefaultDeliveryZones([])
     }
-  }, [vendor, isOpen])
+  }, [vendor, isOpen, availableZones])
 
   const handleNameChange = (val: string) => {
     setName(val)
@@ -116,7 +186,8 @@ export const VendorModal: React.FC<VendorModalProps> = ({
         isVerified,
         isActive,
         defaultDeliveryCoverage,
-        defaultDeliveryZones,
+        defaultDeliveryZones:
+          defaultDeliveryCoverage === 'NATIONWIDE' ? [] : defaultDeliveryZones,
       })
       onClose()
     } catch {

@@ -37,7 +37,7 @@ export interface UserDeliveryLocation {
   driverNotes?: string
 }
 
-// No hardcoded preset delivery zones; all zones are loaded dynamically from the database
+// Dynamic database-driven delivery zones: no hardcoded mock fallback zones
 export const PRESET_DELIVERY_ZONES: DeliveryZoneItem[] = []
 
 /**
@@ -55,14 +55,14 @@ export function resolveDeliveryZone(
   deliveryFeeKobo?: string | null
   isSupported: boolean
 } {
-  // If no delivery zones have been set up in admin yet:
+  // If no delivery zones have been configured yet:
   if (!configuredZones || configuredZones.length === 0) {
     return {
       zoneTag: 'UNCONFIGURED',
-      zoneName: 'No Coverage Configured',
+      zoneName: address || 'No Coverage Configured',
       state: 'N/A',
       isDelivering: false,
-      pauseReason: 'We are working towards expanding our delivery coverage to other locations soon!',
+      pauseReason: "We're currently working towards expanding our coverage to reach your location soon!",
       deliveryFeeKobo: '0',
       isSupported: false,
     }
@@ -125,7 +125,7 @@ export function resolveDeliveryZone(
     }
   }
 
-  // 3. Fallback heuristics for common Nigerian states/cities
+  // 3. Match against configured Nigerian metropolitan zones
   if (
     normalized.includes('victoria island') ||
     normalized.includes(' vi ') ||
@@ -216,13 +216,34 @@ export function resolveDeliveryZone(
     }
   }
 
+  if (
+    normalized.includes('ibadan') ||
+    normalized.includes('oyo') ||
+    normalized.includes('bodija') ||
+    normalized.includes('oluyole') ||
+    normalized.includes('jericho')
+  ) {
+    const ibadan = configuredZones.find((z) => z.tag === 'IBADAN_METRO')
+    if (ibadan) {
+      return {
+        zoneTag: ibadan.tag,
+        zoneName: ibadan.name,
+        state: ibadan.state,
+        isDelivering: ibadan.isDelivering,
+        pauseReason: ibadan.pauseReason,
+        deliveryFeeKobo: ibadan.deliveryFeeKobo,
+        isSupported: true,
+      }
+    }
+  }
+
   // If completely uncovered location:
   return {
     zoneTag: 'UNCOVERED',
-    zoneName: address,
+    zoneName: address || 'Your Location',
     state: 'Unknown',
     isDelivering: false,
-    pauseReason: 'We are working towards expanding our delivery coverage to other locations soon!',
+    pauseReason: "We're currently working towards expanding our delivery coverage to reach your location soon!",
     deliveryFeeKobo: '0',
     isSupported: false,
   }
@@ -247,31 +268,9 @@ export function formatShortLocation(location: UserDeliveryLocation): string {
  */
 export function isOfferingDeliverableToLocation(
   offering: GoalOffering,
-  location: UserDeliveryLocation,
+  location?: UserDeliveryLocation | null,
 ): { isDeliverable: boolean; reason?: string } {
   const isService = offering.type === 'SERVICE'
-
-  // Location itself is not currently receiving deliveries/services
-  if (location.isDelivering === false) {
-    return {
-      isDeliverable: false,
-      reason:
-        location.pauseReason ||
-        (isService
-          ? 'Service is not currently supported or is suspended for this location.'
-          : 'Delivery is not currently supported or is suspended for this location.'),
-    }
-  }
-
-  // Explicitly marked as no home delivery / in-store only
-  if (offering.deliveryAvailable === false) {
-    return {
-      isDeliverable: false,
-      reason: isService
-        ? 'In-store / on-premise service only. Home visit unavailable.'
-        : 'In-store pickup only. Home delivery unavailable.',
-    }
-  }
 
   // Inherit coverage settings from vendor if offering does not define custom zones
   const effectiveZones =
@@ -284,7 +283,16 @@ export function isOfferingDeliverableToLocation(
     offering.vendor?.defaultDeliveryCoverage ||
     'NATIONWIDE'
 
-  // If nationwide or no specific zones configured, available everywhere supported
+  // 1. Explicitly marked as no home delivery / in-store pickup only (physical products only)
+  // For services, appointments/visits are governed by the vendor operating zones or nationwide policy
+  if (!isService && offering.deliveryAvailable === false) {
+    return {
+      isDeliverable: false,
+      reason: 'In-store pickup only. Home delivery unavailable.',
+    }
+  }
+
+  // 2. If nationwide or no specific zones configured: available everywhere
   if (
     effectiveCoverageType === 'NATIONWIDE' ||
     effectiveZones.length === 0
@@ -292,7 +300,7 @@ export function isOfferingDeliverableToLocation(
     return { isDeliverable: true }
   }
 
-  // Regional zones enforcement
+  // 3. Regional zones enforcement - check if NATIONWIDE, ALL, or ONLINE tag is present
   const coverageZones = effectiveZones.map((z) => z.toUpperCase().trim())
   if (
     coverageZones.includes('NATIONWIDE') ||
@@ -302,8 +310,93 @@ export function isOfferingDeliverableToLocation(
     return { isDeliverable: true }
   }
 
-  const userZone = location.zoneTag?.toUpperCase()
-  if (coverageZones.includes(userZone)) {
+  // If no user location has been configured yet: show friendly expansion message
+  if (!location || !location.zoneTag || location.zoneTag === 'UNCONFIGURED') {
+    return {
+      isDeliverable: false,
+      reason:
+        location?.pauseReason ||
+        (isService
+          ? "We're working towards expanding our service coverage to reach your location soon!"
+          : "We're working towards expanding our delivery coverage to reach your location soon!"),
+    }
+  }
+
+  // 4. Regional zone matching
+  const userTag = (location.zoneTag || '').toUpperCase().trim()
+  const userAddress = (location.address || '').toLowerCase()
+  const userName = (location.zoneName || '').toLowerCase()
+
+  const isMatched = coverageZones.some((z) => {
+    if (z === userTag) return true
+    const zNorm = z.replace(/_/g, ' ').toLowerCase()
+    if (userAddress.includes(zNorm) || userName.includes(zNorm)) return true
+    if (
+      z === 'LAGOS_MAINLAND' &&
+      (userAddress.includes('mainland') ||
+        userAddress.includes('ikeja') ||
+        userAddress.includes('yaba') ||
+        userAddress.includes('surulere') ||
+        userAddress.includes('maryland') ||
+        userAddress.includes('magodo') ||
+        userAddress.includes('gbagada') ||
+        userAddress.includes('ogudu') ||
+        userAddress.includes('ilupeju') ||
+        userAddress.includes('festac'))
+    ) {
+      return true
+    }
+    if (
+      z === 'LAGOS_ISLAND' &&
+      (userAddress.includes('island') ||
+        userAddress.includes('lekki') ||
+        userAddress.includes('ajah') ||
+        userAddress.includes('ikoyi') ||
+        userAddress.includes('vi') ||
+        userAddress.includes('victoria island') ||
+        userAddress.includes('oniru') ||
+        userAddress.includes('banana island'))
+    ) {
+      return true
+    }
+    if (
+      z === 'ABUJA_METRO' &&
+      (userAddress.includes('abuja') ||
+        userAddress.includes('wuse') ||
+        userAddress.includes('maitama') ||
+        userAddress.includes('asokoro') ||
+        userAddress.includes('garki'))
+    ) {
+      return true
+    }
+    if (
+      z === 'PORT_HARCOURT' &&
+      (userAddress.includes('port harcourt') ||
+        userAddress.includes('rivers') ||
+        userAddress.includes('trans amadi'))
+    ) {
+      return true
+    }
+    if (
+      z === 'IBADAN_METRO' &&
+      (userAddress.includes('ibadan') ||
+        userAddress.includes('oyo') ||
+        userAddress.includes('bodija') ||
+        userAddress.includes('jericho') ||
+        userAddress.includes('oluyole'))
+    ) {
+      return true
+    }
+    return false
+  })
+
+  if (isMatched) {
+    if (location.isDelivering === false && location.pauseReason) {
+      return {
+        isDeliverable: false,
+        reason: location.pauseReason,
+      }
+    }
     return { isDeliverable: true }
   }
 
@@ -314,9 +407,14 @@ export function isOfferingDeliverableToLocation(
 
   return {
     isDeliverable: false,
-    reason: isService
-      ? `Service only available in ${friendlyNames}`
-      : `Delivery only available in ${friendlyNames}`,
+    reason:
+      location.zoneTag === 'UNCOVERED'
+        ? (isService
+            ? `We're working towards expanding our service coverage to reach ${formatShortLocation(location)} soon!`
+            : `We're working towards expanding our delivery coverage to reach ${formatShortLocation(location)} soon!`)
+        : (isService
+            ? `Service only available in ${friendlyNames}`
+            : `Delivery only available in ${friendlyNames}`),
   }
 }
 
@@ -346,14 +444,15 @@ export function getStoredDeliveryLocation(
     }
   }
 
+  // If no delivery zones have been set up in admin yet:
   if (!configuredZones || configuredZones.length === 0) {
     return {
       address: defaultAddress?.trim() || 'No Delivery Address Set',
       zoneTag: 'UNCONFIGURED',
-      zoneName: 'No Coverage Configured',
+      zoneName: 'Coverage Pending',
       state: 'N/A',
       isDelivering: false,
-      pauseReason: 'We are working towards expanding our delivery coverage to other locations soon!',
+      pauseReason: "We're working towards expanding our coverage to reach your location soon!",
       deliveryFeeKobo: '0',
       label: 'Coverage Pending',
       isRentalDefault: false,
@@ -374,7 +473,7 @@ export function getStoredDeliveryLocation(
     pauseReason: resolution.pauseReason,
     deliveryFeeKobo: zonePreset?.deliveryFeeKobo || resolution.deliveryFeeKobo || '0',
     label: zonePreset?.name || 'Your Rental Address',
-    isRentalDefault: true,
+    isRentalDefault: Boolean(defaultAddress),
   }
 }
 

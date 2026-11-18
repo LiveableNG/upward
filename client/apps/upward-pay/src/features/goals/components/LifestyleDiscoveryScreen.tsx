@@ -70,7 +70,6 @@ import {
   type UserDeliveryLocation,
   getStoredDeliveryLocation,
 } from '../utils/deliveryLocation'
-import { DeliveryLocationBar } from './DeliveryLocationBar'
 import { BottomSheetModal } from '@/components/common/BottomSheetModal'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useToast } from '@/components/common/Toast'
@@ -514,13 +513,6 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
           </div>
         </div>
 
-        {/* Delivery Location Context Bar */}
-        <div className="lifestyle-discovery__location-row">
-          <DeliveryLocationBar
-            location={deliveryLocation}
-            onLocationChange={(loc) => setDeliveryLocation(loc)}
-          />
-        </div>
 
         {/* Search & Type Filter Row */}
         <div className="lifestyle-discovery__controls">

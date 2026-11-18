@@ -181,7 +181,7 @@ async function main() {
       rating: 4.9,
       isActive: true,
       defaultDeliveryCoverage: DeliveryCoverageType.REGIONAL_ZONES,
-      defaultDeliveryZones: ['Lagos Mainland', 'Lagos Island', 'Ikeja', 'Lekki / Ajah'],
+      defaultDeliveryZones: ['LAGOS_MAINLAND', 'LAGOS_ISLAND'],
     },
   })
 
@@ -194,7 +194,7 @@ async function main() {
       rating: 4.8,
       isActive: true,
       defaultDeliveryCoverage: DeliveryCoverageType.REGIONAL_ZONES,
-      defaultDeliveryZones: ['Lagos Mainland', 'Lagos Island', 'Ikeja', 'Lekki / Ajah', 'Ibadan / Oyo'],
+      defaultDeliveryZones: ['LAGOS_MAINLAND', 'LAGOS_ISLAND', 'IBADAN_METRO'],
     },
   })
 
@@ -207,7 +207,7 @@ async function main() {
       rating: 5.0,
       isActive: true,
       defaultDeliveryCoverage: DeliveryCoverageType.NATIONWIDE,
-      defaultDeliveryZones: ['Lagos Mainland', 'Lagos Island', 'Abuja', 'Online'],
+      defaultDeliveryZones: ['LAGOS_MAINLAND', 'LAGOS_ISLAND', 'ABUJA_METRO', 'ONLINE'],
     },
   })
 
@@ -220,7 +220,7 @@ async function main() {
       rating: 4.9,
       isActive: true,
       defaultDeliveryCoverage: DeliveryCoverageType.NATIONWIDE,
-      defaultDeliveryZones: ['Lagos Mainland', 'Lagos Island', 'Ikeja', 'Lekki / Ajah', 'Online'],
+      defaultDeliveryZones: ['LAGOS_MAINLAND', 'LAGOS_ISLAND', 'ONLINE'],
     },
   })
 
@@ -241,7 +241,7 @@ async function main() {
       status: GoalPublishStatus.PUBLISHED,
       deliveryAvailable: true,
       deliveryCoverageType: DeliveryCoverageType.NATIONWIDE,
-      deliveryZones: ['Lagos Mainland', 'Lagos Island', 'Ikeja', 'Lekki / Ajah'],
+      deliveryZones: ['LAGOS_MAINLAND', 'LAGOS_ISLAND'],
     },
   })
   await prisma.upward_offering_media.create({
@@ -267,7 +267,7 @@ async function main() {
       status: GoalPublishStatus.PUBLISHED,
       deliveryAvailable: true,
       deliveryCoverageType: DeliveryCoverageType.NATIONWIDE,
-      deliveryZones: ['Lagos Mainland', 'Lagos Island', 'Ikeja', 'Lekki / Ajah'],
+      deliveryZones: ['LAGOS_MAINLAND', 'LAGOS_ISLAND'],
     },
   })
   await prisma.upward_offering_media.create({
@@ -293,7 +293,7 @@ async function main() {
       status: GoalPublishStatus.PUBLISHED,
       deliveryAvailable: true,
       deliveryCoverageType: DeliveryCoverageType.NATIONWIDE,
-      deliveryZones: ['Lagos Mainland', 'Lagos Island', 'Ikeja', 'Lekki / Ajah'],
+      deliveryZones: ['LAGOS_MAINLAND', 'LAGOS_ISLAND'],
     },
   })
   await prisma.upward_offering_media.create({
@@ -319,7 +319,7 @@ async function main() {
       status: GoalPublishStatus.PUBLISHED,
       deliveryAvailable: true,
       deliveryCoverageType: DeliveryCoverageType.NATIONWIDE,
-      deliveryZones: ['Lagos Mainland', 'Lagos Island', 'Ikeja', 'Lekki / Ajah'],
+      deliveryZones: ['LAGOS_MAINLAND', 'LAGOS_ISLAND'],
     },
   })
   await prisma.upward_offering_media.create({
@@ -345,7 +345,7 @@ async function main() {
       status: GoalPublishStatus.PUBLISHED,
       deliveryAvailable: true,
       deliveryCoverageType: DeliveryCoverageType.NATIONWIDE,
-      deliveryZones: ['Lagos Mainland', 'Lagos Island', 'Ikeja', 'Lekki / Ajah'],
+      deliveryZones: ['LAGOS_MAINLAND', 'LAGOS_ISLAND'],
     },
   })
   await prisma.upward_offering_media.create({
@@ -382,7 +382,7 @@ async function main() {
       promoPriority: 100,
       deliveryAvailable: true,
       deliveryCoverageType: DeliveryCoverageType.NATIONWIDE,
-      deliveryZones: ['Lagos Mainland', 'Lagos Island', 'Ikeja', 'Lekki / Ajah'],
+      deliveryZones: ['LAGOS_MAINLAND', 'LAGOS_ISLAND'],
     },
   })
   await prisma.upward_offering_media.create({

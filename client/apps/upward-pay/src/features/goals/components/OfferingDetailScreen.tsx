@@ -49,6 +49,7 @@ import {
   formatShortLocation,
   type UserDeliveryLocation,
 } from '../utils/deliveryLocation'
+import { fetchDeliveryZones } from '../services/goalsService'
 import { DeliveryLocationBar } from './DeliveryLocationBar'
 import { CommerceCheckoutModal } from './CommerceCheckoutModal'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
@@ -181,6 +182,31 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
       setDeliveryLocation(getStoredDeliveryLocation(user.properties[0].address))
     }
   }, [user])
+
+  useEffect(() => {
+    let isMounted = true
+    fetchDeliveryZones()
+      .then((zones) => {
+        if (!isMounted || !zones || zones.length === 0) return
+        setDeliveryLocation((prev) => {
+          const matched = zones.find((z) => z.tag === prev.zoneTag)
+          if (matched) {
+            return {
+              ...prev,
+              isDelivering: matched.isDelivering,
+              pauseReason: matched.pauseReason,
+              zoneName: matched.name,
+              deliveryFeeKobo: matched.deliveryFeeKobo,
+            }
+          }
+          return prev
+        })
+      })
+      .catch(() => {})
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   useIsomorphicLayoutEffect(() => {
     setMounted(true)
@@ -1181,10 +1207,11 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                 <div className="offering-detail__delivery-warning-compact">
                   <AlertCircle size={14} style={{ flexShrink: 0 }} />
                   <span>
-                    {deliveryLocation.pauseReason ||
+                    {deliveryCheck.reason ||
+                      deliveryLocation.pauseReason ||
                       (offering.type === 'SERVICE'
-                        ? `Service coverage is not supported yet in ${formatShortLocation(deliveryLocation)}. We are working towards expanding our coverage to other locations soon!`
-                        : `Delivery is not supported yet in ${formatShortLocation(deliveryLocation)}. We are working towards expanding our delivery coverage to other locations soon!`)}
+                        ? `We're working towards expanding our service coverage to reach ${formatShortLocation(deliveryLocation)} soon!`
+                        : `We're working towards expanding our delivery coverage to reach ${formatShortLocation(deliveryLocation)} soon!`)}
                   </span>
                 </div>
               )}
