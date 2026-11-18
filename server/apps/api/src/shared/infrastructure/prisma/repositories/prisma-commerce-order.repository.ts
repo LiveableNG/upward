@@ -111,42 +111,55 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
               })
             }
 
-            // Also check package components if applicable
+            // Also check package components if applicable (batched to avoid N+1 round trips inside transaction)
             const snap = item.snapshotData as any
             if (snap?.packageItemsSnapshot && Array.isArray(snap.packageItemsSnapshot)) {
-              for (const comp of snap.packageItemsSnapshot) {
-                if (comp.componentId) {
-                  const compOffering = await tx.upward_offering.findUnique({
-                    where: { id: comp.componentId },
-                    select: { id: true, stockCount: true, inStock: true, status: true },
-                  })
-                  if (compOffering && compOffering.stockCount !== null) {
-                    const requiredQty = (comp.quantity || 1) * item.quantity
-                    if (compOffering.stockCount < requiredQty) {
-                      throw new Error(`INSUFFICIENT_STOCK: Package component ID ${comp.componentId} has only ${compOffering.stockCount} in stock, required ${requiredQty}`)
+              const componentIds = Array.from(
+                new Set<number>(
+                  snap.packageItemsSnapshot
+                    .map((c: any) => c.componentId)
+                    .filter((id: any): id is number => typeof id === 'number'),
+                ),
+              )
+
+              if (componentIds.length > 0) {
+                const compOfferings = await tx.upward_offering.findMany({
+                  where: { id: { in: componentIds } },
+                  select: { id: true, stockCount: true, inStock: true, status: true },
+                })
+                const compMap = new Map(compOfferings.map((o) => [o.id, o]))
+
+                for (const comp of snap.packageItemsSnapshot) {
+                  if (comp.componentId) {
+                    const compOffering = compMap.get(comp.componentId)
+                    if (compOffering && compOffering.stockCount !== null) {
+                      const requiredQty = (comp.quantity || 1) * item.quantity
+                      if (compOffering.stockCount < requiredQty) {
+                        throw new Error(`INSUFFICIENT_STOCK: Package component ID ${comp.componentId} has only ${compOffering.stockCount} in stock, required ${requiredQty}`)
+                      }
+                      const compRes = await tx.upward_offering.updateMany({
+                        where: {
+                          id: comp.componentId,
+                          inStock: true,
+                          stockCount: { gte: requiredQty },
+                        },
+                        data: {
+                          stockCount: { decrement: requiredQty },
+                        },
+                      })
+                      if (compRes.count === 0) {
+                        throw new Error(`INSUFFICIENT_STOCK: Package component ID ${comp.componentId} was claimed by another customer`)
+                      }
+                      await tx.upward_offering.updateMany({
+                        where: {
+                          id: comp.componentId,
+                          stockCount: { lte: 0 },
+                        },
+                        data: {
+                          inStock: false,
+                        },
+                      })
                     }
-                    const compRes = await tx.upward_offering.updateMany({
-                      where: {
-                        id: comp.componentId,
-                        inStock: true,
-                        stockCount: { gte: requiredQty },
-                      },
-                      data: {
-                        stockCount: { decrement: requiredQty },
-                      },
-                    })
-                    if (compRes.count === 0) {
-                      throw new Error(`INSUFFICIENT_STOCK: Package component ID ${comp.componentId} was claimed by another customer`)
-                    }
-                    await tx.upward_offering.updateMany({
-                      where: {
-                        id: comp.componentId,
-                        stockCount: { lte: 0 },
-                      },
-                      data: {
-                        inStock: false,
-                      },
-                    })
                   }
                 }
               }
@@ -180,6 +193,9 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
       })
 
       return order.id
+    }, {
+      maxWait: 10000,
+      timeout: 30000,
     })
 
     const created = await this.findOrderById(createdOrderId)

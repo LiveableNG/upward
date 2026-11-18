@@ -25,6 +25,7 @@ export class GetOfferingsUseCase {
       minPrice: query?.minPrice,
       maxPrice: query?.maxPrice,
       search: query?.search,
+      excludePackageComponents: true,
       skip: query?.skip ?? 0,
       take: query?.take ?? 20,
     })

@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import {
   ArrowLeft,
@@ -46,7 +46,7 @@ import {
 } from 'lucide-react'
 import {
   useGoalCategories,
-  usePublicOfferings,
+  useInfinitePublicOfferings,
   useUserGoals,
   useSetUserGoals,
 } from '../hooks/useGoals'
@@ -180,11 +180,47 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
   } = useGoalCategories()
 
   const {
-    data: offerings = EMPTY_OFFERINGS,
+    data: offeringsPages,
     isLoading: isOfferingsLoading,
     error: offeringsError,
     refetch: refetchOfferings,
-  } = usePublicOfferings()
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = useInfinitePublicOfferings()
+
+  const offerings = useMemo<GoalOffering[]>(() => {
+    if (!offeringsPages?.pages?.length) return EMPTY_OFFERINGS
+    const seen = new Set<number>()
+    const merged: GoalOffering[] = []
+    for (const page of offeringsPages.pages) {
+      for (const item of page.data || []) {
+        if (!seen.has(item.id)) {
+          seen.add(item.id)
+          merged.push(item)
+        }
+      }
+    }
+    return merged
+  }, [offeringsPages])
+
+  const loadMoreRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    const sentinel = loadMoreRef.current
+    if (!sentinel || !hasNextPage || isFetchingNextPage) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage()
+        }
+      },
+      { rootMargin: '250px' },
+    )
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage])
 
   const { data: userGoals = EMPTY_USER_GOALS, isLoading: isUserGoalsLoading } = useUserGoals()
   const setGoalsMutation = useSetUserGoals()
@@ -873,16 +909,43 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
 
         {/* Offerings Grid */}
         {!isLoading && gridItems.length > 0 && (
-          <div className="lifestyle-discovery__grid">
-            {gridItems.map((item) => (
-              <OfferingCard
-                key={item.offering.id}
-                item={item}
-                userLocation={deliveryLocation}
-                onClick={handleOfferingClick}
-              />
-            ))}
-          </div>
+          <>
+            <div className="lifestyle-discovery__grid">
+              {gridItems.map((item) => (
+                <OfferingCard
+                  key={item.offering.id}
+                  item={item}
+                  userLocation={deliveryLocation}
+                  onClick={handleOfferingClick}
+                />
+              ))}
+            </div>
+
+            {/* Infinite scroll sentinel */}
+            {hasNextPage && (
+              <div
+                ref={loadMoreRef}
+                className="lifestyle-discovery__load-more"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  padding: '20px 0 8px',
+                  color: 'var(--text-muted, #8a8a8a)',
+                  fontSize: 13,
+                  fontWeight: 500,
+                }}
+              >
+                {isFetchingNextPage && (
+                  <>
+                    <Loader2 size={15} className="animate-spin" />
+                    <span>Loading more perks…</span>
+                  </>
+                )}
+              </div>
+            )}
+          </>
         )}
       </main>
 

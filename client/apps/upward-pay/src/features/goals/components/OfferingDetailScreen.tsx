@@ -21,6 +21,7 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   MessageSquare,
   Send,
   MapPin,
@@ -550,6 +551,21 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
   const [selectedComponentIds, setSelectedComponentIds] = useState<Set<number>>(
     () => new Set(),
   )
+  const [expandedPackageItemIds, setExpandedPackageItemIds] = useState<Set<number>>(
+    () => new Set(),
+  )
+
+  const toggleExpandedPackageItem = (compId: number) => {
+    setExpandedPackageItemIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(compId)) {
+        next.delete(compId)
+      } else {
+        next.add(compId)
+      }
+      return next
+    })
+  }
 
   useEffect(() => {
     if (packageItems.length > 0) {
@@ -945,7 +961,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                 </h2>
                 <p className="bundle-showcase__items-desc">
                   {isLockedPackage
-                    ? `All ${packageItems.length} verified items are included in this complete package deal.`
+                    ? `All ${packageItems.length} verified items are included in this complete package. Tap any item to view full details.`
                     : 'Tap any item to include or remove it from your set. Total updates in real time.'}
                 </p>
               </div>
@@ -956,6 +972,10 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                 const comp = pkgItem.component || pkgItem.itemOffering
                 const compId = (pkgItem.componentId ?? pkgItem.id) as number
                 const isSelected = typeof compId === 'number' && selectedComponentIds.has(compId)
+                const isExpanded =
+                  isLockedPackage &&
+                  typeof compId === 'number' &&
+                  expandedPackageItemIds.has(compId)
                 const itemTitle =
                   comp?.title || comp?.name || `Component ${idx + 1}`
                 const itemPrice =
@@ -973,6 +993,14 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                   offering.imageUrl ||
                   null
 
+                const handleCardActivate = () => {
+                  if (isLockedPackage) {
+                    if (comp?.description) toggleExpandedPackageItem(compId)
+                  } else {
+                    toggleComponent(compId)
+                  }
+                }
+
                 return (
                   <div
                     key={pkgItem.id || idx}
@@ -980,25 +1008,30 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                       isSelected
                         ? 'bundle-showcase__item-card--selected'
                         : 'bundle-showcase__item-card--deselected'
-                    } ${isLockedPackage ? 'bundle-showcase__item-card--locked' : ''}`}
-                    onClick={() => !isLockedPackage && toggleComponent(compId)}
-                    role={isLockedPackage ? 'listitem' : 'checkbox'}
-                    aria-checked={isSelected}
-                    tabIndex={isLockedPackage ? -1 : 0}
+                    } ${isLockedPackage ? 'bundle-showcase__item-card--locked' : ''} ${
+                      isExpanded ? 'bundle-showcase__item-card--expanded' : ''
+                    }`}
+                    onClick={handleCardActivate}
+                    role={isLockedPackage ? 'button' : 'checkbox'}
+                    aria-checked={isLockedPackage ? undefined : isSelected}
+                    aria-expanded={isLockedPackage ? isExpanded : undefined}
+                    tabIndex={0}
                     onKeyDown={(e) => {
-                      if (!isLockedPackage && (e.key === ' ' || e.key === 'Enter')) {
+                      if (e.key === ' ' || e.key === 'Enter') {
                         e.preventDefault()
-                        toggleComponent(compId)
+                        handleCardActivate()
                       }
                     }}
                   >
-                    <div
-                      className={`bundle-showcase__checkbox ${
-                        isSelected ? 'bundle-showcase__checkbox--checked' : ''
-                      }`}
-                    >
-                      {isSelected && <Check size={12} strokeWidth={3} />}
-                    </div>
+                    {!isLockedPackage && (
+                      <div
+                        className={`bundle-showcase__checkbox ${
+                          isSelected ? 'bundle-showcase__checkbox--checked' : ''
+                        }`}
+                      >
+                        {isSelected && <Check size={12} strokeWidth={3} />}
+                      </div>
+                    )}
 
                     {primaryCompImage && (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -1021,11 +1054,21 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                         )}
                       </div>
                       {comp?.description && (
-                        <p className="bundle-showcase__item-desc">
+                        <p
+                          className={`bundle-showcase__item-desc ${
+                            isExpanded ? 'bundle-showcase__item-desc--expanded' : ''
+                          }`}
+                        >
                           {comp.description}
                         </p>
                       )}
                     </div>
+
+                    {isLockedPackage && comp?.description && (
+                      <span className="bundle-showcase__item-chevron" aria-hidden="true">
+                        <ChevronDown size={16} strokeWidth={2.2} />
+                      </span>
+                    )}
 
                     {/* Hide individual item prices for packages */}
                     {!isLockedPackage && (

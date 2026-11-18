@@ -348,8 +348,8 @@ export async function seedLifestyleAndCommerce(client: PrismaClient) {
     },
   })
 
-  // ── D. 23-PIECE NEW YEAR HOME REFRESH BUNDLE ──
-  console.log('  📦 Seeding New Year Home Refresh Bundle (Total ₦84,000, ₦104,000 Strikethrough)...')
+  // ── D. 23-PIECE NEW YEAR HOME REFRESH PACKAGE ──
+  console.log('  📦 Seeding New Year Home Refresh Package (Total ₦84,000, ₦104,000 Strikethrough)...')
 
   // Total sum of all 23 items:
   // 3000 + 1500 + 2500 + 3000 + 3500 + 500 + 2000 + 8000 + 5000 + 500 +
@@ -358,139 +358,139 @@ export async function seedLifestyleAndCommerce(client: PrismaClient) {
     {
       title: '360-Degree Spin Mop & Bucket System',
       price: 3000,
-      img: 'https://images.unsplash.com/photo-1628177142898-93e36e4e3a50?w=600&auto=format&fit=crop&q=80',
+      img: 'https://images.pexels.com/photos/38304325/pexels-photo-38304325/free-photo-of-professional-cleaner-mopping-floor-with-caution-sign.jpeg?auto=compress&cs=tinysrgb&w=600',
       desc: 'Microfiber mop with dual-chamber spinning wash bucket',
     },
     {
       title: 'Traditional Soft Broom',
       price: 1500,
-      img: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=600&auto=format&fit=crop&q=80',
+      img: 'https://images.pexels.com/photos/15213501/pexels-photo-15213501/free-photo-of-broom-by-the-wall.jpeg?auto=compress&cs=tinysrgb&w=600',
       desc: 'Dense soft bristles for dust and fine particle sweeping',
     },
     {
       title: 'Heavy-Duty Scrubbing Brush',
       price: 2500,
-      img: 'https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?w=600&auto=format&fit=crop&q=80',
+      img: 'https://images.pexels.com/photos/32908422/pexels-photo-32908422/free-photo-of-cleaning-tiles-with-soap-and-scrub-brush.jpeg?auto=compress&cs=tinysrgb&w=600',
       desc: 'Stiff bristle hand scrub for floor and bathroom tile cleaning',
     },
     {
       title: 'Toilet Brush & Sanitary Holder Set',
       price: 3000,
-      img: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=600&auto=format&fit=crop&q=80',
+      img: 'https://images.pexels.com/photos/4239036/pexels-photo-4239036.jpeg?auto=compress&cs=tinysrgb&w=600',
       desc: 'Ergonomic handle with ventilated drip-free base',
     },
     {
       title: 'Antibacterial Bathroom Slippers',
       price: 3500,
-      img: 'https://images.unsplash.com/photo-1560769629-975ec94e6a86?w=600&auto=format&fit=crop&q=80',
+      img: 'https://images.pexels.com/photos/14187813/pexels-photo-14187813.jpeg?auto=compress&cs=tinysrgb&w=600',
       desc: 'Quick-dry, non-slip textured indoor bathroom slippers',
     },
     {
       title: 'High-Density Cleaning Sponge',
       price: 500,
-      img: 'https://images.unsplash.com/photo-1585421514738-01798e348b17?w=600&auto=format&fit=crop&q=80',
+      img: 'https://images.pexels.com/photos/5218003/pexels-photo-5218003.jpeg?auto=compress&cs=tinysrgb&w=600',
       desc: 'Absorbent double-sided surface cleaning foam',
     },
     {
       title: 'Heavy-Duty Ergonomic Dustpan',
       price: 2000,
-      img: 'https://images.unsplash.com/photo-1563453392212-326f5e854473?w=600&auto=format&fit=crop&q=80',
+      img: 'https://images.pexels.com/photos/19408638/pexels-photo-19408638/free-photo-of-elderly-man-cleaning-the-courtyard-with-a-broom-and-dustpan.jpeg?auto=compress&cs=tinysrgb&w=600',
       desc: 'Rubberized edge for seamless floor contact and collection',
     },
     {
       title: 'Dual Large Waste Dustbins',
       price: 8000,
-      img: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=600&auto=format&fit=crop&q=80',
+      img: 'https://images.pexels.com/photos/6913203/pexels-photo-6913203.jpeg?auto=compress&cs=tinysrgb&w=600',
       desc: 'Pedal-operated durable waste bins for kitchen and room',
     },
     {
       title: 'Non-Slip Bathroom Footmats / Carpets',
       price: 5000,
-      img: 'https://images.unsplash.com/photo-1600121848594-d8644e57abab?w=600&auto=format&fit=crop&q=80',
+      img: 'https://images.pexels.com/photos/12273900/pexels-photo-12273900.jpeg?auto=compress&cs=tinysrgb&w=600',
       desc: 'Plush microfiber bath mat with anti-skid rubber backing',
     },
     {
       title: 'Heavy-Duty Dishwashing Sponges (Multi-Pack)',
       price: 500,
-      img: 'https://images.unsplash.com/photo-1585421514738-01798e348b17?w=600&auto=format&fit=crop&q=80',
+      img: 'https://images.pexels.com/photos/5218007/pexels-photo-5218007.jpeg?auto=compress&cs=tinysrgb&w=600',
       desc: 'Scouring pads safe for non-stick cookware and glass',
     },
     {
       title: 'Absorbent Cotton Kitchen Towels (3-Pack)',
       price: 3000,
-      img: 'https://images.unsplash.com/photo-1616627547584-bf28cee262db?w=600&auto=format&fit=crop&q=80',
+      img: 'https://images.pexels.com/photos/6382461/pexels-photo-6382461.jpeg?auto=compress&cs=tinysrgb&w=600',
       desc: '100% combed cotton lint-free drying and wiping cloths',
     },
     {
       title: '16-Piece Stainless Steel Cutlery Set',
       price: 12000,
-      img: 'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=600&auto=format&fit=crop&q=80',
+      img: 'https://images.pexels.com/photos/7001922/pexels-photo-7001922.jpeg?auto=compress&cs=tinysrgb&w=600',
       desc: 'Food-grade stainless steel dining forks, spoons, and table knives',
     },
     {
       title: 'Non-Slip Kitchen Floor Mat',
       price: 5000,
-      img: 'https://images.unsplash.com/photo-1600121848594-d8644e57abab?w=600&auto=format&fit=crop&q=80',
+      img: 'https://images.pexels.com/photos/12689256/pexels-photo-12689256.jpeg?auto=compress&cs=tinysrgb&w=600',
       desc: 'Waterproof cushioned standing mat for kitchen prep area',
     },
     {
       title: 'Wall-Mount Toothbrush Holders Set',
       price: 4000,
-      img: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=600&auto=format&fit=crop&q=80',
+      img: 'https://images.pexels.com/photos/13466251/pexels-photo-13466251.jpeg?auto=compress&cs=tinysrgb&w=600',
       desc: 'Hygienic covered wall mount with toothpaste dispenser slot',
     },
     {
       title: 'Floor Wiper & Glass Squeegee',
       price: 4000,
-      img: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=600&auto=format&fit=crop&q=80',
+      img: 'https://images.pexels.com/photos/4239031/pexels-photo-4239031.jpeg?auto=compress&cs=tinysrgb&w=600',
       desc: 'Flexible silicone blade for streak-free dry floors and tiles',
     },
     {
       title: 'Protective Cleaning Gloves (2 Pairs)',
       price: 4000,
-      img: 'https://images.unsplash.com/photo-1585421514738-01798e348b17?w=600&auto=format&fit=crop&q=80',
+      img: 'https://images.pexels.com/photos/4440530/pexels-photo-4440530.jpeg?auto=compress&cs=tinysrgb&w=600',
       desc: 'Thick waterproof latex gloves with textured grip',
     },
     {
       title: 'Heavy-Duty Refuse Bags (1 Roll - 20 Bags)',
       price: 2000,
-      img: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=600&auto=format&fit=crop&q=80',
+      img: 'https://images.pexels.com/photos/5994772/pexels-photo-5994772.jpeg?auto=compress&cs=tinysrgb&w=600',
       desc: 'Tear-resistant leakproof bin liners for household waste',
     },
     {
       title: 'Multipurpose Surface Cleaner (1L)',
       price: 3000,
-      img: 'https://images.unsplash.com/photo-1563453392212-326f5e854473?w=600&auto=format&fit=crop&q=80',
+      img: 'https://images.pexels.com/photos/3989284/pexels-photo-3989284.jpeg?auto=compress&cs=tinysrgb&w=600',
       desc: 'All-surface degreaser for kitchen counters, tiles, and walls',
     },
     {
       title: 'Hospital-Grade Disinfectant (1L)',
       price: 4000,
-      img: 'https://images.unsplash.com/photo-1584820927498-cfe5211fd8bf?w=600&auto=format&fit=crop&q=80',
+      img: 'https://images.pexels.com/photos/4098761/pexels-photo-4098761.jpeg?auto=compress&cs=tinysrgb&w=600',
       desc: '99.9% germ eradication for floors, bathroom, and fixtures',
     },
     {
       title: 'Extra-Strength Bleach (1L)',
       price: 3000,
-      img: 'https://images.unsplash.com/photo-1585421514738-01798e348b17?w=600&auto=format&fit=crop&q=80',
+      img: 'https://images.pexels.com/photos/7451952/pexels-photo-7451952.jpeg?auto=compress&cs=tinysrgb&w=600',
       desc: 'Deep stain removal, tile whitening, and toilet bowl sanitizing',
     },
     {
       title: 'Deep Action Toilet Bowl Cleaner',
       price: 4000,
-      img: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?w=600&auto=format&fit=crop&q=80',
+      img: 'https://images.pexels.com/photos/10941389/pexels-photo-10941389.jpeg?auto=compress&cs=tinysrgb&w=600',
       desc: 'Thick clinging formula that dissolves limescale and rings',
     },
     {
       title: 'Grease-Cutting Dishwashing Liquid',
       price: 2500,
-      img: 'https://images.unsplash.com/photo-1563453392212-326f5e854473?w=600&auto=format&fit=crop&q=80',
+      img: 'https://images.pexels.com/photos/28764305/pexels-photo-28764305.jpeg?auto=compress&cs=tinysrgb&w=600',
       desc: 'Concentrated citrus formula cuts through grease and food residue',
     },
     {
       title: 'Fresh Citrus Apartment Air Freshener',
       price: 4000,
-      img: 'https://images.unsplash.com/photo-1585421514738-01798e348b17?w=600&auto=format&fit=crop&q=80',
+      img: 'https://images.pexels.com/photos/7795656/pexels-photo-7795656.jpeg?auto=compress&cs=tinysrgb&w=600',
       desc: 'Long-lasting room fragrance that eliminates lingering odors',
     },
   ]
@@ -528,21 +528,15 @@ export async function seedLifestyleAndCommerce(client: PrismaClient) {
   }
 
   // Concise, high-value description with NO itemized individual prices in prose
-  const bundleCleanDescription =
+  const packageCleanDescription =
     'Complete move-in and seasonal apartment renewal set curated for modern living. Get all 23 essential items for floor care, bathroom sanitation, kitchen hygiene, and deep chemical cleaning in one verified package delivered straight to your door.'
 
-  // Create Parent BUNDLE offering
-  // Triggers the mobile app's native bundle-showcase UI:
-  // - Shows "What's included (23 of 23)"
-  // - Shows all 23 cards with their specific photos, titles, and descriptions
-  // - Shows total price: ₦84,000
-  // - Shows strikethrough price: ₦104,000
-  // - Shows the red 19% OFF burst badge
-  const homeRefreshBundle = await client.upward_offering.create({
+  // Create Parent PACKAGE offering (locked complete package)
+  const homeRefreshPackage = await client.upward_offering.create({
     data: {
-      title: 'New Year Home Refresh Bundle',
+      title: 'New Year Home Refresh Package',
       subtitle: 'Complete 23-Piece Household Cleaning & Apartment Renewal Set',
-      description: bundleCleanDescription,
+      description: packageCleanDescription,
       type: OfferingType.PACKAGE,
       pricingModel: OfferingPricingModel.FIXED,
       price: 84000, // Total sum of all 23 items
@@ -563,7 +557,7 @@ export async function seedLifestyleAndCommerce(client: PrismaClient) {
       promoTitle: 'Prepare Your Home for the New Year',
       promoSubtitle: 'Curated 23-piece household cleaning & apartment renewal kit',
       promoCoverImage:
-        'https://images.unsplash.com/photo-1563453392212-326f5e854473?w=1200&auto=format&fit=crop&q=80',
+        'https://images.pexels.com/photos/10568275/pexels-photo-10568275.jpeg?auto=compress&cs=tinysrgb&w=1200',
       promoPriority: 100,
     },
   })
@@ -572,44 +566,44 @@ export async function seedLifestyleAndCommerce(client: PrismaClient) {
   await client.upward_offering_media.createMany({
     data: [
       {
-        offeringId: homeRefreshBundle.id,
-        // Cleaning caddy kit with spray bottles, brushes, sponges, and rubber gloves
+        offeringId: homeRefreshPackage.id,
+        // Organized cleaning caddy & supplies kit
         mediaUrl:
-          'https://images.unsplash.com/photo-1563453392212-326f5e854473?w=1200&auto=format&fit=crop&q=80',
+          'https://images.pexels.com/photos/10568275/pexels-photo-10568275.jpeg?auto=compress&cs=tinysrgb&w=1200',
         isPrimary: true,
         sortOrder: 0,
       },
       {
-        offeringId: homeRefreshBundle.id,
-        // Spin mop, bucket, and cleaning tools package
+        offeringId: homeRefreshPackage.id,
+        // Cleaning supplies basket & bottles
         mediaUrl:
-          'https://images.unsplash.com/photo-1628177142898-93e36e4e3a50?w=1200&auto=format&fit=crop&q=80',
+          'https://images.pexels.com/photos/5217889/pexels-photo-5217889.jpeg?auto=compress&cs=tinysrgb&w=1200',
         isPrimary: false,
         sortOrder: 1,
       },
       {
-        offeringId: homeRefreshBundle.id,
-        // Flat lay of cleaning supplies: spray bottles, scrub brush, sponges, and yellow gloves
+        offeringId: homeRefreshPackage.id,
+        // Cleaning tools, sponges & gloves set
         mediaUrl:
-          'https://images.unsplash.com/photo-1585421514738-01798e348b17?w=1200&auto=format&fit=crop&q=80',
+          'https://images.pexels.com/photos/4440526/pexels-photo-4440526.jpeg?auto=compress&cs=tinysrgb&w=1200',
         isPrimary: false,
         sortOrder: 2,
       },
       {
-        offeringId: homeRefreshBundle.id,
-        // Housekeeper cleaning supplies basket with microfiber cloths and sanitizers
+        offeringId: homeRefreshPackage.id,
+        // Home refresh cleaning supplies
         mediaUrl:
-          'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=1200&auto=format&fit=crop&q=80',
+          'https://images.pexels.com/photos/9462685/pexels-photo-9462685.jpeg?auto=compress&cs=tinysrgb&w=1200',
         isPrimary: false,
         sortOrder: 3,
       },
     ],
   })
 
-  // Link all 23 components to the Bundle via upward_package_item
+  // Link all 23 components to the Package via upward_package_item
   await client.upward_package_item.createMany({
     data: componentOfferingIds.map((comp, idx) => ({
-      packageId: homeRefreshBundle.id,
+      packageId: homeRefreshPackage.id,
       componentId: comp.id,
       quantity: 1,
       isOptional: false,
@@ -761,14 +755,14 @@ export async function seedLifestyleAndCommerce(client: PrismaClient) {
 
   if (newYearGoalId) {
     linksToCreate.push(
-      { goalId: newYearGoalId, offeringId: homeRefreshBundle.id, isRecommended: true, relevanceScore: 100 },
+      { goalId: newYearGoalId, offeringId: homeRefreshPackage.id, isRecommended: true, relevanceScore: 100 },
       { goalId: newYearGoalId, offeringId: serviceCleaner.id, isRecommended: true, relevanceScore: 90 },
     )
   }
 
   if (homeFeelGoalId) {
     linksToCreate.push(
-      { goalId: homeFeelGoalId, offeringId: homeRefreshBundle.id, isRecommended: true, relevanceScore: 95 },
+      { goalId: homeFeelGoalId, offeringId: homeRefreshPackage.id, isRecommended: true, relevanceScore: 95 },
       { goalId: homeFeelGoalId, offeringId: servicePainter.id, isRecommended: true, relevanceScore: 90 },
       { goalId: homeFeelGoalId, offeringId: serviceCarpenter.id, isRecommended: false, relevanceScore: 80 },
     )
