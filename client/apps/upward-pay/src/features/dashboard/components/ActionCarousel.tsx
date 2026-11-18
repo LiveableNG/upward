@@ -142,26 +142,10 @@ export function ActionCarousel({
   const router = useRouter()
   const { data: publicOfferings } = usePublicOfferings()
 
-  const defaultHomeRefreshPromo: GoalOffering = {
-    id: 2027,
-    uuid: 'home-refresh-2027',
-    name: 'Prepare Your Home for the New Year',
-    slug: 'home-refresh-2027',
-    type: 'PRODUCT',
-    priceKobo: 0,
-    currency: 'NGN',
-    status: 'PUBLISHED',
-    isPromoted: true,
-    promoTitle: 'Prepare Your Home for the New Year',
-    promoSubtitle: 'Curated home refresh packages for the new year',
-    promoCoverImage:
-      'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=900&q=80',
-  } as unknown as GoalOffering
-
   const activePromo =
     promotedOffering !== undefined
       ? promotedOffering
-      : (publicOfferings?.find((o) => (o.status === 'PUBLISHED' || !o.status) && o.isPromoted) || defaultHomeRefreshPromo)
+      : (publicOfferings?.find((o) => (o.status === 'PUBLISHED' || !o.status) && o.isPromoted) ?? null)
 
   const items: ActionItem[] = []
 

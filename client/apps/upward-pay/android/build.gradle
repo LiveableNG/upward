@@ -47,7 +47,12 @@ allprojects {
                 }
             }
         }
-        if (project.plugins.hasPlugin('java') || project.plugins.hasPlugin('java-library')) {
+        if (
+            project.plugins.hasPlugin('java') ||
+            project.plugins.hasPlugin('java-library') ||
+            project.plugins.hasPlugin('java-base') ||
+            project.extensions.findByName('java') != null
+        ) {
             project.java {
                 toolchain {
                     languageVersion = JavaLanguageVersion.of(21)
