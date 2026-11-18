@@ -42,6 +42,114 @@ interface CategoryQuestionConfig {
   notesRequired?: boolean
 }
 
+interface PayLessQuestion {
+  id: string
+  goalTitle: string
+  prompt: string
+  options: string[]
+  maxSelect: number
+}
+
+interface PayLessSection {
+  id: string
+  title: string
+  questions: PayLessQuestion[]
+}
+
+const PAY_LESS_SECTIONS: PayLessSection[] = [
+  {
+    id: 'laundry',
+    title: 'Laundry',
+    questions: [
+      {
+        id: 'laundry_spend',
+        goalTitle: 'Laundry',
+        prompt: 'How much do you currently spend on dry cleaning per month?',
+        options: ['Under ₦15,000', '₦15,000 - ₦35,000', '₦35,000 - ₦70,000', 'Above ₦70,000'],
+        maxSelect: 1,
+      },
+    ],
+  },
+  {
+    id: 'grocery',
+    title: 'Grocery',
+    questions: [
+      {
+        id: 'grocery_regular',
+        goalTitle: 'Grocery (regular items)',
+        prompt: 'What 3 things do you buy regularly?',
+        options: [
+          'Rice, oil & provisions',
+          'Beverages & dairy',
+          'Meat, poultry & fish',
+          'Toiletries & home cleaning',
+          'Fresh fruits & vegetables',
+        ],
+        maxSelect: 3,
+      },
+      {
+        id: 'grocery_top_spends',
+        goalTitle: 'Grocery (top spends)',
+        prompt: 'What 3 things do you spend the most money on monthly?',
+        options: [
+          'Bulk grains & cooking oils',
+          'Meat, fish & poultry',
+          'Baby food & hygiene items',
+          'Snacks & packaged provisions',
+        ],
+        maxSelect: 3,
+      },
+    ],
+  },
+  {
+    id: 'housing',
+    title: 'Housing',
+    questions: [
+      {
+        id: 'housing_roommate',
+        goalTitle: 'Housing (roommate sharing)',
+        prompt: 'Would you be open to sharing your space with a roommate?',
+        options: [
+          'Yes, definitely open',
+          'Only with a verified professional',
+          'Maybe in the future',
+          'No, prefer living alone',
+        ],
+        maxSelect: 1,
+      },
+    ],
+  },
+  {
+    id: 'commute',
+    title: 'Commute',
+    questions: [
+      {
+        id: 'commute_spend',
+        goalTitle: 'Commute',
+        prompt: 'How much do you spend on transportation per month?',
+        options: ['Under ₦25,000', '₦25,000 - ₦60,000', '₦60,000 - ₦120,000', 'Above ₦120,000'],
+        maxSelect: 1,
+      },
+    ],
+  },
+]
+
+const PRESET_TIMELINES = [
+  { label: '30 days', days: 30 },
+  { label: '3 months', days: 90 },
+  { label: '6 months', days: 180 },
+  { label: '1 year', days: 365 },
+]
+
+type CustomTimelineUnit = 'days' | 'months' | 'years'
+
+function toDurationDays(value: number, unit: CustomTimelineUnit): number {
+  const safeVal = Math.max(1, Math.round(value))
+  if (unit === 'years') return safeVal * 365
+  if (unit === 'months') return safeVal * 30
+  return safeVal
+}
+
 const QUESTIONNAIRE_CONFIGS: Record<CategoryKey, CategoryQuestionConfig> = {
   housing: {
     id: 'housing',
@@ -164,54 +272,9 @@ const QUESTIONNAIRE_CONFIGS: Record<CategoryKey, CategoryQuestionConfig> = {
   'pay-less': {
     id: 'pay-less',
     title: 'Pay less for stuff',
-    intro: 'Spend less and find ways to reduce costs across routine expenses.',
-    label: 'Where do you want to save money?',
-    options: [
-      'Laundry — Save on drycleaning',
-      'Grocery — Regular items bulk discount',
-      'Grocery — Top monthly spends',
-      'Housing — Share space with a roommate',
-      'Commute — Reduce transportation costs',
-    ],
-    extras: {
-      'Laundry — Save on drycleaning': {
-        label: 'How much do you currently spend on drycleaning per month?',
-        options: ['Under ₦15,000', '₦15,000 - ₦35,000', '₦35,000 - ₦70,000', 'Above ₦70,000'],
-        maxSelect: 1,
-      },
-      'Grocery — Regular items bulk discount': {
-        label: 'What 3 things do you buy regularly?',
-        options: [
-          'Rice, oil & provisions',
-          'Beverages & dairy',
-          'Meat, poultry & fish',
-          'Toiletries & home cleaning',
-          'Fresh fruits & vegetables',
-        ],
-      },
-      'Grocery — Top monthly spends': {
-        label: 'What 3 things do you spend the most money on monthly?',
-        options: [
-          'Bulk grains & cooking oils',
-          'Meat, fish & poultry',
-          'Baby food & hygiene items',
-          'Snacks & packaged provisions',
-        ],
-      },
-      'Housing — Share space with a roommate': {
-        label: 'Would you be open to sharing your space with a roommate?',
-        options: [
-          'Yes, definitely open',
-          'Only with a verified professional',
-          'Maybe in the future',
-          'No, prefer living alone',
-        ],
-      },
-      'Commute — Reduce transportation costs': {
-        label: 'How much do you spend on transportation per month?',
-        options: ['Under ₦25,000', '₦25,000 - ₦60,000', '₦60,000 - ₦120,000', 'Above ₦120,000'],
-      },
-    },
+    intro: 'Let us know how much you currently spend on this so we can find ways to help you reduce costs.',
+    label: '',
+    options: [],
   },
   children: {
     id: 'children',
@@ -415,6 +478,7 @@ export function AllGoalsScreen() {
   const [activeCategory, setActiveCategory] = useState<CategoryKey | null>(initialQueryCat)
   const [selectedOption, setSelectedOption] = useState<string | null>(null)
   const [selectedExtras, setSelectedExtras] = useState<string[]>([])
+  const [payLessAnswers, setPayLessAnswers] = useState<Record<string, string[]>>({})
   const [notesText, setNotesText] = useState('')
   const [savedGoalLabel, setSavedGoalLabel] = useState<string | null>(null)
 
@@ -425,6 +489,7 @@ export function AllGoalsScreen() {
       setActiveCategory(initialQueryCat)
       setSelectedOption(null)
       setSelectedExtras([])
+      setPayLessAnswers({})
       setNotesText('')
       setSavedGoalLabel(null)
     }
@@ -445,20 +510,32 @@ export function AllGoalsScreen() {
     setActiveDetailGoal(null)
   }
 
-  // Custom goal modal form state
+  // Custom goal modal & timeline form state
   const [newTitle, setNewTitle] = useState('')
   const [newCatSlug, setNewCatSlug] = useState('income')
   const [newIcon, setNewIcon] = useState('🎯')
   const [newTimelineDays, setNewTimelineDays] = useState(90)
+  const [isCustomTimeline, setIsCustomTimeline] = useState(false)
+  const [customTimelineValue, setCustomTimelineValue] = useState('2')
+  const [customTimelineUnit, setCustomTimelineUnit] = useState<CustomTimelineUnit>('years')
   const [newTargetAmount, setNewTargetAmount] = useState('')
+
+  const getResolvedTimelineDays = () => {
+    if (!isCustomTimeline) return newTimelineDays
+    const numeric = Number(customTimelineValue)
+    if (!Number.isFinite(numeric) || numeric < 1) return null
+    return toDurationDays(numeric, customTimelineUnit)
+  }
 
   const openQuestionnaire = useCallback(
     (catId: CategoryKey) => {
       setActiveCategory(catId)
       setSelectedOption(null)
       setSelectedExtras([])
+      setPayLessAnswers({})
       setNotesText('')
       setNewTimelineDays(180)
+      setIsCustomTimeline(false)
       setSavedGoalLabel(null)
       setActiveDetailGoal(null)
     },
@@ -543,7 +620,7 @@ export function AllGoalsScreen() {
   const housingCard = getCategoryCardState('housing', 'Renting, moving, home ownership & living space')
   const incomeCard = getCategoryCardState('income', 'Earn more & build extra income streams')
   const careerCard = getCategoryCardState('career', 'Advance professionally & acquire qualifications')
-  const payLessCard = getCategoryCardState('pay-less', 'Spend less and find ways to reduce costs')
+  const payLessCard = getCategoryCardState('pay-less', 'Let us know how much you spend so we can help reduce costs')
   const childrenCard = getCategoryCardState('children', 'Skills, educational interests & activities')
 
   const handleCategoryCardClick = (catId: CategoryKey) => {
@@ -553,6 +630,67 @@ export function AllGoalsScreen() {
   const handleSubmitQuestionnaire = async () => {
     if (!activeCategory) return
     const q = QUESTIONNAIRE_CONFIGS[activeCategory]
+    const resolvedDays = getResolvedTimelineDays()
+    if (!resolvedDays) {
+      toastError('Please enter a valid custom timeline greater than 0.')
+      return
+    }
+
+    if (activeCategory === 'pay-less') {
+      const answeredItems = PAY_LESS_SECTIONS.flatMap((section) =>
+        section.questions
+          .map((question) => {
+            const answers = payLessAnswers[question.id] || []
+            if (answers.length === 0) return null
+            return {
+              prompt: question.prompt,
+              selection: `${question.goalTitle}: ${answers.join(', ')}`,
+            }
+          })
+          .filter((item): item is { prompt: string; selection: string } => Boolean(item)),
+      )
+      const customNote = notesText.trim()
+
+      if (answeredItems.length === 0 && !customNote) {
+        toastError('Please answer at least one question or enter your own goal.')
+        return
+      }
+
+      try {
+        for (const item of answeredItems) {
+          await submitQuestionnaireMutation.mutateAsync({
+            categorySlug: 'pay-less',
+            questionTitle: item.prompt,
+            selectedOption: item.selection,
+            durationDays: resolvedDays,
+          })
+        }
+        if (customNote) {
+          await submitQuestionnaireMutation.mutateAsync({
+            categorySlug: 'pay-less',
+            questionTitle: q.title,
+            selectedOption: customNote,
+            durationDays: resolvedDays,
+          })
+        }
+
+        const summaryParts = [
+          ...answeredItems.map((item) => item.selection),
+          ...(customNote ? [customNote] : []),
+        ]
+        setSavedGoalLabel(
+          summaryParts.length > 1
+            ? `${summaryParts.length} spending responses`
+            : summaryParts[0] || 'Pay less for stuff',
+        )
+        success('Spending details saved to your goals')
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Failed to save goal'
+        toastError(msg)
+      }
+      return
+    }
+
     const chosen = notesText.trim() || selectedOption
 
     if (!chosen) {
@@ -592,14 +730,14 @@ export function AllGoalsScreen() {
           categorySlug: targetCategorySlug,
           icon: iconMap[activeCategory] || '🎯',
           targetType: 'DEADLINE',
-          durationDays: newTimelineDays,
+          durationDays: resolvedDays,
         })
       } else {
         await submitQuestionnaireMutation.mutateAsync({
           categorySlug: targetCategorySlug,
           questionTitle: q.title,
           selectedOption: finalSelection,
-          durationDays: newTimelineDays,
+          durationDays: resolvedDays,
         })
       }
       setSavedGoalLabel(selectedExtras.join(', ') || notesText.trim() || finalSelection)
@@ -617,6 +755,12 @@ export function AllGoalsScreen() {
       return
     }
 
+    const resolvedDays = getResolvedTimelineDays()
+    if (!resolvedDays) {
+      toastError('Please enter a valid custom timeline greater than 0.')
+      return
+    }
+
     const numAmount = Number(newTargetAmount.replace(/[^0-9]/g, ''))
     const targetAmountKobo = numAmount > 0 ? numAmount * 100 : undefined
     const targetType: GoalTargetType = targetAmountKobo ? 'AMOUNT' : 'DEADLINE'
@@ -627,7 +771,7 @@ export function AllGoalsScreen() {
         categorySlug: newCatSlug,
         icon: newIcon,
         targetType,
-        durationDays: newTimelineDays,
+        durationDays: resolvedDays,
         targetAmountKobo,
       })
 
@@ -640,6 +784,59 @@ export function AllGoalsScreen() {
       toastError(msg)
     }
   }
+
+  const renderTimelineSelector = (marginBottom = '18px') => (
+    <div style={{ marginBottom }}>
+      <div className="goal-modal__chips">
+        {PRESET_TIMELINES.map((t) => (
+          <button
+            key={t.days}
+            type="button"
+            className={`goal-modal__chip ${!isCustomTimeline && newTimelineDays === t.days ? 'goal-modal__chip--active' : ''}`}
+            onClick={() => {
+              setIsCustomTimeline(false)
+              setNewTimelineDays(t.days)
+            }}
+          >
+            {t.label}
+          </button>
+        ))}
+        <button
+          type="button"
+          className={`goal-modal__chip ${isCustomTimeline ? 'goal-modal__chip--active' : ''}`}
+          onClick={() => setIsCustomTimeline(true)}
+        >
+          Custom
+        </button>
+      </div>
+
+      {isCustomTimeline && (
+        <div className="proto-goals__custom-timeline">
+          <input
+            type="number"
+            min={1}
+            max={3650}
+            className="proto-goals__custom-timeline-num"
+            value={customTimelineValue}
+            onChange={(e) => setCustomTimelineValue(e.target.value)}
+            aria-label="Custom timeline duration"
+          />
+          <div className="proto-goals__custom-timeline-unit">
+            {(['days', 'months', 'years'] as CustomTimelineUnit[]).map((unit) => (
+              <button
+                key={unit}
+                type="button"
+                className={`goal-modal__chip ${customTimelineUnit === unit ? 'goal-modal__chip--active' : ''}`}
+                onClick={() => setCustomTimelineUnit(unit)}
+              >
+                {unit}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
 
   const handleDeleteGoal = async (idOrUuid: number | string) => {
     try {
@@ -813,6 +1010,27 @@ export function AllGoalsScreen() {
       })
     }
 
+    const handleTogglePayLessOption = (
+      questionId: string,
+      opt: string,
+      maxSelect: number,
+    ) => {
+      setPayLessAnswers((prev) => {
+        const current = prev[questionId] || []
+        if (current.includes(opt)) {
+          return { ...prev, [questionId]: current.filter((x) => x !== opt) }
+        }
+        if (maxSelect === 1) {
+          return { ...prev, [questionId]: [opt] }
+        }
+        if (current.length >= maxSelect) {
+          toastError(`You can select up to ${maxSelect} items.`)
+          return prev
+        }
+        return { ...prev, [questionId]: [...current, opt] }
+      })
+    }
+
     return (
       <div className="proto-goals">
         <div className="proto-goals__topbar">
@@ -838,7 +1056,9 @@ export function AllGoalsScreen() {
             {activeGoalsInThisCat.length > 0 && (
               <div className="proto-goals__active-group">
                 <div className="proto-goals__section-label">
-                  Your Active Goals ({activeGoalsInThisCat.length}/3)
+                  {activeCategory === 'pay-less'
+                    ? `Saved Entries (${activeGoalsInThisCat.length})`
+                    : `Your Active Goals (${activeGoalsInThisCat.length}/3)`}
                 </div>
                 <div className="proto-goals__active-list">
                   {activeGoalsInThisCat.map((ug) => {
@@ -873,106 +1093,172 @@ export function AllGoalsScreen() {
               </div>
             )}
 
-            <div className="proto-goals__section-label">
-              {q.label} {activeGoalsInThisCat.length > 0 ? `(${activeGoalsInThisCat.length}/3 selected)` : ''}
-            </div>
-
-            <div
-              className={
-                activeCategory === 'custom'
-                  ? 'proto-goals__q-tags'
-                  : 'proto-goals__q-options'
-              }
-            >
-              {effectiveOptions.map((opt) => {
-                const matchedActive = activeGoalsInThisCat.find((ug) => {
-                  const t = (ug.title || ug.goal?.title || '').toLowerCase().trim()
-                  const o = opt.toLowerCase().trim()
-                  if (!t || !o) return false
-                  return t === o || t.includes(o) || o.includes(t)
-                })
-                const isActive = Boolean(matchedActive)
-                const isSelected = selectedOption === opt && !notesText.trim()
-                const desc = GOAL_DESCRIPTIONS[opt]
-
-                return (
-                  <button
-                    key={opt}
-                    type="button"
-                    className={`${
-                      activeCategory === 'custom' ? 'proto-goals__tag' : 'proto-goals__opt'
-                    } ${isSelected ? 'is-on' : ''} ${isActive ? 'proto-goals__opt--active' : ''}`}
-                    onClick={() => {
-                      if (isActive && matchedActive) {
-                        setActiveDetailGoal(matchedActive)
-                      } else if (!canAddMore && !isActive) {
-                        toastError('You have reached the maximum of 3 goals in this category.')
-                      } else {
-                        handleSelectQuestionnaireOption(opt)
-                      }
-                    }}
-                  >
-                    <div className="proto-goals__opt-header">
-                      <span className="proto-goals__opt-title">{opt}</span>
-                      {isActive && (
-                        <span
-                          className="proto-goals__badge proto-goals__badge--live"
-                          style={{ fontSize: '11px', padding: '2px 8px' }}
-                        >
-                          Active {matchedActive?.progressPct ? `· ${matchedActive.progressPct}%` : ''}
-                        </span>
-                      )}
-                      {!isActive && isSelected && (
-                        <span style={{ fontSize: '11px', color: 'var(--clay)', fontWeight: 700 }}>
-                          Selected
-                        </span>
-                      )}
-                    </div>
-                    {desc && <p className="proto-goals__opt-desc">{desc}</p>}
-                  </button>
-                )
-              })}
-            </div>
-
-            {extraDef && !notesText.trim() && (
-              <div className="proto-goals__q-extra">
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '14px 0 8px' }}>
-                  <span className="proto-goals__section-label" style={{ margin: 0 }}>
-                    {extraDef.label}
-                  </span>
-                  {extraDef.maxSelect !== 1 && (
-                    <span style={{ fontSize: '11.5px', color: 'var(--text-muted, #8a8a8a)', fontWeight: 600 }}>
-                      {selectedExtras.length}/3 selected
-                    </span>
-                  )}
+            {activeCategory === 'pay-less' ? (
+              <div className="proto-goals__payless-sections">
+                {PAY_LESS_SECTIONS.map((section) => (
+                  <div key={section.id} className="proto-goals__payless-section">
+                    <h3 className="proto-goals__payless-section-title">{section.title}</h3>
+                    {section.questions.map((question) => {
+                      const selected = payLessAnswers[question.id] || []
+                      return (
+                        <div key={question.id} className="proto-goals__payless-question">
+                          <div className="proto-goals__payless-question-head">
+                            <span className="proto-goals__payless-question-label">
+                              {question.prompt}
+                            </span>
+                            {question.maxSelect > 1 && (
+                              <span className="proto-goals__payless-question-count">
+                                {selected.length}/{question.maxSelect} selected
+                              </span>
+                            )}
+                          </div>
+                          <div className="proto-goals__q-options">
+                            {question.options.map((opt) => {
+                              const isSelected = selected.includes(opt)
+                              return (
+                                <button
+                                  key={opt}
+                                  type="button"
+                                  className={`proto-goals__opt ${isSelected ? 'is-on' : ''}`}
+                                  onClick={() =>
+                                    handleTogglePayLessOption(question.id, opt, question.maxSelect)
+                                  }
+                                >
+                                  <div
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'space-between',
+                                      gap: '8px',
+                                    }}
+                                  >
+                                    <span>{opt}</span>
+                                    {isSelected && (
+                                      <span
+                                        style={{
+                                          fontSize: '11.5px',
+                                          fontWeight: 700,
+                                          color: 'var(--clay)',
+                                        }}
+                                      >
+                                        ✓ Selected
+                                      </span>
+                                    )}
+                                  </div>
+                                </button>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <>
+                <div className="proto-goals__section-label">
+                  {q.label} {activeGoalsInThisCat.length > 0 ? `(${activeGoalsInThisCat.length}/3 selected)` : ''}
                 </div>
-                <div className="proto-goals__q-options">
-                  {extraDef.options.map((extOpt) => {
-                    const isSelected = selectedExtras.includes(extOpt)
+
+                <div
+                  className={
+                    activeCategory === 'custom'
+                      ? 'proto-goals__q-tags'
+                      : 'proto-goals__q-options'
+                  }
+                >
+                  {effectiveOptions.map((opt) => {
+                    const matchedActive = activeGoalsInThisCat.find((ug) => {
+                      const t = (ug.title || ug.goal?.title || '').toLowerCase().trim()
+                      const o = opt.toLowerCase().trim()
+                      if (!t || !o) return false
+                      return t === o || t.includes(o) || o.includes(t)
+                    })
+                    const isActive = Boolean(matchedActive)
+                    const isSelected = selectedOption === opt && !notesText.trim()
+                    const desc = GOAL_DESCRIPTIONS[opt]
+
                     return (
                       <button
-                        key={extOpt}
+                        key={opt}
                         type="button"
-                        className={`proto-goals__opt ${isSelected ? 'is-on' : ''}`}
-                        onClick={() => handleToggleExtra(extOpt, extraDef.maxSelect ?? 3)}
+                        className={`${
+                          activeCategory === 'custom' ? 'proto-goals__tag' : 'proto-goals__opt'
+                        } ${isSelected ? 'is-on' : ''} ${isActive ? 'proto-goals__opt--active' : ''}`}
+                        onClick={() => {
+                          if (isActive && matchedActive) {
+                            setActiveDetailGoal(matchedActive)
+                          } else if (!canAddMore && !isActive) {
+                            toastError('You have reached the maximum of 3 goals in this category.')
+                          } else {
+                            handleSelectQuestionnaireOption(opt)
+                          }
+                        }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                          <span>{extOpt}</span>
-                          {isSelected && (
-                            <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--clay)' }}>
-                              ✓ Selected
+                        <div className="proto-goals__opt-header">
+                          <span className="proto-goals__opt-title">{opt}</span>
+                          {isActive && (
+                            <span
+                              className="proto-goals__badge proto-goals__badge--live"
+                              style={{ fontSize: '11px', padding: '2px 8px' }}
+                            >
+                              Active {matchedActive?.progressPct ? `· ${matchedActive.progressPct}%` : ''}
+                            </span>
+                          )}
+                          {!isActive && isSelected && (
+                            <span style={{ fontSize: '11px', color: 'var(--clay)', fontWeight: 700 }}>
+                              Selected
                             </span>
                           )}
                         </div>
+                        {desc && <p className="proto-goals__opt-desc">{desc}</p>}
                       </button>
                     )
                   })}
                 </div>
-              </div>
+
+                {extraDef && !notesText.trim() && (
+                  <div className="proto-goals__q-extra">
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '14px 0 8px' }}>
+                      <span className="proto-goals__section-label" style={{ margin: 0 }}>
+                        {extraDef.label}
+                      </span>
+                      {extraDef.maxSelect !== 1 && (
+                        <span style={{ fontSize: '11.5px', color: 'var(--text-muted, #8a8a8a)', fontWeight: 600 }}>
+                          {selectedExtras.length}/3 selected
+                        </span>
+                      )}
+                    </div>
+                    <div className="proto-goals__q-options">
+                      {extraDef.options.map((extOpt) => {
+                        const isSelected = selectedExtras.includes(extOpt)
+                        return (
+                          <button
+                            key={extOpt}
+                            type="button"
+                            className={`proto-goals__opt ${isSelected ? 'is-on' : ''}`}
+                            onClick={() => handleToggleExtra(extOpt, extraDef.maxSelect ?? 3)}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                              <span>{extOpt}</span>
+                              {isSelected && (
+                                <span style={{ fontSize: '11.5px', fontWeight: 700, color: 'var(--clay)' }}>
+                                  ✓ Selected
+                                </span>
+                              )}
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
 
             <label className="proto-goals__section-label" htmlFor="proto-q-notes">
-              Or enter your own goal
+              {activeCategory === 'pay-less' ? 'Other expense to cut (optional)' : 'Or enter your own goal'}
             </label>
             <input
               id="proto-q-notes"
@@ -981,7 +1267,7 @@ export function AllGoalsScreen() {
               value={notesText}
               onChange={(e) => {
                 setNotesText(e.target.value)
-                if (e.target.value.trim()) {
+                if (activeCategory !== 'pay-less' && e.target.value.trim()) {
                   setSelectedOption(null)
                   setSelectedExtras([])
                 }
@@ -994,23 +1280,7 @@ export function AllGoalsScreen() {
             />
 
             <div className="proto-goals__section-label">Timeline</div>
-            <div className="goal-modal__chips" style={{ marginBottom: '18px' }}>
-              {[
-                { label: '30 days', days: 30 },
-                { label: '3 months', days: 90 },
-                { label: '6 months', days: 180 },
-                { label: '1 year', days: 365 },
-              ].map((t) => (
-                <button
-                  key={t.days}
-                  type="button"
-                  className={`goal-modal__chip ${newTimelineDays === t.days ? 'goal-modal__chip--active' : ''}`}
-                  onClick={() => setNewTimelineDays(t.days)}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
+            {renderTimelineSelector('18px')}
 
             <button
               type="button"
@@ -1393,23 +1663,7 @@ export function AllGoalsScreen() {
 
               <div className="goal-modal__field">
                 <label className="goal-modal__label">Timeline</label>
-                <div className="goal-modal__chips">
-                  {[
-                    { label: '30 Days', days: 30 },
-                    { label: '3 Months', days: 90 },
-                    { label: '6 Months', days: 180 },
-                    { label: '1 Year', days: 365 },
-                  ].map((t) => (
-                    <button
-                      key={t.days}
-                      type="button"
-                      className={`goal-modal__chip ${newTimelineDays === t.days ? 'goal-modal__chip--active' : ''}`}
-                      onClick={() => setNewTimelineDays(t.days)}
-                    >
-                      {t.label}
-                    </button>
-                  ))}
-                </div>
+                {renderTimelineSelector('0')}
               </div>
 
               <div className="goal-modal__field">
