@@ -413,6 +413,10 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
       useClass: PrismaOfferingRepository,
     },
     {
+      provide: VOUCHER_REPOSITORY,
+      useClass: PrismaVoucherRepository,
+    },
+    {
       provide: VENDOR_REPOSITORY,
       useClass: PrismaCommerceVendorRepository,
     },
@@ -549,6 +553,7 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
     RENT_SETTLEMENT_REPOSITORY,
     ASSET_MANAGEMENT_PROVIDER,
     AssetManagementProviderRegistry,
+    VOUCHER_REPOSITORY,
   ],
 })
 export class PrismaModule {}

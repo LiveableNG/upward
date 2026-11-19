@@ -4,8 +4,9 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common'
-import { randomBytes, randomUUID } from 'crypto'
+import { randomBytes } from 'crypto'
 import {
   COMMERCE_ORDER_REPOSITORY,
   CommerceOrder,
@@ -20,6 +21,10 @@ import {
   OFFERING_REPOSITORY,
   OfferingRepository,
 } from '../../../domains/goals/offering.repository'
+import {
+  VOUCHER_REPOSITORY,
+  VoucherRepository,
+} from '../../../domains/vouchers/voucher.repository'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import {
   CommercePricingEngine,
@@ -47,6 +52,9 @@ export class CreateCommerceOrderUseCase {
     private readonly userRepo: UserRepository,
     @Inject(COMMERCE_DELIVERY_ZONE_REPOSITORY)
     private readonly zoneRepo: CommerceDeliveryZoneRepository,
+    @Optional()
+    @Inject(VOUCHER_REPOSITORY)
+    private readonly voucherRepo?: VoucherRepository,
   ) {}
 
   async execute(userIdentifier: number | string, dto: CreateCommerceOrderDto): Promise<CreateCommerceOrderResponse> {
@@ -80,6 +88,7 @@ export class CreateCommerceOrderUseCase {
 
     // 2. Authoritative database fetch of offerings
     const priceableItems: PriceableItemInput[] = []
+    let voucherEligibleSubtotalKobo = 0n
 
     // Look up delivery zone if provided to resolve verified delivery fee and status
     let zoneDeliveryFeeKobo = 0n
@@ -106,6 +115,11 @@ export class CreateCommerceOrderUseCase {
         throw new NotFoundException(
           `Offering '${item.offeringUuid || item.offeringId}' not found`,
         )
+      }
+
+      if (offering.voucherEligible && offering.price && offering.price > 0) {
+        voucherEligibleSubtotalKobo +=
+          BigInt(Math.round(offering.price * 100)) * BigInt(item.quantity || 1)
       }
 
       const priceableOffering: PriceableOffering = {
@@ -165,7 +179,18 @@ export class CreateCommerceOrderUseCase {
     }
 
     // 3. Recalculate order pricing server-side using shared engine
-    const discountKobo = dto.discountKobo ? BigInt(dto.discountKobo) : 0n
+    // Authoritative server-side voucher discount (never trust client-supplied discountKobo)
+    let discountKobo = 0n
+    if (voucherEligibleSubtotalKobo > 0n && this.voucherRepo) {
+      const availableVoucherKobo = await this.voucherRepo.getAvailableBalanceKobo(resolvedUserId)
+      if (availableVoucherKobo > 0n) {
+        discountKobo =
+          availableVoucherKobo >= voucherEligibleSubtotalKobo
+            ? voucherEligibleSubtotalKobo
+            : availableVoucherKobo
+      }
+    }
+
     const pricing = CommercePricingEngine.calculateOrderPricing({
       items: priceableItems,
       totalDiscountKobo: discountKobo,
@@ -232,6 +257,35 @@ export class CreateCommerceOrderUseCase {
         }
       }
       throw err
+    }
+
+    // 7. Atomically reserve voucher balance for this order (prevents concurrent double-spend)
+    if (pricing.discountKobo > 0n && this.voucherRepo && order.id) {
+      const reserveResult = await this.voucherRepo.reserveVoucherForOrder({
+        userId: resolvedUserId,
+        orderId: order.id,
+        maxAmountKobo: pricing.discountKobo,
+        idempotencyKey: `ORDER_RESERVE:${order.id}`,
+        reason: `Voucher applied to order #${order.orderNumber}`,
+      })
+
+      if (reserveResult.reservedKobo < pricing.discountKobo) {
+        // Concurrent balance change detected — roll back reservation and cancel the unpaid order
+        if (reserveResult.reservedKobo > 0n) {
+          await this.voucherRepo.releaseReservedVoucherForOrder(
+            order.id,
+            'Released due to concurrent voucher balance change during checkout',
+          )
+        }
+        await this.orderRepo.releaseInventory(
+          order.id,
+          'Cancelled due to concurrent voucher balance change',
+        )
+        await this.orderRepo.updateOrderStatus(order.id, 'CANCELLED')
+        throw new ConflictException(
+          'Your voucher balance changed while placing this order. Please refresh and try again.',
+        )
+      }
     }
 
     return {

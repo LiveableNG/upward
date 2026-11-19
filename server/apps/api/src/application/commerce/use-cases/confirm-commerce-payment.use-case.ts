@@ -9,6 +9,10 @@ import {
   COMMERCE_ORDER_REPOSITORY,
   CommerceOrderRepository,
 } from '../../../domains/commerce/commerce-order.repository'
+import {
+  VOUCHER_REPOSITORY,
+  VoucherRepository,
+} from '../../../domains/vouchers/voucher.repository'
 import { SendCommerceReceiptEmailUseCase } from './send-commerce-receipt-email.use-case'
 
 export interface PaystackPaymentWebhookData {
@@ -38,6 +42,9 @@ export class ConfirmCommercePaymentUseCase {
     private readonly orderRepo: CommerceOrderRepository,
     @Optional()
     private readonly sendReceiptEmailUseCase?: SendCommerceReceiptEmailUseCase,
+    @Optional()
+    @Inject(VOUCHER_REPOSITORY)
+    private readonly voucherRepo?: VoucherRepository,
   ) {}
 
   async execute(data: PaystackPaymentWebhookData): Promise<ConfirmCommercePaymentResult> {
@@ -156,6 +163,18 @@ export class ConfirmCommercePaymentUseCase {
       channel: data.channel,
       paidAt,
     })
+
+    // Finalize reserved voucher redemption on confirmed payment
+    if (this.voucherRepo && order.id && order.discountKobo > 0n) {
+      try {
+        await this.voucherRepo.redeemReservedVoucherForOrder(order.id)
+      } catch (voucherErr) {
+        this.logger.error(
+          `Failed to finalize voucher redemption for paid order #${order.id}`,
+          voucherErr,
+        )
+      }
+    }
 
     this.logger.log(`Order ${order.orderNumber} successfully confirmed and transitioned to PAID`)
 

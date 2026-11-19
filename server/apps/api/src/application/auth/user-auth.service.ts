@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException, Inject, ForbiddenException, BadRequestException } from '@nestjs/common'
+import { Injectable, UnauthorizedException, ConflictException, Inject, ForbiddenException, BadRequestException, Optional } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
 import { UserRepository, USER_REPOSITORY, User, PASS_PLACEHOLDERS } from '../../domains/users/user.repository'
@@ -18,6 +18,7 @@ import { UnifiedCommunicationService } from '../../shared/infrastructure/communi
 import { InitializeUserSequenceUseCase } from '../use-cases/whatsapp-sequence/initialize-user-sequence.use-case'
 import { SyncUserSequenceChannelUseCase } from '../use-cases/sequence/sync-user-sequence-channel.use-case'
 import { InitializeEmailSequenceUseCase } from '../use-cases/email-sequence/initialize-email-sequence.use-case'
+import { CreditSignupVoucherUseCase } from '../vouchers/use-cases/credit-signup-voucher.use-case'
 
 interface AppleJwkKey {
   kty: string
@@ -66,6 +67,8 @@ export class UserAuthService extends BaseAuthService {
     private readonly unifiedCommService: UnifiedCommunicationService,
     jwtService: JwtService,
     configService: ConfigService,
+    @Optional()
+    private readonly creditSignupVoucherUseCase?: CreditSignupVoucherUseCase,
   ) {
     super(jwtService, configService)
   }
@@ -169,6 +172,7 @@ export class UserAuthService extends BaseAuthService {
       isFromInvite?: boolean
       dateOfBirth?: string
       hearAboutUs?: string
+      voucherCode?: string
     },
     ipAddress?: string,
     userAgent?: string,
@@ -275,6 +279,18 @@ export class UserAuthService extends BaseAuthService {
         // Send welcome messages instantly
         this.sendWelcomeMessages(user, dto.firstName, pmName).catch(e => console.error('Failed to send welcome messages', e));
 
+        // Credit signup link voucher if user converted via a voucher campaign link
+        if (dto.voucherCode && this.creditSignupVoucherUseCase) {
+          await this.creditSignupVoucherUseCase.execute({
+            userId: user.id!,
+            userUuid: user.uuid,
+            email: user.email,
+            firstName: dto.firstName || user.firstName || 'there',
+            voucherCode: dto.voucherCode,
+            source: 'SHADOW_CONVERSION',
+          }).catch(e => console.error('Failed to credit signup voucher on shadow conversion', e))
+        }
+
         return this.generateFullAuthResponse(user, ipAddress, userAgent)
       }
       throw new ConflictException('User with this email already exists')
@@ -362,6 +378,18 @@ export class UserAuthService extends BaseAuthService {
 
     // Send welcome messages instantly
     this.sendWelcomeMessages(user, dto.firstName, pmName).catch(e => console.error('Failed to send welcome messages', e));
+
+    // Credit signup link voucher if user signed up via a voucher campaign link
+    if (dto.voucherCode && this.creditSignupVoucherUseCase) {
+      await this.creditSignupVoucherUseCase.execute({
+        userId: user.id!,
+        userUuid: user.uuid,
+        email: user.email,
+        firstName: dto.firstName || user.firstName || 'there',
+        voucherCode: dto.voucherCode,
+        source: 'SIGNUP',
+      }).catch(e => console.error('Failed to credit signup voucher on signup', e))
+    }
 
     return this.generateFullAuthResponse(user, ipAddress, userAgent)
   }
@@ -1194,7 +1222,7 @@ export class UserAuthService extends BaseAuthService {
   async socialSignIn(
     provider: 'google' | 'apple',
     idToken: string,
-    profileData?: { firstName?: string; lastName?: string },
+    profileData?: { firstName?: string; lastName?: string; voucherCode?: string },
     ipAddress?: string,
     userAgent?: string,
   ): Promise<UserAuthResponse & { refreshToken: string; isNewUser: boolean }> {
@@ -1520,6 +1548,18 @@ export class UserAuthService extends BaseAuthService {
 
     if (!user) {
       throw new Error(`Failed to resolve user after ${provider} sign-in`)
+    }
+
+    // Credit signup link voucher ONLY for net-new signups or shadow/invited/waitlist conversions (never existing active logins)
+    if (isNewUser && profileData?.voucherCode && this.creditSignupVoucherUseCase) {
+      await this.creditSignupVoucherUseCase.execute({
+        userId: user.id!,
+        userUuid: user.uuid,
+        email: user.email,
+        firstName: user.firstName || firstName || 'there',
+        voucherCode: profileData.voucherCode,
+        source: 'SOCIAL_OAUTH',
+      }).catch(e => console.error('Failed to credit signup voucher on social sign-in', e))
     }
 
     const authResponse = await this.generateFullAuthResponse(user, ipAddress, userAgent)

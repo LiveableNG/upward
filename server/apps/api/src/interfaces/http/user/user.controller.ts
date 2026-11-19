@@ -131,6 +131,7 @@ export class UserController {
       isFromInvite?: boolean;
       dateOfBirth?: string;
       hearAboutUs?: string;
+      voucherCode?: string;
     },
     @Res({ passthrough: false }) reply: FastifyReply,
   ) {
@@ -156,6 +157,7 @@ export class UserController {
       idToken: string
       firstName?: string
       lastName?: string
+      voucherCode?: string
     },
     @Res({ passthrough: false }) reply: FastifyReply,
   ) {
@@ -167,7 +169,7 @@ export class UserController {
     const { refreshToken, ...rest } = await this.userAuthService.socialSignIn(
       body.provider,
       body.idToken,
-      { firstName: body.firstName, lastName: body.lastName },
+      { firstName: body.firstName, lastName: body.lastName, voucherCode: body.voucherCode },
       ipAddress,
       userAgent,
     )
@@ -202,6 +204,7 @@ export class UserController {
       gender: body.gender,
       dateOfBirth: body.dateOfBirth,
       profilePic: body.profilePic,
+      voucherCode: body.voucherCode,
     })
     setUserAuthCookies(reply, rest.accessToken, refreshToken)
     reply.status(HttpStatus.OK).send(isCapacitor ? { ...rest, refreshToken } : rest)

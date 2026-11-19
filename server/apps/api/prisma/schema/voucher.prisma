@@ -1,0 +1,88 @@
+enum VoucherCampaignType {
+  SIGNUP_LINK
+  GAMING_REWARD
+  ADMIN_GRANT
+  PROMO
+}
+
+enum VoucherLedgerEntryType {
+  CREDIT_SIGNUP_LINK
+  CREDIT_GAMING_REWARD
+  CREDIT_ADMIN_GRANT
+  RESERVE_ORDER
+  REDEEM_ORDER
+  RELEASE_ORDER
+  ADMIN_REVERSAL
+}
+
+model upward_voucher_campaign {
+  id                Int                   @id @default(autoincrement())
+  uuid              String                @unique @default(uuid())
+  code              String                @unique @db.VarChar(64)
+  name              String                @db.VarChar(150)
+  description       String?               @db.Text
+  type              VoucherCampaignType   @default(SIGNUP_LINK)
+  defaultAmountKobo BigInt                @default(0)
+  maxBudgetKobo     BigInt?
+  spentKobo         BigInt                @default(0)
+  isActive          Boolean               @default(true)
+  startsAt          DateTime?
+  expiresAt         DateTime?
+  emailTemplateKey  String?               @db.VarChar(100)
+  metadata          Json?
+  createdAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+
+  ledgerEntries     upward_voucher_ledger_entry[]
+
+  @@index([code])
+  @@index([type, isActive])
+}
+
+model upward_voucher_wallet {
+  id                   Int                           @id @default(autoincrement())
+  uuid                 String                        @unique @default(uuid())
+  userId               Int                           @unique
+  currency             String                        @default("NGN") @db.VarChar(10)
+  availableBalanceKobo BigInt                        @default(0)
+  reservedBalanceKobo  BigInt                        @default(0)
+  lifetimeEarnedKobo   BigInt                        @default(0)
+  lifetimeRedeemedKobo BigInt                        @default(0)
+  version              Int                           @default(0)
+  createdAt            DateTime                      @default(now())
+  updatedAt            DateTime                      @updatedAt
+
+  user                 upward_user                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ledgerEntries        upward_voucher_ledger_entry[]
+
+  @@index([userId])
+}
+
+model upward_voucher_ledger_entry {
+  id               Int                      @id @default(autoincrement())
+  uuid             String                   @unique @default(uuid())
+  walletId         Int
+  userId           Int
+  type             VoucherLedgerEntryType
+  amountKobo       BigInt                   // Positive for credits/releases, negative for reservations/debits/reversals
+  balanceAfterKobo BigInt                   // Snapshot of availableBalanceKobo after this entry
+  idempotencyKey   String                   @unique @db.VarChar(150)
+  campaignId       Int?
+  orderId          Int?
+  grantedByAdminId String?
+  reason           String?                  @db.VarChar(255)
+  metadata         Json?
+  createdAt        DateTime                 @default(now())
+
+  wallet           upward_voucher_wallet    @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  user             upward_user              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaign         upward_voucher_campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  order            upward_commerce_order?   @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  grantedByAdmin   upward_admin?            @relation(fields: [grantedByAdminId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([walletId, createdAt])
+  @@index([orderId])
+  @@index([campaignId])
+  @@index([grantedByAdminId])
+}

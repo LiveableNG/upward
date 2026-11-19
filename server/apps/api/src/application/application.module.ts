@@ -28,6 +28,9 @@ import { CreateCustomGoalUseCase } from './goals/use-cases/create-custom-goal.us
 import { ToggleGoalActionUseCase } from './goals/use-cases/toggle-goal-action.use-case'
 import { SubmitGoalQuestionnaireUseCase } from './goals/use-cases/submit-goal-questionnaire.use-case'
 import { GetOfferingsUseCase } from './goals/use-cases/get-offerings.use-case'
+import { CreditSignupVoucherUseCase } from './vouchers/use-cases/credit-signup-voucher.use-case'
+import { AdminGrantVoucherUseCase } from './vouchers/use-cases/admin-grant-voucher.use-case'
+import { GetUserVoucherSummaryUseCase } from './vouchers/use-cases/get-user-voucher-summary.use-case'
 import { GetOfferingDetailUseCase } from './goals/use-cases/get-offering-detail.use-case'
 import { AdminManageCategoriesUseCase } from './goals/use-cases/admin/admin-manage-categories.use-case'
 import { AdminManageGoalsUseCase } from './goals/use-cases/admin/admin-manage-goals.use-case'
@@ -1211,6 +1214,11 @@ const UseCases: any[] = [
   AdminUpdateDeliveryZoneUseCase,
   AdminToggleDeliveryZoneUseCase,
   AdminDeleteDeliveryZoneUseCase,
+
+  // Voucher & Gaming Reward Use Cases
+  CreditSignupVoucherUseCase,
+  AdminGrantVoucherUseCase,
+  GetUserVoucherSummaryUseCase,
 ]
 
 // AI Document ingestion imports

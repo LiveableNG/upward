@@ -14,6 +14,8 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
 import { UnifiedCommunicationService } from '../communication/unified-communication.service'
 import {
   applyPmBranding,
+  buildSignupVoucherEmailHtml,
+  buildGamingRewardVoucherEmailHtml,
 } from './email.helper'
 
 @Injectable()
@@ -965,6 +967,75 @@ export class EmailService {
 
     const info = await transporter.sendMail(mailOptions)
     return info.messageId || `oauth-${Date.now()}`
+  }
+
+  async sendSignupVoucherEmail(params: {
+    userId?: string
+    email: string
+    firstName: string
+    amountNaira: number
+    totalBalanceNaira: number
+    campaignName?: string
+  }) {
+    const appUrl =
+      this.configService.get<string>('PAY_APP_URL') ||
+      this.configService.get<string>('UPWARD_PAY_URL') ||
+      `${this.frontendUrl}/dashboard/lifestyle`
+    const html = buildSignupVoucherEmailHtml({
+      firstName: params.firstName,
+      amountNaira: params.amountNaira,
+      totalBalanceNaira: params.totalBalanceNaira,
+      campaignName: params.campaignName,
+      appUrl,
+    })
+    const formattedAmount = params.amountNaira.toLocaleString('en-NG')
+    return this.sendEmailWithRetry({
+      userId: params.userId,
+      email: params.email,
+      subject: `You unlocked a ₦${formattedAmount} Upward Home Refresh Voucher!`,
+      html,
+      text: `Hi ${params.firstName}, you unlocked a ₦${formattedAmount} Upward voucher toward the Home Refresh Package. Your available balance is ₦${params.totalBalanceNaira.toLocaleString('en-NG')}. Open Upward Pay: ${appUrl}`,
+      type: 'VOUCHER_SIGNUP_CREDIT',
+    })
+  }
+
+  async sendGamingRewardVoucherEmail(params: {
+    userId?: string
+    email: string
+    firstName: string
+    amountNaira: number
+    totalBalanceNaira: number
+    subject?: string
+    customMessage?: string
+    reason?: string
+  }) {
+    const appUrl =
+      this.configService.get<string>('PAY_APP_URL') ||
+      this.configService.get<string>('UPWARD_PAY_URL') ||
+      `${this.frontendUrl}/dashboard/lifestyle`
+    const formattedAmount = params.amountNaira.toLocaleString('en-NG')
+    const resolvedSubject =
+      params.subject?.trim() ||
+      `Congratulations! You just won a ₦${formattedAmount} Upward Voucher!`
+    const html = buildGamingRewardVoucherEmailHtml({
+      firstName: params.firstName,
+      amountNaira: params.amountNaira,
+      totalBalanceNaira: params.totalBalanceNaira,
+      headline: resolvedSubject,
+      customMessage: params.customMessage,
+      reason: params.reason,
+      appUrl,
+    })
+    return this.sendEmailWithRetry({
+      userId: params.userId,
+      email: params.email,
+      subject: resolvedSubject,
+      html,
+      text:
+        params.customMessage?.trim() ||
+        `Hi ${params.firstName}, congratulations! You won a ₦${formattedAmount} Upward voucher. Your total accumulated voucher balance is now ₦${params.totalBalanceNaira.toLocaleString('en-NG')}.`,
+      type: 'VOUCHER_GAMING_REWARD',
+    })
   }
 
   private createTrackingToken(originalUrl: string, linkId: string): string {
