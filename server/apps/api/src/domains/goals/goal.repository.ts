@@ -129,6 +129,44 @@ export interface GoalOfferingLink {
   offering?: any
 }
 
+export interface GoalsOverviewStats {
+  totalCategories: number
+  totalGoals: number
+  totalActiveUserGoals: number
+  activeUserGoals: number
+  uniqueTenantsWithGoals: number
+  totalOfferings: number
+  publishedOfferings: number
+  totalVendors: number
+  activeVendors: number
+  totalOrders: number
+  activeQuoteOrders: number
+  topGoals: Array<{
+    id: number
+    goalId: number
+    title: string
+    categoryName: string
+    userCount: number
+    count: number
+  }>
+  categoryBreakdown: Array<{
+    categoryId: number
+    categoryName: string
+    selectionCount: number
+    uniqueTenants: number
+  }>
+  recentSelections: Array<{
+    id: number
+    userId: number
+    tenantName: string
+    tenantEmail: string | null
+    goalTitle: string
+    categoryName: string
+    status: string
+    createdAt: Date
+  }>
+}
+
 export interface GoalRepository {
   // Categories
   findCategories(filter?: { status?: GoalPublishStatus; includeGoals?: boolean }): Promise<GoalCategory[]>
@@ -192,12 +230,7 @@ export interface GoalRepository {
   unlinkOfferingFromGoal(goalId: number, offeringId: number, collectionId?: number | null): Promise<void>
 
   // Analytics Overview
-  getGoalsOverview(): Promise<{
-    totalCategories: number
-    totalGoals: number
-    totalActiveUserGoals: number
-    topGoals: Array<{ goalId: number; title: string; count: number }>
-  }>
+  getGoalsOverview(): Promise<GoalsOverviewStats>
 }
 
 export const GOAL_REPOSITORY = Symbol('GOAL_REPOSITORY')

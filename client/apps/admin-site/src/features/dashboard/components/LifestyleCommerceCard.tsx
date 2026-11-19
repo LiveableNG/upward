@@ -11,8 +11,12 @@ interface GoalsOverviewData {
   totalCategories: number
   totalGoals: number
   activeUserGoals: number
+  totalActiveUserGoals?: number
+  uniqueTenantsWithGoals?: number
   totalOfferings: number
+  publishedOfferings?: number
   totalVendors: number
+  activeVendors?: number
 }
 
 export const LifestyleCommerceCard: React.FC<LifestyleCommerceCardProps> = ({ token }) => {
@@ -92,7 +96,7 @@ export const LifestyleCommerceCard: React.FC<LifestyleCommerceCardProps> = ({ to
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
           <button
             type="button"
             onClick={fetchOverview}
@@ -103,6 +107,22 @@ export const LifestyleCommerceCard: React.FC<LifestyleCommerceCardProps> = ({ to
           >
             <RefreshCcw size={14} className={loading ? 'loader' : ''} />
           </button>
+          <Link
+            to="/tenant-goals"
+            className="btn btn-secondary"
+            style={{
+              height: '36px',
+              padding: '0 14px',
+              fontSize: '13px',
+              fontWeight: 600,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+          >
+            <Target size={14} />
+            <span>Tenant Goals Insights</span>
+          </Link>
           <Link
             to="/commerce"
             className="btn btn-primary"
@@ -167,7 +187,8 @@ export const LifestyleCommerceCard: React.FC<LifestyleCommerceCardProps> = ({ to
           }}
         >
           {/* Tile 1: Active Goals */}
-          <div
+          <Link
+            to="/tenant-goals"
             style={{
               background: 'var(--bg)',
               border: '1px solid var(--border)',
@@ -176,6 +197,7 @@ export const LifestyleCommerceCard: React.FC<LifestyleCommerceCardProps> = ({ to
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
+              textDecoration: 'none',
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -185,15 +207,18 @@ export const LifestyleCommerceCard: React.FC<LifestyleCommerceCardProps> = ({ to
               <Users size={16} color="#10b981" />
             </div>
             <div style={{ fontSize: '26px', fontWeight: 800, marginTop: '8px', color: 'var(--text)' }}>
-              {data?.activeUserGoals ?? 0}
+              {data?.activeUserGoals ?? data?.totalActiveUserGoals ?? 0}
             </div>
             <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Tenants actively pursuing lifestyle goals
+              {data?.uniqueTenantsWithGoals != null
+                ? `Across ${data.uniqueTenantsWithGoals} ${data.uniqueTenantsWithGoals === 1 ? 'tenant' : 'tenants'} · View breakdown`
+                : 'Tenants actively pursuing lifestyle goals'}
             </div>
-          </div>
+          </Link>
 
           {/* Tile 2: Published Offerings */}
-          <div
+          <Link
+            to="/commerce/offerings"
             style={{
               background: 'var(--bg)',
               border: '1px solid var(--border)',
@@ -202,6 +227,7 @@ export const LifestyleCommerceCard: React.FC<LifestyleCommerceCardProps> = ({ to
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
+              textDecoration: 'none',
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -211,15 +237,18 @@ export const LifestyleCommerceCard: React.FC<LifestyleCommerceCardProps> = ({ to
               <Package size={16} color="#6366f1" />
             </div>
             <div style={{ fontSize: '26px', fontWeight: 800, marginTop: '8px', color: 'var(--text)' }}>
-              {data?.totalOfferings ?? 0}
+              {data?.publishedOfferings ?? data?.totalOfferings ?? 0}
             </div>
             <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Products, services, and bundled packages
+              {data?.totalOfferings != null && data?.publishedOfferings != null && data.totalOfferings !== data.publishedOfferings
+                ? `${data.totalOfferings} total configured offerings`
+                : 'Products, services, and bundled packages'}
             </div>
-          </div>
+          </Link>
 
           {/* Tile 3: Verified Vendors */}
-          <div
+          <Link
+            to="/commerce/vendors"
             style={{
               background: 'var(--bg)',
               border: '1px solid var(--border)',
@@ -228,6 +257,7 @@ export const LifestyleCommerceCard: React.FC<LifestyleCommerceCardProps> = ({ to
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
+              textDecoration: 'none',
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -237,12 +267,14 @@ export const LifestyleCommerceCard: React.FC<LifestyleCommerceCardProps> = ({ to
               <Store size={16} color="#f59e0b" />
             </div>
             <div style={{ fontSize: '26px', fontWeight: 800, marginTop: '8px', color: 'var(--text)' }}>
-              {data?.totalVendors ?? 0}
+              {data?.activeVendors ?? data?.totalVendors ?? 0}
             </div>
             <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Approved merchants and artisan partners
+              {data?.totalVendors != null && data?.activeVendors != null && data.totalVendors !== data.activeVendors
+                ? `${data.totalVendors} total merchants onboarded`
+                : 'Approved merchants and artisan partners'}
             </div>
-          </div>
+          </Link>
         </div>
       )}
     </div>

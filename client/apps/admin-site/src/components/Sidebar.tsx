@@ -118,6 +118,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
       items: [
         { name: 'App Releases', path: '/app-releases', icon: Download },
         { name: 'App Telemetry', path: '/app-activity', icon: Smartphone },
+        { name: 'Tenant Goals Insights', path: '/tenant-goals', icon: Target },
       ],
     })
 

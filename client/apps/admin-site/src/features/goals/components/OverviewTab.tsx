@@ -1,11 +1,15 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 import {
   Target,
-  Users,
   Package,
   Store,
   FolderTree,
-  TrendingUp,
+  Truck,
+  ShieldAlert,
+  MapPin,
+  ArrowRight,
+  BarChart3,
   ShieldCheck,
 } from 'lucide-react'
 import type { GoalsOverview, GoalTab } from '../types'
@@ -29,12 +33,9 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
   onNewOffering,
   onNewVendor,
 }) => {
-  const topGoals = overview?.topGoals || []
-  const maxUserCount = Math.max(...topGoals.map((g) => g.userCount), 1)
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      {/* 1. Stat Cards Grid */}
+      {/* 1. Commerce KPI Cards Grid */}
       <div
         style={{
           display: 'grid',
@@ -42,40 +43,6 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
           gap: '16px',
         }}
       >
-        <div
-          className="card"
-          onClick={() => onNavigateTab('GOALS')}
-          style={{ cursor: 'pointer', transition: 'var(--transition)' }}
-        >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="section-label" style={{ color: 'var(--accent)' }}>
-              CONFIGURED GOALS
-            </span>
-            <Target size={20} color="var(--accent)" />
-          </div>
-          <div style={{ fontSize: '28px', fontWeight: 800, marginTop: '8px', color: 'var(--text)' }}>
-            {isLoading ? '...' : overview?.totalGoals ?? 0}
-          </div>
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-            Across {overview?.totalCategories ?? 0} lifestyle categories
-          </div>
-        </div>
-
-        <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="section-label" style={{ color: '#10b981' }}>
-              ACTIVE USER ADOPTIONS
-            </span>
-            <Users size={20} color="#10b981" />
-          </div>
-          <div style={{ fontSize: '28px', fontWeight: 800, marginTop: '8px', color: '#10b981' }}>
-            {isLoading ? '...' : overview?.activeUserGoals ?? 0}
-          </div>
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-            Tenants pursuing active lifestyle goals
-          </div>
-        </div>
-
         <div
           className="card"
           onClick={() => onNavigateTab('OFFERINGS')}
@@ -91,7 +58,9 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             {isLoading ? '...' : overview?.totalOfferings ?? 0}
           </div>
           <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-            Products, services, and bundled packages
+            {overview?.publishedOfferings != null
+              ? `${overview.publishedOfferings} published · Products, services & bundles`
+              : 'Products, services, and bundled packages'}
           </div>
         </div>
 
@@ -110,74 +79,142 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
             {isLoading ? '...' : overview?.totalVendors ?? 0}
           </div>
           <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
-            Artisans, fitness clubs, and merchants
+            {overview?.activeVendors != null
+              ? `${overview.activeVendors} active merchants & service partners`
+              : 'Merchants and service partners'}
+          </div>
+        </div>
+
+        <Link
+          to="/commerce/orders"
+          className="card"
+          style={{ cursor: 'pointer', transition: 'var(--transition)', textDecoration: 'none' }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span className="section-label" style={{ color: '#10b981' }}>
+              COMMERCE ORDERS
+            </span>
+            <Truck size={20} color="#10b981" />
+          </div>
+          <div style={{ fontSize: '28px', fontWeight: 800, marginTop: '8px', color: '#10b981' }}>
+            {isLoading ? '...' : overview?.totalOrders ?? 0}
+          </div>
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+            {overview?.activeQuoteOrders
+              ? `${overview.activeQuoteOrders} active service price ${overview.activeQuoteOrders === 1 ? 'request' : 'requests'}`
+              : 'All product, package & service orders'}
+          </div>
+        </Link>
+
+        <div
+          className="card"
+          onClick={() => onNavigateTab('GOALS')}
+          style={{ cursor: 'pointer', transition: 'var(--transition)' }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span className="section-label" style={{ color: 'var(--accent)' }}>
+              CONFIGURED GOALS
+            </span>
+            <Target size={20} color="var(--accent)" />
+          </div>
+          <div style={{ fontSize: '28px', fontWeight: 800, marginTop: '8px', color: 'var(--text)' }}>
+            {isLoading ? '...' : overview?.totalGoals ?? 0}
+          </div>
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+            Across {overview?.totalCategories ?? 0} lifestyle categories
           </div>
         </div>
       </div>
 
-      {/* 2. Top Goals Analytics & Quick Actions */}
+      {/* 2. Operations Shortcuts & Quick Actions */}
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(360px, 1fr))',
           gap: '20px',
         }}
       >
-        {/* Top Goals Distribution */}
-        <div className="card" style={{ padding: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
-            <div>
-              <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: 'var(--text)' }}>
-                Top Goals Selected by Tenants
-              </h3>
-              <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
-                Most popular lifestyle aspirations across the tenant base
-              </p>
-            </div>
-            <TrendingUp size={20} color="var(--accent)" />
+        {/* Operations & Tenant Goals Handoff */}
+        <div className="card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div>
+            <h3 style={{ fontSize: '16px', fontWeight: 700, margin: 0, color: 'var(--text)' }}>
+              Fulfilment &amp; Insights
+            </h3>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
+              Jump straight to live operations or dedicated tenant goal setup analytics
+            </p>
           </div>
 
-          {topGoals.length === 0 ? (
-            <div style={{ padding: '36px 0', textAlign: 'center', color: 'var(--text-muted)' }}>
-              No user goal selections recorded yet. Once tenants select goals during onboarding or from their dashboard, adoption distribution will appear here.
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {topGoals.map((item, index) => {
-                const percent = Math.round((item.userCount / maxUserCount) * 100)
-                return (
-                  <div key={item.id}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px' }}>
-                      <span style={{ fontWeight: 600, color: 'var(--text)' }}>
-                        {index + 1}. {item.title}
-                      </span>
-                      <span style={{ color: 'var(--text-muted)', fontWeight: 600 }}>
-                        {item.userCount} {item.userCount === 1 ? 'tenant' : 'tenants'}
-                      </span>
-                    </div>
-                    <div
-                      style={{
-                        height: '8px',
-                        borderRadius: '4px',
-                        background: 'var(--surface-hover)',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      <div
-                        style={{
-                          height: '100%',
-                          width: `${percent}%`,
-                          borderRadius: '4px',
-                          background: 'var(--accent)',
-                          transition: 'width 0.4s ease-out',
-                        }}
-                      />
-                    </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <Link
+              to="/commerce/orders"
+              className="btn btn-secondary"
+              style={{ justifyContent: 'space-between', padding: '12px 14px', height: 'auto', textDecoration: 'none' }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Truck size={17} color="#10b981" />
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text)' }}>Orders &amp; Fulfilment Desk</div>
+                  <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>Manage paid orders, service requests &amp; dispatches</div>
+                </div>
+              </div>
+              <ArrowRight size={15} color="var(--text-muted)" />
+            </Link>
+
+            <Link
+              to="/commerce/disputes"
+              className="btn btn-secondary"
+              style={{ justifyContent: 'space-between', padding: '12px 14px', height: 'auto', textDecoration: 'none' }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <ShieldAlert size={17} color="#f59e0b" />
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text)' }}>Inquiries &amp; Disputes</div>
+                  <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>Resolve customer questions and fulfilment issues</div>
+                </div>
+              </div>
+              <ArrowRight size={15} color="var(--text-muted)" />
+            </Link>
+
+            <Link
+              to="/commerce/zones"
+              className="btn btn-secondary"
+              style={{ justifyContent: 'space-between', padding: '12px 14px', height: 'auto', textDecoration: 'none' }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <MapPin size={17} color="#6366f1" />
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text)' }}>Delivery Coverage Zones</div>
+                  <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>Configure serviceable areas and delivery fees</div>
+                </div>
+              </div>
+              <ArrowRight size={15} color="var(--text-muted)" />
+            </Link>
+
+            <Link
+              to="/tenant-goals"
+              className="btn btn-secondary"
+              style={{
+                justifyContent: 'space-between',
+                padding: '12px 14px',
+                height: 'auto',
+                textDecoration: 'none',
+                borderColor: 'var(--accent-muted)',
+                background: 'var(--accent-faint)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <BarChart3 size={17} color="var(--accent)" />
+                <div style={{ textAlign: 'left' }}>
+                  <div style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text)' }}>Tenant Goals Insights</div>
+                  <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                    Dedicated page for tenant goals setup &amp; selection statistics
                   </div>
-                )
-              })}
-            </div>
-          )}
+                </div>
+              </div>
+              <ArrowRight size={15} color="var(--accent)" />
+            </Link>
+          </div>
         </div>
 
         {/* Quick Management Shortcuts */}
