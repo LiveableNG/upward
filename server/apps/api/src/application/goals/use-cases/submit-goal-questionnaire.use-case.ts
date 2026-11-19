@@ -10,6 +10,7 @@ import { SubmitGoalQuestionnaireDto } from '../dto/user-goal.dto'
 import { computeTargetDate } from '../../../domains/goals/timeline.calculator'
 import { randomUUID } from 'crypto'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
+import { TriggerAutomatedRewardUseCase } from '../../rewards/use-cases/trigger-automated-reward.use-case'
 
 const DEFAULT_SUGGESTED_ACTIONS: Record<string, string[]> = {
   housing: [
@@ -72,6 +73,8 @@ export class SubmitGoalQuestionnaireUseCase {
     private readonly userRepo?: UserRepository,
     @Optional()
     private readonly prisma?: PrismaService,
+    @Optional()
+    private readonly triggerRewardUseCase?: TriggerAutomatedRewardUseCase,
   ) {}
 
   async execute(
@@ -144,7 +147,7 @@ export class SubmitGoalQuestionnaireUseCase {
       ? BigInt(dto.targetAmountKobo)
       : null
 
-    return this.goalRepo.createCustomUserGoal(resolvedUserId, {
+    const createdGoal = await this.goalRepo.createCustomUserGoal(resolvedUserId, {
       title: `${dto.selectedOption}`,
       categorySlug: dto.categorySlug,
       icon: iconMap[dto.categorySlug] || '🎯',
@@ -157,6 +160,33 @@ export class SubmitGoalQuestionnaireUseCase {
       status: 'ACTIVE',
       notes: `Set via ${dto.questionTitle}: ${dto.selectedOption}`,
     })
+
+    if (this.triggerRewardUseCase) {
+      const slug = dto.categorySlug.toLowerCase()
+      const triggerKey =
+        slug === 'income'
+          ? 'FORM_INCOME_INFO'
+          : slug === 'career'
+            ? 'FORM_CAREER_GOALS'
+            : 'FORM_FINANCIAL_GOALS'
+
+      const customReason =
+        slug === 'income'
+          ? 'Completed income information form'
+          : slug === 'career'
+            ? 'Completed career goals form'
+            : `Completed ${dto.categorySlug} financial goals form`
+
+      await this.triggerRewardUseCase
+        .execute({
+          userId: resolvedUserId,
+          triggerKey,
+          customReason,
+        })
+        .catch(() => {})
+    }
+
+    return createdGoal
   }
 }
 

@@ -39,6 +39,8 @@ const pathMetadata: Record<string, { name: string; category?: string }> = {
   '/commerce/orders': { name: 'Orders & Fulfilment Desk', category: 'Commerce Workspace' },
   '/commerce/disputes': { name: 'Inquiries & Disputes Desk', category: 'Commerce Workspace' },
   '/commerce/zones': { name: 'Delivery Coverage Zones', category: 'Commerce Workspace' },
+  '/commerce/rewards': { name: 'Rewards & Promotional Vouchers', category: 'Commerce Workspace' },
+  '/rewards': { name: 'Rewards & Promotional Vouchers', category: 'Commerce & Growth' },
   '/experiments/rental-onboarding': { name: 'Rental Onboarding Experiment', category: 'Overview' },
   '/feedback': { name: 'User Feedback', category: 'Developer & Security' },
   '/dev-emails': { name: 'Dev Email Sandbox', category: 'Developer & Security' },

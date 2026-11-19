@@ -1221,6 +1221,15 @@ import { DocumentPreProcessorEngine } from '../shared/infrastructure/ai/document
 import { UnstructuredPipelineService } from '../shared/infrastructure/ai/unstructured-pipeline.service'
 import { AiParseDocumentUseCase } from './pm/use-cases/ai/ai-parse-document.use-case'
 import { ConfigModule, ConfigService } from '@nestjs/config'
+import { TriggerAutomatedRewardUseCase } from './rewards/use-cases/trigger-automated-reward.use-case'
+import { GetUserRewardsSummaryUseCase } from './rewards/use-cases/get-user-rewards-summary.use-case'
+import { AdminGetRewardsDashboardUseCase } from './rewards/use-cases/admin-get-rewards-dashboard.use-case'
+import { AdminSearchRewardUsersUseCase } from './rewards/use-cases/admin-search-reward-users.use-case'
+import { AdminGetUserRewardDetailUseCase } from './rewards/use-cases/admin-get-user-reward-detail.use-case'
+import { AdminAwardVoucherUseCase } from './rewards/use-cases/admin-award-voucher.use-case'
+import { AdminAwardCashbackUseCase } from './rewards/use-cases/admin-award-cashback.use-case'
+import { AdminUpdateRewardRuleUseCase } from './rewards/use-cases/admin-update-reward-rule.use-case'
+import { AdminTopUpCashbackPoolUseCase } from './rewards/use-cases/admin-top-up-cashback-pool.use-case'
 
 UseCases.push(
   AiParseDocumentUseCase,
@@ -1228,6 +1237,15 @@ UseCases.push(
   GetAppVersionPoliciesUseCase,
   UpdateAppVersionPolicyUseCase,
   ToggleAppForceUpdateUseCase,
+  TriggerAutomatedRewardUseCase,
+  GetUserRewardsSummaryUseCase,
+  AdminGetRewardsDashboardUseCase,
+  AdminSearchRewardUsersUseCase,
+  AdminGetUserRewardDetailUseCase,
+  AdminAwardVoucherUseCase,
+  AdminAwardCashbackUseCase,
+  AdminUpdateRewardRuleUseCase,
+  AdminTopUpCashbackPoolUseCase,
 )
 
 import { SmsModule } from '../shared/infrastructure/sms/sms.module'

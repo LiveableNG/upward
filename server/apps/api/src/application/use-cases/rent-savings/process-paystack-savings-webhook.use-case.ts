@@ -3,6 +3,7 @@ import {
   Inject,
   Logger,
   BadRequestException,
+  Optional,
   UnauthorizedException,
 } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
@@ -13,6 +14,7 @@ import {
 } from '../../../domains/rent-savings/rent-vault.repository'
 import { AssetManagementProviderRegistry } from '../../../infrastructure/providers/asset-management/asset-management-provider.registry'
 import { isProductionRuntime } from '../../../shared/utils/runtime-env'
+import { TriggerAutomatedRewardUseCase } from '../../rewards/use-cases/trigger-automated-reward.use-case'
 
 export interface PaystackWebhookPayload {
   event: string
@@ -44,6 +46,8 @@ export class ProcessPaystackSavingsWebhookUseCase {
     @Inject(RENT_VAULT_REPOSITORY)
     private readonly rentVaultRepo: IRentVaultRepository,
     private readonly providerRegistry: AssetManagementProviderRegistry,
+    @Optional()
+    private readonly triggerRewardUseCase?: TriggerAutomatedRewardUseCase,
   ) {
     this.secretKey = this.configService.get<string>('PAYSTACK_SECRET_KEY') || ''
   }
@@ -181,6 +185,18 @@ export class ProcessPaystackSavingsWebhookUseCase {
       vault.targetAmountKobo,
       newBalance,
     )
+
+    if (this.triggerRewardUseCase) {
+      await this.triggerRewardUseCase
+        .execute({
+          userId: vault.userId,
+          triggerKey: 'SAVINGS_DEPOSIT_QUALIFYING',
+          qualifyingAmountKobo: amountKobo,
+          uniqueOccurrenceKey: reference,
+          customReason: `Savings deposit cashback for saving ₦${(Number(amountKobo) / 100).toLocaleString()}`,
+        })
+        .catch(() => {})
+    }
 
     return {
       status: 'success',

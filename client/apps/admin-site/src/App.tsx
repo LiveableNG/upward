@@ -41,6 +41,7 @@ import UpwardUniversity from './pages/UpwardUniversity'
 import Settlements from './pages/Settlements'
 import CommerceWorkspace from './pages/CommerceWorkspace'
 import TenantGoalsAnalytics from './pages/TenantGoalsAnalytics'
+import RewardsAndVouchers from './pages/RewardsAndVouchers'
 
 import ChangePassword from './components/ChangePassword'
 import './App.css'
@@ -146,6 +147,8 @@ function AppRoutes() {
           <Route path="/commerce/orders" element={<CommerceWorkspace token={auth.token} adminRole={auth.user.role} />} />
           <Route path="/commerce/disputes" element={<CommerceWorkspace token={auth.token} adminRole={auth.user.role} />} />
           <Route path="/commerce/zones" element={<CommerceWorkspace token={auth.token} adminRole={auth.user.role} />} />
+          <Route path="/commerce/rewards" element={<RewardsAndVouchers token={auth.token} />} />
+          <Route path="/rewards" element={<RewardsAndVouchers token={auth.token} />} />
           {showSandboxTools && (
             <Route path="/demo-bank" element={<DemoBank token={auth.token} />} />
           )}

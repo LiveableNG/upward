@@ -20,10 +20,12 @@ import {
   ChevronRight,
   Check,
   Search,
+  Ticket,
 } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
 import { sessionTracker } from '@/lib/sessionTracker'
+import { useUserRewardsSummary } from '@/features/rewards/hooks/useRewards'
 import {
   useCreateCommerceOrder,
   useInitializeCommercePayment,
@@ -93,6 +95,8 @@ export function CommerceCheckoutModal({
   const [quantity, setQuantity] = useState(1)
   const [isProcessing, setIsProcessing] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [applyVoucher, setApplyVoucher] = useState(true)
+  const { data: rewardsSummary } = useUserRewardsSummary(isOpen)
 
   // Configured delivery zones & user selected zone
   const [availableZones, setAvailableZones] = useState<DeliveryZoneItem[]>([])
@@ -255,7 +259,11 @@ export function CommerceCheckoutModal({
   const deliveryFee = allServices
     ? 0
     : parseKoboToNgn(selectedLocation?.deliveryFeeKobo)
-  const grandTotal = itemsSubtotal + deliveryFee
+  const availableVoucherNaira = rewardsSummary?.availableBalanceNaira ?? 0
+  const appliedVoucherDiscount = applyVoucher
+    ? Math.min(availableVoucherNaira, itemsSubtotal)
+    : 0
+  const grandTotal = Math.max(0, itemsSubtotal + deliveryFee - appliedVoucherDiscount)
 
   const offeringTitle = offering?.title || offering?.name || 'Commerce Offering'
   const vendorName = offering?.vendor?.name || 'Upward Partner'
@@ -332,6 +340,7 @@ export function CommerceCheckoutModal({
         deliveryAddress: fullDeliveryAddress,
         deliveryZoneTag: selectedLocation.zoneTag,
         deliveryNotes: data.deliveryNotes ? data.deliveryNotes.trim() : undefined,
+        applyVoucher,
         items: effectiveItems.map((it) => ({
           offeringUuid: it.offeringUuid,
           offeringId: it.offeringId,
@@ -753,6 +762,54 @@ export function CommerceCheckoutModal({
               </span>
             </div>
 
+            {availableVoucherNaira > 0 && (
+              <div
+                className="checkout-sheet__ledger-row"
+                style={{
+                  alignItems: 'center',
+                  padding: '8px 10px',
+                  margin: '4px 0',
+                  borderRadius: 10,
+                  background: applyVoucher
+                    ? 'rgba(217, 119, 87, 0.12)'
+                    : 'rgba(255, 255, 255, 0.03)',
+                  border: applyVoucher
+                    ? '1px solid rgba(217, 119, 87, 0.35)'
+                    : '1px solid rgba(255, 255, 255, 0.08)',
+                }}
+              >
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    cursor: 'pointer',
+                    fontSize: '12.5px',
+                    fontWeight: 600,
+                    color: 'var(--text)',
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={applyVoucher}
+                    onChange={(e) => setApplyVoucher(e.target.checked)}
+                    disabled={isProcessing}
+                    style={{ accentColor: 'var(--clay)', width: 15, height: 15 }}
+                  />
+                  <Ticket size={14} color="var(--clay)" />
+                  <span>
+                    Promotional Voucher (Bal: {formatNgn(availableVoucherNaira)})
+                  </span>
+                </label>
+                <span
+                  className="checkout-sheet__ledger-val"
+                  style={{ color: applyVoucher ? '#10b981' : 'var(--text-muted)', fontWeight: 700 }}
+                >
+                  {applyVoucher ? `-${formatNgn(appliedVoucherDiscount)}` : formatNgn(0)}
+                </span>
+              </div>
+            )}
+
             <div className="checkout-sheet__ledger-divider" />
 
             <div className="checkout-sheet__ledger-row checkout-sheet__ledger-row--total">
@@ -789,7 +846,9 @@ export function CommerceCheckoutModal({
                   <>
                     <Lock size={16} />
                     <span>
-                      {isService ? 'Book & Pay' : 'Pay'} {formatNgn(grandTotal)} with Paystack
+                      {grandTotal === 0
+                        ? 'Complete Order with Voucher (₦0)'
+                        : `${isService ? 'Book & Pay' : 'Pay'} ${formatNgn(grandTotal)} with Paystack`}
                     </span>
                   </>
                 )}

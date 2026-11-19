@@ -4,11 +4,16 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common'
 import {
   COMMERCE_ORDER_REPOSITORY,
   CommerceOrderRepository,
 } from '../../../../domains/commerce/commerce-order.repository'
+import {
+  REWARDS_REPOSITORY,
+  RewardsRepository,
+} from '../../../../domains/rewards/rewards.repository'
 import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service'
 import { NotificationService } from '../../../../shared/infrastructure/common/notification.service'
 import { AdminCancelOrderDto } from '../../dto/admin-cancel-order.dto'
@@ -22,6 +27,9 @@ export class AdminCancelCommerceOrderUseCase {
     private readonly orderRepo: CommerceOrderRepository,
     private readonly prisma: PrismaService,
     private readonly notificationService: NotificationService,
+    @Optional()
+    @Inject(REWARDS_REPOSITORY)
+    private readonly rewardsRepo?: RewardsRepository,
   ) {}
 
   async execute(orderUuid: string, adminId: string | number, dto: AdminCancelOrderDto) {
@@ -49,6 +57,11 @@ export class AdminCancelCommerceOrderUseCase {
       await this.orderRepo.releaseInventory(order.id, `Admin cancellation: ${reason}`)
     } catch (invErr: any) {
       this.logger.warn(`Inventory release note for order #${order.orderNumber}: ${invErr?.message}`)
+    }
+
+    // 1b. Release any applied promotional vouchers back to the user
+    if (this.rewardsRepo) {
+      await this.rewardsRepo.releaseOrderVoucherRedemptions(order.id).catch(() => {})
     }
 
     // 2. Transition master order to CANCELLED in DB

@@ -16,6 +16,7 @@ import { SmsModule } from '../../shared/infrastructure/sms/sms.module'
 import { InitializeUserSequenceUseCase } from '../use-cases/whatsapp-sequence/initialize-user-sequence.use-case'
 import { SyncUserSequenceChannelUseCase } from '../use-cases/sequence/sync-user-sequence-channel.use-case'
 import { InitializeEmailSequenceUseCase } from '../use-cases/email-sequence/initialize-email-sequence.use-case'
+import { TriggerAutomatedRewardUseCase } from '../rewards/use-cases/trigger-automated-reward.use-case'
 
 @Module({
   imports: [
@@ -31,7 +32,7 @@ import { InitializeEmailSequenceUseCase } from '../use-cases/email-sequence/init
       }),
     }),
   ],
-  providers: [AdminAuthService, UserAuthService, PmAuthService, PmEmployeeAuthService, LandlordAuthService, BaseAuthService, JwtStrategy, InitializeUserSequenceUseCase, SyncUserSequenceChannelUseCase, InitializeEmailSequenceUseCase],
-  exports: [AdminAuthService, UserAuthService, PmAuthService, PmEmployeeAuthService, LandlordAuthService, BaseAuthService, JwtModule, SyncUserSequenceChannelUseCase],
+  providers: [AdminAuthService, UserAuthService, PmAuthService, PmEmployeeAuthService, LandlordAuthService, BaseAuthService, JwtStrategy, InitializeUserSequenceUseCase, SyncUserSequenceChannelUseCase, InitializeEmailSequenceUseCase, TriggerAutomatedRewardUseCase],
+  exports: [AdminAuthService, UserAuthService, PmAuthService, PmEmployeeAuthService, LandlordAuthService, BaseAuthService, JwtModule, SyncUserSequenceChannelUseCase, TriggerAutomatedRewardUseCase],
 })
 export class AuthModule {}

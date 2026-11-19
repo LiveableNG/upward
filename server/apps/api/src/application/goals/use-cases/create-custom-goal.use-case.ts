@@ -9,6 +9,7 @@ import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.rep
 import { CreateCustomGoalDto } from '../dto/user-goal.dto'
 import { computeTargetDate } from '../../../domains/goals/timeline.calculator'
 import { randomUUID } from 'crypto'
+import { TriggerAutomatedRewardUseCase } from '../../rewards/use-cases/trigger-automated-reward.use-case'
 
 @Injectable()
 export class CreateCustomGoalUseCase {
@@ -18,6 +19,8 @@ export class CreateCustomGoalUseCase {
     @Optional()
     @Inject(USER_REPOSITORY)
     private readonly userRepo?: UserRepository,
+    @Optional()
+    private readonly triggerRewardUseCase?: TriggerAutomatedRewardUseCase,
   ) {}
 
   async execute(userIdentifier: number | string, dto: CreateCustomGoalDto): Promise<UserGoal> {
@@ -49,7 +52,7 @@ export class CreateCustomGoalUseCase {
       ? BigInt(dto.targetAmountKobo)
       : null
 
-    return this.goalRepo.createCustomUserGoal(resolvedUserId, {
+    const created = await this.goalRepo.createCustomUserGoal(resolvedUserId, {
       title: dto.title.trim(),
       categorySlug: dto.categorySlug || 'lifestyle',
       icon: dto.icon || '🎯',
@@ -62,6 +65,25 @@ export class CreateCustomGoalUseCase {
       status: 'ACTIVE',
       notes: dto.notes || null,
     })
+
+    if (this.triggerRewardUseCase) {
+      const slug = (dto.categorySlug || 'lifestyle').toLowerCase()
+      const triggerKey =
+        slug === 'income'
+          ? 'FORM_INCOME_INFO'
+          : slug === 'career'
+            ? 'FORM_CAREER_GOALS'
+            : 'FORM_FINANCIAL_GOALS'
+
+      await this.triggerRewardUseCase
+        .execute({
+          userId: resolvedUserId,
+          triggerKey,
+        })
+        .catch(() => {})
+    }
+
+    return created
   }
 }
 

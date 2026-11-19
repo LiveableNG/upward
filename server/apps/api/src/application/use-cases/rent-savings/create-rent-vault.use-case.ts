@@ -1,4 +1,4 @@
-import { Injectable, Inject, BadRequestException, ConflictException } from '@nestjs/common'
+import { Injectable, Inject, BadRequestException, ConflictException, Optional } from '@nestjs/common'
 import {
   IsDateString,
   IsIn,
@@ -18,6 +18,7 @@ import { CadenceType, FundingMethodType } from '../../../domains/rent-savings/re
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { isProductionRuntime } from '../../../shared/utils/runtime-env'
+import { TriggerAutomatedRewardUseCase } from '../../rewards/use-cases/trigger-automated-reward.use-case'
 
 export class CreateRentVaultDto {
   @IsNotEmpty()
@@ -66,6 +67,8 @@ export class CreateRentVaultUseCase {
     @Inject(USER_REPOSITORY)
     private readonly userRepo: UserRepository,
     private readonly prisma: PrismaService,
+    @Optional()
+    private readonly triggerRewardUseCase?: TriggerAutomatedRewardUseCase,
   ) {}
 
   async execute(userId: number, dto: CreateRentVaultDto) {
@@ -178,6 +181,17 @@ export class CreateRentVaultUseCase {
         },
       ],
     })
+
+    if (this.triggerRewardUseCase) {
+      await this.triggerRewardUseCase
+        .execute({
+          userId,
+          triggerKey: 'SAVINGS_INTEREST_INDICATION',
+          qualifyingAmountKobo: targetAmountKobo,
+          customReason: 'Indicated interest and set up Savings Wallet plan',
+        })
+        .catch(() => {})
+    }
 
     return {
       status: 'success',

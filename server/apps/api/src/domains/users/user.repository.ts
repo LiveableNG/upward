@@ -27,6 +27,7 @@ export interface User {
   termsAcceptedAt?: Date | null
   termsVersion?: string | null
   hearAboutUs?: string | null
+  signupCampaignTag?: string | null
   
   properties?: any[] // Joined properties
   companyUsers?: any[] // Joined company associations

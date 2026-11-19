@@ -1,0 +1,111 @@
+model upward_reward_rule {
+  id                      Int      @id @default(autoincrement())
+  uuid                    String   @unique @default(uuid())
+  triggerKey              String   @unique @db.VarChar(100)
+  name                    String   @db.VarChar(150)
+  description             String?  @db.Text
+  rewardCategory          String   @default("VOUCHER") @db.VarChar(30) // 'VOUCHER' | 'CASHBACK'
+  rewardAmountKobo        BigInt   @default(100000) // Default ₦1,000 (100,000 kobo)
+  minQualifyingAmountKobo BigInt   @default(0) // e.g., min savings amount to qualify for cashback
+  maxPerUser              Int      @default(1) // 0 = unlimited, 1 = once per user
+  expiryDays              Int?     // null = never expires
+  campaignTag             String?  @db.VarChar(100)
+  isActive                Boolean  @default(true)
+  updatedByAdminId        String?  @db.VarChar(100)
+  createdAt               DateTime @default(now())
+  updatedAt               DateTime @updatedAt
+
+  @@index([rewardCategory, isActive])
+  @@index([campaignTag])
+}
+
+model upward_promotional_voucher {
+  id                   Int                         @id @default(autoincrement())
+  uuid                 String                      @unique @default(uuid())
+  code                 String                      @unique @db.VarChar(60)
+  userId               Int
+  amountKobo           BigInt
+  redeemedAmountKobo   BigInt                      @default(0)
+  remainingAmountKobo  BigInt
+  currency             String                      @default("NGN") @db.VarChar(10)
+  status               String                      @default("ACTIVE") @db.VarChar(30) // 'ACTIVE' | 'PARTIALLY_REDEEMED' | 'REDEEMED' | 'EXPIRED' | 'REVOKED'
+  sourceType           String                      @db.VarChar(50) // 'FORM_COMPLETION' | 'GAME_WINNER' | 'CAMPAIGN_SIGNUP' | 'ADMIN_MANUAL' | 'OTHER'
+  triggerKey           String?                     @db.VarChar(100)
+  campaignTag          String?                     @db.VarChar(100)
+  reason               String                      @db.VarChar(255)
+  notes                String?                     @db.Text
+  awardedByAdminId     String?                     @db.VarChar(100)
+  awardedByAdminEmail  String?                     @db.VarChar(150)
+  idempotencyKey       String?                     @unique @db.VarChar(150)
+  expiresAt            DateTime?
+  redeemedAt           DateTime?
+  createdAt            DateTime                    @default(now())
+  updatedAt            DateTime                    @updatedAt
+
+  user                 upward_user                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  redemptions          upward_voucher_redemption[]
+
+  @@index([userId, status])
+  @@index([sourceType])
+  @@index([campaignTag])
+  @@index([triggerKey])
+  @@index([createdAt])
+}
+
+model upward_voucher_redemption {
+  id                 Int                        @id @default(autoincrement())
+  uuid               String                     @unique @default(uuid())
+  voucherId          Int
+  userId             Int
+  orderId            Int?
+  orderNumber        String?                    @db.VarChar(50)
+  amountDeductedKobo BigInt
+  status             String                     @default("APPLIED") @db.VarChar(30) // 'APPLIED' | 'CONFIRMED' | 'RELEASED'
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+
+  voucher            upward_promotional_voucher @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  user               upward_user                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  order              upward_commerce_order?     @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([voucherId])
+  @@index([userId])
+  @@index([orderId])
+  @@index([status])
+}
+
+model upward_cashback_pool {
+  id                   Int      @id @default(autoincrement())
+  key                  String   @unique @default("DEFAULT_POOL") @db.VarChar(50)
+  availableBalanceKobo BigInt   @default(5000000000) // Default ₦50,000,000 pool
+  totalDisbursedKobo   BigInt   @default(0)
+  currency             String   @default("NGN") @db.VarChar(10)
+  updatedByAdminId     String?  @db.VarChar(100)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model upward_cashback_reward {
+  id                           Int                @id @default(autoincrement())
+  uuid                         String             @unique @default(uuid())
+  userId                       Int
+  vaultId                      Int?
+  amountKobo                   BigInt
+  currency                     String             @default("NGN") @db.VarChar(10)
+  triggerKey                   String             @db.VarChar(100)
+  qualifyingActivityAmountKobo BigInt?
+  reason                       String             @db.VarChar(255)
+  status                       String             @default("CREDITED_TO_VAULT") @db.VarChar(30)
+  awardedByAdminId             String?            @db.VarChar(100)
+  awardedByAdminEmail          String?            @db.VarChar(150)
+  idempotencyKey               String?            @unique @db.VarChar(150)
+  reference                    String             @unique @db.VarChar(100)
+  createdAt                    DateTime           @default(now())
+
+  user                         upward_user        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([vaultId])
+  @@index([triggerKey])
+  @@index([createdAt])
+}

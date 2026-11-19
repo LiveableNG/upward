@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException, Inject, ForbiddenException, BadRequestException } from '@nestjs/common'
+import { Injectable, UnauthorizedException, ConflictException, Inject, ForbiddenException, BadRequestException, Optional } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
 import { UserRepository, USER_REPOSITORY, User, PASS_PLACEHOLDERS } from '../../domains/users/user.repository'
@@ -18,6 +18,7 @@ import { UnifiedCommunicationService } from '../../shared/infrastructure/communi
 import { InitializeUserSequenceUseCase } from '../use-cases/whatsapp-sequence/initialize-user-sequence.use-case'
 import { SyncUserSequenceChannelUseCase } from '../use-cases/sequence/sync-user-sequence-channel.use-case'
 import { InitializeEmailSequenceUseCase } from '../use-cases/email-sequence/initialize-email-sequence.use-case'
+import { TriggerAutomatedRewardUseCase } from '../rewards/use-cases/trigger-automated-reward.use-case'
 
 interface AppleJwkKey {
   kty: string
@@ -66,6 +67,7 @@ export class UserAuthService extends BaseAuthService {
     private readonly unifiedCommService: UnifiedCommunicationService,
     jwtService: JwtService,
     configService: ConfigService,
+    @Optional() private readonly triggerRewardUseCase?: TriggerAutomatedRewardUseCase,
   ) {
     super(jwtService, configService)
   }
@@ -169,10 +171,17 @@ export class UserAuthService extends BaseAuthService {
       isFromInvite?: boolean
       dateOfBirth?: string
       hearAboutUs?: string
+      campaignTag?: string
     },
     ipAddress?: string,
     userAgent?: string,
   ): Promise<UserAuthResponse & { refreshToken: string }> {
+    const resolvedCampaignTag =
+      dto.campaignTag?.trim() ||
+      (dto.hearAboutUs?.startsWith('CAMPAIGN:')
+        ? dto.hearAboutUs.replace('CAMPAIGN:', '').trim()
+        : null) ||
+      null
     if (dto.phone && !/^\+?\d{7,15}$/.test(dto.phone.replace(/[\s\-\(\)]/g, ''))) {
       throw new Error('Phone number must be a valid international phone number');
     }
@@ -212,6 +221,7 @@ export class UserAuthService extends BaseAuthService {
           phone: dto.phone,
           dateOfBirth: dto.dateOfBirth,
           hearAboutUs: dto.hearAboutUs ?? existing.hearAboutUs ?? null,
+          ...(resolvedCampaignTag ? { signupCampaignTag: resolvedCampaignTag } : {}),
           firstNameHash: (this.userRepository as any).encryption.hash(dto.firstName),
           lastNameHash: (this.userRepository as any).encryption.hash(dto.lastName),
           phoneHash: dto.phone ? (this.userRepository as any).encryption.hash(dto.phone) : null,
@@ -275,6 +285,17 @@ export class UserAuthService extends BaseAuthService {
         // Send welcome messages instantly
         this.sendWelcomeMessages(user, dto.firstName, pmName).catch(e => console.error('Failed to send welcome messages', e));
 
+        if (resolvedCampaignTag && this.triggerRewardUseCase && user.id) {
+          await this.triggerRewardUseCase
+            .execute({
+              userId: user.id,
+              triggerKey: 'CAMPAIGN_SIGNUP_VOUCHER',
+              campaignTag: resolvedCampaignTag,
+              customReason: `Signed up through promotional campaign (${resolvedCampaignTag})`,
+            })
+            .catch(() => {})
+        }
+
         return this.generateFullAuthResponse(user, ipAddress, userAgent)
       }
       throw new ConflictException('User with this email already exists')
@@ -305,6 +326,7 @@ export class UserAuthService extends BaseAuthService {
       termsAcceptedAt: new Date(),
       termsVersion: '2026-08-24',
       hearAboutUs: dto.hearAboutUs ?? null,
+      signupCampaignTag: resolvedCampaignTag,
     }
 
     await this.userRepository.save(userData as User)
@@ -362,6 +384,17 @@ export class UserAuthService extends BaseAuthService {
 
     // Send welcome messages instantly
     this.sendWelcomeMessages(user, dto.firstName, pmName).catch(e => console.error('Failed to send welcome messages', e));
+
+    if (resolvedCampaignTag && this.triggerRewardUseCase && user.id) {
+      await this.triggerRewardUseCase
+        .execute({
+          userId: user.id,
+          triggerKey: 'CAMPAIGN_SIGNUP_VOUCHER',
+          campaignTag: resolvedCampaignTag,
+          customReason: `Signed up through promotional campaign (${resolvedCampaignTag})`,
+        })
+        .catch(() => {})
+    }
 
     return this.generateFullAuthResponse(user, ipAddress, userAgent)
   }
@@ -1194,10 +1227,11 @@ export class UserAuthService extends BaseAuthService {
   async socialSignIn(
     provider: 'google' | 'apple',
     idToken: string,
-    profileData?: { firstName?: string; lastName?: string },
+    profileData?: { firstName?: string; lastName?: string; campaignTag?: string },
     ipAddress?: string,
     userAgent?: string,
   ): Promise<UserAuthResponse & { refreshToken: string; isNewUser: boolean }> {
+    const resolvedCampaignTag = profileData?.campaignTag?.trim() || null
     if (provider !== 'google' && provider !== 'apple') {
       throw new BadRequestException('Unsupported social provider')
     }
@@ -1467,6 +1501,7 @@ export class UserAuthService extends BaseAuthService {
         joinedAt: new Date(),
         termsAcceptedAt: new Date(),
         termsVersion: '2026-08-24',
+        signupCampaignTag: resolvedCampaignTag,
       }
 
       await this.userRepository.save(userData as User)
@@ -1516,6 +1551,17 @@ export class UserAuthService extends BaseAuthService {
       }
 
       this.sendWelcomeMessages(user, resolvedFirstName, pmName).catch(e => console.error('Failed to send welcome messages', e));
+
+      if (resolvedCampaignTag && this.triggerRewardUseCase && user.id) {
+        await this.triggerRewardUseCase
+          .execute({
+            userId: user.id,
+            triggerKey: 'CAMPAIGN_SIGNUP_VOUCHER',
+            campaignTag: resolvedCampaignTag,
+            customReason: `Signed up through promotional campaign (${resolvedCampaignTag})`,
+          })
+          .catch(() => {})
+      }
     }
 
     if (!user) {

@@ -5,6 +5,7 @@ import {
   HttpCode,
   HttpStatus,
   Inject,
+  Optional,
   Param,
   Post,
   Req,
@@ -14,6 +15,7 @@ import {
 } from '@nestjs/common'
 import { Response } from 'express'
 import { JwtAuthGuard } from '../../../application/auth/guards/jwt-auth.guard'
+import { TriggerAutomatedRewardUseCase } from '../../../application/rewards/use-cases/trigger-automated-reward.use-case'
 import {
   CreateRentVaultDto,
   CreateRentVaultUseCase,
@@ -44,6 +46,7 @@ export class RentVaultController {
     private readonly breakoutVaultUseCase: BreakoutRentVaultUseCase,
     private readonly onboardInvestorUseCase: OnboardSavingsInvestorUseCase,
     @Inject(USER_REPOSITORY) private readonly userRepo: UserRepository,
+    @Optional() private readonly triggerRewardUseCase?: TriggerAutomatedRewardUseCase,
   ) {}
 
   private async getNumericUserId(req: any): Promise<number> {
@@ -112,6 +115,19 @@ export class RentVaultController {
         planPattern: body.plan_pattern,
         initialDepositKobo: body.initial_deposit_kobo,
       })
+    }
+    if (this.triggerRewardUseCase) {
+      const qualifyingKobo = body?.initial_deposit_kobo
+        ? BigInt(Math.round(body.initial_deposit_kobo))
+        : 200000n
+      await this.triggerRewardUseCase
+        .execute({
+          userId,
+          triggerKey: 'SAVINGS_INTEREST_INDICATION',
+          qualifyingAmountKobo: qualifyingKobo,
+          customReason: 'Indicated interest in saving in Savings Wallet',
+        })
+        .catch(() => {})
     }
     return {
       status: 'success',

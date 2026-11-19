@@ -4,6 +4,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common'
 import { randomUUID } from 'crypto'
 import {
@@ -18,6 +19,10 @@ import {
   USER_REPOSITORY,
   UserRepository,
 } from '../../../domains/users/user.repository'
+import {
+  REWARDS_REPOSITORY,
+  RewardsRepository,
+} from '../../../domains/rewards/rewards.repository'
 import { InitializeCommercePaymentResponse } from '../dto/initialize-commerce-payment.dto'
 
 @Injectable()
@@ -31,6 +36,9 @@ export class InitializeCommercePaymentUseCase {
     private readonly paymentGateway: IPaymentGateway,
     @Inject(USER_REPOSITORY)
     private readonly userRepo: UserRepository,
+    @Optional()
+    @Inject(REWARDS_REPOSITORY)
+    private readonly rewardsRepo?: RewardsRepository,
   ) {}
 
   async execute(params: {
@@ -75,6 +83,35 @@ export class InitializeCommercePaymentUseCase {
 
     if (order.status !== 'PENDING') {
       throw new BadRequestException(`Order is not eligible for payment in status ${order.status}`)
+    }
+
+    // Handle 100% promotional voucher coverage (totalAmountKobo === 0n with discountKobo > 0n)
+    if (order.totalAmountKobo === 0n && order.discountKobo > 0n) {
+      const voucherRef = `UPW_ORD_VCH_${randomUUID()}`
+      await this.orderRepo.recordPaymentAttempt(order.id!, {
+        reference: voucherRef,
+        amountKobo: 0n,
+        currency: order.currency,
+        status: 'SUCCESS',
+        ipAddress: params.ipAddress,
+      })
+      await this.orderRepo.confirmOrderPayment({
+        orderId: order.id!,
+        paymentReference: voucherRef,
+        channel: 'PROMO_VOUCHER',
+        paidAt: new Date(),
+      })
+      if (this.rewardsRepo) {
+        await this.rewardsRepo.confirmOrderVoucherRedemptions(order.id!)
+      }
+      return {
+        authorizationUrl: '',
+        accessCode: undefined,
+        reference: voucherRef,
+        orderNumber: order.orderNumber,
+        amountKobo: '0',
+        currency: order.currency,
+      }
     }
 
     if (!order.totalAmountKobo || order.totalAmountKobo <= 0n) {

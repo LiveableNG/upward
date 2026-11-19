@@ -54,6 +54,8 @@ import { AdminGoalsController } from './admin/admin-goals.controller'
 import { TenantCommerceController } from './user/tenant-commerce.controller'
 import { AdminCommerceController } from './admin/admin-commerce.controller'
 import { TenantCommerceSubOrderController } from './user/tenant-commerce-suborder.controller'
+import { UserRewardsController } from './user/user-rewards.controller'
+import { AdminRewardsController } from './admin/admin-rewards.controller'
 import { PmEmployeeAuthController } from './pm/pm-employee-auth.controller'
 import { PmProfileController } from './pm/pm-profile.controller'
 import { PmEmailSettingController } from './pm/pm-email-setting.controller'
@@ -243,6 +245,8 @@ import { NotificationsGateway } from '../websockets/notifications.gateway'
     TenantCommerceController,
     AdminCommerceController,
     TenantCommerceSubOrderController,
+    UserRewardsController,
+    AdminRewardsController,
   ],
 })
 export class HttpModule {}

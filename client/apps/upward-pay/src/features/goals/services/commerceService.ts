@@ -209,9 +209,11 @@ export interface CreateCommerceOrderInput {
   recipientName: string
   recipientPhone: string
   deliveryAddress: string
+  deliveryZoneTag?: string
   deliveryNotes?: string
   items: Array<{ offeringUuid?: string; offeringId?: number; quantity: number }>
   discountKobo?: string
+  applyVoucher?: boolean
 }
 
 export interface CreateCommerceOrderResult {

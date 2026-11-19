@@ -37,6 +37,7 @@ model upward_user {
   termsAcceptedAt       DateTime?
   termsVersion          String?                          @default("2026-08-24")
   hearAboutUs           String?
+  signupCampaignTag     String?                          @db.VarChar(100)
   authSessions          upward_auth_session[]
   benefitsSubscriptions upward_benefits_subscription[]
   communicationLogs     upward_communication_log[]
@@ -77,9 +78,13 @@ model upward_user {
   kycVerifications      upward_kyc_verification[]
   userGoals             upward_user_goal[]
   commerceOrders        upward_commerce_order[]
+  promotionalVouchers   upward_promotional_voucher[]
+  voucherRedemptions    upward_voucher_redemption[]
+  cashbackRewards       upward_cashback_reward[]
 
   @@index([email])
   @@index([createdAt])
+  @@index([signupCampaignTag])
 }
 
 model upward_auth_session {

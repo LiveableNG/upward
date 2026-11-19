@@ -39,9 +39,15 @@ interface SignupFormFlowProps {
   onBackToWelcome: () => void
   onSignupSuccess: (email: string, password: string) => void
   initialEmail?: string
+  campaignTag?: string
 }
 
-export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail = '' }: SignupFormFlowProps) {
+export function SignupFormFlow({
+  onBackToWelcome,
+  onSignupSuccess,
+  initialEmail = '',
+  campaignTag,
+}: SignupFormFlowProps) {
   const router = useRouter()
   const { login: setAuthUser } = useAuth()
   const queryClient = useQueryClient()
@@ -315,9 +321,24 @@ export function SignupFormFlow({ onBackToWelcome, onSignupSuccess, initialEmail 
 
           if (identifierType === 'phone') {
             const generatedEmail = `${identifier.replace('+', '')}@upward.com`
-            signup({ email: generatedEmail, password, firstName, lastName, phone: identifier, hearAboutUs: hearAboutUsValue || undefined })
+            signup({
+              email: generatedEmail,
+              password,
+              firstName,
+              lastName,
+              phone: identifier,
+              hearAboutUs: hearAboutUsValue || undefined,
+              ...(campaignTag ? { campaignTag } : {}),
+            })
           } else {
-            signup({ email, password, firstName, lastName, hearAboutUs: hearAboutUsValue || undefined })
+            signup({
+              email,
+              password,
+              firstName,
+              lastName,
+              hearAboutUs: hearAboutUsValue || undefined,
+              ...(campaignTag ? { campaignTag } : {}),
+            })
           }
         }
       }

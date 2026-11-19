@@ -103,13 +103,18 @@ export function useCreateCommerceOrder() {
     mutationFn: (input: CreateCommerceOrderInput) => createCommerceOrder(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tenant-commerce-orders'] })
+      queryClient.invalidateQueries({ queryKey: ['user-rewards-summary'] })
     },
   })
 }
 
 export function useInitializeCommercePayment() {
+  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (orderUuid: string) => initializeCommercePayment(orderUuid),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-rewards-summary'] })
+    },
   })
 }
 
@@ -121,6 +126,7 @@ export function useVerifyCommercePayment() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['tenant-commerce-orders'] })
       queryClient.invalidateQueries({ queryKey: ['tenant-commerce-order', variables.orderUuid] })
+      queryClient.invalidateQueries({ queryKey: ['user-rewards-summary'] })
     },
   })
 }

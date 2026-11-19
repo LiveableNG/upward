@@ -12,6 +12,7 @@ import WaitlistClient from '@/app/waitlist/[uuid]/WaitlistClient'
 import InviteClient from '@/app/invite/[uuid]/InviteClient'
 import WelcomeClient from '@/app/welcome/[uuid]/WelcomeClient'
 import { GoogleAuthProvider } from '@/features/auth/components/GoogleAuthProvider'
+import { setStoredSignupCampaignTag } from '@/features/auth/services/authService'
 
 type Mode = 'welcome' | 'signup' | 'login' | 'waitlist' | 'invite' | 'priority'
 
@@ -36,6 +37,16 @@ function SignupPageContent() {
       setAuthInitialized(true)
     }
   }, [loading, isLoggedIn, authInitialized])
+
+  useEffect(() => {
+    const camp =
+      searchParams.get('campaign')?.trim() ||
+      searchParams.get('tag')?.trim() ||
+      searchParams.get('utm_campaign')?.trim()
+    if (camp) {
+      setStoredSignupCampaignTag(camp)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     const urlMode = searchParams.get('mode') as Mode

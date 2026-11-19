@@ -4,8 +4,9 @@ import {
   Inject,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common'
-import { randomBytes, randomUUID } from 'crypto'
+import { randomBytes } from 'crypto'
 import {
   COMMERCE_ORDER_REPOSITORY,
   CommerceOrder,
@@ -21,6 +22,10 @@ import {
   OfferingRepository,
 } from '../../../domains/goals/offering.repository'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
+import {
+  REWARDS_REPOSITORY,
+  RewardsRepository,
+} from '../../../domains/rewards/rewards.repository'
 import {
   CommercePricingEngine,
   PriceableItemInput,
@@ -47,6 +52,9 @@ export class CreateCommerceOrderUseCase {
     private readonly userRepo: UserRepository,
     @Inject(COMMERCE_DELIVERY_ZONE_REPOSITORY)
     private readonly zoneRepo: CommerceDeliveryZoneRepository,
+    @Optional()
+    @Inject(REWARDS_REPOSITORY)
+    private readonly rewardsRepo?: RewardsRepository,
   ) {}
 
   async execute(userIdentifier: number | string, dto: CreateCommerceOrderDto): Promise<CreateCommerceOrderResponse> {
@@ -164,8 +172,33 @@ export class CreateCommerceOrderUseCase {
       })
     }
 
-    // 3. Recalculate order pricing server-side using shared engine
-    const discountKobo = dto.discountKobo ? BigInt(dto.discountKobo) : 0n
+    // 3. Recalculate order pricing server-side using shared engine & auto-apply user promotional vouchers
+    const baselinePricing = CommercePricingEngine.calculateOrderPricing({
+      items: priceableItems,
+      totalDiscountKobo: 0n,
+    })
+
+    const manualDiscountKobo = dto.discountKobo ? BigInt(dto.discountKobo) : 0n
+    let voucherDiscountKobo = 0n
+    let appliedRedemptionIds: number[] = []
+
+    if (dto.applyVoucher !== false && this.rewardsRepo) {
+      const maxVoucherApplicable =
+        baselinePricing.itemsSubtotalKobo > manualDiscountKobo
+          ? baselinePricing.itemsSubtotalKobo - manualDiscountKobo
+          : 0n
+
+      if (maxVoucherApplicable > 0n) {
+        const applied = await this.rewardsRepo.applyUserVouchersToOrder({
+          userId: resolvedUserId,
+          maxDiscountKobo: maxVoucherApplicable,
+        })
+        voucherDiscountKobo = applied.totalDiscountAppliedKobo
+        appliedRedemptionIds = applied.redemptions.map((r) => r.id)
+      }
+    }
+
+    const discountKobo = manualDiscountKobo + voucherDiscountKobo
     const pricing = CommercePricingEngine.calculateOrderPricing({
       items: priceableItems,
       totalDiscountKobo: discountKobo,
@@ -217,7 +250,20 @@ export class CreateCommerceOrderUseCase {
     let order: CommerceOrder
     try {
       order = await this.orderRepo.createOrder(createOrderData)
+      if (appliedRedemptionIds.length > 0 && this.rewardsRepo && order.id) {
+        await this.rewardsRepo.attachOrderToAppliedRedemptions({
+          userId: resolvedUserId,
+          redemptionIds: appliedRedemptionIds,
+          orderId: order.id,
+          orderNumber: order.orderNumber,
+        })
+      }
     } catch (err: any) {
+      if (appliedRedemptionIds.length > 0 && this.rewardsRepo) {
+        await this.rewardsRepo
+          .releaseUnboundAppliedRedemptionsForUser(resolvedUserId)
+          .catch(() => {})
+      }
       // In case of race conditions with the exact same idempotency key
       if (err.code === 'P2002' || err.message?.includes('Unique constraint')) {
         if (idempotencyKey) {

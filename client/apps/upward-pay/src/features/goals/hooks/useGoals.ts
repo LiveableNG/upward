@@ -209,6 +209,8 @@ export function useSetUserGoals() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['user-goals'] })
+      queryClient.invalidateQueries({ queryKey: ['user-rewards-summary'] })
+      queryClient.invalidateQueries({ queryKey: ['notifications'] })
     },
   })
 }
@@ -260,6 +262,8 @@ export function useUpdateUserGoal() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['user-goals'] })
+      queryClient.invalidateQueries({ queryKey: ['user-rewards-summary'] })
+      queryClient.invalidateQueries({ queryKey: ['notifications'] })
     },
   })
 }
@@ -313,6 +317,8 @@ export function useRemoveUserGoal() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['user-goals'] })
+      queryClient.invalidateQueries({ queryKey: ['user-rewards-summary'] })
+      queryClient.invalidateQueries({ queryKey: ['notifications'] })
     },
   })
 }
@@ -334,6 +340,8 @@ export function useCreateCustomGoal() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['user-goals'] })
+      queryClient.invalidateQueries({ queryKey: ['user-rewards-summary'] })
+      queryClient.invalidateQueries({ queryKey: ['notifications'] })
     },
   })
 }
@@ -355,6 +363,8 @@ export function useSubmitQuestionnaire() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['user-goals'] })
+      queryClient.invalidateQueries({ queryKey: ['user-rewards-summary'] })
+      queryClient.invalidateQueries({ queryKey: ['notifications'] })
     },
   })
 }
@@ -408,6 +418,8 @@ export function useToggleGoalAction() {
     },
     onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['user-goals'] })
+      queryClient.invalidateQueries({ queryKey: ['user-rewards-summary'] })
+      queryClient.invalidateQueries({ queryKey: ['notifications'] })
     },
   })
 }

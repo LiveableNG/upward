@@ -32,6 +32,7 @@ import {
   ArrowLeft,
   Truck,
   ShieldAlert,
+  Ticket,
 } from 'lucide-react'
 
 interface SidebarProps {
@@ -97,6 +98,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
             { name: 'Orders & Fulfilment', path: '/commerce/orders', icon: Truck },
             { name: 'Inquiries & Disputes', path: '/commerce/disputes', icon: ShieldAlert },
             { name: 'Delivery Coverage Zones', path: '/commerce/zones', icon: MapPin },
+            { name: 'Rewards & Vouchers', path: '/commerce/rewards', icon: Ticket },
           ],
         },
       ]
@@ -147,6 +149,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
       title: 'Commerce',
       items: [
         { name: 'Commerce & Lifestyle', path: '/commerce', icon: ShoppingBag },
+        { name: 'Rewards & Vouchers', path: '/rewards', icon: Ticket },
       ],
     })
 

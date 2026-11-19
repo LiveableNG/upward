@@ -131,6 +131,7 @@ export class UserController {
       isFromInvite?: boolean;
       dateOfBirth?: string;
       hearAboutUs?: string;
+      campaignTag?: string;
     },
     @Res({ passthrough: false }) reply: FastifyReply,
   ) {
@@ -156,6 +157,7 @@ export class UserController {
       idToken: string
       firstName?: string
       lastName?: string
+      campaignTag?: string
     },
     @Res({ passthrough: false }) reply: FastifyReply,
   ) {
@@ -167,7 +169,7 @@ export class UserController {
     const { refreshToken, ...rest } = await this.userAuthService.socialSignIn(
       body.provider,
       body.idToken,
-      { firstName: body.firstName, lastName: body.lastName },
+      { firstName: body.firstName, lastName: body.lastName, campaignTag: body.campaignTag },
       ipAddress,
       userAgent,
     )

@@ -1,6 +1,31 @@
 import { request } from '@/lib/api-client'
 import { type AuthResponse, type UserProfile } from '../types'
 
+const CAMPAIGN_TAG_STORAGE_KEY = 'upward_signup_campaign_tag'
+
+export function setStoredSignupCampaignTag(tag: string | null) {
+  if (typeof window === 'undefined') return
+  try {
+    if (tag && tag.trim()) {
+      sessionStorage.setItem(CAMPAIGN_TAG_STORAGE_KEY, tag.trim())
+    } else {
+      sessionStorage.removeItem(CAMPAIGN_TAG_STORAGE_KEY)
+    }
+  } catch {
+    // ignore storage errors
+  }
+}
+
+export function getStoredSignupCampaignTag(): string | undefined {
+  if (typeof window === 'undefined') return undefined
+  try {
+    const val = sessionStorage.getItem(CAMPAIGN_TAG_STORAGE_KEY)
+    return val ? val.trim() : undefined
+  } catch {
+    return undefined
+  }
+}
+
 export async function signup(data: {
   email: string
   password: string
@@ -12,6 +37,7 @@ export async function signup(data: {
   isFromWaitlist?: boolean
   isFromInvite?: boolean
   hearAboutUs?: string
+  campaignTag?: string
   properties?: Array<{
     uuid?: string
     address: string
@@ -23,10 +49,16 @@ export async function signup(data: {
     managerName?: string
   }>
 }) {
-  return request<AuthResponse>('/user/auth/signup', {
+  const effectiveCampaignTag = data.campaignTag || getStoredSignupCampaignTag()
+  const res = await request<AuthResponse>('/user/auth/signup', {
     method: 'POST',
-    body: JSON.stringify(data),
+    body: JSON.stringify({
+      ...data,
+      ...(effectiveCampaignTag ? { campaignTag: effectiveCampaignTag } : {}),
+    }),
   })
+  setStoredSignupCampaignTag(null)
+  return res
 }
 
 export async function socialSignIn(data: {
@@ -34,11 +66,18 @@ export async function socialSignIn(data: {
   idToken: string
   firstName?: string
   lastName?: string
+  campaignTag?: string
 }) {
-  return request<AuthResponse>('/user/auth/social', {
+  const effectiveCampaignTag = data.campaignTag || getStoredSignupCampaignTag()
+  const res = await request<AuthResponse>('/user/auth/social', {
     method: 'POST',
-    body: JSON.stringify(data),
+    body: JSON.stringify({
+      ...data,
+      ...(effectiveCampaignTag ? { campaignTag: effectiveCampaignTag } : {}),
+    }),
   })
+  setStoredSignupCampaignTag(null)
+  return res
 }
 
 export async function login(credentials: {

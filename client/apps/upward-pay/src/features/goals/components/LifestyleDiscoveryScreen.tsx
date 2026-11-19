@@ -43,6 +43,7 @@ import {
   Mic,
   Palette,
   Shield,
+  Ticket,
 } from 'lucide-react'
 import {
   useGoalCategories,
@@ -51,6 +52,8 @@ import {
   useSetUserGoals,
 } from '../hooks/useGoals'
 import { useTenantOrders } from '../hooks/useCommerceOrders'
+import { useUserRewardsSummary } from '@/features/rewards/hooks/useRewards'
+import { VoucherWalletModal } from '@/features/rewards/components/VoucherWalletModal'
 import {
   getRecommendedOfferings,
   type RecommendedOfferingItem,
@@ -170,6 +173,9 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
   const searchParams = useSearchParams()
   const cart = useCart()
   const { success, error: toastError } = useToast()
+  const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false)
+  const { data: rewardsSummary } = useUserRewardsSummary()
+  const availableVoucherNaira = rewardsSummary?.availableBalanceNaira ?? 0
 
   // Queries
   const {
@@ -557,6 +563,23 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
           </div>
 
           <div className="lifestyle-discovery__top-actions">
+            <button
+              type="button"
+              className={`lifestyle-discovery__goals-trigger ${
+                availableVoucherNaira > 0 ? 'lifestyle-discovery__goals-trigger--active' : ''
+              }`}
+              onClick={() => setIsVoucherModalOpen(true)}
+              aria-label="View promotional vouchers and rewards"
+              title="Promotional Vouchers"
+            >
+              <Ticket size={14} />
+              <span>
+                {availableVoucherNaira > 0
+                  ? `₦${availableVoucherNaira.toLocaleString()} Voucher`
+                  : 'Vouchers'}
+              </span>
+            </button>
+
             <button
               type="button"
               className={`lifestyle-discovery__goals-trigger ${
@@ -1075,6 +1098,11 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
           )}
         </div>
       </BottomSheetModal>
+
+      <VoucherWalletModal
+        isOpen={isVoucherModalOpen}
+        onClose={() => setIsVoucherModalOpen(false)}
+      />
     </div>
   )
 }

@@ -1,8 +1,13 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common'
+import { Inject, Injectable, NotFoundException, Optional } from '@nestjs/common'
 import {
   OFFERING_REPOSITORY,
   OfferingRepository,
 } from '../../../domains/goals/offering.repository'
+import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
+import {
+  REWARDS_REPOSITORY,
+  RewardsRepository,
+} from '../../../domains/rewards/rewards.repository'
 import {
   CommercePricingEngine,
   PriceableItemInput,
@@ -17,6 +22,8 @@ export interface PreviewCommerceOrderResponse {
   deliveryFeeKobo: string
   taxKobo: string
   discountKobo: string
+  availableVoucherBalanceKobo?: string
+  appliedVoucherDiscountKobo?: string
   totalAmountKobo: string
   deliveryEligible?: boolean
   deliveryMessage?: string
@@ -46,9 +53,18 @@ export class PreviewCommerceOrderUseCase {
   constructor(
     @Inject(OFFERING_REPOSITORY)
     private readonly offeringRepo: OfferingRepository,
+    @Optional()
+    @Inject(USER_REPOSITORY)
+    private readonly userRepo?: UserRepository,
+    @Optional()
+    @Inject(REWARDS_REPOSITORY)
+    private readonly rewardsRepo?: RewardsRepository,
   ) {}
 
-  async execute(dto: PreviewCommerceOrderDto): Promise<PreviewCommerceOrderResponse> {
+  async execute(
+    dto: PreviewCommerceOrderDto,
+    userIdentifier?: number | string,
+  ): Promise<PreviewCommerceOrderResponse> {
     const priceableItems: PriceableItemInput[] = []
 
     for (const item of dto.items) {
@@ -118,7 +134,40 @@ export class PreviewCommerceOrderUseCase {
       }
     }
 
-    const discountKobo = dto.discountKobo ? BigInt(dto.discountKobo) : 0n
+    const manualDiscountKobo = dto.discountKobo ? BigInt(dto.discountKobo) : 0n
+    let availableVoucherBalanceKobo = 0n
+    let appliedVoucherDiscountKobo = 0n
+
+    const baselinePricing = CommercePricingEngine.calculateOrderPricing({
+      items: priceableItems,
+      totalDiscountKobo: 0n,
+    })
+
+    if (userIdentifier && this.rewardsRepo) {
+      let resolvedUserId: number | undefined
+      if (typeof userIdentifier === 'number') {
+        resolvedUserId = userIdentifier
+      } else if (this.userRepo) {
+        const user = await this.userRepo.findByUuid(String(userIdentifier))
+        resolvedUserId = user?.id
+      }
+      if (resolvedUserId) {
+        availableVoucherBalanceKobo =
+          await this.rewardsRepo.getAvailableVoucherBalanceKobo(resolvedUserId)
+        if (dto.applyVoucher !== false && availableVoucherBalanceKobo > 0n) {
+          const maxApplicable =
+            baselinePricing.itemsSubtotalKobo > manualDiscountKobo
+              ? baselinePricing.itemsSubtotalKobo - manualDiscountKobo
+              : 0n
+          appliedVoucherDiscountKobo =
+            availableVoucherBalanceKobo <= maxApplicable
+              ? availableVoucherBalanceKobo
+              : maxApplicable
+        }
+      }
+    }
+
+    const discountKobo = manualDiscountKobo + appliedVoucherDiscountKobo
 
     // Calculate using the shared deterministic pricing engine
     const pricing = CommercePricingEngine.calculateOrderPricing({
@@ -132,6 +181,8 @@ export class PreviewCommerceOrderUseCase {
       deliveryFeeKobo: pricing.deliveryFeeKobo.toString(),
       taxKobo: pricing.taxKobo.toString(),
       discountKobo: pricing.discountKobo.toString(),
+      availableVoucherBalanceKobo: availableVoucherBalanceKobo.toString(),
+      appliedVoucherDiscountKobo: appliedVoucherDiscountKobo.toString(),
       totalAmountKobo: pricing.totalAmountKobo.toString(),
       deliveryEligible,
       deliveryMessage,

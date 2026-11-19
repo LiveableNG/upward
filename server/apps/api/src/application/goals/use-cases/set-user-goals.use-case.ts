@@ -6,6 +6,7 @@ import {
 } from '../../../domains/goals/goal.repository'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
+import { TriggerAutomatedRewardUseCase } from '../../rewards/use-cases/trigger-automated-reward.use-case'
 
 @Injectable()
 export class SetUserGoalsUseCase {
@@ -17,6 +18,8 @@ export class SetUserGoalsUseCase {
     private readonly userRepo?: UserRepository,
     @Optional()
     private readonly prisma?: PrismaService,
+    @Optional()
+    private readonly triggerRewardUseCase?: TriggerAutomatedRewardUseCase,
   ) {}
 
   async execute(userIdentifier: number | string, goalIds: number[]): Promise<UserGoal[]> {
@@ -54,7 +57,47 @@ export class SetUserGoalsUseCase {
       resolvedUserId = user.id
     }
 
-    return this.goalRepo.setUserGoals(resolvedUserId, goalIds)
+    const result = await this.goalRepo.setUserGoals(resolvedUserId, goalIds)
+
+    if (this.triggerRewardUseCase && this.prisma && goalIds.length > 0) {
+      try {
+        const selectedGoals = await this.prisma.upward_goal.findMany({
+          where: { id: { in: goalIds } },
+          select: { category: { select: { slug: true } } },
+        })
+        const slugs = new Set(
+          selectedGoals.map((g) => g.category?.slug?.toLowerCase()).filter(Boolean),
+        )
+        if (slugs.has('income')) {
+          await this.triggerRewardUseCase.execute({
+            userId: resolvedUserId,
+            triggerKey: 'FORM_INCOME_INFO',
+          })
+        }
+        if (slugs.has('career')) {
+          await this.triggerRewardUseCase.execute({
+            userId: resolvedUserId,
+            triggerKey: 'FORM_CAREER_GOALS',
+          })
+        }
+        if (
+          slugs.has('housing') ||
+          slugs.has('pay-less') ||
+          slugs.has('lifestyle') ||
+          slugs.has('children') ||
+          slugs.has('fitness')
+        ) {
+          await this.triggerRewardUseCase.execute({
+            userId: resolvedUserId,
+            triggerKey: 'FORM_FINANCIAL_GOALS',
+          })
+        }
+      } catch {
+        // non-blocking
+      }
+    }
+
+    return result
   }
 }
 

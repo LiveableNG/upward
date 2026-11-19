@@ -59,6 +59,7 @@ import { PrismaCommerceOrderRepository } from './repositories/prisma-commerce-or
 import { PrismaVendorPayableRepository } from './repositories/prisma-vendor-payable.repository'
 import { PrismaCommerceRefundRepository } from './repositories/prisma-commerce-refund.repository'
 import { PrismaCommerceDeliveryZoneRepository } from './repositories/prisma-commerce-delivery-zone.repository'
+import { PrismaRewardsRepository } from './repositories/prisma-rewards.repository'
 import { GOAL_REPOSITORY } from '../../../domains/goals/goal.repository'
 import { OFFERING_REPOSITORY } from '../../../domains/goals/offering.repository'
 import { VENDOR_REPOSITORY } from '../../../domains/goals/vendor.repository'
@@ -66,6 +67,7 @@ import { COMMERCE_ORDER_REPOSITORY } from '../../../domains/commerce/commerce-or
 import { VENDOR_PAYABLE_REPOSITORY } from '../../../domains/commerce/vendor-payable.repository'
 import { COMMERCE_REFUND_REPOSITORY } from '../../../domains/commerce/commerce-refund.repository'
 import { COMMERCE_DELIVERY_ZONE_REPOSITORY } from '../../../domains/commerce/commerce-delivery-zone.repository'
+import { REWARDS_REPOSITORY } from '../../../domains/rewards/rewards.repository'
 import {
   ALLIANCE_PROFILE_REPOSITORY,
   ALLIANCE_QUALIFICATION_REPOSITORY,
@@ -433,6 +435,10 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
       useClass: PrismaCommerceDeliveryZoneRepository,
     },
     {
+      provide: REWARDS_REPOSITORY,
+      useClass: PrismaRewardsRepository,
+    },
+    {
       provide: KYC_REPOSITORY,
       useClass: PrismaKycRepository,
     },
@@ -484,6 +490,7 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
     VENDOR_PAYABLE_REPOSITORY,
     COMMERCE_REFUND_REPOSITORY,
     COMMERCE_DELIVERY_ZONE_REPOSITORY,
+    REWARDS_REPOSITORY,
     APP_VERSION_REPOSITORY,
     SESSION_TRACKING_REPOSITORY,
     WAITLIST_REPOSITORY,

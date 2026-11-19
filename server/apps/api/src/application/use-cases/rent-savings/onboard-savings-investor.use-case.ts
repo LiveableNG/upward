@@ -14,6 +14,7 @@ import {
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 import { PlatformRatesService } from '../../../shared/infrastructure/common/platform-rates.service'
 import { isProductionRuntime } from '../../../shared/utils/runtime-env'
+import { TriggerAutomatedRewardUseCase } from '../../rewards/use-cases/trigger-automated-reward.use-case'
 
 export class OnboardSavingsInvestorDto {
   @IsOptional()
@@ -164,6 +165,7 @@ export class OnboardSavingsInvestorUseCase {
     @Inject(ASSET_MANAGEMENT_PROVIDER)
     private readonly assetManagementProvider: IAssetManagementProvider,
     @Optional() private readonly platformRates?: PlatformRatesService,
+    @Optional() private readonly triggerRewardUseCase?: TriggerAutomatedRewardUseCase,
   ) {}
 
   async getOnboardingPrefill(userId: number) {
@@ -776,6 +778,28 @@ export class OnboardSavingsInvestorUseCase {
       } catch (armErr: any) {
         this.logger.warn(`ARM onboarding dispatch non-blocking error: ${armErr.message}`)
       }
+    }
+
+    if (this.triggerRewardUseCase) {
+      // 1. User provided income information (occupation, source of funds, income range)
+      await this.triggerRewardUseCase
+        .execute({
+          userId,
+          triggerKey: 'FORM_INCOME_INFO',
+          customReason: 'Provided income & investor suitability information',
+        })
+        .catch(() => {})
+
+      // 2. User indicated interest and set up their Savings Wallet plan
+      const targetKobo = BigInt(Math.round((resolvedRent || 0) * 100))
+      await this.triggerRewardUseCase
+        .execute({
+          userId,
+          triggerKey: 'SAVINGS_INTEREST_INDICATION',
+          qualifyingAmountKobo: targetKobo,
+          customReason: 'Indicated interest and activated Savings Wallet plan',
+        })
+        .catch(() => {})
     }
 
     return {

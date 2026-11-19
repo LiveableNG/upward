@@ -5,6 +5,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
   UnauthorizedException,
 } from '@nestjs/common'
 import { ModuleRef } from '@nestjs/core'
@@ -12,6 +13,7 @@ import { IPaymentGateway, PAYMENT_GATEWAY } from '../../../domains/payments/paym
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { PlatformRatesService } from '../../../shared/infrastructure/common/platform-rates.service'
+import { TriggerAutomatedRewardUseCase } from '../../rewards/use-cases/trigger-automated-reward.use-case'
 
 const MAX_SUM_ASSURED = 20_000_000
 const DEFAULT_TERMS_VERSION = '2026-07-15'
@@ -70,6 +72,8 @@ export class InitializeInsuranceEnrolmentUseCase {
     private readonly gateway: IPaymentGateway,
     private readonly prisma: PrismaService,
     private readonly platformRates: PlatformRatesService,
+    @Optional()
+    private readonly triggerRewardUseCase?: TriggerAutomatedRewardUseCase,
   ) {}
 
   async execute(userUuidOrId: string | number, dto: InitializeInsuranceEnrolmentDto) {
@@ -125,6 +129,16 @@ export class InitializeInsuranceEnrolmentUseCase {
         termsVersion: dto.termsVersion || DEFAULT_TERMS_VERSION,
       },
     })
+
+    if (this.triggerRewardUseCase) {
+      await this.triggerRewardUseCase
+        .execute({
+          userId: user.id,
+          triggerKey: 'FORM_HOME_INSURANCE',
+          customReason: 'Completed Home / Rent Support Insurance information form',
+        })
+        .catch(() => {})
+    }
 
     const lineItems = [
       {

@@ -9,6 +9,10 @@ import {
   COMMERCE_ORDER_REPOSITORY,
   CommerceOrderRepository,
 } from '../../../domains/commerce/commerce-order.repository'
+import {
+  REWARDS_REPOSITORY,
+  RewardsRepository,
+} from '../../../domains/rewards/rewards.repository'
 import { SendCommerceReceiptEmailUseCase } from './send-commerce-receipt-email.use-case'
 
 export interface PaystackPaymentWebhookData {
@@ -38,6 +42,9 @@ export class ConfirmCommercePaymentUseCase {
     private readonly orderRepo: CommerceOrderRepository,
     @Optional()
     private readonly sendReceiptEmailUseCase?: SendCommerceReceiptEmailUseCase,
+    @Optional()
+    @Inject(REWARDS_REPOSITORY)
+    private readonly rewardsRepo?: RewardsRepository,
   ) {}
 
   async execute(data: PaystackPaymentWebhookData): Promise<ConfirmCommercePaymentResult> {
@@ -156,6 +163,14 @@ export class ConfirmCommercePaymentUseCase {
       channel: data.channel,
       paidAt,
     })
+
+    if (this.rewardsRepo) {
+      await this.rewardsRepo
+        .confirmOrderVoucherRedemptions(order.id!)
+        .catch((err) =>
+          this.logger.warn(`Failed to mark voucher redemptions CONFIRMED for order #${order.id}`, err),
+        )
+    }
 
     this.logger.log(`Order ${order.orderNumber} successfully confirmed and transitioned to PAID`)
 
