@@ -110,7 +110,7 @@ export async function seedLifestyleAndCommerce(client: PrismaClient) {
       region: 'Lagos Mainland',
       areasCovered:
         'Yaba, Sabo, Akoka, Alagomeji, Adekunle, Onike, Iwaya, Abule Ijesha, Jibowu, Tejuosho, Ebute Metta, Oyadiran Estate',
-      deliveryFeeKobo: 200000n, // ₦2,000
+      deliveryFeeKobo: 0n,
       estimatedDeliveryDays: 'Same-day or next-day delivery',
       isDelivering: true,
       sortOrder: 1,
@@ -125,7 +125,7 @@ export async function seedLifestyleAndCommerce(client: PrismaClient) {
       region: 'Greater Lagos Area',
       areasCovered:
         'Lagos Island, Victoria Island, Ikoyi, Lekki Phase 1 to Ajah, Ikeja, Surulere, Maryland, Magodo, Gbagada, Festac, Yaba, Entire Lagos State',
-      deliveryFeeKobo: 400000n, // ₦4,000
+      deliveryFeeKobo: 0n,
       estimatedDeliveryDays: '1 - 2 business days',
       isDelivering: true,
       sortOrder: 2,
