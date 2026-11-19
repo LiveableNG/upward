@@ -14,22 +14,24 @@ describe('Production simulation & mock DVA guards', () => {
   })
 
   describe('isProductionRuntime', () => {
-    it('returns true when VERCEL_ENV is production regardless of NODE_ENV or key', () => {
-      process.env.NODE_ENV = 'development'
-      process.env.VERCEL_ENV = 'production'
-      expect(isProductionRuntime('sk_test_123')).toBe(true)
+    it('returns false when secret key starts with sk_test_ even if NODE_ENV is production', () => {
+      process.env.NODE_ENV = 'production'
+      expect(isProductionRuntime('sk_test_123')).toBe(false)
     })
 
     it('returns true when secret key starts with sk_live_', () => {
       process.env.NODE_ENV = 'development'
-      delete process.env.VERCEL_ENV
       expect(isProductionRuntime('sk_live_abc')).toBe(true)
     })
 
-    it('returns false on Vercel preview with test key', () => {
+    it('returns true when NODE_ENV is production and no key is configured', () => {
       process.env.NODE_ENV = 'production'
-      process.env.VERCEL_ENV = 'preview'
-      expect(isProductionRuntime('sk_test_123')).toBe(false)
+      expect(isProductionRuntime()).toBe(true)
+    })
+
+    it('returns false when NODE_ENV is development and no key is configured', () => {
+      process.env.NODE_ENV = 'development'
+      expect(isProductionRuntime()).toBe(false)
     })
   })
 
@@ -141,9 +143,8 @@ describe('Production simulation & mock DVA guards', () => {
   })
 
   describe('ProcessPaymentWebhookUseCase', () => {
-    it('rejects invalid signatures in production even if secret starts with sk_test_', async () => {
+    it('rejects invalid signatures in production when live secret is configured', async () => {
       process.env.NODE_ENV = 'production'
-      process.env.VERCEL_ENV = 'production'
 
       const prismaMock = {
         upward_webhook_log: {
@@ -154,7 +155,7 @@ describe('Production simulation & mock DVA guards', () => {
       const uc = new ProcessPaymentWebhookUseCase(
         {} as any,
         {} as any,
-        { get: () => 'sk_test_misconfigured' } as any,
+        { get: () => 'sk_live_prod_key' } as any,
         {} as any,
         {} as any,
         {} as any,
