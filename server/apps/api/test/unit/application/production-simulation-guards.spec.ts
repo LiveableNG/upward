@@ -16,25 +16,21 @@ describe('Production simulation & mock DVA guards', () => {
   describe('isProductionRuntime', () => {
     it('returns false when secret key starts with sk_test_ even if NODE_ENV is production', () => {
       process.env.NODE_ENV = 'production'
-      delete process.env.PAYSTACK_SECRET_KEY
       expect(isProductionRuntime('sk_test_123')).toBe(false)
     })
 
     it('returns true when secret key starts with sk_live_', () => {
       process.env.NODE_ENV = 'development'
-      delete process.env.PAYSTACK_SECRET_KEY
       expect(isProductionRuntime('sk_live_abc')).toBe(true)
     })
 
     it('returns true when NODE_ENV is production and no key is configured', () => {
       process.env.NODE_ENV = 'production'
-      delete process.env.PAYSTACK_SECRET_KEY
       expect(isProductionRuntime()).toBe(true)
     })
 
     it('returns false when NODE_ENV is development and no key is configured', () => {
       process.env.NODE_ENV = 'development'
-      delete process.env.PAYSTACK_SECRET_KEY
       expect(isProductionRuntime()).toBe(false)
     })
   })
