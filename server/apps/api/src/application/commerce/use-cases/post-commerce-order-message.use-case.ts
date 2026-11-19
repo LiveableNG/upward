@@ -89,33 +89,34 @@ export class PostCommerceOrderMessageUseCase {
     const serviceTitle =
       (subOrder.items?.[0]?.snapshotData as any)?.title || 'Your Service Request'
 
+    // Dispatch Push + Email/SMS notifications asynchronously (non-blocking) for instant messaging latency
     if (params.senderType === 'ADMIN') {
-      // Notify customer via Push + In-App + Email (or SMS fallback)
-      const customerUser = order.user || (await this.userRepo.findById(order.userId))
-      await notifyCustomerCommerceMilestone({
-        notificationService: this.notificationService,
-        emailService: this.emailService,
-        smsService: this.smsService,
-        userId: order.userId,
-        userEmail: customerUser?.email,
-        userPhone: customerUser?.phone || order.recipientPhone,
-        title: `Update on ${serviceTitle}`,
-        message: `Upward Team sent a message on ${order.orderNumber}: "${trimmed.slice(0, 110)}${trimmed.length > 110 ? '…' : ''}"`,
-        emailSubject: `Message Regarding Your Quote — ${serviceTitle} (${order.orderNumber})`,
-        emailLines: [
-          `Hi ${order.recipientName},`,
-          `Our team left a message regarding your request for <strong>${serviceTitle}</strong> (Order <strong>${order.orderNumber}</strong>):`,
-          `<div style="padding:12px 14px;background:#faf8f5;border-left:3px solid #d97757;border-radius:6px;margin:8px 0;">${trimmed}</div>`,
-          `Open your order to reply directly so we can finalize your tailored quote.`,
-        ],
-        smsText: `Upward (${order.orderNumber}): ${trimmed.slice(0, 120)} — Reply in the Upward app.`,
-        url: `/dashboard/lifestyle/orders?uuid=${order.uuid}`,
-        ctaLabel: 'Reply on Order',
-        data: { orderUuid: order.uuid, subOrderUuid: subOrder.uuid },
-      })
+      void (async () => {
+        const customerUser = order.user || (await this.userRepo.findById(order.userId))
+        await notifyCustomerCommerceMilestone({
+          notificationService: this.notificationService,
+          emailService: this.emailService,
+          smsService: this.smsService,
+          userId: order.userId,
+          userEmail: customerUser?.email,
+          userPhone: customerUser?.phone || order.recipientPhone,
+          title: `Update on ${serviceTitle}`,
+          message: `Upward Team sent a message on ${order.orderNumber}: "${trimmed.slice(0, 110)}${trimmed.length > 110 ? '…' : ''}"`,
+          emailSubject: `Message Regarding Your Quote — ${serviceTitle} (${order.orderNumber})`,
+          emailLines: [
+            `Hi ${order.recipientName},`,
+            `Our team left a message regarding your request for <strong>${serviceTitle}</strong> (Order <strong>${order.orderNumber}</strong>):`,
+            `<div style="padding:12px 14px;background:#faf8f5;border-left:3px solid #d97757;border-radius:6px;margin:8px 0;">${trimmed}</div>`,
+            `Open your order to reply directly so we can finalize your tailored quote.`,
+          ],
+          smsText: `Upward (${order.orderNumber}): ${trimmed.slice(0, 120)} — Reply in the Upward app.`,
+          url: `/dashboard/lifestyle/orders?uuid=${order.uuid}`,
+          ctaLabel: 'Reply on Order',
+          data: { orderUuid: order.uuid, subOrderUuid: subOrder.uuid },
+        })
+      })().catch(() => {})
     } else {
-      // Notify Admin via Email
-      await notifyAdminCommerceEvent({
+      void notifyAdminCommerceEvent({
         emailService: this.emailService,
         subject: `[QUOTE REPLY] ${order.orderNumber} — ${serviceTitle}`,
         title: `Customer Reply on ${order.orderNumber}`,
@@ -125,7 +126,7 @@ export class PostCommerceOrderMessageUseCase {
           `<strong>Message:</strong><br/>${trimmed}`,
           `Open the Admin Portal to continue the review or set the final quoted price.`,
         ],
-      })
+      }).catch(() => {})
     }
 
     return {

@@ -264,6 +264,9 @@ export interface CommerceOrderRepository {
       deliveredAt?: Date
       tenantConfirmedAt?: Date
       coolingPeriodEndsAt?: Date
+      serviceRating?: number
+      serviceReviewComment?: string | null
+      reviewedAt?: Date
     },
   ): Promise<CommerceVendorSuborder>
   addFulfilmentEvent(
@@ -287,6 +290,9 @@ export interface CommerceOrderRepository {
       deliveredAt?: Date
       tenantConfirmedAt?: Date
       coolingPeriodEndsAt?: Date
+      serviceRating?: number
+      serviceReviewComment?: string | null
+      reviewedAt?: Date
     }
     event: {
       status: CustomerFulfilmentStatus

@@ -138,11 +138,45 @@ export function useCreateServiceQuoteOrder() {
 export function usePostCommerceOrderMessage() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ subOrderUuid, message }: { subOrderUuid: string; message: string }) =>
+    mutationFn: ({ subOrderUuid, message }: { orderUuid?: string; subOrderUuid: string; message: string }) =>
       postCommerceOrderMessage(subOrderUuid, message),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tenant-commerce-order'] })
-      queryClient.invalidateQueries({ queryKey: ['tenant-commerce-orders'] })
+    onMutate: async (variables) => {
+      if (!variables.orderUuid) return undefined
+      const queryKey = ['tenant-commerce-order', variables.orderUuid]
+      await queryClient.cancelQueries({ queryKey })
+      const previousOrder = queryClient.getQueryData<any>(queryKey)
+
+      if (previousOrder?.subOrders) {
+        const optimisticMsg = {
+          uuid: `optimistic-${Date.now()}`,
+          senderType: 'TENANT',
+          senderName: previousOrder.recipientName || 'You',
+          message: variables.message.trim(),
+          createdAt: new Date().toISOString(),
+        }
+        queryClient.setQueryData(queryKey, {
+          ...previousOrder,
+          subOrders: previousOrder.subOrders.map((sub: any) =>
+            sub.uuid === variables.subOrderUuid
+              ? { ...sub, messages: [...(sub.messages || []), optimisticMsg] }
+              : sub,
+          ),
+        })
+      }
+
+      return { previousOrder, queryKey }
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousOrder && context?.queryKey) {
+        queryClient.setQueryData(context.queryKey, context.previousOrder)
+      }
+    },
+    onSettled: (_data, _err, variables) => {
+      if (variables.orderUuid) {
+        queryClient.invalidateQueries({ queryKey: ['tenant-commerce-order', variables.orderUuid] })
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['tenant-commerce-order'] })
+      }
     },
   })
 }

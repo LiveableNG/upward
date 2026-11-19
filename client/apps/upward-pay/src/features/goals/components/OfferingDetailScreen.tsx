@@ -1295,10 +1295,10 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
               {offering.type === 'SERVICE' || offering.pricingModel === 'QUOTE_REQUIRED' ? (
                 <div className="offering-detail__price-banner">
                   <div className="offering-detail__price-col">
-                    <span className="offering-detail__price-label">Custom Estimate</span>
+                    <span className="offering-detail__price-label">Service Pricing</span>
                     <div className="offering-detail__price-row">
                       <span className="offering-detail__price-value" style={{ fontSize: 17 }}>
-                        Tailored to your request
+                        Price based on your need
                       </span>
                     </div>
                     <span
@@ -1309,12 +1309,9 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                         lineHeight: 1.45,
                       }}
                     >
-                      Share your details and receive a clear quote before paying.
+                      Tell us what you need and we&apos;ll send your exact price before you pay.
                     </span>
                   </div>
-                  <span className="offering-detail__pricing-pill" style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>
-                    Free Quote
-                  </span>
                 </div>
               ) : (
                 <div className="offering-detail__price-banner">
@@ -1504,7 +1501,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                       onClick={() => setIsQuoteModalOpen(true)}
                     >
                       <Wrench size={16} />
-                      <span>Request a Custom Quote</span>
+                      <span>Request a Price</span>
                     </button>
                   ) : (
                     <button
@@ -1554,18 +1551,20 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                   </button>
                 )}
 
-                <button
-                  type="button"
-                  className="offering-detail__secondary-cta"
-                  onClick={() => {
-                    setInquiryCategory('GENERAL')
-                    setIsInquiryOpen(true)
-                    setInquirySent(false)
-                  }}
-                >
-                  <MessageSquare size={16} />
-                  <span>Ask Upward Support</span>
-                </button>
+                {offering.type !== 'SERVICE' && (
+                  <button
+                    type="button"
+                    className="offering-detail__secondary-cta"
+                    onClick={() => {
+                      setInquiryCategory('GENERAL')
+                      setIsInquiryOpen(true)
+                      setInquirySent(false)
+                    }}
+                  >
+                    <MessageSquare size={16} />
+                    <span>Ask Upward Support</span>
+                  </button>
+                )}
               </div>
             </section>
           </aside>

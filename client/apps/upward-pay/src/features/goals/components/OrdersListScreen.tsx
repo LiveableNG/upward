@@ -48,6 +48,25 @@ function formatDate(dateStr: string): string {
 }
 
 function getStatusBadge(status: CustomerFulfilmentStatus, isService: boolean, paymentStatus?: string) {
+  if (status === 'QUOTE_REQUESTED') {
+    return {
+      label: 'Under Review',
+      className: 'orders-hub__badge--processing',
+    }
+  }
+  if (status === 'QUOTE_PROVIDED') {
+    return {
+      label: 'Price Ready',
+      className: 'orders-hub__badge--confirmed',
+    }
+  }
+  if (status === 'CANCELLED') {
+    return {
+      label: 'Cancelled',
+      className: 'orders-hub__badge--cancelled',
+    }
+  }
+
   if (paymentStatus && paymentStatus !== 'PAID') {
     return {
       label: 'Awaiting Payment',
@@ -97,11 +116,6 @@ function getStatusBadge(status: CustomerFulfilmentStatus, isService: boolean, pa
       return {
         label: 'Inquiry Logged',
         className: 'orders-hub__badge--disputed',
-      }
-    case 'CANCELLED':
-      return {
-        label: 'Cancelled',
-        className: 'orders-hub__badge--cancelled',
       }
     default:
       return {
@@ -314,65 +328,111 @@ export function OrdersListScreen() {
                   </div>
 
                   {/* Card Footer */}
-                  <div className="orders-hub__card-footer">
-                    <div className="orders-hub__total-wrap">
-                      <span className="orders-hub__total-label">
-                        {isUnpaid ? 'Total Due' : 'Total Paid'}
-                      </span>
-                      <span className="orders-hub__total-value">
-                        {formatKoboToNgn(order.totalAmountKobo)}
-                      </span>
-                    </div>
+                  {(() => {
+                    const isQuotePending =
+                      order.primaryStatus === 'QUOTE_REQUESTED' &&
+                      Number(order.totalAmountKobo || 0) <= 0
+                    const isQuoteReady =
+                      order.primaryStatus === 'QUOTE_PROVIDED' &&
+                      order.paymentStatus !== 'PAID' &&
+                      Number(order.totalAmountKobo || 0) > 0
 
-                    <div className="orders-hub__actions">
-                      {order.paymentStatus === 'PAID' && (
-                        <button
-                          type="button"
-                          className="orders-hub__receipt-btn"
-                          onClick={() => handleDownload(order.uuid, order.orderNumber)}
-                          disabled={isDownloading}
-                          title="Download official branded PDF receipt"
-                        >
-                          {isDownloading ? (
-                            <Loader2 size={14} className="animate-spin" />
-                          ) : (
-                            <Download size={14} />
-                          )}
-                          <span>Receipt</span>
-                        </button>
-                      )}
+                    return (
+                      <div className="orders-hub__card-footer">
+                        <div className="orders-hub__total-wrap">
+                          <span className="orders-hub__total-label">
+                            {isQuotePending
+                              ? 'Pricing'
+                              : isQuoteReady
+                                ? 'Service Price'
+                                : isUnpaid
+                                  ? 'Total Due'
+                                  : 'Total Paid'}
+                          </span>
+                          <span className="orders-hub__total-value">
+                            {isQuotePending
+                              ? 'Pending Price'
+                              : formatKoboToNgn(order.totalAmountKobo)}
+                          </span>
+                        </div>
 
-                      {(() => {
-                        if (isUnpaid) {
-                          return (
+                        <div className="orders-hub__actions">
+                          {order.paymentStatus === 'PAID' && (
                             <button
                               type="button"
-                              className="orders-hub__track-btn orders-hub__track-btn--pay"
-                              onClick={() => router.push(`/dashboard/lifestyle/orders?uuid=${order.uuid}`)}
+                              className="orders-hub__receipt-btn"
+                              onClick={() => handleDownload(order.uuid, order.orderNumber)}
+                              disabled={isDownloading}
+                              title="Download official branded PDF receipt"
                             >
-                              <CreditCard size={14} />
-                              <span>Pay Now</span>
+                              {isDownloading ? (
+                                <Loader2 size={14} className="animate-spin" />
+                              ) : (
+                                <Download size={14} />
+                              )}
+                              <span>Receipt</span>
                             </button>
-                          )
-                        }
+                          )}
 
-                        const isCompleted =
-                          ['DELIVERED', 'SERVICE_COMPLETED', 'RECEIVED_CONFIRMED'].includes(order.primaryStatus) ||
-                          ['CANCELLED', 'REFUNDED'].includes(order.status)
+                          {(() => {
+                            if (isQuotePending) {
+                              return (
+                                <button
+                                  type="button"
+                                  className="orders-hub__track-btn"
+                                  onClick={() => router.push(`/dashboard/lifestyle/orders?uuid=${order.uuid}`)}
+                                >
+                                  <span>View Request</span>
+                                  <ChevronRight size={14} />
+                                </button>
+                              )
+                            }
 
-                        return (
-                          <button
-                            type="button"
-                            className={`orders-hub__track-btn ${isCompleted ? 'orders-hub__track-btn--completed' : ''}`}
-                            onClick={() => router.push(`/dashboard/lifestyle/orders?uuid=${order.uuid}`)}
-                          >
-                            <span>{isCompleted ? 'View Details' : 'Track Live'}</span>
-                            <ChevronRight size={14} />
-                          </button>
-                        )
-                      })()}
-                    </div>
-                  </div>
+                            if (isQuoteReady) {
+                              return (
+                                <button
+                                  type="button"
+                                  className="orders-hub__track-btn orders-hub__track-btn--pay"
+                                  onClick={() => router.push(`/dashboard/lifestyle/orders?uuid=${order.uuid}`)}
+                                >
+                                  <CreditCard size={14} />
+                                  <span>Review &amp; Pay</span>
+                                </button>
+                              )
+                            }
+
+                            if (isUnpaid && Number(order.totalAmountKobo || 0) > 0) {
+                              return (
+                                <button
+                                  type="button"
+                                  className="orders-hub__track-btn orders-hub__track-btn--pay"
+                                  onClick={() => router.push(`/dashboard/lifestyle/orders?uuid=${order.uuid}`)}
+                                >
+                                  <CreditCard size={14} />
+                                  <span>Pay Now</span>
+                                </button>
+                              )
+                            }
+
+                            const isCompleted =
+                              ['DELIVERED', 'SERVICE_COMPLETED', 'RECEIVED_CONFIRMED'].includes(order.primaryStatus) ||
+                              ['CANCELLED', 'REFUNDED'].includes(order.status)
+
+                            return (
+                              <button
+                                type="button"
+                                className={`orders-hub__track-btn ${isCompleted ? 'orders-hub__track-btn--completed' : ''}`}
+                                onClick={() => router.push(`/dashboard/lifestyle/orders?uuid=${order.uuid}`)}
+                              >
+                                <span>{isCompleted ? 'View Details' : 'Track Live'}</span>
+                                <ChevronRight size={14} />
+                              </button>
+                            )
+                          })()}
+                        </div>
+                      </div>
+                    )
+                  })()}
                 </div>
               )
             })}

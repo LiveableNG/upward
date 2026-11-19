@@ -393,6 +393,24 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
     if (paymentStatus) {
       if (paymentStatus === 'UNPAID') {
         where.paymentStatus = { in: ['UNPAID', 'INITIATED'] }
+      } else if (paymentStatus === 'PAID') {
+        // Actionable admin view: include both PAID orders AND active Service Quote requests
+        where.AND = [
+          ...(where.AND || []),
+          {
+            OR: [
+              { paymentStatus: 'PAID' },
+              {
+                status: { notIn: ['CANCELLED', 'REFUNDED'] },
+                subOrders: {
+                  some: {
+                    customerStatus: { in: ['QUOTE_REQUESTED', 'QUOTE_PROVIDED'] },
+                  },
+                },
+              },
+            ],
+          },
+        ]
       } else {
         where.paymentStatus = paymentStatus
       }
@@ -433,6 +451,9 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
             },
               fulfilmentEvents: {
                 orderBy: { createdAt: 'desc' },
+              },
+              messages: {
+                orderBy: { createdAt: 'asc' },
               },
             },
           },
@@ -643,95 +664,103 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
       details?: Record<string, any>
     }
   }): Promise<CommerceVendorSuborder> {
-    return this.prisma.$transaction(async (tx) => {
-      // 1. Update sub-order state
-      const subOrderUpdateData: any = {}
-      if (params.customerStatus) subOrderUpdateData.customerStatus = params.customerStatus
-      if (params.operationalStatus) subOrderUpdateData.operationalStatus = params.operationalStatus
-      if (params.dispatchData) {
-        Object.assign(subOrderUpdateData, params.dispatchData)
-      }
-
-      await tx.upward_commerce_vendor_suborder.update({
-        where: { id: params.subOrderId },
-        data: subOrderUpdateData,
-      })
-
-      // 2. Record immutable fulfilment event
-      await tx.upward_commerce_fulfilment_event.create({
-        data: {
-          subOrderId: params.subOrderId,
-          status: params.event.status as any,
-          title: params.event.title,
-          description: params.event.description,
-          isCustomerVisible: params.event.isCustomerVisible,
-          carrierName: params.event.carrierName,
-          trackingNumber: params.event.trackingNumber,
-          serviceDateTime: params.event.serviceDateTime,
-          actorType: params.event.actorType,
-          actorId: params.event.actorId,
-        },
-      })
-
-      // 3. Update payable status if requested (e.g. IN_COOLING_PERIOD or ELIGIBLE_FOR_PAYOUT)
-      if (params.payableStatusUpdate) {
-        const payableData: any = { status: params.payableStatusUpdate.status as any }
-        if (params.payableStatusUpdate.eligibleAt) {
-          payableData.eligibleAt = params.payableStatusUpdate.eligibleAt
+    await this.prisma.$transaction(
+      async (tx) => {
+        // 1. Build sub-order update payload
+        const subOrderUpdateData: any = {}
+        if (params.customerStatus) subOrderUpdateData.customerStatus = params.customerStatus
+        if (params.operationalStatus) subOrderUpdateData.operationalStatus = params.operationalStatus
+        if (params.dispatchData) {
+          Object.assign(subOrderUpdateData, params.dispatchData)
         }
-        await tx.upward_commerce_vendor_payable.updateMany({
-          where: { subOrderId: params.subOrderId },
-          data: payableData,
-        })
-      }
 
-      // 4. Master order status aggregation: check if all sub-orders of this order are now completed
-      if (params.checkAllSubOrdersCompleted) {
-        const activeSubOrders = await tx.upward_commerce_vendor_suborder.findMany({
-          where: {
-            orderId: params.orderId,
-            customerStatus: { not: 'RECEIVED_CONFIRMED' },
-          },
-        })
+        // 2. Execute independent writes in parallel to minimize remote DB roundtrips
+        const writeOps: Promise<any>[] = [
+          tx.upward_commerce_vendor_suborder.update({
+            where: { id: params.subOrderId },
+            data: subOrderUpdateData,
+          }),
+          tx.upward_commerce_fulfilment_event.create({
+            data: {
+              subOrderId: params.subOrderId,
+              status: params.event.status as any,
+              title: params.event.title,
+              description: params.event.description,
+              isCustomerVisible: params.event.isCustomerVisible,
+              carrierName: params.event.carrierName,
+              trackingNumber: params.event.trackingNumber,
+              serviceDateTime: params.event.serviceDateTime,
+              actorType: params.event.actorType,
+              actorId: params.event.actorId,
+            },
+          }),
+        ]
 
-        if (activeSubOrders.length === 0) {
-          await tx.upward_commerce_order.update({
-            where: { id: params.orderId },
-            data: { status: 'COMPLETED' },
+        if (params.payableStatusUpdate) {
+          const payableData: any = { status: params.payableStatusUpdate.status as any }
+          if (params.payableStatusUpdate.eligibleAt) {
+            payableData.eligibleAt = params.payableStatusUpdate.eligibleAt
+          }
+          writeOps.push(
+            tx.upward_commerce_vendor_payable.updateMany({
+              where: { subOrderId: params.subOrderId },
+              data: payableData,
+            }),
+          )
+        }
+
+        if (params.auditLog) {
+          writeOps.push(
+            tx.upward_commerce_order_audit.create({
+              data: {
+                orderId: params.orderId,
+                event: params.auditLog.event,
+                fromState: params.auditLog.fromState,
+                toState: params.auditLog.toState,
+                actorType: params.auditLog.actorType,
+                actorId: params.auditLog.actorId,
+                details: params.auditLog.details,
+              },
+            }),
+          )
+        }
+
+        await Promise.all(writeOps)
+
+        // 3. Master order status aggregation: check if all sub-orders of this order are now completed
+        if (params.checkAllSubOrdersCompleted) {
+          const remainingCount = await tx.upward_commerce_vendor_suborder.count({
+            where: {
+              orderId: params.orderId,
+              customerStatus: { not: 'RECEIVED_CONFIRMED' },
+            },
           })
+
+          if (remainingCount === 0) {
+            await tx.upward_commerce_order.update({
+              where: { id: params.orderId },
+              data: { status: 'COMPLETED' },
+            })
+          }
         }
-      }
+      },
+      { maxWait: 10000, timeout: 20000 },
+    )
 
-      // 5. Record order audit log if provided
-      if (params.auditLog) {
-        await tx.upward_commerce_order_audit.create({
-          data: {
-            orderId: params.orderId,
-            event: params.auditLog.event,
-            fromState: params.auditLog.fromState,
-            toState: params.auditLog.toState,
-            actorType: params.auditLog.actorType,
-            actorId: params.auditLog.actorId,
-            details: params.auditLog.details,
-          },
-        })
-      }
-
-      // 6. Return fully refreshed sub-order
-      const updated = await tx.upward_commerce_vendor_suborder.findUnique({
-        where: { id: params.subOrderId },
-        include: {
-          order: true,
-          vendor: true,
-          items: true,
-          fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
+    // 4. Return fully refreshed sub-order outside the transaction to avoid holding locks during joins
+    const updated = await this.prisma.upward_commerce_vendor_suborder.findUnique({
+      where: { id: params.subOrderId },
+      include: {
+        order: true,
+        vendor: true,
+        items: true,
+        fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
         messages: { orderBy: { createdAt: 'asc' } },
-          payableRecord: true,
-        },
-      })
-
-      return updated as unknown as CommerceVendorSuborder
+        payableRecord: true,
+      },
     })
+
+    return updated as unknown as CommerceVendorSuborder
   }
 
   async recordPaymentAttempt(
@@ -1104,8 +1133,8 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
         data: {
           subOrderId: subOrder.id,
           status: 'QUOTE_REQUESTED',
-          title: 'Service Quote Requested',
-          description: 'Your service request has been received. Our team is reviewing your details and will follow up with any questions or your custom quote.',
+          title: 'Service Request Received',
+          description: 'Your service request has been received. Our team is reviewing your details and will follow up with any questions or your exact price.',
           isCustomerVisible: true,
           actorType: 'TENANT',
           actorId: String(data.userId),
@@ -1216,10 +1245,10 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
         data: {
           subOrderId: params.subOrderId,
           status: 'QUOTE_PROVIDED',
-          title: `Custom Quote Ready — ${formattedNgn}`,
+          title: `Your Price is Ready — ${formattedNgn}`,
           description: params.quoteNotes?.trim()
-            ? `Your tailored quote of ${formattedNgn} is ready. Note: ${params.quoteNotes.trim()}`
-            : `Your tailored quote of ${formattedNgn} is ready. Review and complete payment to schedule your service.`,
+            ? `Your service price of ${formattedNgn} is ready. Note: ${params.quoteNotes.trim()}`
+            : `Your service price of ${formattedNgn} is ready. Review and complete payment to schedule your service.`,
           isCustomerVisible: true,
           actorType: 'ADMIN',
           actorId: params.adminActorId || 'ADMIN',
@@ -1278,10 +1307,10 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
         data: {
           subOrderId: params.subOrderId,
           status: 'CANCELLED',
-          title: 'Quote Declined by Customer',
+          title: 'Price Declined by Customer',
           description: params.reason?.trim()
-            ? `Customer declined the quote. Reason: ${params.reason.trim()}`
-            : 'Customer declined the custom quote and cancelled the service request.',
+            ? `Customer declined the service price. Reason: ${params.reason.trim()}`
+            : 'Customer declined the service price and cancelled the request.',
           isCustomerVisible: true,
           actorType: 'TENANT',
           actorId: String(params.userId),

@@ -1698,3 +1698,436 @@
   background: var(--surface2);
   margin-bottom: 16px;
 }
+
+/* ── Custom Service Quote Approval Card ── */
+.order-tracking__quote-card {
+  margin-top: 14px;
+  padding: 16px;
+  border-radius: 14px;
+  background: var(--bg, #ffffff);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.order-tracking__quote-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.order-tracking__quote-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--clay, #d97757);
+  background: rgba(var(--clay-rgb, 217, 119, 87), 0.1);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.order-tracking__quote-amount-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.order-tracking__quote-amount {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text, #1a1714);
+  line-height: 1.2;
+}
+
+.order-tracking__quote-subtitle {
+  font-size: 12px;
+  color: var(--text-muted, #8a8a8a);
+  font-weight: 500;
+}
+
+.order-tracking__quote-note {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--oat, #faf9f5);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.06));
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-secondary, #4a4642);
+}
+
+.order-tracking__quote-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  margin-top: 2px;
+}
+
+.order-tracking__quote-pay-btn {
+  width: 100%;
+  height: 46px;
+  border-radius: 12px;
+  border: none;
+  background: var(--clay, #d97757);
+  color: #ffffff;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 14.5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  box-shadow: 0 6px 16px -4px rgba(var(--clay-rgb, 217, 119, 87), 0.4);
+  transition: background-color 0.15s ease, transform 0.12s ease;
+}
+
+.order-tracking__quote-pay-btn:hover:not(:disabled) {
+  background: var(--clay-hover, #c46648);
+}
+
+.order-tracking__quote-pay-btn:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.order-tracking__quote-pay-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.order-tracking__quote-decline-btn {
+  width: 100%;
+  height: 42px;
+  border-radius: 12px;
+  border: 1px solid var(--border-solid, var(--border, #e2ddd7));
+  background: transparent;
+  color: var(--text-secondary, #4a4642);
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 13.5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.order-tracking__quote-decline-btn:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.order-tracking__quote-decline-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ── Service Quote Conversation Box ── */
+.order-tracking__chat-card {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 14px;
+  background: var(--oat, #faf9f5);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.order-tracking__chat-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text, #1a1714);
+}
+
+.order-tracking__chat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.order-tracking__chat-bubble {
+  max-width: 85%;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.order-tracking__chat-bubble--mine {
+  align-self: flex-end;
+  background: var(--clay, #d97757);
+  color: #ffffff;
+  border-bottom-right-radius: 4px;
+}
+
+.order-tracking__chat-bubble--admin {
+  align-self: flex-start;
+  background: var(--bg, #ffffff);
+  color: var(--text, #1a1714);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  border-bottom-left-radius: 4px;
+}
+
+.order-tracking__chat-sender {
+  font-size: 10.5px;
+  font-weight: 700;
+  opacity: 0.8;
+  margin-bottom: 2px;
+}
+
+.order-tracking__chat-composer {
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.order-tracking__chat-input {
+  flex: 1;
+  min-width: 0;
+  height: 40px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border-solid, #e2ddd7);
+  background: var(--bg, #ffffff);
+  font-size: 13px;
+  color: var(--text, #1a1714);
+  font-family: inherit;
+  outline: none;
+}
+
+.order-tracking__chat-input:focus {
+  border-color: var(--clay, #d97757);
+}
+
+.order-tracking__chat-send-btn {
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: none;
+  background: var(--clay, #d97757);
+  color: #ffffff;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.order-tracking__chat-send-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Collapsible Quote Conversation Toggle (Post-Payment) ── */
+.order-tracking__chat-accordion {
+  margin-top: 12px;
+  border-radius: 14px;
+  background: var(--oat, #faf9f5);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  overflow: hidden;
+}
+
+.order-tracking__chat-toggle {
+  width: 100%;
+  padding: 12px 14px;
+  background: transparent;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: background-color 0.15s ease;
+}
+
+.order-tracking__chat-toggle:hover {
+  background: rgba(0, 0, 0, 0.025);
+}
+
+.order-tracking__chat-toggle-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.order-tracking__chat-toggle-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text, #1a1714);
+}
+
+.order-tracking__chat-toggle-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-muted, #8a8a8a);
+  background: var(--bg, #ffffff);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  padding: 2px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.order-tracking__chat-toggle-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--clay, #d97757);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.order-tracking__chat-chevron {
+  transition: transform 0.2s ease;
+}
+
+.order-tracking__chat-chevron--open {
+  transform: rotate(180deg);
+}
+
+.order-tracking__chat-body {
+  padding: 0 14px 14px;
+  border-top: 1px solid var(--border, rgba(0, 0, 0, 0.06));
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── Redesigned Service Appointment & Assigned Crew Card ── */
+.order-tracking__service-card {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--bg, #ffffff);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.08));
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.order-tracking__service-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.order-tracking__service-row--crew {
+  align-items: center;
+}
+
+.order-tracking__service-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(var(--clay-rgb, 217, 119, 87), 0.1);
+  color: var(--clay, #d97757);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.order-tracking__service-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.order-tracking__service-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted, #8a8a8a);
+}
+
+.order-tracking__service-val {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text, #1a1714);
+  line-height: 1.3;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.order-tracking__service-sub {
+  font-size: 12.5px;
+  color: var(--text-secondary, #4a4642);
+  line-height: 1.4;
+}
+
+.order-tracking__service-verified {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #15803d;
+  background: rgba(34, 197, 94, 0.1);
+  padding: 2px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.order-tracking__service-divider {
+  height: 1px;
+  background: var(--border, rgba(0, 0, 0, 0.07));
+  width: 100%;
+}
+
+.order-tracking__service-call-btn {
+  height: 34px;
+  padding: 0 13px;
+  border-radius: 999px;
+  background: var(--clay, #d97757);
+  color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 600;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  flex-shrink: 0;
+  white-space: nowrap;
+  box-shadow: 0 3px 10px -2px rgba(var(--clay-rgb, 217, 119, 87), 0.35);
+  transition: background-color 0.15s ease, transform 0.12s ease;
+}
+
+.order-tracking__service-call-btn:hover {
+  background: var(--clay-hover, #c46648);
+}
+
+.order-tracking__service-call-btn:active {
+  transform: scale(0.97);
+}

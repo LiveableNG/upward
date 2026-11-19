@@ -586,7 +586,7 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
               onChange={(e) => setPaymentStatusFilter(e.target.value)}
               style={{ padding: '9px 14px', borderRadius: 8, border: '1px solid #ddd', fontSize: 13, backgroundColor: '#fff' }}
             >
-              <option value="PAID">Paid Orders (Actionable)</option>
+              <option value="PAID">Actionable Orders (Paid &amp; Quotes)</option>
               <option value="ALL">All Orders (Including Abandoned)</option>
               <option value="UNPAID">Unpaid / Abandoned Only</option>
             </select>

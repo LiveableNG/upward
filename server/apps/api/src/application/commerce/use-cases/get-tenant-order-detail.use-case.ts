@@ -70,6 +70,7 @@ export class GetTenantOrderDetailUseCase {
         serviceWindowNotes: sub.serviceWindowNotes,
         technicianName: sub.technicianName,
         technicianPhone: sub.technicianPhone,
+        adminOperationalNotes: sub.adminOperationalNotes,
         quoteNotes: sub.quoteNotes,
         quotedAt: sub.quotedAt,
         serviceRating: sub.serviceRating,

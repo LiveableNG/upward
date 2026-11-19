@@ -77,6 +77,7 @@ export interface TenantVendorSubOrderDto {
   serviceWindowNotes?: string | null
   technicianName?: string | null
   technicianPhone?: string | null
+  adminOperationalNotes?: string | null
   quoteNotes?: string | null
   quotedAt?: Date | null
   serviceRating?: number | null

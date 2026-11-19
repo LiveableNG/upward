@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Truck, Wrench, Send, Loader2, User, ChevronRight, MessageSquare, Tag } from 'lucide-react'
 import { Modal } from '../../../components/common/modal/Modal'
 import type {
@@ -43,6 +43,9 @@ export function SubOrderFulfilmentModal({
     subOrder.customerStatus === 'QUOTE_PROVIDED'
 
   const [messages, setMessages] = useState(subOrder.messages || [])
+  useEffect(() => {
+    setMessages(subOrder.messages || [])
+  }, [subOrder.messages])
   const [replyText, setReplyText] = useState('')
   const [sendingReply, setSendingReply] = useState(false)
   const [quotedPriceNgn, setQuotedPriceNgn] = useState(
@@ -73,9 +76,51 @@ export function SubOrderFulfilmentModal({
   const [showCourierDetails, setShowCourierDetails] = useState(
     Boolean(subOrder.carrierName || subOrder.trackingNumber || subOrder.trackingUrl),
   )
-  const [serviceScheduledAt, setServiceScheduledAt] = useState(
-    subOrder.serviceScheduledAt ? subOrder.serviceScheduledAt.slice(0, 16) : '',
-  )
+  const initialDateObj = subOrder.serviceScheduledAt ? new Date(subOrder.serviceScheduledAt) : null
+  const [serviceDate, setServiceDate] = useState(() => {
+    if (!initialDateObj || isNaN(initialDateObj.getTime())) return ''
+    const yyyy = initialDateObj.getFullYear()
+    const mm = String(initialDateObj.getMonth() + 1).padStart(2, '0')
+    const dd = String(initialDateObj.getDate()).padStart(2, '0')
+    return `${yyyy}-${mm}-${dd}`
+  })
+  const [serviceTime, setServiceTime] = useState(() => {
+    if (!initialDateObj || isNaN(initialDateObj.getTime())) return '09:00'
+    const hh = String(initialDateObj.getHours()).padStart(2, '0')
+    const mins = initialDateObj.getMinutes() >= 30 ? '30' : '00'
+    return `${hh}:${mins}`
+  })
+  const serviceScheduledAt = serviceDate ? `${serviceDate}T${serviceTime || '09:00'}` : ''
+
+  const TIME_SLOTS = [
+    { value: '07:00', label: '7:00 AM' },
+    { value: '07:30', label: '7:30 AM' },
+    { value: '08:00', label: '8:00 AM' },
+    { value: '08:30', label: '8:30 AM' },
+    { value: '09:00', label: '9:00 AM' },
+    { value: '09:30', label: '9:30 AM' },
+    { value: '10:00', label: '10:00 AM' },
+    { value: '10:30', label: '10:30 AM' },
+    { value: '11:00', label: '11:00 AM' },
+    { value: '11:30', label: '11:30 AM' },
+    { value: '12:00', label: '12:00 PM' },
+    { value: '12:30', label: '12:30 PM' },
+    { value: '13:00', label: '1:00 PM' },
+    { value: '13:30', label: '1:30 PM' },
+    { value: '14:00', label: '2:00 PM' },
+    { value: '14:30', label: '2:30 PM' },
+    { value: '15:00', label: '3:00 PM' },
+    { value: '15:30', label: '3:30 PM' },
+    { value: '16:00', label: '4:00 PM' },
+    { value: '16:30', label: '4:30 PM' },
+    { value: '17:00', label: '5:00 PM' },
+    { value: '17:30', label: '5:30 PM' },
+    { value: '18:00', label: '6:00 PM' },
+    { value: '18:30', label: '6:30 PM' },
+    { value: '19:00', label: '7:00 PM' },
+    { value: '19:30', label: '7:30 PM' },
+    { value: '20:00', label: '8:00 PM' },
+  ]
   const [serviceWindowNotes, setServiceWindowNotes] = useState(
     subOrder.serviceWindowNotes || 'Morning window (9:00 AM - 1:00 PM)',
   )
@@ -137,20 +182,28 @@ export function SubOrderFulfilmentModal({
   const handleSendAdminReply = async () => {
     const trimmed = replyText.trim()
     if (!trimmed || !onPostMessage) return
+    const tempUuid = `optimistic-${Date.now()}`
+    const optimisticMsg = {
+      uuid: tempUuid,
+      senderType: 'ADMIN',
+      senderName: 'Upward Team',
+      message: trimmed,
+      createdAt: new Date().toISOString(),
+    }
+
+    // Optimistically append message and clear input at 0ms
+    setMessages((prev) => [...prev, optimisticMsg])
+    setReplyText('')
     setSendingReply(true)
     try {
       const res = await onPostMessage(subOrder.uuid, trimmed)
-      const created = res?.message || {
-        uuid: String(Date.now()),
-        senderType: 'ADMIN',
-        senderName: 'Upward Team',
-        message: trimmed,
-        createdAt: new Date().toISOString(),
+      if (res?.message) {
+        setMessages((prev) => prev.map((m) => (m.uuid === tempUuid ? res.message : m)))
       }
-      setMessages((prev) => [...prev, created])
-      setReplyText('')
     } catch {
-      // toast handled in hook
+      // Roll back optimistic message and restore input on failure
+      setMessages((prev) => prev.filter((m) => m.uuid !== tempUuid))
+      setReplyText(trimmed)
     } finally {
       setSendingReply(false)
     }
@@ -700,21 +753,45 @@ export function SubOrderFulfilmentModal({
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div>
                 <label style={{ display: 'block', fontSize: 12, fontWeight: 700, marginBottom: 5, color: 'var(--text)' }}>
-                  Appointment Date & Time
+                  Appointment Date &amp; Time
                 </label>
-                <input
-                  type="datetime-local"
-                  value={serviceScheduledAt}
-                  onChange={(e) => setServiceScheduledAt(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '9px 12px',
-                    borderRadius: 8,
-                    border: '1px solid var(--border)',
-                    fontSize: 13,
-                    color: 'var(--text)',
-                  }}
-                />
+                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: 8 }}>
+                  <input
+                    type="date"
+                    value={serviceDate}
+                    onChange={(e) => setServiceDate(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '9px 10px',
+                      borderRadius: 8,
+                      border: '1px solid var(--border)',
+                      fontSize: 13,
+                      color: 'var(--text)',
+                      background: '#fff',
+                    }}
+                  />
+                  <select
+                    value={serviceTime}
+                    onChange={(e) => setServiceTime(e.target.value)}
+                    aria-label="Appointment Time"
+                    style={{
+                      width: '100%',
+                      padding: '9px 8px',
+                      borderRadius: 8,
+                      border: '1px solid var(--border)',
+                      fontSize: 13,
+                      color: 'var(--text)',
+                      background: '#fff',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {TIME_SLOTS.map((slot) => (
+                      <option key={slot.value} value={slot.value}>
+                        {slot.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               <div>

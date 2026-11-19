@@ -246,6 +246,10 @@ export function CommerceOrdersTable({
                   const primarySubOrder = (order.subOrders || [])[0]
                   const primaryStatusBadge = primarySubOrder ? getFulfilmentBadge(primarySubOrder.customerStatus) : null
                   const ratingSubOrder = (order.subOrders || []).find((s) => typeof s.customerRating === 'number' && s.customerRating > 0)
+                  const isServiceOrder = (order.subOrders || []).some((s) =>
+                    (s.items || []).some((i) => i.offeringType === 'SERVICE'),
+                  )
+                  const isUnquotedService = isServiceOrder && Number(order.totalAmountKobo || 0) <= 0
 
                   return (
                     <React.Fragment key={order.uuid}>
@@ -306,34 +310,66 @@ export function CommerceOrdersTable({
                             <span>{order.deliveryAddress}</span>
                           </div>
                           {(order.deliveryNotes || order.deliveryInstructions) && (
-                            <div
-                              style={{
-                                marginTop: 6,
-                                fontSize: 11.5,
-                                color: '#92400e',
-                                background: '#fef3c7',
-                                border: '1px solid #fde68a',
-                                borderRadius: 5,
-                                padding: '3px 7px',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 4,
-                                maxWidth: 360,
-                                lineHeight: 1.35,
-                              }}
-                            >
-                              <Key size={11} style={{ flexShrink: 0 }} />
-                              <span>
-                                <strong>Gate / Driver Note:</strong> {order.deliveryNotes || order.deliveryInstructions}
-                              </span>
-                            </div>
+                            isServiceOrder ? (
+                              <div
+                                style={{
+                                  marginTop: 6,
+                                  fontSize: 12,
+                                  color: 'var(--text, #1a1714)',
+                                  background: 'rgba(194, 80, 31, 0.06)',
+                                  border: '1px solid rgba(194, 80, 31, 0.2)',
+                                  borderRadius: 7,
+                                  padding: '5px 9px',
+                                  display: 'inline-flex',
+                                  alignItems: 'flex-start',
+                                  gap: 6,
+                                  maxWidth: 360,
+                                  lineHeight: 1.4,
+                                }}
+                              >
+                                <MessageSquare size={12} style={{ flexShrink: 0, marginTop: 2, color: 'var(--clay, #C2501F)' }} />
+                                <span>
+                                  <strong style={{ color: 'var(--clay, #C2501F)' }}>Service Request:</strong>{' '}
+                                  {order.deliveryNotes || order.deliveryInstructions}
+                                </span>
+                              </div>
+                            ) : (
+                              <div
+                                style={{
+                                  marginTop: 6,
+                                  fontSize: 11.5,
+                                  color: '#92400e',
+                                  background: '#fef3c7',
+                                  border: '1px solid #fde68a',
+                                  borderRadius: 5,
+                                  padding: '3px 7px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  maxWidth: 360,
+                                  lineHeight: 1.35,
+                                }}
+                              >
+                                <Key size={11} style={{ flexShrink: 0 }} />
+                                <span>
+                                  <strong>Gate / Driver Note:</strong> {order.deliveryNotes || order.deliveryInstructions}
+                                </span>
+                              </div>
+                            )
                           )}
                         </td>
 
                         {/* Sub-Orders / Vendors */}
                         <td style={{ padding: '14px 16px', verticalAlign: 'top' }}>
                           <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
-                            {subOrdersCount} {subOrdersCount === 1 ? 'Shipment' : 'Shipments'}
+                            {subOrdersCount}{' '}
+                            {isServiceOrder
+                              ? subOrdersCount === 1
+                                ? 'Service'
+                                : 'Services'
+                              : subOrdersCount === 1
+                                ? 'Shipment'
+                                : 'Shipments'}
                           </div>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                             {(order.subOrders || []).map((sub) => (
@@ -357,12 +393,27 @@ export function CommerceOrdersTable({
 
                         {/* Total Amount */}
                         <td style={{ padding: '14px 16px', verticalAlign: 'top' }}>
-                          <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>
-                            {formatKoboToNgn(order.totalAmountKobo)}
-                          </div>
-                          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                            Delivery: {formatKoboToNgn(order.deliveryFeeKobo)}
-                          </div>
+                          {isUnquotedService ? (
+                            <>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--clay, #C2501F)' }}>
+                                Pending Quote
+                              </div>
+                              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                                Custom Service
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>
+                                {formatKoboToNgn(order.totalAmountKobo)}
+                              </div>
+                              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                                {isServiceOrder
+                                  ? 'Custom Quote'
+                                  : `Delivery: ${formatKoboToNgn(order.deliveryFeeKobo)}`}
+                              </div>
+                            </>
+                          )}
                         </td>
 
                         {/* Payment & Fulfilment Status */}
@@ -543,8 +594,19 @@ export function CommerceOrdersTable({
                                           <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 6 }}>
                                             {(subOrder.items || []).map((item) => (
                                               <div key={item.uuid} style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
-                                                • {item.snapshotData?.title || 'Merchandise Item'} × {item.quantity} (
-                                                {formatKoboToNgn(item.totalPriceKobo)})
+                                                {item.offeringType === 'SERVICE' && Number(item.totalPriceKobo || 0) <= 0 ? (
+                                                  <>
+                                                    • {item.snapshotData?.title || 'Service Request'}{' '}
+                                                    <span style={{ color: 'var(--clay, #C2501F)', fontWeight: 600 }}>
+                                                      (Pending Quote)
+                                                    </span>
+                                                  </>
+                                                ) : (
+                                                  <>
+                                                    • {item.snapshotData?.title || 'Merchandise Item'} × {item.quantity} (
+                                                    {formatKoboToNgn(item.totalPriceKobo)})
+                                                  </>
+                                                )}
                                               </div>
                                             ))}
                                           </div>
@@ -608,7 +670,7 @@ export function CommerceOrdersTable({
                                               >
                                                 <Phone size={11} />
                                                 <span>
-                                                  {isService ? 'Technician' : 'Driver'}: <strong>{subOrder.technicianName || 'Assigned'}</strong>
+                                                  {isService ? 'Assigned Crew' : 'Driver'}: <strong>{subOrder.technicianName || 'Assigned'}</strong>
                                                   {subOrder.technicianPhone && (
                                                     <a
                                                       href={`tel:${subOrder.technicianPhone}`}

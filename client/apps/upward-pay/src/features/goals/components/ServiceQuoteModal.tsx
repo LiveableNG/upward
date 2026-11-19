@@ -83,14 +83,14 @@ export const ServiceQuoteModal: React.FC<ServiceQuoteModalProps> = ({
         deliveryZoneTag: deliveryLocation?.zoneTag,
       })
 
-      toast.success('Quote request submitted! Track updates right in your orders.')
+      toast.success('Service request submitted! Track updates right in your orders.')
       reset()
       onClose()
       if (res?.order?.uuid) {
         router.push(`/dashboard/lifestyle/orders?uuid=${res.order.uuid}`)
       }
     } catch (err: any) {
-      toast.error(err?.message || 'Could not submit your quote request. Please try again.')
+      toast.error(err?.message || 'Could not submit your service request. Please try again.')
     }
   }
 
@@ -100,7 +100,7 @@ export const ServiceQuoteModal: React.FC<ServiceQuoteModalProps> = ({
     <BottomSheetModal
       isOpen={isOpen}
       onClose={onClose}
-      title="Request a Custom Quote"
+      title="Request a Service Price"
       subtitle={serviceTitle}
       maxWidth="520px"
     >
@@ -227,7 +227,7 @@ export const ServiceQuoteModal: React.FC<ServiceQuoteModalProps> = ({
         >
           <ShieldCheck size={15} style={{ color: 'var(--clay, #d97757)', flexShrink: 0, marginTop: 1 }} />
           <span>
-            No payment is required now. Our team will review your details, follow up in your order if needed, and send a tailored quote for your approval.
+            No payment is required now. Our team will review your details, follow up in your order if needed, and send your exact price for approval.
           </span>
         </div>
 
@@ -261,7 +261,7 @@ export const ServiceQuoteModal: React.FC<ServiceQuoteModalProps> = ({
           ) : (
             <>
               <Send size={16} />
-              <span>Submit Quote Request</span>
+              <span>Submit Request</span>
             </>
           )}
         </button>

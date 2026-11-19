@@ -34,10 +34,10 @@ interface OfferingCardProps {
 
 export function formatOfferingPrice(offering: GoalOffering): string {
   if (offering.type === 'SERVICE' || offering.pricingModel === 'QUOTE_REQUIRED') {
-    return 'Custom Quote'
+    return 'Price on Request'
   }
   const currency = offering.currency || 'NGN'
-  return formatCurrencyValue(offering.price, currency) || (offering.minPrice != null ? `From ${formatCurrencyValue(offering.minPrice, currency)}` : 'Custom Quote')
+  return formatCurrencyValue(offering.price, currency) || (offering.minPrice != null ? `From ${formatCurrencyValue(offering.minPrice, currency)}` : 'Price on Request')
 }
 
 export function formatCurrencyValue(val?: number | null, currency = 'NGN'): string {
@@ -191,7 +191,7 @@ export const OfferingCard: React.FC<OfferingCardProps> = ({
             {(offering.type === 'SERVICE' || (offering.pricingModel && offering.pricingModel !== 'FIXED')) && (
               <span className="offering-card__pricing-model">
                 {offering.type === 'SERVICE' || offering.pricingModel === 'QUOTE_REQUIRED'
-                  ? 'Tailored pricing'
+                  ? 'Based on your need'
                   : offering.pricingModel?.toLowerCase().replace('_', ' ')}
               </span>
             )}
@@ -204,7 +204,7 @@ export const OfferingCard: React.FC<OfferingCardProps> = ({
               style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
               title={
                 offering.type === 'SERVICE' || offering.pricingModel === 'QUOTE_REQUIRED'
-                  ? 'Request Quote / Details'
+                  ? 'Request Price / Details'
                   : 'Add to Cart'
               }
               onClick={(e) => {
@@ -229,7 +229,7 @@ export const OfferingCard: React.FC<OfferingCardProps> = ({
               )}
               <span>
                 {offering.type === 'SERVICE' || offering.pricingModel === 'QUOTE_REQUIRED'
-                  ? 'Get Quote'
+                  ? 'Request Price'
                   : 'Add'}
               </span>
             </button>
