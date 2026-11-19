@@ -8,7 +8,8 @@ import {
   IsDateString,
   IsNotEmpty,
   IsEmail,
-  IsUUID
+  IsUUID,
+  ValidateIf
 } from 'class-validator'
 import { Type, Transform } from 'class-transformer'
 
@@ -249,9 +250,21 @@ export class UserPropertyContextDto {
 }
 
 export class RentHistoryDto {
-  @Transform(({ value }) => (value !== undefined && value !== null && value !== '' ? Number(value) : value))
+  @ValidateIf((o) => o.rentAmount === undefined || o.rentAmount === null)
+  @Transform(({ value, obj }) => {
+    const val = value !== undefined && value !== null && value !== '' ? value : obj?.rentAmount
+    return val !== undefined && val !== null && val !== '' ? Number(val) : val
+  })
   @IsNumber()
-  amount!: number
+  amount?: number
+
+  @IsOptional()
+  @Transform(({ value, obj }) => {
+    const val = value !== undefined && value !== null && value !== '' ? value : obj?.amount
+    return val !== undefined && val !== null && val !== '' ? Number(val) : val
+  })
+  @IsNumber()
+  rentAmount?: number
 
   @IsDateString()
   paymentDate!: string
@@ -275,6 +288,29 @@ export class RentHistoryDto {
   @IsOptional()
   @IsString()
   notes?: string
+
+  @IsOptional()
+  @Transform(({ value }) => (value !== undefined && value !== null ? String(value) : value))
+  @IsString()
+  externalId?: string
+
+  @IsOptional()
+  @Transform(({ value }) => (value !== undefined && value !== null && value !== '' ? Number(value) : value))
+  @IsNumber()
+  outstanding?: number
+
+  @IsOptional()
+  @IsString()
+  currency?: string
+
+  @IsOptional()
+  @IsString()
+  status?: string
+
+  @IsOptional()
+  @Transform(({ value }) => (value !== undefined && value !== null ? String(value) : value))
+  @IsString()
+  receiptNumber?: string
 }
 
 export class IngestExternalRentHistoryDto {
