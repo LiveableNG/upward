@@ -683,12 +683,12 @@ describe('Phase 6B.4: Admin-Managed Fulfilment APIs & Milestone Dispatch', () =>
         customerStatus: 'RECEIVED_CONFIRMED',
         operationalStatus: 'FULFILMENT_CLOSED',
         tenantConfirmedAt: new Date(),
+        order: {
+          ...mockMasterOrder,
+          status: 'COMPLETED',
+        },
       }
       mockOrderRepo.executeSubOrderFulfilmentTransition.mockResolvedValue(confirmedSubOrder)
-      mockOrderRepo.findOrderById.mockResolvedValue({
-        ...mockMasterOrder,
-        status: 'COMPLETED',
-      })
 
       const res = await tenantConfirmReceiptUseCase.execute(1, 'suborder-prod-uuid')
 
@@ -731,10 +731,10 @@ describe('Phase 6B.4: Admin-Managed Fulfilment APIs & Milestone Dispatch', () =>
   })
 
   describe('Customer Visibility & Data Sanitization', () => {
-    it('should hide internal operational notes and non-visible events from tenant order detail', async () => {
+    it('should expose dispatch notes while hiding non-visible events and payout fields from tenant order detail', async () => {
       const subOrderWithInternalEvents: CommerceVendorSuborder = {
         ...mockProductSubOrder,
-        adminOperationalNotes: 'Vendor packaging damaged on arrival; carrier repacked box.',
+        adminOperationalNotes: 'Specialist is en route; arriving around 2:30 PM.',
         fulfilmentEvents: [
           {
             id: 1,
@@ -772,10 +772,11 @@ describe('Phase 6B.4: Admin-Managed Fulfilment APIs & Milestone Dispatch', () =>
       // Only the visible event should be exposed
       expect(subOrder.fulfilmentEvents).toHaveLength(1)
       expect(subOrder.fulfilmentEvents[0]!.uuid).toBe('ev-visible')
-      // Internal admin operational notes should NOT exist on tenant DTO
-      expect((subOrder as any).adminOperationalNotes).toBeUndefined()
-      // Vendor payout should NOT exist on tenant DTO
+      // Dispatch / operational message is customer-visible on the tracking timeline
+      expect(subOrder.adminOperationalNotes).toBe('Specialist is en route; arriving around 2:30 PM.')
+      // Vendor payout & internal operational status should NOT exist on tenant DTO
       expect((subOrder as any).vendorPayoutKobo).toBeUndefined()
+      expect((subOrder as any).operationalStatus).toBeUndefined()
     })
   })
 })

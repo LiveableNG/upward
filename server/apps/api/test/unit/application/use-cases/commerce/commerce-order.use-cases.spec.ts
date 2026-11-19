@@ -674,8 +674,9 @@ describe('Phase 6B.2: Commerce Order & Pricing Engine', () => {
       // Internal fields must be stripped:
       expect(sub.platformFeeKobo).toBeUndefined()
       expect(sub.vendorPayoutKobo).toBeUndefined()
-      expect(sub.adminOperationalNotes).toBeUndefined()
       expect(sub.operationalStatus).toBeUndefined()
+      // Customer-visible dispatch note is forwarded to the tracking view:
+      expect(sub.adminOperationalNotes).toBe('Secret internal admin note about vendor delay')
       // Only customer visible fulfilment events should be returned:
       expect(sub.fulfilmentEvents).toHaveLength(1)
       expect(sub.fulfilmentEvents[0]!.uuid).toBe('ev-visible')

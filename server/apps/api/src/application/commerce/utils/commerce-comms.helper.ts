@@ -124,24 +124,22 @@ export async function notifyAdminCommerceEvent(params: {
   title: string
   lines: string[]
   type?: string
+  roles?: string[]
 }): Promise<void> {
-  const { emailService, subject, title, lines, type = 'ADMIN_COMMERCE_ALERT' } = params
+  const { emailService, subject, title, lines, type = 'ADMIN_COMMERCE_ALERT', roles } = params
   if (!emailService) return
 
-  const adminEmail =
-    process.env.ADMIN_SUPPORT_EMAIL ||
-    process.env.SUPPORT_EMAIL ||
-    'support@goodtenants.africa'
-
   try {
-    await emailService.sendEmailWithRetry({
-      email: adminEmail,
+    await emailService.sendSystemAlertToAdmins(
       subject,
-      html: buildBrandedHtml(title, lines),
-      text: `${title}\n\n${lines.join('\n')}`,
-      type,
-    })
+      `${title}\n\n${lines.join('\n')}`,
+      {
+        roles,
+        htmlOverride: buildBrandedHtml(title, lines),
+        type,
+      },
+    )
   } catch (err) {
-    logger.warn(`Failed to send admin commerce email to ${adminEmail}: ${err}`)
+    logger.warn(`Failed to send admin commerce alert email (${subject}): ${err}`)
   }
 }
