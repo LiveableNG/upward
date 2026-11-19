@@ -1401,9 +1401,15 @@ export class UserAuthService extends BaseAuthService {
     }
 
     if (user) {
-      const isShadow = user.passwordHash === PASS_PLACEHOLDERS.INVITED ||
+      const isShadow =
+        !user.passwordHash ||
+        user.passwordHash === PASS_PLACEHOLDERS.INVITED ||
         user.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
-        !!(user.passwordHash && !user.passwordHash.startsWith('$2') && user.passwordHash !== PASS_PLACEHOLDERS.SOCIAL)
+        user.passwordHash === 'INVITED_NO_PASSWORD' ||
+        user.passwordHash === 'SHADOW_GUEST' ||
+        (!user.passwordHash.startsWith('$2') &&
+          user.passwordHash !== PASS_PLACEHOLDERS.SOCIAL &&
+          user.passwordHash !== 'SOCIAL_AUTH')
 
       isNewUser = isShadow
       const updates: Partial<User> = {}

@@ -1,6 +1,6 @@
 import { Injectable, Logger, Inject, Optional } from '@nestjs/common'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
-import { UserRepository, USER_REPOSITORY, User } from '../../../domains/users/user.repository'
+import { UserRepository, USER_REPOSITORY, User, PASS_PLACEHOLDERS } from '../../../domains/users/user.repository'
 import { WAITLIST_REPOSITORY, WaitlistRepository } from '../../../domains/waitlist/waitlist.repository'
 import * as bcrypt from 'bcrypt'
 import { UserAuthService } from '../../../application/auth/user-auth.service'
@@ -75,7 +75,18 @@ export class CompleteUserProfileUseCase {
     }
 
     let user = await this.userRepository.findByEmail(dto.email)
-    const wasAlreadyJoined = Boolean(user?.joinedAt)
+    // Match the authoritative Admin Dashboard signed-up check:
+    // Eligible ONLY if brand new (!user) or still a shadow/unaccepted-invite account
+    const isConvertingOrNewSignup =
+      !user ||
+      !user.passwordHash ||
+      user.passwordHash === PASS_PLACEHOLDERS.INVITED ||
+      user.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
+      user.passwordHash === 'INVITED_NO_PASSWORD' ||
+      user.passwordHash === 'SHADOW_GUEST' ||
+      (!user.passwordHash.startsWith('$2') &&
+        user.passwordHash !== PASS_PLACEHOLDERS.SOCIAL &&
+        user.passwordHash !== 'SOCIAL_AUTH')
 
     const nameParts = dto.fullName.split(' ')
     const firstName = nameParts[0] || ''
@@ -198,8 +209,8 @@ export class CompleteUserProfileUseCase {
         .catch(e => this.logger.error('Failed to sync sequence channel on complete profile', e));
     }
 
-    // Credit signup link voucher if converting/claiming a waitlist or invited account (not already joined)
-    if (!wasAlreadyJoined && dto.voucherCode && this.creditSignupVoucherUseCase && user?.id) {
+    // Credit signup link voucher if net-new signup or converting an unaccepted invite/waitlist account
+    if (isConvertingOrNewSignup && dto.voucherCode && this.creditSignupVoucherUseCase && user?.id) {
       await this.creditSignupVoucherUseCase
         .execute({
           userId: user.id,
