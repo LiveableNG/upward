@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { AlertCircle, WifiOff, RefreshCw, Home } from 'lucide-react'
+import { WifiOff, RefreshCw, Home, AlertCircle } from 'lucide-react'
+import { UpwardLogo } from '@/components/PoweredByUpward'
 import { haptics } from '@/lib/haptics'
 import { networkMonitor } from '@/lib/network'
 
@@ -41,57 +42,65 @@ export default function GlobalError({
   }
 
   return (
-    <div className="not-found-screen">
-      <main className="not-found-screen__container" role="main">
-        {/* Error icon badge */}
+    <div className="error-screen">
+      <main className="error-screen__container" role="main">
+        {/* Brand Mark or Connection Indicator */}
         <div
-          className="not-found-screen__brand-mark"
-          style={
-            isOffline
-              ? { background: '#fef3c7', borderColor: 'rgba(217, 119, 6, 0.2)', color: '#d97706' }
-              : { background: '#fee2e2', borderColor: 'rgba(220, 38, 38, 0.2)', color: '#dc2626' }
-          }
+          className={`error-screen__brand-mark ${isOffline ? 'error-screen__brand-mark--offline' : ''}`}
           aria-hidden="true"
         >
           {isOffline ? (
-            <WifiOff size={32} strokeWidth={2.2} />
+            <WifiOff size={28} strokeWidth={2.2} />
           ) : (
-            <AlertCircle size={32} strokeWidth={2.2} />
+            <UpwardLogo size={32} color="var(--clay, #c2501f)" />
           )}
         </div>
 
+        {/* Polished Status Tag */}
         <div
-          className="not-found-screen__code"
-          style={!isOffline ? { color: '#dc2626' } : { color: '#d97706' }}
+          className={`error-screen__badge ${isOffline ? 'error-screen__badge--offline' : ''}`}
           aria-hidden="true"
         >
-          {isOffline ? 'Connection Issue' : 'System Error'}
+          {isOffline ? (
+            <>
+              <WifiOff size={13} strokeWidth={2} />
+              <span>Connection Interrupted</span>
+            </>
+          ) : (
+            <>
+              <AlertCircle size={13} strokeWidth={2} />
+              <span>Temporary Notice</span>
+            </>
+          )}
         </div>
 
-        <h1 className="not-found-screen__title">
-          {isOffline ? 'Connection error' : 'Something went wrong'}
+        {/* Clear, Human Headline */}
+        <h1 className="error-screen__title">
+          {isOffline ? 'Unable to reach Upward' : 'Something didn’t go as planned'}
         </h1>
 
-        <p className="not-found-screen__description">
+        {/* Reassuring, Customer-first Description */}
+        <p className="error-screen__description">
           {isOffline
-            ? "We're having trouble reaching Upward Pay. Please check your internet connection and try again."
-            : 'An unexpected error occurred. Please try again, or return to the dashboard if the problem persists.'}
+            ? "We're having trouble connecting to the network. Please check your internet or mobile connection and try again."
+            : 'We ran into an unexpected hiccup loading this screen. Don’t worry — your funds, account, and active transactions remain completely secure.'}
         </p>
 
-        <div className="not-found-screen__actions">
+        {/* Actions */}
+        <div className="error-screen__actions">
           <button
             type="button"
-            className="not-found-screen__btn-primary"
+            className="error-screen__btn-primary"
             onClick={handleRetry}
             disabled={isRetrying}
           >
             <RefreshCw size={17} className={isRetrying ? 'animate-spin' : ''} aria-hidden="true" />
-            <span>{isRetrying ? 'Retrying...' : 'Try Again'}</span>
+            <span>{isRetrying ? 'Refreshing...' : 'Try again'}</span>
           </button>
 
           <Link
             href="/dashboard"
-            className="not-found-screen__btn-secondary"
+            className="error-screen__btn-secondary"
             onClick={() => haptics.light()}
           >
             <Home size={16} aria-hidden="true" />
@@ -99,11 +108,17 @@ export default function GlobalError({
           </Link>
         </div>
 
-        <p className="not-found-screen__support">
-          Need help?{' '}
+        {error?.digest && (
+          <div className="error-screen__digest">
+            Reference: {error.digest.slice(0, 8)}
+          </div>
+        )}
+
+        <p className="error-screen__support">
+          Need assistance?{' '}
           <Link
             href="/dashboard/help"
-            className="not-found-screen__support-link"
+            className="error-screen__support-link"
             onClick={() => haptics.light()}
           >
             Contact support

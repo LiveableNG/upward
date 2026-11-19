@@ -10,8 +10,12 @@ import {
   createCommerceOrder,
   initializeCommercePayment,
   verifyCommercePayment,
+  createServiceQuoteOrder,
+  postCommerceOrderMessage,
+  declineServiceQuote,
   type PreviewCommerceOrderInput,
   type CreateCommerceOrderInput,
+  type CreateServiceQuoteOrderInput,
 } from '../services/commerceService'
 
 export function useTenantOrders(filter?: { status?: string; skip?: number; take?: number }) {
@@ -32,9 +36,16 @@ export function useTenantOrderDetail(uuid: string, enabled = true) {
       const data = query.state.data
       if (!data) return false
       const hasActiveSubOrder = data.subOrders.some((s) =>
-        ['ORDER_CONFIRMED', 'PROCESSING', 'DISPATCHED', 'OUT_FOR_DELIVERY', 'TECHNICIAN_EN_ROUTE'].includes(
-          s.customerStatus,
-        ),
+        [
+          'QUOTE_REQUESTED',
+          'QUOTE_PROVIDED',
+          'ORDER_CONFIRMED',
+          'PROCESSING',
+          'DISPATCHED',
+          'OUT_FOR_DELIVERY',
+          'SERVICE_SCHEDULED',
+          'TECHNICIAN_EN_ROUTE',
+        ].includes(s.customerStatus),
       )
       return hasActiveSubOrder ? 10000 : false
     },
@@ -107,6 +118,74 @@ export function useVerifyCommercePayment() {
   return useMutation({
     mutationFn: ({ orderUuid, reference }: { orderUuid: string; reference: string }) =>
       verifyCommercePayment(orderUuid, reference),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['tenant-commerce-orders'] })
+      queryClient.invalidateQueries({ queryKey: ['tenant-commerce-order', variables.orderUuid] })
+    },
+  })
+}
+
+export function useCreateServiceQuoteOrder() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (input: CreateServiceQuoteOrderInput) => createServiceQuoteOrder(input),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tenant-commerce-orders'] })
+    },
+  })
+}
+
+export function usePostCommerceOrderMessage() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ subOrderUuid, message }: { orderUuid?: string; subOrderUuid: string; message: string }) =>
+      postCommerceOrderMessage(subOrderUuid, message),
+    onMutate: async (variables) => {
+      if (!variables.orderUuid) return undefined
+      const queryKey = ['tenant-commerce-order', variables.orderUuid]
+      await queryClient.cancelQueries({ queryKey })
+      const previousOrder = queryClient.getQueryData<any>(queryKey)
+
+      if (previousOrder?.subOrders) {
+        const optimisticMsg = {
+          uuid: `optimistic-${Date.now()}`,
+          senderType: 'TENANT',
+          senderName: previousOrder.recipientName || 'You',
+          message: variables.message.trim(),
+          createdAt: new Date().toISOString(),
+        }
+        queryClient.setQueryData(queryKey, {
+          ...previousOrder,
+          subOrders: previousOrder.subOrders.map((sub: any) =>
+            sub.uuid === variables.subOrderUuid
+              ? { ...sub, messages: [...(sub.messages || []), optimisticMsg] }
+              : sub,
+          ),
+        })
+      }
+
+      return { previousOrder, queryKey }
+    },
+    onError: (_err, _variables, context) => {
+      if (context?.previousOrder && context?.queryKey) {
+        queryClient.setQueryData(context.queryKey, context.previousOrder)
+      }
+    },
+    onSettled: (_data, _err, variables) => {
+      if (variables.orderUuid) {
+        queryClient.invalidateQueries({ queryKey: ['tenant-commerce-order', variables.orderUuid] })
+      } else {
+        queryClient.invalidateQueries({ queryKey: ['tenant-commerce-order'] })
+      }
+    },
+  })
+}
+
+export function useDeclineServiceQuote() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ orderUuid, reason }: { orderUuid: string; reason?: string }) =>
+      declineServiceQuote(orderUuid, reason),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['tenant-commerce-orders'] })
       queryClient.invalidateQueries({ queryKey: ['tenant-commerce-order', variables.orderUuid] })

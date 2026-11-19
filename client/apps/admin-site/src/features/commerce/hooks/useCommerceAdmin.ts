@@ -97,6 +97,48 @@ export function useCommerceAdmin(token?: string) {
     [token],
   )
 
+  const cancelOrder = useCallback(
+    async (orderUuid: string, reason: string) => {
+      try {
+        const res = await apiService.post(`/admin/commerce/orders/${orderUuid}/cancel`, { reason }, token)
+        showToast('Order cancelled successfully')
+        return res?.data
+      } catch (err: any) {
+        showToast(err?.message || 'Failed to cancel order', true)
+        throw err
+      }
+    },
+    [token],
+  )
+
+  const setSubOrderQuote = useCallback(
+    async (subOrderUuid: string, payload: { quotedPriceNgn: number; quoteNotes?: string }) => {
+      try {
+        const res = await apiService.post(`/admin/commerce/sub-orders/${subOrderUuid}/quote`, payload, token)
+        showToast('Custom quote sent to customer')
+        return res?.data
+      } catch (err: any) {
+        showToast(err?.message || 'Failed to set quote price', true)
+        throw err
+      }
+    },
+    [token],
+  )
+
+  const postSubOrderMessage = useCallback(
+    async (subOrderUuid: string, message: string) => {
+      try {
+        const res = await apiService.post(`/admin/commerce/sub-orders/${subOrderUuid}/messages`, { message }, token)
+        showToast('Message sent to customer')
+        return res?.data
+      } catch (err: any) {
+        showToast(err?.message || 'Failed to send message', true)
+        throw err
+      }
+    },
+    [token],
+  )
+
   const fetchDisputes = useCallback(
     async (filter: { status?: DisputeStatus; skip?: number; take?: number } = {}) => {
       setLoadingDisputes(true)
@@ -255,6 +297,9 @@ export function useCommerceAdmin(token?: string) {
     loadingOrderDetail,
     fetchOrderDetail,
     updateSubOrderFulfilment,
+    cancelOrder,
+    setSubOrderQuote,
+    postSubOrderMessage,
     disputes,
     disputesTotal,
     loadingDisputes,

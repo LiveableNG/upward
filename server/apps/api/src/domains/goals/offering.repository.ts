@@ -73,6 +73,7 @@ export interface FindOfferingsFilter {
   minPrice?: number
   maxPrice?: number
   search?: string
+  excludePackageComponents?: boolean
   skip?: number
   take?: number
 }

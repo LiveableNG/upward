@@ -77,6 +77,10 @@ export class InitializeCommercePaymentUseCase {
       throw new BadRequestException(`Order is not eligible for payment in status ${order.status}`)
     }
 
+    if (!order.totalAmountKobo || order.totalAmountKobo <= 0n) {
+      throw new BadRequestException('A quoted price has not been set for this service request yet')
+    }
+
     // 3. Retrieve tenant email
     const email = userEmail || order.user?.email || order.recipientPhone || 'customer@goodtenants.africa'
 

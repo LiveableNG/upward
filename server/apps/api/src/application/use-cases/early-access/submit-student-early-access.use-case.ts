@@ -265,6 +265,7 @@ export class SubmitStudentEarlyAccessUseCase {
       await this.emailService.sendSystemAlertToAdmins(
         adminSubject,
         adminMessage,
+        { roles: ['CUSTOMER_SUPPORT'] },
       )
     } catch (err) {
       this.logger.error('Failed to send student early access admin system alert', err)

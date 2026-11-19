@@ -35,15 +35,14 @@ export class TenantConfirmSubOrderReceiptUseCase {
     subOrderUuid: string,
     input?: ConfirmSubOrderReceiptInputDto,
   ): Promise<ConfirmSubOrderReceiptResultDto> {
-    const user = typeof userIdentifier === 'number'
-      ? await this.userRepo.findById(userIdentifier)
-      : await this.userRepo.findByUuid(userIdentifier)
-    if (!user?.id) {
-      throw new NotFoundException(`Vendor sub-order '${subOrderUuid}' not found`)
-    }
+    const [user, subOrder] = await Promise.all([
+      typeof userIdentifier === 'number'
+        ? this.userRepo.findById(userIdentifier)
+        : this.userRepo.findByUuid(userIdentifier),
+      this.orderRepo.findSubOrderByUuid(subOrderUuid),
+    ])
 
-    const subOrder = await this.orderRepo.findSubOrderByUuid(subOrderUuid)
-    if (!subOrder) {
+    if (!user?.id || !subOrder) {
       throw new NotFoundException(`Vendor sub-order '${subOrderUuid}' not found`)
     }
 
@@ -77,6 +76,7 @@ export class TenantConfirmSubOrderReceiptUseCase {
     }
 
     const now = new Date()
+    const hasValidRating = Boolean(input?.rating && input.rating >= 1 && input.rating <= 5)
 
     const updatedSubOrder = await this.orderRepo.executeSubOrderFulfilmentTransition({
       subOrderId: subOrder.id!,
@@ -85,6 +85,13 @@ export class TenantConfirmSubOrderReceiptUseCase {
       operationalStatus: 'FULFILMENT_CLOSED',
       dispatchData: {
         tenantConfirmedAt: now,
+        ...(hasValidRating
+          ? {
+              serviceRating: input!.rating,
+              serviceReviewComment: input!.feedback?.trim() || null,
+              reviewedAt: now,
+            }
+          : {}),
       },
       event: {
         status: 'RECEIVED_CONFIRMED',
@@ -116,8 +123,6 @@ export class TenantConfirmSubOrderReceiptUseCase {
       },
     })
 
-    const parentOrder = await this.orderRepo.findOrderById(order.id!)
-
     if (this.thankYouEmailUseCase) {
       this.thankYouEmailUseCase
         .execute(order.id!, subOrder.id!)
@@ -133,7 +138,7 @@ export class TenantConfirmSubOrderReceiptUseCase {
       subOrderNumber: updatedSubOrder.subOrderNumber,
       customerStatus: updatedSubOrder.customerStatus,
       tenantConfirmedAt: updatedSubOrder.tenantConfirmedAt || now,
-      orderStatus: parentOrder?.status || order.status,
+      orderStatus: updatedSubOrder.order?.status || order.status,
     }
   }
 }

@@ -12,15 +12,21 @@ import {
   Truck,
   Wrench,
   AlertCircle,
+  MapPin,
+  ChevronDown,
 } from 'lucide-react'
-import { useCart, type CartItem } from '../context/CartContext'
+import { useCart } from '../context/CartContext'
 import { CommerceCheckoutModal } from './CommerceCheckoutModal'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import {
   getStoredDeliveryLocation,
+  saveStoredDeliveryLocation,
   isItemDeliverableToZone,
+  parseKoboToNgn,
   type UserDeliveryLocation,
+  type DeliveryZoneItem,
 } from '../utils/deliveryLocation'
+import { fetchDeliveryZones } from '../services/goalsService'
 import { useFluidNav } from '@/features/dashboard/hooks/useFluidNav'
 import { haptics } from '@/lib/haptics'
 import '../styles/goals.css'
@@ -56,6 +62,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   const [mounted, setMounted] = useState(false)
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
   const { isFluidNav } = useFluidNav()
+  const [availableZones, setAvailableZones] = useState<DeliveryZoneItem[]>([])
 
   const allServices = React.useMemo(() => {
     return items.length > 0 && items.every((i) => i.type === 'SERVICE')
@@ -69,7 +76,85 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
     if (propLocation) setCurrentLocation(propLocation)
   }, [propLocation])
 
+  useEffect(() => {
+    let active = true
+    fetchDeliveryZones()
+      .then((zones) => {
+        if (!active || !zones || zones.length === 0) return
+        setAvailableZones(zones)
+
+        setCurrentLocation((prev) => {
+          const matched = zones.find((z) => z.tag === prev.zoneTag)
+          if (matched) {
+            const updated: UserDeliveryLocation = {
+              ...prev,
+              zoneName: matched.name,
+              isDelivering: matched.isDelivering,
+              pauseReason: matched.pauseReason,
+              deliveryFeeKobo: matched.deliveryFeeKobo,
+            }
+            saveStoredDeliveryLocation(updated)
+            return updated
+          }
+
+          // Default to the first delivery location configured in the system
+          const first = zones[0]
+          if (first) {
+            const updated: UserDeliveryLocation = {
+              address: first.areasCovered?.split(',')?.[0]?.trim() || first.name,
+              label: first.name,
+              zoneTag: first.tag,
+              zoneName: first.name,
+              state: first.state,
+              isDelivering: first.isDelivering,
+              pauseReason: first.pauseReason,
+              deliveryFeeKobo: first.deliveryFeeKobo,
+            }
+            saveStoredDeliveryLocation(updated)
+            return updated
+          }
+          return prev
+        })
+      })
+      .catch(() => {})
+
+    return () => {
+      active = false
+    }
+  }, [])
+
   const activeLocation = currentLocation
+
+  const handleZoneChange = (zoneTag: string) => {
+    const matched = availableZones.find((z) => z.tag === zoneTag)
+    if (matched) {
+      const updated: UserDeliveryLocation = {
+        address: matched.areasCovered?.split(',')?.[0]?.trim() || matched.name,
+        label: matched.name,
+        zoneTag: matched.tag,
+        zoneName: matched.name,
+        state: matched.state,
+        isDelivering: matched.isDelivering,
+        pauseReason: matched.pauseReason,
+        deliveryFeeKobo: matched.deliveryFeeKobo,
+      }
+      setCurrentLocation(updated)
+      saveStoredDeliveryLocation(updated)
+      try {
+        haptics.selection()
+      } catch (_) {}
+    }
+  }
+
+  // Pre-checkout Deliverability Verification
+  const undeliverableItems = React.useMemo(() => {
+    if (!activeLocation.zoneTag || activeLocation.zoneTag === 'UNCONFIGURED') {
+      return []
+    }
+    return items.filter((item) => !isItemDeliverableToZone(item, activeLocation.zoneTag))
+  }, [items, activeLocation.zoneTag])
+
+  const hasUndeliverableItems = undeliverableItems.length > 0
 
   useEffect(() => {
     setMounted(true)
@@ -90,7 +175,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   if (!mounted) return null
 
   const handleProceedToCheckout = () => {
-    if (items.length === 0) return
+    if (items.length === 0 || hasUndeliverableItems) return
     setIsCheckoutOpen(true)
   }
 
@@ -99,6 +184,10 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
     setIsCheckoutOpen(false)
     closeCart()
   }
+
+  const deliveryFee = allServices
+    ? 0
+    : parseKoboToNgn(activeLocation.deliveryFeeKobo)
 
   return (
     <>
@@ -159,20 +248,37 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               </div>
             </header>
 
-            {/* Delivery / Service Destination Snippet */}
+            {/* Delivery Destination Geographical Dropdown */}
             <div className="cart-drawer__destination-bar">
-              {allServices ? (
-                <Wrench size={14} className="cart-drawer__destination-icon" />
-              ) : (
-                <Truck size={14} className="cart-drawer__destination-icon" />
-              )}
-              <div className="cart-drawer__destination-text">
-                <span>{allServices ? 'Service Location:' : 'Delivering to:'}</span>{' '}
-                <strong>
-                  {activeLocation.zoneName ||
-                    activeLocation.address ||
-                    'Abuja Metro / Lagos'}
-                </strong>
+              <div className="cart-drawer__destination-left">
+                {allServices ? (
+                  <Wrench size={14} className="cart-drawer__destination-icon" />
+                ) : (
+                  <Truck size={14} className="cart-drawer__destination-icon" />
+                )}
+                <span>{allServices ? 'Service in:' : 'Deliver to:'}</span>
+              </div>
+
+              <div className="cart-drawer__zone-dropdown-box">
+                <MapPin size={13} className="cart-drawer__zone-icon" />
+                <select
+                  className="cart-drawer__zone-select"
+                  value={activeLocation.zoneTag}
+                  onChange={(e) => handleZoneChange(e.target.value)}
+                  aria-label="Select delivery area"
+                >
+                  {availableZones.map((zone) => (
+                    <option key={zone.tag} value={zone.tag}>
+                      {zone.name}
+                    </option>
+                  ))}
+                  {availableZones.length === 0 && (
+                    <option value={activeLocation.zoneTag}>
+                      {activeLocation.zoneName || 'Select Area'}
+                    </option>
+                  )}
+                </select>
+                <ChevronDown size={13} className="cart-drawer__zone-chevron" />
               </div>
             </div>
 
@@ -185,9 +291,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                   </div>
                   <h3 className="cart-drawer__empty-title">Your cart is empty</h3>
                   <p className="cart-drawer__empty-desc">
-                    Explore curated apartment bundles, moving packages, and
-                    verified merchant perks. Customize packages by selecting
-                    just the items you need.
+                    Explore curated apartment packages, home refresh essentials, and
+                    verified merchant perks.
                   </p>
                   <button
                     type="button"
@@ -200,115 +305,121 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                 </div>
               ) : (
                 <div className="cart-drawer__items-list">
-                  {items.map((item) => (
-                    <div key={item.offeringId} className="cart-item-card">
-                      {/* Item Thumbnail */}
-                      <div className="cart-item-card__media">
-                        {item.imageUrl ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={item.imageUrl}
-                            alt={item.title}
-                            className="cart-item-card__img"
-                          />
-                        ) : (
-                          <div className="cart-item-card__placeholder">
-                            <ShoppingCart size={20} />
-                          </div>
-                        )}
-                      </div>
+                  {items.map((item) => {
+                    const isUndeliverable = !isItemDeliverableToZone(
+                      item,
+                      activeLocation.zoneTag,
+                    )
 
-                      {/* Item Info */}
-                      <div className="cart-item-card__info">
-                        <div className="cart-item-card__top">
-                          <h4 className="cart-item-card__title">{item.title}</h4>
-                          <button
-                            type="button"
-                            className="cart-item-card__delete-btn"
-                            onClick={() => removeItem(item.offeringId)}
-                            title="Remove item"
-                            aria-label={`Remove ${item.title}`}
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-
-                        {item.bundleParentTitle && (
-                          <div className="cart-item-card__bundle-tag">
-                            <span>Part of {item.bundleParentTitle}</span>
-                          </div>
-                        )}
-
-                        {item.vendorName && (
-                          <div className="cart-item-card__vendor-row" style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                            <span className="cart-item-card__vendor-name">
-                              {item.vendorName}
-                            </span>
-                            {!isItemDeliverableToZone(item, activeLocation.zoneTag) && (
-                              <span
-                                style={{
-                                  fontSize: '10.5px',
-                                  fontWeight: 600,
-                                  color: '#dc2626',
-                                  background: 'rgba(220, 38, 38, 0.08)',
-                                  padding: '1px 6px',
-                                  borderRadius: '4px',
-                                }}
-                              >
-                                Unavailable in {activeLocation.zoneName || 'this zone'}
-                              </span>
-                            )}
-                          </div>
-                        )}
-
-                        {/* Price and Quantity Stepper */}
-                        <div className="cart-item-card__bottom">
-                          <div className="cart-item-card__price-group">
-                            <span className="cart-item-card__price">
-                              {formatNgn(item.price * item.quantity)}
-                            </span>
-                            {item.quantity > 1 && (
-                              <span className="cart-item-card__unit-price">
-                                ({formatNgn(item.price)} each)
-                              </span>
-                            )}
-                          </div>
-
-                          {item.type === 'SERVICE' ? (
-                            <div className="cart-item-card__service-badge">
-                              <span>1 Service Booking</span>
-                            </div>
+                    return (
+                      <div key={item.offeringId} className="cart-item-card">
+                        {/* Item Thumbnail */}
+                        <div className="cart-item-card__media">
+                          {item.imageUrl ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={item.imageUrl}
+                              alt={item.title}
+                              className="cart-item-card__img"
+                            />
                           ) : (
-                            <div className="cart-item-card__stepper">
-                              <button
-                                type="button"
-                                className="cart-item-card__stepper-btn"
-                                onClick={() => updateQuantity(item.offeringId, -1)}
-                                aria-label="Decrease quantity"
-                              >
-                                {item.quantity === 1 ? (
-                                  <Trash2 size={12} />
-                                ) : (
-                                  <Minus size={12} strokeWidth={2.5} />
-                                )}
-                              </button>
-                              <span className="cart-item-card__stepper-value">
-                                {item.quantity}
-                              </span>
-                              <button
-                                type="button"
-                                className="cart-item-card__stepper-btn"
-                                onClick={() => updateQuantity(item.offeringId, 1)}
-                                aria-label="Increase quantity"
-                              >
-                                <Plus size={12} strokeWidth={2.5} />
-                              </button>
+                            <div className="cart-item-card__placeholder">
+                              <ShoppingCart size={20} />
                             </div>
                           )}
                         </div>
+
+                        {/* Item Info */}
+                        <div className="cart-item-card__info">
+                          <div className="cart-item-card__top">
+                            <h4 className="cart-item-card__title">{item.title}</h4>
+                            <button
+                              type="button"
+                              className="cart-item-card__delete-btn"
+                              onClick={() => removeItem(item.offeringId)}
+                              title="Remove item"
+                              aria-label={`Remove ${item.title}`}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+
+                          {item.bundleParentTitle && (
+                            <div className="cart-item-card__bundle-tag">
+                              <span>Part of {item.bundleParentTitle}</span>
+                            </div>
+                          )}
+
+                          {item.vendorName && (
+                            <div className="cart-item-card__vendor-row">
+                              <span className="cart-item-card__vendor-name">
+                                {item.vendorName}
+                              </span>
+                            </div>
+                          )}
+
+                          {isUndeliverable && (
+                            <div className="cart-item-card__error-badge">
+                              <AlertCircle size={12} style={{ flexShrink: 0 }} />
+                              <span>
+                                Not deliverable to {activeLocation.zoneName || 'this zone'}. Please remove to proceed.
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Price and Quantity Stepper */}
+                          <div className="cart-item-card__bottom">
+                            <div className="cart-item-card__price-group">
+                              <span className="cart-item-card__price">
+                                {formatNgn(item.price * item.quantity)}
+                              </span>
+                              {item.quantity > 1 && (
+                                <span className="cart-item-card__unit-price">
+                                  ({formatNgn(item.price)} each)
+                                </span>
+                              )}
+                            </div>
+
+                            {item.type === 'PACKAGE' ? (
+                              <div className="cart-item-card__service-badge">
+                                <span>1 Complete Package</span>
+                              </div>
+                            ) : item.type === 'SERVICE' ? (
+                              <div className="cart-item-card__service-badge">
+                                <span>1 Service Booking</span>
+                              </div>
+                            ) : (
+                              <div className="cart-item-card__stepper">
+                                <button
+                                  type="button"
+                                  className="cart-item-card__stepper-btn"
+                                  onClick={() => updateQuantity(item.offeringId, -1)}
+                                  aria-label="Decrease quantity"
+                                >
+                                  {item.quantity === 1 ? (
+                                    <Trash2 size={12} />
+                                  ) : (
+                                    <Minus size={12} strokeWidth={2.5} />
+                                  )}
+                                </button>
+                                <span className="cart-item-card__stepper-value">
+                                  {item.quantity}
+                                </span>
+                                <button
+                                  type="button"
+                                  className="cart-item-card__stepper-btn"
+                                  onClick={() => updateQuantity(item.offeringId, 1)}
+                                  aria-label="Increase quantity"
+                                >
+                                  <Plus size={12} strokeWidth={2.5} />
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </div>
@@ -327,21 +438,34 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
                     {allServices ? 'Service Callout' : 'Estimated Delivery'}
                   </span>
                   <span className="cart-drawer__summary-val">
-                    {allServices ? 'Free' : 'Calculated at Checkout'}
+                    {allServices
+                      ? 'Free'
+                      : deliveryFee > 0
+                        ? formatNgn(deliveryFee)
+                        : 'Free Delivery'}
                   </span>
                 </div>
 
-                <button
-                  type="button"
-                  className="cart-drawer__checkout-btn"
-                  onClick={handleProceedToCheckout}
-                >
-                  <span>{allServices ? 'Proceed to Book' : 'Proceed to Checkout'}</span>
-                  <span className="cart-drawer__checkout-total">
-                    {formatNgn(subtotal)}
-                  </span>
-                  <ArrowRight size={16} />
-                </button>
+                {hasUndeliverableItems ? (
+                  <div className="cart-drawer__blocked-notice">
+                    <AlertCircle size={15} style={{ flexShrink: 0 }} />
+                    <span>
+                      Remove {undeliverableItems.length === 1 ? 'the unavailable item' : `${undeliverableItems.length} unavailable items`} above to proceed to checkout
+                    </span>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="cart-drawer__checkout-btn"
+                    onClick={handleProceedToCheckout}
+                  >
+                    <span>{allServices ? 'Proceed to Book' : 'Proceed to Checkout'}</span>
+                    <span className="cart-drawer__checkout-total">
+                      {formatNgn(subtotal + deliveryFee)}
+                    </span>
+                    <ArrowRight size={16} />
+                  </button>
+                )}
               </footer>
             )}
           </aside>
@@ -357,24 +481,27 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
             isFluidNav ? 'floating-cart-pill--ios' : ''
           }`}
           onClick={() => {
-            haptics.selection()
+            try {
+              haptics.selection()
+            } catch (_) {}
             openCart()
           }}
-          aria-label={`View Cart with ${totalCount} items`}
+          aria-label={`View cart with ${totalCount} items`}
         >
-          <div className="floating-cart-pill__icon-wrap">
-            <ShoppingCart size={17} strokeWidth={2.4} />
+          <div className="floating-cart-pill__icon">
+            <ShoppingCart size={17} strokeWidth={2.3} />
             <span className="floating-cart-pill__badge">{totalCount}</span>
           </div>
           <span className="floating-cart-pill__label">Cart</span>
           <span className="floating-cart-pill__divider" />
-          <span className="floating-cart-pill__price">{formatNgn(subtotal)}</span>
-          <ArrowRight size={13} className="floating-cart-pill__arrow" />
+          <span className="floating-cart-pill__amount">
+            {formatNgn(subtotal)}
+          </span>
         </button>
       )}
 
-      {/* Multi-Item Checkout Modal */}
-      {isCheckoutOpen && items.length > 0 && (
+      {/* Checkout Modal */}
+      {isCheckoutOpen && (
         <CommerceCheckoutModal
           cartItems={items}
           isOpen={isCheckoutOpen}

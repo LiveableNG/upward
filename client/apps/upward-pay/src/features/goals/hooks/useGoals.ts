@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import {
   useQuery,
+  useInfiniteQuery,
   useMutation,
   useQueryClient,
   type UseQueryResult,
@@ -99,6 +100,33 @@ export function usePublicOfferings(
     staleTime: 2 * 60 * 1000,
   })
   return offeringsQuery
+}
+
+const OFFERINGS_PAGE_SIZE = 20
+
+export function useInfinitePublicOfferings(
+  query: Omit<OfferingListQuery, 'skip' | 'take'> = {},
+) {
+  return useInfiniteQuery({
+    queryKey: ['public-offerings-infinite', query],
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }) => {
+      return fetchGoalOfferings({
+        ...query,
+        skip: pageParam,
+        take: OFFERINGS_PAGE_SIZE,
+      })
+    },
+    getNextPageParam: (lastPage, allPages) => {
+      const loadedCount = allPages.reduce((sum, page) => sum + page.data.length, 0)
+      const total = lastPage.meta?.total ?? 0
+      if (loadedCount < total && lastPage.data.length > 0) {
+        return loadedCount
+      }
+      return undefined
+    },
+    staleTime: 2 * 60 * 1000,
+  })
 }
 
 export function useGoalOfferingDetail(

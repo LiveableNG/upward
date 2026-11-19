@@ -12,6 +12,7 @@ import {
   MessageSquare,
   Key,
   Star,
+  XCircle,
 } from 'lucide-react'
 import type {
   AdminCommerceOrder,
@@ -19,6 +20,7 @@ import type {
   AdminFulfilmentTransitionAction,
 } from '../types'
 import { SubOrderFulfilmentModal } from './SubOrderFulfilmentModal'
+import { CancelOrderModal } from './CancelOrderModal'
 
 function formatKoboToNgn(koboStr: string): string {
   const amount = Number(koboStr) / 100
@@ -46,6 +48,20 @@ function formatDate(dateStr: string): string {
 
 function getFulfilmentBadge(status: string) {
   switch (status) {
+    case 'QUOTE_REQUESTED':
+      return {
+        label: 'Quote Requested',
+        bg: 'rgba(217, 119, 87, 0.12)',
+        color: '#C2501F',
+        border: 'rgba(217, 119, 87, 0.3)',
+      }
+    case 'QUOTE_PROVIDED':
+      return {
+        label: 'Quote Sent',
+        bg: 'rgba(99, 102, 241, 0.1)',
+        color: '#4F46E5',
+        border: 'rgba(99, 102, 241, 0.28)',
+      }
     case 'ORDER_CONFIRMED':
       return {
         label: 'Awaiting Vendor',
@@ -132,6 +148,12 @@ interface CommerceOrdersTableProps {
       adminOperationalNotes?: string
     },
   ) => Promise<any>
+  onCancelOrder?: (orderUuid: string, reason: string) => Promise<any>
+  onSetSubOrderQuote?: (
+    subOrderUuid: string,
+    payload: { quotedPriceNgn: number; quoteNotes?: string },
+  ) => Promise<any>
+  onPostSubOrderMessage?: (subOrderUuid: string, message: string) => Promise<any>
 }
 
 export function CommerceOrdersTable({
@@ -139,8 +161,12 @@ export function CommerceOrdersTable({
   total,
   loading,
   onUpdateSubOrder,
+  onCancelOrder,
+  onSetSubOrderQuote,
+  onPostSubOrderMessage,
 }: CommerceOrdersTableProps) {
   const [activeSubOrderForEdit, setActiveSubOrderForEdit] = useState<AdminCommerceSubOrder | null>(null)
+  const [orderToCancel, setOrderToCancel] = useState<AdminCommerceOrder | null>(null)
   const [expandedOrderUuids, setExpandedOrderUuids] = useState<Record<string, boolean>>({})
 
   const toggleExpand = (orderUuid: string) => {
@@ -220,6 +246,10 @@ export function CommerceOrdersTable({
                   const primarySubOrder = (order.subOrders || [])[0]
                   const primaryStatusBadge = primarySubOrder ? getFulfilmentBadge(primarySubOrder.customerStatus) : null
                   const ratingSubOrder = (order.subOrders || []).find((s) => typeof s.customerRating === 'number' && s.customerRating > 0)
+                  const isServiceOrder = (order.subOrders || []).some((s) =>
+                    (s.items || []).some((i) => i.offeringType === 'SERVICE'),
+                  )
+                  const isUnquotedService = isServiceOrder && Number(order.totalAmountKobo || 0) <= 0
 
                   return (
                     <React.Fragment key={order.uuid}>
@@ -280,34 +310,66 @@ export function CommerceOrdersTable({
                             <span>{order.deliveryAddress}</span>
                           </div>
                           {(order.deliveryNotes || order.deliveryInstructions) && (
-                            <div
-                              style={{
-                                marginTop: 6,
-                                fontSize: 11.5,
-                                color: '#92400e',
-                                background: '#fef3c7',
-                                border: '1px solid #fde68a',
-                                borderRadius: 5,
-                                padding: '3px 7px',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: 4,
-                                maxWidth: 360,
-                                lineHeight: 1.35,
-                              }}
-                            >
-                              <Key size={11} style={{ flexShrink: 0 }} />
-                              <span>
-                                <strong>Gate / Driver Note:</strong> {order.deliveryNotes || order.deliveryInstructions}
-                              </span>
-                            </div>
+                            isServiceOrder ? (
+                              <div
+                                style={{
+                                  marginTop: 6,
+                                  fontSize: 12,
+                                  color: 'var(--text, #1a1714)',
+                                  background: 'rgba(194, 80, 31, 0.06)',
+                                  border: '1px solid rgba(194, 80, 31, 0.2)',
+                                  borderRadius: 7,
+                                  padding: '5px 9px',
+                                  display: 'inline-flex',
+                                  alignItems: 'flex-start',
+                                  gap: 6,
+                                  maxWidth: 360,
+                                  lineHeight: 1.4,
+                                }}
+                              >
+                                <MessageSquare size={12} style={{ flexShrink: 0, marginTop: 2, color: 'var(--clay, #C2501F)' }} />
+                                <span>
+                                  <strong style={{ color: 'var(--clay, #C2501F)' }}>Service Request:</strong>{' '}
+                                  {order.deliveryNotes || order.deliveryInstructions}
+                                </span>
+                              </div>
+                            ) : (
+                              <div
+                                style={{
+                                  marginTop: 6,
+                                  fontSize: 11.5,
+                                  color: '#92400e',
+                                  background: '#fef3c7',
+                                  border: '1px solid #fde68a',
+                                  borderRadius: 5,
+                                  padding: '3px 7px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 4,
+                                  maxWidth: 360,
+                                  lineHeight: 1.35,
+                                }}
+                              >
+                                <Key size={11} style={{ flexShrink: 0 }} />
+                                <span>
+                                  <strong>Gate / Driver Note:</strong> {order.deliveryNotes || order.deliveryInstructions}
+                                </span>
+                              </div>
+                            )
                           )}
                         </td>
 
                         {/* Sub-Orders / Vendors */}
                         <td style={{ padding: '14px 16px', verticalAlign: 'top' }}>
                           <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
-                            {subOrdersCount} {subOrdersCount === 1 ? 'Shipment' : 'Shipments'}
+                            {subOrdersCount}{' '}
+                            {isServiceOrder
+                              ? subOrdersCount === 1
+                                ? 'Service'
+                                : 'Services'
+                              : subOrdersCount === 1
+                                ? 'Shipment'
+                                : 'Shipments'}
                           </div>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
                             {(order.subOrders || []).map((sub) => (
@@ -331,12 +393,27 @@ export function CommerceOrdersTable({
 
                         {/* Total Amount */}
                         <td style={{ padding: '14px 16px', verticalAlign: 'top' }}>
-                          <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>
-                            {formatKoboToNgn(order.totalAmountKobo)}
-                          </div>
-                          <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                            Delivery: {formatKoboToNgn(order.deliveryFeeKobo)}
-                          </div>
+                          {isUnquotedService ? (
+                            <>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--clay, #C2501F)' }}>
+                                Pending Quote
+                              </div>
+                              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                                Custom Service
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text)' }}>
+                                {formatKoboToNgn(order.totalAmountKobo)}
+                              </div>
+                              <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                                {isServiceOrder
+                                  ? 'Custom Quote'
+                                  : `Delivery: ${formatKoboToNgn(order.deliveryFeeKobo)}`}
+                              </div>
+                            </>
+                          )}
                         </td>
 
                         {/* Payment & Fulfilment Status */}
@@ -397,26 +474,53 @@ export function CommerceOrdersTable({
                           </div>
                         </td>
 
-                        {/* Expand Button */}
+                        {/* Actions (View & Cancel) */}
                         <td style={{ padding: '14px 16px', verticalAlign: 'top', textAlign: 'right' }}>
-                          <button
-                            type="button"
-                            onClick={() => toggleExpand(order.uuid)}
-                            className="btn btn-secondary"
-                            style={{
-                              height: 32,
-                              padding: '0 12px',
-                              fontSize: 12,
-                              fontWeight: 600,
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 6,
-                              whiteSpace: 'nowrap',
-                            }}
-                          >
-                            <span>{isExpanded ? 'Hide Details' : `View (${subOrdersCount})`}</span>
-                            {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                          </button>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                            {onCancelOrder && order.status !== 'CANCELLED' && order.status !== 'COMPLETED' && (
+                              <button
+                                type="button"
+                                onClick={() => setOrderToCancel(order)}
+                                className="btn btn-secondary"
+                                style={{
+                                  height: 32,
+                                  padding: '0 10px',
+                                  fontSize: 11.5,
+                                  fontWeight: 600,
+                                  color: '#dc2626',
+                                  borderColor: 'rgba(220, 38, 38, 0.25)',
+                                  backgroundColor: 'rgba(220, 38, 38, 0.04)',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: 5,
+                                  whiteSpace: 'nowrap',
+                                }}
+                                title="Cancel this order and notify customer"
+                              >
+                                <XCircle size={13} />
+                                <span>Cancel</span>
+                              </button>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={() => toggleExpand(order.uuid)}
+                              className="btn btn-secondary"
+                              style={{
+                                height: 32,
+                                padding: '0 12px',
+                                fontSize: 12,
+                                fontWeight: 600,
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              <span>{isExpanded ? 'Hide Details' : `View (${subOrdersCount})`}</span>
+                              {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                            </button>
+                          </div>
                         </td>
                       </tr>
 
@@ -490,8 +594,19 @@ export function CommerceOrdersTable({
                                           <div style={{ display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 6 }}>
                                             {(subOrder.items || []).map((item) => (
                                               <div key={item.uuid} style={{ fontSize: 12.5, color: 'var(--text-secondary)' }}>
-                                                • {item.snapshotData?.title || 'Merchandise Item'} × {item.quantity} (
-                                                {formatKoboToNgn(item.totalPriceKobo)})
+                                                {item.offeringType === 'SERVICE' && Number(item.totalPriceKobo || 0) <= 0 ? (
+                                                  <>
+                                                    • {item.snapshotData?.title || 'Service Request'}{' '}
+                                                    <span style={{ color: 'var(--clay, #C2501F)', fontWeight: 600 }}>
+                                                      (Pending Quote)
+                                                    </span>
+                                                  </>
+                                                ) : (
+                                                  <>
+                                                    • {item.snapshotData?.title || 'Merchandise Item'} × {item.quantity} (
+                                                    {formatKoboToNgn(item.totalPriceKobo)})
+                                                  </>
+                                                )}
                                               </div>
                                             ))}
                                           </div>
@@ -555,7 +670,7 @@ export function CommerceOrdersTable({
                                               >
                                                 <Phone size={11} />
                                                 <span>
-                                                  {isService ? 'Technician' : 'Driver'}: <strong>{subOrder.technicianName || 'Assigned'}</strong>
+                                                  {isService ? 'Assigned Crew' : 'Driver'}: <strong>{subOrder.technicianName || 'Assigned'}</strong>
                                                   {subOrder.technicianPhone && (
                                                     <a
                                                       href={`tel:${subOrder.technicianPhone}`}
@@ -667,6 +782,28 @@ export function CommerceOrdersTable({
                                             <Truck size={13} />
                                             <span>Update Milestone</span>
                                           </button>
+                                        ) : subOrder.customerStatus === 'QUOTE_REQUESTED' ||
+                                          subOrder.customerStatus === 'QUOTE_PROVIDED' ? (
+                                          <button
+                                            type="button"
+                                            onClick={() => setActiveSubOrderForEdit(subOrder)}
+                                            className="btn btn-primary"
+                                            style={{
+                                              height: 32,
+                                              padding: '0 12px',
+                                              fontSize: 12,
+                                              fontWeight: 700,
+                                              display: 'inline-flex',
+                                              alignItems: 'center',
+                                              gap: 6,
+                                            }}
+                                          >
+                                            <span>
+                                              {subOrder.customerStatus === 'QUOTE_PROVIDED'
+                                                ? 'Edit Quote / Chat'
+                                                : 'Review & Quote'}
+                                            </span>
+                                          </button>
                                         ) : (
                                           <span
                                             style={{
@@ -710,6 +847,22 @@ export function CommerceOrdersTable({
           subOrder={activeSubOrderForEdit}
           onClose={() => setActiveSubOrderForEdit(null)}
           onUpdate={onUpdateSubOrder}
+          onSetQuote={onSetSubOrderQuote}
+          onPostMessage={onPostSubOrderMessage}
+        />
+      )}
+
+      {/* Cancel Order Modal */}
+      {orderToCancel && (
+        <CancelOrderModal
+          isOpen={Boolean(orderToCancel)}
+          order={orderToCancel}
+          onClose={() => setOrderToCancel(null)}
+          onConfirm={async (orderUuid, reason) => {
+            if (onCancelOrder) {
+              await onCancelOrder(orderUuid, reason)
+            }
+          }}
         />
       )}
     </div>

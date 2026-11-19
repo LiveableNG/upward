@@ -70,6 +70,12 @@ export class GetTenantOrderDetailUseCase {
         serviceWindowNotes: sub.serviceWindowNotes,
         technicianName: sub.technicianName,
         technicianPhone: sub.technicianPhone,
+        adminOperationalNotes: sub.adminOperationalNotes,
+        quoteNotes: sub.quoteNotes,
+        quotedAt: sub.quotedAt,
+        serviceRating: sub.serviceRating,
+        serviceReviewComment: sub.serviceReviewComment,
+        reviewedAt: sub.reviewedAt,
         deliveredAt: sub.deliveredAt,
         tenantConfirmedAt: sub.tenantConfirmedAt,
         coolingPeriodEndsAt: sub.coolingPeriodEndsAt,
@@ -118,6 +124,13 @@ export class GetTenantOrderDetailUseCase {
             serviceDateTime: ev.serviceDateTime,
             createdAt: ev.createdAt || new Date(),
           })),
+        messages: (sub.messages || []).map((msg) => ({
+          uuid: msg.uuid,
+          senderType: msg.senderType,
+          senderName: msg.senderName,
+          message: msg.message,
+          createdAt: msg.createdAt || new Date(),
+        })),
       })),
     }
   }

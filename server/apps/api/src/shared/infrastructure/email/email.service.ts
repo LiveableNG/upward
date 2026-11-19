@@ -542,26 +542,45 @@ export class EmailService {
     )
   }
 
-  async sendSystemAlertToAdmins(subject: string, message: string) {
+  async sendSystemAlertToAdmins(
+    subject: string,
+    message: string,
+    options?: { roles?: string[]; htmlOverride?: string; type?: string },
+  ) {
+    const whereClause: any = { receivesSystemAlerts: true }
+    if (options?.roles && options.roles.length > 0) {
+      whereClause.role = { in: options.roles }
+    }
+
     const alertAdmins = await this.prisma.upward_admin.findMany({
-      where: { receivesSystemAlerts: true },
+      where: whereClause,
       select: { email: true },
     })
 
     if (alertAdmins.length === 0) {
-      this.logger.warn(`No admins with receivesSystemAlerts=true — skipping system alert: ${subject}`)
+      this.logger.warn(
+        `No matching admins with receivesSystemAlerts=true${options?.roles?.length ? ` (roles: ${options.roles.join(', ')})` : ''} — skipping system alert: ${subject}`,
+      )
       return
     }
 
-    const html = `<div style="font-family: sans-serif; padding: 20px;">
+    const html =
+      options?.htmlOverride ||
+      `<div style="font-family: sans-serif; padding: 20px;">
       <h2>System Alert</h2>
       <p>${message}</p>
     </div>`
 
     await Promise.allSettled(
       alertAdmins.map(({ email }) =>
-        this.sendEmailWithRetry({ email, subject, html, text: message, type: 'SYSTEM_ALERT' })
-      )
+        this.sendEmailWithRetry({
+          email,
+          subject,
+          html,
+          text: message,
+          type: options?.type || 'SYSTEM_ALERT',
+        }),
+      ),
     )
   }
 

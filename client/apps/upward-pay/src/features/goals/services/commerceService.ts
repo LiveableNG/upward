@@ -275,3 +275,66 @@ export async function verifyCommercePayment(
   )
   return res.data
 }
+
+export interface CreateServiceQuoteOrderInput {
+  offeringUuid?: string
+  offeringId?: number
+  requestDetails: string
+  recipientName?: string
+  recipientPhone?: string
+  deliveryAddress?: string
+  deliveryZoneTag?: string
+}
+
+export async function createServiceQuoteOrder(input: CreateServiceQuoteOrderInput): Promise<{
+  order: {
+    uuid: string
+    orderNumber: string
+    status: string
+    paymentStatus: string
+    totalAmountKobo: string
+  }
+  message: string
+}> {
+  const res = await request<{ data: any }>('/user/commerce/orders/quote', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+  return res.data
+}
+
+export async function postCommerceOrderMessage(
+  subOrderUuid: string,
+  message: string,
+): Promise<{
+  message: {
+    uuid: string
+    senderType: string
+    senderName?: string | null
+    message: string
+    createdAt: string
+  }
+}> {
+  const res = await request<{ data: any }>(
+    `/user/commerce/orders/sub-orders/${subOrderUuid}/messages`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ message }),
+    },
+  )
+  return res.data
+}
+
+export async function declineServiceQuote(
+  orderUuid: string,
+  reason?: string,
+): Promise<{ success: boolean; message: string }> {
+  const res = await request<{ data: { success: boolean; message: string } }>(
+    `/user/commerce/orders/${orderUuid}/decline-quote`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    },
+  )
+  return res.data
+}

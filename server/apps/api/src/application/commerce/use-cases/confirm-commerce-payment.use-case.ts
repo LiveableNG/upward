@@ -63,9 +63,17 @@ export class ConfirmCommercePaymentUseCase {
       }
     }
 
-    // 2. Idempotency Check: if order is already CONFIRMED and PAID, return safely without duplicate transitions
-    if (order.status === 'CONFIRMED' && order.paymentStatus === 'PAID') {
-      this.logger.log(`Order ${order.orderNumber} is already confirmed and paid. Idempotent success returned.`)
+    // 2. Idempotency Check: once an order is PAID (whether CONFIRMED, PROCESSING, or COMPLETED),
+    // never re-run payment confirmation or regress fulfilment milestones on late webhook retries.
+    if (
+      order.paymentStatus === 'PAID' ||
+      order.status === 'CONFIRMED' ||
+      order.status === 'PROCESSING' ||
+      order.status === 'COMPLETED'
+    ) {
+      this.logger.log(
+        `Order ${order.orderNumber} is already paid/progressed (status=${order.status}, paymentStatus=${order.paymentStatus}). Idempotent success returned.`,
+      )
       return {
         success: true,
         message: 'Order payment already confirmed and processed',

@@ -9,6 +9,7 @@ import {
   AdminOperationalStatus,
   CommerceVendorSuborder,
   CommerceFulfilmentEvent,
+  CommerceOrderMessage,
   CommercePaymentAttempt,
   CommerceOrderAudit,
   CreateOrderData,
@@ -111,42 +112,55 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
               })
             }
 
-            // Also check package components if applicable
+            // Also check package components if applicable (batched to avoid N+1 round trips inside transaction)
             const snap = item.snapshotData as any
             if (snap?.packageItemsSnapshot && Array.isArray(snap.packageItemsSnapshot)) {
-              for (const comp of snap.packageItemsSnapshot) {
-                if (comp.componentId) {
-                  const compOffering = await tx.upward_offering.findUnique({
-                    where: { id: comp.componentId },
-                    select: { id: true, stockCount: true, inStock: true, status: true },
-                  })
-                  if (compOffering && compOffering.stockCount !== null) {
-                    const requiredQty = (comp.quantity || 1) * item.quantity
-                    if (compOffering.stockCount < requiredQty) {
-                      throw new Error(`INSUFFICIENT_STOCK: Package component ID ${comp.componentId} has only ${compOffering.stockCount} in stock, required ${requiredQty}`)
+              const componentIds = Array.from(
+                new Set<number>(
+                  snap.packageItemsSnapshot
+                    .map((c: any) => c.componentId)
+                    .filter((id: any): id is number => typeof id === 'number'),
+                ),
+              )
+
+              if (componentIds.length > 0) {
+                const compOfferings = await tx.upward_offering.findMany({
+                  where: { id: { in: componentIds } },
+                  select: { id: true, stockCount: true, inStock: true, status: true },
+                })
+                const compMap = new Map(compOfferings.map((o) => [o.id, o]))
+
+                for (const comp of snap.packageItemsSnapshot) {
+                  if (comp.componentId) {
+                    const compOffering = compMap.get(comp.componentId)
+                    if (compOffering && compOffering.stockCount !== null) {
+                      const requiredQty = (comp.quantity || 1) * item.quantity
+                      if (compOffering.stockCount < requiredQty) {
+                        throw new Error(`INSUFFICIENT_STOCK: Package component ID ${comp.componentId} has only ${compOffering.stockCount} in stock, required ${requiredQty}`)
+                      }
+                      const compRes = await tx.upward_offering.updateMany({
+                        where: {
+                          id: comp.componentId,
+                          inStock: true,
+                          stockCount: { gte: requiredQty },
+                        },
+                        data: {
+                          stockCount: { decrement: requiredQty },
+                        },
+                      })
+                      if (compRes.count === 0) {
+                        throw new Error(`INSUFFICIENT_STOCK: Package component ID ${comp.componentId} was claimed by another customer`)
+                      }
+                      await tx.upward_offering.updateMany({
+                        where: {
+                          id: comp.componentId,
+                          stockCount: { lte: 0 },
+                        },
+                        data: {
+                          inStock: false,
+                        },
+                      })
                     }
-                    const compRes = await tx.upward_offering.updateMany({
-                      where: {
-                        id: comp.componentId,
-                        inStock: true,
-                        stockCount: { gte: requiredQty },
-                      },
-                      data: {
-                        stockCount: { decrement: requiredQty },
-                      },
-                    })
-                    if (compRes.count === 0) {
-                      throw new Error(`INSUFFICIENT_STOCK: Package component ID ${comp.componentId} was claimed by another customer`)
-                    }
-                    await tx.upward_offering.updateMany({
-                      where: {
-                        id: comp.componentId,
-                        stockCount: { lte: 0 },
-                      },
-                      data: {
-                        inStock: false,
-                      },
-                    })
                   }
                 }
               }
@@ -180,6 +194,9 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
       })
 
       return order.id
+    }, {
+      maxWait: 10000,
+      timeout: 30000,
     })
 
     const created = await this.findOrderById(createdOrderId)
@@ -203,6 +220,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
               },
             },
             fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
+            messages: { orderBy: { createdAt: 'asc' } },
             vendor: true,
           },
         },
@@ -237,6 +255,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
               },
             },
             fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
+            messages: { orderBy: { createdAt: 'asc' } },
             vendor: true,
             payableRecord: true,
           },
@@ -262,6 +281,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
               },
             },
             fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
+            messages: { orderBy: { createdAt: 'asc' } },
             vendor: true,
           },
         },
@@ -284,6 +304,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
               },
             },
             fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
+            messages: { orderBy: { createdAt: 'asc' } },
             vendor: true,
           },
         },
@@ -306,6 +327,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
               },
             },
             fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
+            messages: { orderBy: { createdAt: 'asc' } },
             vendor: true,
           },
         },
@@ -341,6 +363,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
               },
             },
               fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
+            messages: { orderBy: { createdAt: 'asc' } },
               vendor: true,
             },
           },
@@ -370,6 +393,24 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
     if (paymentStatus) {
       if (paymentStatus === 'UNPAID') {
         where.paymentStatus = { in: ['UNPAID', 'INITIATED'] }
+      } else if (paymentStatus === 'PAID') {
+        // Actionable admin view: include both PAID orders AND active Service Quote requests
+        where.AND = [
+          ...(where.AND || []),
+          {
+            OR: [
+              { paymentStatus: 'PAID' },
+              {
+                status: { notIn: ['CANCELLED', 'REFUNDED'] },
+                subOrders: {
+                  some: {
+                    customerStatus: { in: ['QUOTE_REQUESTED', 'QUOTE_PROVIDED'] },
+                  },
+                },
+              },
+            ],
+          },
+        ]
       } else {
         where.paymentStatus = paymentStatus
       }
@@ -411,6 +452,9 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
               fulfilmentEvents: {
                 orderBy: { createdAt: 'desc' },
               },
+              messages: {
+                orderBy: { createdAt: 'asc' },
+              },
             },
           },
         },
@@ -445,6 +489,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
               },
             },
             fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
+            messages: { orderBy: { createdAt: 'asc' } },
             vendor: true,
           },
         },
@@ -461,6 +506,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
         vendor: true,
         items: true,
         fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
+        messages: { orderBy: { createdAt: 'asc' } },
         payableRecord: true,
       },
     })
@@ -475,6 +521,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
         vendor: true,
         items: true,
         fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
+        messages: { orderBy: { createdAt: 'asc' } },
         payableRecord: true,
       },
     })
@@ -505,6 +552,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
           order: true,
           items: true,
           fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
+        messages: { orderBy: { createdAt: 'asc' } },
         },
       }),
       this.prisma.upward_commerce_vendor_suborder.count({ where }),
@@ -546,6 +594,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
         vendor: true,
         items: true,
         fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
+        messages: { orderBy: { createdAt: 'asc' } },
       },
     })
     return updated as unknown as CommerceVendorSuborder
@@ -615,94 +664,103 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
       details?: Record<string, any>
     }
   }): Promise<CommerceVendorSuborder> {
-    return this.prisma.$transaction(async (tx) => {
-      // 1. Update sub-order state
-      const subOrderUpdateData: any = {}
-      if (params.customerStatus) subOrderUpdateData.customerStatus = params.customerStatus
-      if (params.operationalStatus) subOrderUpdateData.operationalStatus = params.operationalStatus
-      if (params.dispatchData) {
-        Object.assign(subOrderUpdateData, params.dispatchData)
-      }
-
-      await tx.upward_commerce_vendor_suborder.update({
-        where: { id: params.subOrderId },
-        data: subOrderUpdateData,
-      })
-
-      // 2. Record immutable fulfilment event
-      await tx.upward_commerce_fulfilment_event.create({
-        data: {
-          subOrderId: params.subOrderId,
-          status: params.event.status as any,
-          title: params.event.title,
-          description: params.event.description,
-          isCustomerVisible: params.event.isCustomerVisible,
-          carrierName: params.event.carrierName,
-          trackingNumber: params.event.trackingNumber,
-          serviceDateTime: params.event.serviceDateTime,
-          actorType: params.event.actorType,
-          actorId: params.event.actorId,
-        },
-      })
-
-      // 3. Update payable status if requested (e.g. IN_COOLING_PERIOD or ELIGIBLE_FOR_PAYOUT)
-      if (params.payableStatusUpdate) {
-        const payableData: any = { status: params.payableStatusUpdate.status as any }
-        if (params.payableStatusUpdate.eligibleAt) {
-          payableData.eligibleAt = params.payableStatusUpdate.eligibleAt
+    await this.prisma.$transaction(
+      async (tx) => {
+        // 1. Build sub-order update payload
+        const subOrderUpdateData: any = {}
+        if (params.customerStatus) subOrderUpdateData.customerStatus = params.customerStatus
+        if (params.operationalStatus) subOrderUpdateData.operationalStatus = params.operationalStatus
+        if (params.dispatchData) {
+          Object.assign(subOrderUpdateData, params.dispatchData)
         }
-        await tx.upward_commerce_vendor_payable.updateMany({
-          where: { subOrderId: params.subOrderId },
-          data: payableData,
-        })
-      }
 
-      // 4. Master order status aggregation: check if all sub-orders of this order are now completed
-      if (params.checkAllSubOrdersCompleted) {
-        const activeSubOrders = await tx.upward_commerce_vendor_suborder.findMany({
-          where: {
-            orderId: params.orderId,
-            customerStatus: { not: 'RECEIVED_CONFIRMED' },
-          },
-        })
+        // 2. Execute independent writes in parallel to minimize remote DB roundtrips
+        const writeOps: Promise<any>[] = [
+          tx.upward_commerce_vendor_suborder.update({
+            where: { id: params.subOrderId },
+            data: subOrderUpdateData,
+          }),
+          tx.upward_commerce_fulfilment_event.create({
+            data: {
+              subOrderId: params.subOrderId,
+              status: params.event.status as any,
+              title: params.event.title,
+              description: params.event.description,
+              isCustomerVisible: params.event.isCustomerVisible,
+              carrierName: params.event.carrierName,
+              trackingNumber: params.event.trackingNumber,
+              serviceDateTime: params.event.serviceDateTime,
+              actorType: params.event.actorType,
+              actorId: params.event.actorId,
+            },
+          }),
+        ]
 
-        if (activeSubOrders.length === 0) {
-          await tx.upward_commerce_order.update({
-            where: { id: params.orderId },
-            data: { status: 'COMPLETED' },
+        if (params.payableStatusUpdate) {
+          const payableData: any = { status: params.payableStatusUpdate.status as any }
+          if (params.payableStatusUpdate.eligibleAt) {
+            payableData.eligibleAt = params.payableStatusUpdate.eligibleAt
+          }
+          writeOps.push(
+            tx.upward_commerce_vendor_payable.updateMany({
+              where: { subOrderId: params.subOrderId },
+              data: payableData,
+            }),
+          )
+        }
+
+        if (params.auditLog) {
+          writeOps.push(
+            tx.upward_commerce_order_audit.create({
+              data: {
+                orderId: params.orderId,
+                event: params.auditLog.event,
+                fromState: params.auditLog.fromState,
+                toState: params.auditLog.toState,
+                actorType: params.auditLog.actorType,
+                actorId: params.auditLog.actorId,
+                details: params.auditLog.details,
+              },
+            }),
+          )
+        }
+
+        await Promise.all(writeOps)
+
+        // 3. Master order status aggregation: check if all sub-orders of this order are now completed
+        if (params.checkAllSubOrdersCompleted) {
+          const remainingCount = await tx.upward_commerce_vendor_suborder.count({
+            where: {
+              orderId: params.orderId,
+              customerStatus: { not: 'RECEIVED_CONFIRMED' },
+            },
           })
+
+          if (remainingCount === 0) {
+            await tx.upward_commerce_order.update({
+              where: { id: params.orderId },
+              data: { status: 'COMPLETED' },
+            })
+          }
         }
-      }
+      },
+      { maxWait: 10000, timeout: 20000 },
+    )
 
-      // 5. Record order audit log if provided
-      if (params.auditLog) {
-        await tx.upward_commerce_order_audit.create({
-          data: {
-            orderId: params.orderId,
-            event: params.auditLog.event,
-            fromState: params.auditLog.fromState,
-            toState: params.auditLog.toState,
-            actorType: params.auditLog.actorType,
-            actorId: params.auditLog.actorId,
-            details: params.auditLog.details,
-          },
-        })
-      }
-
-      // 6. Return fully refreshed sub-order
-      const updated = await tx.upward_commerce_vendor_suborder.findUnique({
-        where: { id: params.subOrderId },
-        include: {
-          order: true,
-          vendor: true,
-          items: true,
-          fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
-          payableRecord: true,
-        },
-      })
-
-      return updated as unknown as CommerceVendorSuborder
+    // 4. Return fully refreshed sub-order outside the transaction to avoid holding locks during joins
+    const updated = await this.prisma.upward_commerce_vendor_suborder.findUnique({
+      where: { id: params.subOrderId },
+      include: {
+        order: true,
+        vendor: true,
+        items: true,
+        fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
+        messages: { orderBy: { createdAt: 'asc' } },
+        payableRecord: true,
+      },
     })
+
+    return updated as unknown as CommerceVendorSuborder
   }
 
   async recordPaymentAttempt(
@@ -810,8 +868,13 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
         throw new Error(`ORDER_NOT_FOUND: Order with ID ${params.orderId} does not exist`)
       }
 
-      // Idempotency: If order is already paid, return without duplicate mutations
-      if (order.status === 'CONFIRMED' && order.paymentStatus === 'PAID') {
+      // Idempotency: If order is already paid or has progressed past PENDING, return without duplicate mutations
+      if (
+        order.paymentStatus === 'PAID' ||
+        order.status === 'CONFIRMED' ||
+        order.status === 'PROCESSING' ||
+        order.status === 'COMPLETED'
+      ) {
         return
       }
 
@@ -844,10 +907,15 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
 
       // 4. Update each vendor sub-order and create Vendor Payable record
       for (const sub of order.subOrders) {
+        const isServiceQuote =
+          sub.customerStatus === 'QUOTE_PROVIDED' ||
+          sub.customerStatus === 'QUOTE_REQUESTED'
+        const nextCustomerStatus = isServiceQuote ? 'SERVICE_SCHEDULED' : 'PROCESSING'
+
         await tx.upward_commerce_vendor_suborder.update({
           where: { id: sub.id },
           data: {
-            customerStatus: 'PROCESSING',
+            customerStatus: nextCustomerStatus,
             operationalStatus: 'AWAITING_VENDOR_CONFIRMATION',
           },
         })
@@ -856,9 +924,11 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
         await tx.upward_commerce_fulfilment_event.create({
           data: {
             subOrderId: sub.id,
-            status: 'PROCESSING',
-            title: 'Payment Confirmed',
-            description: 'Payment verified successfully. Order is being processed.',
+            status: nextCustomerStatus,
+            title: isServiceQuote ? 'Quote Paid — Scheduling Service' : 'Payment Confirmed',
+            description: isServiceQuote
+              ? 'Payment verified successfully. Our team is now assigning your service specialist and scheduling your appointment.'
+              : 'Payment verified successfully. Order is being processed.',
             isCustomerVisible: true,
             actorType: 'SYSTEM',
             actorId: 'PAYSTACK_WEBHOOK',
@@ -999,5 +1069,299 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
         },
       })
     })
+  }
+
+  async createServiceQuoteOrder(data: {
+    userId: number
+    orderNumber: string
+    subOrderNumber: string
+    currency: string
+    vendorId: number
+    offeringId: number
+    offeringSnapshot: Record<string, any>
+    recipientName: string
+    recipientPhone: string
+    deliveryAddress: string
+    deliveryNotes?: string
+    deliveryZoneTag?: string
+    initialMessage: string
+  }): Promise<CommerceOrder> {
+    const createdOrderId = await this.prisma.$transaction(async (tx) => {
+      const order = await tx.upward_commerce_order.create({
+        data: {
+          userId: data.userId,
+          orderNumber: data.orderNumber,
+          currency: data.currency,
+          itemsSubtotalKobo: 0n,
+          deliveryFeeKobo: 0n,
+          taxKobo: 0n,
+          discountKobo: 0n,
+          totalAmountKobo: 0n,
+          recipientName: data.recipientName,
+          recipientPhone: data.recipientPhone,
+          deliveryAddress: data.deliveryAddress,
+          deliveryNotes: data.deliveryNotes,
+          deliveryZoneTag: data.deliveryZoneTag,
+          status: 'PENDING',
+          paymentStatus: 'UNPAID',
+        },
+      })
+
+      const subOrder = await tx.upward_commerce_vendor_suborder.create({
+        data: {
+          orderId: order.id,
+          vendorId: data.vendorId,
+          subOrderNumber: data.subOrderNumber,
+          customerStatus: 'QUOTE_REQUESTED',
+          operationalStatus: 'AWAITING_VENDOR_CONFIRMATION',
+          subtotalKobo: 0n,
+          deliveryFeeKobo: 0n,
+          allocatedDiscountKobo: 0n,
+          platformFeeKobo: 0n,
+          vendorPayoutKobo: 0n,
+        },
+      })
+
+      await tx.upward_commerce_order_item.create({
+        data: {
+          subOrderId: subOrder.id,
+          offeringId: data.offeringId,
+          offeringType: 'SERVICE',
+          quantity: 1,
+          unitPriceKobo: 0n,
+          totalPriceKobo: 0n,
+          snapshotData: data.offeringSnapshot,
+        },
+      })
+
+      await tx.upward_commerce_fulfilment_event.create({
+        data: {
+          subOrderId: subOrder.id,
+          status: 'QUOTE_REQUESTED',
+          title: 'Service Request Received',
+          description: 'Your service request has been received. Our team is reviewing your details and will follow up with any questions or your exact price.',
+          isCustomerVisible: true,
+          actorType: 'TENANT',
+          actorId: String(data.userId),
+        },
+      })
+
+      if (data.initialMessage?.trim()) {
+        await tx.upward_commerce_order_message.create({
+          data: {
+            subOrderId: subOrder.id,
+            senderType: 'TENANT',
+            senderId: String(data.userId),
+            senderName: data.recipientName,
+            message: data.initialMessage.trim(),
+          },
+        })
+      }
+
+      await tx.upward_commerce_order_audit.create({
+        data: {
+          orderId: order.id,
+          event: 'SERVICE_QUOTE_REQUESTED',
+          toState: 'PENDING',
+          actorType: 'TENANT',
+          actorId: String(data.userId),
+          details: {
+            orderNumber: data.orderNumber,
+            offeringId: data.offeringId,
+          },
+        },
+      })
+
+      return order.id
+    }, {
+      maxWait: 10000,
+      timeout: 30000,
+    })
+
+    const created = await this.findOrderById(createdOrderId)
+    if (!created) {
+      throw new Error(`Failed to retrieve created service quote order ID ${createdOrderId}`)
+    }
+    return created
+  }
+
+  async addSubOrderMessage(params: {
+    subOrderId: number
+    senderType: 'TENANT' | 'ADMIN'
+    senderId?: string
+    senderName?: string
+    message: string
+  }): Promise<CommerceOrderMessage> {
+    const created = await this.prisma.upward_commerce_order_message.create({
+      data: {
+        subOrderId: params.subOrderId,
+        senderType: params.senderType,
+        senderId: params.senderId,
+        senderName: params.senderName,
+        message: params.message.trim(),
+      },
+    })
+    return created as unknown as CommerceOrderMessage
+  }
+
+  async setSubOrderQuotePrice(params: {
+    orderId: number
+    subOrderId: number
+    quotedPriceKobo: bigint
+    quoteNotes?: string
+    adminActorId?: string
+  }): Promise<CommerceOrder> {
+    await this.prisma.$transaction(async (tx) => {
+      // 100% goes to Upward balance — no split payout
+      await tx.upward_commerce_order.update({
+        where: { id: params.orderId },
+        data: {
+          itemsSubtotalKobo: params.quotedPriceKobo,
+          deliveryFeeKobo: 0n,
+          taxKobo: 0n,
+          discountKobo: 0n,
+          totalAmountKobo: params.quotedPriceKobo,
+        },
+      })
+
+      await tx.upward_commerce_vendor_suborder.update({
+        where: { id: params.subOrderId },
+        data: {
+          customerStatus: 'QUOTE_PROVIDED',
+          subtotalKobo: params.quotedPriceKobo,
+          deliveryFeeKobo: 0n,
+          platformFeeKobo: params.quotedPriceKobo,
+          vendorPayoutKobo: 0n,
+          quoteNotes: params.quoteNotes?.trim() || null,
+          quotedAt: new Date(),
+        },
+      })
+
+      await tx.upward_commerce_order_item.updateMany({
+        where: { subOrderId: params.subOrderId },
+        data: {
+          unitPriceKobo: params.quotedPriceKobo,
+          totalPriceKobo: params.quotedPriceKobo,
+        },
+      })
+
+      const formattedNgn = `₦${(Number(params.quotedPriceKobo) / 100).toLocaleString('en-NG')}`
+      await tx.upward_commerce_fulfilment_event.create({
+        data: {
+          subOrderId: params.subOrderId,
+          status: 'QUOTE_PROVIDED',
+          title: `Your Price is Ready — ${formattedNgn}`,
+          description: params.quoteNotes?.trim()
+            ? `Your service price of ${formattedNgn} is ready. Note: ${params.quoteNotes.trim()}`
+            : `Your service price of ${formattedNgn} is ready. Review and complete payment to schedule your service.`,
+          isCustomerVisible: true,
+          actorType: 'ADMIN',
+          actorId: params.adminActorId || 'ADMIN',
+        },
+      })
+
+      await tx.upward_commerce_order_audit.create({
+        data: {
+          orderId: params.orderId,
+          event: 'SERVICE_QUOTE_PRICE_SET',
+          fromState: 'QUOTE_REQUESTED',
+          toState: 'QUOTE_PROVIDED',
+          actorType: 'ADMIN',
+          actorId: params.adminActorId || 'ADMIN',
+          details: {
+            quotedPriceKobo: params.quotedPriceKobo.toString(),
+            quoteNotes: params.quoteNotes || null,
+          },
+        },
+      })
+    }, {
+      maxWait: 10000,
+      timeout: 30000,
+    })
+
+    const updated = await this.findOrderById(params.orderId)
+    if (!updated) {
+      throw new Error(`Order ID ${params.orderId} not found after setting quote`)
+    }
+    return updated
+  }
+
+  async declineQuoteOrder(params: {
+    orderId: number
+    subOrderId: number
+    userId: number
+    reason?: string
+  }): Promise<CommerceOrder> {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.upward_commerce_order.update({
+        where: { id: params.orderId },
+        data: {
+          status: 'CANCELLED',
+        },
+      })
+
+      await tx.upward_commerce_vendor_suborder.update({
+        where: { id: params.subOrderId },
+        data: {
+          customerStatus: 'CANCELLED',
+          operationalStatus: 'CANCELLED_REFUNDED',
+        },
+      })
+
+      await tx.upward_commerce_fulfilment_event.create({
+        data: {
+          subOrderId: params.subOrderId,
+          status: 'CANCELLED',
+          title: 'Price Declined by Customer',
+          description: params.reason?.trim()
+            ? `Customer declined the service price. Reason: ${params.reason.trim()}`
+            : 'Customer declined the service price and cancelled the request.',
+          isCustomerVisible: true,
+          actorType: 'TENANT',
+          actorId: String(params.userId),
+        },
+      })
+
+      await tx.upward_commerce_order_audit.create({
+        data: {
+          orderId: params.orderId,
+          event: 'SERVICE_QUOTE_DECLINED',
+          fromState: 'QUOTE_PROVIDED',
+          toState: 'CANCELLED',
+          actorType: 'TENANT',
+          actorId: String(params.userId),
+          details: { reason: params.reason || null },
+        },
+      })
+    })
+
+    const updated = await this.findOrderById(params.orderId)
+    if (!updated) {
+      throw new Error(`Order ID ${params.orderId} not found after declining quote`)
+    }
+    return updated
+  }
+
+  async recordServiceReview(params: {
+    subOrderId: number
+    rating: number
+    comment?: string
+  }): Promise<CommerceVendorSuborder> {
+    const updated = await this.prisma.upward_commerce_vendor_suborder.update({
+      where: { id: params.subOrderId },
+      data: {
+        serviceRating: params.rating,
+        serviceReviewComment: params.comment?.trim() || null,
+        reviewedAt: new Date(),
+      },
+      include: {
+        items: true,
+        fulfilmentEvents: { orderBy: { createdAt: 'asc' } },
+        messages: { orderBy: { createdAt: 'asc' } },
+        vendor: true,
+        order: true,
+      },
+    })
+    return updated as unknown as CommerceVendorSuborder
   }
 }

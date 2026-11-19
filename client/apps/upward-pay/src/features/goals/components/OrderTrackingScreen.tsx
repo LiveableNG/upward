@@ -13,10 +13,12 @@ import {
   Clock,
   Download,
   AlertTriangle,
+  AlertCircle,
   CheckCircle2,
   ExternalLink,
   ShieldCheck,
   ChevronRight,
+  ChevronDown,
   MessageSquare,
   HelpCircle,
   X,
@@ -29,6 +31,7 @@ import {
   Star,
   CreditCard,
   Key,
+  Send,
 } from 'lucide-react'
 import { useToast } from '@/components/common/Toast'
 import {
@@ -38,6 +41,8 @@ import {
   useCreateCommerceDispute,
   useInitializeCommercePayment,
   useVerifyCommercePayment,
+  usePostCommerceOrderMessage,
+  useDeclineServiceQuote,
 } from '../hooks/useCommerceOrders'
 import { openPaystackInline } from '../utils/paystackInline'
 import { BottomSheetModal } from '@/components/common/BottomSheetModal'
@@ -132,11 +137,17 @@ export function OrderTrackingScreen({
   const createDispute = useCreateCommerceDispute()
   const initializePayment = useInitializeCommercePayment()
   const verifyPayment = useVerifyCommercePayment()
+  const postOrderMessage = usePostCommerceOrderMessage()
+  const declineServiceQuote = useDeclineServiceQuote()
 
   const [activeDisputeSubOrder, setActiveDisputeSubOrder] = useState<TenantSubOrderDetailDto | null>(null)
   const [subOrderToConfirm, setSubOrderToConfirm] = useState<TenantSubOrderDetailDto | null>(null)
   const [rating, setRating] = useState<number>(5)
   const [feedback, setFeedback] = useState<string>('')
+  const [messageDrafts, setMessageDrafts] = useState<Record<string, string>>({})
+  const [expandedChatSubOrders, setExpandedChatSubOrders] = useState<Record<string, boolean>>({})
+  const [sendingSubOrderUuid, setSendingSubOrderUuid] = useState<string | null>(null)
+  const [isDecliningQuote, setIsDecliningQuote] = useState(false)
   const [hoveredRating, setHoveredRating] = useState<number | null>(null)
   const [isDownloading, setIsDownloading] = useState(false)
   const [isPaying, setIsPaying] = useState(false)
@@ -255,6 +266,40 @@ export function OrderTrackingScreen({
     }
   }
 
+  const handleSendMilestoneReply = async (subOrderUuid: string) => {
+    const text = (messageDrafts[subOrderUuid] || '').trim()
+    if (!text || !order) return
+    // Clear input immediately for 0ms optimistic chat UX
+    setMessageDrafts((prev) => ({ ...prev, [subOrderUuid]: '' }))
+    try {
+      setSendingSubOrderUuid(subOrderUuid)
+      await postOrderMessage.mutateAsync({
+        orderUuid: order.uuid,
+        subOrderUuid,
+        message: text,
+      })
+    } catch (err: any) {
+      // Restore draft if sending failed
+      setMessageDrafts((prev) => ({ ...prev, [subOrderUuid]: text }))
+      toast.error(err?.message || 'Could not send message.')
+    } finally {
+      setSendingSubOrderUuid(null)
+    }
+  }
+
+  const handleDeclineQuote = async () => {
+    if (!order) return
+    try {
+      setIsDecliningQuote(true)
+      await declineServiceQuote.mutateAsync({ orderUuid: order.uuid })
+      toast.info('Quote declined and service request cancelled.')
+    } catch (err: any) {
+      toast.error(err?.message || 'Could not decline quote.')
+    } finally {
+      setIsDecliningQuote(false)
+    }
+  }
+
   const handlePayNow = async () => {
     if (!order) return
     try {
@@ -304,7 +349,21 @@ export function OrderTrackingScreen({
             Placed on {formatDateTime(order.createdAt)} · {formatKoboToNgn(order.totalAmountKobo)}
           </div>
         </div>
-        {order.paymentStatus === 'PAID' ? (
+        {order.status === 'CANCELLED' ? (
+          <span
+            style={{
+              fontSize: '11px',
+              fontWeight: 700,
+              padding: '4px 10px',
+              borderRadius: '6px',
+              background: 'rgba(107, 114, 128, 0.12)',
+              color: '#4b5563',
+              border: '1px solid rgba(107, 114, 128, 0.25)',
+            }}
+          >
+            Cancelled
+          </span>
+        ) : order.paymentStatus === 'PAID' ? (
           <button
             type="button"
             className="order-tracking__receipt-cta"
@@ -326,8 +385,85 @@ export function OrderTrackingScreen({
         )}
       </header>
 
-      {/* Unpaid Order Alert & Immediate Pay Action */}
-      {order.paymentStatus !== 'PAID' && (
+      {/* Cancelled Order Banner */}
+      {order.status === 'CANCELLED' ? (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 12,
+            padding: '16px',
+            borderRadius: '12px',
+            background: 'rgba(220, 38, 38, 0.06)',
+            border: '1px solid rgba(220, 38, 38, 0.2)',
+            marginBottom: '16px',
+          }}
+        >
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: '50%',
+              background: 'rgba(220, 38, 38, 0.12)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#dc2626',
+              flexShrink: 0,
+            }}
+          >
+            <AlertCircle size={20} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <strong style={{ fontSize: '14px', color: '#1a1714', fontWeight: 700 }}>
+                Order Cancelled
+              </strong>
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  background: 'rgba(220, 38, 38, 0.1)',
+                  color: '#dc2626',
+                }}
+              >
+                Closed
+              </span>
+            </div>
+            <p style={{ fontSize: '13px', color: '#4a4238', margin: '0 0 10px 0', lineHeight: 1.5 }}>
+              This order has been cancelled by Upward Operations.
+              {order.paymentStatus === 'PAID'
+                ? ' A full refund has been initiated to your original payment method.'
+                : ' No payment was captured for this order.'}
+            </p>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{
+                height: 32,
+                padding: '0 12px',
+                fontSize: '12px',
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                backgroundColor: 'var(--surface)',
+                border: '1px solid var(--border)',
+                borderRadius: '6px',
+                cursor: 'pointer',
+              }}
+              onClick={() => setActiveDisputeSubOrder(order.subOrders[0] || null)}
+            >
+              <MessageSquare size={13} />
+              <span>Contact Support Regarding Cancellation</span>
+            </button>
+          </div>
+        </div>
+      ) : order.paymentStatus !== 'PAID' &&
+        Number(order.totalAmountKobo) > 0 &&
+        !order.subOrders.some((s) => s.customerStatus === 'QUOTE_PROVIDED') && (
         <div className="order-tracking__unpaid-banner">
           <div className="order-tracking__unpaid-icon">
             <AlertTriangle size={20} color="#D97706" />
@@ -391,8 +527,9 @@ export function OrderTrackingScreen({
           ]
 
           const serviceSteps = [
-            { key: 'ORDER_CONFIRMED', label: 'Confirmed' },
-            { key: 'SERVICE_SCHEDULED', label: 'Scheduled' },
+            { key: 'QUOTE_REQUESTED', label: 'Reviewing' },
+            { key: 'QUOTE_PROVIDED', label: 'Approve & Pay' },
+            { key: 'SERVICE_SCHEDULED', label: 'Team Assigned' },
             { key: 'TECHNICIAN_EN_ROUTE', label: 'En Route' },
             { key: 'SERVICE_COMPLETED', label: 'Completed' },
           ]
@@ -402,10 +539,16 @@ export function OrderTrackingScreen({
           let activeStepIndex = 0
           if (isService) {
             if (['SERVICE_COMPLETED', 'RECEIVED_CONFIRMED'].includes(subOrder.customerStatus)) {
-              activeStepIndex = 3
+              activeStepIndex = 4
             } else if (subOrder.customerStatus === 'TECHNICIAN_EN_ROUTE') {
+              activeStepIndex = 3
+            } else if (
+              subOrder.customerStatus === 'SERVICE_SCHEDULED' ||
+              subOrder.customerStatus === 'PROCESSING' ||
+              subOrder.customerStatus === 'ORDER_CONFIRMED'
+            ) {
               activeStepIndex = 2
-            } else if (subOrder.customerStatus === 'SERVICE_SCHEDULED' || subOrder.customerStatus === 'PROCESSING') {
+            } else if (subOrder.customerStatus === 'QUOTE_PROVIDED') {
               activeStepIndex = 1
             } else {
               activeStepIndex = 0
@@ -430,9 +573,11 @@ export function OrderTrackingScreen({
               <div className="order-tracking__suborder-head">
                 <div>
                   <div className="order-tracking__suborder-num">
-                    {order.subOrders.length > 1
-                      ? `Package ${subIdx + 1} of ${order.subOrders.length}`
-                      : 'Fulfillment Package'}
+                    {isService
+                      ? 'Service Request'
+                      : order.subOrders.length > 1
+                        ? `Package ${subIdx + 1} of ${order.subOrders.length}`
+                        : 'Fulfillment Package'}
                   </div>
                   <div className="order-tracking__vendor-tag">
                     <ShieldCheck size={14} color="var(--clay)" />
@@ -469,88 +614,389 @@ export function OrderTrackingScreen({
                 </div>
               </div>
 
-              {/* Operational Dispatch Message / Live Advisory */}
-              {subOrder.adminOperationalNotes && (
-                <div className="order-tracking__alert-banner order-tracking__alert-banner--dispatch">
-                  <MessageSquare size={16} color="var(--clay)" style={{ flexShrink: 0, marginTop: 2 }} />
-                  <div className="order-tracking__alert-text">
-                    <strong>Dispatch Note:</strong> {subOrder.adminOperationalNotes}
+              {/* Stepper Progression or Cancelled State */}
+              {order.status === 'CANCELLED' || subOrder.customerStatus === 'CANCELLED' ? (
+                <div
+                  style={{
+                    padding: '12px 14px',
+                    background: 'rgba(107, 114, 128, 0.08)',
+                    border: '1px solid rgba(107, 114, 128, 0.2)',
+                    borderRadius: 8,
+                    fontSize: '12.5px',
+                    color: '#4b5563',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}
+                >
+                  <AlertCircle size={15} color="#6b7280" />
+                  <span>This fulfillment package has been cancelled.</span>
+                </div>
+              ) : (
+                <div className="order-tracking__stepper">
+                  <div className="order-tracking__stepper-track">
+                    <div
+                      className="order-tracking__stepper-fill"
+                      style={{
+                        width: ['DELIVERED', 'RECEIVED_CONFIRMED', 'SERVICE_COMPLETED'].includes(subOrder.customerStatus)
+                          ? '100%'
+                          : `${(activeStepIndex / (steps.length - 1)) * 100}%`,
+                      }}
+                    />
+                  </div>
+                  <div className="order-tracking__stepper-nodes">
+                    {steps.map((step, idx) => {
+                      const isFinalReached = ['DELIVERED', 'RECEIVED_CONFIRMED', 'SERVICE_COMPLETED'].includes(subOrder.customerStatus)
+                      const isAllFinalized = ['RECEIVED_CONFIRMED', 'SERVICE_COMPLETED'].includes(subOrder.customerStatus)
+                      const isDone = isFinalReached ? idx <= activeStepIndex : idx < activeStepIndex
+                      const isCurrent = isFinalReached ? false : idx === activeStepIndex
+                      const isBeamingStep = isCurrent && isDispatchedLive
+
+                      return (
+                        <div
+                          key={step.key}
+                          className={`order-tracking__node ${isDone
+                            ? 'order-tracking__node--done'
+                            : isCurrent
+                              ? 'order-tracking__node--current'
+                              : ''
+                            }`}
+                        >
+                          <div
+                            className={`order-tracking__node-dot ${isBeamingStep ? 'order-tracking__node-dot--beaming' : ''
+                              }`}
+                          >
+                            {isBeamingStep ? (
+                              <>
+                                <span className="order-tracking__radar-ring" />
+                                <Truck size={13} className="order-tracking__icon-moving" />
+                              </>
+                            ) : isDone ? (
+                              <CheckCircle2 size={12} />
+                            ) : (
+                              idx + 1
+                            )}
+                          </div>
+                          <div className="order-tracking__node-label">
+                            <span>
+                              {isAllFinalized && idx === steps.length - 1
+                                ? (isService ? 'Service Confirmed' : 'Delivered & Confirmed')
+                                : step.label}
+                            </span>
+                            {isBeamingStep && (
+                              <span className="order-tracking__live-pill">
+                                <span className="order-tracking__live-beacon" />
+                                LIVE
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               )}
 
-              {/* Stepper Progression */}
-              <div className="order-tracking__stepper">
-                <div className="order-tracking__stepper-track">
-                  <div
-                    className="order-tracking__stepper-fill"
-                    style={{
-                      width: ['DELIVERED', 'RECEIVED_CONFIRMED', 'SERVICE_COMPLETED'].includes(subOrder.customerStatus)
-                        ? '100%'
-                        : `${(activeStepIndex / (steps.length - 1)) * 100}%`,
-                    }}
-                  />
+              {/* Operational Dispatch Message / Live Advisory */}
+              {subOrder.adminOperationalNotes && (
+                <div className="order-tracking__alert-banner order-tracking__alert-banner--dispatch" style={{ marginTop: 12 }}>
+                  <MessageSquare size={15} color="var(--clay)" style={{ flexShrink: 0, marginTop: 2 }} />
+                  <div className="order-tracking__alert-text">
+                    <strong>Update from Upward:</strong> {subOrder.adminOperationalNotes}
+                  </div>
                 </div>
-                <div className="order-tracking__stepper-nodes">
-                  {steps.map((step, idx) => {
-                    const isFinalReached = ['DELIVERED', 'RECEIVED_CONFIRMED', 'SERVICE_COMPLETED'].includes(subOrder.customerStatus)
-                    const isAllFinalized = ['RECEIVED_CONFIRMED', 'SERVICE_COMPLETED'].includes(subOrder.customerStatus)
-                    const isDone = isFinalReached ? idx <= activeStepIndex : idx < activeStepIndex
-                    const isCurrent = isFinalReached ? false : idx === activeStepIndex
-                    const isBeamingStep = isCurrent && isDispatchedLive
+              )}
 
-                    return (
-                      <div
-                        key={step.key}
-                        className={`order-tracking__node ${isDone
-                          ? 'order-tracking__node--done'
-                          : isCurrent
-                            ? 'order-tracking__node--current'
-                            : ''
-                          }`}
+              {/* Quote Ready & Payment Approval Card (Service Quote Milestone 3) */}
+              {isService &&
+                subOrder.customerStatus === 'QUOTE_PROVIDED' &&
+                order.paymentStatus !== 'PAID' &&
+                order.status !== 'CANCELLED' && (
+                  <div className="order-tracking__quote-card">
+                    <div className="order-tracking__quote-header">
+                      <span className="order-tracking__quote-badge">
+                        <ShieldCheck size={12} />
+                        <span>Your Price is Ready</span>
+                      </span>
+                      <span className="order-tracking__quote-subtitle">All-inclusive</span>
+                    </div>
+
+                    <div className="order-tracking__quote-amount-row">
+                      <span className="order-tracking__quote-amount">
+                        {formatKoboToNgn(order.totalAmountKobo)}
+                      </span>
+                    </div>
+
+                    {subOrder.quoteNotes && (
+                      <p className="order-tracking__quote-note">
+                        {subOrder.quoteNotes}
+                      </p>
+                    )}
+
+                    <div className="order-tracking__quote-actions">
+                      <button
+                        type="button"
+                        className="order-tracking__quote-pay-btn"
+                        onClick={handlePayNow}
+                        disabled={isPaying || isDecliningQuote}
                       >
-                        <div
-                          className={`order-tracking__node-dot ${isBeamingStep ? 'order-tracking__node-dot--beaming' : ''
-                            }`}
-                        >
-                          {isBeamingStep ? (
-                            <>
-                              <span className="order-tracking__radar-ring" />
-                              <Truck size={13} className="order-tracking__icon-moving" />
-                            </>
-                          ) : isDone ? (
-                            <CheckCircle2 size={12} />
-                          ) : (
-                            idx + 1
-                          )}
+                        {isPaying ? <Loader2 size={15} className="animate-spin" /> : <CreditCard size={15} />}
+                        <span>{isPaying ? 'Opening Paystack…' : `Pay ${formatKoboToNgn(order.totalAmountKobo)}`}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className="order-tracking__quote-decline-btn"
+                        onClick={handleDeclineQuote}
+                        disabled={isPaying || isDecliningQuote}
+                      >
+                        {isDecliningQuote ? 'Declining…' : 'Decline Price'}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+              {/* Redesigned Service Appointment & Assigned Crew Card */}
+              {isService &&
+                (subOrder.serviceScheduledAt || subOrder.technicianName || subOrder.technicianPhone) && (
+                  <div className="order-tracking__service-card">
+                    {subOrder.serviceScheduledAt && (
+                      <div className="order-tracking__service-row">
+                        <div className="order-tracking__service-icon">
+                          <Calendar size={17} />
                         </div>
-                        <div className="order-tracking__node-label">
-                          <span>
-                            {isAllFinalized && idx === steps.length - 1
-                              ? (isService ? 'Service Confirmed' : 'Delivered & Confirmed')
-                              : step.label}
-                          </span>
-                          {isBeamingStep && (
-                            <span className="order-tracking__live-pill">
-                              <span className="order-tracking__live-beacon" />
-                              LIVE
-                            </span>
+                        <div className="order-tracking__service-meta">
+                          <div className="order-tracking__service-label">Scheduled Appointment</div>
+                          <div className="order-tracking__service-val">
+                            {formatDateTime(subOrder.serviceScheduledAt)}
+                          </div>
+                          {subOrder.serviceWindowNotes && (
+                            <div className="order-tracking__service-sub">
+                              {subOrder.serviceWindowNotes}
+                            </div>
                           )}
                         </div>
                       </div>
-                    )
-                  })}
-                </div>
-              </div>
+                    )}
 
-              {/* Carrier, Rider, or Appointment Info Box */}
-              {(subOrder.carrierName ||
-                subOrder.serviceScheduledAt ||
-                subOrder.technicianName ||
-                subOrder.technicianPhone) && (
+                    {subOrder.serviceScheduledAt &&
+                      (subOrder.technicianName || subOrder.technicianPhone) && (
+                        <div className="order-tracking__service-divider" />
+                      )}
+
+                    {(subOrder.technicianName || subOrder.technicianPhone) && (
+                      <div className="order-tracking__service-row order-tracking__service-row--crew">
+                        <div className="order-tracking__service-icon">
+                          <User size={17} />
+                        </div>
+                        <div className="order-tracking__service-meta">
+                          <div className="order-tracking__service-label">Assigned Crew</div>
+                          <div className="order-tracking__service-val">
+                            <span>{subOrder.technicianName || 'Assigned Crew'}</span>
+                            <span className="order-tracking__service-verified">
+                              <ShieldCheck size={11} />
+                              <span>Verified</span>
+                            </span>
+                          </div>
+                          {subOrder.technicianPhone && (
+                            <div className="order-tracking__service-sub">
+                              {subOrder.technicianPhone}
+                            </div>
+                          )}
+                        </div>
+                        {subOrder.technicianPhone && (
+                          <a
+                            href={`tel:${subOrder.technicianPhone.replace(/\s+/g, '')}`}
+                            className="order-tracking__service-call-btn"
+                            aria-label={`Call assigned crew at ${subOrder.technicianPhone}`}
+                          >
+                            <Phone size={13} />
+                            <span>Call</span>
+                          </a>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+              {/* Interactive Scope & Clarification Conversation Thread (Service Orders) */}
+              {isService &&
+                (() => {
+                  const msgs = subOrder.messages || []
+                  const isQuotePhase =
+                    ['QUOTE_REQUESTED', 'QUOTE_PROVIDED'].includes(subOrder.customerStatus) &&
+                    order.paymentStatus !== 'PAID' &&
+                    order.status !== 'CANCELLED'
+
+                  if (!isQuotePhase && msgs.length === 0) return null
+
+                  if (isQuotePhase) {
+                    return (
+                      <div className="order-tracking__chat-card">
+                        <div className="order-tracking__chat-header">
+                          <MessageSquare size={14} color="var(--clay, #d97757)" />
+                          <span>Service Discussion</span>
+                        </div>
+
+                        <div className="order-tracking__chat-list">
+                          {msgs.length === 0 ? (
+                            <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-muted, #8a8a8a)' }}>
+                              Our team is reviewing your request. Any follow-up questions will appear here.
+                            </p>
+                          ) : (
+                            msgs.map((msg) => {
+                              const isMine = msg.senderType === 'TENANT'
+                              return (
+                                <div
+                                  key={msg.uuid}
+                                  className={`order-tracking__chat-bubble ${
+                                    isMine
+                                      ? 'order-tracking__chat-bubble--mine'
+                                      : 'order-tracking__chat-bubble--admin'
+                                  }`}
+                                >
+                                  <div className="order-tracking__chat-sender">
+                                    {isMine ? 'You' : 'Upward Team'}
+                                  </div>
+                                  <div style={{ whiteSpace: 'pre-wrap' }}>{msg.message}</div>
+                                </div>
+                              )
+                            })
+                          )}
+                        </div>
+
+                        <div className="order-tracking__chat-composer">
+                          <input
+                            type="text"
+                            className="order-tracking__chat-input"
+                            value={messageDrafts[subOrder.uuid] || ''}
+                            onChange={(e) =>
+                              setMessageDrafts((prev) => ({
+                                ...prev,
+                                [subOrder.uuid]: e.target.value,
+                              }))
+                            }
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault()
+                                handleSendMilestoneReply(subOrder.uuid)
+                              }
+                            }}
+                            placeholder="Reply or add extra details…"
+                          />
+                          <button
+                            type="button"
+                            className="order-tracking__chat-send-btn"
+                            onClick={() => handleSendMilestoneReply(subOrder.uuid)}
+                            disabled={
+                              sendingSubOrderUuid === subOrder.uuid ||
+                              !(messageDrafts[subOrder.uuid] || '').trim()
+                            }
+                          >
+                            {sendingSubOrderUuid === subOrder.uuid ? (
+                              <Loader2 size={14} className="animate-spin" />
+                            ) : (
+                              <Send size={14} />
+                            )}
+                            <span>Send</span>
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  }
+
+                  const isExpanded = Boolean(expandedChatSubOrders[subOrder.uuid])
+                  return (
+                    <div className="order-tracking__chat-accordion">
+                      <button
+                        type="button"
+                        className="order-tracking__chat-toggle"
+                        onClick={() =>
+                          setExpandedChatSubOrders((prev) => ({
+                            ...prev,
+                            [subOrder.uuid]: !prev[subOrder.uuid],
+                          }))
+                        }
+                        aria-expanded={isExpanded}
+                      >
+                        <span className="order-tracking__chat-toggle-left">
+                          <MessageSquare size={14} color="var(--clay, #d97757)" style={{ flexShrink: 0 }} />
+                          <span className="order-tracking__chat-toggle-title">Service Discussion</span>
+                          <span className="order-tracking__chat-toggle-count">
+                            {msgs.length} {msgs.length === 1 ? 'message' : 'messages'}
+                          </span>
+                        </span>
+                        <span className="order-tracking__chat-toggle-right">
+                          <span>{isExpanded ? 'Hide' : 'View'}</span>
+                          <ChevronDown
+                            size={14}
+                            className={`order-tracking__chat-chevron ${
+                              isExpanded ? 'order-tracking__chat-chevron--open' : ''
+                            }`}
+                          />
+                        </span>
+                      </button>
+
+                      {isExpanded && (
+                        <div className="order-tracking__chat-body">
+                          <div className="order-tracking__chat-list">
+                            {msgs.map((msg) => {
+                              const isMine = msg.senderType === 'TENANT'
+                              return (
+                                <div
+                                  key={msg.uuid}
+                                  className={`order-tracking__chat-bubble ${
+                                    isMine
+                                      ? 'order-tracking__chat-bubble--mine'
+                                      : 'order-tracking__chat-bubble--admin'
+                                  }`}
+                                >
+                                  <div className="order-tracking__chat-sender">
+                                    {isMine ? 'You' : 'Upward Team'}
+                                  </div>
+                                  <div style={{ whiteSpace: 'pre-wrap' }}>{msg.message}</div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })()}
+
+              {/* Submitted Service Review Summary */}
+              {isService && subOrder.serviceRating && (
+                <div
+                  style={{
+                    marginTop: 14,
+                    padding: '12px 14px',
+                    borderRadius: 12,
+                    background: 'rgba(34, 197, 94, 0.06)',
+                    border: '1px solid rgba(34, 197, 94, 0.2)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 4,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, color: '#15803d' }}>
+                    <Star size={14} fill="#f59e0b" color="#f59e0b" />
+                    <span>Your Service Rating: {subOrder.serviceRating}/5</span>
+                  </div>
+                  {subOrder.serviceReviewComment && (
+                    <p style={{ margin: 0, fontSize: 13, color: 'var(--text-secondary, #4a4642)', lineHeight: 1.45 }}>
+                      “{subOrder.serviceReviewComment}”
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Carrier or Rider Info Box (Physical goods delivery) */}
+              {!isService &&
+                (subOrder.carrierName || subOrder.technicianName || subOrder.technicianPhone) && (
                   <div className="order-tracking__dispatch-box">
-                    {/* Delivery Rider (Physical goods delivery) */}
-                    {!isService && (subOrder.technicianName || subOrder.technicianPhone) && (
+                    {/* Delivery Rider */}
+                    {(subOrder.technicianName || subOrder.technicianPhone) && (
                       <div className="order-tracking__dispatch-item order-tracking__dispatch-item--rider">
                         <Truck size={16} color="var(--clay)" />
                         <div className="order-tracking__dispatch-details">
@@ -599,50 +1045,6 @@ export function OrderTrackingScreen({
                         </div>
                       </div>
                     )}
-
-                    {/* Service appointment */}
-                    {subOrder.serviceScheduledAt && (
-                      <div className="order-tracking__dispatch-item">
-                        <Calendar size={16} color="var(--clay)" />
-                        <div>
-                          <div className="order-tracking__dispatch-label">Scheduled Appointment</div>
-                          <div className="order-tracking__dispatch-val">
-                            {formatDateTime(subOrder.serviceScheduledAt)}
-                          </div>
-                          {subOrder.serviceWindowNotes && (
-                            <div className="order-tracking__dispatch-notes">
-                              {subOrder.serviceWindowNotes}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Service specialist */}
-                    {isService && (subOrder.technicianName || subOrder.technicianPhone) && (
-                      <div className="order-tracking__dispatch-item order-tracking__dispatch-item--rider">
-                        <User size={16} color="var(--clay)" />
-                        <div className="order-tracking__dispatch-details">
-                          <div className="order-tracking__dispatch-label">Assigned Specialist</div>
-                          <div className="order-tracking__dispatch-val">
-                            {subOrder.technicianName || 'Assigned Specialist'} (Upward Verified)
-                            {subOrder.technicianPhone && (
-                              <span className="order-tracking__dispatch-phone"> · {subOrder.technicianPhone}</span>
-                            )}
-                          </div>
-                        </div>
-                        {subOrder.technicianPhone && (
-                          <a
-                            href={`tel:${subOrder.technicianPhone.replace(/\s+/g, '')}`}
-                            className="order-tracking__call-btn"
-                            aria-label={`Call specialist at ${subOrder.technicianPhone}`}
-                          >
-                            <Phone size={13} />
-                            <span>Call Specialist</span>
-                          </a>
-                        )}
-                      </div>
-                    )}
                   </div>
                 )}
 
@@ -681,11 +1083,29 @@ export function OrderTrackingScreen({
                         <div className="order-tracking__item-info">
                           <div className="order-tracking__item-title">{itemTitle}</div>
                           <div className="order-tracking__item-qty">
-                            Qty: {item.quantity} · {formatKoboToNgn(item.unitPriceKobo)} each
+                            {isService && Number(item.totalPriceKobo || 0) <= 0
+                              ? 'Price Requested'
+                              : `Qty: ${item.quantity} · ${formatKoboToNgn(item.unitPriceKobo)} each`}
                           </div>
                         </div>
                         <div className="order-tracking__item-price">
-                          {formatKoboToNgn(item.totalPriceKobo)}
+                          {isService && Number(item.totalPriceKobo || 0) <= 0 ? (
+                            <span
+                              style={{
+                                fontSize: 11.5,
+                                fontWeight: 700,
+                                color: 'var(--clay, #d97757)',
+                                background: 'rgba(var(--clay-rgb, 217, 119, 87), 0.1)',
+                                padding: '3px 8px',
+                                borderRadius: 6,
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              Pending Price
+                            </span>
+                          ) : (
+                            formatKoboToNgn(item.totalPriceKobo)
+                          )}
                         </div>
                       </div>
                     )
@@ -721,34 +1141,48 @@ export function OrderTrackingScreen({
         })}
       </div>
 
-      {/* Unified Order Financial Summary */}
-      <div className="order-tracking__summary-card">
-        <h3 className="order-tracking__summary-title">Order Financial Summary</h3>
-        <div className="order-tracking__summary-rows">
-          <div className="order-tracking__summary-row">
-            <span>Items Subtotal</span>
-            <span>{formatKoboToNgn(order.itemsSubtotalKobo)}</span>
-          </div>
-          <div className="order-tracking__summary-row">
-            <span>Verified Logistics & Delivery</span>
-            <span>
-              {BigInt(order.deliveryFeeKobo || 0) > BigInt(0)
-                ? formatKoboToNgn(order.deliveryFeeKobo)
-                : 'Free'}
-            </span>
-          </div>
-          {BigInt(order.discountKobo || 0) > BigInt(0) && (
-            <div className="order-tracking__summary-row order-tracking__summary-row--discount">
-              <span>Applied Discount</span>
-              <span>-{formatKoboToNgn(order.discountKobo)}</span>
+      {/* Unified Order Financial Summary — hidden while service quote is still pending */}
+      {!(
+        Number(order.totalAmountKobo || 0) <= 0 &&
+        order.subOrders.some((s) => s.customerStatus === 'QUOTE_REQUESTED')
+      ) ? (
+        <div className="order-tracking__summary-card">
+          <h3 className="order-tracking__summary-title">Order Financial Summary</h3>
+          <div className="order-tracking__summary-rows">
+            <div className="order-tracking__summary-row">
+              <span>{order.subOrders.some((s) => s.items.some((i) => i.offeringType === 'SERVICE')) ? 'Service Fee' : 'Items Subtotal'}</span>
+              <span>{formatKoboToNgn(order.itemsSubtotalKobo)}</span>
             </div>
-          )}
-          <div className="order-tracking__summary-row order-tracking__summary-row--total">
-            <span>{order.paymentStatus === 'PAID' ? 'Total Paid' : 'Total Due'}</span>
-            <strong>{formatKoboToNgn(order.totalAmountKobo)}</strong>
+            {!order.subOrders.every((s) => s.items.every((i) => i.offeringType === 'SERVICE')) && (
+              <div className="order-tracking__summary-row">
+                <span>Verified Logistics & Delivery</span>
+                <span>
+                  {BigInt(order.deliveryFeeKobo || 0) > BigInt(0)
+                    ? formatKoboToNgn(order.deliveryFeeKobo)
+                    : 'Free'}
+                </span>
+              </div>
+            )}
+            {BigInt(order.discountKobo || 0) > BigInt(0) && (
+              <div className="order-tracking__summary-row order-tracking__summary-row--discount">
+                <span>Applied Discount</span>
+                <span>-{formatKoboToNgn(order.discountKobo)}</span>
+              </div>
+            )}
+            <div className="order-tracking__summary-row order-tracking__summary-row--total">
+              <span>{order.paymentStatus === 'PAID' ? 'Total Paid' : 'Total Due'}</span>
+              <strong>{formatKoboToNgn(order.totalAmountKobo)}</strong>
+            </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="order-tracking__summary-card">
+          <h3 className="order-tracking__summary-title">Quote Under Review</h3>
+          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: 'var(--text-secondary, #4a4642)' }}>
+            No payment is due yet. Once our team reviews your request and finalizes the scope, your tailored quote will appear here for approval.
+          </p>
+        </div>
+      )}
 
       {/* Customer Support / Dispute Modal */}
       <BottomSheetModal

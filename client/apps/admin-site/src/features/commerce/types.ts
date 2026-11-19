@@ -1,4 +1,6 @@
 export type CustomerFulfilmentStatus =
+  | 'QUOTE_REQUESTED'
+  | 'QUOTE_PROVIDED'
   | 'ORDER_CONFIRMED'
   | 'PROCESSING'
   | 'DISPATCHED'
@@ -89,6 +91,11 @@ export interface AdminCommerceSubOrder {
   technicianName?: string | null
   technicianPhone?: string | null
   adminOperationalNotes?: string | null
+  quoteNotes?: string | null
+  quotedAt?: string | null
+  serviceRating?: number | null
+  serviceReviewComment?: string | null
+  reviewedAt?: string | null
   customerRating?: number | null
   customerFeedback?: string | null
   tenantConfirmedAt?: string | null
@@ -101,6 +108,13 @@ export interface AdminCommerceSubOrder {
   }
   items: AdminCommerceItem[]
   fulfilmentEvents?: AdminCommerceFulfilmentEvent[]
+  messages?: Array<{
+    uuid: string
+    senderType: string
+    senderName?: string | null
+    message: string
+    createdAt: string
+  }>
 }
 
 export interface AdminCommerceOrder {

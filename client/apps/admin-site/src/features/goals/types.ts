@@ -163,18 +163,47 @@ export interface CommerceVendor {
 
 export interface TopGoalStat {
   id: number
+  goalId?: number
   title: string
-  slug: string
+  categoryName?: string
+  slug?: string
   userCount: number
+  count?: number
+}
+
+export interface CategoryGoalBreakdown {
+  categoryId: number
+  categoryName: string
+  selectionCount: number
+  uniqueTenants: number
+}
+
+export interface RecentTenantGoalSelection {
+  id: number
+  userId: number
+  tenantName: string
+  tenantEmail: string | null
+  goalTitle: string
+  categoryName: string
+  status: string
+  createdAt: string
 }
 
 export interface GoalsOverview {
   totalCategories: number
   totalGoals: number
   activeUserGoals: number
+  totalActiveUserGoals?: number
+  uniqueTenantsWithGoals?: number
   totalOfferings: number
+  publishedOfferings?: number
   totalVendors: number
+  activeVendors?: number
+  totalOrders?: number
+  activeQuoteOrders?: number
   topGoals: TopGoalStat[]
+  categoryBreakdown?: CategoryGoalBreakdown[]
+  recentSelections?: RecentTenantGoalSelection[]
 }
 
 export interface GoalManagementProps {

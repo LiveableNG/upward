@@ -22,12 +22,20 @@ import { VerifyCommercePaymentUseCase } from '../../../application/commerce/use-
 import { GetCommerceReceiptPdfUseCase } from '../../../application/commerce/use-cases/get-commerce-receipt-pdf.use-case'
 import { CreateCommerceDisputeUseCase } from '../../../application/commerce/use-cases/create-commerce-dispute.use-case'
 import { CreateCommerceInquiryUseCase } from '../../../application/commerce/use-cases/create-commerce-inquiry.use-case'
+import { CreateServiceQuoteOrderUseCase } from '../../../application/commerce/use-cases/create-service-quote-order.use-case'
+import { PostCommerceOrderMessageUseCase } from '../../../application/commerce/use-cases/post-commerce-order-message.use-case'
+import { DeclineServiceQuoteUseCase } from '../../../application/commerce/use-cases/decline-service-quote.use-case'
 import { PreviewCommerceOrderDto } from '../../../application/commerce/dto/preview-commerce-order.dto'
 import { CreateCommerceOrderDto } from '../../../application/commerce/dto/create-commerce-order.dto'
 import { VerifyCommercePaymentDto } from '../../../application/commerce/dto/verify-commerce-payment.dto'
 import { GetTenantOrdersFilterDto } from '../../../application/commerce/dto/tenant-commerce-order.dto'
 import { CreateCommerceDisputeDto } from '../../../application/commerce/dto/commerce-dispute.dto'
 import { CreateCommerceInquiryDto } from '../../../application/commerce/dto/commerce-inquiry.dto'
+import {
+  CreateServiceQuoteOrderDto,
+  DeclineServiceQuoteDto,
+  PostCommerceOrderMessageDto,
+} from '../../../application/commerce/dto/service-quote.dto'
 
 @Controller('user/commerce/orders')
 @UseGuards(JwtAuthGuard)
@@ -42,7 +50,66 @@ export class TenantCommerceController {
     private readonly getCommerceReceiptPdfUseCase: GetCommerceReceiptPdfUseCase,
     private readonly createCommerceDisputeUseCase: CreateCommerceDisputeUseCase,
     private readonly createCommerceInquiryUseCase: CreateCommerceInquiryUseCase,
+    private readonly createServiceQuoteOrderUseCase: CreateServiceQuoteOrderUseCase,
+    private readonly postCommerceOrderMessageUseCase: PostCommerceOrderMessageUseCase,
+    private readonly declineServiceQuoteUseCase: DeclineServiceQuoteUseCase,
   ) {}
+
+  @Post('quote')
+  @HttpCode(HttpStatus.CREATED)
+  async createServiceQuoteOrder(
+    @Req() req: any,
+    @Body() dto: CreateServiceQuoteOrderDto,
+  ) {
+    const userUuid = req.user?.id || req.user?.sub
+    if (!userUuid) {
+      throw new UnauthorizedException('Authentication required')
+    }
+    const data = await this.createServiceQuoteOrderUseCase.execute({
+      userUuid,
+      dto,
+    })
+    return { data }
+  }
+
+  @Post('sub-orders/:subOrderUuid/messages')
+  @HttpCode(HttpStatus.CREATED)
+  async postSubOrderMessage(
+    @Req() req: any,
+    @Param('subOrderUuid') subOrderUuid: string,
+    @Body() dto: PostCommerceOrderMessageDto,
+  ) {
+    const userUuid = req.user?.id || req.user?.sub
+    if (!userUuid) {
+      throw new UnauthorizedException('Authentication required')
+    }
+    const data = await this.postCommerceOrderMessageUseCase.execute({
+      subOrderUuid,
+      senderType: 'TENANT',
+      senderUserUuid: userUuid,
+      message: dto.message,
+    })
+    return { data }
+  }
+
+  @Post(':uuid/decline-quote')
+  @HttpCode(HttpStatus.OK)
+  async declineQuote(
+    @Req() req: any,
+    @Param('uuid') uuid: string,
+    @Body() dto: DeclineServiceQuoteDto,
+  ) {
+    const userUuid = req.user?.id || req.user?.sub
+    if (!userUuid) {
+      throw new UnauthorizedException('Authentication required')
+    }
+    const data = await this.declineServiceQuoteUseCase.execute({
+      userUuid,
+      orderUuid: uuid,
+      reason: dto?.reason,
+    })
+    return { data }
+  }
 
   @Post('preview')
   @HttpCode(HttpStatus.OK)

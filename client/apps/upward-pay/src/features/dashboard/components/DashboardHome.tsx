@@ -104,10 +104,14 @@ export function DashboardHome({
       })
       .sort((a, b) => getStageWeight(b.primaryStatus) - getStageWeight(a.primaryStatus))
 
-    // 2. Unpaid order awaiting payment
+    // 2. Unpaid order awaiting payment (exclude unquoted ₦0 service quote requests)
     const unpaid = orders.find((ord) => {
       if (['CANCELLED', 'REFUNDED'].includes(ord.status)) return false
-      return ord.paymentStatus !== 'PAID'
+      if (ord.paymentStatus === 'PAID') return false
+      if (ord.primaryStatus === 'QUOTE_REQUESTED' || Number(ord.totalAmountKobo || 0) <= 0) {
+        return false
+      }
+      return true
     })
 
     return {

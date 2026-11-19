@@ -33,8 +33,11 @@ interface OfferingCardProps {
 }
 
 export function formatOfferingPrice(offering: GoalOffering): string {
+  if (offering.type === 'SERVICE' || offering.pricingModel === 'QUOTE_REQUIRED') {
+    return 'Price on Request'
+  }
   const currency = offering.currency || 'NGN'
-  return formatCurrencyValue(offering.price, currency) || (offering.minPrice != null ? `From ${formatCurrencyValue(offering.minPrice, currency)}` : 'Inquire for price')
+  return formatCurrencyValue(offering.price, currency) || (offering.minPrice != null ? `From ${formatCurrencyValue(offering.minPrice, currency)}` : 'Price on Request')
 }
 
 export function formatCurrencyValue(val?: number | null, currency = 'NGN'): string {
@@ -185,30 +188,50 @@ export const OfferingCard: React.FC<OfferingCardProps> = ({
                 </span>
               </>
             )}
-            {offering.pricingModel && offering.pricingModel !== 'FIXED' && (
+            {(offering.type === 'SERVICE' || (offering.pricingModel && offering.pricingModel !== 'FIXED')) && (
               <span className="offering-card__pricing-model">
-                {offering.pricingModel.toLowerCase().replace('_', ' ')}
+                {offering.type === 'SERVICE' || offering.pricingModel === 'QUOTE_REQUIRED'
+                  ? 'Based on your need'
+                  : offering.pricingModel?.toLowerCase().replace('_', ' ')}
               </span>
             )}
           </div>
 
-          <div className="offering-card__actions-wrap">
+          <div className="offering-card__actions-wrap" style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
             <button
               type="button"
               className="offering-card__cart-btn"
-              title={offering.type === 'SERVICE' ? 'Book Service' : 'Add to Cart'}
+              style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
+              title={
+                offering.type === 'SERVICE' || offering.pricingModel === 'QUOTE_REQUIRED'
+                  ? 'Request Price / Details'
+                  : 'Add to Cart'
+              }
               onClick={(e) => {
                 e.stopPropagation()
-                cart.addItem(offering, { quantity: 1 })
-                cart.openCart()
+                if (
+                  offering.type === 'SERVICE' ||
+                  offering.pricingModel === 'QUOTE_REQUIRED' ||
+                  !offering.price
+                ) {
+                  // Direct service booking / quotes to the detail page flow
+                  onClick?.(offering)
+                } else {
+                  cart.addItem(offering, { quantity: 1 })
+                  cart.openCart()
+                }
               }}
             >
-              {offering.type === 'SERVICE' ? (
+              {offering.type === 'SERVICE' || offering.pricingModel === 'QUOTE_REQUIRED' ? (
                 <Wrench size={12} strokeWidth={2.4} />
               ) : (
                 <ShoppingCart size={12} strokeWidth={2.4} />
               )}
-              <span>{offering.type === 'SERVICE' ? 'Book' : 'Add'}</span>
+              <span>
+                {offering.type === 'SERVICE' || offering.pricingModel === 'QUOTE_REQUIRED'
+                  ? 'Request Price'
+                  : 'Add'}
+              </span>
             </button>
             <span className="offering-card__action-btn" aria-hidden="true">
               <span>Details</span>

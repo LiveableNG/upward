@@ -273,10 +273,22 @@ describe('Goals Domain Use Cases', () => {
         totalCategories: 4,
         totalGoals: 18,
         totalActiveUserGoals: 420,
+        activeUserGoals: 420,
+        uniqueTenantsWithGoals: 150,
+        totalOfferings: 24,
+        publishedOfferings: 20,
+        totalVendors: 8,
+        activeVendors: 7,
+        totalOrders: 15,
+        activeQuoteOrders: 3,
         topGoals: [
-          { goalId: 1, title: 'Upgrade my workspace', count: 120 },
-          { goalId: 2, title: 'Redecorate my space', count: 95 },
+          { id: 1, goalId: 1, title: 'Upgrade my workspace', categoryName: 'Home', userCount: 120, count: 120 },
+          { id: 2, goalId: 2, title: 'Redecorate my space', categoryName: 'Home', userCount: 95, count: 95 },
         ],
+        categoryBreakdown: [
+          { categoryId: 1, categoryName: 'Home', selectionCount: 215, uniqueTenants: 110 },
+        ],
+        recentSelections: [],
       }
       mockGoalRepo.getGoalsOverview!.mockResolvedValue(mockOverview)
 

@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common'
 import {
   GOAL_REPOSITORY,
   GoalRepository,
+  GoalsOverviewStats,
 } from '../../../../domains/goals/goal.repository'
 
 @Injectable()
@@ -11,12 +12,7 @@ export class AdminGetGoalsOverviewUseCase {
     private readonly goalRepo: GoalRepository,
   ) {}
 
-  async execute(): Promise<{
-    totalCategories: number
-    totalGoals: number
-    totalActiveUserGoals: number
-    topGoals: Array<{ goalId: number; title: string; count: number }>
-  }> {
+  async execute(): Promise<GoalsOverviewStats> {
     return this.goalRepo.getGoalsOverview()
   }
 }

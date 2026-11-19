@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, Optional } from '@nestjs/common'
 import { PrismaService } from '../prisma.service'
+import { EncryptionService } from '../../common/encryption.service'
 import {
   Goal,
   GoalActionTemplate,
@@ -15,7 +16,28 @@ import { calculateGoalProgress } from '../../../../domains/goals/timeline.calcul
 
 @Injectable()
 export class PrismaGoalRepository implements GoalRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly encryption?: EncryptionService,
+  ) {}
+
+  private safeDecrypt(val?: string | null): string {
+    if (!val) return ''
+    if (!this.encryption) return val
+    try {
+      return this.encryption.decrypt(val)
+    } catch {
+      return val
+    }
+  }
+
+  private formatCategorySlug(slug?: string | null): string {
+    if (!slug) return 'General'
+    return slug
+      .replace(/[-_]+/g, ' ')
+      .replace(/\b\w/g, (ch) => ch.toUpperCase())
+      .trim()
+  }
 
   // Categories
   async findCategories(filter?: { status?: GoalPublishStatus; includeGoals?: boolean }): Promise<GoalCategory[]> {
@@ -703,44 +725,174 @@ export class PrismaGoalRepository implements GoalRepository {
   }
 
   // Analytics Overview
-  async getGoalsOverview(): Promise<{
-    totalCategories: number
-    totalGoals: number
-    totalActiveUserGoals: number
-    topGoals: Array<{ goalId: number; title: string; count: number }>
-  }> {
-    const [totalCategories, totalGoals, totalActiveUserGoals, grouped] = await Promise.all([
-      this.prisma.upward_goal_category.count(),
+  async getGoalsOverview() {
+    const [
+      allCategories,
+      totalGoals,
+      totalOfferings,
+      publishedOfferings,
+      totalVendors,
+      activeVendors,
+      totalOrders,
+      activeQuoteOrders,
+      allActiveUserGoals,
+    ] = await Promise.all([
+      this.prisma.upward_goal_category.findMany({
+        select: { id: true, slug: true, title: true },
+      }),
       this.prisma.upward_goal.count(),
-      this.prisma.upward_user_goal.count({ where: { status: 'ACTIVE' } }),
-      this.prisma.upward_user_goal.groupBy({
-        by: ['goalId'],
-        _count: { goalId: true },
-        where: { status: 'ACTIVE', goalId: { not: null } },
-        orderBy: { _count: { goalId: 'desc' } },
-        take: 5,
+      this.prisma.upward_offering.count(),
+      this.prisma.upward_offering.count({ where: { status: 'PUBLISHED' } }),
+      this.prisma.upward_commerce_vendor.count(),
+      this.prisma.upward_commerce_vendor.count({ where: { isActive: true } }),
+      this.prisma.upward_commerce_order.count(),
+      this.prisma.upward_commerce_vendor_suborder.count({
+        where: { customerStatus: { in: ['QUOTE_REQUESTED', 'QUOTE_PROVIDED'] } },
+      }),
+      this.prisma.upward_user_goal.findMany({
+        where: { status: 'ACTIVE' },
+        orderBy: { createdAt: 'desc' },
+        include: {
+          user: { select: { id: true, firstName: true, lastName: true, email: true } },
+          goal: {
+            select: {
+              id: true,
+              title: true,
+              categoryId: true,
+              category: { select: { id: true, slug: true, title: true } },
+            },
+          },
+        },
       }),
     ])
 
-    const validGrouped = grouped.filter((g): g is typeof g & { goalId: number } => g.goalId !== null)
-    const goalIds = validGrouped.map((g) => g.goalId)
-    const goals = await this.prisma.upward_goal.findMany({
-      where: { id: { in: goalIds } },
-      select: { id: true, title: true },
-    })
-    const goalTitleMap = new Map(goals.map((g) => [g.id, g.title]))
+    const totalCategories = allCategories.length
+    const categoryBySlug = new Map(
+      allCategories.map((c) => [c.slug.toLowerCase(), c]),
+    )
 
-    const topGoals = validGrouped.map((g) => ({
-      goalId: g.goalId,
-      title: goalTitleMap.get(g.goalId) || 'Unknown Goal',
-      count: g._count.goalId,
-    }))
+    const totalActiveUserGoals = allActiveUserGoals.length
+    const uniqueUsersSet = new Set<number>()
+
+    // Aggregate both catalog-linked goals (goalId != null) and custom/preset goals (goalId == null)
+    const goalStatsMap = new Map<
+      string,
+      { id: number; goalId: number; title: string; categoryName: string; userCount: number }
+    >()
+    const categoryStatsMap = new Map<
+      string,
+      { categoryId: number; categoryName: string; selectionCount: number; users: Set<number> }
+    >()
+
+    let syntheticGoalId = -1
+    let syntheticCategoryId = -1
+
+    for (const ug of allActiveUserGoals) {
+      uniqueUsersSet.add(ug.userId)
+
+      const matchedSlugCat = ug.categorySlug
+        ? categoryBySlug.get(ug.categorySlug.toLowerCase())
+        : undefined
+      const resolvedCategoryId =
+        ug.goal?.category?.id ?? matchedSlugCat?.id ?? null
+      const resolvedCategoryName =
+        ug.goal?.category?.title ??
+        matchedSlugCat?.title ??
+        this.formatCategorySlug(ug.categorySlug)
+
+      const resolvedGoalTitle = (ug.goal?.title || ug.title || 'Custom Goal').trim()
+      const goalKey = ug.goalId != null
+        ? `catalog:${ug.goalId}`
+        : `custom:${resolvedGoalTitle.toLowerCase()}`
+
+      let goalEntry = goalStatsMap.get(goalKey)
+      if (!goalEntry) {
+        const assignedId = ug.goalId != null ? ug.goalId : syntheticGoalId--
+        goalEntry = {
+          id: assignedId,
+          goalId: assignedId,
+          title: resolvedGoalTitle,
+          categoryName: resolvedCategoryName,
+          userCount: 0,
+        }
+        goalStatsMap.set(goalKey, goalEntry)
+      }
+      goalEntry.userCount += 1
+
+      const catKey =
+        resolvedCategoryId != null
+          ? `cat:${resolvedCategoryId}`
+          : `slug:${resolvedCategoryName.toLowerCase()}`
+      let catEntry = categoryStatsMap.get(catKey)
+      if (!catEntry) {
+        catEntry = {
+          categoryId: resolvedCategoryId != null ? resolvedCategoryId : syntheticCategoryId--,
+          categoryName: resolvedCategoryName,
+          selectionCount: 0,
+          users: new Set<number>(),
+        }
+        categoryStatsMap.set(catKey, catEntry)
+      }
+      catEntry.selectionCount += 1
+      catEntry.users.add(ug.userId)
+    }
+
+    const topGoals = Array.from(goalStatsMap.values())
+      .map((g) => ({
+        ...g,
+        count: g.userCount,
+      }))
+      .sort((a, b) => b.userCount - a.userCount)
+
+    const categoryBreakdown = Array.from(categoryStatsMap.values())
+      .map((c) => ({
+        categoryId: c.categoryId,
+        categoryName: c.categoryName,
+        selectionCount: c.selectionCount,
+        uniqueTenants: c.users.size,
+      }))
+      .sort((a, b) => b.selectionCount - a.selectionCount)
+
+    const recentSelections = allActiveUserGoals.slice(0, 40).map((ug) => {
+      const firstName = this.safeDecrypt(ug.user?.firstName)
+      const lastName = this.safeDecrypt(ug.user?.lastName)
+      const email = this.safeDecrypt(ug.user?.email) || null
+      const fullName = `${firstName} ${lastName}`.trim()
+      const matchedSlugCat = ug.categorySlug
+        ? categoryBySlug.get(ug.categorySlug.toLowerCase())
+        : undefined
+      const categoryName =
+        ug.goal?.category?.title ??
+        matchedSlugCat?.title ??
+        this.formatCategorySlug(ug.categorySlug)
+
+      return {
+        id: ug.id,
+        userId: ug.userId,
+        tenantName: fullName || email || `Tenant #${ug.userId}`,
+        tenantEmail: email,
+        goalTitle: (ug.goal?.title || ug.title || 'Custom Goal').trim(),
+        categoryName,
+        status: ug.status,
+        createdAt: ug.createdAt,
+      }
+    })
 
     return {
       totalCategories,
       totalGoals,
       totalActiveUserGoals,
+      activeUserGoals: totalActiveUserGoals,
+      uniqueTenantsWithGoals: uniqueUsersSet.size,
+      totalOfferings,
+      publishedOfferings,
+      totalVendors,
+      activeVendors,
+      totalOrders,
+      activeQuoteOrders,
       topGoals,
+      categoryBreakdown,
+      recentSelections,
     }
   }
 }

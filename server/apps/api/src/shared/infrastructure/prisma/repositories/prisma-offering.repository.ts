@@ -27,6 +27,15 @@ export class PrismaOfferingRepository implements OfferingRepository {
     if (filter?.vendorId) where.vendorId = filter.vendorId
     if (filter?.isFeatured !== undefined) where.isFeatured = filter.isFeatured
     if (filter?.isPromoted !== undefined) where.isPromoted = filter.isPromoted
+    if (filter?.excludePackageComponents) {
+      where.partOfPackages = {
+        none: {
+          package: {
+            type: 'PACKAGE',
+          },
+        },
+      }
+    }
 
     if (filter?.minPrice !== undefined || filter?.maxPrice !== undefined) {
       where.OR = [

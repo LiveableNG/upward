@@ -67,8 +67,26 @@ export const DeliveryLocationBar: React.FC<DeliveryLocationBarProps> = ({
       try {
         setIsLoadingZones(true)
         const dynamic = await fetchDeliveryZones()
-        if (isMounted) {
-          setZones(dynamic || [])
+        if (isMounted && dynamic && dynamic.length > 0) {
+          setZones(dynamic)
+          const matched = dynamic.find((z) => z.tag === location.zoneTag)
+          if (!matched) {
+            const first = dynamic[0]
+            if (first) {
+              const updated: UserDeliveryLocation = {
+                address: first.areasCovered?.split(',')?.[0]?.trim() || first.name,
+                label: first.name,
+                zoneTag: first.tag,
+                zoneName: first.name,
+                state: first.state,
+                isDelivering: first.isDelivering,
+                pauseReason: first.pauseReason,
+                deliveryFeeKobo: first.deliveryFeeKobo,
+              }
+              saveStoredDeliveryLocation(updated)
+              onLocationChange(updated)
+            }
+          }
         }
       } catch (err) {
         console.warn('Failed to load dynamic delivery zones', err)
@@ -80,7 +98,7 @@ export const DeliveryLocationBar: React.FC<DeliveryLocationBarProps> = ({
     return () => {
       isMounted = false
     }
-  }, [])
+  }, [location.zoneTag, onLocationChange])
 
   const rentalProperty = user?.properties?.[0]
   const rentalAddress = rentalProperty?.address

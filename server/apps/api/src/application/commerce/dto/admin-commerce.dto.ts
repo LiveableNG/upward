@@ -200,6 +200,11 @@ export interface AdminCommerceSubOrderDto {
   technicianName?: string | null
   technicianPhone?: string | null
   adminOperationalNotes?: string | null
+  quoteNotes?: string | null
+  quotedAt?: Date | null
+  serviceRating?: number | null
+  serviceReviewComment?: string | null
+  reviewedAt?: Date | null
   deliveredAt?: Date | null
   tenantConfirmedAt?: Date | null
   customerRating?: number | null
@@ -215,6 +220,13 @@ export interface AdminCommerceSubOrderDto {
   }
   items: AdminCommerceOrderItemDto[]
   fulfilmentEvents: AdminCommerceFulfilmentEventDto[]
+  messages?: Array<{
+    uuid: string
+    senderType: string
+    senderName?: string | null
+    message: string
+    createdAt: Date
+  }>
   payableRecord?: AdminCommerceVendorPayableDto | null
   createdAt?: Date
   updatedAt?: Date

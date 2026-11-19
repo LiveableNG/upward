@@ -77,6 +77,12 @@ export interface TenantVendorSubOrderDto {
   serviceWindowNotes?: string | null
   technicianName?: string | null
   technicianPhone?: string | null
+  adminOperationalNotes?: string | null
+  quoteNotes?: string | null
+  quotedAt?: Date | null
+  serviceRating?: number | null
+  serviceReviewComment?: string | null
+  reviewedAt?: Date | null
   deliveredAt?: Date | null
   tenantConfirmedAt?: Date | null
   coolingPeriodEndsAt?: Date | null
@@ -91,6 +97,13 @@ export interface TenantVendorSubOrderDto {
   }
   items: TenantOrderItemDto[]
   fulfilmentEvents: TenantFulfilmentEventDto[]
+  messages?: Array<{
+    uuid: string
+    senderType: string
+    senderName?: string | null
+    message: string
+    createdAt: Date
+  }>
 }
 
 export interface TenantOrderSummaryDto {
