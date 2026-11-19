@@ -868,8 +868,13 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
         throw new Error(`ORDER_NOT_FOUND: Order with ID ${params.orderId} does not exist`)
       }
 
-      // Idempotency: If order is already paid, return without duplicate mutations
-      if (order.status === 'CONFIRMED' && order.paymentStatus === 'PAID') {
+      // Idempotency: If order is already paid or has progressed past PENDING, return without duplicate mutations
+      if (
+        order.paymentStatus === 'PAID' ||
+        order.status === 'CONFIRMED' ||
+        order.status === 'PROCESSING' ||
+        order.status === 'COMPLETED'
+      ) {
         return
       }
 
