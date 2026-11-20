@@ -131,8 +131,11 @@ export const EarlyAccessTab: React.FC<EarlyAccessTabProps> = ({
         return
       }
 
-      const isWebinar = activeSessionFilter === 'WEBINAR_NOV_21' || activeSessionFilter.toLowerCase().includes('21st nov')
-      const customFilename = isWebinar
+      const isWebinarAttendance = activeSessionFilter.startsWith('WEBINAR_ATTENDED')
+      const isWebinar = activeSessionFilter === 'WEBINAR_NOV_21' || activeSessionFilter.toLowerCase().includes('21st nov') || isWebinarAttendance
+      const customFilename = isWebinarAttendance
+        ? `Upward_Academy_Webinar_Attendees_${activeSessionFilter}_${new Date().toISOString().split('T')[0]}.xls`
+        : isWebinar
         ? `Upward_Academy_Webinar_21Nov2026_${new Date().toISOString().split('T')[0]}.xls`
         : activeSessionFilter === 'WEBINAR_ALL'
         ? `Upward_Academy_Webinars_${new Date().toISOString().split('T')[0]}.xls`
@@ -371,7 +374,11 @@ export const EarlyAccessTab: React.FC<EarlyAccessTabProps> = ({
             >
               <option value="ALL">All Attendance Modes & Sessions</option>
               <optgroup label="Academic Webinars">
-                <option value="WEBINAR_NOV_21">Webinar · Saturday 21st Nov 2026</option>
+                <option value="WEBINAR_NOV_21">Webinar · All Registrations (21st Nov 2026)</option>
+                <option value="WEBINAR_ATTENDED">Webinar · Attended Live (All Channels)</option>
+                <option value="WEBINAR_ATTENDED_MEET">Webinar · Attended via Google Meet</option>
+                <option value="WEBINAR_ATTENDED_YOUTUBE">Webinar · Attended via YouTube Live</option>
+                <option value="WEBINAR_REGISTERED_ONLY">Webinar · Registered (Did Not Attend)</option>
                 <option value="WEBINAR_ALL">All Academic Webinars</option>
               </optgroup>
               <optgroup label="Weekly Online Live Sessions">

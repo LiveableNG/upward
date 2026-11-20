@@ -578,6 +578,171 @@ body {
 }
 
 /* ==========================================================================
+   CHECK-IN MODAL (ATTENDEE TRACKING)
+   ========================================================================== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(14, 16, 29, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 1000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-overlay.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-card {
+  position: relative;
+  background: var(--white);
+  border: 1px solid var(--sand);
+  border-radius: var(--radius-lg);
+  padding: 32px 28px;
+  max-width: 440px;
+  width: 100%;
+  box-shadow: 0 24px 60px rgba(21, 22, 43, 0.2);
+  transform: translateY(12px) scale(0.98);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-overlay.is-open .modal-card {
+  transform: translateY(0) scale(1);
+}
+
+.modal-close {
+  position: absolute;
+  top: 16px;
+  right: 18px;
+  background: none;
+  border: none;
+  font-size: 24px;
+  line-height: 1;
+  color: var(--ink-muted);
+  cursor: pointer;
+  padding: 4px;
+  transition: color 0.15s ease;
+}
+
+.modal-close:hover {
+  color: var(--ink);
+}
+
+.modal-header {
+  text-align: center;
+  margin-bottom: 22px;
+}
+
+.modal-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--paper-dim);
+  border: 1px solid var(--sand);
+  margin-bottom: 12px;
+}
+
+.modal-icon svg {
+  width: 26px;
+  height: 26px;
+}
+
+.modal-header h3 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+
+.modal-header p {
+  font-size: 13.5px;
+  color: var(--ink-soft);
+  line-height: 1.45;
+}
+
+.form-group {
+  margin-bottom: 14px;
+  text-align: left;
+}
+
+.form-group label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+
+.form-group input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--sand-strong);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 14px;
+  background: var(--paper);
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.form-group input:focus {
+  border-color: var(--rust);
+  box-shadow: 0 0 0 3px var(--rust-wash);
+}
+
+.form-error {
+  color: #DC2626;
+  font-size: 12px;
+  margin-top: 4px;
+  display: none;
+}
+
+.btn-checkin {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 20px;
+  border-radius: var(--radius-md);
+  background: var(--rust);
+  color: var(--white);
+  font-family: var(--font-display);
+  font-size: 14.5px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.btn-checkin:hover {
+  background: var(--rust-dark);
+}
+
+.btn-checkin:active {
+  transform: scale(0.98);
+}
+
+.btn-checkin:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+/* ==========================================================================
    TOAST
    ========================================================================== */
 .toast {

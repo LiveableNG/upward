@@ -9,7 +9,9 @@ export interface EarlyAccessStats {
 
 export interface IEarlyAccessRepository {
   save(entry: EarlyAccessEntry): Promise<EarlyAccessEntry>
+  update(entry: EarlyAccessEntry): Promise<EarlyAccessEntry>
   findById(id: string): Promise<EarlyAccessEntry | null>
+  findByEmailOrPhone(email?: string, phone?: string): Promise<EarlyAccessEntry | null>
   findAll(params?: { type?: string; search?: string; sourceIdentifier?: string; sessionDate?: string; limit?: number; offset?: number }): Promise<{ entries: EarlyAccessEntry[]; total: number }>
   getStats(): Promise<EarlyAccessStats>
   delete(id: string): Promise<boolean>
