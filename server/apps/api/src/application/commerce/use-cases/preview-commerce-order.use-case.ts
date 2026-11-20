@@ -1,8 +1,13 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common'
+import { Inject, Injectable, NotFoundException, Optional } from '@nestjs/common'
 import {
   OFFERING_REPOSITORY,
   OfferingRepository,
 } from '../../../domains/goals/offering.repository'
+import {
+  VOUCHER_REPOSITORY,
+  VoucherRepository,
+} from '../../../domains/vouchers/voucher.repository'
+import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import {
   CommercePricingEngine,
   PriceableItemInput,
@@ -46,10 +51,17 @@ export class PreviewCommerceOrderUseCase {
   constructor(
     @Inject(OFFERING_REPOSITORY)
     private readonly offeringRepo: OfferingRepository,
+    @Optional()
+    @Inject(VOUCHER_REPOSITORY)
+    private readonly voucherRepo?: VoucherRepository,
+    @Optional()
+    @Inject(USER_REPOSITORY)
+    private readonly userRepo?: UserRepository,
   ) {}
 
-  async execute(dto: PreviewCommerceOrderDto): Promise<PreviewCommerceOrderResponse> {
+  async execute(dto: PreviewCommerceOrderDto, userUuid?: string): Promise<PreviewCommerceOrderResponse> {
     const priceableItems: PriceableItemInput[] = []
+    let voucherEligibleSubtotalKobo = 0n
 
     for (const item of dto.items) {
       const offering = item.offeringUuid
@@ -62,6 +74,11 @@ export class PreviewCommerceOrderUseCase {
         throw new NotFoundException(
           `Offering '${item.offeringUuid || item.offeringId}' not found`,
         )
+      }
+
+      if (offering.voucherEligible && offering.price && offering.price > 0) {
+        voucherEligibleSubtotalKobo +=
+          BigInt(Math.round(offering.price * 100)) * BigInt(item.quantity || 1)
       }
 
       const priceableOffering: PriceableOffering = {
@@ -118,7 +135,20 @@ export class PreviewCommerceOrderUseCase {
       }
     }
 
-    const discountKobo = dto.discountKobo ? BigInt(dto.discountKobo) : 0n
+    // Compute authoritative server-side voucher discount (never trust client-supplied discountKobo)
+    let discountKobo = 0n
+    if (voucherEligibleSubtotalKobo > 0n && userUuid && this.voucherRepo && this.userRepo) {
+      const user = await this.userRepo.findByUuid(userUuid)
+      if (user?.id) {
+        const availableVoucherKobo = await this.voucherRepo.getAvailableBalanceKobo(user.id)
+        if (availableVoucherKobo > 0n) {
+          discountKobo =
+            availableVoucherKobo >= voucherEligibleSubtotalKobo
+              ? voucherEligibleSubtotalKobo
+              : availableVoucherKobo
+        }
+      }
+    }
 
     // Calculate using the shared deterministic pricing engine
     const pricing = CommercePricingEngine.calculateOrderPricing({

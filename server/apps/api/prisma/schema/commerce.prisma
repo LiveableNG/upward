@@ -113,6 +113,7 @@ model upward_commerce_order {
   subOrders             upward_commerce_vendor_suborder[]
   paymentAttempts       upward_commerce_payment_attempt[]
   auditLogs             upward_commerce_order_audit[]
+  voucherLedgerEntries  upward_voucher_ledger_entry[]
   
   createdAt             DateTime                @default(now())
   updatedAt             DateTime                @updatedAt

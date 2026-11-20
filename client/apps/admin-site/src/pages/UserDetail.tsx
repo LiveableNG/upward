@@ -30,6 +30,7 @@ import { showToast } from '@upward/client-core'
 import { useAuth } from '../contexts/AuthContext'
 import { DataTable } from '../components/common/table/DataTable'
 import type { ColumnDef } from '../components/common/table/DataTable'
+import { UserVouchersSection } from '../features/dashboard/components/UserVouchersSection'
 
 interface UserDetailProps {
   token: string
@@ -792,6 +793,16 @@ const UserDetail: React.FC<UserDetailProps> = ({ token }) => {
 
         {/* RIGHT COLUMN: Details list & Logs */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* Vouchers & Gaming Rewards */}
+          {user.type === 'TENANT' && user.uuid && (
+            <UserVouchersSection
+              userUuid={user.uuid}
+              userFirstName={user.firstName}
+              userEmail={user.email}
+              token={token}
+            />
+          )}
+
           {/* Admin Notes & Follow-up History */}
           <div className="card" style={{ padding: '24px' }}>
             <div

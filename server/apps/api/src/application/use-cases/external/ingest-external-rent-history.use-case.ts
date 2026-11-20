@@ -67,17 +67,25 @@ export class IngestExternalRentHistoryUseCase {
       const dueDate = this.rentalPeriodService.parseCalendarDate(record.dueDate) || periodStart || periodEnd || paymentDate;
       const isPaidOnTime = paymentDate.getTime() <= dueDate.getTime();
       const status = isPaidOnTime ? 'PAID_ON_TIME' : 'PAID_LATE';
+      const recordAmount = Number(record.amount ?? record.rentAmount ?? 0);
+
+      const noteParts: string[] = [];
+      if (record.notes) noteParts.push(record.notes);
+      if (record.receiptNumber) noteParts.push(`Receipt: ${record.receiptNumber}`);
+      if (record.externalId) noteParts.push(`Ext ID: ${record.externalId}`);
+      if (record.outstanding !== undefined && record.outstanding !== null) noteParts.push(`Outstanding: ${record.outstanding}`);
+      const notes = noteParts.length > 0 ? noteParts.join(' | ') : 'External Rent History Record';
 
       // 1. Create upward_platform_rent_payment record
       await this.prisma.upward_platform_rent_payment.create({
         data: {
           userPropertyId: property.id,
-          amount: record.amount,
-          rentAmountAtPayment: property.rentAmount || record.amount,
+          amount: recordAmount,
+          rentAmountAtPayment: record.rentAmount || property.rentAmount || recordAmount,
           paymentDate,
           method: record.method || 'EXTERNAL_IMPORT',
-          status: 'SUCCESS',
-          notes: record.notes || 'External Rent History Record',
+          status: record.status || 'SUCCESS',
+          notes,
           periodStart: periodStart ?? undefined,
           periodEnd: periodEnd ?? undefined,
         },
@@ -88,13 +96,13 @@ export class IngestExternalRentHistoryUseCase {
         userId: property.userId,
         userPropertyId: property.id,
         source: 'PAST_RECORD',
-        amountOwed: record.amount,
-        amountPaid: record.amount,
-        currency: property.currency || 'NGN',
+        amountOwed: recordAmount,
+        amountPaid: recordAmount,
+        currency: record.currency || property.currency || 'NGN',
         dueDate,
         paidAt: paymentDate,
         status,
-        description: record.notes || 'Rent Payment (External Record)',
+        description: notes,
       });
 
       ingestedCount++;

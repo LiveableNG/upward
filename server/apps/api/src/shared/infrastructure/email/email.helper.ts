@@ -987,3 +987,108 @@ export function buildRentDepositCreditedHtml(params: {
   });
 }
 
+function escapeVoucherHtml(input: string): string {
+  return String(input ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+export function buildSignupVoucherEmailHtml(params: {
+  firstName: string;
+  amountNaira: number;
+  totalBalanceNaira: number;
+  campaignName?: string;
+  appUrl: string;
+}): string {
+  const safeName = escapeVoucherHtml(params.firstName || 'there');
+  const formattedAmount = params.amountNaira.toLocaleString('en-NG');
+  const formattedTotal = params.totalBalanceNaira.toLocaleString('en-NG');
+  const safeCampaign = escapeVoucherHtml(params.campaignName || 'Home Refresh Welcome Voucher');
+
+  const content = `
+    <p>Hi ${safeName},</p>
+    <p>Welcome to <strong>Upward</strong>! Because you signed up through our special invite link, we’ve credited your account with a <strong>&#8358;${formattedAmount}</strong> voucher toward the <strong>New Year Home Refresh Package</strong>.</p>
+
+    <div style="background-color: #fdfbf7; border: 1px solid #ebd9cf; border-radius: 12px; padding: 20px; margin: 24px 0;">
+      <h3 style="margin-top: 0; margin-bottom: 12px; color: #c2501f; font-size: 15px; letter-spacing: -0.2px;">${safeCampaign}</h3>
+      <table border="0" cellpadding="0" cellspacing="0" width="100%" style="font-size: 14px;">
+        <tr>
+          <td style="padding: 6px 0; color: #6b7280;">Voucher Credited:</td>
+          <td align="right" style="padding: 6px 0; font-weight: 700; color: #16a34a;">+ &#8358;${formattedAmount}</td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 0; color: #6b7280;">Available Voucher Balance:</td>
+          <td align="right" style="padding: 6px 0; font-weight: 800; color: #111827; font-size: 15px;">&#8358;${formattedTotal}</td>
+        </tr>
+      </table>
+    </div>
+
+    <p style="color: #4b5563;">Your discount is applied automatically on the <strong>Home Refresh Package</strong> inside the Upward Pay app — no promo code needed. Download or open the app to see your personalized discounted price immediately!</p>
+  `;
+
+  return buildGlobalLayoutHtml({
+    role: 'TENANT',
+    title: `You’ve Unlocked a ₦${formattedAmount} Voucher!`,
+    contentHtml: content,
+    buttonText: 'Open Upward Pay',
+    buttonUrl: params.appUrl,
+  });
+}
+
+export function buildGamingRewardVoucherEmailHtml(params: {
+  firstName: string;
+  amountNaira: number;
+  totalBalanceNaira: number;
+  headline?: string;
+  customMessage?: string;
+  reason?: string;
+  appUrl: string;
+}): string {
+  const safeName = escapeVoucherHtml(params.firstName || 'Champion');
+  const formattedAmount = params.amountNaira.toLocaleString('en-NG');
+  const formattedTotal = params.totalBalanceNaira.toLocaleString('en-NG');
+  const safeHeadline = escapeVoucherHtml(params.headline || `Congratulations! You Won ₦${formattedAmount}`);
+  const safeReason = params.reason ? escapeVoucherHtml(params.reason) : '';
+  const safeCustomMessage = params.customMessage
+    ? escapeVoucherHtml(params.customMessage).replace(/\r?\n/g, '<br />')
+    : `Awesome job! You’ve just earned <strong>&#8358;${formattedAmount}</strong> in Upward voucher credit. It has been added to your accumulated balance and is ready to use on the Home Refresh Package.`;
+
+  const content = `
+    <p>Hi ${safeName},</p>
+    <p>${safeCustomMessage}</p>
+
+    <div style="background-color: #fdfbf7; border: 1px solid #ebd9cf; border-radius: 12px; padding: 20px; margin: 24px 0;">
+      <h3 style="margin-top: 0; margin-bottom: 12px; color: #c2501f; font-size: 15px; letter-spacing: -0.2px;">Reward Voucher Credited</h3>
+      <table border="0" cellpadding="0" cellspacing="0" width="100%" style="font-size: 14px;">
+        <tr>
+          <td style="padding: 6px 0; color: #6b7280;">Reward Earned:</td>
+          <td align="right" style="padding: 6px 0; font-weight: 700; color: #16a34a;">+ &#8358;${formattedAmount}</td>
+        </tr>
+        <tr>
+          <td style="padding: 6px 0; color: #6b7280;">Total Accumulated Voucher:</td>
+          <td align="right" style="padding: 6px 0; font-weight: 800; color: #111827; font-size: 15px;">&#8358;${formattedTotal}</td>
+        </tr>
+        ${safeReason ? `
+        <tr>
+          <td style="padding: 6px 0; color: #6b7280;">Awarded For:</td>
+          <td align="right" style="padding: 6px 0; color: #374151;">${safeReason}</td>
+        </tr>
+        ` : ''}
+      </table>
+    </div>
+
+    <p style="color: #4b5563;">Open Upward Pay to see your updated Home Refresh Package price — your full voucher balance is automatically deducted for you.</p>
+  `;
+
+  return buildGlobalLayoutHtml({
+    role: 'TENANT',
+    title: safeHeadline,
+    contentHtml: content,
+    buttonText: 'View Your Discounted Package',
+    buttonUrl: params.appUrl,
+  });
+}
+

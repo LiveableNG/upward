@@ -53,6 +53,7 @@ import { UserGoalsController } from './user/user-goals.controller'
 import { AdminGoalsController } from './admin/admin-goals.controller'
 import { TenantCommerceController } from './user/tenant-commerce.controller'
 import { AdminCommerceController } from './admin/admin-commerce.controller'
+import { AdminVoucherController } from './admin/admin-voucher.controller'
 import { TenantCommerceSubOrderController } from './user/tenant-commerce-suborder.controller'
 import { PmEmployeeAuthController } from './pm/pm-employee-auth.controller'
 import { PmProfileController } from './pm/pm-profile.controller'
@@ -242,6 +243,7 @@ import { NotificationsGateway } from '../websockets/notifications.gateway'
     AdminGoalsController,
     TenantCommerceController,
     AdminCommerceController,
+    AdminVoucherController,
     TenantCommerceSubOrderController,
   ],
 })

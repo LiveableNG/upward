@@ -341,6 +341,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/invite')
 
   const isPayOnlyRoute =
+    pathname.startsWith('/signup/voucher') ||
     pathname.startsWith('/dashboard/lifestyle') ||
     pathname.startsWith('/dashboard/goals') ||
     pathname.startsWith('/dashboard/pay-rent') ||
@@ -741,6 +742,7 @@ export const config = {
     '/_next/:path*',
     '/login',
     '/signup',
+    '/signup/:path*',
     '/forgot-password',
     '/reset-password',
     '/pm-login',

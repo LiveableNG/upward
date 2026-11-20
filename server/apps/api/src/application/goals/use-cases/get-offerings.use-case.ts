@@ -1,9 +1,15 @@
-import { Inject, Injectable } from '@nestjs/common'
+import { Inject, Injectable, Optional } from '@nestjs/common'
 import {
   OFFERING_REPOSITORY,
   Offering,
   OfferingRepository,
 } from '../../../domains/goals/offering.repository'
+import {
+  VOUCHER_REPOSITORY,
+  VoucherRepository,
+} from '../../../domains/vouchers/voucher.repository'
+import { applyVoucherPricingToOffering } from '../../../domains/vouchers/voucher-pricing.helper'
+import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import { OfferingQueryDto } from '../dto/offering.dto'
 
 @Injectable()
@@ -11,9 +17,18 @@ export class GetOfferingsUseCase {
   constructor(
     @Inject(OFFERING_REPOSITORY)
     private readonly offeringRepo: OfferingRepository,
+    @Optional()
+    @Inject(VOUCHER_REPOSITORY)
+    private readonly voucherRepo?: VoucherRepository,
+    @Optional()
+    @Inject(USER_REPOSITORY)
+    private readonly userRepo?: UserRepository,
   ) {}
 
-  async execute(query?: OfferingQueryDto): Promise<{ items: Offering[]; total: number }> {
+  async execute(
+    query?: OfferingQueryDto,
+    userUuid?: string,
+  ): Promise<{ items: Offering[]; total: number }> {
     const status = query?.status ?? 'PUBLISHED'
     const result = await this.offeringRepo.findOfferings({
       goalId: query?.goalId,
@@ -30,8 +45,22 @@ export class GetOfferingsUseCase {
       take: query?.take ?? 20,
     })
 
-    // Sanitize vendor details for customer-facing privacy
-    result.items.forEach((item) => {
+    // Resolve authenticated user's available voucher balance (if any)
+    let availableVoucherKobo = 0n
+    if (userUuid && this.voucherRepo && this.userRepo) {
+      try {
+        const user = await this.userRepo.findByUuid(userUuid)
+        if (user?.id) {
+          availableVoucherKobo = await this.voucherRepo.getAvailableBalanceKobo(user.id)
+        }
+      } catch {
+        // Non-blocking: fall back to base catalog pricing
+      }
+    }
+
+    // Sanitize vendor details & apply personalized voucher pricing to eligible offerings
+    result.items = result.items.map((rawItem) => {
+      const item = applyVoucherPricingToOffering(rawItem, availableVoucherKobo)
       if (item.vendor) {
         item.vendor = {
           id: item.vendor.id,
@@ -45,6 +74,7 @@ export class GetOfferingsUseCase {
           defaultDeliveryZones: item.vendor.defaultDeliveryZones,
         }
       }
+      return item
     })
 
     return result

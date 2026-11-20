@@ -1,4 +1,5 @@
 import { request } from '@/lib/api-client'
+import { getSignupVoucherCode, clearSignupVoucherCode } from '@/lib/voucher-code'
 import { type AuthResponse, type UserProfile } from '../types'
 
 export async function signup(data: {
@@ -12,6 +13,7 @@ export async function signup(data: {
   isFromWaitlist?: boolean
   isFromInvite?: boolean
   hearAboutUs?: string
+  voucherCode?: string
   properties?: Array<{
     uuid?: string
     address: string
@@ -23,10 +25,13 @@ export async function signup(data: {
     managerName?: string
   }>
 }) {
-  return request<AuthResponse>('/user/auth/signup', {
+  const voucherCode = data.voucherCode || getSignupVoucherCode() || undefined
+  const res = await request<AuthResponse>('/user/auth/signup', {
     method: 'POST',
-    body: JSON.stringify(data),
+    body: JSON.stringify({ ...data, ...(voucherCode ? { voucherCode } : {}) }),
   })
+  if (voucherCode) clearSignupVoucherCode()
+  return res
 }
 
 export async function socialSignIn(data: {
@@ -34,11 +39,15 @@ export async function socialSignIn(data: {
   idToken: string
   firstName?: string
   lastName?: string
+  voucherCode?: string
 }) {
-  return request<AuthResponse>('/user/auth/social', {
+  const voucherCode = data.voucherCode || getSignupVoucherCode() || undefined
+  const res = await request<AuthResponse>('/user/auth/social', {
     method: 'POST',
-    body: JSON.stringify(data),
+    body: JSON.stringify({ ...data, ...(voucherCode ? { voucherCode } : {}) }),
   })
+  if (voucherCode) clearSignupVoucherCode()
+  return res
 }
 
 export async function login(credentials: {
@@ -123,6 +132,7 @@ export async function completeProfile(data: {
   invitedByCompanyLogo?: string
   address?: string
   profilePic?: string
+  voucherCode?: string
   properties?: Array<{
     uuid?: string
     address: string
@@ -134,10 +144,13 @@ export async function completeProfile(data: {
     managerName?: string
   }>
 }) {
-  return request<AuthResponse>('/user/auth/complete-profile', {
+  const voucherCode = data.voucherCode || getSignupVoucherCode() || undefined
+  const res = await request<AuthResponse>('/user/auth/complete-profile', {
     method: 'POST',
-    body: JSON.stringify(data),
+    body: JSON.stringify({ ...data, ...(voucherCode ? { voucherCode } : {}) }),
   })
+  if (voucherCode) clearSignupVoucherCode()
+  return res
 }
 export async function forgotPassword(email: string) {
   return request<{ success: boolean; message: string }>('/user/auth/forgot-password', {
