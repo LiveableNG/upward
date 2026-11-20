@@ -204,6 +204,9 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     useState<ExpiryMonthYearRange | null>(null)
   const [pmFilter, setPmFilter] = useState<'all' | string>('all')
   const [rentValueFilter, setRentValueFilter] = useState<RentValueFilter>('all')
+  const [voucherFilter, setVoucherFilter] = useState<
+    'all' | 'signupVoucher' | 'hasBalance' | 'noVoucher'
+  >('all')
 
   // ── Preview Drawer State ───────────────────────────────────────
   const [drawerEntity, setDrawerEntity] = useState<DrawerEntity | null>(null)
@@ -486,6 +489,9 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         hasPaidOutsideNote: u.hasPaidOutsideNote || false,
         latestNote: u.latestNote || null,
         adminNotes: u.adminNotes || [],
+        hasSignupVoucher: Boolean(u.hasSignupVoucher),
+        voucherBalanceNaira: Number(u.voucherBalanceNaira || 0),
+        voucherEarnedNaira: Number(u.voucherEarnedNaira || 0),
         rawRecord: u,
       })
     })
@@ -523,6 +529,9 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         hasPaidOutsideNote: i.hasPaidOutsideNote || false,
         latestNote: i.latestNote || null,
         adminNotes: i.adminNotes || [],
+        hasSignupVoucher: Boolean(i.hasSignupVoucher),
+        voucherBalanceNaira: Number(i.voucherBalanceNaira || 0),
+        voucherEarnedNaira: Number(i.voucherEarnedNaira || 0),
         rawRecord: i,
       })
     })
@@ -951,6 +960,77 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     expiryCustomRange,
   ])
 
+  const voucherCounts = useMemo(() => {
+    const baseFiltered = usersFilteredByPm.filter((u) => {
+      if (originFilter === 'waitlist' && u.origin !== 'WAITLIST') return false
+      if (originFilter === 'selfRegistered' && u.origin !== 'SELF_REGISTERED') return false
+      if (
+        originFilter === 'invited' &&
+        u.origin !== 'INVITED_EMAIL' &&
+        u.origin !== 'INVITED_PHONE'
+      )
+        return false
+
+      if (contactFilter !== 'all') {
+        const emailStr = u.email || ''
+        const hasRealEmail = emailStr.length > 0 && !emailStr.endsWith('@upward.com')
+        const hasPhone = !!u.phone
+        if (contactFilter === 'emailOnly' && (!hasRealEmail || hasPhone)) return false
+        if (contactFilter === 'phoneOnly' && (hasRealEmail || !hasPhone)) return false
+        if (contactFilter === 'both' && (!hasRealEmail || !hasPhone)) return false
+        if (contactFilter === 'neither' && (hasRealEmail || hasPhone)) return false
+      }
+
+      const hasProp = !!(u.hasUserProperty || (u.properties && u.properties.length > 0))
+      if (propertyFilter === 'withProperty' && !hasProp) return false
+      if (propertyFilter === 'withoutProperty' && hasProp) return false
+
+      const hasStart = !!(u.rentStartDate || u.properties?.[0]?.rentStartDate)
+      const hasEnd = !!(u.rentExpiryDate || u.rentEndDate || u.properties?.[0]?.rentEndDate)
+      if (tenancyDateFilter === 'withBothDates' && (!hasStart || !hasEnd)) return false
+      if (tenancyDateFilter === 'withStartDate' && !hasStart) return false
+      if (tenancyDateFilter === 'withoutStartDate' && hasStart) return false
+      if (tenancyDateFilter === 'withExpiryDate' && !hasEnd) return false
+      if (tenancyDateFilter === 'withoutExpiryDate' && hasEnd) return false
+      if (tenancyDateFilter === 'noDates' && (hasStart || hasEnd)) return false
+
+      const expiryDate = getRentExpiryDate(u)
+      if (!checkExpiryMatch(expiryDate, expiryPreset, expiryCustomRange)) return false
+
+      if (rentValueFilter !== 'all') {
+        const rent = getUserRentAmount(u)
+        if (rentValueFilter === 'hasRent' && rent <= 0) return false
+        if (rentValueFilter === 'noRent' && rent > 0) return false
+        if (rentValueFilter === 'under1m' && (rent <= 0 || rent >= 1_000_000)) return false
+        if (rentValueFilter === '1mTo3m' && (rent < 1_000_000 || rent >= 3_000_000)) return false
+        if (rentValueFilter === '3mTo5m' && (rent < 3_000_000 || rent >= 5_000_000)) return false
+        if (rentValueFilter === 'above5m' && rent < 5_000_000) return false
+      }
+
+      return true
+    })
+
+    const counts = { all: baseFiltered.length, signupVoucher: 0, hasBalance: 0, noVoucher: 0 }
+    baseFiltered.forEach((u) => {
+      const hasSignup = Boolean(u.hasSignupVoucher)
+      const hasBal = Number(u.voucherBalanceNaira || 0) > 0
+      const hasAny = hasSignup || hasBal || Number(u.voucherEarnedNaira || 0) > 0
+      if (hasSignup) counts.signupVoucher++
+      if (hasBal) counts.hasBalance++
+      if (!hasAny) counts.noVoucher++
+    })
+    return counts
+  }, [
+    usersFilteredByPm,
+    originFilter,
+    contactFilter,
+    propertyFilter,
+    tenancyDateFilter,
+    expiryPreset,
+    expiryCustomRange,
+    rentValueFilter,
+  ])
+
   const filteredUsers = useMemo(() => {
     return usersFilteredByPm.filter((u) => {
       // 1. Origin Filter
@@ -1006,6 +1086,16 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
         if (rentValueFilter === 'above5m' && rent < 5_000_000) return false
       }
 
+      // 7. Voucher Filter
+      if (voucherFilter !== 'all') {
+        const hasSignup = Boolean(u.hasSignupVoucher)
+        const hasBal = Number(u.voucherBalanceNaira || 0) > 0
+        const hasAny = hasSignup || hasBal || Number(u.voucherEarnedNaira || 0) > 0
+        if (voucherFilter === 'signupVoucher' && !hasSignup) return false
+        if (voucherFilter === 'hasBalance' && !hasBal) return false
+        if (voucherFilter === 'noVoucher' && hasAny) return false
+      }
+
       return true
     })
   }, [
@@ -1017,6 +1107,7 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
     expiryPreset,
     expiryCustomRange,
     rentValueFilter,
+    voucherFilter,
   ])
 
   const filteredRentSummary = useMemo(() => {
@@ -1473,6 +1564,56 @@ const Dashboard: React.FC<DashboardProps> = ({ token, adminRole }) => {
                   Invited ({originCounts.invited})
                 </button>
               </div>
+
+              {/* Voucher Attribution & Balance Filter */}
+              {usersSubtab === 'signedUp' && (
+                <div
+                  style={{
+                    display: 'flex',
+                    gap: '6px',
+                    flexWrap: 'wrap',
+                    borderTop: '1px solid var(--border)',
+                    paddingTop: '12px',
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: '13px',
+                      color: 'var(--text-muted)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      paddingRight: '8px',
+                      fontWeight: 600,
+                    }}
+                  >
+                    Voucher:
+                  </span>
+                  <button
+                    onClick={() => setVoucherFilter('all')}
+                    className={`date-chip ${voucherFilter === 'all' ? 'active' : ''}`}
+                  >
+                    All ({voucherCounts.all})
+                  </button>
+                  <button
+                    onClick={() => setVoucherFilter('signupVoucher')}
+                    className={`date-chip ${voucherFilter === 'signupVoucher' ? 'active' : ''}`}
+                  >
+                    Signup Link Voucher ({voucherCounts.signupVoucher})
+                  </button>
+                  <button
+                    onClick={() => setVoucherFilter('hasBalance')}
+                    className={`date-chip ${voucherFilter === 'hasBalance' ? 'active' : ''}`}
+                  >
+                    Has Voucher Balance ({voucherCounts.hasBalance})
+                  </button>
+                  <button
+                    onClick={() => setVoucherFilter('noVoucher')}
+                    className={`date-chip ${voucherFilter === 'noVoucher' ? 'active' : ''}`}
+                  >
+                    No Voucher ({voucherCounts.noVoucher})
+                  </button>
+                </div>
+              )}
 
               {/* Contact Filters with Counts */}
               {(usersSubtab === 'guest' || usersSubtab === 'signedUp') && (
