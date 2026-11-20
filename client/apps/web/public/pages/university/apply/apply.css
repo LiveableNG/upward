@@ -328,7 +328,7 @@
     }
 
     .apply-container {
-      max-width: 860px;
+      max-width: 1120px;
       margin: 0 auto;
     }
 
@@ -818,6 +818,8 @@
 
     /* FORM STYLES */
     .apply-form-box {
+      max-width: 860px;
+      margin: 0 auto;
       background: var(--white);
       border: 1px solid var(--sand);
       border-radius: var(--radius-lg);
@@ -941,6 +943,70 @@
       font-weight: 600;
       margin-top: 5px;
       animation: fadeIn .2s ease-in;
+    }
+
+    .field-hint {
+      font-size: 12px;
+      color: var(--ink-soft);
+      margin-top: 5px;
+      display: block;
+      line-height: 1.4;
+    }
+
+    .field-verified-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 6px;
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #15803D;
+      background: #F0FDF4;
+      border: 1px solid #BBF7D0;
+      padding: 3px 8px;
+      border-radius: 5px;
+    }
+
+    /* Progressive Form Gateway & Field Locking */
+    .form-fields-gateway {
+      transition: all 0.25s ease;
+    }
+
+    .form-fields-gateway.is-locked {
+      opacity: 0.45;
+      pointer-events: none;
+      filter: grayscale(0.5);
+      user-select: none;
+    }
+
+    .form-fields-gateway.is-verified-locked input,
+    .form-fields-gateway.is-verified-locked select {
+      background: var(--paper-dim, #F7F5F0) !important;
+      border-color: var(--sand) !important;
+      color: var(--ink) !important;
+      cursor: default;
+    }
+
+    .email-status-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 5px;
+      transition: all 0.2s ease;
+    }
+
+    .email-status-indicator.loading {
+      color: var(--rust);
+    }
+
+    .email-status-indicator.verified {
+      color: #15803D;
+    }
+
+    .email-status-indicator.new {
+      color: var(--ink-soft);
     }
 
     .field.has-error .error-text {
@@ -1133,25 +1199,26 @@
 
     .track-offer-title {
       font-size: 13.5px;
-      font-weight: 800;
+      font-weight: 700;
       color: var(--ink);
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 7px;
     }
 
     .track-offer-title i {
-      color: #8A4A2A;
+      color: var(--rust);
     }
 
     .track-offer-deadline {
-      font: 800 10.5px var(--mono, monospace);
-      color: #9a3412;
-      background: #fff7ed;
-      border: 1px solid #fed7aa;
-      padding: 3px 9px;
+      font: 700 11px var(--mono);
+      color: var(--rust);
+      background: var(--rust-wash);
+      border: 1px solid rgba(138, 74, 42, 0.2);
+      padding: 3px 8px;
       border-radius: 999px;
       text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
 
     .track-offer-grid {
@@ -1167,10 +1234,10 @@
     }
 
     .track-offer-card {
-      background: rgba(255, 255, 255, 0.9);
+      background: #FFFFFF;
       border: 1.5px solid var(--sand);
       border-radius: 12px;
-      padding: 15px;
+      padding: 16px;
       cursor: pointer;
       display: flex;
       flex-direction: column;
@@ -1180,15 +1247,15 @@
     }
 
     .track-offer-card:hover {
-      border-color: #8A4A2A;
-      background: #FFFFFF;
+      border-color: var(--rust);
       transform: translateY(-1px);
+      box-shadow: 0 4px 12px -2px rgba(138, 74, 42, 0.08);
     }
 
     .track-offer-card.selected {
-      border-color: #8A4A2A;
+      border-color: var(--rust);
       background: #FFFFFF;
-      box-shadow: 0 4px 16px -2px rgba(138, 74, 42, 0.2), 0 0 0 2px #8A4A2A;
+      box-shadow: 0 4px 16px -2px rgba(138, 74, 42, 0.16), 0 0 0 1.5px var(--rust);
     }
 
     .track-offer-card input[type="radio"] {
@@ -1200,17 +1267,24 @@
       align-items: center;
       justify-content: space-between;
       gap: 6px;
+      margin-bottom: 2px;
     }
 
     .track-offer-badge {
-      font: 800 10.5px var(--mono, monospace);
+      font: 700 10.5px var(--mono);
       text-transform: uppercase;
-      color: #15803D;
-      background: #DCFCE7;
-      border: 1px solid #86EFAC;
-      padding: 3px 8px;
-      border-radius: 5px;
+      color: var(--rust);
+      background: var(--rust-wash);
+      border: 1px solid rgba(138, 74, 42, 0.2);
+      padding: 2px 7px;
+      border-radius: 4px;
       letter-spacing: 0.03em;
+    }
+
+    .track-offer-badge.subtle {
+      color: var(--ink-soft);
+      background: var(--paper-dim, #F7F5F0);
+      border-color: var(--sand);
     }
 
     .track-offer-check {
@@ -1220,22 +1294,22 @@
     }
 
     .track-offer-card.selected .track-offer-check {
-      color: #8A4A2A;
+      color: var(--rust);
     }
 
     .track-offer-name {
       font-size: 14px;
-      font-weight: 800;
+      font-weight: 700;
       color: var(--ink);
-      margin-top: 4px;
     }
 
     .track-offer-price {
       font-family: 'Inter Tight', sans-serif;
-      font-size: 20px;
+      font-size: 22px;
       font-weight: 800;
-      color: var(--rust);
+      color: var(--ink);
       line-height: 1.2;
+      margin: 2px 0;
     }
 
     .track-offer-price .old {
@@ -1251,6 +1325,341 @@
       color: var(--ink-soft);
       line-height: 1.45;
       margin-top: 2px;
+    }
+
+    .track-offer-plan-breakdown {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px dashed var(--sand);
+      font-size: 11.5px;
+      line-height: 1.4;
+      color: var(--ink-soft);
+    }
+
+    .track-offer-plan-breakdown strong {
+      color: var(--ink);
+      font-weight: 700;
+    }
+
+    .track-offer-credit-tag {
+      display: inline-block;
+      margin-top: 4px;
+      font: 700 10px var(--mono);
+      color: var(--rust);
+      background: var(--rust-wash);
+      border: 1px solid rgba(138, 74, 42, 0.2);
+      padding: 1px 6px;
+      border-radius: 4px;
+      letter-spacing: 0.02em;
+    }
+
+    /* Tuition & Payment Schedule Table (on Apply Page) */
+    .tracks-payment-summary-wrap {
+      margin-top: 24px;
+      margin-bottom: 28px;
+      background: var(--white);
+      border: 1.5px solid var(--sand);
+      border-radius: var(--radius-lg, 16px);
+      padding: 26px 24px;
+      text-align: left;
+      box-shadow: 0 4px 24px -10px rgba(21, 22, 43, 0.08);
+    }
+
+    .tracks-payment-summary-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--sand);
+      padding-bottom: 14px;
+    }
+
+    .tracks-payment-summary-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      letter-spacing: -0.01em;
+    }
+
+    .tracks-payment-summary-sub {
+      font-size: 12.5px;
+      color: var(--ink-soft);
+      font-weight: 500;
+    }
+
+    .btn-jump-to-form {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--rust);
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 16px;
+      border: 1.5px solid rgba(138, 74, 42, 0.25);
+      border-radius: 999px;
+      background: var(--rust-wash);
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .btn-jump-to-form:hover {
+      background: rgba(138, 74, 42, 0.14);
+      border-color: var(--rust);
+      transform: translateY(-1px);
+    }
+
+    .payment-matrix-table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .payment-matrix-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 13px;
+    }
+
+    .payment-matrix-table th {
+      text-align: left;
+      font: 700 11px var(--mono);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--ink-muted);
+      padding: 10px 14px;
+      border-bottom: 1.5px solid var(--sand);
+      background: var(--paper-dim, #F7F5F0);
+      vertical-align: top;
+      white-space: nowrap;
+    }
+
+    .payment-matrix-table th:first-child {
+      border-top-left-radius: 8px;
+      border-bottom-left-radius: 8px;
+    }
+
+    .payment-matrix-table th:last-child {
+      border-top-right-radius: 8px;
+      border-bottom-right-radius: 8px;
+      text-align: right;
+    }
+
+    .payment-matrix-table td {
+      padding: 16px 14px;
+      border-bottom: 1px solid var(--sand);
+      vertical-align: middle;
+      color: var(--ink);
+    }
+
+    .payment-matrix-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .payment-matrix-table tr.highlight-row {
+      background: var(--rust-wash);
+    }
+
+    .payment-matrix-table tr.highlight-row td:first-child {
+      border-top-left-radius: 8px;
+      border-bottom-left-radius: 8px;
+    }
+
+    .payment-matrix-table tr.highlight-row td:last-child {
+      border-top-right-radius: 8px;
+      border-bottom-right-radius: 8px;
+    }
+
+    .table-track-name {
+      font-weight: 800;
+      font-size: 14px;
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .table-track-sub {
+      font-size: 11.5px;
+      color: var(--ink-soft);
+      margin-top: 2px;
+    }
+
+    .table-recommended-tag {
+      font: 700 9.5px var(--mono);
+      text-transform: uppercase;
+      color: var(--rust);
+      background: var(--white);
+      border: 1px solid var(--rust);
+      padding: 1px 6px;
+      border-radius: 4px;
+      letter-spacing: 0.04em;
+    }
+
+    .table-price-highlight {
+      font-family: 'Inter Tight', sans-serif;
+      font-size: 16.5px;
+      font-weight: 800;
+      color: var(--rust);
+    }
+
+    .table-price-meta {
+      font-size: 11px;
+      color: var(--ink-soft);
+      margin-top: 2px;
+    }
+
+    .table-plan-title {
+      font-weight: 700;
+      color: var(--ink);
+      font-size: 13px;
+    }
+
+    .table-plan-sub {
+      font-size: 11px;
+      color: var(--ink-soft);
+      margin-top: 2px;
+      line-height: 1.35;
+    }
+
+    .table-plan-sub strong {
+      color: var(--rust);
+    }
+
+    .table-standard-price {
+      font-size: 13px;
+      color: var(--ink);
+      font-weight: 700;
+    }
+
+    .table-action-cell {
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .table-apply-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 18px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--rust);
+      background: var(--white);
+      border: 1.5px solid rgba(138, 74, 42, 0.35);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    .table-apply-btn:hover {
+      background: var(--rust);
+      color: var(--white);
+      border-color: var(--rust);
+      transform: translateY(-1px);
+    }
+
+    .table-apply-btn.primary {
+      background: var(--rust);
+      color: var(--white);
+      border-color: var(--rust);
+    }
+
+    .table-apply-btn.primary:hover {
+      background: #723B20;
+      border-color: #723B20;
+    }
+
+    /* Mobile Adaptive Card View */
+    @media (max-width: 820px) {
+      .tracks-payment-summary-wrap {
+        padding: 20px 16px;
+      }
+
+      .payment-matrix-table-wrap {
+        overflow-x: visible;
+      }
+
+      .payment-matrix-table,
+      .payment-matrix-table thead,
+      .payment-matrix-table tbody,
+      .payment-matrix-table tr,
+      .payment-matrix-table th,
+      .payment-matrix-table td {
+        display: block;
+        width: 100%;
+      }
+
+      .payment-matrix-table thead {
+        display: none;
+      }
+
+      .payment-matrix-table tr {
+        background: #FFFFFF;
+        border: 1.5px solid var(--sand);
+        border-radius: 14px;
+        padding: 18px;
+        margin-bottom: 16px;
+        box-shadow: 0 4px 16px -4px rgba(21, 22, 43, 0.06);
+      }
+
+      .payment-matrix-table tr.highlight-row {
+        background: #FFFDF9;
+        border: 2px solid var(--rust);
+        box-shadow: 0 6px 20px -4px rgba(138, 74, 42, 0.12);
+      }
+
+      .payment-matrix-table td {
+        padding: 10px 0;
+        border-bottom: 1px dashed var(--sand);
+        text-align: left;
+      }
+
+      .payment-matrix-table td:first-child {
+        padding-top: 0;
+        padding-bottom: 12px;
+        border-bottom: 1.5px solid var(--sand);
+      }
+
+      .payment-matrix-table td:before {
+        content: attr(data-label);
+        font: 700 10.5px var(--mono);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--ink-muted);
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .payment-matrix-table td:first-child:before,
+      .payment-matrix-table td.table-action-cell:before {
+        display: none;
+      }
+
+      .payment-matrix-table td.table-action-cell {
+        border-bottom: none;
+        padding-bottom: 0;
+        padding-top: 14px;
+        text-align: center;
+      }
+
+      .payment-matrix-table .table-apply-btn {
+        width: 100%;
+        padding: 13px 18px;
+        font-size: 14px;
+      }
     }
 
     .post-pay-video-note {

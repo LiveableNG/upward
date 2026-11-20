@@ -1071,6 +1071,7 @@
       box-shadow: 0 4px 20px -8px rgba(21, 22, 43, 0.06);
       display: flex;
       flex-direction: column;
+      height: 100%;
       position: relative;
       color: inherit;
       transition: border-color 0.22s ease, transform 0.22s ease, box-shadow 0.22s ease;
@@ -1117,11 +1118,11 @@
     .track-badge-save {
       font: 700 11px var(--mono);
       text-transform: uppercase;
-      letter-spacing: 0.06em;
-      color: #166534;
-      background: #f0fdf4;
-      border: 1px solid #bbf7d0;
-      padding: 4px 10px;
+      letter-spacing: 0.05em;
+      color: var(--rust);
+      background: var(--rust-wash);
+      border: 1px solid rgba(138, 74, 42, 0.25);
+      padding: 3px 9px;
       border-radius: 999px;
     }
 
@@ -1156,13 +1157,18 @@
       text-decoration: line-through;
     }
 
-    .track-save-note {
-      font: 600 11.5px var(--mono);
-      color: #166534;
-      background: #f0fdf4;
-      border: 1px solid #bbf7d0;
-      padding: 2px 8px;
-      border-radius: 6px;
+    .track-pricing-sub {
+      font-size: 13px;
+      color: var(--ink-soft);
+      margin-top: 6px;
+      margin-bottom: 14px;
+      padding-bottom: 12px;
+      border-bottom: 1px dashed var(--sand);
+      line-height: 1.45;
+    }
+
+    .track-pricing-sub strong {
+      color: var(--ink);
     }
 
     .track-audience {
@@ -1301,6 +1307,198 @@
     .track-btn-secondary:hover {
       background: rgba(138, 74, 42, 0.14);
       border-color: var(--rust);
+    }
+
+    .tracks-payment-summary-wrap {
+      margin-top: 48px;
+      background: var(--white);
+      border: 1.5px solid var(--sand);
+      border-radius: var(--radius-lg);
+      padding: 28px 30px;
+      text-align: left;
+      box-shadow: 0 4px 24px -10px rgba(21, 22, 43, 0.08);
+    }
+
+    .tracks-payment-summary-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 22px;
+      border-bottom: 1px solid var(--sand);
+      padding-bottom: 16px;
+    }
+
+    .tracks-payment-summary-title {
+      font-size: 19px;
+      font-weight: 800;
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      letter-spacing: -0.01em;
+    }
+
+    .tracks-payment-summary-sub {
+      font-size: 13px;
+      color: var(--ink-soft);
+      font-weight: 500;
+    }
+
+    .payment-matrix-table-wrap {
+      width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .payment-matrix-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      font-size: 13.5px;
+    }
+
+    .payment-matrix-table th {
+      text-align: left;
+      font: 700 11px var(--mono);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink-muted);
+      padding: 11px 14px;
+      border-bottom: 1.5px solid var(--sand);
+      background: var(--paper-dim, #F7F5F0);
+      white-space: nowrap;
+    }
+
+    .payment-matrix-table th:first-child {
+      border-top-left-radius: 8px;
+      border-bottom-left-radius: 8px;
+    }
+
+    .payment-matrix-table th:last-child {
+      border-top-right-radius: 8px;
+      border-bottom-right-radius: 8px;
+      text-align: right;
+    }
+
+    .payment-matrix-table td {
+      padding: 16px 14px;
+      border-bottom: 1px solid var(--sand);
+      vertical-align: middle;
+      color: var(--ink);
+    }
+
+    .payment-matrix-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .payment-matrix-table tr.highlight-row {
+      background: var(--rust-wash);
+    }
+
+    .payment-matrix-table tr.highlight-row td:first-child {
+      border-top-left-radius: 8px;
+      border-bottom-left-radius: 8px;
+    }
+
+    .payment-matrix-table tr.highlight-row td:last-child {
+      border-top-right-radius: 8px;
+      border-bottom-right-radius: 8px;
+    }
+
+    .table-track-name {
+      font-weight: 800;
+      font-size: 14.5px;
+      color: var(--ink);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .table-track-sub {
+      font-size: 12px;
+      color: var(--ink-soft);
+      margin-top: 2px;
+    }
+
+    .table-recommended-tag {
+      font: 700 9.5px var(--mono);
+      text-transform: uppercase;
+      color: var(--rust);
+      background: var(--white);
+      border: 1px solid var(--rust);
+      padding: 1px 6px;
+      border-radius: 4px;
+      letter-spacing: 0.04em;
+    }
+
+    .table-price-highlight {
+      font-family: 'Inter Tight', sans-serif;
+      font-size: 17px;
+      font-weight: 800;
+      color: var(--rust);
+    }
+
+    .table-price-meta {
+      font-size: 11.5px;
+      color: var(--ink-soft);
+      margin-top: 2px;
+    }
+
+    .table-plan-title {
+      font-weight: 700;
+      color: var(--ink);
+      font-size: 13.5px;
+    }
+
+    .table-plan-sub {
+      font-size: 11.5px;
+      color: var(--ink-soft);
+      margin-top: 2px;
+      line-height: 1.35;
+    }
+
+    .table-standard-price {
+      font-size: 13.5px;
+      color: var(--ink-muted);
+      font-weight: 600;
+    }
+
+    .table-action-cell {
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .table-apply-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border-radius: 999px;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--rust);
+      background: var(--white);
+      border: 1px solid rgba(138, 74, 42, 0.3);
+      text-decoration: none;
+      transition: all 0.18s ease;
+    }
+
+    .table-apply-btn:hover {
+      background: var(--rust);
+      color: var(--white);
+      border-color: var(--rust);
+    }
+
+    .table-apply-btn.primary {
+      background: var(--rust);
+      color: var(--white);
+      border-color: var(--rust);
+    }
+
+    .table-apply-btn.primary:hover {
+      background: #723B20;
     }
 
     @media (max-width: 520px) {
@@ -2110,11 +2308,17 @@
         <article class="track-card">
           <div class="track-header-row">
             <span class="track-tag">Track A · Foundation</span>
+            <span class="track-badge-save">Save ₦10,000</span>
           </div>
           <h3>Discover Your Path</h3>
           <div class="track-price-row">
-            <span class="track-price-current">₦60,000</span>
+            <span class="track-price-current">₦50,000</span>
+            <span class="track-price-old">₦60,000</span>
           </div>
+          <div class="track-pricing-sub">
+            <strong>48-Hour Full Price</strong> · Or ₦30,000 down payment by Nov 28
+          </div>
+
           <p class="track-audience">For beginners, recent graduates and anyone exploring new career opportunities.</p>
           <div class="track-narrative">
             <p class="track-hook">Your career journey can start with one skill.</p>
@@ -2141,11 +2345,17 @@
         <article class="track-card">
           <div class="track-header-row">
             <span class="track-tag">Track B · Career Development</span>
+            <span class="track-badge-save">Save ₦20,000</span>
           </div>
           <h3>Build Your Career</h3>
           <div class="track-price-row">
             <span class="track-price-current">₦100,000</span>
+            <span class="track-price-old">₦120,000</span>
           </div>
+          <div class="track-pricing-sub">
+            <strong>48-Hour Full Price</strong> · Or ₦50,000 deposit locks in ₦110,000
+          </div>
+
           <p class="track-audience">For graduates and career starters who want professional guidance and a pathway to practical experience.</p>
           <div class="track-narrative">
             <p class="track-hook">Don't just learn a skill. Learn how to use it.</p>
@@ -2173,14 +2383,17 @@
         <article class="track-card">
           <div class="track-header-row">
             <span class="track-tag">Track C · Practical &amp; Networking</span>
-            <span class="track-badge-save">20% off</span>
+            <span class="track-badge-save">Save ₦65,000</span>
           </div>
           <h3>Learn It. Experience It. Connect.</h3>
           <div class="track-price-row">
-            <span class="track-price-current">₦160,000</span>
+            <span class="track-price-current">₦135,000</span>
             <span class="track-price-old">₦200,000</span>
-            <span class="track-save-note">Save ₦40,000 · 20% off</span>
           </div>
+          <div class="track-pricing-sub">
+            <strong>48-Hour Full Price</strong> · Or ₦70,000 deposit locks in ₦150,000
+          </div>
+
           <p class="track-audience">For people who want direct exposure to professional property management operations and high-value industry networking.</p>
           <div class="track-narrative">
             <p class="track-hook">Move beyond the classroom and see how the work is actually done.</p>
@@ -2205,6 +2418,103 @@
             <a href="/academy/webinar?track=track-c" class="track-btn-secondary">Join Webinar</a>
           </div>
         </article>
+      </div>
+
+      <!-- WEBINAR PAYMENT OFFERS & INSTALLMENTS SCHEDULE -->
+      <div class="tracks-payment-summary-wrap" id="tuition-schedule">
+        <div class="tracks-payment-summary-head">
+          <div class="tracks-payment-summary-title">
+            <i class="fa-solid fa-credit-card" style="color: var(--rust);"></i>
+            <span>Tuition &amp; Flexible Payment Plans</span>
+          </div>
+          <span class="tracks-payment-summary-sub">
+            Kickoff Dec 5, 2026 · Outstanding installment balances completed by Dec 24, 2026
+          </span>
+        </div>
+
+        <div class="payment-matrix-table-wrap">
+          <table class="payment-matrix-table">
+            <thead>
+              <tr>
+                <th>Track &amp; Focus</th>
+                <th>48-Hour Full Payment<br><small style="font-weight:400; text-transform:none; color:var(--ink-soft);">Paid by Tuesday, Nov 24</small></th>
+                <th>48-Hour Deposit Plan<br><small style="font-weight:400; text-transform:none; color:var(--ink-soft);">Locks in discount rate</small></th>
+                <th>After Tuesday, Nov 24<br><small style="font-weight:400; text-transform:none; color:var(--ink-soft);">Standard rate applies</small></th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <div class="table-track-name">Track A · Foundation</div>
+                  <div class="table-track-sub">Discover Your Path · Beginner &amp; Exploration</div>
+                </td>
+                <td>
+                  <div class="table-price-highlight">₦50,000</div>
+                  <div class="table-price-meta">Save ₦10,000 off ₦60,000</div>
+                </td>
+                <td>
+                  <div class="table-plan-title">₦30,000 down by Nov 28</div>
+                  <div class="table-plan-sub">Total ₦60,000 · Remaining ₦30,000 due Dec 24</div>
+                </td>
+                <td>
+                  <div class="table-standard-price">₦60,000 total</div>
+                  <div class="table-plan-sub">Standard tuition rate</div>
+                </td>
+                <td class="table-action-cell">
+                  <a href="/academy/apply?track=track-a" class="table-apply-btn">Apply Now →</a>
+                </td>
+              </tr>
+
+              <tr>
+                <td>
+                  <div class="table-track-name">Track B · Career Development</div>
+                  <div class="table-track-sub">Build Your Career · Mentorship &amp; Internships</div>
+                </td>
+                <td>
+                  <div class="table-price-highlight">₦100,000</div>
+                  <div class="table-price-meta">Save ₦20,000 off ₦120,000</div>
+                </td>
+                <td>
+                  <div class="table-plan-title">₦50,000 deposit by Nov 24</div>
+                  <div class="table-plan-sub"><strong style="color:var(--rust);">Guarantees ₦110,000 offer</strong> · ₦60,000 balance due Dec 24</div>
+                </td>
+                <td>
+                  <div class="table-standard-price">₦120,000 total</div>
+                  <div class="table-plan-sub">Pay in full or ₦50k dep + ₦70k balance</div>
+                </td>
+                <td class="table-action-cell">
+                  <a href="/academy/apply?track=track-b" class="table-apply-btn">Apply Now →</a>
+                </td>
+              </tr>
+
+              <tr class="highlight-row">
+                <td>
+                  <div class="table-track-name">
+                    Track C · Practical Experience
+                    <span class="table-recommended-tag">Featured</span>
+                  </div>
+                  <div class="table-track-sub">Immersion, Practical Ops &amp; Executive Mentors</div>
+                </td>
+                <td>
+                  <div class="table-price-highlight">₦135,000</div>
+                  <div class="table-price-meta">Save ₦65,000 off standard ₦200,000</div>
+                </td>
+                <td>
+                  <div class="table-plan-title">₦70,000 deposit by Nov 24</div>
+                  <div class="table-plan-sub"><strong style="color:var(--rust);">Guarantees ₦150,000 offer</strong> · ₦80,000 balance due Dec 24</div>
+                </td>
+                <td>
+                  <div class="table-standard-price">₦160,000 total</div>
+                  <div class="table-plan-sub">Pay in full or ₦70k dep + ₦90k balance</div>
+                </td>
+                <td class="table-action-cell">
+                  <a href="/academy/apply?track=track-c" class="table-apply-btn primary">Apply Now →</a>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div class="tracks-footer-cta">
@@ -2259,8 +2569,8 @@
       <h2>What success looks like.</h2>
       <div class="milestone-row">
         <div class="milestone">
-          <div class="num">4 Tracks</div>
-          <div class="lbl">Flexible entry from Foundation (₦60,000) to Premium Networking (₦200,000)</div>
+          <div class="num">3 Tracks</div>
+          <div class="lbl">Flexible entry from Foundation (₦50,000) to Premium Networking (₦200,000)</div>
         </div>
         <div class="milestone">
           <div class="num">Hands-On</div>

@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common'
+import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
 import {
   UNIVERSITY_APPLICATION_REPOSITORY,
   IUniversityApplicationRepository,
@@ -70,10 +70,34 @@ export class SubmitUniversityApplicationUseCase {
         isAlreadyPaid = true
       }
 
+      const notes = existingProps.notes || ''
+      const isDeposit =
+        notes.toLowerCase().includes('deposit') ||
+        notes.toLowerCase().includes('down payment') ||
+        notes.includes('Lock-In') ||
+        notes.includes('25,000') ||
+        notes.includes('30,000') ||
+        notes.includes('50,000') ||
+        notes.includes('70,000')
+      const isFullyCleared = notes.includes('FULLY CLEARED')
+
+      // Disallow track switching for active deposit holders on new tracks
+      // Note: Applicants on legacy Track 1 or Track 2 have not chosen among the 3 new tracks yet and can freely choose.
+      const isLegacyTrack = existingProps.track && (existingProps.track.includes('Track 1') || existingProps.track.includes('Track 2'))
+      let resolvedTrack = command.track ?? existingProps.track
+      if (isDeposit && !isFullyCleared && existingProps.track && !isLegacyTrack) {
+        if (command.track && command.track !== existingProps.track) {
+          throw new BadRequestException(
+            `Track switching is not permitted for active deposit holders. Your active deposit is for ${existingProps.track}. Please complete your tuition balance for this track.`,
+          )
+        }
+        resolvedTrack = existingProps.track
+      }
+
       const newFeeStatus = isAlreadyPaid ? 'PAID' : ((command.feeStatus as any) || existingProps.feeStatus || 'PENDING')
       const newPaymentRef = command.paymentRef || existingProps.paymentRef || null
 
-      const trackNote = command.track ? `[Track: ${command.track}]` : ''
+      const trackNote = resolvedTrack ? `[Track: ${resolvedTrack}]` : ''
       const paymentNote = command.paymentPlan
         ? `[Payment: ${command.paymentPlan}]`
         : command.amountPaid
@@ -87,14 +111,17 @@ export class SubmitUniversityApplicationUseCase {
         updatedNotes = `${updatedNotes} ${paymentNote}`.trim()
       }
 
+      const isMaskedPhone = command.whatsapp && (command.whatsapp.includes('•') || command.whatsapp.includes('*'))
+      const resolvedWhatsapp = isMaskedPhone && existingProps.whatsapp ? existingProps.whatsapp : command.whatsapp
+
       application = UniversityApplication.restore({
         ...existingProps,
         name: command.name,
-        whatsapp: command.whatsapp,
+        whatsapp: resolvedWhatsapp,
         city: command.city,
         ageBracket: command.ageBracket,
         occupation: command.occupation ?? existingProps.occupation,
-        track: command.track ?? existingProps.track,
+        track: resolvedTrack,
         experienceLevel: command.experienceLevel ?? existingProps.experienceLevel,
         goals: command.goals ?? existingProps.goals,
         commitment: command.commitment ?? existingProps.commitment ?? 'Pending (Stage 1 Completed)',

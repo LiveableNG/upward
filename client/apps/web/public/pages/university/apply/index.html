@@ -67,109 +67,123 @@
         <div class="apply-cohort-info">
           <i class="fa-solid fa-calendar-check"></i>
           <div>
-            <strong>Classes Commence: December 5, 2026</strong>
-            <span>10 Weeks · Hybrid (Lagos, Abuja, PH, Oyo)</span>
+            <strong>Founding Cohort Starts December 5, 2026</strong>
+            <span>10-Week Hybrid Programme · Lagos, Abuja, Port Harcourt &amp; Oyo</span>
           </div>
         </div>
-        <span class="apply-cohort-tag">Admissions Open</span>
+        <span class="apply-cohort-tag">Cohort Kickoff · Dec 5</span>
       </div>
 
-      <div class="fees-grid" id="apply-fees-grid">
-        <!-- LEFT CARD: Standard Track Fees Overview -->
-        <div class="fee-card tracks-overview-card">
-          <div class="tracks-card-top">
-            <span class="eyebrow">Standard Tuition</span>
-            <span class="tracks-card-tag">3 Tracks</span>
-          </div>
-          <div class="fee-price-range">₦60,000 – ₦200,000</div>
-          <div class="tracks-mini-list">
-            <div class="tracks-mini-item">
-              <span class="tracks-mini-title">Track A · Foundation</span>
-              <span class="tracks-mini-fee">₦60,000</span>
+      <!-- COHORT TUITION & FLEXIBLE PAYMENT PLANS SCHEDULE (BEFORE FORM) -->
+      <div class="tracks-payment-summary-wrap" id="tuition-schedule">
+        <div class="tracks-payment-summary-head">
+          <div>
+            <div class="tracks-payment-summary-title">
+              <i class="fa-solid fa-credit-card" style="color: var(--rust);"></i>
+              <span>Cohort Tuition &amp; Flexible Payment Plans</span>
             </div>
-            <div class="tracks-mini-item">
-              <span class="tracks-mini-title">Track B · Career Development</span>
-              <span class="tracks-mini-fee">₦100,000</span>
-            </div>
-            <div class="tracks-mini-item tracks-mini-promo">
-              <span class="tracks-mini-title">Track C · Practical &amp; Networking</span>
-              <div class="tracks-mini-fee-wrap">
-                <span class="tracks-mini-fee">₦200,000</span>
-                <span class="tracks-mini-badge">Offer Active</span>
-              </div>
+            <div class="tracks-payment-summary-sub" style="margin-top: 4px;">
+              Kickoff Dec 5, 2026 · Outstanding installment balances completed by Dec 24, 2026
             </div>
           </div>
-          <div class="tracks-card-foot">
-            10-week hybrid cohort · Commences December 5, 2026
-          </div>
+          <a href="#applyFormBox" class="btn-jump-to-form">
+            <span>Skip to Application Form</span>
+            <i class="fa-solid fa-arrow-down"></i>
+          </a>
         </div>
 
-        <!-- RIGHT CARD: Track C Limited Offer -->
-        <div class="fee-card featured offer-deal-card" id="track-c-promo-banner">
-          <div class="offer-deal-top">
-            <div class="offer-deal-label-wrap">
-              <span class="offer-deal-pill">Special Cohort Offer</span>
-              <span class="offer-deal-track">Track C · Practical Experience</span>
-            </div>
-            <div class="offer-deal-standard-fee">
-              <span class="standard-fee-label">Standard Fee</span>
-              <span class="standard-fee-amount">₦200,000</span>
-            </div>
-          </div>
+        <div class="payment-matrix-table-wrap">
+          <table class="payment-matrix-table">
+            <thead>
+              <tr>
+                <th>Track &amp; Focus</th>
+                <th>48-Hour Full Payment<br><small style="font-weight:400; text-transform:none; color:var(--ink-soft);">Paid by Tuesday, Nov 24</small></th>
+                <th>48-Hour Deposit Plan<br><small style="font-weight:400; text-transform:none; color:var(--ink-soft);">Locks in discount rate</small></th>
+                <th>After Tuesday, Nov 24<br><small style="font-weight:400; text-transform:none; color:var(--ink-soft);">Standard rate applies</small></th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td data-label="Track">
+                  <div class="table-track-name">Track A · Foundation</div>
+                  <div class="table-track-sub">Discover Your Path · Beginner &amp; Exploration</div>
+                </td>
+                <td data-label="48-Hour Full Payment">
+                  <div class="table-price-highlight">₦50,000</div>
+                  <div class="table-price-meta">Save ₦10,000 off ₦60,000</div>
+                </td>
+                <td data-label="48-Hour Deposit Plan">
+                  <div class="table-plan-title">₦30,000 down by Nov 28</div>
+                  <div class="table-plan-sub">Total ₦60,000 · Remaining ₦30,000 due Dec 24</div>
+                </td>
+                <td data-label="After Nov 24 Standard Rate">
+                  <div class="table-standard-price">₦60,000 total</div>
+                  <div class="table-plan-sub">Standard tuition rate</div>
+                </td>
+                <td class="table-action-cell">
+                  <button type="button" class="table-apply-btn" onclick="selectTrackAndScroll('Track A - Foundation')">
+                    Select Track A &amp; Fill Form ↓
+                  </button>
+                </td>
+              </tr>
 
-          <div class="offer-choices-container">
-            <!-- OPTION 1 -->
-            <div class="offer-choice-block">
-              <div class="offer-choice-left">
-                <span class="offer-choice-badge">Option 1 · Weekend Lock-In</span>
-                <div class="offer-choice-val">
-                  <strong>₦25,000</strong> deposit today
-                </div>
-                <div class="offer-choice-details">
-                  Lock in <strong>₦50,000 off</strong> (₦150,000 total · balance before kickoff).
-                </div>
-              </div>
-              <div class="offer-choice-right">
-                <span class="offer-choice-deadline">Ends Sunday 11:59 PM</span>
-              </div>
-            </div>
+              <tr>
+                <td data-label="Track">
+                  <div class="table-track-name">Track B · Career Development</div>
+                  <div class="table-track-sub">Build Your Career · Mentorship &amp; Internships</div>
+                </td>
+                <td data-label="48-Hour Full Payment">
+                  <div class="table-price-highlight">₦100,000</div>
+                  <div class="table-price-meta">Save ₦20,000 off ₦120,000</div>
+                </td>
+                <td data-label="48-Hour Deposit Plan">
+                  <div class="table-plan-title">₦50,000 deposit by Nov 24</div>
+                  <div class="table-plan-sub"><strong style="color:var(--rust);">Guarantees ₦110,000 offer</strong> · ₦60,000 balance due Dec 24</div>
+                </td>
+                <td data-label="After Nov 24 Standard Rate">
+                  <div class="table-standard-price">₦120,000 total</div>
+                  <div class="table-plan-sub">Pay in full or ₦50k dep + ₦70k balance</div>
+                </td>
+                <td class="table-action-cell">
+                  <button type="button" class="table-apply-btn" onclick="selectTrackAndScroll('Track B - Career Development')">
+                    Select Track B &amp; Fill Form ↓
+                  </button>
+                </td>
+              </tr>
 
-            <!-- OR DIVIDER -->
-            <div class="offer-or-row">
-              <span class="offer-or-badge">or</span>
-            </div>
-
-            <!-- OPTION 2 -->
-            <div class="offer-choice-block highlight">
-              <div class="offer-choice-left">
-                <span class="offer-choice-badge accent">Option 2 · 48-Hour Full Pay</span>
-                <div class="offer-choice-val">
-                  <strong>₦135,000</strong> upfront
-                </div>
-                <div class="offer-choice-details">
-                  Pay in full within 48 hours to <strong>save ₦65,000</strong> off ₦200,000.
-                </div>
-              </div>
-              <div class="offer-choice-right">
-                <span class="offer-choice-deadline">Ends Monday 11:59 PM</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="offer-deal-foot">
-            Select Track C in Step 1 below to choose your payment option at checkout.
-          </div>
+              <tr class="highlight-row">
+                <td data-label="Track">
+                  <div class="table-track-name">
+                    Track C · Practical Experience
+                    <span class="table-recommended-tag">Featured</span>
+                  </div>
+                  <div class="table-track-sub">Immersion, Practical Ops &amp; Executive Mentors</div>
+                </td>
+                <td data-label="48-Hour Full Payment">
+                  <div class="table-price-highlight">₦135,000</div>
+                  <div class="table-price-meta">Save ₦65,000 off standard ₦200,000</div>
+                </td>
+                <td data-label="48-Hour Deposit Plan">
+                  <div class="table-plan-title">₦70,000 deposit by Nov 24</div>
+                  <div class="table-plan-sub"><strong style="color:var(--rust);">Guarantees ₦150,000 offer</strong> · ₦80,000 balance due Dec 24</div>
+                </td>
+                <td data-label="After Nov 24 Standard Rate">
+                  <div class="table-standard-price">₦160,000 total</div>
+                  <div class="table-plan-sub">Pay in full or ₦70k dep + ₦90k balance</div>
+                </td>
+                <td class="table-action-cell">
+                  <button type="button" class="table-apply-btn primary" onclick="selectTrackAndScroll('Track C - Practical Experience')">
+                    Select Track C &amp; Fill Form ↓
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
-      <div class="apply-notice">
-        <i class="fa-solid fa-circle-info"></i>
-        <div><strong>Before you register:</strong> Classes commence December 5, 2026 (6–8 hours/week). After completing
-          your payment, you'll be asked to submit a short intro video (your name, brief intro, and why you're interested
-          in Upward Academy) — you can record it right away or later.</div>
-      </div>
-
-      <div class="apply-form-box">
+      <div class="apply-form-box" id="applyFormBox">
         <!-- Step Indicator Bar (2 Steps: Basic Info & Track -> Review & Payment) -->
         <div class="apply-steps-bar">
           <div class="step-pill active" id="step-pill-1">
@@ -223,45 +237,67 @@
               </div>
             </div>
 
-            <div class="form-row">
-              <div class="field" id="field-name">
-                <label for="name">Full name <span class="req-asterisk">*</span></label>
-                <input id="name" type="text" required placeholder="Your full name">
-                <div class="error-text">Please enter your full name</div>
+            <!-- FIELD 1: EMAIL ADDRESS (PRIMARY FOR SILENT VERIFICATION) -->
+            <div class="field" id="field-email">
+              <label for="email">Email address <span class="req-asterisk">*</span></label>
+              <input id="email" type="email" required placeholder="you@email.com" autocomplete="email">
+              <div id="email-status-box" class="field-hint">
+                <i class="fa-solid fa-shield-check" style="color:var(--rust);"></i> Enter your email — we automatically check your eligibility for webinar discounts, prior credits, or existing registrations.
               </div>
-              <div class="field" id="field-whatsapp">
-                <label for="whatsapp">WhatsApp number <span class="req-asterisk">*</span></label>
-                <input id="whatsapp" type="tel" required placeholder="+234">
-                <div class="error-text">Please enter a valid WhatsApp phone number</div>
-              </div>
+              <div class="error-text">Please enter a valid email address</div>
             </div>
 
-            <div class="form-row">
-              <div class="field" id="field-email">
-                <label for="email">Email address <span class="req-asterisk">*</span></label>
-                <input id="email" type="email" required placeholder="you@email.com">
-                <div class="error-text">Please enter a valid email address</div>
-              </div>
-              <div class="field" id="field-city">
-                <label for="city">City <span class="req-asterisk">*</span></label>
-                <input id="city" type="text" required placeholder="e.g. Lagos, Abuja, Port Harcourt">
-                <div class="error-text">Please enter your city</div>
-              </div>
+            <!-- GATEWAY FOR SUBSEQUENT FIELDS (UNLOCKED / POPULATED ON EMAIL VERIFICATION) -->
+            <div id="fields-locked-notice" style="font-size: 12.5px; color: var(--ink-soft); margin: -4px 0 16px 0;">
+              <i class="fa-solid fa-arrow-up" style="color:var(--rust);"></i> Enter your email above to unlock the application form.
             </div>
 
-            <div class="form-row">
-              <div class="field" id="field-age">
-                <label for="age">Age bracket <span class="req-asterisk">*</span></label>
-                <select id="age" required>
-                  <option value="">Select age bracket</option>
-                  <option>18-20</option>
-                  <option>21-25</option>
-                  <option>26-30</option>
-                  <option>31-40</option>
-                  <option>41+</option>
-                </select>
-                <div class="error-text">Please select your age bracket</div>
+            <div style="display:flex; justify-content:flex-end; margin-top:-8px; margin-bottom:8px;">
+              <button type="button" id="btn-unlock-details" style="display:none; background:none; border:none; color:var(--rust); font-size:12px; font-weight:700; text-decoration:underline; cursor:pointer;">
+                <i class="fa-solid fa-pen-to-square"></i> Edit verified personal details
+              </button>
+            </div>
+
+            <div id="subsequent-fields" class="form-fields-gateway is-locked">
+              <!-- ROW 2: FULL NAME & WHATSAPP PHONE NUMBER -->
+              <div class="form-row">
+                <div class="field" id="field-name">
+                  <label for="name">Full name <span class="req-asterisk">*</span></label>
+                  <input id="name" type="text" required placeholder="Your full name" autocomplete="name">
+                  <div class="error-text">Please enter your full name</div>
+                </div>
+                <div class="field" id="field-whatsapp">
+                  <label for="whatsapp">WhatsApp phone number <span class="req-asterisk">*</span></label>
+                  <input id="whatsapp" type="tel" required placeholder="+234" autocomplete="tel">
+                  <div id="whatsapp-verified-badge" style="display:none;" class="field-verified-badge">
+                    <i class="fa-solid fa-lock"></i> Masked for privacy · Edit if you wish to change
+                  </div>
+                  <div class="error-text">Please enter a valid WhatsApp phone number</div>
+                </div>
               </div>
+
+              <!-- ROW 3: CITY & AGE BRACKET -->
+              <div class="form-row">
+                <div class="field" id="field-city">
+                  <label for="city">City <span class="req-asterisk">*</span></label>
+                  <input id="city" type="text" required placeholder="e.g. Lagos, Abuja, Port Harcourt">
+                  <div class="error-text">Please enter your city</div>
+                </div>
+                <div class="field" id="field-age">
+                  <label for="age">Age bracket <span class="req-asterisk">*</span></label>
+                  <select id="age" required>
+                    <option value="">Select age bracket</option>
+                    <option>18-20</option>
+                    <option>21-25</option>
+                    <option>26-30</option>
+                    <option>31-40</option>
+                    <option>41+</option>
+                  </select>
+                  <div class="error-text">Please select your age bracket</div>
+                </div>
+              </div>
+
+              <!-- ROW 4: CURRENT OCCUPATION -->
               <div class="field" id="field-occupation">
                 <label for="occupation">Current occupation</label>
                 <input id="occupation" type="text" placeholder="Student, Freelancer, Employed...">
@@ -290,7 +326,7 @@
                   <div class="track-compare-card">
                     <div class="track-compare-top">
                       <span class="track-compare-badge">Track A · Foundation</span>
-                      <span class="track-compare-price">₦60,000</span>
+                      <span class="track-compare-price">From ₦50,000</span>
                     </div>
                     <h5>Discover Your Path</h5>
                     <p>For beginners, recent graduates and anyone exploring new career opportunities. Includes professional PM training, Upward learning forum, free Upward PM software, and upgrade option.</p>
@@ -298,7 +334,7 @@
                   <div class="track-compare-card">
                     <div class="track-compare-top">
                       <span class="track-compare-badge">Track B · Career Dev</span>
-                      <span class="track-compare-price">₦100,000</span>
+                      <span class="track-compare-price">From ₦100,000</span>
                     </div>
                     <h5>Build Your Career</h5>
                     <p>For graduates and career starters wanting guidance and practical pathways. Includes foundational PM training, soft skills, mentorship community, internship opportunity, forum &amp; PM software.</p>
@@ -306,30 +342,38 @@
                   <div class="track-compare-card">
                     <div class="track-compare-top">
                       <span class="track-compare-badge">Track C · Practical &amp; Networking</span>
-                      <span class="track-compare-price" id="compare-track-c-price">₦200,000</span>
+                      <span class="track-compare-price" id="compare-track-c-price">From ₦135,000</span>
                     </div>
                     <h5>Practical Experience &amp; Networking</h5>
                     <p>For direct exposure to operations and high-value networking. Includes training &amp; mentorship, on-site practical sessions, lunch, priority internships, exclusive mentors' dinner, co-innovation events, and Upward PM software.</p>
                   </div>
                 </div>
+                <div style="margin-top: 12px; text-align: right;">
+                  <a href="#tuition-schedule" style="font-size: 12.5px; font-weight: 700; color: var(--rust); text-decoration: underline;" onclick="document.getElementById('trackInfoBox').style.display='none';">
+                    View full tuition &amp; installment schedule table ↓
+                  </a>
+                </div>
               </div>
 
               <select id="track" required>
                 <option value="">Select track</option>
-                <option value="Track A - Foundation">Track A · Foundation — Discover Your Path (₦60,000)</option>
-                <option value="Track B - Career Development">Track B · Career Development — Build Your Career (₦100,000)</option>
-                <option value="Track C - Practical Experience" id="opt-track-c">Track C · Practical Experience &amp; Networking — Learn It. Experience It. Connect.</option>
+                <option value="Track A - Foundation">Track A · Foundation — Discover Your Path (From ₦50,000)</option>
+                <option value="Track B - Career Development">Track B · Career Development — Build Your Career (From ₦100,000)</option>
+                <option value="Track C - Practical Experience" id="opt-track-c">Track C · Practical Experience &amp; Networking — Learn It. Experience It. (From ₦135,000)</option>
               </select>
+              <div id="track-deposit-locked-badge" class="field-verified-badge" style="display:none; margin-top:8px; color:#854D0E; background:#FEFCE8; border-color:#FDE047;">
+                <i class="fa-solid fa-lock"></i> Track locked: You have an active deposit paid for this track (track switching is not permitted)
+              </div>
               <div class="error-text">Please choose your track</div>
 
-              <!-- Dynamic Track C Time-Limited Promo Selector -->
+              <!-- Dynamic Track Payment Offers Selector (Track A, B, and C) -->
               <div class="track-offer-box" id="trackCOfferBox" style="display:none;">
                 <div class="track-offer-header">
-                  <span class="track-offer-title"><i class="fa-solid fa-bolt"></i> Choose Your Track C Payment Option</span>
+                  <span class="track-offer-title" id="trackOfferTitle"><i class="fa-solid fa-bolt"></i> Choose Your Payment Option</span>
                   <span class="track-offer-deadline" id="trackCOfferDeadlineLabel">Limited-Time Offer</span>
                 </div>
                 <div class="track-offer-grid" id="trackCOfferGrid">
-                  <!-- Populated dynamically based on current WAT time -->
+                  <!-- Populated dynamically based on track and webinar timing -->
                 </div>
               </div>
             </div>
@@ -345,7 +389,7 @@
           <div id="stage-2" class="form-stage" style="display:none;">
             <div style="margin-bottom: 20px;">
               <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 4px;">Step 2: Review &amp; Complete Payment</h3>
-              <p style="font-size: 13.5px; color: var(--ink-soft);">Review your details and complete your track payment securely via Paystack.</p>
+              <p style="font-size: 13.5px; color: var(--ink-soft);">Review your details and complete your payment securely via Paystack Bank Transfer.</p>
             </div>
 
             <!-- Registration Summary Card -->
@@ -394,9 +438,9 @@
           <div id="stage-balance" class="form-stage" style="display:none;">
             <div style="margin-bottom: 20px;">
               <span class="offer-deal-pill" style="margin-bottom: 8px;">Tuition Balance Checkout</span>
-              <h3 style="font-size: 22px; font-weight: 800; margin-bottom: 6px;">Clear Remaining Track C Balance</h3>
+              <h3 style="font-size: 22px; font-weight: 800; margin-bottom: 6px;" id="balance-heading">Clear Remaining Balance</h3>
               <p style="font-size: 13.5px; color: var(--ink-soft); line-height: 1.45;">
-                Welcome back, <strong id="balance-applicant-name">Applicant</strong>! You previously locked in your spot with a ₦25,000 deposit. You can complete your remaining ₦125,000 balance below.
+                Welcome back, <strong id="balance-applicant-name">Applicant</strong>! You previously locked in your spot with an installment deposit. You can complete your remaining tuition balance below.
               </p>
             </div>
 
@@ -404,15 +448,15 @@
             <div class="balance-breakdown-card">
               <div class="balance-row">
                 <span>Selected Track</span>
-                <strong>Track C · Practical Experience</strong>
+                <strong id="balance-track-name">Track C · Practical Experience</strong>
               </div>
               <div class="balance-row">
-                <span>Agreed Promotional Tuition</span>
-                <strong>₦150,000 <span class="old-price" style="font-size: 13px; text-decoration: line-through; color: var(--ink-muted); margin-left: 4px;">₦200,000</span></strong>
+                <span>Total Package Tuition</span>
+                <strong id="balance-total-package">₦150,000</strong>
               </div>
               <div class="balance-row">
                 <span>Deposit Paid (Verified)</span>
-                <strong style="color: #15803d;">- ₦25,000</strong>
+                <strong style="color: #15803d;" id="balance-deposit-paid">- ₦70,000</strong>
               </div>
               <div class="balance-divider"></div>
               <div class="balance-total-row">
@@ -420,7 +464,7 @@
                   <div style="font-size: 14.5px; font-weight: 800;">Remaining Balance Due</div>
                   <div style="font-size: 12px; color: var(--ink-soft);">Secures full cohort kickoff access on Dec 5</div>
                 </div>
-                <div class="balance-due-price">₦125,000</div>
+                <div class="balance-due-price" id="balance-due-price">₦80,000</div>
               </div>
             </div>
 
@@ -442,7 +486,7 @@
 
             <div style="margin-top: 24px; display: flex; flex-direction: column; gap: 12px;">
               <button type="button" class="btn btn-primary" id="btn-pay-balance" style="width: 100%; font-size: 15.5px; padding: 15px;">
-                Pay ₦125,000 Remaining Balance →
+                Pay Remaining Balance →
               </button>
               <div style="text-align: center;">
                 <button type="button" id="btn-switch-to-full-form" style="background: none; border: none; font-size: 12.5px; color: var(--ink-soft); text-decoration: underline; cursor: pointer;">

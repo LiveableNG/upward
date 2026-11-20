@@ -15,23 +15,24 @@
     if (form) {
       let currentStage = 1;
 
-      // Time-Limited Track C Promo Deadlines (WAT / UTC+1)
-      // - Weekend Lock-In Deposit (₦25k now -> ₦50k off -> ₦150k total): ends Sunday Nov 22, 2026 11:59 PM WAT
-      // - 48-Hour Full-Pay Offer (₦135k now): ends Monday Nov 23, 2026 11:59 PM WAT
-      // - After Monday 11:59 PM WAT: Track C returns to ₦200,000
-      const WEEKEND_LOCKIN_DEADLINE = new Date('2026-11-22T23:59:59+01:00');
-      const FULL_PAY_OFFER_DEADLINE = new Date('2026-11-23T23:59:59+01:00');
+      // 48-Hour Webinar Cohort Deadline (Monday Nov 23, 2026 11:59:59 PM WAT)
+      const WEBINAR_48HR_DEADLINE = new Date('2026-11-23T23:59:59+01:00');
 
-      let selectedTrackCOffer = 'lockin_25k';
+      // Default selected offer per track: 'full' or 'deposit'
+      let selectedTrackOffers = {
+        'Track A - Foundation': 'full',
+        'Track B - Career Development': 'full',
+        'Track C - Practical Experience': 'full'
+      };
+
       // State recognition storage for returning applicants
       let currentApplicantState = null; // 'PAID_FULL' | 'DEPOSIT_PAID' | 'PREVIOUS_5K_PAID' | 'APPLICATION_PENDING' | 'EARLY_ACCESS_WEBINAR' | null
       let currentApplicantData = null;
 
-      function getTrackCOfferAvailability(now = new Date()) {
+      function getOfferAvailability(now = new Date()) {
         const ts = now.getTime();
-        const hasWeekendLockIn = ts <= WEEKEND_LOCKIN_DEADLINE.getTime();
-        const has48HrFullPay = ts <= FULL_PAY_OFFER_DEADLINE.getTime();
-        return { hasWeekendLockIn, has48HrFullPay };
+        const isWithin48Hr = ts <= WEBINAR_48HR_DEADLINE.getTime();
+        return { isWithin48Hr };
       }
 
       function renderTrackCOfferUI() {
@@ -43,228 +44,196 @@
         const compareTrackCPrice = document.getElementById('compare-track-c-price');
         const promoBanner = document.getElementById('track-c-promo-banner');
 
-        const { hasWeekendLockIn, has48HrFullPay } = getTrackCOfferAvailability();
+        const { isWithin48Hr } = getOfferAvailability();
+        const trackVal = trackEl ? trackEl.value : '';
 
-        // Update Track C label in dropdown, comparison popover, and top banner
+        // Update Track C dropdown label and comparison popover
         if (optTrackC) {
-          if (hasWeekendLockIn) {
-            optTrackC.textContent = 'Track C · Practical Experience — ₦25k Lock-In or ₦135k Full (Was ₦200k)';
-          } else if (has48HrFullPay) {
-            optTrackC.textContent = 'Track C · Practical Experience — ₦135,000 48-Hr Offer (Was ₦200k)';
-          } else {
-            optTrackC.textContent = 'Track C · Practical Experience — Learn It. Experience It. (₦200,000)';
-          }
+          optTrackC.textContent = isWithin48Hr
+            ? 'Track C · Practical Experience & Networking — ₦135,000 (48-Hr Offer · Save ₦65k)'
+            : 'Track C · Practical Experience & Networking — Learn It. Experience It. (From ₦160,000)';
         }
 
         if (compareTrackCPrice) {
-          if (hasWeekendLockIn) {
-            compareTrackCPrice.innerHTML = '₦25k deposit <span style="font-weight:400;color:var(--ink-muted);">or</span> ₦135k full <span class="old-price">₦200,000</span>';
-          } else if (has48HrFullPay) {
-            compareTrackCPrice.innerHTML = '₦135,000 <span class="old-price">₦200,000</span>';
-          } else {
-            compareTrackCPrice.textContent = '₦200,000';
-          }
+          compareTrackCPrice.innerHTML = isWithin48Hr
+            ? '₦135,000 <span class="old-price">₦200,000</span>'
+            : '₦160,000 <span class="old-price">₦200,000</span>';
         }
 
-        if (promoBanner) {
-          if (hasWeekendLockIn) {
-            promoBanner.style.display = '';
-            promoBanner.className = 'fee-card featured offer-deal-card';
-            promoBanner.innerHTML = `
-              <div class="offer-deal-top">
-                <div class="offer-deal-label-wrap">
-                  <span class="offer-deal-pill">Special Cohort Offer</span>
-                  <span class="offer-deal-track">Track C · Practical Experience</span>
-                </div>
-                <div class="offer-deal-standard-fee">
-                  <span class="standard-fee-label">Standard Fee</span>
-                  <span class="standard-fee-amount">₦200,000</span>
-                </div>
-              </div>
-
-              <div class="offer-choices-container">
-                <!-- OPTION 1 -->
-                <div class="offer-choice-block">
-                  <div class="offer-choice-left">
-                    <span class="offer-choice-badge">Option 1 · Weekend Lock-In</span>
-                    <div class="offer-choice-val">
-                      <strong>₦25,000</strong> deposit today
-                    </div>
-                    <div class="offer-choice-details">
-                      Lock in <strong>₦50,000 off</strong> (₦150,000 total · balance before kickoff).
-                    </div>
-                  </div>
-                  <div class="offer-choice-right">
-                    <span class="offer-choice-deadline">Ends Sunday 11:59 PM</span>
-                  </div>
-                </div>
-
-                <!-- OR DIVIDER -->
-                <div class="offer-or-row">
-                  <span class="offer-or-badge">or</span>
-                </div>
-
-                <!-- OPTION 2 -->
-                <div class="offer-choice-block highlight">
-                  <div class="offer-choice-left">
-                    <span class="offer-choice-badge accent">Option 2 · 48-Hour Full Pay</span>
-                    <div class="offer-choice-val">
-                      <strong>₦135,000</strong> upfront
-                    </div>
-                    <div class="offer-choice-details">
-                      Pay in full within 48 hours to <strong>save ₦65,000</strong> off ₦200,000.
-                    </div>
-                  </div>
-                  <div class="offer-choice-right">
-                    <span class="offer-choice-deadline">Ends Monday 11:59 PM</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="offer-deal-foot">
-                Select Track C in Step 1 below to choose your payment option at checkout.
-              </div>
-            `;
-          } else if (has48HrFullPay) {
-            promoBanner.style.display = '';
-            promoBanner.className = 'fee-card featured offer-deal-card';
-            promoBanner.innerHTML = `
-              <div class="offer-deal-top">
-                <div class="offer-deal-label-wrap">
-                  <span class="offer-deal-pill">48-Hour Full Payment Offer</span>
-                  <span class="offer-deal-track">Track C · Practical Experience</span>
-                </div>
-                <div class="offer-deal-standard-fee">
-                  <span class="standard-fee-label">Standard Fee</span>
-                  <span class="standard-fee-amount">₦200,000</span>
-                </div>
-              </div>
-
-              <div class="offer-choices-container">
-                <div class="offer-choice-block highlight" style="width: 100%;">
-                  <div class="offer-choice-left">
-                    <span class="offer-choice-badge accent">Save ₦65,000 Instantly</span>
-                    <div class="offer-choice-val">
-                      <strong>₦135,000</strong> one-time payment
-                    </div>
-                    <div class="offer-choice-details">
-                      Pay upfront in full before Monday 11:59 PM WAT to get Option C. Fee returns to ₦200,000 after midnight.
-                    </div>
-                  </div>
-                  <div class="offer-choice-right">
-                    <span class="offer-choice-deadline">Ends Tonight (Mon 11:59 PM)</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="offer-deal-foot">
-                Select Track C in Step 1 below to claim the ₦65,000 discount at checkout.
-              </div>
-            `;
-          } else {
-            promoBanner.className = 'fee-card';
-            promoBanner.innerHTML = `
-              <div class="tracks-card-top">
-                <span class="eyebrow">Cohort Kickoff</span>
-                <span class="tracks-card-tag">December 5, 2026</span>
-              </div>
-              <div class="fee-price-range">₦200,000</div>
-              <p style="font-size:13px; color:var(--ink-soft); line-height:1.45; margin-top:8px;">
-                Track C: Practical Experience provides hands-on property management operations, mentorship, and on-site practical exposure.
-              </p>
-            `;
-          }
-        }
-
-        const isTrackC = trackEl && trackEl.value === 'Track C - Practical Experience';
         if (!offerBox || !offerGrid) return;
 
-        if (!isTrackC || (!hasWeekendLockIn && !has48HrFullPay)) {
+        if (!trackVal) {
           offerBox.style.display = 'none';
-          selectedTrackCOffer = 'standard_200k';
           return;
-        }
-
-        // If user already paid a 25k deposit and is looking at Track C, show their verified deposit status
-        if (currentApplicantState === 'DEPOSIT_PAID') {
-          offerGrid.innerHTML = `
-            <div class="track-offer-card selected" style="grid-column: 1 / -1; cursor: default;">
-              <div class="track-offer-top">
-                <span class="track-offer-badge" style="background:#DCFCE7; color:#15803D;">Deposit Verified (₦25,000 Paid)</span>
-                <span class="track-offer-check"><i class="fa-solid fa-circle-check"></i></span>
-              </div>
-              <div class="track-offer-name">Track C · Locked-in Tuition Balance</div>
-              <div class="track-offer-price">₦125,000 <span class="old">₦200,000</span></div>
-              <div class="track-offer-sub">Your ₦50,000 discount and cohort perks are secured. Complete your ₦125,000 balance to finalize kickoff admission.</div>
-            </div>
-          `;
-          offerGrid.style.gridTemplateColumns = '1fr';
-          offerBox.style.display = 'block';
-          if (deadlineLabel) deadlineLabel.textContent = 'Deposit Active · Discount Secured';
-          return;
-        }
-
-        // Ensure valid default selection
-        if (selectedTrackCOffer === 'lockin_25k' && !hasWeekendLockIn) {
-          selectedTrackCOffer = 'full_135k';
-        } else if (selectedTrackCOffer === 'standard_200k') {
-          selectedTrackCOffer = hasWeekendLockIn ? 'lockin_25k' : 'full_135k';
         }
 
         if (deadlineLabel) {
-          deadlineLabel.textContent = hasWeekendLockIn
-            ? 'Weekend & 48-Hr Offers Active'
-            : 'Ends Monday 11:59 PM';
+          deadlineLabel.textContent = isWithin48Hr
+            ? '48-Hour Webinar Offers Active'
+            : 'Cohort Offers Active';
         }
 
         const credit5k = (currentApplicantState === 'PREVIOUS_5K_PAID') ? 5000 : 0;
         let cardsHtml = '';
 
-        if (hasWeekendLockIn) {
-          const isSel = selectedTrackCOffer === 'lockin_25k';
-          const depositDue = Math.max(0, 25000 - credit5k);
-          const creditText = credit5k > 0 ? ` (₦5,000 previous fee credited · ₦${depositDue.toLocaleString()} due now)` : '';
-          cardsHtml += `
-            <label class="track-offer-card ${isSel ? 'selected' : ''}" data-offer="lockin_25k">
-              <input type="radio" name="trackCOffer" value="lockin_25k" ${isSel ? 'checked' : ''}>
+        // If user already paid deposit and is viewing their deposited track, show verified balance checkout card
+        if (currentApplicantState === 'DEPOSIT_PAID' && currentApplicantData) {
+          const depositedTrack = currentApplicantData.track || 'Track C - Practical Experience';
+          if (trackVal === depositedTrack) {
+            const depAmount = currentApplicantData.depositAmount || 70000;
+            const balDue = currentApplicantData.balanceDue || 80000;
+            offerGrid.innerHTML = `
+              <div class="track-offer-card selected" style="grid-column: 1 / -1; cursor: default;">
+                <div class="track-offer-top">
+                  <span class="track-offer-badge" style="background:#DCFCE7; color:#15803D;">Deposit Verified (₦${depAmount.toLocaleString()} Paid)</span>
+                  <span class="track-offer-check"><i class="fa-solid fa-circle-check"></i></span>
+                </div>
+                <div class="track-offer-name">${trackVal} · Remaining Balance</div>
+                <div class="track-offer-price">₦${balDue.toLocaleString()}</div>
+                <div class="track-offer-sub">Your spot is secured. Complete your ₦${balDue.toLocaleString()} remaining balance to finalize kickoff admission.</div>
+              </div>
+            `;
+            offerGrid.style.gridTemplateColumns = '1fr';
+            offerBox.style.display = 'block';
+            return;
+          }
+        }
+
+        const activeChoice = selectedTrackOffers[trackVal] || 'full';
+
+        // TRACK A OFFERS
+        if (trackVal === 'Track A - Foundation') {
+          const fullPrice = isWithin48Hr ? 50000 : 60000;
+          const fullDue = Math.max(0, fullPrice - credit5k);
+          const downDue = Math.max(0, 30000 - credit5k);
+          const creditNotice = credit5k > 0 ? '<div class="track-offer-credit-tag">₦5,000 credit applied</div>' : '';
+
+          const isFullSel = activeChoice === 'full';
+          const isDownSel = activeChoice === 'deposit';
+
+          cardsHtml = `
+            <label class="track-offer-card ${isFullSel ? 'selected' : ''}" data-offer="full">
+              <input type="radio" name="trackOption" value="full" ${isFullSel ? 'checked' : ''}>
               <div class="track-offer-top">
-                <span class="track-offer-badge">Save ₦50,000 · Ends Sunday</span>
+                <span class="track-offer-badge">${isWithin48Hr ? 'Save ₦10,000 · 48-Hr Offer' : 'Full Payment'}</span>
                 <span class="track-offer-check"><i class="fa-solid fa-circle-check"></i></span>
               </div>
-              <div class="track-offer-name">Weekend Lock-In Deposit</div>
-              <div class="track-offer-price">₦${depositDue.toLocaleString()} <span class="old">₦200,000</span></div>
-              <div class="track-offer-sub">Pay ₦${depositDue.toLocaleString()} now to lock in ₦50,000 off Track C (<strong>₦150,000 total</strong>${creditText} · ₦125,000 balance later).</div>
+              <div class="track-offer-name">Pay in Full</div>
+              <div class="track-offer-price">₦${fullDue.toLocaleString()} ${isWithin48Hr ? '<span class="old">₦60,000</span>' : ''}</div>
+              <div class="track-offer-sub">Pay once today. Zero outstanding balance.</div>
+              ${creditNotice}
+            </label>
+
+            <label class="track-offer-card ${isDownSel ? 'selected' : ''}" data-offer="deposit">
+              <input type="radio" name="trackOption" value="deposit" ${isDownSel ? 'checked' : ''}>
+              <div class="track-offer-top">
+                <span class="track-offer-badge subtle">Installment Plan</span>
+                <span class="track-offer-check"><i class="fa-solid fa-circle-check"></i></span>
+              </div>
+              <div class="track-offer-name">Down Payment</div>
+              <div class="track-offer-price">₦${downDue.toLocaleString()}</div>
+              <div class="track-offer-plan-breakdown">
+                <div><strong>Total tuition:</strong> ₦60,000 (down payment due by Nov 28)</div>
+                <div><strong>Remaining balance:</strong> ₦30,000 due by Dec 24</div>
+              </div>
+              ${creditNotice}
             </label>
           `;
         }
 
-        if (has48HrFullPay) {
-          const isSel = selectedTrackCOffer === 'full_135k';
-          const fullDue = Math.max(0, 135000 - credit5k);
-          const creditText = credit5k > 0 ? ' · ₦5,000 credit applied' : '';
-          cardsHtml += `
-            <label class="track-offer-card ${isSel ? 'selected' : ''}" data-offer="full_135k">
-              <input type="radio" name="trackCOffer" value="full_135k" ${isSel ? 'checked' : ''}>
+        // TRACK B OFFERS
+        else if (trackVal === 'Track B - Career Development') {
+          const fullPrice = isWithin48Hr ? 100000 : 120000;
+          const fullDue = Math.max(0, fullPrice - credit5k);
+          const depDue = Math.max(0, 50000 - credit5k);
+          const balanceDue = isWithin48Hr ? 60000 : 70000;
+          const totalPkg = isWithin48Hr ? 110000 : 120000;
+          const creditNotice = credit5k > 0 ? '<div class="track-offer-credit-tag">₦5,000 credit applied</div>' : '';
+
+          const isFullSel = activeChoice === 'full';
+          const isDepSel = activeChoice === 'deposit';
+
+          cardsHtml = `
+            <label class="track-offer-card ${isFullSel ? 'selected' : ''}" data-offer="full">
+              <input type="radio" name="trackOption" value="full" ${isFullSel ? 'checked' : ''}>
               <div class="track-offer-top">
-                <span class="track-offer-badge">Save ₦65,000 · Ends Mon 11:59 PM</span>
+                <span class="track-offer-badge">${isWithin48Hr ? 'Save ₦20,000 · 48-Hr Offer' : 'Full Payment'}</span>
                 <span class="track-offer-check"><i class="fa-solid fa-circle-check"></i></span>
               </div>
-              <div class="track-offer-name">48-Hour Full Payment</div>
+              <div class="track-offer-name">Pay in Full</div>
+              <div class="track-offer-price">₦${fullDue.toLocaleString()} <span class="old">₦120,000</span></div>
+              <div class="track-offer-sub">Pay once today. Zero outstanding balance.</div>
+              ${creditNotice}
+            </label>
+
+            <label class="track-offer-card ${isDepSel ? 'selected' : ''}" data-offer="deposit">
+              <input type="radio" name="trackOption" value="deposit" ${isDepSel ? 'checked' : ''}>
+              <div class="track-offer-top">
+                <span class="track-offer-badge subtle">${isWithin48Hr ? 'Guarantees ₦110k Offer' : 'Standard Deposit'}</span>
+                <span class="track-offer-check"><i class="fa-solid fa-circle-check"></i></span>
+              </div>
+              <div class="track-offer-name">Flexible Deposit</div>
+              <div class="track-offer-price">₦${depDue.toLocaleString()}</div>
+              <div class="track-offer-plan-breakdown">
+                <div><strong>Total package:</strong> ₦${totalPkg.toLocaleString()}${isWithin48Hr ? ' (guaranteed 48-hr offer)' : ''}</div>
+                <div><strong>Remaining balance:</strong> ₦${balanceDue.toLocaleString()} due by Dec 24</div>
+              </div>
+              ${creditNotice}
+            </label>
+          `;
+        }
+
+        // TRACK C OFFERS
+        else if (trackVal === 'Track C - Practical Experience') {
+          const fullPrice = isWithin48Hr ? 135000 : 160000;
+          const fullDue = Math.max(0, fullPrice - credit5k);
+          const depDue = Math.max(0, 70000 - credit5k);
+          const balanceDue = isWithin48Hr ? 80000 : 90000;
+          const totalPkg = isWithin48Hr ? 150000 : 160000;
+          const creditNotice = credit5k > 0 ? '<div class="track-offer-credit-tag">₦5,000 credit applied</div>' : '';
+
+          const isFullSel = activeChoice === 'full';
+          const isDepSel = activeChoice === 'deposit';
+
+          cardsHtml = `
+            <label class="track-offer-card ${isFullSel ? 'selected' : ''}" data-offer="full">
+              <input type="radio" name="trackOption" value="full" ${isFullSel ? 'checked' : ''}>
+              <div class="track-offer-top">
+                <span class="track-offer-badge">${isWithin48Hr ? 'Save ₦65,000 · 48-Hr Offer' : 'Full Payment'}</span>
+                <span class="track-offer-check"><i class="fa-solid fa-circle-check"></i></span>
+              </div>
+              <div class="track-offer-name">Pay in Full</div>
               <div class="track-offer-price">₦${fullDue.toLocaleString()} <span class="old">₦200,000</span></div>
-              <div class="track-offer-sub">Pay ₦${fullDue.toLocaleString()} upfront in full within 48 hours and save ₦65,000 off Track C${creditText}.</div>
+              <div class="track-offer-sub">Pay once today. Zero outstanding balance.</div>
+              ${creditNotice}
+            </label>
+
+            <label class="track-offer-card ${isDepSel ? 'selected' : ''}" data-offer="deposit">
+              <input type="radio" name="trackOption" value="deposit" ${isDepSel ? 'checked' : ''}>
+              <div class="track-offer-top">
+                <span class="track-offer-badge subtle">${isWithin48Hr ? 'Guarantees ₦150k Offer' : 'Standard Deposit'}</span>
+                <span class="track-offer-check"><i class="fa-solid fa-circle-check"></i></span>
+              </div>
+              <div class="track-offer-name">Flexible Deposit</div>
+              <div class="track-offer-price">₦${depDue.toLocaleString()}</div>
+              <div class="track-offer-plan-breakdown">
+                <div><strong>Total package:</strong> ₦${totalPkg.toLocaleString()}${isWithin48Hr ? ' (guaranteed 48-hr offer)' : ''}</div>
+                <div><strong>Remaining balance:</strong> ₦${balanceDue.toLocaleString()} due by Dec 24</div>
+              </div>
+              ${creditNotice}
             </label>
           `;
         }
 
         offerGrid.innerHTML = cardsHtml;
-        offerGrid.style.gridTemplateColumns = hasWeekendLockIn && has48HrFullPay ? '' : '1fr';
+        offerGrid.style.gridTemplateColumns = 'repeat(auto-fit, minmax(240px, 1fr))';
         offerBox.style.display = 'block';
 
         offerGrid.querySelectorAll('.track-offer-card').forEach(card => {
           card.addEventListener('click', () => {
             const offerKey = card.getAttribute('data-offer');
             if (!offerKey) return;
-            selectedTrackCOffer = offerKey;
+            selectedTrackOffers[trackVal] = offerKey;
             offerGrid.querySelectorAll('.track-offer-card').forEach(c => {
               const match = c.getAttribute('data-offer') === offerKey;
               c.classList.toggle('selected', match);
@@ -275,101 +244,198 @@
         });
       }
 
+      window.selectTrackAndScroll = function(trackName) {
+        const isLegacyTrack = currentApplicantData?.track && (currentApplicantData.track.includes('Track 1') || currentApplicantData.track.includes('Track 2'));
+        const isTrueDeposit = currentApplicantState === 'DEPOSIT_PAID' && !isLegacyTrack && currentApplicantData && (currentApplicantData.track?.includes('Track A') || currentApplicantData.track?.includes('Track B') || currentApplicantData.track?.includes('Track C'));
+
+        if (isTrueDeposit && currentApplicantData.track !== trackName) {
+          alert(`You have an active deposit verified for ${currentApplicantData.track}. Track switching is not permitted for active deposit holders.`);
+          return;
+        }
+        const trackSelect = document.getElementById('track');
+        if (trackSelect) {
+          trackSelect.value = trackName;
+          trackSelect.dispatchEvent(new Event('change'));
+        }
+        const formBox = document.getElementById('applyFormBox') || document.getElementById('universityApplyForm');
+        if (formBox) {
+          formBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+        setTimeout(() => {
+          document.getElementById('name')?.focus();
+        }, 400);
+      };
+
       function getSelectedPricing() {
         const trackVal = document.getElementById('track')?.value || '';
-        const { hasWeekendLockIn, has48HrFullPay } = getTrackCOfferAvailability();
+        const { isWithin48Hr } = getOfferAvailability();
         const credit5k = (currentApplicantState === 'PREVIOUS_5K_PAID') ? 5000 : 0;
+        const activeChoice = selectedTrackOffers[trackVal] || 'full';
 
+        // TRACK A
         if (trackVal === 'Track A - Foundation') {
-          if (currentApplicantState === 'DEPOSIT_PAID') {
-            const amount = Math.max(0, 60000 - 25000);
+          // Returning deposit applicant
+          if (currentApplicantState === 'DEPOSIT_PAID' && currentApplicantData) {
+            if (currentApplicantData.track === trackVal) {
+              const bal = currentApplicantData.balanceDue || 30000;
+              return {
+                amountNaira: bal,
+                planLabel: `Track A Tuition Balance (₦${bal.toLocaleString()} remaining)`,
+                balanceNote: '',
+                buttonLabel: `Pay ₦${bal.toLocaleString()} Remaining Balance →`,
+                appliedCredit: currentApplicantData.depositAmount || 30000,
+              };
+            }
+            // Switched to Track A
+            const depCred = currentApplicantData.depositAmount || 25000;
+            const fullTarget = isWithin48Hr ? 50000 : 60000;
+            const due = Math.max(0, fullTarget - depCred);
             return {
-              amountNaira: amount,
-              planLabel: 'Track A Full Fee (₦35,000 with ₦25,000 deposit credited)',
+              amountNaira: due,
+              planLabel: `Track A Full Fee (₦${due.toLocaleString()} with ₦${depCred.toLocaleString()} deposit credited)`,
               balanceNote: '',
-              buttonLabel: `Pay ₦${amount.toLocaleString()} →`,
-              appliedCredit: 25000,
+              buttonLabel: `Pay ₦${due.toLocaleString()} →`,
+              appliedCredit: depCred,
             };
           }
-          const amount = Math.max(0, 60000 - credit5k);
+
+          if (activeChoice === 'deposit') {
+            const due = Math.max(0, 30000 - credit5k);
+            return {
+              amountNaira: due,
+              planLabel: credit5k > 0
+                ? `Track A Down Payment — ₦${due.toLocaleString()} now (₦5k credit applied · ₦30,000 balance by Dec 24)`
+                : 'Track A Down Payment — ₦30,000 now (₦60,000 total · ₦30,000 balance by Dec 24)',
+              balanceNote: '₦30,000 completed by December 24, 2026',
+              buttonLabel: `Pay ₦${due.toLocaleString()} Down Payment →`,
+              appliedCredit: credit5k,
+            };
+          }
+
+          const fullTarget = isWithin48Hr ? 50000 : 60000;
+          const due = Math.max(0, fullTarget - credit5k);
           return {
-            amountNaira: amount,
-            planLabel: credit5k > 0 ? `Track A Full Fee (₦${amount.toLocaleString()} after ₦5k credit)` : 'Track A Full Fee (₦60,000)',
+            amountNaira: due,
+            planLabel: isWithin48Hr
+              ? (credit5k > 0 ? `Track A 48-Hour Full Offer (₦${due.toLocaleString()} after ₦5k credit)` : 'Track A 48-Hour Full Offer (₦50,000 — Save ₦10,000)')
+              : (credit5k > 0 ? `Track A Full Fee (₦${due.toLocaleString()} after ₦5k credit)` : 'Track A Full Fee (₦60,000)'),
             balanceNote: '',
-            buttonLabel: `Pay ₦${amount.toLocaleString()} →`,
+            buttonLabel: `Pay ₦${due.toLocaleString()} in Full →`,
             appliedCredit: credit5k,
           };
         }
 
+        // TRACK B
         if (trackVal === 'Track B - Career Development') {
-          if (currentApplicantState === 'DEPOSIT_PAID') {
-            const amount = Math.max(0, 100000 - 25000);
+          // Returning deposit applicant
+          if (currentApplicantState === 'DEPOSIT_PAID' && currentApplicantData) {
+            if (currentApplicantData.track === trackVal) {
+              const bal = currentApplicantData.balanceDue || 60000;
+              return {
+                amountNaira: bal,
+                planLabel: `Track B Tuition Balance (₦${bal.toLocaleString()} remaining)`,
+                balanceNote: '',
+                buttonLabel: `Pay ₦${bal.toLocaleString()} Remaining Balance →`,
+                appliedCredit: currentApplicantData.depositAmount || 50000,
+              };
+            }
+            // Switched to Track B
+            const depCred = currentApplicantData.depositAmount || 25000;
+            const fullTarget = isWithin48Hr ? 100000 : 120000;
+            const due = Math.max(0, fullTarget - depCred);
             return {
-              amountNaira: amount,
-              planLabel: 'Track B Full Fee (₦75,000 with ₦25,000 deposit credited)',
+              amountNaira: due,
+              planLabel: `Track B Full Fee (₦${due.toLocaleString()} with ₦${depCred.toLocaleString()} deposit credited)`,
               balanceNote: '',
-              buttonLabel: `Pay ₦${amount.toLocaleString()} →`,
-              appliedCredit: 25000,
+              buttonLabel: `Pay ₦${due.toLocaleString()} →`,
+              appliedCredit: depCred,
             };
           }
-          const amount = Math.max(0, 100000 - credit5k);
+
+          if (activeChoice === 'deposit') {
+            const due = Math.max(0, 50000 - credit5k);
+            const balDue = isWithin48Hr ? 60000 : 70000;
+            const totalPkg = isWithin48Hr ? 110000 : 120000;
+            return {
+              amountNaira: due,
+              planLabel: isWithin48Hr
+                ? `Track B 48-Hour Deposit — ₦${due.toLocaleString()} now (₦${totalPkg.toLocaleString()} total package · ₦${balDue.toLocaleString()} balance by Dec 24)`
+                : `Track B Deposit — ₦${due.toLocaleString()} now (₦${totalPkg.toLocaleString()} total package · ₦${balDue.toLocaleString()} balance by Dec 24)`,
+              balanceNote: `₦${balDue.toLocaleString()} completed by December 24, 2026 (Total ₦${totalPkg.toLocaleString()})`,
+              buttonLabel: `Pay ₦${due.toLocaleString()} Deposit →`,
+              appliedCredit: credit5k,
+            };
+          }
+
+          const fullTarget = isWithin48Hr ? 100000 : 120000;
+          const due = Math.max(0, fullTarget - credit5k);
           return {
-            amountNaira: amount,
-            planLabel: credit5k > 0 ? `Track B Full Fee (₦${amount.toLocaleString()} after ₦5k credit)` : 'Track B Full Fee (₦100,000)',
+            amountNaira: due,
+            planLabel: isWithin48Hr
+              ? (credit5k > 0 ? `Track B 48-Hour Full Offer (₦${due.toLocaleString()} after ₦5k credit)` : 'Track B 48-Hour Full Offer (₦100,000 — Save ₦20,000)')
+              : (credit5k > 0 ? `Track B Full Fee (₦${due.toLocaleString()} after ₦5k credit)` : 'Track B Full Fee (₦120,000)'),
             balanceNote: '',
-            buttonLabel: `Pay ₦${amount.toLocaleString()} →`,
+            buttonLabel: `Pay ₦${due.toLocaleString()} in Full →`,
             appliedCredit: credit5k,
           };
         }
 
+        // TRACK C
         if (trackVal === 'Track C - Practical Experience') {
-          if (currentApplicantState === 'DEPOSIT_PAID') {
+          // Returning deposit applicant
+          if (currentApplicantState === 'DEPOSIT_PAID' && currentApplicantData) {
+            if (currentApplicantData.track === trackVal || !currentApplicantData.track || currentApplicantData.track.includes('Track C')) {
+              const bal = currentApplicantData.balanceDue || 80000;
+              return {
+                amountNaira: bal,
+                planLabel: `Track C Tuition Balance (₦${bal.toLocaleString()} remaining)`,
+                balanceNote: '',
+                buttonLabel: `Pay ₦${bal.toLocaleString()} Remaining Balance →`,
+                appliedCredit: currentApplicantData.depositAmount || 70000,
+              };
+            }
+            // Switched to Track C from another track
+            const depCred = currentApplicantData.depositAmount || 30000;
+            const fullTarget = isWithin48Hr ? 135000 : 160000;
+            const due = Math.max(0, fullTarget - depCred);
             return {
-              amountNaira: 125000,
-              planLabel: 'Track C Tuition Balance (₦125,000 remaining)',
+              amountNaira: due,
+              planLabel: `Track C Full Fee (₦${due.toLocaleString()} with ₦${depCred.toLocaleString()} deposit credited)`,
               balanceNote: '',
-              buttonLabel: 'Pay ₦125,000 Remaining Balance →',
-              appliedCredit: 25000,
+              buttonLabel: `Pay ₦${due.toLocaleString()} →`,
+              appliedCredit: depCred,
             };
           }
 
-          if (selectedTrackCOffer === 'lockin_25k' && hasWeekendLockIn) {
-            const amount = Math.max(0, 25000 - credit5k);
+          if (activeChoice === 'deposit') {
+            const due = Math.max(0, 70000 - credit5k);
+            const balDue = isWithin48Hr ? 80000 : 90000;
+            const totalPkg = isWithin48Hr ? 150000 : 160000;
             return {
-              amountNaira: amount,
-              planLabel: credit5k > 0
-                ? `Track C Weekend Lock-In Deposit — ₦${amount.toLocaleString()} now (₦5k credit applied · ₦125,000 balance later)`
-                : 'Track C Weekend Lock-In Deposit — ₦25,000 now (₦150,000 total · ₦125,000 balance later)',
-              balanceNote: '₦125,000 (Total ₦150,000 — ₦50,000 off)',
-              buttonLabel: `Pay ₦${amount.toLocaleString()} Lock-In Deposit →`,
+              amountNaira: due,
+              planLabel: isWithin48Hr
+                ? `Track C 48-Hour Deposit — ₦${due.toLocaleString()} now (₦${totalPkg.toLocaleString()} total package · ₦${balDue.toLocaleString()} balance by Dec 24)`
+                : `Track C Deposit — ₦${due.toLocaleString()} now (₦${totalPkg.toLocaleString()} total package · ₦${balDue.toLocaleString()} balance by Dec 24)`,
+              balanceNote: `₦${balDue.toLocaleString()} completed by December 24, 2026 (Total ₦${totalPkg.toLocaleString()})`,
+              buttonLabel: `Pay ₦${due.toLocaleString()} Deposit →`,
               appliedCredit: credit5k,
             };
           }
 
-          if (selectedTrackCOffer === 'full_135k' && has48HrFullPay) {
-            const amount = Math.max(0, 135000 - credit5k);
-            return {
-              amountNaira: amount,
-              planLabel: credit5k > 0
-                ? `Track C 48-Hour Full Offer (₦${amount.toLocaleString()} after ₦5k credit — Save ₦65,000)`
-                : 'Track C 48-Hour Full Offer (₦135,000 — Save ₦65,000)',
-              balanceNote: '',
-              buttonLabel: `Pay ₦${amount.toLocaleString()} (48-Hr Offer) →`,
-              appliedCredit: credit5k,
-            };
-          }
-
-          const amount = Math.max(0, 200000 - credit5k);
+          const fullTarget = isWithin48Hr ? 135000 : 160000;
+          const due = Math.max(0, fullTarget - credit5k);
           return {
-            amountNaira: amount,
-            planLabel: credit5k > 0 ? `Track C Full Fee (₦${amount.toLocaleString()} after ₦5k credit)` : 'Track C Full Fee (₦200,000)',
+            amountNaira: due,
+            planLabel: isWithin48Hr
+              ? (credit5k > 0 ? `Track C 48-Hour Full Offer (₦${due.toLocaleString()} after ₦5k credit)` : 'Track C 48-Hour Full Offer (₦135,000 — Save ₦65,000)')
+              : (credit5k > 0 ? `Track C Full Fee (₦${due.toLocaleString()} after ₦5k credit)` : 'Track C Full Fee (₦160,000)'),
             balanceNote: '',
-            buttonLabel: `Pay ₦${amount.toLocaleString()} →`,
+            buttonLabel: `Pay ₦${due.toLocaleString()} in Full →`,
             appliedCredit: credit5k,
           };
         }
 
-        const defaultAmount = Math.max(0, 60000 - credit5k);
+        const defaultAmount = Math.max(0, 50000 - credit5k);
         return {
           amountNaira: defaultAmount,
           planLabel: 'Track Fee',
@@ -492,11 +558,25 @@
             const emailEl = document.getElementById('balance-applicant-email');
             const phoneEl = document.getElementById('balance-applicant-phone');
             const refEl = document.getElementById('balance-applicant-ref');
+            const trackEl = document.getElementById('balance-track-name');
+            const totalEl = document.getElementById('balance-total-package');
+            const depEl = document.getElementById('balance-deposit-paid');
+            const dueEl = document.getElementById('balance-due-price');
+            const btnEl = document.getElementById('btn-pay-balance');
+
+            const depAmount = data.depositAmount || 70000;
+            const balDue = data.balanceDue || 80000;
+            const totalPkg = depAmount + balDue;
 
             if (nameEl) nameEl.textContent = data.name || 'Applicant';
             if (emailEl) emailEl.textContent = data.email || '';
             if (phoneEl) phoneEl.textContent = data.whatsapp || '';
             if (refEl) refEl.textContent = data.paymentRef || 'N/A';
+            if (trackEl) trackEl.textContent = data.track || 'Track C · Practical Experience';
+            if (totalEl) totalEl.textContent = `₦${totalPkg.toLocaleString()}`;
+            if (depEl) depEl.textContent = `- ₦${depAmount.toLocaleString()}`;
+            if (dueEl) dueEl.textContent = `₦${balDue.toLocaleString()}`;
+            if (btnEl) btnEl.textContent = `Pay ₦${balDue.toLocaleString()} Remaining Balance →`;
 
             stageBal.scrollIntoView({ behavior: 'smooth', block: 'start' });
             return true;
@@ -555,14 +635,17 @@
             noticeEl.style.border = '1.5px solid #FDE047';
             noticeEl.style.color = '#854D0E';
           }
-          if (noticeTitle) noticeTitle.textContent = 'Track C Deposit Verified (₦25,000 Paid)';
+          const depAmt = data.depositAmount || 30000;
+          const balAmt = data.balanceDue || 30000;
+          const userTrack = data.track || 'Track C - Practical Experience';
+          if (noticeTitle) noticeTitle.textContent = `${userTrack} Deposit Verified (₦${depAmt.toLocaleString()} Paid)`;
           if (noticeText) {
-            noticeText.textContent = `Welcome back, ${data.name.split(' ')[0]}! You have an active Track C lock-in deposit (₦25,000 paid). You can clear your remaining ₦125,000 balance directly below or switch tracks if you prefer.`;
+            noticeText.textContent = `Welcome back, ${data.name.split(' ')[0]}! You have an active deposit of ₦${depAmt.toLocaleString()} paid for ${userTrack}. Track switching is not permitted for active deposit holders. Please complete your remaining balance of ₦${balAmt.toLocaleString()} below.`;
           }
           if (noticeActions) {
             noticeActions.innerHTML = `
               <button type="button" class="btn btn-primary" id="btn-quick-balance" style="font-size: 12.5px; padding: 8px 16px; white-space: nowrap;">
-                Pay ₦125,000 Balance →
+                Pay ₦${balAmt.toLocaleString()} Balance →
               </button>
             `;
             document.getElementById('btn-quick-balance')?.addEventListener('click', () => {
@@ -637,7 +720,21 @@
           if (data.name) nameInput.value = data.name;
         }
         if (whatsappInput && (!whatsappInput.value || whatsappInput.value.trim() === '')) {
-          if (data.whatsapp) whatsappInput.value = data.whatsapp;
+          if (data.whatsapp) {
+            whatsappInput.value = data.whatsapp;
+            const badgeEl = document.getElementById('whatsapp-verified-badge');
+            if (badgeEl && (data.whatsapp.includes('•') || data.whatsapp.includes('*'))) {
+              badgeEl.style.display = 'inline-flex';
+            }
+          }
+        }
+        if (whatsappInput) {
+          whatsappInput.addEventListener('input', () => {
+            const badgeEl = document.getElementById('whatsapp-verified-badge');
+            if (badgeEl && !whatsappInput.value.includes('•') && !whatsappInput.value.includes('*')) {
+              badgeEl.style.display = 'none';
+            }
+          });
         }
         if (cityInput && (!cityInput.value || cityInput.value.trim() === '')) {
           if (data.city) cityInput.value = data.city;
@@ -648,8 +745,9 @@
         if (occInput && (!occInput.value || occInput.value.trim() === '')) {
           if (data.occupation) occInput.value = data.occupation;
         }
+        const isLegacyTrack = data.track && (data.track.includes('Track 1') || data.track.includes('Track 2'));
         if (trackSelect && (!trackSelect.value || trackSelect.value.trim() === '')) {
-          if (data.track) {
+          if (data.track && !isLegacyTrack) {
             trackSelect.value = data.track;
           } else if (data.interest) {
             const intLower = data.interest.toLowerCase();
@@ -663,28 +761,114 @@
           }
         }
 
+        const isTrueDeposit = state === 'DEPOSIT_PAID' && !isLegacyTrack && (data.track?.includes('Track A') || data.track?.includes('Track B') || data.track?.includes('Track C'));
+
+        if (isTrueDeposit) {
+          if (trackSelect) {
+            trackSelect.value = data.track;
+            trackSelect.style.pointerEvents = 'none';
+            trackSelect.style.background = 'var(--paper-dim, #F7F5F0)';
+          }
+          const trackLockedBadge = document.getElementById('track-deposit-locked-badge');
+          if (trackLockedBadge) trackLockedBadge.style.display = 'inline-flex';
+          const switchWarningEl = document.getElementById('deposit-switch-warning');
+          if (switchWarningEl) switchWarningEl.style.display = 'none';
+        } else {
+          if (trackSelect) {
+            trackSelect.style.pointerEvents = 'auto';
+            trackSelect.style.background = '';
+          }
+          const trackLockedBadge = document.getElementById('track-deposit-locked-badge');
+          if (trackLockedBadge) trackLockedBadge.style.display = 'none';
+        }
+
         renderTrackCOfferUI();
         updateTrackSwitchWarning();
       }
 
+      function setFieldsLockedState(mode) {
+        const subsequentEl = document.getElementById('subsequent-fields');
+        const lockNoticeEl = document.getElementById('fields-locked-notice');
+        const unlockBtn = document.getElementById('btn-unlock-details');
+        const personalInputs = ['name', 'whatsapp', 'city', 'age', 'occupation'];
+
+        if (mode === 'gated') {
+          if (subsequentEl) {
+            subsequentEl.classList.add('is-locked');
+            subsequentEl.classList.remove('is-verified-locked');
+          }
+          if (lockNoticeEl) lockNoticeEl.style.display = 'block';
+          if (unlockBtn) unlockBtn.style.display = 'none';
+        } else if (mode === 'verified_locked') {
+          if (subsequentEl) {
+            subsequentEl.classList.remove('is-locked');
+            subsequentEl.classList.add('is-verified-locked');
+          }
+          if (lockNoticeEl) lockNoticeEl.style.display = 'none';
+          personalInputs.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+              el.setAttribute('readonly', 'true');
+              if (el.tagName === 'SELECT') el.style.pointerEvents = 'none';
+            }
+          });
+          if (unlockBtn) unlockBtn.style.display = 'inline-block';
+        } else { // 'unlocked'
+          if (subsequentEl) {
+            subsequentEl.classList.remove('is-locked');
+            subsequentEl.classList.remove('is-verified-locked');
+          }
+          if (lockNoticeEl) lockNoticeEl.style.display = 'none';
+          personalInputs.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+              el.removeAttribute('readonly');
+              if (el.tagName === 'SELECT') el.style.pointerEvents = 'auto';
+            }
+          });
+          if (unlockBtn) unlockBtn.style.display = 'none';
+        }
+      }
+
+      document.getElementById('btn-unlock-details')?.addEventListener('click', () => {
+        setFieldsLockedState('unlocked');
+        document.getElementById('name')?.focus();
+      });
+
       let isApplicantLookupActive = false;
       async function checkReturningApplicant() {
         const emailInput = document.getElementById('email');
+        const statusBox = document.getElementById('email-status-box');
         if (!emailInput) return;
         const val = (emailInput.value || '').trim();
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) return;
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+          setFieldsLockedState('gated');
+          if (statusBox) {
+            statusBox.innerHTML = '<i class="fa-solid fa-shield-check" style="color:var(--rust);"></i> Enter your email — we automatically check your eligibility for webinar discounts, prior credits, or existing registrations.';
+          }
+          return;
+        }
         if (isApplicantLookupActive) return;
 
         isApplicantLookupActive = true;
+        if (statusBox) {
+          statusBox.innerHTML = '<span class="email-status-indicator loading"><i class="fa-solid fa-spinner fa-spin"></i> Checking registration record...</span>';
+        }
+
         try {
           const res = await fetch(`/api/v1/university/application/lookup?email=${encodeURIComponent(val)}`);
           if (!res.ok) {
             isApplicantLookupActive = false;
+            setFieldsLockedState('unlocked');
             return;
           }
           const json = await res.json();
           if (json && json.found && json.data) {
             handleApplicantRecognition(json);
+            setFieldsLockedState('verified_locked');
+            if (statusBox) {
+              statusBox.innerHTML = '<span class="email-status-indicator verified"><i class="fa-solid fa-circle-check"></i> Verified record on file · Details loaded &amp; locked</span>';
+            }
           } else {
             currentApplicantState = null;
             currentApplicantData = null;
@@ -692,10 +876,15 @@
             if (noticeEl) noticeEl.style.display = 'none';
             const switchWarningEl = document.getElementById('deposit-switch-warning');
             if (switchWarningEl) switchWarningEl.style.display = 'none';
+            setFieldsLockedState('unlocked');
+            if (statusBox) {
+              statusBox.innerHTML = '<span class="email-status-indicator new"><i class="fa-solid fa-user-plus"></i> New applicant · Fill your details below to continue</span>';
+            }
             renderTrackCOfferUI();
           }
         } catch (err) {
           console.error('Silent applicant lookup error:', err);
+          setFieldsLockedState('unlocked');
         } finally {
           isApplicantLookupActive = false;
         }
@@ -762,6 +951,7 @@
       document.getElementById('btn-pay-balance')?.addEventListener('click', async function () {
         if (!currentBalanceData) return;
         const btn = document.getElementById('btn-pay-balance');
+        const balDue = currentBalanceData.balanceDue || 80000;
         btn.disabled = true;
         btn.textContent = 'Opening Secure Checkout...';
 
@@ -778,8 +968,9 @@
               handler.newTransaction({
                 key: paystackKey,
                 email: currentBalanceData.email,
-                amount: 125000 * 100, // ₦125,000 in kobo
+                amount: balDue * 100, // in kobo
                 currency: 'NGN',
+                channels: ['bank_transfer'],
                 ref: 'UPW_BAL_' + Math.floor((Math.random() * 1000000000) + 1),
                 metadata: {
                   paymentKind: 'ACADEMY_TUITION_BALANCE',
@@ -788,7 +979,7 @@
                   custom_fields: [
                     { display_name: "Applicant Name", variable_name: "applicant_name", value: currentBalanceData.name },
                     { display_name: "Original Deposit Ref", variable_name: "original_deposit_ref", value: currentBalanceData.paymentRef },
-                    { display_name: "Balance Payment", variable_name: "balance_payment", value: "₦125,000" }
+                    { display_name: "Balance Payment", variable_name: "balance_payment", value: `₦${balDue.toLocaleString()}` }
                   ]
                 },
                 onSuccess: async function (response) {
@@ -800,16 +991,16 @@
                         paymentRef: currentBalanceData.paymentRef,
                         email: currentBalanceData.email,
                         balancePaymentRef: response.reference,
-                        amountPaid: 125000
+                        amountPaid: balDue
                       })
                     });
                   } catch (e) { }
                   const firstName = encodeURIComponent((currentBalanceData.name || '').split(' ')[0] || '');
-                  window.location.href = `/academy/thank-you?ref=${encodeURIComponent(response.reference)}&name=${firstName}&balancePaid=true&amount=125000`;
+                  window.location.href = `/academy/thank-you?ref=${encodeURIComponent(response.reference)}&name=${firstName}&balancePaid=true&amount=${balDue}`;
                 },
                 onCancel: function () {
                   btn.disabled = false;
-                  btn.textContent = 'Pay ₦125,000 Remaining Balance →';
+                  btn.textContent = `Pay ₦${balDue.toLocaleString()} Remaining Balance →`;
                 }
               });
             }
@@ -821,7 +1012,7 @@
             script.onload = startBalancePayment;
             script.onerror = () => {
               btn.disabled = false;
-              btn.textContent = 'Pay ₦125,000 Remaining Balance →';
+              btn.textContent = `Pay ₦${balDue.toLocaleString()} Remaining Balance →`;
             };
             document.body.appendChild(script);
           } else {
@@ -830,7 +1021,7 @@
         } catch (err) {
           console.error('Balance payment error:', err);
           btn.disabled = false;
-          btn.textContent = 'Pay ₦125,000 Remaining Balance →';
+          btn.textContent = `Pay ₦${balDue.toLocaleString()} Remaining Balance →`;
         }
       });
 
@@ -1039,6 +1230,7 @@
                 email: payload.email,
                 amount: pricing.amountNaira * 100,
                 currency: 'NGN',
+                channels: ['bank_transfer'],
                 ref: 'UPW_APP_' + Math.floor((Math.random() * 1000000000) + 1),
                 metadata: {
                   paymentKind: 'ACADEMY_APPLICATION',
