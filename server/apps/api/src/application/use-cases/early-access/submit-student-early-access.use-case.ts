@@ -43,6 +43,51 @@ export class SubmitStudentEarlyAccessUseCase {
     const normalizedPhone = normalizePhoneNumber(command.whatsapp)
     const normalizedEmail = normalizeEmail(command.email) || command.email
 
+    const isAttendanceCheckin = Boolean(
+      (command.track && command.track.toLowerCase().includes('attended')) ||
+      (command.sourceIdentifier && command.sourceIdentifier.startsWith('webinar_join_'))
+    )
+
+    // For attendees checking into the live webinar
+    if (isAttendanceCheckin) {
+      const platform = command.track?.includes('YouTube') ? 'YouTube Live' : 'Google Meet'
+      const attendanceTag = `[Attended: ${platform}]`
+
+      const existing = await this.earlyAccessRepo.findByEmailOrPhone(normalizedEmail, normalizedPhone)
+      if (existing) {
+        const currentInterest = existing.interest || ''
+        if (!currentInterest.includes('[Attended:')) {
+          existing.updateInterest(`${currentInterest} ${attendanceTag}`.trim())
+          const updated = await this.earlyAccessRepo.update(existing)
+          return updated
+        }
+        return existing
+      }
+
+      const fallbackName = (normalizedEmail?.split('@')[0]) || 'Webinar Attendee'
+      const cleanName = (command.name && command.name.trim().length > 0 && command.name !== 'undefined')
+        ? command.name.trim()
+        : fallbackName
+      const cleanPhone = normalizedPhone || command.whatsapp || 'N/A'
+      const cleanCity = (command.city && command.city.trim().length > 0) ? command.city.trim() : 'Online'
+
+      const directEntry = EarlyAccessEntry.create({
+        type: 'STUDENT',
+        name: cleanName,
+        whatsapp: cleanPhone,
+        email: normalizedEmail || null,
+        city: cleanCity,
+        ageBracket: command.ageBracket || null,
+        experienceLevel: command.experienceLevel || null,
+        interest: `[Track: Property Management & Brokerage Webinar] ${attendanceTag} Direct Attendee`,
+        sourceIdentifier: command.sourceIdentifier || 'webinar_join_direct',
+        abVariant: command.abVariant || 'A',
+      })
+
+      const savedDirect = await this.earlyAccessRepo.save(directEntry)
+      return savedDirect
+    }
+
     const interestParts: string[] = []
     if (command.track) {
       interestParts.push(`[Track: ${command.track}]`)
@@ -76,8 +121,8 @@ export class SubmitStudentEarlyAccessUseCase {
       })
     }
 
-    // 1. Send applicant confirmation email
-    if (command.email) {
+    // 1. Send applicant confirmation email (skip if this is just a live attendance check-in)
+    if (command.email && !isAttendanceCheckin) {
       try {
         const firstName = command.name.trim().split(' ')[0] || 'there'
         const isWebinar = Boolean(
@@ -95,7 +140,7 @@ export class SubmitStudentEarlyAccessUseCase {
           title = 'Your Webinar Spot is Confirmed'
 
           const whatsappCommunityUrl = 'https://chat.whatsapp.com/EVzHouLPtchBFxv2TOb3ra'
-          const joinWebinarUrl = 'https://upward.goodtenants.io/webinar/join'
+          const joinWebinarUrl = `https://upward.goodtenants.io/webinar/join?email=${encodeURIComponent(command.email)}&phone=${encodeURIComponent(command.whatsapp)}`
           const admissionsWhatsAppUrl = 'https://wa.me/2348104332040?text=Hi%20Upward%20Academy%2C%20I%20have%20a%20question%20about%20the%20webinar.'
 
           contentHtml = `
@@ -229,13 +274,14 @@ export class SubmitStudentEarlyAccessUseCase {
       }
     }
 
-    // 2. Send Admin System Notification
-    try {
-      const isInfoSession = Boolean(
-        command.sessionTime &&
-        command.sessionTime !== "I don't need an info session" &&
-        command.sessionTime.trim().length > 0
-      )
+    // 2. Send Admin System Notification (skip for live attendance check-in)
+    if (!isAttendanceCheckin) {
+      try {
+        const isInfoSession = Boolean(
+          command.sessionTime &&
+          command.sessionTime !== "I don't need an info session" &&
+          command.sessionTime.trim().length > 0
+        )
 
       const adminSubject = isInfoSession
         ? `📅 [Info Session RSVP] ${command.name} (${command.city})${command.sessionTime ? ` — ${command.sessionTime}` : ''}`
@@ -284,7 +330,8 @@ export class SubmitStudentEarlyAccessUseCase {
     } catch (err) {
       this.logger.error('Failed to send student early access admin system alert', err)
     }
-
-    return saved
   }
+
+  return saved
+}
 }

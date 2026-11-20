@@ -78,6 +78,11 @@ export class EarlyAccessEntry {
   get interest(): string | null | undefined {
     return this.props.interest
   }
+
+  updateInterest(newInterest: string): void {
+    this.props.interest = newInterest
+    this.props.updatedAt = new Date()
+  }
   get propertyCount(): string | null | undefined {
     return this.props.propertyCount
   }

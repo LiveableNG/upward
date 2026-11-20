@@ -12,6 +12,8 @@ export interface ParsedSessionDetails {
   cleanNotes: string
   funnelStatus: string
   rawSession: string
+  attendedStatus: 'Google Meet' | 'YouTube Live' | 'None'
+  attendedAt?: string
 }
 
 /**
@@ -175,11 +177,29 @@ export function parseSessionAndTrack(data: {
     }
   }
 
-  // 5. Clean Attendee Notes (strip out serialized bracket tags)
+  // 5. Detect Webinar Attendance Check-in
+  let attendedStatus: 'Google Meet' | 'YouTube Live' | 'None' = 'None'
+  let attendedAt: string | undefined = undefined
+  const attendedMatch = interestRaw.match(/\[Attended:\s*([^\]]+)\]/i)
+  if (attendedMatch) {
+    const rawVal = attendedMatch[1].trim()
+    if (/meet/i.test(rawVal)) {
+      attendedStatus = 'Google Meet'
+    } else if (/youtube/i.test(rawVal)) {
+      attendedStatus = 'YouTube Live'
+    }
+    const atMatch = rawVal.match(/at\s+([\d-T:.Z]+)/i)
+    if (atMatch) {
+      attendedAt = atMatch[1]
+    }
+  }
+
+  // 6. Clean Attendee Notes (strip out serialized bracket tags)
   let cleanNotes = interestRaw
     .replace(/\[Track:\s*[^\]]+\]/gi, '')
     .replace(/\[Session:\s*[^\]]+\]/gi, '')
     .replace(/\[Track\s*[12][^\]]*\]/gi, '')
+    .replace(/\[Attended:\s*[^\]]+\]/gi, '')
     .trim()
 
   if (!cleanNotes || cleanNotes === 'Info Session Attendee' || cleanNotes.startsWith('Drop-off Stage 1')) {
@@ -197,6 +217,8 @@ export function parseSessionAndTrack(data: {
     cleanNotes,
     funnelStatus,
     rawSession: sessionString || 'None',
+    attendedStatus,
+    attendedAt,
   }
 }
 
@@ -221,6 +243,14 @@ export function matchesSessionFilter(
     case 'WEBINAR_NOV_21':
     case '21st November 2026':
       return /21st\s*november|nov\s*21|21\s*nov/i.test(fullText)
+    case 'WEBINAR_ATTENDED':
+      return parsed.attendedStatus !== 'None' || /attended:\s*(google meet|youtube)/i.test(fullText)
+    case 'WEBINAR_ATTENDED_MEET':
+      return parsed.attendedStatus === 'Google Meet' || /attended:\s*google meet/i.test(fullText)
+    case 'WEBINAR_ATTENDED_YOUTUBE':
+      return parsed.attendedStatus === 'YouTube Live' || /attended:\s*youtube/i.test(fullText)
+    case 'WEBINAR_REGISTERED_ONLY':
+      return /21st\s*november|nov\s*21|21\s*nov/i.test(fullText) && parsed.attendedStatus === 'None' && !/attended:/i.test(fullText)
     case 'WEBINAR_ALL':
       return /webinar|21st\s*november/i.test(fullText)
     case 'ONLINE_ALL':
@@ -372,6 +402,7 @@ export function exportEarlyAccessToCsv(records: EarlyAccessRecord[], filename?: 
     'Session Day / City',
     'Session Venue',
     'Session Date & Time',
+    'Webinar Attendance',
     'Referral / Traffic Source',
     'Notes / Reason for Interest',
   ]
@@ -387,6 +418,10 @@ export function exportEarlyAccessToCsv(records: EarlyAccessRecord[], filename?: 
       ? `${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}, ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`
       : 'N/A'
 
+    const attendedLabel = parsed.attendedStatus !== 'None'
+      ? `Attended (${parsed.attendedStatus})${parsed.attendedAt ? ` at ${parsed.attendedAt}` : ''}`
+      : (/21st\s*november|nov\s*21|21\s*nov/i.test(rec.interest || '') ? 'Registered (Did Not Check In)' : 'N/A')
+
     return [
       { val: dateFormatted },
       { val: 'Student Cohort' },
@@ -401,6 +436,7 @@ export function exportEarlyAccessToCsv(records: EarlyAccessRecord[], filename?: 
       { val: parsed.sessionDay },
       { val: parsed.sessionVenue },
       { val: parsed.sessionDateTime },
+      { val: attendedLabel },
       { val: rec.sourceIdentifier || 'Direct' },
       { val: parsed.cleanNotes },
     ]
