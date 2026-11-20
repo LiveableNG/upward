@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 import { Modal } from '../../../components/common/modal/Modal'
 import type { UniversityApplicationRecord } from '../types'
-import { parseSessionAndTrack } from '../sessionExportUtils'
+import { getTrackBadgeMeta, parseSessionAndTrack } from '../sessionExportUtils'
 
 interface ApplicationDetailModalProps {
   isOpen: boolean
@@ -35,15 +35,17 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
   const rawTrack =
     application?.track ||
     application?.notes?.match(/\[Track:\s*([^\]]+)\]/i)?.[1] ||
-    application?.experienceLevel?.match(/\[(Track\s*[12][^\]]*)\]/i)?.[1] ||
+    application?.experienceLevel?.match(/\[(Track\s*[A-D12][^\]]*)\]/i)?.[1] ||
     application?.goals?.match(/Track:\s*([^\n,]+)/i)?.[1] ||
-    'Track 1'
+    ''
 
-  const isTrack2 =
-    rawTrack.toLowerCase().includes('2') || rawTrack.toLowerCase().includes('started')
-  const trackLabel = isTrack2
-    ? 'Track 2 — Already Started'
-    : 'Track 1 — Starting From Zero'
+  const parsedTrack = parseSessionAndTrack({
+    track: rawTrack,
+    experienceLevel: application?.experienceLevel,
+    interest: application?.notes,
+  })
+  const badgeMeta = getTrackBadgeMeta(parsedTrack.trackCode)
+  const trackLabel = parsedTrack.track !== 'Not Specified' ? parsedTrack.track : (rawTrack || 'Not Specified')
 
   return (
     <Modal
@@ -116,16 +118,16 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
             </div>
             <div
               style={{
-                background: isTrack2 ? '#f0fdf4' : '#eff6ff',
+                background: badgeMeta.background,
                 padding: '12px',
                 borderRadius: '8px',
-                border: `1px solid ${isTrack2 ? '#bbf7d0' : '#bfdbfe'}`,
+                border: `1px solid ${badgeMeta.border}`,
               }}
             >
               <div
                 style={{
                   fontSize: '11px',
-                  color: isTrack2 ? '#15803d' : '#1d4ed8',
+                  color: badgeMeta.color,
                   textTransform: 'uppercase',
                   fontWeight: 700,
                 }}
@@ -136,11 +138,11 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                 style={{
                   fontWeight: 700,
                   marginTop: '2px',
-                  color: isTrack2 ? '#15803d' : '#1d4ed8',
+                  color: badgeMeta.color,
                   fontSize: '13px',
                 }}
               >
-                {isTrack2 ? 'Track 2' : 'Track 1'}
+                {badgeMeta.label}
               </div>
             </div>
             <div
@@ -185,9 +187,9 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
               </span>
               <div
                 style={{
-                  background: isTrack2 ? '#f0fdf4' : '#fff7ed',
-                  color: isTrack2 ? '#166534' : '#9a3412',
-                  border: `1.5px solid ${isTrack2 ? '#bbf7d0' : '#ffedd5'}`,
+                  background: badgeMeta.background,
+                  color: badgeMeta.color,
+                  border: `1.5px solid ${badgeMeta.border}`,
                   padding: '10px 14px',
                   borderRadius: '8px',
                   marginTop: '4px',
@@ -198,7 +200,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                   gap: '8px',
                 }}
               >
-                <Compass size={16} color={isTrack2 ? '#166534' : '#c2410c'} />
+                <Compass size={16} color={badgeMeta.color} />
                 <span>{trackLabel}</span>
               </div>
             </div>

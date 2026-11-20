@@ -743,6 +743,15 @@
       padding: 12px 14px;
     }
 
+    .track-compare-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+      flex-wrap: wrap;
+    }
+
     .track-compare-badge {
       font: 700 10px var(--mono, monospace);
       text-transform: uppercase;
@@ -752,7 +761,19 @@
       display: inline-block;
       padding: 2px 6px;
       border-radius: 4px;
-      margin-bottom: 6px;
+    }
+
+    .track-compare-price {
+      font: 800 12.5px 'Inter Tight', sans-serif;
+      color: var(--ink);
+    }
+
+    .track-compare-price .old-price {
+      font-weight: 500;
+      font-size: 11px;
+      color: var(--ink-muted);
+      text-decoration: line-through;
+      margin-left: 4px;
     }
 
     .track-compare-card h5 {
@@ -1469,7 +1490,7 @@
         <div class="apply-cohort-info">
           <i class="fa-solid fa-calendar-check"></i>
           <div>
-            <strong>Classes Commence: November 14, 2026</strong>
+            <strong>Classes Commence: December 5, 2026</strong>
             <span>10 Weeks · Hybrid (Lagos, Abuja, PH, Oyo)</span>
           </div>
         </div>
@@ -1478,9 +1499,9 @@
 
       <div class="fees-grid" id="apply-fees-grid">
         <div class="fee-card">
-          <span class="eyebrow">Programme fee</span>
-          <div class="fee-price">₦200,000</div>
-          <p>10 weeks · 6-8 hours/week · Hybrid</p>
+          <span class="eyebrow">Track fees</span>
+          <div class="fee-price">₦60,000 – ₦200,000</div>
+          <p>4 tracks · Foundation to Premium Networking</p>
         </div>
         <div class="fee-card featured">
           <span class="eyebrow">Application fee</span>
@@ -1491,7 +1512,7 @@
 
       <div class="apply-notice">
         <i class="fa-solid fa-circle-info"></i>
-        <div><strong>Before you apply:</strong> You should be able to commit 6-8 hours every week starting November 14,
+        <div><strong>Before you apply:</strong> You should be able to commit 6-8 hours every week starting December 5,
           2026 and be prepared to complete practical work and pursue real opportunities. Upward Academy does not
           guarantee income or employment.</div>
       </div>
@@ -1575,62 +1596,73 @@
                 <label for="track" style="margin-bottom:0;">
                   Choose Your Track <span class="req-asterisk">*</span>
                 </label>
-                <button type="button" class="track-info-btn" id="trackInfoBtn" aria-expanded="false" title="Explain difference between Track 1 and Track 2">
+                <button type="button" class="track-info-btn" id="trackInfoBtn" aria-expanded="false" title="Compare the 4 Academy tracks">
                   <i class="fa-solid fa-circle-info"></i>
-                  <span>Track comparison</span>
+                  <span>Compare tracks</span>
                 </button>
               </div>
 
               <!-- Track Explanation Popover -->
               <div class="track-info-popover" id="trackInfoBox" style="display:none;">
                 <div class="track-info-popover-header">
-                  <span class="track-info-popover-title"><i class="fa-solid fa-route"></i> Difference Between Track 1 &amp; Track 2</span>
+                  <span class="track-info-popover-title"><i class="fa-solid fa-route"></i> Compare the 4 Academy Tracks</span>
                   <button type="button" class="track-info-close-btn" id="trackInfoCloseBtn" title="Close comparison">&times;</button>
                 </div>
                 <div class="track-info-comparison-grid">
                   <div class="track-compare-card">
-                    <div class="track-compare-badge">Track 1</div>
-                    <h5>Starting From Zero</h5>
-                    <p>Designed for beginners, recent graduates, and career changers. Learn real estate foundations, agency operations, facility management, and tech tools from scratch. Includes hands-on practical training &amp; internship.</p>
+                    <div class="track-compare-top">
+                      <span class="track-compare-badge">Track A · Foundation</span>
+                      <span class="track-compare-price">₦60,000</span>
+                    </div>
+                    <h5>Discover Your Path</h5>
+                    <p>For beginners, recent graduates and anyone exploring new career opportunities. Includes professional PM training, Upward learning forum, free Upward PM software, and upgrade option.</p>
                   </div>
                   <div class="track-compare-card">
-                    <div class="track-compare-badge">Track 2</div>
-                    <h5>Already Started</h5>
-                    <p>Designed for active agents, surveyors, landlords, or property professionals wanting to scale into a serious firm. Learn business operating systems, automations, and property tech.</p>
+                    <div class="track-compare-top">
+                      <span class="track-compare-badge">Track B · Career Dev</span>
+                      <span class="track-compare-price">₦100,000</span>
+                    </div>
+                    <h5>Build Your Career</h5>
+                    <p>For graduates and career starters wanting guidance and practical pathways. Includes foundational PM training, soft skills, mentorship community, internship opportunity, forum &amp; PM software.</p>
+                  </div>
+                  <div class="track-compare-card">
+                    <div class="track-compare-top">
+                      <span class="track-compare-badge">Track C · Practical</span>
+                      <span class="track-compare-price">₦160,000 <span class="old-price">₦200,000</span></span>
+                    </div>
+                    <h5>Learn It. Experience It.</h5>
+                    <p>For direct exposure to property management operations. Includes training &amp; mentorship, priority internship consideration, on-site practical experience, and lunch during designated practical sessions.</p>
+                  </div>
+                  <div class="track-compare-card">
+                    <div class="track-compare-top">
+                      <span class="track-compare-badge">Track D · Networking</span>
+                      <span class="track-compare-price">₦200,000 <span class="old-price">₦250,000</span></span>
+                    </div>
+                    <h5>Connect. Collaborate. Grow.</h5>
+                    <p>For ambitious professionals and aspiring entrepreneurs. Includes exclusive mentors' dinner, co-innovation event invitations, professional networking, and training/experiential benefits where included.</p>
                   </div>
                 </div>
               </div>
 
               <select id="track" required>
                 <option value="">Select track</option>
-                <option value="Track 1">Track 1 — Starting From Zero</option>
-                <option value="Track 2">Track 2 — Already Started</option>
+                <option value="Track A - Foundation">Track A · Foundation — Discover Your Path (₦60,000)</option>
+                <option value="Track B - Career Development">Track B · Career Development — Build Your Career (₦100,000)</option>
+                <option value="Track C - Practical Experience">Track C · Practical Experience — Learn It. Experience It. (₦160,000 · 20% off)</option>
+                <option value="Track D - Premium Networking">Track D · Premium Networking — Connect. Collaborate. Grow. (₦200,000 · 20% off)</option>
               </select>
               <div class="error-text">Please choose your track</div>
             </div>
 
             <div class="field" id="field-session-time">
-              <label for="session_time">Building a Tech-Driven RE Career/Business Session <span
+              <label for="session_time">Upcoming Online Webinar / Info Session <span
                   class="req-asterisk">*</span></label>
               <select id="session_time" required>
-                <option value="">Select session &amp; attendance mode</option>
-                <optgroup label="Online Sessions (Open to Everyone: Lagos, Abuja, PH &amp; Nationwide)">
-                  <option value="Online (Open to All - Lagos, Abuja, PH) - 6:00 pm, Tuesday, October 13">Online (Zoom/Meet) - 6:00 PM, Tuesday, October 13 (All Cities)</option>
-                </optgroup>
-                <optgroup label="Offline In-Person Events (Abuja &amp; Port Harcourt)">
-                  <option value="Abuja (Physical) - 6:00 pm, Friday, October 16">Abuja (In-Person Event) - 6:00 PM, Friday, October 16</option>
-                  <option value="Port Harcourt (Physical) - 6:00 pm, Thursday, October 22">Port Harcourt (In-Person Event) - 6:00 PM, Thursday, October 22</option>
-                </optgroup>
-                <optgroup label="Upcoming City Sessions (Dates Coming Soon)">
-                  <option value="Oyo / Ibadan (Physical - Date Coming Soon)">Oyo / Ibadan (In-Person) - Date Coming Soon</option>
-                </optgroup>
-                <optgroup label="Past Sessions (Concluded)">
-                  <option disabled value="">Online (Zoom/Meet) - 9:00 AM, Saturday, October 10 (Concluded)</option>
-                  <option disabled value="">Lagos (In-Person / Yaba) - 10:00 AM, 30 Sep (Concluded)</option>
-                </optgroup>
+                <option value="">Select session option</option>
+                <option value="Saturday 21st November 2026 (Online Webinar)">Online Webinar / Info Session — Saturday, 21st November 2026 (Open Nationwide)</option>
                 <option value="I don't need an info session">I don't need an info session</option>
               </select>
-              <div class="error-text">Please select an information session option</div>
+              <div class="error-text">Please select a session option</div>
             </div>
 
             <div class="stage-nav-btns" style="justify-content: flex-end;">
@@ -1888,121 +1920,23 @@
       }));
     }
 
-    // Dynamic & Smart Session Times Population
+    // Active Webinar / Info Session Population (21st November 2026)
     function initApplySessionTimes() {
       const sessionSelect = document.getElementById('session_time');
       if (!sessionSelect) return;
 
-      const cohortEnd = new Date('2026-11-14T00:00:00+01:00');
-      const now = new Date();
+      sessionSelect.innerHTML = '';
 
-      const monthNames = [
-        'January', 'February', 'March', 'April', 'May', 'June',
-        'July', 'August', 'September', 'October', 'November', 'December'
-      ];
-      const monthShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const placeholderOpt = document.createElement('option');
+      placeholderOpt.value = '';
+      placeholderOpt.textContent = 'Select session option';
+      sessionSelect.appendChild(placeholderOpt);
 
-      const onlineSessions = [];
-      const cursor = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+      const webinarOpt = document.createElement('option');
+      webinarOpt.value = 'Saturday 21st November 2026 (Online Webinar)';
+      webinarOpt.textContent = 'Online Webinar / Info Session — Saturday, 21st November 2026 (Open Nationwide)';
+      sessionSelect.appendChild(webinarOpt);
 
-      while (cursor <= cohortEnd) {
-        const d = cursor.getDay();
-        if (d === 2) {
-          // Tuesday 6:00 PM
-          const sessionDate = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), 18, 0, 0);
-          if (sessionDate.getTime() > now.getTime() && sessionDate.getTime() <= cohortEnd.getTime()) {
-            const isToday = sessionDate.toDateString() === now.toDateString();
-            const diffDays = Math.round((sessionDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-            let rel = isToday ? 'Today · 6:00 PM' : (diffDays <= 7 ? 'This Coming Tue' : (diffDays <= 14 ? 'Next Week' : `In ${Math.ceil(diffDays / 7)} weeks`));
-            const mName = monthNames[sessionDate.getMonth()];
-            const mShort = monthShort[sessionDate.getMonth()];
-            const dNum = sessionDate.getDate();
-            onlineSessions.push({
-              value: `Online (Zoom/Meet) - 6:00 pm, Tuesday, ${mName} ${dNum}`,
-              label: `Online (Zoom/Meet) · 6:00 PM, Tue ${dNum} ${mShort} (${rel})`
-            });
-          }
-        } else if (d === 6) {
-          // Saturday 9:00 AM
-          const sessionDate = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), 9, 0, 0);
-          if (sessionDate.getTime() > now.getTime() && sessionDate.getTime() <= cohortEnd.getTime()) {
-            const isToday = sessionDate.toDateString() === now.toDateString();
-            const diffDays = Math.round((sessionDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-            let rel = isToday ? 'Today · 9:00 AM' : (diffDays <= 7 ? 'This Coming Sat' : (diffDays <= 14 ? 'Next Week' : `In ${Math.ceil(diffDays / 7)} weeks`));
-            const mName = monthNames[sessionDate.getMonth()];
-            const mShort = monthShort[sessionDate.getMonth()];
-            const dNum = sessionDate.getDate();
-            onlineSessions.push({
-              value: `Online (Zoom/Meet) - 9:00 am, Saturday, ${mName} ${dNum}`,
-              label: `Online (Zoom/Meet) · 9:00 AM, Sat ${dNum} ${mShort} (${rel})`
-            });
-          }
-        }
-        cursor.setDate(cursor.getDate() + 1);
-      }
-
-      const physicalSessions = [
-        {
-          value: 'Abuja (Physical) - 6:00 pm, Friday, October 16',
-          label: 'Abuja (In-Person Event) · 6:00 PM, Fri 16 Oct',
-          dateTime: '2026-10-16T18:00:00+01:00'
-        },
-        {
-          value: 'Port Harcourt (Physical) - 6:00 pm, Thursday, October 22',
-          label: 'Port Harcourt (In-Person Event) · 6:00 PM, Thu 22 Oct',
-          dateTime: '2026-10-22T18:00:00+01:00'
-        },
-        {
-          value: 'Oyo / Ibadan (Physical - Date Coming Soon)',
-          label: 'Oyo / Ibadan (In-Person) · Date Coming Soon',
-          isComingSoon: true
-        },
-        {
-          value: 'Lagos (In-Person / Yaba) - 10:00 AM, 30 Sep (Concluded)',
-          label: 'Lagos (In-Person / Yaba) · 10:00 AM, 30 Sep (Concluded)',
-          dateTime: '2026-09-30T10:00:00+01:00'
-        }
-      ];
-
-      sessionSelect.innerHTML = '<option value="">Select session &amp; attendance mode</option>';
-
-      // Online Group
-      const onlineGroup = document.createElement('optgroup');
-      onlineGroup.label = 'Online Sessions (Recurring Tuesdays & Saturdays - Nationwide)';
-      onlineSessions.forEach(s => {
-        const opt = document.createElement('option');
-        opt.value = s.value;
-        opt.textContent = s.label;
-        onlineGroup.appendChild(opt);
-      });
-      sessionSelect.appendChild(onlineGroup);
-
-      // Physical Group
-      const physicalGroup = document.createElement('optgroup');
-      physicalGroup.label = 'Offline In-Person Events (Abuja, Port Harcourt & Ibadan)';
-      const pastGroup = document.createElement('optgroup');
-      pastGroup.label = 'Past Sessions (Concluded)';
-
-      physicalSessions.forEach(item => {
-        const isConcluded = item.dateTime && now.getTime() >= new Date(item.dateTime).getTime();
-        const opt = document.createElement('option');
-        opt.value = item.value;
-        if (isConcluded) {
-          opt.textContent = `${item.label}`;
-          opt.disabled = true;
-          pastGroup.appendChild(opt);
-        } else {
-          opt.textContent = item.label;
-          physicalGroup.appendChild(opt);
-        }
-      });
-
-      sessionSelect.appendChild(physicalGroup);
-      if (pastGroup.children.length > 0) {
-        sessionSelect.appendChild(pastGroup);
-      }
-
-      // No session option
       const noSessionOpt = document.createElement('option');
       noSessionOpt.value = "I don't need an info session";
       noSessionOpt.textContent = "I don't need an info session";
@@ -2105,16 +2039,20 @@
         });
       }
 
-      // Pre-fill Track Selection from URL parameter (e.g. ?track=track1 or ?track=track2)
+      // Pre-fill Track Selection from URL parameter (e.g. ?track=track-a, track-b, track-c, track-d)
       try {
         const urlParams = new URLSearchParams(window.location.search);
-        const trackParam = (urlParams.get('track') || '').toLowerCase();
+        const trackParam = (urlParams.get('track') || '').toLowerCase().trim();
         const trackEl = document.getElementById('track');
         if (trackEl && trackParam) {
-          if (trackParam === 'track2' || trackParam === '2' || trackParam.includes('started')) {
-            trackEl.value = 'Track 2';
-          } else if (trackParam === 'track1' || trackParam === '1' || trackParam.includes('zero')) {
-            trackEl.value = 'Track 1';
+          if (trackParam === 'track-d' || trackParam === 'd' || trackParam === '4' || trackParam.includes('network') || trackParam.includes('premium')) {
+            trackEl.value = 'Track D - Premium Networking';
+          } else if (trackParam === 'track-c' || trackParam === 'c' || trackParam === '3' || trackParam.includes('practical')) {
+            trackEl.value = 'Track C - Practical Experience';
+          } else if (trackParam === 'track-b' || trackParam === 'b' || trackParam === 'track2' || trackParam === '2' || trackParam.includes('career') || trackParam.includes('started')) {
+            trackEl.value = 'Track B - Career Development';
+          } else if (trackParam === 'track-a' || trackParam === 'a' || trackParam === 'track1' || trackParam === '1' || trackParam.includes('foundation') || trackParam.includes('zero')) {
+            trackEl.value = 'Track A - Foundation';
           }
         }
       } catch (err) {

@@ -1,9 +1,11 @@
 import { showToast } from '@upward/client-core'
 import type { EarlyAccessRecord, UniversityApplicationRecord } from './types'
 
+export type TrackCode = 'TRACK_A' | 'TRACK_B' | 'TRACK_C' | 'TRACK_D' | 'TRACK_1' | 'TRACK_2' | 'NONE'
+
 export interface ParsedSessionDetails {
   track: string
-  trackCode: 'TRACK_1' | 'TRACK_2' | 'NONE'
+  trackCode: TrackCode
   attendanceMode: 'Online' | 'In-Person' | 'None'
   sessionDay: string
   sessionVenue: string
@@ -12,6 +14,30 @@ export interface ParsedSessionDetails {
   cleanNotes: string
   funnelStatus: string
   rawSession: string
+}
+
+export function getTrackBadgeMeta(trackCode: TrackCode): {
+  label: string
+  background: string
+  color: string
+  border: string
+} {
+  switch (trackCode) {
+    case 'TRACK_A':
+      return { label: 'Track A · Foundation', background: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' }
+    case 'TRACK_B':
+      return { label: 'Track B · Career Dev', background: '#f0fdf4', color: '#166534', border: '#bbf7d0' }
+    case 'TRACK_C':
+      return { label: 'Track C · Practical', background: '#fff7ed', color: '#9a3412', border: '#fed7aa' }
+    case 'TRACK_D':
+      return { label: 'Track D · Networking', background: '#faf5ff', color: '#6b21a8', border: '#e9d5ff' }
+    case 'TRACK_2':
+      return { label: 'Track 2', background: '#f0fdf4', color: '#166534', border: '#bbf7d0' }
+    case 'TRACK_1':
+      return { label: 'Track 1', background: '#fff7ed', color: '#9a3412', border: '#ffedd5' }
+    default:
+      return { label: 'Not Specified', background: '#f3f4f6', color: '#4b5563', border: '#e5e7eb' }
+  }
 }
 
 /**
@@ -35,10 +61,22 @@ export function parseSessionAndTrack(data: {
 
   // 2. Parse Track
   let track = 'Not Specified'
-  let trackCode: 'TRACK_1' | 'TRACK_2' | 'NONE' = 'NONE'
+  let trackCode: TrackCode = 'NONE'
 
   const fullTrackSource = `${trackRaw} ${interestRaw} ${expRaw}`
-  if (/track[\s_-]*2|already\s*started/i.test(fullTrackSource)) {
+  if (/track[\s_-]*d\b|premium\s*networking/i.test(fullTrackSource)) {
+    track = 'Track D — Premium Networking (₦200,000)'
+    trackCode = 'TRACK_D'
+  } else if (/track[\s_-]*c\b|practical\s*experience/i.test(fullTrackSource)) {
+    track = 'Track C — Practical Experience (₦160,000)'
+    trackCode = 'TRACK_C'
+  } else if (/track[\s_-]*b\b|career\s*development/i.test(fullTrackSource)) {
+    track = 'Track B — Career Development (₦100,000)'
+    trackCode = 'TRACK_B'
+  } else if (/track[\s_-]*a\b|track[\s_-]*a\s*-|\bfoundation\b/i.test(fullTrackSource)) {
+    track = 'Track A — Foundation (₦60,000)'
+    trackCode = 'TRACK_A'
+  } else if (/track[\s_-]*2|already\s*started/i.test(fullTrackSource)) {
     track = 'Track 2 (Already Started)'
     trackCode = 'TRACK_2'
   } else if (/track[\s_-]*1|starting\s*from\s*zero/i.test(fullTrackSource)) {

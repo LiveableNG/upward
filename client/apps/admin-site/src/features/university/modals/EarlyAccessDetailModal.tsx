@@ -11,7 +11,7 @@ import {
 } from 'lucide-react'
 import { Modal } from '../../../components/common/modal/Modal'
 import type { EarlyAccessRecord } from '../types'
-import { parseSessionAndTrack } from '../sessionExportUtils'
+import { getTrackBadgeMeta, parseSessionAndTrack } from '../sessionExportUtils'
 
 interface EarlyAccessDetailModalProps {
   isOpen: boolean
@@ -214,31 +214,34 @@ export const EarlyAccessDetailModal: React.FC<EarlyAccessDetailModalProps> = ({
                 })
                 return (
                   <>
-                    {parsed.trackCode !== 'NONE' && (
-                      <div style={{ marginTop: '12px' }}>
-                        <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
-                          Selected Track:
-                        </span>
-                        <div
-                          style={{
-                            background: parsed.trackCode === 'TRACK_2' ? '#f0fdf4' : '#fff7ed',
-                            color: parsed.trackCode === 'TRACK_2' ? '#166534' : '#9a3412',
-                            border: `1px solid ${parsed.trackCode === 'TRACK_2' ? '#bbf7d0' : '#ffedd5'}`,
-                            padding: '10px 14px',
-                            borderRadius: '8px',
-                            marginTop: '4px',
-                            fontSize: '13px',
-                            fontWeight: 700,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                          }}
-                        >
-                          <Compass size={15} color={parsed.trackCode === 'TRACK_2' ? '#166534' : '#c2410c'} />
-                          <span>{parsed.track}</span>
+                    {parsed.trackCode !== 'NONE' && (() => {
+                      const badgeMeta = getTrackBadgeMeta(parsed.trackCode)
+                      return (
+                        <div style={{ marginTop: '12px' }}>
+                          <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                            Selected Track:
+                          </span>
+                          <div
+                            style={{
+                              background: badgeMeta.background,
+                              color: badgeMeta.color,
+                              border: `1px solid ${badgeMeta.border}`,
+                              padding: '10px 14px',
+                              borderRadius: '8px',
+                              marginTop: '4px',
+                              fontSize: '13px',
+                              fontWeight: 700,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                            }}
+                          >
+                            <Compass size={15} color={badgeMeta.color} />
+                            <span>{parsed.track}</span>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )
+                    })()}
 
                     <div style={{ marginTop: '12px' }}>
                       <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>

@@ -223,6 +223,26 @@
               <div class="field-error-msg">Please select your experience</div>
             </div>
 
+            <!-- Preferred Academy Track -->
+            <div class="field" id="field_webinar_track">
+              <div class="field-label-row">
+                <label for="webinar_track">Preferred Academy Track <span class="req">*</span></label>
+                <button type="button" class="track-compare-trigger" id="webinarTrackCompareBtn" aria-haspopup="dialog" aria-controls="trackCompareModal">
+                  <i class="fa-solid fa-circle-info"></i>
+                  <span>Compare tracks</span>
+                </button>
+              </div>
+              <select id="webinar_track" required>
+                <option value="">Select track</option>
+                <option value="Track A - Foundation">Track A · Foundation — ₦60,000</option>
+                <option value="Track B - Career Development">Track B · Career Development — ₦100,000</option>
+                <option value="Track C - Practical Experience">Track C · Practical Experience — ₦160,000 (20% off)</option>
+                <option value="Track D - Premium Networking">Track D · Premium Networking — ₦200,000 (20% off)</option>
+                <option value="Undecided (Webinar)">Not sure yet — I'll decide at the webinar</option>
+              </select>
+              <div class="field-error-msg">Please select your preferred track</div>
+            </div>
+
             <!-- Submit Button -->
             <button type="submit" class="btn btn-primary form-submit-btn" id="webinarSubmitBtn">
               <span>Register for Webinar →</span>
@@ -661,6 +681,128 @@
     <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
     Contact Us
   </button>
+
+  <!-- ==========================================================
+       TRACK COMPARISON MODAL / MOBILE BOTTOM SHEET
+       ========================================================== -->
+  <div class="track-modal-backdrop" id="trackCompareModal" role="dialog" aria-modal="true" aria-labelledby="trackCompareTitle" aria-hidden="true">
+    <div class="track-modal">
+      <div class="track-modal-header">
+        <div>
+          <h3 id="trackCompareTitle">Compare the 4 Academy Tracks</h3>
+          <p>Tap any track below to select it for your registration.</p>
+        </div>
+        <button type="button" class="track-modal-close" id="trackCompareCloseBtn" aria-label="Close track comparison">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="track-modal-body">
+        <div class="track-modal-grid">
+          <!-- Track A -->
+          <button type="button" class="track-modal-card" data-track-value="Track A - Foundation">
+            <div class="track-modal-top">
+              <span class="track-modal-badge">Track A · Foundation</span>
+              <span class="track-modal-tag">Start here</span>
+            </div>
+            <h4>Discover Your Path</h4>
+            <div class="track-modal-price">
+              <strong>₦60,000</strong>
+            </div>
+            <p class="track-modal-aud">For beginners, recent graduates and anyone exploring new career opportunities.</p>
+            <ul class="track-modal-list">
+              <li><i class="fa-solid fa-circle-check"></i><span>Professional property management training</span></li>
+              <li><i class="fa-solid fa-circle-check"></i><span>Access to the Upward learning forum</span></li>
+              <li><i class="fa-solid fa-circle-check"></i><span>Free access to Upward PM software</span></li>
+              <li><i class="fa-solid fa-circle-check"></i><span>Opportunity to upgrade to the next track</span></li>
+            </ul>
+            <div class="track-modal-select-cta">
+              <span class="select-label">Select Track A</span>
+              <i class="fa-solid fa-arrow-right"></i>
+            </div>
+          </button>
+
+          <!-- Track B -->
+          <button type="button" class="track-modal-card" data-track-value="Track B - Career Development">
+            <div class="track-modal-top">
+              <span class="track-modal-badge">Track B · Career Dev</span>
+            </div>
+            <h4>Build Your Career</h4>
+            <div class="track-modal-price">
+              <strong>₦100,000</strong>
+            </div>
+            <p class="track-modal-aud">For graduates and career starters who want professional guidance and a pathway to practical experience.</p>
+            <ul class="track-modal-list">
+              <li><i class="fa-solid fa-circle-check"></i><span>Foundational property management training</span></li>
+              <li><i class="fa-solid fa-circle-check"></i><span>Soft skills &amp; professional development</span></li>
+              <li><i class="fa-solid fa-circle-check"></i><span>Access to a mentorship community</span></li>
+              <li><i class="fa-solid fa-circle-check"></i><span>Internship opportunity</span></li>
+              <li><i class="fa-solid fa-circle-check"></i><span>Learning forum &amp; Upward PM software</span></li>
+            </ul>
+            <div class="track-modal-select-cta">
+              <span class="select-label">Select Track B</span>
+              <i class="fa-solid fa-arrow-right"></i>
+            </div>
+          </button>
+
+          <!-- Track C -->
+          <button type="button" class="track-modal-card" data-track-value="Track C - Practical Experience">
+            <div class="track-modal-top">
+              <span class="track-modal-badge">Track C · Practical</span>
+              <span class="track-modal-save">Save ₦40,000 · 20% off</span>
+            </div>
+            <h4>Learn It. Experience It.</h4>
+            <div class="track-modal-price">
+              <strong>₦160,000</strong>
+              <span class="old">₦200,000</span>
+            </div>
+            <p class="track-modal-aud">For people who want direct exposure to professional property management operations.</p>
+            <ul class="track-modal-list">
+              <li><i class="fa-solid fa-circle-check"></i><span>Professional training and mentorship</span></li>
+              <li><i class="fa-solid fa-circle-check"></i><span>Priority consideration for internships</span></li>
+              <li><i class="fa-solid fa-circle-check"></i><span>On-site practical experience</span></li>
+              <li><i class="fa-solid fa-circle-check"></i><span>Lunch during designated practical sessions</span></li>
+              <li><i class="fa-solid fa-circle-check"></i><span>Other lower-tier benefits, where included</span></li>
+            </ul>
+            <div class="track-modal-select-cta">
+              <span class="select-label">Select Track C</span>
+              <i class="fa-solid fa-arrow-right"></i>
+            </div>
+          </button>
+
+          <!-- Track D -->
+          <button type="button" class="track-modal-card" data-track-value="Track D - Premium Networking">
+            <div class="track-modal-top">
+              <span class="track-modal-badge">Track D · Networking</span>
+              <span class="track-modal-save">Save ₦50,000 · 20% off</span>
+            </div>
+            <h4>Connect. Collaborate. Grow.</h4>
+            <div class="track-modal-price">
+              <strong>₦200,000</strong>
+              <span class="old">₦250,000</span>
+            </div>
+            <p class="track-modal-aud">For ambitious professionals, aspiring entrepreneurs and people seeking meaningful industry connections.</p>
+            <ul class="track-modal-list">
+              <li><i class="fa-solid fa-circle-check"></i><span>Access to an exclusive mentors' dinner</span></li>
+              <li><i class="fa-solid fa-circle-check"></i><span>Invitations to co-innovation events</span></li>
+              <li><i class="fa-solid fa-circle-check"></i><span>Opportunities for professional networking</span></li>
+              <li><i class="fa-solid fa-circle-check"></i><span>Other training &amp; experiential benefits, where included</span></li>
+            </ul>
+            <div class="track-modal-select-cta">
+              <span class="select-label">Select Track D</span>
+              <i class="fa-solid fa-arrow-right"></i>
+            </div>
+          </button>
+        </div>
+
+        <div class="track-modal-footer">
+          <button type="button" class="track-modal-undecided-btn" data-track-value="Undecided (Webinar)">
+            Not sure yet — I'll decide at the webinar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Javascript -->
   <script src="/pages/university/webinar/webinar.js"></script>

@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 import type { ColumnDef } from '../../../components/common/table/DataTable'
 import type { UniversityApplicationRecord } from '../types'
-import { parseSessionAndTrack } from '../sessionExportUtils'
+import { getTrackBadgeMeta, parseSessionAndTrack } from '../sessionExportUtils'
 
 interface ApplicationColumnsOptions {
   onSelect: (row: UniversityApplicationRecord) => void
@@ -30,12 +30,15 @@ export const getApplicationColumns = ({
       const rawTrack =
         row.track ||
         row.notes?.match(/\[Track:\s*([^\]]+)\]/i)?.[1] ||
-        row.experienceLevel?.match(/\[(Track\s*[12][^\]]*)\]/i)?.[1] ||
+        row.experienceLevel?.match(/\[(Track\s*[A-D12][^\]]*)\]/i)?.[1] ||
         row.goals?.match(/Track:\s*([^\n,]+)/i)?.[1] ||
-        'Track 1'
-      const isTrack2 =
-        rawTrack.toLowerCase().includes('2') || rawTrack.toLowerCase().includes('started')
-      const trackBadge = isTrack2 ? 'Track 2' : 'Track 1'
+        ''
+      const parsedTrack = parseSessionAndTrack({
+        track: rawTrack,
+        experienceLevel: row.experienceLevel,
+        interest: row.notes,
+      })
+      const badgeMeta = getTrackBadgeMeta(parsedTrack.trackCode)
 
       return (
         <div>
@@ -51,13 +54,13 @@ export const getApplicationColumns = ({
                 fontWeight: 700,
                 padding: '2px 8px',
                 borderRadius: '999px',
-                background: isTrack2 ? '#f0fdf4' : '#eff6ff',
-                color: isTrack2 ? '#166534' : '#1d4ed8',
-                border: `1px solid ${isTrack2 ? '#bbf7d0' : '#bfdbfe'}`,
+                background: badgeMeta.background,
+                color: badgeMeta.color,
+                border: `1px solid ${badgeMeta.border}`,
               }}
             >
               <Compass size={11} />
-              {trackBadge}
+              {badgeMeta.label}
             </span>
             {(row.isScholarship || row.scholarshipVideoUrl) && (
               <span

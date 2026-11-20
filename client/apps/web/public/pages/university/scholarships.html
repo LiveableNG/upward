@@ -578,16 +578,112 @@
     .fee-card .amt {
       font-family: 'Fraunces', serif;
       font-weight: 700;
-      font-size: 36px;
-      margin-top: 10px;
+      font-size: 32px;
+      margin-top: 8px;
+      color: var(--ink);
+      line-height: 1.15;
+    }
+
+    .fee-amt-row {
+      display: flex;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .fee-amt-row .amt {
+      margin-top: 0;
+    }
+
+    .fee-old {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--ink-muted);
+      text-decoration: line-through;
+    }
+
+    .fee-save-pill {
+      font: 700 10.5px var(--mono);
+      color: #166534;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      padding: 2px 7px;
+      border-radius: 5px;
+    }
+
+    .fee-title {
+      font-family: 'Inter Tight', sans-serif;
+      font-weight: 800;
+      font-size: 18px;
+      color: var(--ink);
+      margin-top: 6px;
+    }
+
+    .fee-bullets {
+      list-style: none;
+      margin: 14px 0 0 0;
+      padding: 14px 0 0 0;
+      border-top: 1px solid var(--sand);
+      display: grid;
+      gap: 7px;
+    }
+
+    .fee-bullets li {
+      font-size: 13px;
+      color: var(--ink-soft);
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      line-height: 1.45;
+    }
+
+    .fee-bullets li i {
+      color: var(--rust);
+      font-size: 12px;
+      margin-top: 3px;
+      flex-shrink: 0;
+    }
+
+    .fee-cta-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 16px;
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--rust);
+    }
+
+    .fee-cta-link:hover {
+      text-decoration: underline;
+    }
+
+    .fee-reg-banner {
+      margin-top: 16px;
+      background: var(--paper-dim);
+      border: 1.5px solid var(--sand);
+      border-radius: var(--radius-md);
+      padding: 18px 22px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .fee-reg-banner .amt-sm {
+      font-family: 'Fraunces', serif;
+      font-weight: 700;
+      font-size: 24px;
       color: var(--ink);
     }
 
     .fee-card p {
-      font-size: 14px;
+      font-size: 13.5px;
       color: var(--ink-soft);
-      margin-top: 10px;
-      line-height: 1.55;
+      margin-top: 8px;
+      line-height: 1.5;
     }
 
     /* 3. SCHOLARSHIP STACK */
@@ -1086,14 +1182,14 @@
       <p class="lead">What's actually included, what it costs, and every way to bring that cost down - laid out plainly,
         no inflated numbers.</p>
       <div style="margin-top:20px; display:inline-flex; flex-wrap:wrap; gap:12px; align-items:center; background:var(--paper-dim); border:1.5px solid var(--sand); border-radius:12px; padding:12px 18px; font-size:13.5px; color:var(--ink);">
-        <span><i class="fa-solid fa-calendar-check" style="color:var(--rust); margin-right:6px;"></i><strong>Classes Start:</strong> Nov 14</span>
+        <span><i class="fa-solid fa-calendar-check" style="color:var(--rust); margin-right:6px;"></i><strong>Classes Start:</strong> Dec 5</span>
       </div>
     </div>
 
     <!-- 1. WHAT'S INCLUDED -->
     <section class="block">
       <h2>What's included</h2>
-      <p class="sublead">Everything below is part of the ₦200,000 programme fee - no line item is sold separately.</p>
+      <p class="sublead">Core programme benefits across Upward Academy — see each track below for exact inclusions and fees.</p>
       <div class="included-list">
         <div class="inc-row">
           <div>
@@ -1134,23 +1230,99 @@
     </section>
 
     <!-- 2. FEES -->
-    <section class="block">
-      <h2>Fees</h2>
+    <section class="block" id="track-fees">
+      <h2>Track fees</h2>
+      <p class="sublead">Four tracks designed for different stages — from foundational training to practical experience and premium networking.</p>
       <div class="fee-cards">
+        <!-- Track A -->
         <div class="fee-card">
           <div>
-            <div class="k">Registration Fee</div>
-            <div class="amt">₦5,000</div>
+            <div class="k">Track A · Foundation · Start here</div>
+            <div class="fee-title">Discover Your Path</div>
+            <div class="fee-amt-row">
+              <div class="amt">₦60,000</div>
+            </div>
+            <p>For beginners, recent graduates and anyone exploring new career opportunities.</p>
+            <ul class="fee-bullets">
+              <li><i class="fa-solid fa-circle-check"></i><span>Professional property management training</span></li>
+              <li><i class="fa-solid fa-circle-check"></i><span>Access to the Upward learning forum</span></li>
+              <li><i class="fa-solid fa-circle-check"></i><span>Free access to Upward PM software</span></li>
+              <li><i class="fa-solid fa-circle-check"></i><span>Opportunity to upgrade to the next track</span></li>
+            </ul>
           </div>
-          <p>A sign of seriousness and commitment. Refunded after the admissions process.</p>
+          <a href="/academy/apply?track=track-a" class="fee-cta-link">Apply for Track A <i class="fa-solid fa-arrow-right"></i></a>
         </div>
+
+        <!-- Track B -->
         <div class="fee-card">
           <div>
-            <div class="k">Standard Programme Fee</div>
-            <div class="amt">₦200,000</div>
+            <div class="k">Track B · Career Development</div>
+            <div class="fee-title">Build Your Career</div>
+            <div class="fee-amt-row">
+              <div class="amt">₦100,000</div>
+            </div>
+            <p>For graduates and career starters who want professional guidance and a pathway to practical experience.</p>
+            <ul class="fee-bullets">
+              <li><i class="fa-solid fa-circle-check"></i><span>Foundational property management training</span></li>
+              <li><i class="fa-solid fa-circle-check"></i><span>Soft skills and professional development training</span></li>
+              <li><i class="fa-solid fa-circle-check"></i><span>Access to a mentorship community</span></li>
+              <li><i class="fa-solid fa-circle-check"></i><span>Internship opportunity</span></li>
+              <li><i class="fa-solid fa-circle-check"></i><span>Access to the learning forum and Upward PM software</span></li>
+            </ul>
           </div>
-          <p>Covers the full programme - everything listed above.</p>
+          <a href="/academy/apply?track=track-b" class="fee-cta-link">Apply for Track B <i class="fa-solid fa-arrow-right"></i></a>
         </div>
+
+        <!-- Track C -->
+        <div class="fee-card">
+          <div>
+            <div class="k">Track C · Practical Experience</div>
+            <div class="fee-title">Learn It. Experience It.</div>
+            <div class="fee-amt-row">
+              <div class="amt">₦160,000</div>
+              <span class="fee-old">₦200,000</span>
+              <span class="fee-save-pill">Save ₦40,000 · 20% off</span>
+            </div>
+            <p>For people who want direct exposure to professional property management operations.</p>
+            <ul class="fee-bullets">
+              <li><i class="fa-solid fa-circle-check"></i><span>Professional training and mentorship</span></li>
+              <li><i class="fa-solid fa-circle-check"></i><span>Priority consideration for internship opportunities</span></li>
+              <li><i class="fa-solid fa-circle-check"></i><span>On-site practical experience</span></li>
+              <li><i class="fa-solid fa-circle-check"></i><span>Lunch during designated practical sessions</span></li>
+              <li><i class="fa-solid fa-circle-check"></i><span>Other lower-tier benefits, where included</span></li>
+            </ul>
+          </div>
+          <a href="/academy/apply?track=track-c" class="fee-cta-link">Apply for Track C <i class="fa-solid fa-arrow-right"></i></a>
+        </div>
+
+        <!-- Track D -->
+        <div class="fee-card">
+          <div>
+            <div class="k">Track D · Premium Networking</div>
+            <div class="fee-title">Connect. Collaborate. Grow.</div>
+            <div class="fee-amt-row">
+              <div class="amt">₦200,000</div>
+              <span class="fee-old">₦250,000</span>
+              <span class="fee-save-pill">Save ₦50,000 · 20% off</span>
+            </div>
+            <p>For ambitious professionals, aspiring entrepreneurs and people seeking meaningful industry connections.</p>
+            <ul class="fee-bullets">
+              <li><i class="fa-solid fa-circle-check"></i><span>Access to an exclusive mentors' dinner</span></li>
+              <li><i class="fa-solid fa-circle-check"></i><span>Invitations to co-innovation events</span></li>
+              <li><i class="fa-solid fa-circle-check"></i><span>Opportunities for professional networking</span></li>
+              <li><i class="fa-solid fa-circle-check"></i><span>Other training and experiential benefits, where included</span></li>
+            </ul>
+          </div>
+          <a href="/academy/apply?track=track-d" class="fee-cta-link">Apply for Track D <i class="fa-solid fa-arrow-right"></i></a>
+        </div>
+      </div>
+
+      <div class="fee-reg-banner">
+        <div>
+          <div style="font:600 11px var(--mono); text-transform:uppercase; letter-spacing:0.08em; color:var(--rust);">Registration Fee</div>
+          <p style="font-size:13.5px; color:var(--ink-soft); margin-top:4px;">A sign of seriousness and commitment. Credited toward your track fee if admitted, or refunded if not qualified.</p>
+        </div>
+        <div class="amt-sm">₦5,000</div>
       </div>
     </section>
 
@@ -1200,13 +1372,13 @@
       <h2>Payment plan</h2>
       <div class="plan-box">
         <p style="font-size:15px; color:var(--ink-soft); line-height:1.5;">Don't have the full fee upfront? Pay a
-          deposit to secure your seat and begin classes on November 14, then spread the remaining balance.</p>
+          deposit to secure your seat and begin classes on December 5, then spread the remaining balance.</p>
         <div class="plan-flow">
-          <span class="pill">Pay ₦75,000 deposit</span>
+          <span class="pill">Pay initial deposit</span>
           <span class="plan-arrow">&rarr;</span>
-          <span class="pill">Spread the balance</span>
+          <span class="pill">Start classes Dec 5</span>
           <span class="plan-arrow">&rarr;</span>
-          <span class="pill">Fully paid by December 7</span>
+          <span class="pill">Spread remaining balance</span>
         </div>
       </div>
     </section>
@@ -1230,7 +1402,7 @@
       <details open>
         <summary>When do classes commence?</summary>
         <p>Key date for the upcoming 2026 inaugural cohort:<br>
-          • <strong>Classes commence:</strong> November 14, 2026<br>
+          • <strong>Classes commence:</strong> December 5, 2026<br>
           Scholarships and admissions are reviewed on a rolling basis, so we encourage applicants to apply early to secure their seat.
         </p>
       </details>
@@ -1247,7 +1419,7 @@
       </details>
       <details>
         <summary>What if I can't pay the full fee at once?</summary>
-        <p>Pay a ₦75,000 deposit to secure your seat and start classes on November 14, then spread the remaining balance, fully paid by December 7.</p>
+        <p>You can pay an initial deposit to secure your seat and start classes on December 5, then spread the remaining balance according to your chosen track's payment schedule.</p>
       </details>
       <details>
         <summary>What happens to my ₦5,000 registration fee?</summary>

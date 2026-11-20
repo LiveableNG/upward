@@ -983,15 +983,16 @@
 
     .track-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 22px;
       margin-top: 36px;
       text-align: left;
     }
 
-    @media (max-width: 700px) {
+    @media (max-width: 860px) {
       .track-grid {
         grid-template-columns: 1fr;
+        gap: 18px;
       }
     }
 
@@ -999,32 +1000,28 @@
       background: var(--white);
       border: 1.5px solid var(--sand);
       border-radius: var(--radius-lg);
-      padding: 32px;
+      padding: 28px;
       box-shadow: 0 4px 20px -8px rgba(21, 22, 43, 0.06);
-      display: block;
+      display: flex;
+      flex-direction: column;
       position: relative;
-      cursor: pointer;
-      text-decoration: none;
       color: inherit;
-      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: border-color 0.22s ease, transform 0.22s ease, box-shadow 0.22s ease;
     }
 
     .track-card:hover {
       border-color: var(--rust);
-      transform: translateY(-4px);
-      box-shadow: 0 20px 42px -12px rgba(138, 74, 42, 0.18);
-    }
-
-    .track-card:active {
-      transform: translateY(-1px) scale(0.99);
+      transform: translateY(-3px);
+      box-shadow: 0 20px 42px -12px rgba(138, 74, 42, 0.14);
     }
 
     .track-header-row {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
-      margin-bottom: 8px;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
     }
 
     .track-tag {
@@ -1039,73 +1036,229 @@
       border-radius: 6px;
     }
 
-    .track-select-pill {
-      font-size: 11.5px;
-      font-weight: 700;
-      color: var(--rust);
-      background: var(--rust-wash);
-      padding: 5px 12px;
+    .track-badge-start {
+      font: 700 11px var(--mono);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--ink);
+      background: var(--paper-dim);
+      border: 1px solid var(--sand);
+      padding: 4px 10px;
       border-radius: 999px;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.2s ease;
     }
 
-    .track-card:hover .track-select-pill {
-      background: var(--rust);
-      color: #fff;
-    }
-
-    .track-select-pill i {
-      transition: transform 0.2s ease;
-    }
-
-    .track-card:hover .track-select-pill i {
-      transform: translateX(3px);
+    .track-badge-save {
+      font: 700 11px var(--mono);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #166534;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      padding: 4px 10px;
+      border-radius: 999px;
     }
 
     .track-card h3 {
       font-size: 22px;
-      margin-top: 14px;
+      line-height: 1.2;
       color: var(--ink);
-      letter-spacing: -0.01em;
+      letter-spacing: -0.02em;
+    }
+
+    .track-price-row {
+      display: flex;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .track-price-current {
+      font-family: 'Inter Tight', sans-serif;
+      font-size: 30px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--ink);
+      line-height: 1.1;
+    }
+
+    .track-price-old {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--ink-muted);
+      text-decoration: line-through;
+    }
+
+    .track-save-note {
+      font: 600 11.5px var(--mono);
+      color: #166534;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      padding: 2px 8px;
+      border-radius: 6px;
+    }
+
+    .track-audience {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--ink);
+      margin-top: 12px;
+      line-height: 1.45;
+    }
+
+    .track-narrative {
+      margin-top: 10px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--sand);
+    }
+
+    .track-hook {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--rust);
+      line-height: 1.45;
+      margin-bottom: 4px;
     }
 
     .track-sub {
-      font-size: 14px;
+      font-size: 13.5px;
       color: var(--ink-soft);
-      margin-top: 6px;
-      line-height: 1.5;
+      line-height: 1.55;
+    }
+
+    .track-section-label {
+      font: 700 11px var(--mono);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--ink-muted);
+      margin-top: 16px;
+      margin-bottom: 10px;
     }
 
     .track-list {
       list-style: none;
-      margin-top: 20px;
+      margin: 0 0 18px 0;
       padding: 0;
       display: grid;
-      gap: 12px;
+      gap: 9px;
     }
 
     .track-list li {
       font-size: 13.5px;
       position: relative;
       color: var(--ink-soft);
-      line-height: 1.5;
+      line-height: 1.45;
       display: flex;
       align-items: flex-start;
-      gap: 10px;
+      gap: 9px;
     }
 
     .track-check-icon {
       color: var(--rust);
-      font-size: 14px;
+      font-size: 13.5px;
       margin-top: 3px;
       flex-shrink: 0;
     }
 
     .track-list li strong {
       color: var(--ink);
+    }
+
+    .track-why-box {
+      margin-top: auto;
+      background: var(--paper);
+      border: 1px solid var(--sand);
+      border-radius: 12px;
+      padding: 13px 15px;
+    }
+
+    .track-why-label {
+      font: 700 10.5px var(--mono);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--rust);
+      margin-bottom: 4px;
+    }
+
+    .track-why-box p {
+      font-size: 13px;
+      color: var(--ink-soft);
+      line-height: 1.5;
+    }
+
+    .track-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    .track-btn-primary {
+      flex: 1 1 160px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 11px 16px;
+      border-radius: 999px;
+      background: var(--rust);
+      color: var(--white);
+      font-size: 13.5px;
+      font-weight: 700;
+      transition: all 0.2s ease;
+    }
+
+    .track-btn-primary:hover {
+      background: #723B20;
+      color: var(--white);
+      transform: translateY(-1px);
+    }
+
+    .track-btn-secondary {
+      flex: 1 1 140px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: var(--rust-wash);
+      color: var(--rust);
+      border: 1px solid rgba(138, 74, 42, 0.22);
+      font-size: 13px;
+      font-weight: 700;
+      transition: all 0.2s ease;
+    }
+
+    .track-btn-secondary:hover {
+      background: rgba(138, 74, 42, 0.14);
+      border-color: var(--rust);
+    }
+
+    @media (max-width: 520px) {
+      .track-card {
+        padding: 22px 18px;
+      }
+
+      .track-card h3 {
+        font-size: 20px;
+      }
+
+      .track-price-current {
+        font-size: 26px;
+      }
+
+      .track-actions {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .track-btn-primary,
+      .track-btn-secondary {
+        flex: none;
+        width: 100%;
+      }
     }
 
     /* 6. THE PLAN */
@@ -1852,63 +2005,151 @@
   <!-- 5. TRACKS -->
   <section class="tracks-section" id="tracks">
     <div class="wrap" style="text-align:center">
-      <h2>Two tracks. Pick where you're starting from.</h2>
-      <p style="font-size:15px; color:var(--ink-soft); max-width:620px; margin:10px auto 0 auto; line-height:1.5;">
-        Click either track to join our upcoming free information session with your track pre-selected.
+      <h2>Four tracks. Pick your path.</h2>
+      <p style="font-size:15px; color:var(--ink-soft); max-width:640px; margin:10px auto 0 auto; line-height:1.5;">
+        Choose the track that fits where you are right now. Apply directly or join an upcoming free information session with your track pre-selected.
       </p>
-      <div class="track-grid">
-        <!-- TRACK 1 CARD -->
-        <a href="/academy/sessions?track=track1" class="track-card"
-          aria-label="Join Info Session for Track 1: Starting From Zero">
-          <div class="track-header-row">
-            <span class="track-tag">Track 1</span>
-            <span class="track-select-pill">Join Info Session <i class="fa-solid fa-arrow-right"></i></span>
-          </div>
-          <h3>Starting From Zero</h3>
-          <p class="track-sub">For beginners building a career or business in real estate.</p>
-          <ul class="track-list">
-            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span>1-year programme: 10-week training +
-                9-month internship</span></li>
-            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span>Lagos only this cohort — 20
-                opening</span></li>
-            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span>Score 80%+ in training to progress to
-                internship</span></li>
-            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span>Internship: 2–3 days/week, can be
-                part-time</span></li>
-            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span><strong>Guaranteed monthly
-                  allowance</strong> during internship</span></li>
-            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span>Finish with clients in your portfolio,
-                or a job with one of our partners</span></li>
-          </ul>
-        </a>
 
-        <!-- TRACK 2 CARD -->
-        <a href="/academy/sessions?track=track2" class="track-card"
-          aria-label="Join Info Session for Track 2: Already Started">
+      <div class="track-grid">
+        <!-- TRACK A · FOUNDATION -->
+        <article class="track-card">
           <div class="track-header-row">
-            <span class="track-tag">Track 2</span>
-            <span class="track-select-pill">Join Info Session <i class="fa-solid fa-arrow-right"></i></span>
+            <span class="track-tag">Track A · Foundation</span>
+            <span class="track-badge-start">Start here</span>
           </div>
-          <h3>Already Started</h3>
-          <p class="track-sub">For those who've started and want to sharpen their skills.</p>
+          <h3>Discover Your Path</h3>
+          <div class="track-price-row">
+            <span class="track-price-current">₦60,000</span>
+          </div>
+          <p class="track-audience">For beginners, recent graduates and anyone exploring new career opportunities.</p>
+          <div class="track-narrative">
+            <p class="track-hook">Your career journey can start with one skill.</p>
+            <p class="track-sub">Not sure what direction to take after school? Discover the opportunities in property management, learn how the industry works and start developing skills you can build a career or business around.</p>
+          </div>
+          <div class="track-section-label">What you get</div>
           <ul class="track-list">
-            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span>10-week training + 9 months of monthly
-                community support</span></li>
-            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span>Lagos, Abuja, Port Harcourt &amp;
-                Oyo</span></li>
-            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span>Build and grow your own property
-                management business</span></li>
-            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span>Ongoing check-ins to keep you on track
-                after class ends</span></li>
+            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span>Professional property management training</span></li>
+            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span>Access to the Upward learning forum</span></li>
+            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span>Free access to Upward PM software</span></li>
+            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span>Opportunity to upgrade to the next track</span></li>
           </ul>
-        </a>
+          <div class="track-why-box">
+            <div class="track-why-label">Why choose this?</div>
+            <p>You want to explore a new career path and build foundational knowledge without committing to a premium track.</p>
+          </div>
+          <div class="track-actions">
+            <a href="/academy/apply?track=track-a" class="track-btn-primary">Apply for Track A <i class="fa-solid fa-arrow-right"></i></a>
+            <a href="/academy/sessions?track=track-a" class="track-btn-secondary">Join Info Session</a>
+          </div>
+        </article>
+
+        <!-- TRACK B · CAREER DEVELOPMENT -->
+        <article class="track-card">
+          <div class="track-header-row">
+            <span class="track-tag">Track B · Career Development</span>
+          </div>
+          <h3>Build Your Career</h3>
+          <div class="track-price-row">
+            <span class="track-price-current">₦100,000</span>
+          </div>
+          <p class="track-audience">For graduates and career starters who want professional guidance and a pathway to practical experience.</p>
+          <div class="track-narrative">
+            <p class="track-hook">Don't just learn a skill. Learn how to use it.</p>
+            <p class="track-sub">Having a certificate is one thing. Knowing how to apply your skills in the working world is another. Get the knowledge, professional guidance and practical opportunities to help you prepare for your next career move.</p>
+          </div>
+          <div class="track-section-label">What you get</div>
+          <ul class="track-list">
+            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span>Foundational property management training</span></li>
+            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span>Soft skills and professional development training</span></li>
+            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span>Access to a mentorship community</span></li>
+            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span>Internship opportunity</span></li>
+            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span>Access to the learning forum and Upward PM software</span></li>
+          </ul>
+          <div class="track-why-box">
+            <div class="track-why-label">Why choose this?</div>
+            <p>You want more than a course. You want guidance, career readiness and an opportunity to gain experience.</p>
+          </div>
+          <div class="track-actions">
+            <a href="/academy/apply?track=track-b" class="track-btn-primary">Apply for Track B <i class="fa-solid fa-arrow-right"></i></a>
+            <a href="/academy/sessions?track=track-b" class="track-btn-secondary">Join Info Session</a>
+          </div>
+        </article>
+
+        <!-- TRACK C · PRACTICAL EXPERIENCE -->
+        <article class="track-card">
+          <div class="track-header-row">
+            <span class="track-tag">Track C · Practical Experience</span>
+            <span class="track-badge-save">20% off</span>
+          </div>
+          <h3>Learn It. Experience It.</h3>
+          <div class="track-price-row">
+            <span class="track-price-current">₦160,000</span>
+            <span class="track-price-old">₦200,000</span>
+            <span class="track-save-note">Save ₦40,000 · 20% off</span>
+          </div>
+          <p class="track-audience">For people who want direct exposure to professional property management operations.</p>
+          <div class="track-narrative">
+            <p class="track-hook">Move beyond the classroom and see how the work is actually done.</p>
+            <p class="track-sub">Understanding property management is important. Experiencing its day-to-day operations can make that knowledge more meaningful. Get closer to the working environment, real situations and professionals who understand the industry.</p>
+          </div>
+          <div class="track-section-label">What you get</div>
+          <ul class="track-list">
+            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span>Professional training and mentorship</span></li>
+            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span>Priority consideration for internship opportunities</span></li>
+            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span>On-site practical experience</span></li>
+            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span>Lunch during designated practical sessions</span></li>
+            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span>Other lower-tier benefits, where included</span></li>
+          </ul>
+          <div class="track-why-box">
+            <div class="track-why-label">Why choose this?</div>
+            <p>You learn best by seeing how things work and want practical exposure to complement your training.</p>
+          </div>
+          <div class="track-actions">
+            <a href="/academy/apply?track=track-c" class="track-btn-primary">Apply for Track C <i class="fa-solid fa-arrow-right"></i></a>
+            <a href="/academy/sessions?track=track-c" class="track-btn-secondary">Join Info Session</a>
+          </div>
+        </article>
+
+        <!-- TRACK D · PREMIUM NETWORKING -->
+        <article class="track-card">
+          <div class="track-header-row">
+            <span class="track-tag">Track D · Premium Networking</span>
+            <span class="track-badge-save">20% off</span>
+          </div>
+          <h3>Connect. Collaborate. Grow.</h3>
+          <div class="track-price-row">
+            <span class="track-price-current">₦200,000</span>
+            <span class="track-price-old">₦250,000</span>
+            <span class="track-save-note">Save ₦50,000 · 20% off</span>
+          </div>
+          <p class="track-audience">For ambitious professionals, aspiring entrepreneurs and people seeking meaningful industry connections.</p>
+          <div class="track-narrative">
+            <p class="track-hook">Your next opportunity could begin with the right conversation.</p>
+            <p class="track-sub">Some professional opportunities come through knowledge. Others come through relationships, collaboration and access to experienced people. Position yourself to learn from industry mentors and connect with other ambitious individuals.</p>
+          </div>
+          <div class="track-section-label">What you get</div>
+          <ul class="track-list">
+            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span>Access to an exclusive mentors' dinner</span></li>
+            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span>Invitations to co-innovation events</span></li>
+            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span>Opportunities for professional networking</span></li>
+            <li><i class="fa-solid fa-circle-check track-check-icon"></i> <span>Other training and experiential benefits, where included</span></li>
+          </ul>
+          <div class="track-why-box">
+            <div class="track-why-label">Why choose this?</div>
+            <p>You want to expand your professional network, exchange ideas and explore opportunities for career or business growth.</p>
+          </div>
+          <div class="track-actions">
+            <a href="/academy/apply?track=track-d" class="track-btn-primary">Apply for Track D <i class="fa-solid fa-arrow-right"></i></a>
+            <a href="/academy/sessions?track=track-d" class="track-btn-secondary">Join Info Session</a>
+          </div>
+        </article>
       </div>
 
       <div class="tracks-footer-cta">
-        <span>Know which track fits you already?</span>
-        <a href="/academy/apply">Start your application directly →</a>
+        <span>Not sure which track fits you best?</span>
+        <a href="/academy/sessions">Join our free information session →</a>
         <span style="color:var(--sand); margin:0 4px;">•</span>
-        <span>Or click a track above to join an upcoming info session.</span>
+        <a href="/academy/scholarships">See fees &amp; scholarships</a>
       </div>
     </div>
   </section>
@@ -1940,15 +2181,13 @@
         </div>
         <div class="plan-card">
           <div class="n">05</div>
-          <h3>Internship &amp; Apprenticeship <span class="track-pill">Track 1</span></h3>
-          <p>Real, hands-on placement — top performers get placed as paid sub-managers on real client units, not
-            simulated practice.</p>
+          <h3>Internship &amp; Practical Exposure <span class="track-pill">Tracks B–D</span></h3>
+          <p>Real, hands-on exposure — internship opportunities and on-site practical sessions to see how property management works in practice.</p>
         </div>
         <div class="plan-card">
           <div class="n">06</div>
-          <h3>Community &amp; Support <span class="track-pill">Track 2</span></h3>
-          <p>Monthly check-ins for 9 months after training, helping you build your own business. You're not doing this
-            alone.</p>
+          <h3>Forum, Software &amp; Network <span class="track-pill">Tracks A–D</span></h3>
+          <p>Access to the Upward learning forum, Upward PM software, mentorship community, and industry networking as you grow.</p>
         </div>
       </div>
     </div>
@@ -1960,12 +2199,12 @@
       <h2>What success looks like.</h2>
       <div class="milestone-row">
         <div class="milestone">
-          <div class="num">Guaranteed</div>
-          <div class="lbl">Track 1: monthly allowance during your 9-month internship</div>
+          <div class="num">4 Tracks</div>
+          <div class="lbl">Flexible entry from Foundation (₦60,000) to Premium Networking (₦200,000)</div>
         </div>
         <div class="milestone">
-          <div class="num">9 Months</div>
-          <div class="lbl">Track 2: ongoing community support as you build your own business</div>
+          <div class="num">Hands-On</div>
+          <div class="lbl">Practical training, mentorship community, internship pathway &amp; Upward PM software</div>
         </div>
         <div class="milestone">
           <div class="num">12–24 mo.</div>
@@ -2024,8 +2263,8 @@
           <h3>A plan, a guide, and people behind you.</h3>
           <ul>
             <li>Mentorship from people already doing this</li>
-            <li>Track 1: real, paid internship placement</li>
-            <li>Track 2: 9 months of ongoing community support</li>
+            <li>Pathway to internship &amp; on-site practical experience</li>
+            <li>Upward learning forum, PM software &amp; networking community</li>
             <li>Built specifically for the Nigerian real estate market</li>
           </ul>
         </div>
