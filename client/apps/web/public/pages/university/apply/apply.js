@@ -11,31 +11,6 @@
       }));
     }
 
-    // Active Webinar / Info Session Population (21st November 2026)
-    function initApplySessionTimes() {
-      const sessionSelect = document.getElementById('session_time');
-      if (!sessionSelect) return;
-
-      sessionSelect.innerHTML = '';
-
-      const placeholderOpt = document.createElement('option');
-      placeholderOpt.value = '';
-      placeholderOpt.textContent = 'Select session option';
-      sessionSelect.appendChild(placeholderOpt);
-
-      const webinarOpt = document.createElement('option');
-      webinarOpt.value = 'Saturday 21st November 2026 (Online Webinar)';
-      webinarOpt.textContent = 'Online Webinar / Info Session — Saturday, 21st November 2026 (Open Nationwide)';
-      sessionSelect.appendChild(webinarOpt);
-
-      const noSessionOpt = document.createElement('option');
-      noSessionOpt.value = "I don't need an info session";
-      noSessionOpt.textContent = "I don't need an info session";
-      sessionSelect.appendChild(noSessionOpt);
-    }
-
-    initApplySessionTimes();
-
     const form = document.getElementById('universityApplyForm');
     if (form) {
       let currentStage = 1;
@@ -48,6 +23,9 @@
       const FULL_PAY_OFFER_DEADLINE = new Date('2026-11-23T23:59:59+01:00');
 
       let selectedTrackCOffer = 'lockin_25k';
+      // State recognition storage for returning applicants
+      let currentApplicantState = null; // 'PAID_FULL' | 'DEPOSIT_PAID' | 'PREVIOUS_5K_PAID' | 'APPLICATION_PENDING' | 'EARLY_ACCESS_WEBINAR' | null
+      let currentApplicantData = null;
 
       function getTrackCOfferAvailability(now = new Date()) {
         const ts = now.getTime();
@@ -207,6 +185,25 @@
           return;
         }
 
+        // If user already paid a 25k deposit and is looking at Track C, show their verified deposit status
+        if (currentApplicantState === 'DEPOSIT_PAID') {
+          offerGrid.innerHTML = `
+            <div class="track-offer-card selected" style="grid-column: 1 / -1; cursor: default;">
+              <div class="track-offer-top">
+                <span class="track-offer-badge" style="background:#DCFCE7; color:#15803D;">Deposit Verified (₦25,000 Paid)</span>
+                <span class="track-offer-check"><i class="fa-solid fa-circle-check"></i></span>
+              </div>
+              <div class="track-offer-name">Track C · Locked-in Tuition Balance</div>
+              <div class="track-offer-price">₦125,000 <span class="old">₦200,000</span></div>
+              <div class="track-offer-sub">Your ₦50,000 discount and cohort perks are secured. Complete your ₦125,000 balance to finalize kickoff admission.</div>
+            </div>
+          `;
+          offerGrid.style.gridTemplateColumns = '1fr';
+          offerBox.style.display = 'block';
+          if (deadlineLabel) deadlineLabel.textContent = 'Deposit Active · Discount Secured';
+          return;
+        }
+
         // Ensure valid default selection
         if (selectedTrackCOffer === 'lockin_25k' && !hasWeekendLockIn) {
           selectedTrackCOffer = 'full_135k';
@@ -220,10 +217,13 @@
             : 'Ends Monday 11:59 PM';
         }
 
+        const credit5k = (currentApplicantState === 'PREVIOUS_5K_PAID') ? 5000 : 0;
         let cardsHtml = '';
 
         if (hasWeekendLockIn) {
           const isSel = selectedTrackCOffer === 'lockin_25k';
+          const depositDue = Math.max(0, 25000 - credit5k);
+          const creditText = credit5k > 0 ? ` (₦5,000 previous fee credited · ₦${depositDue.toLocaleString()} due now)` : '';
           cardsHtml += `
             <label class="track-offer-card ${isSel ? 'selected' : ''}" data-offer="lockin_25k">
               <input type="radio" name="trackCOffer" value="lockin_25k" ${isSel ? 'checked' : ''}>
@@ -232,14 +232,16 @@
                 <span class="track-offer-check"><i class="fa-solid fa-circle-check"></i></span>
               </div>
               <div class="track-offer-name">Weekend Lock-In Deposit</div>
-              <div class="track-offer-price">₦25,000 <span class="old">₦200,000</span></div>
-              <div class="track-offer-sub">Pay ₦25,000 now to lock in ₦50,000 off Track C (<strong>₦150,000 total</strong> · ₦125,000 balance later).</div>
+              <div class="track-offer-price">₦${depositDue.toLocaleString()} <span class="old">₦200,000</span></div>
+              <div class="track-offer-sub">Pay ₦${depositDue.toLocaleString()} now to lock in ₦50,000 off Track C (<strong>₦150,000 total</strong>${creditText} · ₦125,000 balance later).</div>
             </label>
           `;
         }
 
         if (has48HrFullPay) {
           const isSel = selectedTrackCOffer === 'full_135k';
+          const fullDue = Math.max(0, 135000 - credit5k);
+          const creditText = credit5k > 0 ? ' · ₦5,000 credit applied' : '';
           cardsHtml += `
             <label class="track-offer-card ${isSel ? 'selected' : ''}" data-offer="full_135k">
               <input type="radio" name="trackCOffer" value="full_135k" ${isSel ? 'checked' : ''}>
@@ -248,8 +250,8 @@
                 <span class="track-offer-check"><i class="fa-solid fa-circle-check"></i></span>
               </div>
               <div class="track-offer-name">48-Hour Full Payment</div>
-              <div class="track-offer-price">₦135,000 <span class="old">₦200,000</span></div>
-              <div class="track-offer-sub">Pay ₦135,000 upfront in full within 48 hours and save ₦65,000 off Track C.</div>
+              <div class="track-offer-price">₦${fullDue.toLocaleString()} <span class="old">₦200,000</span></div>
+              <div class="track-offer-sub">Pay ₦${fullDue.toLocaleString()} upfront in full within 48 hours and save ₦65,000 off Track C${creditText}.</div>
             </label>
           `;
         }
@@ -276,52 +278,104 @@
       function getSelectedPricing() {
         const trackVal = document.getElementById('track')?.value || '';
         const { hasWeekendLockIn, has48HrFullPay } = getTrackCOfferAvailability();
+        const credit5k = (currentApplicantState === 'PREVIOUS_5K_PAID') ? 5000 : 0;
 
         if (trackVal === 'Track A - Foundation') {
-          return {
-            amountNaira: 60000,
-            planLabel: 'Track A Full Fee (₦60,000)',
-            balanceNote: '',
-            buttonLabel: 'Pay ₦60,000 →',
-          };
-        }
-        if (trackVal === 'Track B - Career Development') {
-          return {
-            amountNaira: 100000,
-            planLabel: 'Track B Full Fee (₦100,000)',
-            balanceNote: '',
-            buttonLabel: 'Pay ₦100,000 →',
-          };
-        }
-        if (trackVal === 'Track C - Practical Experience') {
-          if (selectedTrackCOffer === 'lockin_25k' && hasWeekendLockIn) {
+          if (currentApplicantState === 'DEPOSIT_PAID') {
+            const amount = Math.max(0, 60000 - 25000);
             return {
-              amountNaira: 25000,
-              planLabel: 'Track C Weekend Lock-In Deposit — ₦25,000 now (₦150,000 total · ₦125,000 balance later)',
-              balanceNote: '₦125,000 (Total ₦150,000 — ₦50,000 off)',
-              buttonLabel: 'Pay ₦25,000 Lock-In Deposit →',
-            };
-          }
-          if (selectedTrackCOffer === 'full_135k' && has48HrFullPay) {
-            return {
-              amountNaira: 135000,
-              planLabel: 'Track C 48-Hour Full Offer (₦135,000 — Save ₦65,000)',
+              amountNaira: amount,
+              planLabel: 'Track A Full Fee (₦35,000 with ₦25,000 deposit credited)',
               balanceNote: '',
-              buttonLabel: 'Pay ₦135,000 (48-Hr Offer) →',
+              buttonLabel: `Pay ₦${amount.toLocaleString()} →`,
+              appliedCredit: 25000,
             };
           }
+          const amount = Math.max(0, 60000 - credit5k);
           return {
-            amountNaira: 200000,
-            planLabel: 'Track C Full Fee (₦200,000)',
+            amountNaira: amount,
+            planLabel: credit5k > 0 ? `Track A Full Fee (₦${amount.toLocaleString()} after ₦5k credit)` : 'Track A Full Fee (₦60,000)',
             balanceNote: '',
-            buttonLabel: 'Pay ₦200,000 →',
+            buttonLabel: `Pay ₦${amount.toLocaleString()} →`,
+            appliedCredit: credit5k,
           };
         }
+
+        if (trackVal === 'Track B - Career Development') {
+          if (currentApplicantState === 'DEPOSIT_PAID') {
+            const amount = Math.max(0, 100000 - 25000);
+            return {
+              amountNaira: amount,
+              planLabel: 'Track B Full Fee (₦75,000 with ₦25,000 deposit credited)',
+              balanceNote: '',
+              buttonLabel: `Pay ₦${amount.toLocaleString()} →`,
+              appliedCredit: 25000,
+            };
+          }
+          const amount = Math.max(0, 100000 - credit5k);
+          return {
+            amountNaira: amount,
+            planLabel: credit5k > 0 ? `Track B Full Fee (₦${amount.toLocaleString()} after ₦5k credit)` : 'Track B Full Fee (₦100,000)',
+            balanceNote: '',
+            buttonLabel: `Pay ₦${amount.toLocaleString()} →`,
+            appliedCredit: credit5k,
+          };
+        }
+
+        if (trackVal === 'Track C - Practical Experience') {
+          if (currentApplicantState === 'DEPOSIT_PAID') {
+            return {
+              amountNaira: 125000,
+              planLabel: 'Track C Tuition Balance (₦125,000 remaining)',
+              balanceNote: '',
+              buttonLabel: 'Pay ₦125,000 Remaining Balance →',
+              appliedCredit: 25000,
+            };
+          }
+
+          if (selectedTrackCOffer === 'lockin_25k' && hasWeekendLockIn) {
+            const amount = Math.max(0, 25000 - credit5k);
+            return {
+              amountNaira: amount,
+              planLabel: credit5k > 0
+                ? `Track C Weekend Lock-In Deposit — ₦${amount.toLocaleString()} now (₦5k credit applied · ₦125,000 balance later)`
+                : 'Track C Weekend Lock-In Deposit — ₦25,000 now (₦150,000 total · ₦125,000 balance later)',
+              balanceNote: '₦125,000 (Total ₦150,000 — ₦50,000 off)',
+              buttonLabel: `Pay ₦${amount.toLocaleString()} Lock-In Deposit →`,
+              appliedCredit: credit5k,
+            };
+          }
+
+          if (selectedTrackCOffer === 'full_135k' && has48HrFullPay) {
+            const amount = Math.max(0, 135000 - credit5k);
+            return {
+              amountNaira: amount,
+              planLabel: credit5k > 0
+                ? `Track C 48-Hour Full Offer (₦${amount.toLocaleString()} after ₦5k credit — Save ₦65,000)`
+                : 'Track C 48-Hour Full Offer (₦135,000 — Save ₦65,000)',
+              balanceNote: '',
+              buttonLabel: `Pay ₦${amount.toLocaleString()} (48-Hr Offer) →`,
+              appliedCredit: credit5k,
+            };
+          }
+
+          const amount = Math.max(0, 200000 - credit5k);
+          return {
+            amountNaira: amount,
+            planLabel: credit5k > 0 ? `Track C Full Fee (₦${amount.toLocaleString()} after ₦5k credit)` : 'Track C Full Fee (₦200,000)',
+            balanceNote: '',
+            buttonLabel: `Pay ₦${amount.toLocaleString()} →`,
+            appliedCredit: credit5k,
+          };
+        }
+
+        const defaultAmount = Math.max(0, 60000 - credit5k);
         return {
-          amountNaira: 60000,
+          amountNaira: defaultAmount,
           planLabel: 'Track Fee',
           balanceNote: '',
           buttonLabel: 'Complete Payment →',
+          appliedCredit: credit5k,
         };
       }
 
@@ -331,8 +385,7 @@
         { id: 'email', fieldId: 'field-email', validate: val => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim()) },
         { id: 'city', fieldId: 'field-city', validate: val => val.trim().length > 0 },
         { id: 'age', fieldId: 'field-age', validate: val => val !== '' },
-        { id: 'track', fieldId: 'field-track', validate: val => val !== '' },
-        { id: 'session_time', fieldId: 'field-session-time', validate: val => val !== '' }
+        { id: 'track', fieldId: 'field-track', validate: val => val !== '' }
       ];
 
       // Clear error style on input
@@ -346,9 +399,27 @@
         }
       });
 
+      function updateTrackSwitchWarning() {
+        const switchWarningEl = document.getElementById('deposit-switch-warning');
+        if (!switchWarningEl) return;
+        const trackVal = document.getElementById('track')?.value || '';
+        if (currentApplicantState === 'DEPOSIT_PAID') {
+          if (trackVal && trackVal !== 'Track C - Practical Experience') {
+            switchWarningEl.style.display = 'block';
+          } else {
+            switchWarningEl.style.display = 'none';
+          }
+        } else {
+          switchWarningEl.style.display = 'none';
+        }
+      }
+
       const trackSelectEl = document.getElementById('track');
       if (trackSelectEl) {
-        trackSelectEl.addEventListener('change', renderTrackCOfferUI);
+        trackSelectEl.addEventListener('change', () => {
+          renderTrackCOfferUI();
+          updateTrackSwitchWarning();
+        });
       }
 
       function updateStageUI(stage) {
@@ -436,6 +507,200 @@
         return false;
       }
 
+      function handleApplicantRecognition(json) {
+        if (!json || !json.found || !json.data) return;
+        const state = json.state;
+        const data = json.data;
+        currentApplicantState = state;
+        currentApplicantData = data;
+
+        const noticeEl = document.getElementById('returning-balance-notice');
+        const noticeTitle = document.getElementById('returning-notice-title');
+        const noticeText = document.getElementById('returning-notice-text');
+        const noticeActions = document.getElementById('returning-notice-actions');
+
+        if (state === 'PAID_FULL') {
+          if (noticeEl) {
+            noticeEl.style.display = 'block';
+            noticeEl.style.background = '#F0FDF4';
+            noticeEl.style.border = '1.5px solid #86EFAC';
+            noticeEl.style.color = '#166534';
+          }
+          if (noticeTitle) noticeTitle.textContent = 'Tuition Paid in Full';
+          if (noticeText) {
+            noticeText.textContent = data.hasSubmittedVideo
+              ? `Welcome, ${data.name}! You are fully enrolled in ${data.track || 'Upward Academy'}. Your tuition is cleared in full and intro video is confirmed.`
+              : `Welcome, ${data.name}! Your tuition for ${data.track || 'Upward Academy'} is fully paid and verified. Your next step is to submit your short intro video to complete onboarding.`;
+          }
+          if (noticeActions) {
+            if (!data.hasSubmittedVideo) {
+              noticeActions.innerHTML = `
+                <a href="/academy/submit-video?ref=${encodeURIComponent(data.paymentRef || '')}&name=${encodeURIComponent(data.name || '')}" class="btn btn-primary" style="font-size:12.5px; padding:8px 16px; white-space:nowrap; text-decoration:none;">
+                  Submit Intro Video →
+                </a>
+              `;
+            } else {
+              noticeActions.innerHTML = `
+                <a href="/academy/thank-you?ref=${encodeURIComponent(data.paymentRef || '')}&name=${encodeURIComponent(data.name || '')}" class="btn btn-primary" style="font-size:12.5px; padding:8px 16px; white-space:nowrap; text-decoration:none;">
+                  View Confirmation →
+                </a>
+              `;
+            }
+          }
+        } else if (state === 'DEPOSIT_PAID') {
+          currentBalanceData = data;
+          if (noticeEl) {
+            noticeEl.style.display = 'block';
+            noticeEl.style.background = '#FEFCE8';
+            noticeEl.style.border = '1.5px solid #FDE047';
+            noticeEl.style.color = '#854D0E';
+          }
+          if (noticeTitle) noticeTitle.textContent = 'Track C Deposit Verified (₦25,000 Paid)';
+          if (noticeText) {
+            noticeText.textContent = `Welcome back, ${data.name.split(' ')[0]}! You have an active Track C lock-in deposit (₦25,000 paid). You can clear your remaining ₦125,000 balance directly below or switch tracks if you prefer.`;
+          }
+          if (noticeActions) {
+            noticeActions.innerHTML = `
+              <button type="button" class="btn btn-primary" id="btn-quick-balance" style="font-size: 12.5px; padding: 8px 16px; white-space: nowrap;">
+                Pay ₦125,000 Balance →
+              </button>
+            `;
+            document.getElementById('btn-quick-balance')?.addEventListener('click', () => {
+              loadBalanceView({ email: data.email, ref: data.paymentRef });
+            });
+          }
+        } else if (state === 'PREVIOUS_5K_PAID') {
+          if (noticeEl) {
+            noticeEl.style.display = 'block';
+            noticeEl.style.background = '#F0FDF4';
+            noticeEl.style.border = '1.5px solid #86EFAC';
+            noticeEl.style.color = '#166534';
+          }
+          if (noticeTitle) noticeTitle.textContent = 'Previous ₦5,000 Registration Fee Credited';
+          if (noticeText) {
+            noticeText.textContent = `Welcome back, ${data.name.split(' ')[0]}! We verified your previous ₦5,000 registration fee. Your ₦5,000 credit is applied to whichever track you select below.`;
+          }
+          if (noticeActions) {
+            noticeActions.innerHTML = `
+              <span style="font-size:12px; font-weight:700; color:#15803D; background:#DCFCE7; padding:6px 12px; border-radius:20px; white-space:nowrap;">
+                ₦5,000 Credited
+              </span>
+            `;
+          }
+        } else if (state === 'APPLICATION_PENDING') {
+          if (noticeEl) {
+            noticeEl.style.display = 'block';
+            noticeEl.style.background = '#EFF6FF';
+            noticeEl.style.border = '1.5px solid #93C5FD';
+            noticeEl.style.color = '#1E40AF';
+          }
+          if (noticeTitle) noticeTitle.textContent = 'Application On File';
+          if (noticeText) {
+            noticeText.textContent = `Welcome back, ${data.name.split(' ')[0]}! We have your registration details on file. Select your preferred track below to proceed to payment.`;
+          }
+          if (noticeActions) {
+            noticeActions.innerHTML = `
+              <span style="font-size:12px; font-weight:700; color:#1E40AF; background:#DBEAFE; padding:6px 12px; border-radius:20px; white-space:nowrap;">
+                Profile Loaded
+              </span>
+            `;
+          }
+        } else if (state === 'EARLY_ACCESS_WEBINAR') {
+          if (noticeEl) {
+            noticeEl.style.display = 'block';
+            noticeEl.style.background = '#F5F3FF';
+            noticeEl.style.border = '1.5px solid #DDD6FE';
+            noticeEl.style.color = '#5B21B6';
+          }
+          if (noticeTitle) noticeTitle.textContent = 'Webinar / Info Session Details Found';
+          if (noticeText) {
+            noticeText.textContent = `Welcome, ${data.name.split(' ')[0]}! We found your contact details from your webinar/info session registration. We've pre-filled your info — select your preferred track below to complete your admission.`;
+          }
+          if (noticeActions) {
+            noticeActions.innerHTML = `
+              <span style="font-size:12px; font-weight:700; color:#5B21B6; background:#EDE9FE; padding:6px 12px; border-radius:20px; white-space:nowrap;">
+                Details Pre-filled
+              </span>
+            `;
+          }
+        }
+
+        // Pre-fill inputs if empty
+        const nameInput = document.getElementById('name');
+        const whatsappInput = document.getElementById('whatsapp');
+        const cityInput = document.getElementById('city');
+        const ageSelect = document.getElementById('age');
+        const occInput = document.getElementById('occupation');
+        const trackSelect = document.getElementById('track');
+
+        if (nameInput && (!nameInput.value || nameInput.value.trim() === '')) {
+          if (data.name) nameInput.value = data.name;
+        }
+        if (whatsappInput && (!whatsappInput.value || whatsappInput.value.trim() === '')) {
+          if (data.whatsapp) whatsappInput.value = data.whatsapp;
+        }
+        if (cityInput && (!cityInput.value || cityInput.value.trim() === '')) {
+          if (data.city) cityInput.value = data.city;
+        }
+        if (ageSelect && (!ageSelect.value || ageSelect.value.trim() === '')) {
+          if (data.ageBracket) ageSelect.value = data.ageBracket;
+        }
+        if (occInput && (!occInput.value || occInput.value.trim() === '')) {
+          if (data.occupation) occInput.value = data.occupation;
+        }
+        if (trackSelect && (!trackSelect.value || trackSelect.value.trim() === '')) {
+          if (data.track) {
+            trackSelect.value = data.track;
+          } else if (data.interest) {
+            const intLower = data.interest.toLowerCase();
+            if (intLower.includes('track c') || intLower.includes('practical') || intLower.includes('network') || intLower.includes('premium')) {
+              trackSelect.value = 'Track C - Practical Experience';
+            } else if (intLower.includes('track b') || intLower.includes('career') || intLower.includes('started')) {
+              trackSelect.value = 'Track B - Career Development';
+            } else if (intLower.includes('track a') || intLower.includes('foundation') || intLower.includes('zero')) {
+              trackSelect.value = 'Track A - Foundation';
+            }
+          }
+        }
+
+        renderTrackCOfferUI();
+        updateTrackSwitchWarning();
+      }
+
+      let isApplicantLookupActive = false;
+      async function checkReturningApplicant() {
+        const emailInput = document.getElementById('email');
+        if (!emailInput) return;
+        const val = (emailInput.value || '').trim();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) return;
+        if (isApplicantLookupActive) return;
+
+        isApplicantLookupActive = true;
+        try {
+          const res = await fetch(`/api/v1/university/application/lookup?email=${encodeURIComponent(val)}`);
+          if (!res.ok) {
+            isApplicantLookupActive = false;
+            return;
+          }
+          const json = await res.json();
+          if (json && json.found && json.data) {
+            handleApplicantRecognition(json);
+          } else {
+            currentApplicantState = null;
+            currentApplicantData = null;
+            const noticeEl = document.getElementById('returning-balance-notice');
+            if (noticeEl) noticeEl.style.display = 'none';
+            const switchWarningEl = document.getElementById('deposit-switch-warning');
+            if (switchWarningEl) switchWarningEl.style.display = 'none';
+            renderTrackCOfferUI();
+          }
+        } catch (err) {
+          console.error('Silent applicant lookup error:', err);
+        } finally {
+          isApplicantLookupActive = false;
+        }
+      }
+
       try {
         const urlParams = new URLSearchParams(window.location.search);
         const actionParam = urlParams.get('action');
@@ -449,6 +714,7 @@
 
         if (emailParam && document.getElementById('email')) {
           document.getElementById('email').value = emailParam;
+          checkReturningApplicant();
         }
         if (trackSelectEl && trackParam) {
           if (trackParam === 'track-c' || trackParam === 'track-d' || trackParam === 'c' || trackParam === 'd' || trackParam === '3' || trackParam === '4' || trackParam.includes('practical') || trackParam.includes('network') || trackParam.includes('premium')) {
@@ -458,6 +724,7 @@
           } else if (trackParam === 'track-a' || trackParam === 'a' || trackParam === 'track1' || trackParam === '1' || trackParam.includes('foundation') || trackParam.includes('zero')) {
             trackSelectEl.value = 'Track A - Foundation';
           }
+          renderTrackCOfferUI();
         }
       } catch (err) {
         // Fallback
@@ -467,32 +734,10 @@
       const emailInputEl = document.getElementById('email');
       if (emailInputEl) {
         let emailDebounceTimer = null;
-        const checkReturningDeposit = async () => {
-          const val = (emailInputEl.value || '').trim();
-          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) return;
-          try {
-            const res = await fetch(`/api/v1/university/application/lookup?email=${encodeURIComponent(val)}`);
-            const json = await res.json();
-            const noticeEl = document.getElementById('returning-balance-notice');
-            if (json && json.found && json.data && json.data.isDeposit && !json.data.isFullyCleared) {
-              currentBalanceData = json.data;
-              if (noticeEl) {
-                noticeEl.style.display = 'block';
-                const textEl = document.getElementById('returning-notice-text');
-                if (textEl) {
-                  textEl.textContent = `Welcome back, ${json.data.name.split(' ')[0]}! You have an active Track C deposit (₦25,000 paid). You can clear your remaining ₦125,000 balance anytime without re-filling this form.`;
-                }
-              }
-            } else if (noticeEl) {
-              noticeEl.style.display = 'none';
-            }
-          } catch (e) { }
-        };
-
-        emailInputEl.addEventListener('blur', checkReturningDeposit);
+        emailInputEl.addEventListener('blur', checkReturningApplicant);
         emailInputEl.addEventListener('input', () => {
           clearTimeout(emailDebounceTimer);
-          emailDebounceTimer = setTimeout(checkReturningDeposit, 800);
+          emailDebounceTimer = setTimeout(checkReturningApplicant, 600);
         });
       }
 
@@ -630,7 +875,6 @@
         const ageVal = document.getElementById('age').value;
         const occVal = document.getElementById('occupation').value.trim();
         const trackVal = document.getElementById('track').value;
-        const sessionVal = document.getElementById('session_time').value;
         const pricing = getSelectedPricing();
 
         // Populate Stage 2 Summary Card
@@ -641,7 +885,17 @@
         document.getElementById('sum-track').textContent = trackVal;
         document.getElementById('sum-payment-plan').textContent = pricing.planLabel;
         document.getElementById('sum-amount-due').textContent = `₦${pricing.amountNaira.toLocaleString()}`;
-        document.getElementById('sum-session').textContent = sessionVal || '-';
+
+        const creditRow = document.getElementById('sum-credit-row');
+        const creditEl = document.getElementById('sum-credit');
+        if (creditRow && creditEl) {
+          if (pricing.appliedCredit > 0) {
+            creditRow.style.display = 'block';
+            creditEl.textContent = `-₦${pricing.appliedCredit.toLocaleString()}`;
+          } else {
+            creditRow.style.display = 'none';
+          }
+        }
 
         const balanceRow = document.getElementById('sum-balance-row');
         const balanceEl = document.getElementById('sum-balance');
@@ -671,7 +925,6 @@
           ageBracket: ageVal,
           occupation: occVal || undefined,
           track: trackVal,
-          sessionTime: sessionVal,
           paymentPlan: pricing.planLabel,
           amountPaid: pricing.amountNaira,
           sourceIdentifier: srcIdent || undefined,
@@ -724,7 +977,6 @@
           ageBracket: document.getElementById('age').value,
           occupation: document.getElementById('occupation').value.trim() || undefined,
           track: document.getElementById('track').value,
-          sessionTime: document.getElementById('session_time').value,
           paymentPlan: pricing.planLabel,
           amountPaid: pricing.amountNaira,
           experienceLevel: `[${document.getElementById('track').value}] Direct Registration`,
@@ -793,13 +1045,16 @@
                   type: 'ACADEMY_APPLICATION',
                   paymentPlan: pricing.planLabel,
                   amountNaira: pricing.amountNaira,
+                  creditedAmount: pricing.appliedCredit || 0,
+                  applicantState: currentApplicantState || 'NEW',
+                  existingRef: currentApplicantData?.paymentRef || '',
                   custom_fields: [
                     { display_name: "Applicant Name", variable_name: "applicant_name", value: payload.name },
                     { display_name: "Track", variable_name: "track", value: payload.track },
                     { display_name: "Payment Option", variable_name: "payment_plan", value: pricing.planLabel },
                     { display_name: "WhatsApp Number", variable_name: "whatsapp_number", value: payload.whatsapp },
                     { display_name: "City", variable_name: "city", value: payload.city },
-                    { display_name: "Info Session", variable_name: "info_session", value: payload.sessionTime || '' }
+                    { display_name: "Credited Previous Payment", variable_name: "credited_amount", value: pricing.appliedCredit ? `₦${pricing.appliedCredit.toLocaleString()}` : 'None' }
                   ]
                 },
                 onSuccess: async function (response) {

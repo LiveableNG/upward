@@ -21,6 +21,10 @@ import {
   UNIVERSITY_APPLICATION_REPOSITORY,
   IUniversityApplicationRepository,
 } from '../../../domains/university-application/university-application.repository'
+import {
+  EARLY_ACCESS_REPOSITORY,
+  IEarlyAccessRepository,
+} from '../../../domains/early-access/early-access.repository'
 
 @Controller('university/application')
 export class UniversityApplicationController {
@@ -31,6 +35,8 @@ export class UniversityApplicationController {
     private readonly configService: ConfigService,
     @Inject(UNIVERSITY_APPLICATION_REPOSITORY)
     private readonly applicationRepo: IUniversityApplicationRepository,
+    @Inject(EARLY_ACCESS_REPOSITORY)
+    private readonly earlyAccessRepo: IEarlyAccessRepository,
   ) {}
 
   @Get('config')
@@ -59,37 +65,160 @@ export class UniversityApplicationController {
       application = await this.applicationRepo.findByEmail(email.trim().toLowerCase())
     }
 
-    if (!application) {
-      return { success: true, found: false, data: null }
+    if (application) {
+      const obj = application.toObject()
+      const notes = obj.notes || ''
+      const isPaid = obj.feeStatus === 'PAID'
+      const isDeposit = notes.includes('Lock-In') || notes.includes('25,000') || notes.includes('deposit')
+      const isFullyCleared = notes.includes('FULLY CLEARED')
+
+      // Detect previous 5k registration fee payment under old system (Track 1 / Track 2 or 5,000 fee)
+      const isOld5kPaid =
+        isPaid &&
+        !isDeposit &&
+        !isFullyCleared &&
+        (obj.applicationFee === 5000 ||
+          notes.includes('5,000') ||
+          notes.includes('5000') ||
+          notes.includes('Registration Fee') ||
+          obj.track?.includes('Track 1') ||
+          obj.track?.includes('Track 2') ||
+          (!notes.includes('100,000') &&
+            !notes.includes('60,000') &&
+            !notes.includes('160,000') &&
+            !notes.includes('200,000') &&
+            !notes.includes('135,000')))
+
+      // State 1: Paid In Full
+      if (isFullyCleared || (isPaid && !isDeposit && !isOld5kPaid)) {
+        return {
+          success: true,
+          found: true,
+          state: 'PAID_FULL',
+          data: {
+            id: obj.id,
+            name: obj.name,
+            email: obj.email,
+            whatsapp: obj.whatsapp,
+            city: obj.city,
+            track: obj.track,
+            feeStatus: obj.feeStatus,
+            paymentRef: obj.paymentRef,
+            isDeposit: false,
+            balanceDue: 0,
+            isFullyCleared: true,
+            hasSubmittedVideo: Boolean(obj.scholarshipVideoUrl),
+            videoUrl: obj.scholarshipVideoUrl,
+            message: `You are already enrolled and fully paid for ${obj.track || 'your chosen track'}! Check your email for cohort onboarding details.`,
+          },
+        }
+      }
+
+      // State 2: 25k Track C Lock-In Deposit Paid
+      if (isDeposit && !isFullyCleared) {
+        return {
+          success: true,
+          found: true,
+          state: 'DEPOSIT_PAID',
+          data: {
+            id: obj.id,
+            name: obj.name,
+            email: obj.email,
+            whatsapp: obj.whatsapp,
+            city: obj.city,
+            ageBracket: obj.ageBracket,
+            occupation: obj.occupation,
+            track: obj.track || 'Track C - Practical Experience',
+            feeStatus: obj.feeStatus,
+            paymentRef: obj.paymentRef,
+            isDeposit: true,
+            depositAmount: 25000,
+            balanceDue: 125000,
+            isFullyCleared: false,
+            videoUrl: obj.scholarshipVideoUrl,
+            notes: obj.notes,
+            message: `Welcome back, ${obj.name.split(' ')[0]}! You have an active Track C lock-in deposit (₦25,000 paid). You can clear your remaining ₦125,000 balance directly.`,
+            switchWarning: `Note: You currently hold a locked-in ₦50,000 discount on Track C (₦150k total instead of ₦200k). If you switch to Track A or Track B, you forfeit the Track C promotional offer and cohort perks.`,
+          },
+        }
+      }
+
+      // State 3: Paid ₦5,000 Registration Fee Under Old System (Credit ₦5k towards any track)
+      if (isOld5kPaid) {
+        return {
+          success: true,
+          found: true,
+          state: 'PREVIOUS_5K_PAID',
+          data: {
+            id: obj.id,
+            name: obj.name,
+            email: obj.email,
+            whatsapp: obj.whatsapp,
+            city: obj.city,
+            ageBracket: obj.ageBracket,
+            occupation: obj.occupation,
+            track: obj.track,
+            feeStatus: obj.feeStatus,
+            paymentRef: obj.paymentRef,
+            creditAmount: 5000,
+            isDeposit: false,
+            balanceDue: 0,
+            isFullyCleared: false,
+            message: `Welcome back, ${obj.name.split(' ')[0]}! We verified your previous ₦5,000 registration fee. Your ₦5,000 is credited toward your tuition below — pick any track to pay your remaining balance with ₦5,000 deducted!`,
+          },
+        }
+      }
+
+      // State 4: Application on file but payment pending
+      return {
+        success: true,
+        found: true,
+        state: 'APPLICATION_PENDING',
+        data: {
+          id: obj.id,
+          name: obj.name,
+          email: obj.email,
+          whatsapp: obj.whatsapp,
+          city: obj.city,
+          ageBracket: obj.ageBracket,
+          occupation: obj.occupation,
+          track: obj.track,
+          feeStatus: obj.feeStatus,
+          isDeposit: false,
+          balanceDue: 0,
+          isFullyCleared: false,
+          message: `Welcome back, ${obj.name.split(' ')[0]}! We have your application on file. We've pre-filled your details — choose your track below to proceed to payment.`,
+        },
+      }
     }
 
-    const obj = application.toObject()
-    const notes = obj.notes || ''
-    const isPaid = obj.feeStatus === 'PAID'
-    const isDeposit = notes.includes('Lock-In') || notes.includes('25,000')
-    const isFullyCleared = notes.includes('FULLY CLEARED') || (!isDeposit && isPaid)
-    const balanceDue = isDeposit && !isFullyCleared ? 125000 : 0
-
-    return {
-      success: true,
-      found: true,
-      data: {
-        id: obj.id,
-        name: obj.name,
-        email: obj.email,
-        whatsapp: obj.whatsapp,
-        city: obj.city,
-        track: obj.track,
-        feeStatus: obj.feeStatus,
-        paymentRef: obj.paymentRef,
-        isDeposit,
-        depositAmount: isDeposit ? 25000 : 0,
-        balanceDue,
-        isFullyCleared,
-        videoUrl: obj.scholarshipVideoUrl,
-        notes: obj.notes,
-      },
+    // State 5: Check Early Access (webinar / info session registrant not yet on application table)
+    if (email && email.trim().length > 0) {
+      const ea = await this.earlyAccessRepo.findByEmail(email.trim().toLowerCase())
+      if (ea) {
+        const eaObj = ea.toObject()
+        return {
+          success: true,
+          found: true,
+          state: 'EARLY_ACCESS_WEBINAR',
+          data: {
+            id: eaObj.id,
+            name: eaObj.name,
+            email: eaObj.email,
+            whatsapp: eaObj.whatsapp,
+            city: eaObj.city,
+            ageBracket: eaObj.ageBracket,
+            interest: eaObj.interest,
+            isDeposit: false,
+            balanceDue: 0,
+            isFullyCleared: false,
+            message: `Welcome, ${eaObj.name.split(' ')[0]}! We have your contact details from your webinar/info session registration. We've pre-filled your info — select your preferred track below to complete your admission.`,
+          },
+        }
+      }
     }
+
+    return { success: true, found: false, data: null }
   }
 
   @Get('verify-payment')
