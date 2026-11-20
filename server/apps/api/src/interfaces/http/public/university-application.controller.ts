@@ -12,7 +12,9 @@ import {
 } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { SubmitUniversityApplicationUseCase } from '../../../application/use-cases/university-application/submit-university-application.use-case'
+import { SubmitUniversityApplicationVideoUseCase } from '../../../application/use-cases/university-application/submit-university-application-video.use-case'
 import { CreateUniversityApplicationDto } from '../dto/create-university-application.dto'
+import { SubmitUniversityApplicationVideoDto } from '../dto/submit-university-application-video.dto'
 import {
   UNIVERSITY_APPLICATION_REPOSITORY,
   IUniversityApplicationRepository,
@@ -22,6 +24,7 @@ import {
 export class UniversityApplicationController {
   constructor(
     private readonly submitUniversityApplicationUseCase: SubmitUniversityApplicationUseCase,
+    private readonly submitUniversityApplicationVideoUseCase: SubmitUniversityApplicationVideoUseCase,
     private readonly configService: ConfigService,
     @Inject(UNIVERSITY_APPLICATION_REPOSITORY)
     private readonly applicationRepo: IUniversityApplicationRepository,
@@ -57,6 +60,25 @@ export class UniversityApplicationController {
       verified: isPaid,
       name: obj.name,
       paymentRef: obj.paymentRef,
+      track: obj.track,
+      notes: obj.notes,
+      videoUrl: obj.scholarshipVideoUrl,
+    }
+  }
+
+  @Post('submit-video')
+  @HttpCode(HttpStatus.OK)
+  @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
+  async submitVideo(@Body() dto: SubmitUniversityApplicationVideoDto) {
+    const result = await this.submitUniversityApplicationVideoUseCase.execute({
+      paymentRef: dto.paymentRef,
+      videoUrl: dto.videoUrl,
+    })
+
+    return {
+      success: true,
+      message: 'Intro video submitted successfully',
+      data: result,
     }
   }
 
@@ -84,6 +106,8 @@ export class UniversityApplicationController {
       abVariant: dto.abVariant,
       feeStatus: dto.feeStatus,
       paymentRef: dto.paymentRef,
+      paymentPlan: dto.paymentPlan,
+      amountPaid: dto.amountPaid,
       sendEmail: dto.sendEmail,
     })
 

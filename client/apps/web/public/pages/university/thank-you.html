@@ -268,6 +268,139 @@
       justify-content: center;
     }
 
+    .video-step-card {
+      text-align: left;
+      background: #fffcf7;
+      border: 1.5px solid rgba(138, 74, 42, 0.25);
+      border-radius: 16px;
+      padding: 22px 24px;
+      margin-bottom: 26px;
+    }
+
+    .video-step-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font: 700 11px var(--mono);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--rust);
+      margin-bottom: 8px;
+    }
+
+    .video-step-card h2 {
+      font-size: 19px;
+      color: var(--ink);
+      margin-bottom: 8px;
+    }
+
+    .video-step-card p {
+      font-size: 13.5px;
+      color: var(--ink-soft);
+      line-height: 1.55;
+      margin-bottom: 12px;
+    }
+
+    .video-checklist {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 16px 0;
+      display: grid;
+      gap: 6px;
+    }
+
+    .video-checklist li {
+      font-size: 13px;
+      color: var(--ink);
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .video-checklist li i {
+      color: var(--rust);
+      margin-top: 3px;
+      flex-shrink: 0;
+    }
+
+    .video-input-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .video-input-row input {
+      flex: 1 1 240px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1.5px solid var(--sand);
+      background: #fff;
+      font-size: 14px;
+      font-family: 'Inter', sans-serif;
+      color: var(--ink);
+      outline: none;
+    }
+
+    .video-input-row input:focus {
+      border-color: var(--rust);
+      box-shadow: 0 0 0 3px rgba(138, 74, 42, 0.12);
+    }
+
+    .video-status-msg {
+      margin-top: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      display: none;
+    }
+
+    .video-status-msg.error {
+      color: #b91c1c;
+      display: block;
+    }
+
+    .video-status-msg.success {
+      color: #166534;
+      display: block;
+    }
+
+    .video-saved-banner {
+      display: none;
+      background: #f0fdf4;
+      border: 1.5px solid #bbf7d0;
+      border-radius: 12px;
+      padding: 14px 16px;
+      color: #166534;
+      font-size: 13.5px;
+      margin-top: 10px;
+    }
+
+    .video-saved-banner a {
+      color: #15803d;
+      font-weight: 700;
+      text-decoration: underline;
+      word-break: break-all;
+    }
+
+    .video-later-note {
+      margin-top: 12px;
+      font-size: 12.5px;
+      color: var(--ink-soft);
+    }
+
+    @media (max-width: 560px) {
+      .card {
+        padding: 32px 20px;
+      }
+
+      .video-step-card {
+        padding: 18px 16px;
+      }
+
+      .video-input-row .btn {
+        width: 100%;
+      }
+    }
+
     footer {
       border-top: 1px solid var(--sand);
       padding: 24px;
@@ -305,17 +438,51 @@
         <i class="fa-solid fa-shield-halved" style="margin-right:6px;"></i> Payment Confirmed
       </div>
 
-      <h1 class="title">Application & Fee Payment Received!</h1>
+      <h1 class="title">Registration &amp; Payment Confirmed!</h1>
 
       <p class="desc" id="thankYouMsg" style="margin-bottom: 20px;">
-        Thank you! Your ₦5,000 application fee payment has been successfully verified. Our admissions team will reach
-        out via WhatsApp with your onboarding details and next steps.
+        Thank you! Your Upward Academy payment has been successfully verified. Our admissions team will reach out via
+        WhatsApp with your onboarding details and next steps.
       </p>
 
       <div
-        style="background: var(--paper-dim); border: 1px solid var(--sand); border-radius: 14px; padding: 14px 20px; margin-bottom: 32px; font-size: 13.5px; color: var(--ink);">
+        style="background: var(--paper-dim); border: 1px solid var(--sand); border-radius: 14px; padding: 14px 20px; margin-bottom: 24px; font-size: 13.5px; color: var(--ink);">
         <i class="fa-solid fa-calendar-check" style="color: var(--rust); margin-right: 6px;"></i>
         <strong>2026 Cohort Starts: December 5, 2026</strong> (10-Week Hybrid Programme)
+        <div id="trackPaymentSummary" style="margin-top: 6px; font-size: 13px; color: var(--ink-soft); display: none;"></div>
+      </div>
+
+      <!-- Post-Payment Intro Video Submission -->
+      <div class="video-step-card" id="videoStepCard">
+        <div class="video-step-header">
+          <i class="fa-solid fa-video"></i>
+          <span>Final Step · Intro Video Submission</span>
+        </div>
+        <h2>Introduce Yourself in a Short Video</h2>
+        <p>Please record a short video (1–2 minutes) and share a public link (Google Drive, YouTube, Loom, etc.) covering:</p>
+        <ul class="video-checklist">
+          <li><i class="fa-solid fa-circle-check"></i><span>Your full name</span></li>
+          <li><i class="fa-solid fa-circle-check"></i><span>A brief introduction about yourself</span></li>
+          <li><i class="fa-solid fa-circle-check"></i><span>Why you're interested in joining Upward Academy</span></li>
+        </ul>
+
+        <form id="introVideoForm" novalidate>
+          <div class="video-input-row">
+            <input type="url" id="introVideoUrl" placeholder="https://drive.google.com/... or https://loom.com/..." required>
+            <button type="submit" class="btn btn-primary" id="introVideoSubmitBtn">Submit Video →</button>
+          </div>
+          <div class="video-status-msg" id="introVideoStatus"></div>
+        </form>
+
+        <div class="video-saved-banner" id="videoSavedBanner">
+          <strong><i class="fa-solid fa-circle-check"></i> Intro Video Saved!</strong><br>
+          <span>Link: <a id="videoSavedLink" href="#" target="_blank" rel="noopener noreferrer"></a></span>
+        </div>
+
+        <p class="video-later-note">
+          <i class="fa-solid fa-clock" style="color: var(--rust); margin-right: 4px;"></i>
+          Not ready to record right now? You can bookmark this page or use the link sent to your email to submit your video later.
+        </p>
       </div>
 
       <div class="actions">
@@ -340,10 +507,28 @@
       const params = new URLSearchParams(window.location.search);
       const ref = params.get('ref');
       const nameFromUrl = params.get('name');
+      const amountFromUrl = Number(params.get('amount') || 0);
 
       if (!ref) {
         window.location.replace('/academy/apply');
         return;
+      }
+
+      const videoForm = document.getElementById('introVideoForm');
+      const videoInput = document.getElementById('introVideoUrl');
+      const videoBtn = document.getElementById('introVideoSubmitBtn');
+      const videoStatus = document.getElementById('introVideoStatus');
+      const videoSavedBanner = document.getElementById('videoSavedBanner');
+      const videoSavedLink = document.getElementById('videoSavedLink');
+
+      function showSavedVideo(url) {
+        if (videoSavedBanner && videoSavedLink) {
+          videoSavedLink.href = url;
+          videoSavedLink.textContent = url;
+          videoSavedBanner.style.display = 'block';
+        }
+        if (videoInput) videoInput.value = url;
+        if (videoBtn) videoBtn.textContent = 'Update Video Link';
       }
 
       try {
@@ -361,21 +546,97 @@
         const msgEl = document.getElementById('thankYouMsg');
 
         if (msgEl && firstName) {
-          msgEl.textContent = `Thank you, ${firstName}! Your ₦5,000 application fee payment was successfully verified. Our admissions team will reach out via WhatsApp with your next steps.`;
+          msgEl.textContent = `Thank you, ${firstName}! Your Upward Academy payment was successfully verified. Our admissions team will reach out via WhatsApp with your onboarding details and next steps.`;
         }
 
+        const summaryEl = document.getElementById('trackPaymentSummary');
+        if (summaryEl && data.track) {
+          const paymentMatch = (data.notes || '').match(/\[Payment:\s*([^\]]+)\]/i);
+          const paymentText = paymentMatch ? paymentMatch[1] : '';
+          summaryEl.textContent = paymentText ? `${data.track} · ${paymentText}` : data.track;
+          summaryEl.style.display = 'block';
+        }
+
+        if (data.videoUrl) {
+          showSavedVideo(data.videoUrl);
+        }
 
         // Fire Google Ads conversion tracking event ONLY on backend-verified payment
         if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
           window.gtag('event', 'conversion', {
             'send_to': 'AW-18414957187/zGcOCN2Loe4cEIPl98xE',
-            'value': 5000.0,
+            'value': amountFromUrl > 0 ? amountFromUrl : 60000.0,
             'currency': 'NGN',
             'transaction_id': ref
           });
         }
       } catch (err) {
         console.warn('Backend payment verification fallback:', err);
+      }
+
+      if (videoForm) {
+        videoForm.addEventListener('submit', async function (e) {
+          e.preventDefault();
+          if (videoStatus) {
+            videoStatus.className = 'video-status-msg';
+            videoStatus.textContent = '';
+          }
+
+          let rawUrl = videoInput ? videoInput.value.trim() : '';
+          if (rawUrl && !/^https?:\/\//i.test(rawUrl)) {
+            rawUrl = 'https://' + rawUrl;
+          }
+
+          let isValid = false;
+          try {
+            const parsed = new URL(rawUrl);
+            isValid = (parsed.protocol === 'http:' || parsed.protocol === 'https:') && parsed.hostname.includes('.');
+          } catch (_) {
+            isValid = false;
+          }
+
+          if (!isValid) {
+            if (videoStatus) {
+              videoStatus.className = 'video-status-msg error';
+              videoStatus.textContent = 'Please enter a valid video link (e.g. Google Drive, YouTube, or Loom URL).';
+            }
+            return;
+          }
+
+          if (videoBtn) {
+            videoBtn.disabled = true;
+            videoBtn.textContent = 'Saving...';
+          }
+
+          try {
+            const submitRes = await fetch('/api/v1/university/application/submit-video', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ paymentRef: ref, videoUrl: rawUrl })
+            });
+            const submitData = await submitRes.json().catch(() => ({}));
+
+            if (!submitRes.ok) {
+              throw new Error(submitData.message || 'Could not save your video link. Please try again.');
+            }
+
+            showSavedVideo(rawUrl);
+            if (videoStatus) {
+              videoStatus.className = 'video-status-msg success';
+              videoStatus.textContent = 'Your intro video has been linked to your application!';
+            }
+          } catch (err) {
+            if (videoStatus) {
+              videoStatus.className = 'video-status-msg error';
+              videoStatus.textContent = err.message || 'Network error. Please try again.';
+            }
+            if (videoBtn) {
+              videoBtn.textContent = 'Submit Video →';
+            }
+          } finally {
+            if (videoBtn) videoBtn.disabled = false;
+          }
+        });
       }
     })();
   </script>

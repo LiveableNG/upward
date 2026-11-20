@@ -168,10 +168,18 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                   fontWeight: 700,
                   marginTop: '2px',
                   color: application.feeStatus === 'PAID' ? '#15803d' : '#a16207',
+                  fontSize: '13px',
                 }}
               >
-                {application.feeStatus === 'PAID' ? '✓ PAID (₦5,000)' : 'PENDING'}
+                {application.feeStatus === 'PAID'
+                  ? `✓ PAID${application.notes?.match(/\[Payment:\s*([^\]]+)\]/i)?.[1] ? '' : ' (Verified)'}`
+                  : 'PENDING'}
               </div>
+              {application.notes?.match(/\[Payment:\s*([^\]]+)\]/i)?.[1] && (
+                <div style={{ fontSize: '11.5px', color: '#374151', marginTop: '4px', lineHeight: 1.35 }}>
+                  {application.notes.match(/\[Payment:\s*([^\]]+)\]/i)?.[1]}
+                </div>
+              )}
             </div>
           </div>
 
@@ -354,12 +362,14 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                       letterSpacing: '0.05em',
                     }}
                   >
-                    <Award size={13} />
-                    Program Scholarship Candidate
+                    {application.isScholarship ? <Award size={13} /> : <Video size={13} />}
+                    {application.isScholarship ? 'Program Scholarship Candidate' : 'Applicant Intro Video'}
                   </span>
                 </div>
                 <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: '#92400e', fontWeight: 600 }}>
-                  This applicant applied for a Program Scholarship and submitted a 1–2 minute video link.
+                  {application.isScholarship
+                    ? 'This applicant applied for a Program Scholarship and submitted a 1–2 minute video link.'
+                    : 'Intro video submitted by applicant (name, brief intro, and interest in Upward Academy).'}
                 </p>
 
                 {application.scholarshipVideoUrl ? (

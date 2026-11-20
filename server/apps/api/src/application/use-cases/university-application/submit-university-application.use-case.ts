@@ -31,6 +31,8 @@ export interface SubmitUniversityApplicationCommand {
   abVariant?: string
   feeStatus?: string
   paymentRef?: string
+  paymentPlan?: string
+  amountPaid?: number
   sendEmail?: boolean
 }
 
@@ -72,12 +74,18 @@ export class SubmitUniversityApplicationUseCase {
       const newPaymentRef = command.paymentRef || existingProps.paymentRef || null
 
       const trackNote = command.track ? `[Track: ${command.track}]` : ''
-      const existingNotes = existingProps.notes || ''
-      const updatedNotes = trackNote
-        ? existingNotes.includes(trackNote)
-          ? existingNotes
-          : `${trackNote} ${existingNotes}`.trim()
-        : existingNotes || null
+      const paymentNote = command.paymentPlan
+        ? `[Payment: ${command.paymentPlan}]`
+        : command.amountPaid
+          ? `[Payment: ₦${command.amountPaid.toLocaleString()}]`
+          : ''
+      let updatedNotes = existingProps.notes || ''
+      if (trackNote && !updatedNotes.includes(trackNote)) {
+        updatedNotes = `${trackNote} ${updatedNotes}`.trim()
+      }
+      if (paymentNote && !updatedNotes.includes(paymentNote)) {
+        updatedNotes = `${updatedNotes} ${paymentNote}`.trim()
+      }
 
       application = UniversityApplication.restore({
         ...existingProps,
@@ -99,11 +107,18 @@ export class SubmitUniversityApplicationUseCase {
         abVariant: command.abVariant ?? existingProps.abVariant ?? 'A',
         feeStatus: newFeeStatus,
         paymentRef: newPaymentRef,
-        notes: updatedNotes,
+        notes: updatedNotes || null,
         updatedAt: new Date(),
       })
     } else {
-      const trackNote = command.track ? `[Track: ${command.track}]` : null
+      const noteParts: string[] = []
+      if (command.track) noteParts.push(`[Track: ${command.track}]`)
+      if (command.paymentPlan) {
+        noteParts.push(`[Payment: ${command.paymentPlan}]`)
+      } else if (command.amountPaid) {
+        noteParts.push(`[Payment: ₦${command.amountPaid.toLocaleString()}]`)
+      }
+      const initialNotes = noteParts.length > 0 ? noteParts.join(' ') : null
 
       application = UniversityApplication.create({
         name: command.name,
@@ -125,7 +140,7 @@ export class SubmitUniversityApplicationUseCase {
         abVariant: command.abVariant || 'A',
         feeStatus: (command.feeStatus as any) || 'PENDING',
         paymentRef: command.paymentRef || null,
-        notes: trackNote,
+        notes: initialNotes,
       })
       isAlreadyPaid = command.feeStatus === 'PAID'
     }
@@ -158,29 +173,41 @@ export class SubmitUniversityApplicationUseCase {
             ? `<p style="background: #fdf6ec; border-left: 4px solid #8A4A2A; padding: 8px 12px; margin: 14px 0;"><strong>Information &amp; Q&amp;A Session:</strong> ${saved.sessionTime}</p>`
             : ''
 
+        const amountLabel = command.amountPaid
+          ? `₦${command.amountPaid.toLocaleString()}`
+          : 'Track Fee'
+        const paymentPlanLine = command.paymentPlan
+          ? `<p style="background: #f0fdf4; border-left: 4px solid #166534; padding: 8px 12px; margin: 14px 0;"><strong>Selected Payment:</strong> ${command.paymentPlan}</p>`
+          : ''
+
         if (isPaidNow) {
-          subjectText = 'Application & Fee Confirmed — Upward Academy Cohort 2026'
-          buttonText = ''
-          buttonUrl = ''
+          const videoSubmitUrl = saved.paymentRef
+            ? `https://upward.goodtenants.io/academy/thank-you?ref=${encodeURIComponent(saved.paymentRef)}`
+            : 'https://upward.goodtenants.io/academy'
+          subjectText = 'Payment Confirmed — Upward Academy Cohort 2026'
+          buttonText = 'Submit Your Intro Video →'
+          buttonUrl = videoSubmitUrl
           contentHtml = `
             <p style="margin-top: 0;">Hi <strong>${firstName}</strong>,</p>
-            <p><strong>Thank you! Your Upward Academy Application & ₦5,000 Fee Payment have been received.</strong></p>
-            <p>Your spot for the <strong>Founding Cohort 2026</strong> is now safely logged with our admissions team.</p>
+            <p><strong>Thank you! Your Upward Academy registration and ${amountLabel} payment have been received.</strong></p>
+            <p>Your spot for the <strong>Founding Cohort 2026 (starting December 5, 2026)</strong> is now safely logged with our admissions team.</p>
+            ${paymentPlanLine}
             ${sessionInfo}
-            <p>Our admissions committee will review your responses and reach out via WhatsApp and email with your cohort orientation details and next steps.</p>
+            <p><strong>Next Step — Short Intro Video:</strong> If you haven't already, please submit a short intro video sharing your name, a brief introduction, and why you're interested in Upward Academy using the button below.</p>
+            <p>Our admissions team will also reach out via WhatsApp and email with your cohort onboarding details.</p>
             <p style="margin-bottom: 0;">Best regards,<br><strong>The Upward Academy Admissions Team</strong></p>
           `
         } else {
-          subjectText = 'Complete Your ₦5,000 Application Payment — Upward Academy'
-          buttonText = 'Complete ₦5,000 Payment →'
+          subjectText = 'Complete Your Track Payment — Upward Academy'
+          buttonText = 'Complete Payment →'
           buttonUrl = `https://upward.goodtenants.io/academy/apply?email=${encodeURIComponent(command.email)}`
           contentHtml = `
             <p style="margin-top: 0;">Hi <strong>${firstName}</strong>,</p>
-            <p><strong>Your Upward Academy Application Profile Has Been Saved!</strong></p>
-            <p>Thank you for starting your application for the <strong>Founding Cohort 2026</strong>.</p>
+            <p><strong>Your Upward Academy Registration Profile Has Been Saved!</strong></p>
+            <p>Thank you for starting your registration for the <strong>Founding Cohort 2026</strong>.</p>
+            ${paymentPlanLine}
             ${sessionInfo}
-            <p>To complete your application for admissions review, please complete your ₦5,000 application fee payment below. (Note: The fee is credited toward your programme tuition if admitted, and fully refunded if you do not qualify).</p>
-            <p>Click the button below anytime to reopen your application checkout and finish your payment.</p>
+            <p>Click the button below anytime to return to checkout and complete your track payment.</p>
             <p style="margin-bottom: 0;">Best regards,<br><strong>The Upward Academy Admissions Team</strong></p>
           `
         }
@@ -216,21 +243,25 @@ export class SubmitUniversityApplicationUseCase {
 
       if (isFeePaidNow || isFullSubmissionNow) {
         const isPaid = saved.feeStatus === 'PAID'
+        const paidAmountDisplay = command.amountPaid
+          ? `₦${command.amountPaid.toLocaleString()}`
+          : 'PAID'
         const adminSubject = isPaid
-          ? `🎓 [Fee Paid ₦5,000] Upward Academy Application: ${command.name} (${command.city})`
+          ? `🎓 [Paid ${paidAmountDisplay}] Upward Academy Registration: ${command.name} (${command.city})`
           : `📝 New Academy Application Submitted: ${command.name} (${command.city})`
 
         const feeBadge = isPaid
-          ? '<span style="display:inline-block; padding: 3px 8px; background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; border-radius:12px; font-weight:bold; font-size:12px;">PAID (₦5,000)</span>'
+          ? `<span style="display:inline-block; padding: 3px 8px; background:#ecfdf5; color:#065f46; border:1px solid #a7f3d0; border-radius:12px; font-weight:bold; font-size:12px;">PAID (${paidAmountDisplay})</span>`
           : '<span style="display:inline-block; padding: 3px 8px; background:#fef3c7; color:#92400e; border:1px solid #fde68a; border-radius:12px; font-weight:bold; font-size:12px;">PENDING PAYMENT</span>'
 
         const adminMessage = `
           <div style="font-family: sans-serif; line-height: 1.6; color: #333; max-width: 600px;">
-            <h3 style="color: #8A4A2A; margin-bottom: 6px;">${isPaid ? '🎓 Academy Application & Fee Confirmed' : '📝 New Upward Academy Application'}</h3>
-            <p style="margin-top: 0; color: #555;">An applicant has ${isPaid ? 'completed their application and paid the ₦5,000 application fee' : 'submitted their full application profile for admissions review'}.</p>
+            <h3 style="color: #8A4A2A; margin-bottom: 6px;">${isPaid ? '🎓 Academy Registration & Payment Confirmed' : '📝 New Upward Academy Registration'}</h3>
+            <p style="margin-top: 0; color: #555;">An applicant has ${isPaid ? `completed their registration and paid ${paidAmountDisplay}` : 'submitted their registration profile'}.</p>
             
             <div style="background: #fdf6ec; border: 1px solid #fed7aa; border-radius: 6px; padding: 12px 16px; margin: 14px 0;">
               <div><strong>Application Status:</strong> ${saved.status} &nbsp;|&nbsp; <strong>Fee Status:</strong> ${feeBadge}</div>
+              ${command.paymentPlan ? `<div style="font-size:13px; color:#333; margin-top:4px;"><strong>Payment Option:</strong> ${command.paymentPlan}</div>` : ''}
               ${saved.paymentRef ? `<div style="font-size:13px; color:#555; margin-top:4px;"><strong>Payment Ref:</strong> <code>${saved.paymentRef}</code></div>` : ''}
             </div>
 
