@@ -184,17 +184,49 @@ export class SubmitUniversityApplicationUseCase {
           const videoSubmitUrl = saved.paymentRef
             ? `https://upward.goodtenants.io/academy/thank-you?ref=${encodeURIComponent(saved.paymentRef)}`
             : 'https://upward.goodtenants.io/academy'
-          subjectText = 'Payment Confirmed — Upward Academy Cohort 2026'
-          buttonText = 'Submit Your Intro Video →'
+          
+          const isDepositPlan =
+            (command.paymentPlan && command.paymentPlan.toLowerCase().includes('lock-in')) ||
+            command.amountPaid === 25000
+
+          const balancePayUrl = saved.paymentRef
+            ? `https://upward.goodtenants.io/academy/apply?action=balance&ref=${encodeURIComponent(saved.paymentRef)}`
+            : `https://upward.goodtenants.io/academy/apply?action=balance&email=${encodeURIComponent(command.email)}`
+
+          const balanceSection = isDepositPlan
+            ? `
+              <div style="background: #fff7ed; border-left: 4px solid #ea580c; padding: 12px 14px; margin: 16px 0; border-radius: 4px;">
+                <p style="margin: 0; font-size: 13.5px; color: #9a3412;"><strong>Locked-In Discount:</strong> ₦50,000 Off Track C (Tuition: ₦150,000)</p>
+                <p style="margin: 4px 0 0 0; font-size: 13px; color: #9a3412;"><strong>Deposit Paid Today:</strong> ₦25,000 (Verified)</p>
+                <p style="margin: 4px 0 0 0; font-size: 13px; color: #9a3412;"><strong>Remaining Balance:</strong> ₦125,000 (Due before Dec 5, 2026)</p>
+                <p style="margin: 8px 0 0 0; font-size: 12.5px;"><a href="${balancePayUrl}" style="color: #ea580c; font-weight: 700; text-decoration: underline;">Pay Remaining ₦125,000 Balance Anytime →</a></p>
+              </div>
+            `
+            : ''
+
+          subjectText = isDepositPlan
+            ? 'Spot Secured (₦25k Deposit Received) — Upward Academy Cohort 2026'
+            : 'Payment Confirmed — Upward Academy Cohort 2026'
+          buttonText = 'Submit Your Intro Video (Required) →'
           buttonUrl = videoSubmitUrl
           contentHtml = `
             <p style="margin-top: 0;">Hi <strong>${firstName}</strong>,</p>
             <p><strong>Thank you! Your Upward Academy registration and ${amountLabel} payment have been received.</strong></p>
-            <p>Your spot for the <strong>Founding Cohort 2026 (starting December 5, 2026)</strong> is now safely logged with our admissions team.</p>
+            <p>Your spot for the <strong>Founding Cohort 2026 (starting December 5, 2026)</strong> is now safely secured with our admissions team.</p>
             ${paymentPlanLine}
+            ${balanceSection}
             ${sessionInfo}
-            <p><strong>Next Step — Short Intro Video:</strong> If you haven't already, please submit a short intro video sharing your name, a brief introduction, and why you're interested in Upward Academy using the button below.</p>
-            <p>Our admissions team will also reach out via WhatsApp and email with your cohort onboarding details.</p>
+            <div style="background: #f8fafc; border: 1.5px dashed #cbd5e1; padding: 14px 16px; border-radius: 8px; margin: 18px 0;">
+              <p style="margin: 0 0 6px 0; font-size: 14px; font-weight: 700; color: #1e293b;">Next Step: Submit Your 1–2 Minute Intro Video</p>
+              <p style="margin: 0 0 10px 0; font-size: 13px; color: #475569; line-height: 1.45;">
+                Every applicant across all tracks is asked to submit a short video sharing:
+                <br>• Your full name
+                <br>• A brief intro about your background
+                <br>• Why you're excited to join Upward Academy
+              </p>
+              <p style="margin: 0; font-size: 12.5px;">Click the button below to upload your video link (YouTube, Loom, Google Drive, or Vimeo) right away or whenever you're ready.</p>
+            </div>
+            <p>Our admissions team will also reach out via WhatsApp with your cohort orientation package.</p>
             <p style="margin-bottom: 0;">Best regards,<br><strong>The Upward Academy Admissions Team</strong></p>
           `
         } else {

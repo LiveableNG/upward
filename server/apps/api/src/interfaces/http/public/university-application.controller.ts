@@ -13,8 +13,10 @@ import {
 import { ConfigService } from '@nestjs/config'
 import { SubmitUniversityApplicationUseCase } from '../../../application/use-cases/university-application/submit-university-application.use-case'
 import { SubmitUniversityApplicationVideoUseCase } from '../../../application/use-cases/university-application/submit-university-application-video.use-case'
+import { PayUniversityApplicationBalanceUseCase } from '../../../application/use-cases/university-application/pay-university-application-balance.use-case'
 import { CreateUniversityApplicationDto } from '../dto/create-university-application.dto'
 import { SubmitUniversityApplicationVideoDto } from '../dto/submit-university-application-video.dto'
+import { PayUniversityApplicationBalanceDto } from '../dto/pay-university-application-balance.dto'
 import {
   UNIVERSITY_APPLICATION_REPOSITORY,
   IUniversityApplicationRepository,
@@ -25,6 +27,7 @@ export class UniversityApplicationController {
   constructor(
     private readonly submitUniversityApplicationUseCase: SubmitUniversityApplicationUseCase,
     private readonly submitUniversityApplicationVideoUseCase: SubmitUniversityApplicationVideoUseCase,
+    private readonly payUniversityApplicationBalanceUseCase: PayUniversityApplicationBalanceUseCase,
     private readonly configService: ConfigService,
     @Inject(UNIVERSITY_APPLICATION_REPOSITORY)
     private readonly applicationRepo: IUniversityApplicationRepository,
@@ -38,6 +41,54 @@ export class UniversityApplicationController {
     return {
       success: true,
       paystackPublicKey: key,
+    }
+  }
+
+  @Get('lookup')
+  async lookupApplicant(
+    @Query('email') email?: string,
+    @Query('ref') ref?: string,
+  ) {
+    let application = null
+
+    if (ref && ref.trim().length > 0) {
+      application = await this.applicationRepo.findByPaymentRef(ref.trim())
+    }
+
+    if (!application && email && email.trim().length > 0) {
+      application = await this.applicationRepo.findByEmail(email.trim().toLowerCase())
+    }
+
+    if (!application) {
+      return { success: true, found: false, data: null }
+    }
+
+    const obj = application.toObject()
+    const notes = obj.notes || ''
+    const isPaid = obj.feeStatus === 'PAID'
+    const isDeposit = notes.includes('Lock-In') || notes.includes('25,000')
+    const isFullyCleared = notes.includes('FULLY CLEARED') || (!isDeposit && isPaid)
+    const balanceDue = isDeposit && !isFullyCleared ? 125000 : 0
+
+    return {
+      success: true,
+      found: true,
+      data: {
+        id: obj.id,
+        name: obj.name,
+        email: obj.email,
+        whatsapp: obj.whatsapp,
+        city: obj.city,
+        track: obj.track,
+        feeStatus: obj.feeStatus,
+        paymentRef: obj.paymentRef,
+        isDeposit,
+        depositAmount: isDeposit ? 25000 : 0,
+        balanceDue,
+        isFullyCleared,
+        videoUrl: obj.scholarshipVideoUrl,
+        notes: obj.notes,
+      },
     }
   }
 
@@ -78,6 +129,24 @@ export class UniversityApplicationController {
     return {
       success: true,
       message: 'Intro video submitted successfully',
+      data: result,
+    }
+  }
+
+  @Post('pay-balance')
+  @HttpCode(HttpStatus.OK)
+  @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
+  async payBalance(@Body() dto: PayUniversityApplicationBalanceDto) {
+    const result = await this.payUniversityApplicationBalanceUseCase.execute({
+      paymentRef: dto.paymentRef,
+      email: dto.email,
+      balancePaymentRef: dto.balancePaymentRef,
+      amountPaid: dto.amountPaid,
+    })
+
+    return {
+      success: true,
+      message: 'Remaining balance cleared successfully',
       data: result,
     }
   }

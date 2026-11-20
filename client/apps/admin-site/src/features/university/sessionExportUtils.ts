@@ -532,3 +532,117 @@ export function exportApplicationsToCsv(
   downloadSpreadsheet(htmlContent, filename || defaultName)
   showToast(`Exported ${applications.length} applications to spreadsheet`)
 }
+
+export interface PaymentAndBalanceMeta {
+  status: 'PAID_FULL' | 'DEPOSIT_PENDING' | 'REFUNDED' | 'UNPAID'
+  badgeLabel: string
+  detailText?: string
+  isDeposit: boolean
+  depositAmount: number
+  balanceDue: number
+  isFullyCleared: boolean
+  color: string
+  background: string
+  border: string
+}
+
+export function getPaymentAndBalanceMeta(app: {
+  feeStatus?: string
+  notes?: string | null
+  applicationFee?: number
+}): PaymentAndBalanceMeta {
+  const isPaid = app.feeStatus === 'PAID'
+  const isRefunded = app.feeStatus === 'REFUNDED'
+  const notes = app.notes || ''
+
+  if (!isPaid && !isRefunded) {
+    return {
+      status: 'UNPAID',
+      badgeLabel: 'UNPAID',
+      detailText: 'Stage 1 Saved (Payment Pending)',
+      isDeposit: false,
+      depositAmount: 0,
+      balanceDue: 0,
+      isFullyCleared: false,
+      color: '#64748b',
+      background: '#f1f5f9',
+      border: '#cbd5e1',
+    }
+  }
+
+  if (isRefunded) {
+    return {
+      status: 'REFUNDED',
+      badgeLabel: 'REFUNDED',
+      isDeposit: false,
+      depositAmount: 0,
+      balanceDue: 0,
+      isFullyCleared: false,
+      color: '#991b1b',
+      background: '#fef2f2',
+      border: '#fecaca',
+    }
+  }
+
+  // Check if it's a deposit payment
+  const isDeposit = notes.includes('Lock-In') || notes.includes('25,000') || notes.includes('₦25,000')
+  const isFullyCleared = notes.includes('FULLY CLEARED')
+
+  if (isDeposit && !isFullyCleared) {
+    return {
+      status: 'DEPOSIT_PENDING',
+      badgeLabel: 'DEPOSIT: ₦25k · ₦125k DUE',
+      detailText: '₦25,000 paid · ₦125,000 balance remaining (Total ₦150,000)',
+      isDeposit: true,
+      depositAmount: 25000,
+      balanceDue: 125000,
+      isFullyCleared: false,
+      color: '#b45309',
+      background: '#fef3c7',
+      border: '#fde68a',
+    }
+  }
+
+  if (isDeposit && isFullyCleared) {
+    return {
+      status: 'PAID_FULL',
+      badgeLabel: 'PAID IN FULL (₦150k)',
+      detailText: '₦25,000 deposit + ₦125,000 balance paid · FULLY CLEARED',
+      isDeposit: true,
+      depositAmount: 25000,
+      balanceDue: 0,
+      isFullyCleared: true,
+      color: '#15803d',
+      background: '#dcfce7',
+      border: '#bbf7d0',
+    }
+  }
+
+  // Check notes for amount or track
+  const paymentMatch = notes.match(/\[Payment:\s*([^\]]+)\]/i)?.[1]
+  let paidLabel = '✓ PAID IN FULL'
+  if (paymentMatch) {
+    if (paymentMatch.includes('135,000') || paymentMatch.includes('135k')) {
+      paidLabel = 'PAID IN FULL (₦135k)'
+    } else if (paymentMatch.includes('200,000') || paymentMatch.includes('200k')) {
+      paidLabel = 'PAID IN FULL (₦200k)'
+    } else if (paymentMatch.includes('100,000') || paymentMatch.includes('100k')) {
+      paidLabel = 'PAID IN FULL (₦100k)'
+    } else if (paymentMatch.includes('60,000') || paymentMatch.includes('60k')) {
+      paidLabel = 'PAID IN FULL (₦60k)'
+    }
+  }
+
+  return {
+    status: 'PAID_FULL',
+    badgeLabel: paidLabel,
+    detailText: paymentMatch || 'Verified Cohort Tuition',
+    isDeposit: false,
+    depositAmount: 0,
+    balanceDue: 0,
+    isFullyCleared: true,
+    color: '#15803d',
+    background: '#dcfce7',
+    border: '#bbf7d0',
+  }
+}

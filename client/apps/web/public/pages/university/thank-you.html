@@ -544,9 +544,16 @@
         const applicantName = data.name || nameFromUrl;
         const firstName = applicantName ? applicantName.trim().split(' ')[0] : '';
         const msgEl = document.getElementById('thankYouMsg');
+        const isBalancePaid = params.get('balancePaid') === 'true';
 
         if (msgEl && firstName) {
-          msgEl.textContent = `Thank you, ${firstName}! Your Upward Academy payment was successfully verified. Our admissions team will reach out via WhatsApp with your onboarding details and next steps.`;
+          if (isBalancePaid) {
+            msgEl.textContent = `Congratulations, ${firstName}! Your remaining balance of ₦125,000 has been verified. Your Track C tuition is now 100% FULLY CLEARED for the Founding Cohort 2026.`;
+            const titleEl = document.querySelector('.title');
+            if (titleEl) titleEl.textContent = 'Tuition Balance Cleared!';
+          } else {
+            msgEl.textContent = `Thank you, ${firstName}! Your Upward Academy payment was successfully verified. Our admissions team will reach out via WhatsApp with your onboarding details and next steps.`;
+          }
         }
 
         const summaryEl = document.getElementById('trackPaymentSummary');
@@ -623,7 +630,7 @@
             showSavedVideo(rawUrl);
             if (videoStatus) {
               videoStatus.className = 'video-status-msg success';
-              videoStatus.textContent = 'Your intro video has been linked to your application!';
+              videoStatus.textContent = 'Your intro video has been saved! A confirmation email with your cohort orientation details has been sent to your inbox.';
             }
           } catch (err) {
             if (videoStatus) {

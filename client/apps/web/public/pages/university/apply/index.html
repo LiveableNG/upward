@@ -45,7 +45,7 @@
         <a href="/academy/faq">FAQ</a>
       </div>
       <div class="nav-right">
-        <a class="btn btn-primary" href="/academy/sessions">Reserve a Spot</a>
+        <a class="btn btn-primary" href="/academy/webinar">Join Webinar</a>
         <button class="nav-toggle" id="navToggle" aria-label="Menu" aria-expanded="false">
           <svg viewBox="0 0 24 24" fill="none">
             <path d="M4 7h16M4 12h16M4 17h16" stroke="#15162B" stroke-width="1.8" stroke-linecap="round" />
@@ -194,6 +194,23 @@
             <div style="margin-bottom: 20px;">
               <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 4px;">Step 1: Basic Information &amp; Track</h3>
               <p style="font-size: 13.5px; color: var(--ink-soft);">Fill in your details and choose your track to proceed directly to payment.</p>
+            </div>
+
+            <!-- RETURNING APPLICANT BALANCE NOTICE (SHOWN IF USER ALREADY PAID DEPOSIT) -->
+            <div id="returning-balance-notice" style="display:none; background: #FFF7ED; border: 1.5px solid #FED7AA; border-radius: 12px; padding: 14px 16px; margin-bottom: 20px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+                <div>
+                  <strong style="color: #9A3412; font-size: 14px; display: block; margin-bottom: 2px;">
+                    Active Track C Lock-In Deposit Found!
+                  </strong>
+                  <span style="font-size: 12.5px; color: #7C2D12;" id="returning-notice-text">
+                    You have an active spot with a ₦25,000 deposit paid. You can clear your remaining ₦125,000 balance anytime without re-filling this form.
+                  </span>
+                </div>
+                <button type="button" class="btn btn-primary" id="btn-goto-balance" style="font-size: 12.5px; padding: 8px 16px; background: #C2410C;">
+                  Pay ₦125,000 Balance →
+                </button>
+              </div>
             </div>
 
             <div class="form-row">
@@ -380,6 +397,68 @@
               <button type="submit" class="btn btn-primary apply-submit-btn" id="btn-final-submit">
                 Complete Payment →
               </button>
+            </div>
+          </div>
+
+          <!-- STAGE BALANCE: PAY REMAINING BALANCE (NO RE-TYPING NEEDED) -->
+          <div id="stage-balance" class="form-stage" style="display:none;">
+            <div style="margin-bottom: 20px;">
+              <span class="offer-deal-pill" style="margin-bottom: 8px;">Tuition Balance Checkout</span>
+              <h3 style="font-size: 22px; font-weight: 800; margin-bottom: 6px;">Clear Remaining Track C Balance</h3>
+              <p style="font-size: 13.5px; color: var(--ink-soft); line-height: 1.45;">
+                Welcome back, <strong id="balance-applicant-name">Applicant</strong>! You previously locked in your spot with a ₦25,000 deposit. You can complete your remaining ₦125,000 balance below.
+              </p>
+            </div>
+
+            <!-- Balance Breakdown Card -->
+            <div class="balance-breakdown-card">
+              <div class="balance-row">
+                <span>Selected Track</span>
+                <strong>Track C · Practical Experience</strong>
+              </div>
+              <div class="balance-row">
+                <span>Agreed Promotional Tuition</span>
+                <strong>₦150,000 <span class="old-price" style="font-size: 13px; text-decoration: line-through; color: var(--ink-muted); margin-left: 4px;">₦200,000</span></strong>
+              </div>
+              <div class="balance-row">
+                <span>Deposit Paid (Verified)</span>
+                <strong style="color: #15803d;">- ₦25,000</strong>
+              </div>
+              <div class="balance-divider"></div>
+              <div class="balance-total-row">
+                <div>
+                  <div style="font-size: 14.5px; font-weight: 800;">Remaining Balance Due</div>
+                  <div style="font-size: 12px; color: var(--ink-soft);">Secures full cohort kickoff access on Dec 5</div>
+                </div>
+                <div class="balance-due-price">₦125,000</div>
+              </div>
+            </div>
+
+            <!-- Locked Pre-filled applicant details -->
+            <div class="balance-applicant-info">
+              <div class="balance-info-item">
+                <span class="lbl">Email</span>
+                <span class="val" id="balance-applicant-email">you@email.com</span>
+              </div>
+              <div class="balance-info-item">
+                <span class="lbl">WhatsApp</span>
+                <span class="val" id="balance-applicant-phone">+234...</span>
+              </div>
+              <div class="balance-info-item">
+                <span class="lbl">Deposit Reference</span>
+                <span class="val" id="balance-applicant-ref">UPW_APP_...</span>
+              </div>
+            </div>
+
+            <div style="margin-top: 24px; display: flex; flex-direction: column; gap: 12px;">
+              <button type="button" class="btn btn-primary" id="btn-pay-balance" style="width: 100%; font-size: 15.5px; padding: 15px;">
+                Pay ₦125,000 Remaining Balance →
+              </button>
+              <div style="text-align: center;">
+                <button type="button" id="btn-switch-to-full-form" style="background: none; border: none; font-size: 12.5px; color: var(--ink-soft); text-decoration: underline; cursor: pointer;">
+                  Start a new registration instead
+                </button>
+              </div>
             </div>
           </div>
         </form>

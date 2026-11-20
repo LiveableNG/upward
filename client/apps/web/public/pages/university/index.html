@@ -217,54 +217,121 @@
     }
 
     /* Sticky Announcement Bar & Header */
-    .sticky-header-wrapper {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      width: 100%;
-    }
-
-    .top-announcement-bar {
-      background: var(--ink);
+    /* Top Webinar Ad Banner (Time-Gated) */
+    .webinar-ad-banner {
+      background: linear-gradient(90deg, #121324 0%, #23140D 50%, #121324 100%);
       color: var(--paper);
-      padding: 8px 0;
-      font-size: 12.5px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 10px 16px;
+      font-size: 13px;
+      line-height: 1.4;
+      border-bottom: 1px solid rgba(201, 123, 74, 0.35);
+      position: relative;
+      z-index: 101;
     }
 
-    .top-announcement-content {
+    .webinar-ad-inner {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 12px;
+      gap: 14px;
       flex-wrap: wrap;
       text-align: center;
     }
 
-    .top-announcement-badge {
-      background: var(--rust);
-      color: #fff;
-      font: 700 10px var(--mono);
-      text-transform: uppercase;
+    .webinar-ad-tag {
+      background: rgba(201, 123, 74, 0.22);
+      border: 1px solid rgba(201, 123, 74, 0.55);
+      color: #F4E4D8;
+      font-family: var(--mono);
+      font-size: 10.5px;
+      font-weight: 700;
       letter-spacing: 0.08em;
-      padding: 2px 8px;
-      border-radius: 4px;
+      text-transform: uppercase;
+      padding: 3px 10px;
+      border-radius: 999px;
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 6px;
+      flex-shrink: 0;
     }
 
-    .top-announcement-link {
-      color: var(--rust-light);
+    .webinar-ad-pulse {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #4ADE80;
+      display: inline-block;
+      animation: pulse-green 1.8s infinite ease-in-out;
+    }
+
+    @keyframes pulse-green {
+      0% {
+        box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7);
+      }
+      70% {
+        box-shadow: 0 0 0 6px rgba(74, 222, 128, 0);
+      }
+      100% {
+        box-shadow: 0 0 0 0 rgba(74, 222, 128, 0);
+      }
+    }
+
+    .webinar-ad-message {
+      color: rgba(253, 251, 245, 0.92);
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .webinar-ad-message strong {
+      color: #FFFFFF;
+      font-weight: 700;
+      margin-right: 4px;
+    }
+
+    .webinar-ad-cta {
+      background: var(--rust);
+      color: #ffffff !important;
+      padding: 5px 14px;
+      border-radius: 999px;
+      font-size: 12px;
       font-weight: 700;
       text-decoration: none;
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      gap: 6px;
+      white-space: nowrap;
+      transition: background 0.18s ease, transform 0.15s ease;
+      flex-shrink: 0;
     }
 
-    .top-announcement-link:hover {
-      text-decoration: underline;
+    .webinar-ad-cta:hover {
+      background: var(--rust-light);
+      transform: translateX(2px);
+      color: #ffffff !important;
+    }
+
+    @media (max-width: 640px) {
+      .webinar-ad-banner {
+        padding: 8px 12px;
+      }
+      .webinar-ad-inner {
+        gap: 8px;
+      }
+      .webinar-ad-message {
+        font-size: 12px;
+        line-height: 1.35;
+      }
+      .webinar-ad-message span {
+        display: none;
+      }
+      .webinar-ad-tag {
+        font-size: 9.5px;
+        padding: 2px 8px;
+      }
+      .webinar-ad-cta {
+        font-size: 11px;
+        padding: 4px 11px;
+      }
     }
 
     header {
@@ -1877,6 +1944,36 @@
 
 <body>
 
+  <!-- Top Webinar Ad Banner (Time-Gated: automatically disappears after 21st November 2026 23:59:59 WAT) -->
+  <aside id="webinar-top-banner" class="webinar-ad-banner" aria-label="Webinar Announcement">
+    <div class="wrap webinar-ad-inner">
+      <div class="webinar-ad-tag">
+        <span class="webinar-ad-pulse" aria-hidden="true"></span>
+        <i class="fa-solid fa-video" aria-hidden="true"></i>
+        <span>Live Webinar · Sat, 21 Nov</span>
+      </div>
+      <div class="webinar-ad-message">
+        <strong>Build a 6-Figure Career or Business in Property Management:</strong>
+        <span>Learn how to launch without owning property.</span>
+      </div>
+      <a href="/academy/webinar" class="webinar-ad-cta">
+        <span>Register Free</span>
+        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+      </a>
+    </div>
+  </aside>
+  <script>
+    (function () {
+      try {
+        var webinarExpiry = new Date('2026-11-21T23:59:59+01:00');
+        if (new Date() > webinarExpiry) {
+          var b = document.getElementById('webinar-top-banner');
+          if (b) b.style.display = 'none';
+        }
+      } catch (e) {}
+    })();
+  </script>
+
   <!-- Header -->
   <header>
     <nav class="wrap">
@@ -1898,7 +1995,6 @@
       </div>
 
       <div class="nav-right">
-        <a class="nav-session-link" href="/academy/sessions">Info Session</a>
         <a class="btn-header" href="/academy/apply">Apply Now</a>
         <button class="nav-toggle" id="navToggle" aria-label="Menu" aria-expanded="false">
           <svg viewBox="0 0 24 24" fill="none">
@@ -1918,9 +2014,9 @@
       <div class="cta-block">
         <div class="cta-actions">
           <a href="/academy/apply" class="btn btn-primary">Apply for 2026 Cohort →</a>
-          <a href="/academy/sessions" class="btn btn-outline">
-            <i class="fa-solid fa-calendar-days" style="color:var(--rust); margin-right:4px;"></i>
-            Join Free Info Session
+          <a href="/academy/webinar" class="btn btn-outline" id="hero-webinar-cta">
+            <i class="fa-solid fa-video" style="color:var(--rust); margin-right:4px;"></i>
+            Join Free Webinar
           </a>
         </div>
         <p class="cta-note">Classes start 5th December · Hybrid across Lagos, Abuja, PH &amp; Oyo</p>
@@ -2007,7 +2103,7 @@
     <div class="wrap" style="text-align:center">
       <h2>Four tracks. Pick your path.</h2>
       <p style="font-size:15px; color:var(--ink-soft); max-width:640px; margin:10px auto 0 auto; line-height:1.5;">
-        Choose the track that fits where you are right now. Apply directly or join an upcoming free information session with your track pre-selected.
+        Choose the track that fits where you are right now. Apply directly or register for our free live webinar to learn more.
       </p>
 
       <div class="track-grid">
@@ -2015,7 +2111,6 @@
         <article class="track-card">
           <div class="track-header-row">
             <span class="track-tag">Track A · Foundation</span>
-            <span class="track-badge-start">Start here</span>
           </div>
           <h3>Discover Your Path</h3>
           <div class="track-price-row">
@@ -2039,7 +2134,7 @@
           </div>
           <div class="track-actions">
             <a href="/academy/apply?track=track-a" class="track-btn-primary">Apply for Track A <i class="fa-solid fa-arrow-right"></i></a>
-            <a href="/academy/sessions?track=track-a" class="track-btn-secondary">Join Info Session</a>
+            <a href="/academy/webinar?track=track-a" class="track-btn-secondary">Join Webinar</a>
           </div>
         </article>
 
@@ -2071,7 +2166,7 @@
           </div>
           <div class="track-actions">
             <a href="/academy/apply?track=track-b" class="track-btn-primary">Apply for Track B <i class="fa-solid fa-arrow-right"></i></a>
-            <a href="/academy/sessions?track=track-b" class="track-btn-secondary">Join Info Session</a>
+            <a href="/academy/webinar?track=track-b" class="track-btn-secondary">Join Webinar</a>
           </div>
         </article>
 
@@ -2106,7 +2201,7 @@
           </div>
           <div class="track-actions">
             <a href="/academy/apply?track=track-c" class="track-btn-primary">Apply for Track C <i class="fa-solid fa-arrow-right"></i></a>
-            <a href="/academy/sessions?track=track-c" class="track-btn-secondary">Join Info Session</a>
+            <a href="/academy/webinar?track=track-c" class="track-btn-secondary">Join Webinar</a>
           </div>
         </article>
 
@@ -2140,14 +2235,14 @@
           </div>
           <div class="track-actions">
             <a href="/academy/apply?track=track-d" class="track-btn-primary">Apply for Track D <i class="fa-solid fa-arrow-right"></i></a>
-            <a href="/academy/sessions?track=track-d" class="track-btn-secondary">Join Info Session</a>
+            <a href="/academy/webinar?track=track-d" class="track-btn-secondary">Join Webinar</a>
           </div>
         </article>
       </div>
 
       <div class="tracks-footer-cta">
         <span>Not sure which track fits you best?</span>
-        <a href="/academy/sessions">Join our free information session →</a>
+        <a href="/academy/webinar">Join our free live webinar on 21st Nov →</a>
         <span style="color:var(--sand); margin:0 4px;">•</span>
         <a href="/academy/scholarships">See fees &amp; scholarships</a>
       </div>
@@ -2177,7 +2272,7 @@
         <div class="plan-card">
           <div class="n">04</div>
           <h3>Mentorship</h3>
-          <p>People who've done this already, guiding you through it — you'll meet them at your info session.</p>
+          <p>People who've done this already, guiding you through it — you'll meet them during the programme and live sessions.</p>
         </div>
         <div class="plan-card">
           <div class="n">05</div>
@@ -2276,12 +2371,12 @@
   <section class="final" id="apply">
     <div class="wrap">
       <h2>Build your future in real estate.</h2>
-      <p class="lead">Ready to build your way in? Submit your application for the 10-week 2026 Cohort, or reserve your
-        spot in an upcoming free Information &amp; Q&amp;A Session to meet mentors and learn more.</p>
+      <p class="lead">Ready to build your way in? Submit your application for the 10-week 2026 Cohort, or register for
+        our free live Webinar to meet mentors and learn how to launch your career.</p>
       <div style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap; margin-bottom:14px;">
         <a href="/academy/apply" class="btn btn-primary" style="padding:15px 32px; font-size:15.5px;">Apply for 2026 Cohort
           →</a>
-        <a href="/academy/sessions" class="btn btn-outline" style="padding:15px 32px; font-size:15.5px;">Join an Information Session</a>
+        <a href="/academy/webinar" class="btn btn-outline" style="padding:15px 32px; font-size:15.5px;">Join Free Webinar</a>
       </div>
       <p class="cta-note">Classes commence 5th December · <a href="/academy/scholarships"
           style="color:var(--rust); font-weight:700; border-bottom:1px solid var(--rust); margin-left:4px;">See fees
@@ -2416,6 +2511,19 @@
     contactUsBtn?.addEventListener('click', () => setContactDrawerOpen(true));
     contactDrawerClose?.addEventListener('click', () => setContactDrawerOpen(false));
     contactDrawerOverlay?.addEventListener('click', () => setContactDrawerOpen(false));
+
+    // Webinar Announcement Expiration (Disappears after Nov 21, 2026 23:59:59 WAT)
+    (function checkWebinarExpiration() {
+      try {
+        const webinarExpiry = new Date('2026-11-21T23:59:59+01:00');
+        if (new Date() > webinarExpiry) {
+          const banner = document.getElementById('webinar-top-banner');
+          if (banner) banner.style.display = 'none';
+        }
+      } catch (err) {
+        console.warn('Webinar expiry check error:', err);
+      }
+    })();
   </script>
 
   <script src="/landing-analytics.js" defer></script>

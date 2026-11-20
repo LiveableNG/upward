@@ -396,10 +396,65 @@
       }
 
       // Pre-fill Track Selection from URL parameter (e.g. ?track=track-a, track-b, track-c, track-d)
+      let currentBalanceData = null;
+
+      async function loadBalanceView(query) {
+        try {
+          const qs = query.ref
+            ? `ref=${encodeURIComponent(query.ref)}`
+            : `email=${encodeURIComponent(query.email || '')}`;
+          const res = await fetch(`/api/v1/university/application/lookup?${qs}`);
+          const json = await res.json();
+          if (!json || !json.found || !json.data) return false;
+          const data = json.data;
+
+          if (data.isFullyCleared) {
+            window.location.href = `/academy/thank-you?ref=${encodeURIComponent(data.paymentRef || '')}&balancePaid=true`;
+            return true;
+          }
+
+          if (data.isDeposit && data.balanceDue > 0) {
+            currentBalanceData = data;
+            const stage1 = document.getElementById('stage-1');
+            const stage2 = document.getElementById('stage-2');
+            const stageBal = document.getElementById('stage-balance');
+            const stepsBar = document.querySelector('.apply-steps-bar');
+
+            if (stage1) stage1.style.display = 'none';
+            if (stage2) stage2.style.display = 'none';
+            if (stepsBar) stepsBar.style.display = 'none';
+            if (stageBal) stageBal.style.display = 'block';
+
+            const nameEl = document.getElementById('balance-applicant-name');
+            const emailEl = document.getElementById('balance-applicant-email');
+            const phoneEl = document.getElementById('balance-applicant-phone');
+            const refEl = document.getElementById('balance-applicant-ref');
+
+            if (nameEl) nameEl.textContent = data.name || 'Applicant';
+            if (emailEl) emailEl.textContent = data.email || '';
+            if (phoneEl) phoneEl.textContent = data.whatsapp || '';
+            if (refEl) refEl.textContent = data.paymentRef || 'N/A';
+
+            stageBal.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            return true;
+          }
+        } catch (err) {
+          console.error('Balance lookup error:', err);
+        }
+        return false;
+      }
+
       try {
         const urlParams = new URLSearchParams(window.location.search);
+        const actionParam = urlParams.get('action');
         const trackParam = (urlParams.get('track') || '').toLowerCase().trim();
         const emailParam = (urlParams.get('email') || '').trim();
+        const refParam = (urlParams.get('ref') || '').trim();
+
+        if (actionParam === 'balance' && (refParam || emailParam)) {
+          loadBalanceView({ ref: refParam, email: emailParam });
+        }
+
         if (emailParam && document.getElementById('email')) {
           document.getElementById('email').value = emailParam;
         }
@@ -417,6 +472,132 @@
       } catch (err) {
         // Fallback
       }
+
+      // Email Recognition on Application Form
+      const emailInputEl = document.getElementById('email');
+      if (emailInputEl) {
+        let emailDebounceTimer = null;
+        const checkReturningDeposit = async () => {
+          const val = (emailInputEl.value || '').trim();
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) return;
+          try {
+            const res = await fetch(`/api/v1/university/application/lookup?email=${encodeURIComponent(val)}`);
+            const json = await res.json();
+            const noticeEl = document.getElementById('returning-balance-notice');
+            if (json && json.found && json.data && json.data.isDeposit && !json.data.isFullyCleared) {
+              currentBalanceData = json.data;
+              if (noticeEl) {
+                noticeEl.style.display = 'block';
+                const textEl = document.getElementById('returning-notice-text');
+                if (textEl) {
+                  textEl.textContent = `Welcome back, ${json.data.name.split(' ')[0]}! You have an active Track C deposit (₦25,000 paid). You can clear your remaining ₦125,000 balance anytime without re-filling this form.`;
+                }
+              }
+            } else if (noticeEl) {
+              noticeEl.style.display = 'none';
+            }
+          } catch (e) { }
+        };
+
+        emailInputEl.addEventListener('blur', checkReturningDeposit);
+        emailInputEl.addEventListener('input', () => {
+          clearTimeout(emailDebounceTimer);
+          emailDebounceTimer = setTimeout(checkReturningDeposit, 800);
+        });
+      }
+
+      document.getElementById('btn-goto-balance')?.addEventListener('click', () => {
+        if (currentBalanceData) {
+          loadBalanceView({ email: currentBalanceData.email });
+        }
+      });
+
+      document.getElementById('btn-switch-to-full-form')?.addEventListener('click', () => {
+        const stage1 = document.getElementById('stage-1');
+        const stageBal = document.getElementById('stage-balance');
+        const stepsBar = document.querySelector('.apply-steps-bar');
+        if (stageBal) stageBal.style.display = 'none';
+        if (stepsBar) stepsBar.style.display = 'flex';
+        if (stage1) stage1.style.display = 'block';
+        const noticeEl = document.getElementById('returning-balance-notice');
+        if (noticeEl) noticeEl.style.display = 'none';
+      });
+
+      // Pay Balance Button Handler
+      document.getElementById('btn-pay-balance')?.addEventListener('click', async function () {
+        if (!currentBalanceData) return;
+        const btn = document.getElementById('btn-pay-balance');
+        btn.disabled = true;
+        btn.textContent = 'Opening Secure Checkout...';
+
+        try {
+          let paystackKey = 'pk_live_d8434237191295b92e3428d0fc65a7d7675685cb';
+          try {
+            const cfg = await (await fetch('/api/v1/university/application/config')).json();
+            if (cfg?.paystackPublicKey) paystackKey = cfg.paystackPublicKey;
+          } catch (e) { }
+
+          const startBalancePayment = () => {
+            if (typeof window.PaystackPop !== 'undefined') {
+              const handler = new window.PaystackPop();
+              handler.newTransaction({
+                key: paystackKey,
+                email: currentBalanceData.email,
+                amount: 125000 * 100, // ₦125,000 in kobo
+                currency: 'NGN',
+                ref: 'UPW_BAL_' + Math.floor((Math.random() * 1000000000) + 1),
+                metadata: {
+                  paymentKind: 'ACADEMY_TUITION_BALANCE',
+                  type: 'ACADEMY_TUITION_BALANCE',
+                  track: currentBalanceData.track,
+                  custom_fields: [
+                    { display_name: "Applicant Name", variable_name: "applicant_name", value: currentBalanceData.name },
+                    { display_name: "Original Deposit Ref", variable_name: "original_deposit_ref", value: currentBalanceData.paymentRef },
+                    { display_name: "Balance Payment", variable_name: "balance_payment", value: "₦125,000" }
+                  ]
+                },
+                onSuccess: async function (response) {
+                  try {
+                    await fetch('/api/v1/university/application/pay-balance', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        paymentRef: currentBalanceData.paymentRef,
+                        email: currentBalanceData.email,
+                        balancePaymentRef: response.reference,
+                        amountPaid: 125000
+                      })
+                    });
+                  } catch (e) { }
+                  const firstName = encodeURIComponent((currentBalanceData.name || '').split(' ')[0] || '');
+                  window.location.href = `/academy/thank-you?ref=${encodeURIComponent(response.reference)}&name=${firstName}&balancePaid=true&amount=125000`;
+                },
+                onCancel: function () {
+                  btn.disabled = false;
+                  btn.textContent = 'Pay ₦125,000 Remaining Balance →';
+                }
+              });
+            }
+          };
+
+          if (typeof window.PaystackPop === 'undefined') {
+            const script = document.createElement('script');
+            script.src = 'https://js.paystack.co/v2/inline.js';
+            script.onload = startBalancePayment;
+            script.onerror = () => {
+              btn.disabled = false;
+              btn.textContent = 'Pay ₦125,000 Remaining Balance →';
+            };
+            document.body.appendChild(script);
+          } else {
+            startBalancePayment();
+          }
+        } catch (err) {
+          console.error('Balance payment error:', err);
+          btn.disabled = false;
+          btn.textContent = 'Pay ₦125,000 Remaining Balance →';
+        }
+      });
 
       // Initial render of Track C time-gated offers
       renderTrackCOfferUI();

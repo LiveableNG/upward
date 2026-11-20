@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 import type { ColumnDef } from '../../../components/common/table/DataTable'
 import type { UniversityApplicationRecord } from '../types'
-import { getTrackBadgeMeta, parseSessionAndTrack } from '../sessionExportUtils'
+import { getTrackBadgeMeta, parseSessionAndTrack, getPaymentAndBalanceMeta } from '../sessionExportUtils'
 
 interface ApplicationColumnsOptions {
   onSelect: (row: UniversityApplicationRecord) => void
@@ -62,7 +62,44 @@ export const getApplicationColumns = ({
               <Compass size={11} />
               {badgeMeta.label}
             </span>
-            {(row.isScholarship || row.scholarshipVideoUrl) && (
+            {row.scholarshipVideoUrl ? (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontSize: '10.5px',
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: '999px',
+                  background: '#f0fdf4',
+                  color: '#166534',
+                  border: '1px solid #bbf7d0',
+                }}
+              >
+                <Video size={11} />
+                VIDEO SUBMITTED
+              </span>
+            ) : row.feeStatus === 'PAID' ? (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontSize: '10.5px',
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: '999px',
+                  background: '#fef3c7',
+                  color: '#92400e',
+                  border: '1px solid #fde68a',
+                }}
+              >
+                <Video size={11} />
+                VIDEO PENDING
+              </span>
+            ) : null}
+            {row.isScholarship && (
               <span
                 style={{
                   display: 'inline-flex',
@@ -195,24 +232,34 @@ export const getApplicationColumns = ({
   },
   {
     key: 'feeStatus',
-    label: 'App Fee (₦5,000)',
+    label: 'Payment & Balance Status',
     render: (row) => {
-      const isPaid = row.feeStatus === 'PAID'
-      const isRefunded = row.feeStatus === 'REFUNDED'
+      const meta = getPaymentAndBalanceMeta(row)
       return (
-        <span
-          style={{
-            padding: '4px 10px',
-            borderRadius: '20px',
-            fontSize: '12px',
-            fontWeight: 700,
-            background: isPaid ? '#dcfce7' : isRefunded ? '#fef2f2' : '#fef9c3',
-            color: isPaid ? '#15803d' : isRefunded ? '#991b1b' : '#a16207',
-            border: `1px solid ${isPaid ? '#bbf7d0' : isRefunded ? '#fecaca' : '#fef08a'}`,
-          }}
-        >
-          {isPaid ? '✓ PAID' : isRefunded ? 'REFUNDED' : 'PENDING'}
-        </span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+          <span
+            style={{
+              padding: '3px 9px',
+              borderRadius: '20px',
+              fontSize: '11px',
+              fontWeight: 800,
+              background: meta.background,
+              color: meta.color,
+              border: `1px solid ${meta.border}`,
+              whiteSpace: 'nowrap',
+              display: 'inline-flex',
+              alignItems: 'center',
+              width: 'fit-content',
+            }}
+          >
+            {meta.badgeLabel}
+          </span>
+          {meta.detailText && (
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: 1.25, maxWidth: '200px' }}>
+              {meta.detailText}
+            </span>
+          )}
+        </div>
       )
     },
   },
