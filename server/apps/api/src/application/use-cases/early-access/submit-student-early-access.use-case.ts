@@ -91,91 +91,105 @@ export class SubmitStudentEarlyAccessUseCase {
         let contentHtml: string
 
         if (isWebinar) {
-          subject = 'You’re in! The Tech-Driven Property Management Model: Go from Commission-Only to Predictable Income in 90 Days'
-          title = 'You’re in! The Tech-Driven Property Management Model: Go from Commission-Only to Predictable Income in 90 Days'
+          subject = 'Confirmed: Your spot for the Upward Academy Webinar (21st Nov, 9:00 AM WAT)'
+          title = 'Your Webinar Spot is Confirmed'
 
           const whatsappCommunityUrl = 'https://chat.whatsapp.com/EVzHouLPtchBFxv2TOb3ra'
+          const joinWebinarUrl = 'https://upward.goodtenants.io/webinar/join'
+          const admissionsWhatsAppUrl = 'https://wa.me/2348104332040?text=Hi%20Upward%20Academy%2C%20I%20have%20a%20question%20about%20the%20webinar.'
 
           contentHtml = `
-            <p style="margin-top: 0; font-size: 16px;">Hi <strong>${firstName}</strong>,</p>
-            <p style="font-size: 16px; color: #111827; font-weight: 600; line-height: 1.5;">Your spot at the Upward Webinar is confirmed.</p>
+            <p style="margin-top: 0; font-size: 16px; color: #111827; line-height: 1.5;">Hi <strong>${firstName}</strong>,</p>
+            <p style="font-size: 16px; color: #111827; line-height: 1.6; margin-bottom: 20px;">
+              Your spot for the live <strong>Upward Academy Webinar</strong> is officially confirmed. We are excited to have you join us.
+            </p>
 
-            <!-- Event Details Card (No Emojis) -->
-            <div style="background: #fbf1ed; border: 1.5px solid rgba(217, 119, 87, 0.25); border-radius: 12px; padding: 18px 24px; margin: 24px 0;">
+            <!-- Event Details Card -->
+            <div style="background: #fbf1ed; border: 1.5px solid rgba(217, 119, 87, 0.28); border-radius: 12px; padding: 20px 24px; margin: 24px 0;">
               <table width="100%" cellpadding="6" cellspacing="0" style="font-size: 14.5px; color: #1f2937;">
                 <tr>
-                  <td style="color: #6b7280; width: 75px; font-weight: 600; text-transform: uppercase; font-size: 11.5px; letter-spacing: 0.5px;">Date:</td>
-                  <td style="font-weight: 700; color: #111827;">21st November 2026</td>
+                  <td style="color: #6b7280; width: 85px; font-weight: 600; text-transform: uppercase; font-size: 11.5px; letter-spacing: 0.5px;">Topic:</td>
+                  <td style="font-weight: 700; color: #111827;">Build a 6-Figure Career/Business in Tech-Driven Property Management &amp; Brokerage</td>
                 </tr>
                 <tr>
-                  <td style="color: #6b7280; width: 75px; font-weight: 600; text-transform: uppercase; font-size: 11.5px; letter-spacing: 0.5px;">Time:</td>
-                  <td style="font-weight: 700; color: #111827;">9:00 AM WAT</td>
+                  <td style="color: #6b7280; width: 85px; font-weight: 600; text-transform: uppercase; font-size: 11.5px; letter-spacing: 0.5px;">Date:</td>
+                  <td style="font-weight: 700; color: #111827;">Saturday, 21st November 2026</td>
                 </tr>
                 <tr>
-                  <td style="color: #6b7280; width: 75px; font-weight: 600; text-transform: uppercase; font-size: 11.5px; letter-spacing: 0.5px;">Where:</td>
-                  <td style="font-weight: 700; color: #111827;">Virtual (Live Online Session)</td>
+                  <td style="color: #6b7280; width: 85px; font-weight: 600; text-transform: uppercase; font-size: 11.5px; letter-spacing: 0.5px;">Time:</td>
+                  <td style="font-weight: 700; color: #111827;">9:00 AM WAT (West Africa Time)</td>
+                </tr>
+                <tr>
+                  <td style="color: #6b7280; width: 85px; font-weight: 600; text-transform: uppercase; font-size: 11.5px; letter-spacing: 0.5px;">Location:</td>
+                  <td style="font-weight: 700; color: #111827;">Online (Google Meet &amp; YouTube Live)</td>
                 </tr>
               </table>
             </div>
 
+            <!-- Early Login Notice (8:50 AM WAT) -->
+            <div style="background: #ffffff; border-left: 4px solid #8A4A2A; border-top: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; border-radius: 8px; padding: 18px 20px; margin: 24px 0;">
+              <p style="margin: 0 0 6px 0; font-size: 14.5px; font-weight: 700; color: #8A4A2A;">
+                Please log in by 8:50 AM WAT
+              </p>
+              <p style="margin: 0; font-size: 14px; color: #374151; line-height: 1.6;">
+                To make sure you don’t miss a moment, please log in by <strong>8:50 a.m.</strong> That gives you time to settle in and sort out any audio or connection issues before we begin promptly at 9:00 a.m.
+              </p>
+            </div>
+
+            <!-- Join Webinar Button -->
+            <div style="text-align: center; margin: 30px 0 28px 0;">
+              <a href="${joinWebinarUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-block; background-color: #8A4A2A; color: #ffffff !important; font-weight: 700; font-size: 15px; padding: 14px 32px; border-radius: 8px; text-decoration: none;">
+                Join Webinar &amp; Add to Calendar &rarr;
+              </a>
+              <p style="font-size: 12.5px; color: #6b7280; margin: 8px 0 0 0;">
+                Save this link to enter the live session on Saturday, 21st November. Both Google Meet and YouTube stream links unlock here.
+              </p>
+            </div>
+
             <!-- What you'll learn -->
             <div style="margin: 28px 0;">
-              <h3 style="font-size: 16px; font-weight: 700; color: #111827; margin: 0 0 12px 0;">What you’ll learn</h3>
+              <h3 style="font-size: 15.5px; font-weight: 700; color: #111827; margin: 0 0 12px 0;">What we will cover during the session:</h3>
               <div style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 18px 20px;">
-                <ul style="margin: 0; padding-left: 20px; color: #374151; font-size: 14.5px; line-height: 1.65;">
-                  <li style="margin-bottom: 10px;">How to build a tech-driven property management career from scratch, even with no prior experience</li>
-                  <li style="margin-bottom: 10px;">How to use technology to manage properties efficiently and boost your productivity</li>
-                  <li style="margin-bottom: 0;">How to build this alongside your existing commitments, without giving up all your time</li>
+                <ul style="margin: 0; padding-left: 20px; color: #374151; font-size: 14px; line-height: 1.7;">
+                  <li style="margin-bottom: 8px;"><strong>The 0-Capital Blueprint:</strong> How to secure property management mandates and brokerage deals without owning real estate first.</li>
+                  <li style="margin-bottom: 8px;"><strong>Tech-Driven Operations:</strong> How to automate tenant vetting, rent collection, and property reports using modern software tools.</li>
+                  <li style="margin-bottom: 0;"><strong>Predictable Income:</strong> Transitioning from erratic commission-only deals to steady, recurring monthly management retainers.</li>
                 </ul>
               </div>
             </div>
 
-            <!-- Upward Academy Context -->
-            <p style="line-height: 1.65; color: #4b5563; margin: 16px 0;">
-              Upward Academy aims to equip people for a career in technology-driven property management, facilitated by leading industry experts.
-            </p>
-            <p style="line-height: 1.65; color: #4b5563; margin: 16px 0;">
-              Through GoodTenants, our parent company, we’ve served leading property management firms and earned industry recognition over the years;
-            </p>
-            <p style="line-height: 1.65; color: #4b5563; margin: 16px 0;">
-              In this webinar, we’ll show you how to tap into Nigeria’s property management and real estate market and build a lucrative career/business.
-            </p>
-
-            <!-- Next Steps Card -->
+            <!-- Attendees WhatsApp Community -->
             <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 22px; margin: 28px 0;">
-              <h4 style="font-size: 15px; font-weight: 700; color: #111827; margin: 0 0 12px 0;">Next Steps:</h4>
-              <p style="margin: 0 0 14px 0; font-size: 14.5px; color: #374151; line-height: 1.5;">
-                <strong>Join our WhatsApp group</strong> for updates, tips, and exclusive perks before the webinar:
+              <h4 style="font-size: 15px; font-weight: 700; color: #111827; margin: 0 0 8px 0;">Join the WhatsApp Attendees Community</h4>
+              <p style="margin: 0 0 16px 0; font-size: 14px; color: #4b5563; line-height: 1.5;">
+                Connect with fellow participants, receive timely webinar updates, and access post-session notes:
               </p>
-              <div style="margin: 16px 0 22px 0;">
-                <a href="${whatsappCommunityUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-block; background-color: #25D366; color: #ffffff !important; font-weight: 700; font-size: 14.5px; padding: 13px 26px; border-radius: 8px; text-decoration: none;">
-                  Join WhatsApp Attendees Group &rarr;
-                </a>
-              </div>
-              <div style="border-top: 1px solid #e5e7eb; padding-top: 16px; font-size: 13.5px; color: #4b5563;">
-                <p style="margin: 0 0 6px 0;">
-                  <strong>Share with your friends:</strong> Know someone who’d benefit from this? Invite them:
-                </p>
-                <a href="https://upward.goodtenants.io/academy/webinar" target="_blank" rel="noopener noreferrer" style="color: #d97757; font-weight: 600; text-decoration: underline; word-break: break-all;">
-                  https://upward.goodtenants.io/academy/webinar
+              <div>
+                <a href="${whatsappCommunityUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-block; background-color: #25D366; color: #ffffff !important; font-weight: 700; font-size: 14px; padding: 12px 24px; border-radius: 8px; text-decoration: none;">
+                  Join WhatsApp Group &rarr;
                 </a>
               </div>
             </div>
 
-            <p style="margin: 22px 0 8px 0; color: #4b5563; line-height: 1.6;">
-              Thank you once again for registering.<br>
-              See you inside.
+            <!-- Questions / Help -->
+            <p style="font-size: 14px; color: #4b5563; line-height: 1.6; margin: 20px 0;">
+              Have questions or need assistance joining? Feel free to reach out to our admissions team directly on WhatsApp at <a href="${admissionsWhatsAppUrl}" target="_blank" rel="noopener noreferrer" style="color: #8A4A2A; font-weight: 600; text-decoration: underline;">+234 810 433 2040</a>.
+            </p>
+
+            <p style="margin: 22px 0 8px 0; color: #374151; line-height: 1.6; font-size: 14.5px;">
+              We look forward to hosting you on Saturday, 21st November.<br>
+              <strong>The Upward Academy Team</strong>
             </p>
 
             <!-- Signature and Accreditations -->
             <div style="margin-top: 24px; padding-top: 18px; border-top: 1px solid #e5e7eb;">
-              <p style="margin: 0 0 4px 0; color: #111827; font-weight: 700; font-size: 15px;">
+              <p style="margin: 0 0 4px 0; color: #111827; font-weight: 700; font-size: 14.5px;">
                 Upward by GoodTenants
               </p>
-              <p style="margin: 0 0 2px 0; color: #6b7280; font-size: 12.5px; font-style: italic;">
+              <p style="margin: 0 0 2px 0; color: #6b7280; font-size: 12px; font-style: italic;">
                 REDA Prop-Tech Company of the Year - 2026
               </p>
-              <p style="margin: 0; color: #6b7280; font-size: 12.5px; font-style: italic;">
+              <p style="margin: 0; color: #6b7280; font-size: 12px; font-style: italic;">
                 NIESV Lagos Prop-Tech Company of the Period - 2025
               </p>
             </div>
