@@ -10,7 +10,6 @@ import {
   CreditCard,
   Copy,
   CheckCircle2,
-  Link2,
 } from 'lucide-react'
 import { Modal } from '../../../components/common/modal/Modal'
 import type { UniversityApplicationRecord } from '../types'
