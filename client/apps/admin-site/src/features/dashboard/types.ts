@@ -103,6 +103,9 @@ export interface SignedUpRecord {
   hasPaidOutsideNote?: boolean
   latestNote?: string | null
   adminNotes?: any[]
+  hasSignupVoucher?: boolean
+  voucherBalanceNaira?: number
+  voucherEarnedNaira?: number
 }
 
 export interface InvitedRecord {
@@ -143,6 +146,9 @@ export interface InvitedRecord {
   hasPaidOutsideNote?: boolean
   latestNote?: string | null
   adminNotes?: any[]
+  hasSignupVoucher?: boolean
+  voucherBalanceNaira?: number
+  voucherEarnedNaira?: number
 }
 
 export interface PmRecord {

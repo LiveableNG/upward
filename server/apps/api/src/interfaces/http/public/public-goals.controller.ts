@@ -5,7 +5,10 @@ import {
   HttpStatus,
   Param,
   Query,
+  Req,
+  UseGuards,
 } from '@nestjs/common'
+import { OptionalJwtAuthGuard } from '../../../application/auth/guards/optional-jwt-auth.guard'
 import { GetGoalCategoriesUseCase } from '../../../application/goals/use-cases/get-goal-categories.use-case'
 import { GetGoalsUseCase } from '../../../application/goals/use-cases/get-goals.use-case'
 import { GetGoalDetailUseCase } from '../../../application/goals/use-cases/get-goal-detail.use-case'
@@ -62,9 +65,14 @@ export class PublicGoalsController {
   }
 
   @Get('offerings')
+  @UseGuards(OptionalJwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async getOfferings(@Query() query: OfferingQueryDto) {
-    const result = await this.getOfferingsUseCase.execute({ ...query, status: 'PUBLISHED' })
+  async getOfferings(@Req() req: any, @Query() query: OfferingQueryDto) {
+    const userUuid = req.user?.id || req.user?.sub || undefined
+    const result = await this.getOfferingsUseCase.execute(
+      { ...query, status: 'PUBLISHED' },
+      userUuid,
+    )
     return {
       data: result.items,
       meta: {
@@ -76,9 +84,11 @@ export class PublicGoalsController {
   }
 
   @Get('offerings/:identifier')
+  @UseGuards(OptionalJwtAuthGuard)
   @HttpCode(HttpStatus.OK)
-  async getOfferingDetail(@Param('identifier') identifier: string) {
-    const data = await this.getOfferingDetailUseCase.execute(identifier)
+  async getOfferingDetail(@Req() req: any, @Param('identifier') identifier: string) {
+    const userUuid = req.user?.id || req.user?.sub || undefined
+    const data = await this.getOfferingDetailUseCase.execute(identifier, userUuid)
     return { data }
   }
 }

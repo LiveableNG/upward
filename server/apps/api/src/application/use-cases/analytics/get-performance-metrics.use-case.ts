@@ -528,6 +528,60 @@ export class GetPerformanceMetricsUseCase {
     const invitedMetrics = this.getInvitedMetrics.execute(mergedUsers, pmTenants, userMap, waitlistEmails, inviteChannelMap, scoreMap, notesByUserId)
     const pmMetrics = this.getPmMetrics.execute(allPms, allCompanies, successTransactions, mergedUsers)
 
+    // Enrich signedUp & invited directories with voucher signup/balance metadata in two lightweight queries
+    const voucherWalletByUuid = new Map<string, { availableNaira: number; earnedNaira: number }>()
+    const signupVoucherUserUuids = new Set<string>()
+    try {
+      const [voucherWallets, signupVoucherRows] = await Promise.all([
+        this.prisma.upward_voucher_wallet.findMany({
+          select: {
+            availableBalanceKobo: true,
+            lifetimeEarnedKobo: true,
+            user: { select: { uuid: true } },
+          },
+        }),
+        this.prisma.upward_voucher_ledger_entry.findMany({
+          where: { type: 'CREDIT_SIGNUP_LINK' },
+          select: {
+            userId: true,
+            user: { select: { uuid: true } },
+          },
+          distinct: ['userId'],
+        }),
+      ])
+      for (const w of voucherWallets) {
+        if (w.user?.uuid) {
+          voucherWalletByUuid.set(w.user.uuid, {
+            availableNaira: Number(w.availableBalanceKobo) / 100,
+            earnedNaira: Number(w.lifetimeEarnedKobo) / 100,
+          })
+        }
+      }
+      for (const row of signupVoucherRows) {
+        if (row.user?.uuid) {
+          signupVoucherUserUuids.add(row.user.uuid)
+        }
+      }
+    } catch (voucherErr: any) {
+      this.logger.warn(`Voucher enrichment skipped in performance metrics: ${voucherErr?.message || voucherErr}`)
+    }
+
+    const enrichWithVoucher = (items: any[]) =>
+      items.map((item) => {
+        const uuid = item.uuid
+        const walletInfo = uuid ? voucherWalletByUuid.get(uuid) : undefined
+        const hasSignupVoucher = Boolean(uuid && signupVoucherUserUuids.has(uuid))
+        return {
+          ...item,
+          hasSignupVoucher,
+          voucherBalanceNaira: walletInfo?.availableNaira ?? 0,
+          voucherEarnedNaira: walletInfo?.earnedNaira ?? 0,
+        }
+      })
+
+    const enrichedSignedUpDirectory = enrichWithVoucher(signedUpMetrics.signedUpDirectory)
+    const enrichedInvitedDirectory = enrichWithVoucher(invitedMetrics.finalInvitedDirectory)
+
     const filterList = (list: any[]) => {
       if (!search) return list
       const s = search.toLowerCase()
@@ -591,8 +645,8 @@ export class GetPerformanceMetricsUseCase {
       },
       directories: {
         waitlist: filterList(waitlistMetrics.finalWaitlistDirectory),
-        signedUp: filterList(signedUpMetrics.signedUpDirectory),
-        invited: filterList(invitedMetrics.finalInvitedDirectory),
+        signedUp: filterList(enrichedSignedUpDirectory),
+        invited: filterList(enrichedInvitedDirectory),
         pms: filterList(pmMetrics.finalPmDirectory),
       },
     }
