@@ -154,13 +154,16 @@
       return d.toISOString().replace(/-|:|\.\d\d\d/g, '');
     }
 
+    // Exact current webinar URL (e.g. https://upward.goodtenants.io/academy/webinar/join)
+    const joinUrl = `${window.location.origin}${window.location.pathname}`;
+
     const gCalBtn = document.getElementById('btnGoogleCal');
     if (gCalBtn) {
       const gcalUrl = new URL('https://calendar.google.com/calendar/render');
       gcalUrl.searchParams.set('action', 'TEMPLATE');
       gcalUrl.searchParams.set('text', WEBINAR_CONFIG.title);
-      gcalUrl.searchParams.set('details', `${WEBINAR_CONFIG.description}\n\nWebinar link: ${window.location.href}`);
-      gcalUrl.searchParams.set('location', WEBINAR_CONFIG.location);
+      gcalUrl.searchParams.set('details', `${WEBINAR_CONFIG.description}\n\nJoin Live Webinar: ${joinUrl}`);
+      gcalUrl.searchParams.set('location', joinUrl);
       gcalUrl.searchParams.set('dates', `${formatUtc(targetDate)}/${formatUtc(endDate)}`);
       gCalBtn.href = gcalUrl.toString();
     }
@@ -178,8 +181,9 @@
           `DTSTART:${formatUtc(targetDate)}`,
           `DTEND:${formatUtc(endDate)}`,
           `SUMMARY:${WEBINAR_CONFIG.title}`,
-          `DESCRIPTION:${WEBINAR_CONFIG.description} Link: ${window.location.href}`,
-          `LOCATION:${WEBINAR_CONFIG.location}`,
+          `DESCRIPTION:${WEBINAR_CONFIG.description}\\n\\nJoin Live Webinar: ${joinUrl}`,
+          `LOCATION:${joinUrl}`,
+          `URL:${joinUrl}`,
           'END:VEVENT',
           'END:VCALENDAR'
         ].join('\r\n');
