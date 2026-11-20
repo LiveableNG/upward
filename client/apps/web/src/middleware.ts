@@ -612,6 +612,18 @@ export async function middleware(request: NextRequest) {
     return NextResponse.rewrite(new URL('/pages/university/sessions/index.html', request.url))
   }
   if (
+    pathname === '/academy/webinar/join' ||
+    pathname === '/webinar/join' ||
+    pathname === '/university/webinar/join' ||
+    pathname === '/academy/join' ||
+    pathname === '/join' ||
+    pathname.startsWith('/academy/webinar/join/') ||
+    pathname.startsWith('/webinar/join/') ||
+    pathname.startsWith('/university/webinar/join/')
+  ) {
+    return NextResponse.rewrite(new URL('/pages/university/webinar/join/index.html', request.url))
+  }
+  if (
     pathname === '/academy/webinar/thank-you' ||
     pathname === '/webinar/thank-you' ||
     pathname === '/enroll/thank-you' ||
@@ -735,6 +747,8 @@ export const config = {
     '/webinar/:path*',
     '/enroll',
     '/enroll/:path*',
+    '/join',
+    '/join/:path*',
     '/landing-analytics.js',
     '/pm',
     '/_upward_pay/:path*',
