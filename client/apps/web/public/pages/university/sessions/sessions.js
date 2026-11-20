@@ -32,253 +32,63 @@
   });
 
   // ==========================================
-  // SMART DYNAMIC SESSIONS ENGINE (ONLINE RECURRING & AUTO-CONCLUDED PHYSICAL)
+  // ACTIVE ONLINE WEBINAR SESSION (21st November 2026) & CONCLUDED PHYSICAL SESSIONS
   // ==========================================
-  const COHORT_START_DATE = new Date('2026-11-14T00:00:00+01:00');
+  const ACTIVE_WEBINAR_SESSION = {
+    value: 'Saturday 21st November 2026 (Online Webinar)',
+    selectLabel: 'Online Webinar — Saturday, 21st November 2026 (Open Nationwide)',
+    slotTitle: 'Online Webinar',
+    slotSubtitle: 'Sat, 21st Nov 2026 · Nationwide',
+  };
 
-  const PHYSICAL_SESSIONS = [
+  const CONCLUDED_PHYSICAL_SESSIONS = [
     {
       id: 'abuja',
-      city: 'Abuja',
-      title: 'Abuja · In-Person Event',
-      venue: 'Central Business District',
-      dateTime: '2026-10-16T18:00:00+01:00',
-      timeLabel: '6:00 PM, Fri 16 Oct',
-      value: 'Abuja (Physical) - 6:00 pm, Friday, October 16',
-      optLabel: 'Abuja (In-Person Event) · 6:00 PM, Fri 16 Oct',
+      title: 'Abuja · In-Person',
+      subtitle: '6:00 PM, Fri 16 Oct · CBD',
     },
     {
       id: 'ph',
-      city: 'Port Harcourt',
-      title: 'Port Harcourt · In-Person Event',
-      venue: 'GRA Phase 2',
-      dateTime: '2026-10-22T18:00:00+01:00',
-      timeLabel: '6:00 PM, Thu 22 Oct',
-      value: 'Port Harcourt (Physical) - 6:00 pm, Thursday, October 22',
-      optLabel: 'Port Harcourt (In-Person Event) · 6:00 PM, Thu 22 Oct',
-    },
-    {
-      id: 'oyo',
-      city: 'Oyo / Ibadan',
-      title: 'Oyo / Ibadan · In-Person',
-      venue: 'Bodija, Ibadan',
-      isComingSoon: true,
-      timeLabel: 'Date Coming Soon · Pre-register',
-      value: 'Oyo / Ibadan (Physical - Date Coming Soon)',
-      optLabel: 'Oyo / Ibadan (In-Person) · Date Coming Soon (Pre-register)',
+      title: 'Port Harcourt · In-Person',
+      subtitle: '6:00 PM, Thu 22 Oct · GRA Phase 2',
     },
     {
       id: 'lagos',
-      city: 'Lagos',
       title: 'Lagos · In-Person',
-      venue: 'Yaba Tech Hub',
-      dateTime: '2026-09-30T10:00:00+01:00',
-      timeLabel: '10:00 AM, 30 Sep',
-      value: 'Lagos (In-Person / Yaba) - 10:00 AM, 30 Sep (Concluded)',
-      optLabel: 'Lagos (In-Person / Yaba) · 10:00 AM, 30 Sep (Concluded)',
+      subtitle: '10:00 AM, 30 Sep · Yaba',
     },
   ];
 
-  function generateUpcomingOnlineSessions(now = new Date()) {
-    const sessions = [];
-    const monthNames = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-    const monthShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-    // Start cursor from today at midnight
-    const cursor = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-    const end = new Date(COHORT_START_DATE.getTime());
-
-    while (cursor <= end) {
-      const dayOfWeek = cursor.getDay(); // 2 = Tuesday, 6 = Saturday
-
-      if (dayOfWeek === 2) {
-        // Tuesday: 6:00 PM (18:00)
-        const sessionDate = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), 18, 0, 0);
-        if (sessionDate.getTime() > now.getTime() && sessionDate.getTime() <= end.getTime()) {
-          const isToday = sessionDate.toDateString() === now.toDateString();
-          const diffDays = Math.round((sessionDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-          let rel = '';
-          if (isToday) rel = 'Today · 6:00 PM';
-          else if (diffDays <= 7) rel = 'This Coming Tue';
-          else if (diffDays <= 14) rel = 'Next Week';
-          else rel = `In ${Math.ceil(diffDays / 7)} weeks`;
-
-          const mName = monthNames[sessionDate.getMonth()];
-          const mShort = monthShort[sessionDate.getMonth()];
-          const dNum = sessionDate.getDate();
-
-          sessions.push({
-            id: `online-tue-${sessionDate.getFullYear()}-${sessionDate.getMonth() + 1}-${dNum}`,
-            date: sessionDate,
-            day: 'tuesday',
-            dayLabel: 'Tuesday',
-            timeStr: '6:00 PM',
-            isToday,
-            rel,
-            fullDateLabel: `Tue ${dNum} ${mShort}`,
-            value: `Online (Zoom/Meet) - 6:00 pm, Tuesday, ${mName} ${dNum}`,
-            selectLabel: `Tuesday, ${mShort} ${dNum} · 6:00 PM (${rel})`,
-          });
-        }
-      } else if (dayOfWeek === 6) {
-        // Saturday: 9:00 AM (09:00)
-        const sessionDate = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), 9, 0, 0);
-        if (sessionDate.getTime() > now.getTime() && sessionDate.getTime() <= end.getTime()) {
-          const isToday = sessionDate.toDateString() === now.toDateString();
-          const diffDays = Math.round((sessionDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-          let rel = '';
-          if (isToday) rel = 'Today · 9:00 AM';
-          else if (diffDays <= 7) rel = 'This Coming Sat';
-          else if (diffDays <= 14) rel = 'Next Week';
-          else rel = `In ${Math.ceil(diffDays / 7)} weeks`;
-
-          const mName = monthNames[sessionDate.getMonth()];
-          const mShort = monthShort[sessionDate.getMonth()];
-          const dNum = sessionDate.getDate();
-
-          sessions.push({
-            id: `online-sat-${sessionDate.getFullYear()}-${sessionDate.getMonth() + 1}-${dNum}`,
-            date: sessionDate,
-            day: 'saturday',
-            dayLabel: 'Saturday',
-            timeStr: '9:00 AM',
-            isToday,
-            rel,
-            fullDateLabel: `Sat ${dNum} ${mShort}`,
-            value: `Online (Zoom/Meet) - 9:00 am, Saturday, ${mName} ${dNum}`,
-            selectLabel: `Saturday, ${mShort} ${dNum} · 9:00 AM (${rel})`,
-          });
-        }
-      }
-
-      cursor.setDate(cursor.getDate() + 1);
-    }
-
-    return sessions;
-  }
-
-  function evaluatePhysicalSessions(now = new Date()) {
-    return PHYSICAL_SESSIONS.map((item) => {
-      if (item.isComingSoon) {
-        return {
-          ...item,
-          isConcluded: false,
-          isActive: true,
-          statusBadge: 'Upcoming',
-        };
-      }
-      const eventTime = new Date(item.dateTime).getTime();
-      const isConcluded = now.getTime() >= eventTime;
-      return {
-        ...item,
-        isConcluded,
-        isActive: !isConcluded,
-        statusBadge: isConcluded ? 'Concluded' : 'Seats Open',
-      };
-    });
-  }
-
   function initSmartSessions() {
-    const now = new Date();
-    const onlineSessions = generateUpcomingOnlineSessions(now);
-    const physicalSessions = evaluatePhysicalSessions(now);
-
     const masterSelect = document.getElementById('ea_session_time');
-    const onlineDatePicker = document.getElementById('online_date_picker');
-    const physicalCityPicker = document.getElementById('physical_city_picker');
-    const classCards = document.querySelectorAll('.session-class-card');
-    const onlineSubpanel = document.getElementById('onlineSubpanel');
-    const physicalSubpanel = document.getElementById('physicalSubpanel');
-    const filterChips = document.querySelectorAll('.filter-chip');
     const slotsContainer = document.getElementById('scheduleSlotsContainer');
     const counterBadge = document.getElementById('activeSessionsCount');
 
-    let currentClass = 'online';
-    let currentDayFilter = 'all';
-
-    // 1. Render Left Column Schedule Slots
-    function renderScheduleSlots() {
-      if (!slotsContainer) return;
-
-      const nextTue = onlineSessions.find((s) => s.day === 'tuesday');
-      const nextSat = onlineSessions.find((s) => s.day === 'saturday');
-
-      let html = '';
-
-      // Recurring Online: Tuesday
-      if (nextTue) {
-        const todayTag = nextTue.isToday
-          ? `<span class="slot-recurring-tag slot-today-live"><i class="fa-solid fa-bolt"></i> Today 6 PM</span>`
-          : `<span class="slot-recurring-tag"><i class="fa-solid fa-repeat"></i> Weekly</span>`;
-        html += `
-          <div class="slot-item" data-class="online" data-day="tuesday" data-time="${nextTue.value}" tabindex="0">
-            <div style="display:flex; align-items:center; gap:12px;">
-              <i class="fa-solid fa-video slot-video-icon"></i>
-              <div>
-                <div style="display:flex; align-items:center;">
-                  <span class="slot-date">Online · Every Tuesday</span>
-                  ${todayTag}
-                </div>
-                <span class="slot-type">6:00 PM · Zoom/Meet (Next: ${nextTue.fullDateLabel})</span>
+    if (slotsContainer) {
+      let html = `
+        <div class="slot-item selected" data-class="online" data-time="${ACTIVE_WEBINAR_SESSION.value}" tabindex="0">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <i class="fa-solid fa-video slot-video-icon"></i>
+            <div>
+              <div style="display:flex; align-items:center; flex-wrap:wrap; gap:6px;">
+                <span class="slot-date">${ACTIVE_WEBINAR_SESSION.slotTitle}</span>
+                <span class="slot-recurring-tag"><i class="fa-solid fa-video"></i> Open</span>
               </div>
+              <span class="slot-type">${ACTIVE_WEBINAR_SESSION.slotSubtitle}</span>
             </div>
-            <span class="slot-check"><i class="fa-solid fa-check"></i></span>
           </div>
-        `;
-      }
+          <span class="slot-check"><i class="fa-solid fa-check"></i></span>
+        </div>
+      `;
 
-      // Recurring Online: Saturday
-      if (nextSat) {
-        const todayTag = nextSat.isToday
-          ? `<span class="slot-recurring-tag slot-today-live"><i class="fa-solid fa-bolt"></i> Today 9 AM</span>`
-          : `<span class="slot-recurring-tag"><i class="fa-solid fa-repeat"></i> Weekly</span>`;
+      CONCLUDED_PHYSICAL_SESSIONS.forEach((item) => {
         html += `
-          <div class="slot-item" data-class="online" data-day="saturday" data-time="${nextSat.value}" tabindex="0">
-            <div style="display:flex; align-items:center; gap:12px;">
-              <i class="fa-solid fa-video slot-video-icon"></i>
-              <div>
-                <div style="display:flex; align-items:center;">
-                  <span class="slot-date">Online · Every Saturday</span>
-                  ${todayTag}
-                </div>
-                <span class="slot-type">9:00 AM · Zoom/Meet (Next: ${nextSat.fullDateLabel})</span>
-              </div>
-            </div>
-            <span class="slot-check"><i class="fa-solid fa-check"></i></span>
-          </div>
-        `;
-      }
-
-      // Physical Sessions (Active first, concluded at bottom)
-      const activePhysical = physicalSessions.filter((p) => !p.isConcluded);
-      const concludedPhysical = physicalSessions.filter((p) => p.isConcluded);
-
-      activePhysical.forEach((item) => {
-        html += `
-          <div class="slot-item" data-class="physical" data-city="${item.id}" data-time="${item.value}" tabindex="0">
+          <div class="slot-item concluded" data-class="physical" data-city="${item.id}" aria-disabled="true" title="This session has already taken place">
             <div style="display:flex; align-items:center; gap:12px;">
               <i class="fa-solid fa-location-dot slot-video-icon"></i>
               <div>
                 <span class="slot-date">${item.title}</span>
-                <span class="slot-type">${item.timeLabel} · ${item.venue}</span>
-              </div>
-            </div>
-            <span class="slot-check"><i class="fa-solid fa-check"></i></span>
-          </div>
-        `;
-      });
-
-      concludedPhysical.forEach((item) => {
-        html += `
-          <div class="slot-item concluded" data-class="physical" data-city="${item.id}" data-time="${item.value}" title="This session has already taken place">
-            <div style="display:flex; align-items:center; gap:12px;">
-              <i class="fa-solid fa-location-dot slot-video-icon"></i>
-              <div>
-                <span class="slot-date">${item.title}</span>
-                <span class="slot-type">${item.timeLabel} · ${item.venue}</span>
+                <span class="slot-type">${item.subtitle}</span>
               </div>
             </div>
             <span class="slot-badge-concluded"><i class="fa-solid fa-check"></i> Concluded</span>
@@ -287,245 +97,16 @@
       });
 
       slotsContainer.innerHTML = html;
-      bindSlotClicks();
-    }
 
-    // 2. Populate Online Date Dropdown
-    function populateOnlineDropdown(filter = 'all') {
-      if (!onlineDatePicker) return;
-      let filtered = onlineSessions;
-      if (filter === 'tuesday') {
-        filtered = onlineSessions.filter((s) => s.day === 'tuesday');
-      } else if (filter === 'saturday') {
-        filtered = onlineSessions.filter((s) => s.day === 'saturday');
-      }
-
-      onlineDatePicker.innerHTML = '';
-      if (filtered.length === 0) {
-        const opt = document.createElement('option');
-        opt.value = '';
-        opt.textContent = 'No upcoming sessions found before cohort start';
-        onlineDatePicker.appendChild(opt);
-        return;
-      }
-
-      filtered.forEach((item) => {
-        const opt = document.createElement('option');
-        opt.value = item.value;
-        opt.textContent = item.selectLabel;
-        onlineDatePicker.appendChild(opt);
-      });
-    }
-
-    // 3. Populate Physical Dropdown
-    function populatePhysicalDropdown() {
-      if (!physicalCityPicker) return;
-      physicalCityPicker.innerHTML = '';
-
-      const activeGroup = document.createElement('optgroup');
-      activeGroup.label = 'Active City Sessions (Open for Registration)';
-
-      const concludedGroup = document.createElement('optgroup');
-      concludedGroup.label = 'Past City Sessions (Concluded)';
-
-      physicalSessions.forEach((item) => {
-        const opt = document.createElement('option');
-        opt.value = item.value;
-        if (item.isConcluded) {
-          opt.textContent = `${item.optLabel}`;
-          opt.disabled = true;
-          concludedGroup.appendChild(opt);
-        } else {
-          opt.textContent = `${item.optLabel} — Available`;
-          activeGroup.appendChild(opt);
-        }
-      });
-
-      physicalCityPicker.appendChild(activeGroup);
-      if (concludedGroup.children.length > 0) {
-        physicalCityPicker.appendChild(concludedGroup);
-      }
-    }
-
-    // 4. Populate Master Hidden Select
-    function populateMasterSelect() {
-      if (!masterSelect) return;
-      masterSelect.innerHTML = '';
-
-      const onlineGroup = document.createElement('optgroup');
-      onlineGroup.label = 'Online Sessions (Zoom/Meet - Tuesdays & Saturdays)';
-      onlineSessions.forEach((s) => {
-        const opt = document.createElement('option');
-        opt.value = s.value;
-        opt.textContent = s.selectLabel;
-        onlineGroup.appendChild(opt);
-      });
-      masterSelect.appendChild(onlineGroup);
-
-      const activePhysGroup = document.createElement('optgroup');
-      activePhysGroup.label = 'Physical Sessions (City Venues)';
-      physicalSessions.filter((p) => !p.isConcluded).forEach((p) => {
-        const opt = document.createElement('option');
-        opt.value = p.value;
-        opt.textContent = p.optLabel;
-        activePhysGroup.appendChild(opt);
-      });
-      masterSelect.appendChild(activePhysGroup);
-
-      const pastPhysGroup = document.createElement('optgroup');
-      pastPhysGroup.label = 'Past Sessions (Concluded)';
-      physicalSessions.filter((p) => p.isConcluded).forEach((p) => {
-        const opt = document.createElement('option');
-        opt.value = p.value;
-        opt.textContent = p.optLabel;
-        opt.disabled = true;
-        pastPhysGroup.appendChild(opt);
-      });
-      if (pastPhysGroup.children.length > 0) {
-        masterSelect.appendChild(pastPhysGroup);
-      }
-    }
-
-    // 5. Update Master Select and Left Slots Highlight
-    function syncSelectedSession(sessionValue) {
-      if (!sessionValue) return;
-
-      if (masterSelect) {
-        masterSelect.value = sessionValue;
-      }
-
-      // Update slot highlight on left
-      const slots = document.querySelectorAll('.slot-item');
-      slots.forEach((s) => {
-        const slotTime = s.getAttribute('data-time');
-        const slotClass = s.getAttribute('data-class');
-        const slotDay = s.getAttribute('data-day');
-
-        let match = false;
-        if (slotTime === sessionValue) {
-          match = true;
-        } else if (slotClass === 'online' && sessionValue.toLowerCase().includes('online')) {
-          if (slotDay === 'tuesday' && sessionValue.toLowerCase().includes('tuesday')) match = true;
-          if (slotDay === 'saturday' && sessionValue.toLowerCase().includes('saturday')) match = true;
-        }
-
-        s.classList.toggle('selected', match);
-      });
-
-      const field = document.getElementById('field_session_time');
-      if (field) field.classList.remove('error');
-    }
-
-    // 6. Set Session Mode (Online vs Physical)
-    function setSessionClass(mode) {
-      currentClass = mode === 'physical' ? 'physical' : 'online';
-
-      classCards.forEach((c) => {
-        const match = c.getAttribute('data-class') === currentClass;
-        c.classList.toggle('selected', match);
-        c.setAttribute('aria-checked', match ? 'true' : 'false');
-        c.setAttribute('aria-selected', match ? 'true' : 'false');
-      });
-
-      if (currentClass === 'online') {
-        if (onlineSubpanel) onlineSubpanel.style.display = 'flex';
-        if (physicalSubpanel) physicalSubpanel.style.display = 'none';
-        if (onlineDatePicker && onlineDatePicker.value) {
-          syncSelectedSession(onlineDatePicker.value);
-        }
-      } else {
-        if (onlineSubpanel) onlineSubpanel.style.display = 'none';
-        if (physicalSubpanel) physicalSubpanel.style.display = 'flex';
-        if (physicalCityPicker) {
-          const firstActive = physicalSessions.find((p) => !p.isConcluded);
-          if (firstActive) {
-            physicalCityPicker.value = firstActive.value;
-            syncSelectedSession(firstActive.value);
-          }
-        }
-      }
-    }
-
-    // Class Card clicks
-    classCards.forEach((card) => {
-      card.addEventListener('click', () => {
-        const targetClass = card.getAttribute('data-class');
-        setSessionClass(targetClass);
-      });
-      card.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          const targetClass = card.getAttribute('data-class');
-          setSessionClass(targetClass);
-        }
-      });
-    });
-
-    // Filter Chip clicks
-    filterChips.forEach((chip) => {
-      chip.addEventListener('click', () => {
-        filterChips.forEach((c) => c.classList.remove('active'));
-        chip.classList.add('active');
-        currentDayFilter = chip.getAttribute('data-filter') || 'all';
-        populateOnlineDropdown(currentDayFilter);
-        if (onlineDatePicker && onlineDatePicker.value) {
-          syncSelectedSession(onlineDatePicker.value);
-        }
-      });
-    });
-
-    // Subpicker change listeners
-    if (onlineDatePicker) {
-      onlineDatePicker.addEventListener('change', () => {
-        syncSelectedSession(onlineDatePicker.value);
-      });
-    }
-
-    if (physicalCityPicker) {
-      physicalCityPicker.addEventListener('change', () => {
-        syncSelectedSession(physicalCityPicker.value);
-      });
-    }
-
-    // Schedule slot click binding
-    function bindSlotClicks() {
-      const slots = document.querySelectorAll('.slot-item');
-      slots.forEach((slot) => {
+      const slot = slotsContainer.querySelector('.slot-item:not(.concluded)');
+      if (slot) {
         slot.addEventListener('click', () => {
-          if (slot.classList.contains('concluded') || slot.classList.contains('disabled')) {
-            return;
-          }
           if (typeof switchTab === 'function') {
             switchTab('register');
           }
-
-          const slotClass = slot.getAttribute('data-class');
-          const slotDay = slot.getAttribute('data-day');
-          const slotTime = slot.getAttribute('data-time');
-
-          if (slotClass === 'online') {
-            setSessionClass('online');
-            if (slotDay && slotDay !== 'all') {
-              const matchingChip = document.querySelector(`.filter-chip[data-filter="${slotDay}"]`);
-              if (matchingChip) {
-                filterChips.forEach((c) => c.classList.remove('active'));
-                matchingChip.classList.add('active');
-                currentDayFilter = slotDay;
-                populateOnlineDropdown(slotDay);
-              }
-            }
-            if (onlineDatePicker && slotTime) {
-              onlineDatePicker.value = slotTime;
-            }
-            syncSelectedSession(slotTime || (onlineDatePicker ? onlineDatePicker.value : ''));
-          } else {
-            setSessionClass('physical');
-            if (physicalCityPicker && slotTime) {
-              physicalCityPicker.value = slotTime;
-            }
-            syncSelectedSession(slotTime || (physicalCityPicker ? physicalCityPicker.value : ''));
+          if (masterSelect) {
+            masterSelect.value = ACTIVE_WEBINAR_SESSION.value;
           }
-
           const formCard = document.getElementById('formCard');
           if (formCard) {
             formCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -535,33 +116,25 @@
             setTimeout(() => nameInput.focus({ preventScroll: true }), 350);
           }
         });
-      });
+      }
     }
 
-    // Initial setup
-    renderScheduleSlots();
-    populateOnlineDropdown('all');
-    populatePhysicalDropdown();
-    populateMasterSelect();
-
-    // Default select earliest upcoming online session
-    if (onlineSessions.length > 0) {
-      setSessionClass('online');
-      if (onlineDatePicker) {
-        onlineDatePicker.value = onlineSessions[0].value;
-      }
-      syncSelectedSession(onlineSessions[0].value);
-    } else {
-      setSessionClass('physical');
+    if (masterSelect) {
+      masterSelect.innerHTML = '';
+      const opt = document.createElement('option');
+      opt.value = ACTIVE_WEBINAR_SESSION.value;
+      opt.textContent = ACTIVE_WEBINAR_SESSION.selectLabel;
+      opt.selected = true;
+      masterSelect.appendChild(opt);
+      masterSelect.value = ACTIVE_WEBINAR_SESSION.value;
     }
 
     if (counterBadge) {
-      const activePhysCount = physicalSessions.filter((p) => !p.isConcluded).length;
-      counterBadge.textContent = `${onlineSessions.length} Online Dates · ${activePhysCount} Physical Open`;
+      counterBadge.textContent = 'Online Webinar · 21st Nov 2026';
     }
   }
 
-  // Initialize Smart Sessions
+  // Initialize Active Webinar Session
   initSmartSessions();
 
   // ==========================================
@@ -570,10 +143,24 @@
   const trackCards = document.querySelectorAll('.track-picker-card');
   const trackInput = document.getElementById('ea_track');
 
+  const TRACK_CONFIG = {
+    'track-a': 'Track A - Foundation',
+    'track-b': 'Track B - Career Development',
+    'track-c': 'Track C - Practical Experience',
+    'track-d': 'Track D - Premium Networking',
+  };
+
+  function resolveTrackKey(rawKey) {
+    const k = String(rawKey || '').toLowerCase().trim();
+    if (k === 'track-d' || k === 'd' || k === '4' || k.includes('network') || k.includes('premium')) return 'track-d';
+    if (k === 'track-c' || k === 'c' || k === '3' || k.includes('practical')) return 'track-c';
+    if (k === 'track-b' || k === 'b' || k === 'track2' || k === '2' || k.includes('career') || k.includes('started')) return 'track-b';
+    return 'track-a';
+  }
+
   function setTrack(trackKey) {
-    const isTrack2 = trackKey === 'track2' || trackKey === '2' || trackKey.toLowerCase().includes('started');
-    const targetKey = isTrack2 ? 'track2' : 'track1';
-    const trackLabel = isTrack2 ? 'Track 2' : 'Track 1';
+    const targetKey = resolveTrackKey(trackKey);
+    const trackLabel = TRACK_CONFIG[targetKey] || TRACK_CONFIG['track-a'];
 
     if (trackInput) {
       trackInput.value = trackLabel;
@@ -1070,7 +657,7 @@
       validateField(citySelect, 'field_city', citySelect && citySelect.value.trim() !== '');
       validateField(ageSelect, 'field_age', ageSelect && ageSelect.value.trim() !== '');
       validateField(expSelect, 'field_exp', expSelect && expSelect.value.trim() !== '');
-      const trackVal = trackInput ? trackInput.value : 'Track 1';
+      const trackVal = trackInput ? trackInput.value : 'Track A - Foundation';
       validateField(trackInput, 'field_track', Boolean(trackVal));
       validateField(sessionSelect, 'field_session_time', sessionSelect && sessionSelect.value.trim() !== '');
 
@@ -1109,8 +696,8 @@
 
       const userInterest = interestInput ? interestInput.value.trim() : '';
       const formattedInterest = userInterest
-        ? `[${trackVal}] ${userInterest}`
-        : `[${trackVal}] Info Session Attendee`;
+        ? `[${trackVal}] Webinar (21st November 2026): ${userInterest}`
+        : `[${trackVal}] Webinar (21st November 2026) Attendee`;
 
       const payload = {
         name: nameInput.value.trim(),
@@ -1121,7 +708,7 @@
         experienceLevel: expSelect.value.trim(),
         track: trackVal,
         interest: formattedInterest,
-        sessionTime: sessionSelect.value.trim(),
+        sessionTime: (sessionSelect && sessionSelect.value.trim()) || ACTIVE_WEBINAR_SESSION.value,
         sourceIdentifier:
           typeof window.getAcademySource === 'function'
             ? window.getAcademySource()
@@ -1160,10 +747,6 @@
         };
 
         // Analytics conversion events
-        if (typeof window.fbq === 'function') {
-          window.fbq('track', 'Subscribe', { content_name: 'Info & QA Session Registration' });
-          window.fbq('track', 'Lead', { content_name: 'Upward Academy Info Session' });
-        }
         if (typeof window.gtag === 'function') {
           window.gtag('event', 'conversion', {
             send_to: 'AW-18414957187/iJ36CIv2lO4cEIPl98xE',

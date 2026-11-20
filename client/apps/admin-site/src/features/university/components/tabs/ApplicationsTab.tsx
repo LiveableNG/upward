@@ -200,6 +200,10 @@ export const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
             }}
           >
             <option value="ALL">All Session Times & Modes</option>
+            <optgroup label="Live Webinars">
+              <option value="WEBINAR_NOV_21">Webinar · Saturday 21st Nov 2026</option>
+              <option value="WEBINAR_ALL">All Webinars</option>
+            </optgroup>
             <optgroup label="Online Sessions (Weekly)">
               <option value="ONLINE_ALL">Online · All Live Webinars</option>
               <option value="ONLINE_TUE">Online · Tuesdays (6:00 PM)</option>
@@ -245,8 +249,12 @@ export const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
             }}
           >
             <option value="ALL">All Tracks</option>
-            <option value="TRACK_1">Track 1: Starting From Zero</option>
-            <option value="TRACK_2">Track 2: Already Started</option>
+            <option value="TRACK_A">Track A: Foundation (₦60,000)</option>
+            <option value="TRACK_B">Track B: Career Development (₦100,000)</option>
+            <option value="TRACK_C">Track C: Practical Experience (₦160,000)</option>
+            <option value="TRACK_D">Track D: Premium Networking (₦200,000)</option>
+            <option value="TRACK_1">Legacy · Track 1: Starting From Zero</option>
+            <option value="TRACK_2">Legacy · Track 2: Already Started</option>
           </select>
 
           {hasActiveFilters && (

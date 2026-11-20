@@ -42,6 +42,8 @@ export class EarlyAccessAdminController {
     @Query('limit') limit?: string,
     @Query('type') type?: string,
     @Query('search') search?: string,
+    @Query('source') source?: string,
+    @Query('sessionDate') sessionDate?: string,
   ) {
     const pageNum = page ? parseInt(page, 10) : 1
     const limitNum = limit ? parseInt(limit, 10) : 50
@@ -51,6 +53,8 @@ export class EarlyAccessAdminController {
       limit: limitNum,
       type,
       search,
+      sourceIdentifier: source,
+      sessionDate,
     })
 
     return {

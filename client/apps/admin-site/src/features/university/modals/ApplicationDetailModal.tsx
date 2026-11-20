@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import {
   GraduationCap,
   Award,
@@ -7,10 +7,13 @@ import {
   ExternalLink,
   Trash2,
   Compass,
+  CreditCard,
+  Copy,
+  CheckCircle2,
 } from 'lucide-react'
 import { Modal } from '../../../components/common/modal/Modal'
 import type { UniversityApplicationRecord } from '../types'
-import { parseSessionAndTrack } from '../sessionExportUtils'
+import { getTrackBadgeMeta, parseSessionAndTrack, getPaymentAndBalanceMeta } from '../sessionExportUtils'
 
 interface ApplicationDetailModalProps {
   isOpen: boolean
@@ -35,15 +38,42 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
   const rawTrack =
     application?.track ||
     application?.notes?.match(/\[Track:\s*([^\]]+)\]/i)?.[1] ||
-    application?.experienceLevel?.match(/\[(Track\s*[12][^\]]*)\]/i)?.[1] ||
+    application?.experienceLevel?.match(/\[(Track\s*[A-D12][^\]]*)\]/i)?.[1] ||
     application?.goals?.match(/Track:\s*([^\n,]+)/i)?.[1] ||
-    'Track 1'
+    ''
 
-  const isTrack2 =
-    rawTrack.toLowerCase().includes('2') || rawTrack.toLowerCase().includes('started')
-  const trackLabel = isTrack2
-    ? 'Track 2 — Already Started'
-    : 'Track 1 — Starting From Zero'
+  const parsedTrack = parseSessionAndTrack({
+    track: rawTrack,
+    experienceLevel: application?.experienceLevel,
+    interest: application?.notes,
+  })
+  const badgeMeta = getTrackBadgeMeta(parsedTrack.trackCode)
+  const trackLabel = parsedTrack.track !== 'Not Specified' ? parsedTrack.track : (rawTrack || 'Not Specified')
+
+  const [copiedLink, setCopiedLink] = useState(false)
+  const paymentMeta = application ? getPaymentAndBalanceMeta(application) : null
+
+  const balancePaymentUrl = application
+    ? `https://upward.goodtenants.io/academy/apply?action=balance&ref=${encodeURIComponent(application.paymentRef || application.email || '')}`
+    : ''
+
+  const handleCopyBalanceLink = () => {
+    if (!balancePaymentUrl) return
+    navigator.clipboard.writeText(balancePaymentUrl)
+    setCopiedLink(true)
+    setTimeout(() => setCopiedLink(false), 2500)
+  }
+
+  const handleMarkBalancePaid = () => {
+    if (!application) return
+    const confirmed = window.confirm(
+      `Mark remaining ₦125,000 balance as PAID for ${application.name}?\n\nThis confirms the applicant has paid their balance (e.g. via direct bank transfer) and will update their tuition status to FULLY CLEARED.`
+    )
+    if (!confirmed) return
+    const currentNotes = application.notes || ''
+    const updatedNotes = `${currentNotes} [Balance Paid: ₦125,000 (Manual Transfer)] [Tuition Status: FULLY CLEARED]`.trim()
+    onUpdateStatus(application.id, { feeStatus: 'PAID', notes: updatedNotes })
+  }
 
   return (
     <Modal
@@ -116,16 +146,16 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
             </div>
             <div
               style={{
-                background: isTrack2 ? '#f0fdf4' : '#eff6ff',
+                background: badgeMeta.background,
                 padding: '12px',
                 borderRadius: '8px',
-                border: `1px solid ${isTrack2 ? '#bbf7d0' : '#bfdbfe'}`,
+                border: `1px solid ${badgeMeta.border}`,
               }}
             >
               <div
                 style={{
                   fontSize: '11px',
-                  color: isTrack2 ? '#15803d' : '#1d4ed8',
+                  color: badgeMeta.color,
                   textTransform: 'uppercase',
                   fontWeight: 700,
                 }}
@@ -136,42 +166,143 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                 style={{
                   fontWeight: 700,
                   marginTop: '2px',
-                  color: isTrack2 ? '#15803d' : '#1d4ed8',
+                  color: badgeMeta.color,
                   fontSize: '13px',
                 }}
               >
-                {isTrack2 ? 'Track 2' : 'Track 1'}
+                {badgeMeta.label}
               </div>
             </div>
             <div
               style={{
-                background: application.feeStatus === 'PAID' ? '#dcfce7' : '#fef9c3',
+                background: paymentMeta?.background || (application.feeStatus === 'PAID' ? '#dcfce7' : '#fef9c3'),
                 padding: '12px',
                 borderRadius: '8px',
-                border: `1px solid ${application.feeStatus === 'PAID' ? '#bbf7d0' : '#fef08a'}`,
+                border: `1px solid ${paymentMeta?.border || (application.feeStatus === 'PAID' ? '#bbf7d0' : '#fef08a')}`,
               }}
             >
               <div
                 style={{
                   fontSize: '11px',
-                  color: application.feeStatus === 'PAID' ? '#15803d' : '#a16207',
+                  color: paymentMeta?.color || (application.feeStatus === 'PAID' ? '#15803d' : '#a16207'),
                   textTransform: 'uppercase',
                   fontWeight: 700,
                 }}
               >
-                Fee Payment Status
+                Payment &amp; Balance Status
               </div>
               <div
                 style={{
                   fontWeight: 700,
                   marginTop: '2px',
-                  color: application.feeStatus === 'PAID' ? '#15803d' : '#a16207',
+                  color: paymentMeta?.color || (application.feeStatus === 'PAID' ? '#15803d' : '#a16207'),
+                  fontSize: '12.5px',
                 }}
               >
-                {application.feeStatus === 'PAID' ? '✓ PAID (₦5,000)' : 'PENDING'}
+                {paymentMeta?.badgeLabel || (application.feeStatus === 'PAID' ? '✓ PAID' : 'PENDING')}
               </div>
+              {paymentMeta?.detailText && (
+                <div style={{ fontSize: '11px', color: '#374151', marginTop: '4px', lineHeight: 1.35 }}>
+                  {paymentMeta.detailText}
+                </div>
+              )}
             </div>
           </div>
+
+          {/* DEDICATED TRACK C LOCK-IN DEPOSIT & BALANCE CARD */}
+          {paymentMeta?.isDeposit && (
+            <div
+              style={{
+                background: paymentMeta.isFullyCleared ? '#f0fdf4' : '#fffbeb',
+                border: `1.5px solid ${paymentMeta.isFullyCleared ? '#bbf7d0' : '#fde68a'}`,
+                borderRadius: '10px',
+                padding: '14px 16px',
+                marginBottom: '18px',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                <span style={{ fontSize: '12px', fontWeight: 800, color: paymentMeta.isFullyCleared ? '#15803d' : '#b45309', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <CreditCard size={15} />
+                  {paymentMeta.isFullyCleared ? 'TRACK C TUITION FULLY CLEARED' : 'TRACK C DEPOSIT · BALANCE OUTSTANDING'}
+                </span>
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    padding: '2px 8px',
+                    borderRadius: '999px',
+                    background: paymentMeta.isFullyCleared ? '#dcfce7' : '#fef3c7',
+                    color: paymentMeta.isFullyCleared ? '#15803d' : '#92400e',
+                  }}
+                >
+                  {paymentMeta.isFullyCleared ? 'Fully Paid' : '₦125,000 Balance Due'}
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', margin: '10px 0', fontSize: '12px' }}>
+                <div style={{ background: '#ffffff', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                  <div style={{ color: 'var(--text-muted)', fontSize: '10.5px' }}>Total Tuition</div>
+                  <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>₦150,000 (Saved ₦50k)</div>
+                </div>
+                <div style={{ background: '#ffffff', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                  <div style={{ color: 'var(--text-muted)', fontSize: '10.5px' }}>Deposit Paid</div>
+                  <div style={{ fontWeight: 700, color: '#15803d', marginTop: '2px' }}>₦25,000 ✓</div>
+                </div>
+                <div style={{ background: '#ffffff', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                  <div style={{ color: 'var(--text-muted)', fontSize: '10.5px' }}>Balance Due</div>
+                  <div style={{ fontWeight: 700, color: paymentMeta.isFullyCleared ? '#15803d' : '#b45309', marginTop: '2px' }}>
+                    {paymentMeta.isFullyCleared ? '₦0.00 (Cleared)' : '₦125,000'}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '10px' }}>
+                <button
+                  type="button"
+                  onClick={handleCopyBalanceLink}
+                  style={{
+                    fontSize: '12px',
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    background: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    color: '#334155',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    fontWeight: 600,
+                  }}
+                >
+                  {copiedLink ? <CheckCircle2 size={13} color="#15803d" /> : <Copy size={13} />}
+                  {copiedLink ? 'Balance Link Copied!' : 'Copy Balance Payment Link'}
+                </button>
+
+                {!paymentMeta.isFullyCleared && (
+                  <button
+                    type="button"
+                    onClick={handleMarkBalancePaid}
+                    style={{
+                      fontSize: '12px',
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      background: '#15803d',
+                      border: 'none',
+                      color: '#ffffff',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '5px',
+                      fontWeight: 600,
+                    }}
+                  >
+                    <CheckCircle2 size={13} />
+                    Mark Balance Paid (Manual/Bank Transfer)
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
 
           <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
             <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', color: '#8A4A2A' }}>
@@ -185,9 +316,9 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
               </span>
               <div
                 style={{
-                  background: isTrack2 ? '#f0fdf4' : '#fff7ed',
-                  color: isTrack2 ? '#166534' : '#9a3412',
-                  border: `1.5px solid ${isTrack2 ? '#bbf7d0' : '#ffedd5'}`,
+                  background: badgeMeta.background,
+                  color: badgeMeta.color,
+                  border: `1.5px solid ${badgeMeta.border}`,
                   padding: '10px 14px',
                   borderRadius: '8px',
                   marginTop: '4px',
@@ -198,7 +329,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                   gap: '8px',
                 }}
               >
-                <Compass size={16} color={isTrack2 ? '#166534' : '#c2410c'} />
+                <Compass size={16} color={badgeMeta.color} />
                 <span>{trackLabel}</span>
               </div>
             </div>
@@ -352,12 +483,14 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                       letterSpacing: '0.05em',
                     }}
                   >
-                    <Award size={13} />
-                    Program Scholarship Candidate
+                    {application.isScholarship ? <Award size={13} /> : <Video size={13} />}
+                    {application.isScholarship ? 'Program Scholarship Candidate' : 'Applicant Intro Video'}
                   </span>
                 </div>
                 <p style={{ margin: '0 0 12px 0', fontSize: '13px', color: '#92400e', fontWeight: 600 }}>
-                  This applicant applied for a Program Scholarship and submitted a 1–2 minute video link.
+                  {application.isScholarship
+                    ? 'This applicant applied for a Program Scholarship and submitted a 1–2 minute video link.'
+                    : 'Intro video submitted by applicant (name, brief intro, and interest in Upward Academy).'}
                 </p>
 
                 {application.scholarshipVideoUrl ? (
@@ -414,7 +547,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '6px' }}>
-                  Application Fee Status (₦5,000)
+                  Track Fee &amp; Payment Status
                 </label>
                 <select
                   value={application.feeStatus || 'PENDING'}

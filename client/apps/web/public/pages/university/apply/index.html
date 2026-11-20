@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apply - Upward Academy</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;1,9..144,500;1,9..144,600&family=Inter:wght@400;500;600;700;800&family=Inter+Tight:wght@600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap"
+    rel="stylesheet">
+  <link rel="icon" type="image/jpeg" href="/university-logos/upward_university_logo.png">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;1,9..144,500;1,9..144,600&family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter+Tight:wght@700;800;900&family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <!-- Google Tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=AW-18414957187"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', 'AW-18414957187');
+  </script>
+  <script src="/university-tracker.js"></script>
+  <link rel="stylesheet" href="/pages/university/apply/apply.css">
+</head>
+
+<body>
+
+  <header>
+    <nav class="wrap">
+      <a href="/academy" class="logo">
+        <span class="mark"><img src="/university-logos/upward_university_logo.png"
+            alt="Upward Academy and Business Accelerator Logo" style="width:100%;height:100%;object-fit:cover;"></span>
+        <div>UPWARD<br><small>Academy and Business<br>Accelerator</small></div>
+      </a>
+      <div class="nav-links" id="navLinks">
+        <a href="/academy#tracks">Tracks</a>
+        <a href="/academy/programme">Curriculum</a>
+        <a href="/academy/lecturers">Lecturers</a>
+        <a href="/academy/scholarships">Fees &amp; Scholarships</a>
+        <a href="/academy/faq">FAQ</a>
+      </div>
+      <div class="nav-right">
+        <a class="btn btn-primary" href="/academy/webinar">Join Webinar</a>
+        <button class="nav-toggle" id="navToggle" aria-label="Menu" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M4 7h16M4 12h16M4 17h16" stroke="#15162B" stroke-width="1.8" stroke-linecap="round" />
+          </svg>
+        </button>
+      </div>
+    </nav>
+  </header>
+
+  <main class="apply-page">
+    <div class="wrap apply-container">
+      <div class="apply-header">
+        <span class="eyebrow">2026 Cohort</span>
+        <h1>Ready to <em class="accent">build your way in?</em></h1>
+        <p class="apply-sub">Apply for the 10-week Upward Academy programme. We assess fit, commitment and readiness for
+          practical work.</p>
+      </div>
+
+      <div class="apply-cohort-bar">
+        <div class="apply-cohort-info">
+          <i class="fa-solid fa-calendar-check"></i>
+          <div>
+            <strong>Classes Commence: December 5, 2026</strong>
+            <span>10 Weeks · Hybrid (Lagos, Abuja, PH, Oyo)</span>
+          </div>
+        </div>
+        <span class="apply-cohort-tag">Admissions Open</span>
+      </div>
+
+      <div class="fees-grid" id="apply-fees-grid">
+        <!-- LEFT CARD: Standard Track Fees Overview -->
+        <div class="fee-card tracks-overview-card">
+          <div class="tracks-card-top">
+            <span class="eyebrow">Standard Tuition</span>
+            <span class="tracks-card-tag">4 Tracks</span>
+          </div>
+          <div class="fee-price-range">₦60,000 – ₦200,000</div>
+          <div class="tracks-mini-list">
+            <div class="tracks-mini-item">
+              <span class="tracks-mini-title">Track A · Foundation</span>
+              <span class="tracks-mini-fee">₦60,000</span>
+            </div>
+            <div class="tracks-mini-item">
+              <span class="tracks-mini-title">Track B · Career Development</span>
+              <span class="tracks-mini-fee">₦100,000</span>
+            </div>
+            <div class="tracks-mini-item tracks-mini-promo">
+              <span class="tracks-mini-title">Track C · Practical Experience</span>
+              <div class="tracks-mini-fee-wrap">
+                <span class="tracks-mini-fee">₦200,000</span>
+                <span class="tracks-mini-badge">Offer Active</span>
+              </div>
+            </div>
+            <div class="tracks-mini-item">
+              <span class="tracks-mini-title">Track D · Premium Networking</span>
+              <span class="tracks-mini-fee">₦200,000</span>
+            </div>
+          </div>
+          <div class="tracks-card-foot">
+            10-week hybrid cohort · Commences December 5, 2026
+          </div>
+        </div>
+
+        <!-- RIGHT CARD: Track C Limited Offer -->
+        <div class="fee-card featured offer-deal-card" id="track-c-promo-banner">
+          <div class="offer-deal-top">
+            <div class="offer-deal-label-wrap">
+              <span class="offer-deal-pill">Special Cohort Offer</span>
+              <span class="offer-deal-track">Track C · Practical Experience</span>
+            </div>
+            <div class="offer-deal-standard-fee">
+              <span class="standard-fee-label">Standard Fee</span>
+              <span class="standard-fee-amount">₦200,000</span>
+            </div>
+          </div>
+
+          <div class="offer-choices-container">
+            <!-- OPTION 1 -->
+            <div class="offer-choice-block">
+              <div class="offer-choice-left">
+                <span class="offer-choice-badge">Option 1 · Weekend Lock-In</span>
+                <div class="offer-choice-val">
+                  <strong>₦25,000</strong> deposit today
+                </div>
+                <div class="offer-choice-details">
+                  Lock in <strong>₦50,000 off</strong> (₦150,000 total · balance before kickoff).
+                </div>
+              </div>
+              <div class="offer-choice-right">
+                <span class="offer-choice-deadline">Ends Sunday 11:59 PM</span>
+              </div>
+            </div>
+
+            <!-- OR DIVIDER -->
+            <div class="offer-or-row">
+              <span class="offer-or-badge">or</span>
+            </div>
+
+            <!-- OPTION 2 -->
+            <div class="offer-choice-block highlight">
+              <div class="offer-choice-left">
+                <span class="offer-choice-badge accent">Option 2 · 48-Hour Full Pay</span>
+                <div class="offer-choice-val">
+                  <strong>₦135,000</strong> upfront
+                </div>
+                <div class="offer-choice-details">
+                  Pay in full within 48 hours to <strong>save ₦65,000</strong> off ₦200,000.
+                </div>
+              </div>
+              <div class="offer-choice-right">
+                <span class="offer-choice-deadline">Ends Monday 11:59 PM</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="offer-deal-foot">
+            Select Track C in Step 1 below to choose your payment option at checkout.
+          </div>
+        </div>
+      </div>
+
+      <div class="apply-notice">
+        <i class="fa-solid fa-circle-info"></i>
+        <div><strong>Before you register:</strong> Classes commence December 5, 2026 (6–8 hours/week). After completing
+          your payment, you'll be asked to submit a short intro video (your name, brief intro, and why you're interested
+          in Upward Academy) — you can record it right away or later.</div>
+      </div>
+
+      <div class="apply-form-box">
+        <!-- Step Indicator Bar (2 Steps: Basic Info & Track -> Review & Payment) -->
+        <div class="apply-steps-bar">
+          <div class="step-pill active" id="step-pill-1">
+            <span class="step-badge">1</span>
+            <span class="step-text">Basic Info &amp; Track</span>
+          </div>
+          <div class="step-line"></div>
+          <div class="step-pill" id="step-pill-2">
+            <span class="step-badge">2</span>
+            <span class="step-text">Review &amp; Payment</span>
+          </div>
+        </div>
+
+        <form id="universityApplyForm" novalidate>
+          <!-- STAGE 1: BASIC INFO & TRACK SELECTION -->
+          <div id="stage-1" class="form-stage">
+            <div style="margin-bottom: 20px;">
+              <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 4px;">Step 1: Basic Information &amp; Track</h3>
+              <p style="font-size: 13.5px; color: var(--ink-soft);">Fill in your details and choose your track to proceed directly to payment.</p>
+            </div>
+
+            <!-- RETURNING APPLICANT BALANCE NOTICE (SHOWN IF USER ALREADY PAID DEPOSIT) -->
+            <div id="returning-balance-notice" style="display:none; background: #FFF7ED; border: 1.5px solid #FED7AA; border-radius: 12px; padding: 14px 16px; margin-bottom: 20px;">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+                <div>
+                  <strong style="color: #9A3412; font-size: 14px; display: block; margin-bottom: 2px;">
+                    Active Track C Lock-In Deposit Found!
+                  </strong>
+                  <span style="font-size: 12.5px; color: #7C2D12;" id="returning-notice-text">
+                    You have an active spot with a ₦25,000 deposit paid. You can clear your remaining ₦125,000 balance anytime without re-filling this form.
+                  </span>
+                </div>
+                <button type="button" class="btn btn-primary" id="btn-goto-balance" style="font-size: 12.5px; padding: 8px 16px; background: #C2410C;">
+                  Pay ₦125,000 Balance →
+                </button>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="field" id="field-name">
+                <label for="name">Full name <span class="req-asterisk">*</span></label>
+                <input id="name" type="text" required placeholder="Your full name">
+                <div class="error-text">Please enter your full name</div>
+              </div>
+              <div class="field" id="field-whatsapp">
+                <label for="whatsapp">WhatsApp number <span class="req-asterisk">*</span></label>
+                <input id="whatsapp" type="tel" required placeholder="+234">
+                <div class="error-text">Please enter a valid WhatsApp phone number</div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="field" id="field-email">
+                <label for="email">Email address <span class="req-asterisk">*</span></label>
+                <input id="email" type="email" required placeholder="you@email.com">
+                <div class="error-text">Please enter a valid email address</div>
+              </div>
+              <div class="field" id="field-city">
+                <label for="city">City <span class="req-asterisk">*</span></label>
+                <input id="city" type="text" required placeholder="e.g. Lagos, Abuja, Port Harcourt">
+                <div class="error-text">Please enter your city</div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="field" id="field-age">
+                <label for="age">Age bracket <span class="req-asterisk">*</span></label>
+                <select id="age" required>
+                  <option value="">Select age bracket</option>
+                  <option>18-20</option>
+                  <option>21-25</option>
+                  <option>26-30</option>
+                  <option>31-40</option>
+                  <option>41+</option>
+                </select>
+                <div class="error-text">Please select your age bracket</div>
+              </div>
+              <div class="field" id="field-occupation">
+                <label for="occupation">Current occupation</label>
+                <input id="occupation" type="text" placeholder="Student, Freelancer, Employed...">
+              </div>
+            </div>
+
+            <!-- Track Selection Field with Info Icon and Comparison Popover -->
+            <div class="field" id="field-track">
+              <div class="field-label-row">
+                <label for="track" style="margin-bottom:0;">
+                  Choose Your Track <span class="req-asterisk">*</span>
+                </label>
+                <button type="button" class="track-info-btn" id="trackInfoBtn" aria-expanded="false" title="Compare the 4 Academy tracks">
+                  <i class="fa-solid fa-circle-info"></i>
+                  <span>Compare tracks</span>
+                </button>
+              </div>
+
+              <!-- Track Explanation Popover -->
+              <div class="track-info-popover" id="trackInfoBox" style="display:none;">
+                <div class="track-info-popover-header">
+                  <span class="track-info-popover-title"><i class="fa-solid fa-route"></i> Compare the 4 Academy Tracks</span>
+                  <button type="button" class="track-info-close-btn" id="trackInfoCloseBtn" title="Close comparison">&times;</button>
+                </div>
+                <div class="track-info-comparison-grid">
+                  <div class="track-compare-card">
+                    <div class="track-compare-top">
+                      <span class="track-compare-badge">Track A · Foundation</span>
+                      <span class="track-compare-price">₦60,000</span>
+                    </div>
+                    <h5>Discover Your Path</h5>
+                    <p>For beginners, recent graduates and anyone exploring new career opportunities. Includes professional PM training, Upward learning forum, free Upward PM software, and upgrade option.</p>
+                  </div>
+                  <div class="track-compare-card">
+                    <div class="track-compare-top">
+                      <span class="track-compare-badge">Track B · Career Dev</span>
+                      <span class="track-compare-price">₦100,000</span>
+                    </div>
+                    <h5>Build Your Career</h5>
+                    <p>For graduates and career starters wanting guidance and practical pathways. Includes foundational PM training, soft skills, mentorship community, internship opportunity, forum &amp; PM software.</p>
+                  </div>
+                  <div class="track-compare-card">
+                    <div class="track-compare-top">
+                      <span class="track-compare-badge">Track C · Practical</span>
+                      <span class="track-compare-price" id="compare-track-c-price">₦200,000</span>
+                    </div>
+                    <h5>Learn It. Experience It.</h5>
+                    <p>For direct exposure to property management operations. Includes training &amp; mentorship, priority internship consideration, on-site practical experience, and lunch during designated practical sessions.</p>
+                  </div>
+                  <div class="track-compare-card">
+                    <div class="track-compare-top">
+                      <span class="track-compare-badge">Track D · Networking</span>
+                      <span class="track-compare-price">₦200,000</span>
+                    </div>
+                    <h5>Connect. Collaborate. Grow.</h5>
+                    <p>For ambitious professionals and aspiring entrepreneurs. Includes exclusive mentors' dinner, co-innovation event invitations, professional networking, and training/experiential benefits where included.</p>
+                  </div>
+                </div>
+              </div>
+
+              <select id="track" required>
+                <option value="">Select track</option>
+                <option value="Track A - Foundation">Track A · Foundation — Discover Your Path (₦60,000)</option>
+                <option value="Track B - Career Development">Track B · Career Development — Build Your Career (₦100,000)</option>
+                <option value="Track C - Practical Experience" id="opt-track-c">Track C · Practical Experience — Learn It. Experience It.</option>
+                <option value="Track D - Premium Networking">Track D · Premium Networking — Connect. Collaborate. Grow. (₦200,000)</option>
+              </select>
+              <div class="error-text">Please choose your track</div>
+
+              <!-- Dynamic Track C Time-Limited Promo Selector -->
+              <div class="track-offer-box" id="trackCOfferBox" style="display:none;">
+                <div class="track-offer-header">
+                  <span class="track-offer-title"><i class="fa-solid fa-bolt"></i> Choose Your Track C Payment Option</span>
+                  <span class="track-offer-deadline" id="trackCOfferDeadlineLabel">Limited-Time Offer</span>
+                </div>
+                <div class="track-offer-grid" id="trackCOfferGrid">
+                  <!-- Populated dynamically based on current WAT time -->
+                </div>
+              </div>
+            </div>
+
+            <div class="field" id="field-session-time">
+              <label for="session_time">Upcoming Online Webinar / Info Session <span
+                  class="req-asterisk">*</span></label>
+              <select id="session_time" required>
+                <option value="">Select session option</option>
+                <option value="Saturday 21st November 2026 (Online Webinar)">Online Webinar / Info Session — Saturday, 21st November 2026 (Open Nationwide)</option>
+                <option value="I don't need an info session">I don't need an info session</option>
+              </select>
+              <div class="error-text">Please select a session option</div>
+            </div>
+
+            <div class="stage-nav-btns" style="justify-content: flex-end;">
+              <button type="button" class="btn btn-primary" id="btn-stage-1-next">
+                Continue to Payment →
+              </button>
+            </div>
+          </div>
+
+          <!-- STAGE 2: REVIEW & PAYMENT -->
+          <div id="stage-2" class="form-stage" style="display:none;">
+            <div style="margin-bottom: 20px;">
+              <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 4px;">Step 2: Review &amp; Complete Payment</h3>
+              <p style="font-size: 13.5px; color: var(--ink-soft);">Review your details and complete your track payment securely via Paystack.</p>
+            </div>
+
+            <!-- Registration Summary Card -->
+            <div class="summary-review-card" id="summaryCard">
+              <div
+                style="font-size: 11px; font-weight: 800; text-transform: uppercase; color: var(--rust); letter-spacing: 0.08em; margin-bottom: 10px;">
+                <i class="fa-solid fa-user-check"></i> Registration Summary
+              </div>
+              <div class="summary-grid">
+                <div><strong>Name:</strong> <span id="sum-name">-</span></div>
+                <div><strong>WhatsApp:</strong> <span id="sum-whatsapp">-</span></div>
+                <div><strong>Email:</strong> <span id="sum-email">-</span></div>
+                <div><strong>City:</strong> <span id="sum-city">-</span></div>
+                <div><strong>Track:</strong> <span id="sum-track">-</span></div>
+                <div><strong>Payment Option:</strong> <span id="sum-payment-plan">-</span></div>
+                <div><strong>Due Today:</strong> <span id="sum-amount-due" style="color:var(--rust); font-weight:800;">-</span></div>
+                <div id="sum-balance-row" style="display:none;"><strong>Balance Later:</strong> <span id="sum-balance">-</span></div>
+                <div style="grid-column: 1 / -1;"><strong>Info Session:</strong> <span id="sum-session">-</span></div>
+              </div>
+            </div>
+
+            <div class="post-pay-video-note">
+              <i class="fa-solid fa-video"></i>
+              <div>
+                <strong>Next step after payment:</strong> You'll be prompted to submit a short intro video (your name, a brief introduction, and why you're interested in Upward Academy). You can submit it right after payment or later using the link we email you.
+              </div>
+            </div>
+
+            <div class="checkbox-field" id="field-terms">
+              <div class="checkbox-field-inner">
+                <input type="checkbox" id="termsCheck" required>
+                <label for="termsCheck">I confirm my details and chosen track payment option are correct. <span class="req-asterisk">*</span></label>
+              </div>
+              <div class="error-text">Please confirm your registration details to proceed</div>
+            </div>
+
+            <div class="stage-nav-btns">
+              <button type="button" class="btn btn-outline" id="btn-stage-2-back">← Back to Step 1</button>
+              <button type="submit" class="btn btn-primary apply-submit-btn" id="btn-final-submit">
+                Complete Payment →
+              </button>
+            </div>
+          </div>
+
+          <!-- STAGE BALANCE: PAY REMAINING BALANCE (NO RE-TYPING NEEDED) -->
+          <div id="stage-balance" class="form-stage" style="display:none;">
+            <div style="margin-bottom: 20px;">
+              <span class="offer-deal-pill" style="margin-bottom: 8px;">Tuition Balance Checkout</span>
+              <h3 style="font-size: 22px; font-weight: 800; margin-bottom: 6px;">Clear Remaining Track C Balance</h3>
+              <p style="font-size: 13.5px; color: var(--ink-soft); line-height: 1.45;">
+                Welcome back, <strong id="balance-applicant-name">Applicant</strong>! You previously locked in your spot with a ₦25,000 deposit. You can complete your remaining ₦125,000 balance below.
+              </p>
+            </div>
+
+            <!-- Balance Breakdown Card -->
+            <div class="balance-breakdown-card">
+              <div class="balance-row">
+                <span>Selected Track</span>
+                <strong>Track C · Practical Experience</strong>
+              </div>
+              <div class="balance-row">
+                <span>Agreed Promotional Tuition</span>
+                <strong>₦150,000 <span class="old-price" style="font-size: 13px; text-decoration: line-through; color: var(--ink-muted); margin-left: 4px;">₦200,000</span></strong>
+              </div>
+              <div class="balance-row">
+                <span>Deposit Paid (Verified)</span>
+                <strong style="color: #15803d;">- ₦25,000</strong>
+              </div>
+              <div class="balance-divider"></div>
+              <div class="balance-total-row">
+                <div>
+                  <div style="font-size: 14.5px; font-weight: 800;">Remaining Balance Due</div>
+                  <div style="font-size: 12px; color: var(--ink-soft);">Secures full cohort kickoff access on Dec 5</div>
+                </div>
+                <div class="balance-due-price">₦125,000</div>
+              </div>
+            </div>
+
+            <!-- Locked Pre-filled applicant details -->
+            <div class="balance-applicant-info">
+              <div class="balance-info-item">
+                <span class="lbl">Email</span>
+                <span class="val" id="balance-applicant-email">you@email.com</span>
+              </div>
+              <div class="balance-info-item">
+                <span class="lbl">WhatsApp</span>
+                <span class="val" id="balance-applicant-phone">+234...</span>
+              </div>
+              <div class="balance-info-item">
+                <span class="lbl">Deposit Reference</span>
+                <span class="val" id="balance-applicant-ref">UPW_APP_...</span>
+              </div>
+            </div>
+
+            <div style="margin-top: 24px; display: flex; flex-direction: column; gap: 12px;">
+              <button type="button" class="btn btn-primary" id="btn-pay-balance" style="width: 100%; font-size: 15.5px; padding: 15px;">
+                Pay ₦125,000 Remaining Balance →
+              </button>
+              <div style="text-align: center;">
+                <button type="button" id="btn-switch-to-full-form" style="background: none; border: none; font-size: 12.5px; color: var(--ink-soft); text-decoration: underline; cursor: pointer;">
+                  Start a new registration instead
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
+
+        <div class="form-success" id="formSuccess">
+          <div class="check"><i class="fa-solid fa-check"></i></div>
+          <h3>Application Received!</h3>
+          <p>Thank you for submitting your application to Upward Academy. We will review your details and contact you
+            via WhatsApp with payment and next step instructions.</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <div class="wrap"
+      style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:24px; align-items:center;">
+      <div>
+        <div class="flogo"><span class="mark"
+            style="width:24px;height:24px;border-radius:6px;overflow:hidden;display:inline-block;vertical-align:middle;margin-right:8px;"><img
+              src="/university-logos/upward_university_logo.png" alt="Upward Academy Logo"
+              style="width:100%;height:100%;object-fit:cover;"></span>UPWARD ACADEMY</div>
+        <p style="margin-top:6px;">Part of the Upward housing ecosystem, alongside GoodTenants. Registered in Nigeria.
+        </p>
+        <p style="margin-top:8px;"><a class="back" href="/"
+            style="font-size:13px; color:var(--rust); font-weight:700; text-decoration:none;">← Back to Upward Home</a>
+        </p>
+      </div>
+      <div style="font-size:14px; font-weight:600; display:flex; flex-direction:column; gap:8px;">
+        <span style="text-transform:uppercase; font-size:11px; letter-spacing:0.1em; color:var(--rust);">Contact
+          Us</span>
+        <a href="mailto:hello@goodtenants.africa" class="contact-link"><i class="fa-solid fa-envelope"
+            style="font-size:12px; color:var(--rust);"></i> hello@goodtenants.africa</a>
+        <a href="tel:+2348175437146" class="contact-link"><i class="fa-solid fa-phone"
+            style="font-size:12px; color:var(--rust);"></i> +234 817 543 7146</a>
+        <span style="color:var(--ink-soft); font-size:12px; font-weight:500; display:flex; align-items:flex-start; gap:6px; max-width:240px; line-height:1.4; text-align:left;">
+          <i class="fa-solid fa-location-dot" style="font-size:12px; color:var(--rust); margin-top:2px;"></i> 38, Commercial Avenue, Sabo, Yaba, Lagos, Nigeria
+        </span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Contact Floating Drawer Component -->
+  <div id="contact-drawer-overlay" class="contact-drawer-overlay" aria-hidden="true"></div>
+  <div class="contact-us-widget">
+    <div id="contact-drawer" class="contact-drawer" role="dialog" aria-modal="true"
+      aria-labelledby="contact-drawer-title" aria-hidden="true">
+      <div class="contact-drawer-header">
+        <h2 id="contact-drawer-title" class="contact-drawer-title">Contact Us</h2>
+        <button type="button" id="contact-drawer-close" class="contact-drawer-close" aria-label="Close contact options">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </div>
+      <p class="contact-drawer-subtitle">Choose how you'd like to reach us.</p>
+      <div class="contact-drawer-options">
+        <a href="https://wa.me/2348175437146?text=Hi%20Upward%2C%20I%27d%20like%20to%20learn%20more."
+          class="contact-drawer-option" target="_blank" rel="noopener noreferrer">
+          <span class="contact-drawer-option-icon contact-drawer-option-icon--whatsapp" aria-hidden="true">
+            <i class="fa-brands fa-whatsapp"></i>
+          </span>
+          <span class="contact-drawer-option-text">
+            <span class="contact-drawer-option-label">Chat on WhatsApp</span>
+            <span class="contact-drawer-option-detail">Message us anytime</span>
+          </span>
+        </a>
+        <a href="tel:+2348175437146" class="contact-drawer-option">
+          <span class="contact-drawer-option-icon" aria-hidden="true">
+            <i class="fa-solid fa-phone"></i>
+          </span>
+          <span class="contact-drawer-option-text">
+            <span class="contact-drawer-option-label">Call us</span>
+            <span class="contact-drawer-option-detail">+234 817 543 7146</span>
+          </span>
+        </a>
+        <a href="mailto:hello@goodtenants.africa?subject=Upward%20Inquiry" class="contact-drawer-option">
+          <span class="contact-drawer-option-icon" aria-hidden="true">
+            <i class="fa-solid fa-envelope"></i>
+          </span>
+          <span class="contact-drawer-option-text">
+            <span class="contact-drawer-option-label">Send us an email</span>
+            <span class="contact-drawer-option-detail">hello@goodtenants.africa</span>
+          </span>
+        </a>
+        <div class="contact-drawer-option" style="cursor: default;">
+          <span class="contact-drawer-option-icon" aria-hidden="true">
+            <i class="fa-solid fa-location-dot"></i>
+          </span>
+          <span class="contact-drawer-option-text">
+            <span class="contact-drawer-option-label">Visit Office</span>
+            <span class="contact-drawer-option-detail">38, Commercial Avenue, Sabo, Yaba, Lagos, Nigeria</span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <button type="button" id="contact-us-btn" class="contact-us-float" aria-label="Contact Us" aria-expanded="false"
+      aria-controls="contact-drawer">
+      <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
+      Contact Us
+    </button>
+  </div>
+
+
+  <script src="/pages/university/apply/apply.js" defer></script>
+  <script src="/landing-analytics.js" defer></script>
+</body>
+
+</html>

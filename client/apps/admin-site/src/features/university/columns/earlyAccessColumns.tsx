@@ -9,10 +9,11 @@ import {
   Video,
   Compass,
   Clock,
+  Link2,
 } from 'lucide-react'
 import type { ColumnDef } from '../../../components/common/table/DataTable'
 import type { EarlyAccessRecord } from '../types'
-import { parseSessionAndTrack } from '../sessionExportUtils'
+import { getTrackBadgeMeta, parseSessionAndTrack } from '../sessionExportUtils'
 
 interface EarlyAccessColumnsOptions {
   onSelect: (row: EarlyAccessRecord) => void
@@ -154,25 +155,28 @@ export const getEarlyAccessColumns = ({
 
             {/* Clean Parsed Track and Session Badges */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '5px' }}>
-              {parsed.trackCode !== 'NONE' && (
-                <span
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '2px 7px',
-                    borderRadius: '4px',
-                    background: parsed.trackCode === 'TRACK_2' ? '#f0fdf4' : '#fff7ed',
-                    color: parsed.trackCode === 'TRACK_2' ? '#166534' : '#9a3412',
-                    border: `1px solid ${parsed.trackCode === 'TRACK_2' ? '#bbf7d0' : '#ffedd5'}`,
-                  }}
-                >
-                  <Compass size={11} />
-                  {parsed.trackCode === 'TRACK_2' ? 'Track 2' : 'Track 1'}
-                </span>
-              )}
+              {parsed.trackCode !== 'NONE' && (() => {
+                const badgeMeta = getTrackBadgeMeta(parsed.trackCode)
+                return (
+                  <span
+                    style={{
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      padding: '2px 7px',
+                      borderRadius: '4px',
+                      background: badgeMeta.background,
+                      color: badgeMeta.color,
+                      border: `1px solid ${badgeMeta.border}`,
+                    }}
+                  >
+                    <Compass size={11} />
+                    {badgeMeta.label}
+                  </span>
+                )
+              })()}
 
               {parsed.attendanceMode !== 'None' ? (
                 <span
@@ -248,6 +252,54 @@ export const getEarlyAccessColumns = ({
             Status: <b>{row.landlordStatus || 'N/A'}</b>
           </span>
         </div>
+      )
+    },
+  },
+  {
+    key: 'sourceIdentifier',
+    label: 'Referral / Source',
+    render: (row) => {
+      const src = row.sourceIdentifier
+      if (!src || src === 'direct') {
+        return (
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '2px 8px',
+              borderRadius: '12px',
+              fontSize: '11px',
+              fontWeight: 500,
+              color: 'var(--text-muted)',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+            }}
+          >
+            Direct
+          </span>
+        )
+      }
+      return (
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '4px',
+            padding: '2px 8px',
+            borderRadius: '12px',
+            fontSize: '11.5px',
+            fontWeight: 700,
+            color: '#8A4A2A',
+            background: '#fbf1ed',
+            border: '1px solid rgba(138, 74, 42, 0.25)',
+            fontFamily: 'monospace',
+          }}
+          title={`Referred via campaign/group: ${src}`}
+        >
+          <Link2 size={11} />
+          {src}
+        </span>
       )
     },
   },

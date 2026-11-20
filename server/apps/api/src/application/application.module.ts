@@ -145,6 +145,8 @@ import {
   DeleteEarlyAccessEntryUseCase,
 } from './use-cases/early-access/get-early-access-admin.use-case'
 import { SubmitUniversityApplicationUseCase } from './use-cases/university-application/submit-university-application.use-case'
+import { SubmitUniversityApplicationVideoUseCase } from './use-cases/university-application/submit-university-application-video.use-case'
+import { PayUniversityApplicationBalanceUseCase } from './use-cases/university-application/pay-university-application-balance.use-case'
 import { SubmitUniversityReferralsUseCase } from './use-cases/university-referral/submit-university-referrals.use-case'
 import {
   GetUniversityReferralStatsUseCase,
@@ -1101,6 +1103,8 @@ const UseCases: any[] = [
   GetEarlyAccessEntriesUseCase,
   DeleteEarlyAccessEntryUseCase,
   SubmitUniversityApplicationUseCase,
+  SubmitUniversityApplicationVideoUseCase,
+  PayUniversityApplicationBalanceUseCase,
   SubmitUniversityReferralsUseCase,
   GetUniversityReferralStatsUseCase,
   GetUniversityReferralsAdminUseCase,
