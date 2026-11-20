@@ -28,9 +28,9 @@ export function getTrackBadgeMeta(trackCode: TrackCode): {
     case 'TRACK_B':
       return { label: 'Track B · Career Dev', background: '#f0fdf4', color: '#166534', border: '#bbf7d0' }
     case 'TRACK_C':
-      return { label: 'Track C · Practical', background: '#fff7ed', color: '#9a3412', border: '#fed7aa' }
+      return { label: 'Track C · Practical & Networking', background: '#fff7ed', color: '#9a3412', border: '#fed7aa' }
     case 'TRACK_D':
-      return { label: 'Track D · Networking', background: '#faf5ff', color: '#6b21a8', border: '#e9d5ff' }
+      return { label: 'Track D · Networking (Legacy)', background: '#faf5ff', color: '#6b21a8', border: '#e9d5ff' }
     case 'TRACK_2':
       return { label: 'Track 2', background: '#f0fdf4', color: '#166534', border: '#bbf7d0' }
     case 'TRACK_1':
