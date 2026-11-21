@@ -10,7 +10,7 @@ import {
 } from 'lucide-react'
 import type { ColumnDef } from '../../../components/common/table/DataTable'
 import type { UniversityApplicationRecord } from '../types'
-import { parseSessionAndTrack } from '../sessionExportUtils'
+import { getTrackBadgeMeta, parseSessionAndTrack, getPaymentAndBalanceMeta } from '../sessionExportUtils'
 
 interface ApplicationColumnsOptions {
   onSelect: (row: UniversityApplicationRecord) => void
@@ -30,12 +30,15 @@ export const getApplicationColumns = ({
       const rawTrack =
         row.track ||
         row.notes?.match(/\[Track:\s*([^\]]+)\]/i)?.[1] ||
-        row.experienceLevel?.match(/\[(Track\s*[12][^\]]*)\]/i)?.[1] ||
+        row.experienceLevel?.match(/\[(Track\s*[A-D12][^\]]*)\]/i)?.[1] ||
         row.goals?.match(/Track:\s*([^\n,]+)/i)?.[1] ||
-        'Track 1'
-      const isTrack2 =
-        rawTrack.toLowerCase().includes('2') || rawTrack.toLowerCase().includes('started')
-      const trackBadge = isTrack2 ? 'Track 2' : 'Track 1'
+        ''
+      const parsedTrack = parseSessionAndTrack({
+        track: rawTrack,
+        experienceLevel: row.experienceLevel,
+        interest: row.notes,
+      })
+      const badgeMeta = getTrackBadgeMeta(parsedTrack.trackCode)
 
       return (
         <div>
@@ -51,15 +54,52 @@ export const getApplicationColumns = ({
                 fontWeight: 700,
                 padding: '2px 8px',
                 borderRadius: '999px',
-                background: isTrack2 ? '#f0fdf4' : '#eff6ff',
-                color: isTrack2 ? '#166534' : '#1d4ed8',
-                border: `1px solid ${isTrack2 ? '#bbf7d0' : '#bfdbfe'}`,
+                background: badgeMeta.background,
+                color: badgeMeta.color,
+                border: `1px solid ${badgeMeta.border}`,
               }}
             >
               <Compass size={11} />
-              {trackBadge}
+              {badgeMeta.label}
             </span>
-            {(row.isScholarship || row.scholarshipVideoUrl) && (
+            {row.scholarshipVideoUrl ? (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontSize: '10.5px',
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: '999px',
+                  background: '#f0fdf4',
+                  color: '#166534',
+                  border: '1px solid #bbf7d0',
+                }}
+              >
+                <Video size={11} />
+                VIDEO SUBMITTED
+              </span>
+            ) : row.feeStatus === 'PAID' ? (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  fontSize: '10.5px',
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: '999px',
+                  background: '#fef3c7',
+                  color: '#92400e',
+                  border: '1px solid #fde68a',
+                }}
+              >
+                <Video size={11} />
+                VIDEO PENDING
+              </span>
+            ) : null}
+            {row.isScholarship && (
               <span
                 style={{
                   display: 'inline-flex',
@@ -141,6 +181,9 @@ export const getApplicationColumns = ({
         </div>
         {row.sessionTime && (() => {
           const parsed = parseSessionAndTrack({ sessionTime: row.sessionTime })
+          if (parsed.attendanceMode === 'None' || parsed.sessionBadgeText.includes('Waitlist Only')) {
+            return null
+          }
           return (
             <div
               style={{
@@ -167,49 +210,35 @@ export const getApplicationColumns = ({
     ),
   },
   {
-    key: 'abVariant',
-    label: 'A/B Test Variant',
-    render: (row) => {
-      const isVariantB = row.abVariant === 'B'
-      return (
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            padding: '3px 8px',
-            borderRadius: '6px',
-            fontSize: '11px',
-            fontWeight: 700,
-            background: isVariantB ? '#f3e8ff' : '#eff6ff',
-            color: isVariantB ? '#7e22ce' : '#1d4ed8',
-            border: `1px solid ${isVariantB ? '#d8b4fe' : '#bfdbfe'}`,
-          }}
-        >
-          {isVariantB ? 'Variant B (Post-Reg)' : 'Variant A (Upfront)'}
-        </span>
-      )
-    },
-  },
-  {
     key: 'feeStatus',
-    label: 'App Fee (₦5,000)',
+    label: 'Payment & Balance Status',
     render: (row) => {
-      const isPaid = row.feeStatus === 'PAID'
-      const isRefunded = row.feeStatus === 'REFUNDED'
+      const meta = getPaymentAndBalanceMeta(row)
       return (
-        <span
-          style={{
-            padding: '4px 10px',
-            borderRadius: '20px',
-            fontSize: '12px',
-            fontWeight: 700,
-            background: isPaid ? '#dcfce7' : isRefunded ? '#fef2f2' : '#fef9c3',
-            color: isPaid ? '#15803d' : isRefunded ? '#991b1b' : '#a16207',
-            border: `1px solid ${isPaid ? '#bbf7d0' : isRefunded ? '#fecaca' : '#fef08a'}`,
-          }}
-        >
-          {isPaid ? '✓ PAID' : isRefunded ? 'REFUNDED' : 'PENDING'}
-        </span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+          <span
+            style={{
+              padding: '3px 9px',
+              borderRadius: '20px',
+              fontSize: '11px',
+              fontWeight: 800,
+              background: meta.background,
+              color: meta.color,
+              border: `1px solid ${meta.border}`,
+              whiteSpace: 'nowrap',
+              display: 'inline-flex',
+              alignItems: 'center',
+              width: 'fit-content',
+            }}
+          >
+            {meta.badgeLabel}
+          </span>
+          {meta.detailText && (
+            <span style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: 1.25, maxWidth: '200px' }}>
+              {meta.detailText}
+            </span>
+          )}
+        </div>
       )
     },
   },

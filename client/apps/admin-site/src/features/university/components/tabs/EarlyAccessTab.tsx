@@ -423,8 +423,12 @@ export const EarlyAccessTab: React.FC<EarlyAccessTabProps> = ({
               }}
             >
               <option value="ALL">All Tracks</option>
-              <option value="TRACK_1">Track 1: Starting From Zero</option>
-              <option value="TRACK_2">Track 2: Already Started</option>
+              <option value="TRACK_A">Track A: Foundation (₦60,000)</option>
+              <option value="TRACK_B">Track B: Career Development (₦100,000)</option>
+              <option value="TRACK_C">Track C: Practical Experience &amp; Networking</option>
+              <option value="TRACK_D">Track D: Premium Networking (Legacy)</option>
+              <option value="TRACK_1">Legacy · Track 1: Starting From Zero</option>
+              <option value="TRACK_2">Legacy · Track 2: Already Started</option>
             </select>
 
             {hasActiveFilters && (

@@ -97,7 +97,12 @@ export class PrismaUniversityApplicationRepository
   async findByPaymentRef(paymentRef: string): Promise<UniversityApplication | null> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const record = await (this.prisma as any).upward_university_application.findFirst({
-      where: { paymentRef },
+      where: {
+        OR: [
+          { paymentRef },
+          { notes: { contains: paymentRef } }
+        ]
+      },
       orderBy: { createdAt: 'desc' },
     })
 

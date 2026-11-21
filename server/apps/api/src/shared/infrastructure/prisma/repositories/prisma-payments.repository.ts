@@ -657,6 +657,7 @@ export class PrismaWebhookRepository implements IWebhookRepository {
   async findToRetry(maxRetries: number): Promise<WebhookLog[]> {
     const res = await this.prisma.upward_webhook_log.findMany({
       where: {
+        direction: 'OUTGOING',
         status: { in: ['FAILED', 'PENDING'] },
         retries: { lt: maxRetries },
       },

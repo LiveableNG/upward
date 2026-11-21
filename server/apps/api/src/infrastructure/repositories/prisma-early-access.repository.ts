@@ -63,6 +63,24 @@ export class PrismaEarlyAccessRepository implements IEarlyAccessRepository {
     return EarlyAccessEntry.restore(record as EarlyAccessProps)
   }
 
+  async findByEmail(email: string): Promise<EarlyAccessEntry | null> {
+    const normalized = email.trim().toLowerCase()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const record = await (this.prisma as any).upward_early_access.findFirst({
+      where: {
+        email: {
+          equals: normalized,
+          mode: 'insensitive',
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    if (!record) return null
+
+    return EarlyAccessEntry.restore(record as EarlyAccessProps)
+  }
+
   async findByEmailOrPhone(email?: string, phone?: string): Promise<EarlyAccessEntry | null> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const conditions: any[] = []
@@ -117,7 +135,6 @@ export class PrismaEarlyAccessRepository implements IEarlyAccessRepository {
       updatedAt: updated.updatedAt,
     })
   }
-
   async findAll(params?: {
     type?: string
     search?: string

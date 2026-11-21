@@ -1658,3 +1658,360 @@ footer {
     font-size: 22px;
   }
 }
+
+/* ==========================================================
+   COMPARE TRACKS TRIGGER & RESPONSIVE MODAL / BOTTOM SHEET
+   ========================================================== */
+.field-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.field-label-row label {
+  margin-bottom: 0 !important;
+}
+
+.track-compare-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--rust-wash);
+  color: var(--rust);
+  border: 1px solid rgba(138, 74, 42, 0.22);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.12s ease;
+}
+
+.track-compare-trigger:hover {
+  background: rgba(138, 74, 42, 0.16);
+  border-color: var(--rust);
+}
+
+.track-compare-trigger:active {
+  transform: scale(0.97);
+}
+
+html.track-modal-open,
+body.track-modal-open {
+  overflow: hidden !important;
+  overscroll-behavior: none;
+}
+
+.track-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 2500;
+  background: rgba(21, 22, 43, 0.56);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overscroll-behavior: contain;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s ease;
+}
+
+.track-modal-backdrop.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.track-modal {
+  width: 100%;
+  max-width: 760px;
+  max-height: 88vh;
+  background: var(--white);
+  border: 1.5px solid var(--sand);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 28px 60px -16px rgba(21, 22, 43, 0.28);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transform: translateY(14px) scale(0.98);
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.track-modal-backdrop.is-open .track-modal {
+  transform: translateY(0) scale(1);
+}
+
+.track-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--sand);
+  background: var(--paper);
+  flex-shrink: 0;
+}
+
+.track-modal-header h3 {
+  font-size: 20px;
+  color: var(--ink);
+  margin: 0;
+}
+
+.track-modal-header p {
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin-top: 4px;
+}
+
+.track-modal-close {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  border: 1px solid var(--sand);
+  background: var(--white);
+  color: var(--ink-soft);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.track-modal-close:hover {
+  background: var(--rust-wash);
+  border-color: var(--rust);
+  color: var(--rust);
+}
+
+.track-modal-body {
+  padding: 20px 24px 24px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.track-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 840px) {
+  .track-modal-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.track-modal-card {
+  width: 100%;
+  text-align: left;
+  font-family: 'Inter', sans-serif;
+  background: var(--paper);
+  border: 1.5px solid var(--sand);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease, background-color 0.18s ease;
+}
+
+.track-modal-card:hover {
+  border-color: var(--rust);
+  background: var(--white);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px -10px rgba(138, 74, 42, 0.16);
+}
+
+.track-modal-card.is-selected {
+  border-color: var(--rust);
+  background: var(--white);
+  box-shadow: 0 0 0 2px rgba(138, 74, 42, 0.18);
+}
+
+.track-modal-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.track-modal-badge {
+  font: 700 10px var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--rust);
+  background: var(--rust-wash);
+  padding: 3px 7px;
+  border-radius: 5px;
+}
+
+.track-modal-tag {
+  font: 700 10px var(--mono);
+  text-transform: uppercase;
+  color: var(--ink);
+  background: var(--paper-dim);
+  border: 1px solid var(--sand);
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+
+.track-modal-save {
+  font: 700 10px var(--mono);
+  color: var(--forest);
+  background: var(--forest-wash);
+  border: 1px solid rgba(47, 122, 79, 0.25);
+  padding: 2px 7px;
+  border-radius: 5px;
+}
+
+.track-modal-card h4 {
+  font-size: 16px;
+  color: var(--ink);
+  margin: 0;
+}
+
+.track-modal-price {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.track-modal-price strong {
+  font-family: 'Inter Tight', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.track-modal-price .old {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-muted);
+  text-decoration: line-through;
+}
+
+.track-modal-aud {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  line-height: 1.45;
+  margin-top: 6px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--sand);
+}
+
+.track-modal-list {
+  list-style: none;
+  margin: 10px 0 14px;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.track-modal-list li {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  line-height: 1.4;
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+}
+
+.track-modal-list li i {
+  color: var(--rust);
+  font-size: 12px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.track-modal-select-cta {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: var(--rust-wash);
+  color: var(--rust);
+  font-size: 12.5px;
+  font-weight: 700;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.track-modal-card:hover .track-modal-select-cta,
+.track-modal-card.is-selected .track-modal-select-cta {
+  background: var(--rust);
+  color: var(--white);
+}
+
+.track-modal-footer {
+  margin-top: 16px;
+  text-align: center;
+}
+
+.track-modal-undecided-btn {
+  background: transparent;
+  border: 1.5px solid var(--sand-strong);
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
+}
+
+.track-modal-undecided-btn:hover {
+  border-color: var(--rust);
+  color: var(--rust);
+  background: var(--rust-wash);
+}
+
+@media (max-width: 640px) {
+  .track-modal-backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .track-modal {
+    max-width: 100%;
+    max-height: 90vh;
+    border-radius: 20px 20px 0 0;
+    border-bottom: 0;
+    transform: translateY(24px);
+  }
+
+  .track-modal-header {
+    padding: 16px 18px 14px;
+  }
+
+  .track-modal-header h3 {
+    font-size: 18px;
+  }
+
+  .track-modal-body {
+    padding: 16px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .track-modal-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .track-modal-undecided-btn {
+    width: 100%;
+  }
+}

@@ -1007,13 +1007,34 @@
     }
 
     .track-picker-title {
-      font-size: 13.5px;
+      font-size: 13px;
       font-weight: 700;
       color: var(--ink);
       margin: 0;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+
+    .track-picker-price {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--ink-soft);
+      margin-top: 3px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .track-picker-save {
+      font: 700 9.5px var(--mono);
+      text-transform: uppercase;
+      color: #166534;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      padding: 1px 5px;
+      border-radius: 4px;
     }
 
     .track-picker-check {

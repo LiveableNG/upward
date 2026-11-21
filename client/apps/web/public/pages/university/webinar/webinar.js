@@ -245,6 +245,119 @@
       }
     }
 
+    // Pre-fill preferred track from URL parameter (e.g. ?track=track-a)
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const trackParam = (urlParams.get('track') || '').toLowerCase().trim();
+      const trackEl = document.getElementById('webinar_track');
+      if (trackEl && trackParam) {
+        if (trackParam === 'track-c' || trackParam === 'track-d' || trackParam === 'c' || trackParam === 'd' || trackParam === '3' || trackParam === '4' || trackParam.includes('practical') || trackParam.includes('network') || trackParam.includes('premium')) {
+          trackEl.value = 'Track C - Practical Experience';
+        } else if (trackParam === 'track-b' || trackParam === 'b' || trackParam === 'track2' || trackParam === '2' || trackParam.includes('career')) {
+          trackEl.value = 'Track B - Career Development';
+        } else if (trackParam === 'track-a' || trackParam === 'a' || trackParam === 'track1' || trackParam === '1' || trackParam.includes('foundation')) {
+          trackEl.value = 'Track A - Foundation';
+        }
+      }
+    } catch (e) {}
+
+    // Track Comparison Modal / Mobile Bottom Sheet
+    (function initTrackCompareModal() {
+      const triggerBtn = document.getElementById('webinarTrackCompareBtn');
+      const modal = document.getElementById('trackCompareModal');
+      const closeBtn = document.getElementById('trackCompareCloseBtn');
+      const trackSelect = document.getElementById('webinar_track');
+      const trackField = document.getElementById('field_webinar_track');
+
+      if (!triggerBtn || !modal) return;
+
+      const trackCards = modal.querySelectorAll('.track-modal-card[data-track-value]');
+      const undecidedBtn = modal.querySelector('.track-modal-undecided-btn[data-track-value]');
+
+      function syncSelectedState() {
+        const currentVal = trackSelect ? trackSelect.value : '';
+        trackCards.forEach(function (card) {
+          const val = card.getAttribute('data-track-value');
+          const isMatch = Boolean(currentVal && val === currentVal);
+          card.classList.toggle('is-selected', isMatch);
+          const labelEl = card.querySelector('.select-label');
+          if (labelEl) {
+            const letter = val.replace(/^Track\s+([A-D]).*$/i, '$1');
+            labelEl.textContent = isMatch ? 'Selected' : ('Select Track ' + letter);
+          }
+        });
+      }
+
+      let savedScrollY = 0;
+
+      function openModal() {
+        syncSelectedState();
+        savedScrollY = window.scrollY || window.pageYOffset || 0;
+        document.documentElement.classList.add('track-modal-open');
+        document.body.classList.add('track-modal-open');
+        document.body.style.position = 'fixed';
+        document.body.style.top = '-' + savedScrollY + 'px';
+        document.body.style.left = '0';
+        document.body.style.right = '0';
+        document.body.style.width = '100%';
+        modal.classList.add('is-open');
+        modal.setAttribute('aria-hidden', 'false');
+        if (closeBtn) closeBtn.focus({ preventScroll: true });
+      }
+
+      function closeModal() {
+        modal.classList.remove('is-open');
+        modal.setAttribute('aria-hidden', 'true');
+        document.documentElement.classList.remove('track-modal-open');
+        document.body.classList.remove('track-modal-open');
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.left = '';
+        document.body.style.right = '';
+        document.body.style.width = '';
+        window.scrollTo({ top: savedScrollY, behavior: 'instant' });
+        triggerBtn.focus({ preventScroll: true });
+      }
+
+      function chooseTrack(value) {
+        if (trackSelect) {
+          trackSelect.value = value;
+          trackSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        if (trackField) {
+          trackField.classList.remove('has-error');
+        }
+        closeModal();
+      }
+
+      triggerBtn.addEventListener('click', openModal);
+      if (closeBtn) closeBtn.addEventListener('click', closeModal);
+
+      modal.addEventListener('click', function (e) {
+        if (e.target === modal) closeModal();
+      });
+
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && modal.classList.contains('is-open')) {
+          closeModal();
+        }
+      });
+
+      trackCards.forEach(function (card) {
+        card.addEventListener('click', function () {
+          const val = card.getAttribute('data-track-value');
+          if (val) chooseTrack(val);
+        });
+      });
+
+      if (undecidedBtn) {
+        undecidedBtn.addEventListener('click', function () {
+          const val = undecidedBtn.getAttribute('data-track-value');
+          if (val) chooseTrack(val);
+        });
+      }
+    })();
+
     form.addEventListener('submit', async function (e) {
       e.preventDefault();
       clearFieldErrors();
@@ -256,6 +369,7 @@
       const citySelect = document.getElementById('webinar_city');
       const ageSelect = document.getElementById('webinar_age');
       const expSelect = document.getElementById('webinar_exp');
+      const trackSelect = document.getElementById('webinar_track');
 
       const name = nameInput ? nameInput.value.trim() : '';
       const dialCode = countryCodeInput ? countryCodeInput.value.trim() : '+234';
@@ -264,6 +378,7 @@
       const city = citySelect ? citySelect.value.trim() : '';
       const ageBracket = ageSelect ? ageSelect.value.trim() : '';
       const experienceLevel = expSelect ? expSelect.value.trim() : '';
+      const selectedTrack = trackSelect ? trackSelect.value.trim() : '';
 
       let hasError = false;
 
@@ -299,6 +414,11 @@
         hasError = true;
       }
 
+      if (!selectedTrack) {
+        markFieldError('field_webinar_track', 'Please select your preferred track');
+        hasError = true;
+      }
+
       if (hasError) return;
 
       // Construct full normalized phone
@@ -324,9 +444,9 @@
         city: city,
         ageBracket: ageBracket,
         experienceLevel: experienceLevel,
-        track: 'Property Management & Brokerage Webinar',
-        sessionTime: 'Saturday 21st November 2026 (Online)',
-        interest: 'Build a 6 Figure Income Career/Business in Tech-Driven Property Management/Brokerage.',
+        track: selectedTrack,
+        sessionTime: 'Saturday 21st November 2026 (Online Webinar)',
+        interest: 'Webinar: Build a 6 Figure Income Career/Business in Tech-Driven Property Management/Brokerage.',
         sourceIdentifier: sourceIdentifier,
         abVariant: abVariant
       };
