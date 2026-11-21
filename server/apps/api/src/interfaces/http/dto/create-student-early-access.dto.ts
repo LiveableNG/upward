@@ -21,8 +21,7 @@ export class CreateStudentEarlyAccessDto {
   @IsString()
   city?: string
 
-  @ValidateIf((o) => !o.sourceIdentifier?.startsWith('webinar_join_') && !o.track?.includes('Attended'))
-  @IsNotEmpty({ message: 'Age bracket is required' })
+  @IsOptional()
   @IsString()
   ageBracket?: string
 

@@ -450,7 +450,6 @@
         { id: 'whatsapp', fieldId: 'field-whatsapp', validate: val => val.trim().length >= 6 },
         { id: 'email', fieldId: 'field-email', validate: val => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim()) },
         { id: 'city', fieldId: 'field-city', validate: val => val.trim().length > 0 },
-        { id: 'age', fieldId: 'field-age', validate: val => val !== '' },
         { id: 'track', fieldId: 'field-track', validate: val => val !== '' }
       ];
 
@@ -1145,7 +1144,7 @@
           whatsapp: whatsappVal,
           email: emailVal,
           city: cityVal,
-          ageBracket: ageVal,
+          ageBracket: ageVal || undefined,
           occupation: occVal || undefined,
           track: trackVal,
           paymentPlan: pricing.planLabel,
@@ -1197,7 +1196,7 @@
           whatsapp: document.getElementById('whatsapp').value.trim(),
           email: document.getElementById('email').value.trim(),
           city: document.getElementById('city').value.trim(),
-          ageBracket: document.getElementById('age').value,
+          ageBracket: document.getElementById('age').value || undefined,
           occupation: document.getElementById('occupation').value.trim() || undefined,
           track: document.getElementById('track').value,
           paymentPlan: pricing.planLabel,
