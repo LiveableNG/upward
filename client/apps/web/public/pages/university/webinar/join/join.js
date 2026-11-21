@@ -11,7 +11,8 @@
     location: 'Online Webinar (Google Meet & YouTube Live)',
     googleMeetUrl: 'https://meet.google.com/quk-vgxu-wvd',
     youtubeUrl: 'https://youtube.com/live/ldY3QzmSORo',
-    // 21st November: Countdown stops at 8:30 AM WAT (UTC+1 = 07:30 UTC)
+    // 21st November 2026: Countdown stops at 8:30 AM WAT (UTC+1 = 07:30 UTC)
+    targetYear: 2026,
     targetMonth: 10, // 0-indexed: 10 is November
     targetDay: 21,
     targetHourWat: 8,
@@ -34,14 +35,8 @@
       if (!isNaN(parsed.getTime())) return parsed;
     }
 
-    const now = new Date();
-    let year = now.getFullYear();
-    // 8:30 AM WAT corresponds to 07:30 AM UTC
-    let candidate = new Date(Date.UTC(year, WEBINAR_CONFIG.targetMonth, WEBINAR_CONFIG.targetDay, 7, 30, 0));
-    if (now.getTime() > candidate.getTime()) {
-      candidate = new Date(Date.UTC(year + 1, WEBINAR_CONFIG.targetMonth, WEBINAR_CONFIG.targetDay, 7, 30, 0));
-    }
-    return candidate;
+    // 8:30 AM WAT (UTC+1) corresponds to 07:30 AM UTC on 21st November 2026
+    return new Date(Date.UTC(WEBINAR_CONFIG.targetYear, WEBINAR_CONFIG.targetMonth, WEBINAR_CONFIG.targetDay, 7, 30, 0));
   }
 
   const targetDate = getTargetDate();
@@ -278,7 +273,7 @@
       elMeetBtn.addEventListener('click', function (e) {
         e.preventDefault();
         if (!isLive) {
-          showToast('Google Meet room opens at 9:00 AM WAT when the session begins.');
+          showToast('Google Meet access opens at 8:30 AM WAT for early check-in.');
           return;
         }
 
@@ -296,7 +291,7 @@
       elYoutubeBtn.addEventListener('click', function (e) {
         e.preventDefault();
         if (!isLive) {
-          showToast('YouTube Live stream starts at 9:00 AM WAT when the session begins.');
+          showToast('YouTube Live access opens at 8:30 AM WAT for early check-in.');
           return;
         }
 
