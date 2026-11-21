@@ -62,7 +62,7 @@
 
         if (!offerBox || !offerGrid) return;
 
-        if (!trackVal) {
+        if (!trackVal || currentApplicantState === 'PAID_FULL') {
           offerBox.style.display = 'none';
           return;
         }
@@ -467,15 +467,7 @@
 
       function updateTrackSwitchWarning() {
         const switchWarningEl = document.getElementById('deposit-switch-warning');
-        if (!switchWarningEl) return;
-        const trackVal = document.getElementById('track')?.value || '';
-        if (currentApplicantState === 'DEPOSIT_PAID') {
-          if (trackVal && trackVal !== 'Track C - Practical Experience') {
-            switchWarningEl.style.display = 'block';
-          } else {
-            switchWarningEl.style.display = 'none';
-          }
-        } else {
+        if (switchWarningEl) {
           switchWarningEl.style.display = 'none';
         }
       }
@@ -593,6 +585,7 @@
         const data = json.data;
         currentApplicantState = state;
         currentApplicantData = data;
+        currentBalanceData = state === 'DEPOSIT_PAID' ? data : null;
 
         const noticeEl = document.getElementById('returning-balance-notice');
         const noticeTitle = document.getElementById('returning-notice-title');
@@ -615,13 +608,13 @@
           if (noticeActions) {
             if (!data.hasSubmittedVideo) {
               noticeActions.innerHTML = `
-                <a href="/academy/submit-video?ref=${encodeURIComponent(data.paymentRef || '')}&name=${encodeURIComponent(data.name || '')}" class="btn btn-primary" style="font-size:12.5px; padding:8px 16px; white-space:nowrap; text-decoration:none;">
+                <a href="/academy/thank-you?ref=${encodeURIComponent(data.paymentRef || '')}&originalRef=${encodeURIComponent(data.paymentRef || '')}&email=${encodeURIComponent(data.email || '')}&name=${encodeURIComponent(data.name || '')}" class="btn btn-primary" style="font-size:12.5px; padding:8px 16px; white-space:nowrap; text-decoration:none;">
                   Submit Intro Video →
                 </a>
               `;
             } else {
               noticeActions.innerHTML = `
-                <a href="/academy/thank-you?ref=${encodeURIComponent(data.paymentRef || '')}&name=${encodeURIComponent(data.name || '')}" class="btn btn-primary" style="font-size:12.5px; padding:8px 16px; white-space:nowrap; text-decoration:none;">
+                <a href="/academy/thank-you?ref=${encodeURIComponent(data.paymentRef || '')}&originalRef=${encodeURIComponent(data.paymentRef || '')}&email=${encodeURIComponent(data.email || '')}&name=${encodeURIComponent(data.name || '')}" class="btn btn-primary" style="font-size:12.5px; padding:8px 16px; white-space:nowrap; text-decoration:none;">
                   View Confirmation →
                 </a>
               `;
@@ -708,7 +701,7 @@
           }
         }
 
-        // Pre-fill inputs if empty
+        // Populate inputs from verified applicant record
         const nameInput = document.getElementById('name');
         const whatsappInput = document.getElementById('whatsapp');
         const cityInput = document.getElementById('city');
@@ -716,16 +709,18 @@
         const occInput = document.getElementById('occupation');
         const trackSelect = document.getElementById('track');
 
-        if (nameInput && (!nameInput.value || nameInput.value.trim() === '')) {
-          if (data.name) nameInput.value = data.name;
+        ['field-name', 'field-whatsapp', 'field-city', 'field-age', 'field-track'].forEach(fId => {
+          document.getElementById(fId)?.classList.remove('has-error');
+        });
+
+        if (nameInput && data.name) {
+          nameInput.value = data.name;
         }
-        if (whatsappInput && (!whatsappInput.value || whatsappInput.value.trim() === '')) {
-          if (data.whatsapp) {
-            whatsappInput.value = data.whatsapp;
-            const badgeEl = document.getElementById('whatsapp-verified-badge');
-            if (badgeEl && (data.whatsapp.includes('•') || data.whatsapp.includes('*'))) {
-              badgeEl.style.display = 'inline-flex';
-            }
+        if (whatsappInput && data.whatsapp) {
+          whatsappInput.value = data.whatsapp;
+          const badgeEl = document.getElementById('whatsapp-verified-badge');
+          if (badgeEl && (data.whatsapp.includes('•') || data.whatsapp.includes('*'))) {
+            badgeEl.style.display = 'inline-flex';
           }
         }
         if (whatsappInput) {
@@ -736,20 +731,20 @@
             }
           });
         }
-        if (cityInput && (!cityInput.value || cityInput.value.trim() === '')) {
-          if (data.city) cityInput.value = data.city;
+        if (cityInput && data.city) {
+          cityInput.value = data.city;
         }
-        if (ageSelect && (!ageSelect.value || ageSelect.value.trim() === '')) {
-          if (data.ageBracket) ageSelect.value = data.ageBracket;
+        if (ageSelect && data.ageBracket) {
+          ageSelect.value = data.ageBracket.trim();
         }
-        if (occInput && (!occInput.value || occInput.value.trim() === '')) {
-          if (data.occupation) occInput.value = data.occupation;
+        if (occInput && data.occupation) {
+          occInput.value = data.occupation;
         }
         const isLegacyTrack = data.track && (data.track.includes('Track 1') || data.track.includes('Track 2'));
-        if (trackSelect && (!trackSelect.value || trackSelect.value.trim() === '')) {
+        if (trackSelect) {
           if (data.track && !isLegacyTrack) {
             trackSelect.value = data.track;
-          } else if (data.interest) {
+          } else if (data.interest && (!trackSelect.value || trackSelect.value.trim() === '')) {
             const intLower = data.interest.toLowerCase();
             if (intLower.includes('track c') || intLower.includes('practical') || intLower.includes('network') || intLower.includes('premium')) {
               trackSelect.value = 'Track C - Practical Experience';
@@ -761,25 +756,51 @@
           }
         }
 
-        const isTrueDeposit = state === 'DEPOSIT_PAID' && !isLegacyTrack && (data.track?.includes('Track A') || data.track?.includes('Track B') || data.track?.includes('Track C'));
-
-        if (isTrueDeposit) {
-          if (trackSelect) {
-            trackSelect.value = data.track;
-            trackSelect.style.pointerEvents = 'none';
-            trackSelect.style.background = 'var(--paper-dim, #F7F5F0)';
+        const currentTrack = trackSelect?.value || data.track;
+        if (currentTrack && selectedTrackOffers[currentTrack]) {
+          const notesLower = (data.notes || '').toLowerCase();
+          if (
+            !notesLower.includes('full offer') &&
+            !notesLower.includes('full fee') &&
+            (notesLower.includes('deposit') || notesLower.includes('down payment'))
+          ) {
+            selectedTrackOffers[currentTrack] = 'deposit';
+          } else {
+            selectedTrackOffers[currentTrack] = 'full';
           }
-          const trackLockedBadge = document.getElementById('track-deposit-locked-badge');
-          if (trackLockedBadge) trackLockedBadge.style.display = 'inline-flex';
+        }
+
+        const isTrueDeposit = state === 'DEPOSIT_PAID' && !isLegacyTrack && (data.track?.includes('Track A') || data.track?.includes('Track B') || data.track?.includes('Track C'));
+        const fieldTrackEl = document.getElementById('field-track');
+        const nextBtnEl = document.getElementById('btn-stage-1-next');
+
+        if (state === 'PAID_FULL') {
+          if (fieldTrackEl) fieldTrackEl.style.display = 'none';
+          if (nextBtnEl) nextBtnEl.style.display = 'none';
           const switchWarningEl = document.getElementById('deposit-switch-warning');
           if (switchWarningEl) switchWarningEl.style.display = 'none';
         } else {
-          if (trackSelect) {
-            trackSelect.style.pointerEvents = 'auto';
-            trackSelect.style.background = '';
+          if (fieldTrackEl) fieldTrackEl.style.display = '';
+          if (nextBtnEl) nextBtnEl.style.display = '';
+
+          if (isTrueDeposit) {
+            if (trackSelect) {
+              trackSelect.value = data.track;
+              trackSelect.style.pointerEvents = 'none';
+              trackSelect.style.background = 'var(--paper-dim, #F7F5F0)';
+            }
+            const trackLockedBadge = document.getElementById('track-deposit-locked-badge');
+            if (trackLockedBadge) trackLockedBadge.style.display = 'inline-flex';
+            const switchWarningEl = document.getElementById('deposit-switch-warning');
+            if (switchWarningEl) switchWarningEl.style.display = 'none';
+          } else {
+            if (trackSelect) {
+              trackSelect.style.pointerEvents = 'auto';
+              trackSelect.style.background = '';
+            }
+            const trackLockedBadge = document.getElementById('track-deposit-locked-badge');
+            if (trackLockedBadge) trackLockedBadge.style.display = 'none';
           }
-          const trackLockedBadge = document.getElementById('track-deposit-locked-badge');
-          if (trackLockedBadge) trackLockedBadge.style.display = 'none';
         }
 
         renderTrackCOfferUI();
@@ -876,6 +897,17 @@
             if (noticeEl) noticeEl.style.display = 'none';
             const switchWarningEl = document.getElementById('deposit-switch-warning');
             if (switchWarningEl) switchWarningEl.style.display = 'none';
+            const fieldTrackEl = document.getElementById('field-track');
+            if (fieldTrackEl) fieldTrackEl.style.display = '';
+            const nextBtnEl = document.getElementById('btn-stage-1-next');
+            if (nextBtnEl) nextBtnEl.style.display = '';
+            const trackSelect = document.getElementById('track');
+            if (trackSelect) {
+              trackSelect.style.pointerEvents = 'auto';
+              trackSelect.style.background = '';
+            }
+            const trackLockedBadge = document.getElementById('track-deposit-locked-badge');
+            if (trackLockedBadge) trackLockedBadge.style.display = 'none';
             setFieldsLockedState('unlocked');
             if (statusBox) {
               statusBox.innerHTML = '<span class="email-status-indicator new"><i class="fa-solid fa-user-plus"></i> New applicant · Fill your details below to continue</span>';
@@ -996,7 +1028,7 @@
                     });
                   } catch (e) { }
                   const firstName = encodeURIComponent((currentBalanceData.name || '').split(' ')[0] || '');
-                  window.location.href = `/academy/thank-you?ref=${encodeURIComponent(response.reference)}&name=${firstName}&balancePaid=true&amount=${balDue}`;
+                  window.location.href = `/academy/thank-you?ref=${encodeURIComponent(response.reference)}&originalRef=${encodeURIComponent(currentBalanceData.paymentRef || '')}&email=${encodeURIComponent(currentBalanceData.email || '')}&name=${firstName}&balancePaid=true&amount=${balDue}`;
                 },
                 onCancel: function () {
                   btn.disabled = false;
@@ -1201,10 +1233,12 @@
 
           const serverData = await res.json().catch(() => ({}));
 
-          if (serverData && serverData.isAlreadyPaid && serverData.data?.paymentRef) {
+          // Only redirect if tuition is already 100% cleared or amount due is zero
+          const isFullyCleared = serverData?.data?.isFullyCleared || currentApplicantState === 'PAID_FULL';
+          if (serverData && serverData.isAlreadyPaid && serverData.data?.paymentRef && (isFullyCleared || pricing.amountNaira <= 0)) {
             const firstName = encodeURIComponent(payload.name.split(' ')[0] || '');
             const existingRef = encodeURIComponent(serverData.data.paymentRef);
-            window.location.href = `/academy/thank-you?ref=${existingRef}&name=${firstName}&amount=${pricing.amountNaira}`;
+            window.location.href = `/academy/thank-you?ref=${existingRef}&name=${firstName}&amount=0`;
             return;
           }
 
@@ -1219,22 +1253,23 @@
             } catch (err) { }
           }
           if (!paystackKey) {
-            paystackKey = 'pk_test_94085bb9372f06603b4ed07b88a69383e4206f3c';
+            paystackKey = 'pk_live_d8434237191295b92e3428d0fc65a7d7675685cb';
           }
 
           const startPaystackPayment = () => {
             if (typeof window.PaystackPop !== 'undefined') {
               const handler = new window.PaystackPop();
+              const isBalancePayment = currentApplicantState === 'DEPOSIT_PAID' || pricing.planLabel?.toLowerCase().includes('tuition balance');
               handler.newTransaction({
                 key: paystackKey,
                 email: payload.email,
                 amount: pricing.amountNaira * 100,
                 currency: 'NGN',
                 channels: ['bank_transfer'],
-                ref: 'UPW_APP_' + Math.floor((Math.random() * 1000000000) + 1),
+                ref: (isBalancePayment ? 'UPW_BAL_' : 'UPW_APP_') + Math.floor((Math.random() * 1000000000) + 1),
                 metadata: {
-                  paymentKind: 'ACADEMY_APPLICATION',
-                  type: 'ACADEMY_APPLICATION',
+                  paymentKind: isBalancePayment ? 'ACADEMY_TUITION_BALANCE' : 'ACADEMY_APPLICATION',
+                  type: isBalancePayment ? 'ACADEMY_TUITION_BALANCE' : 'ACADEMY_APPLICATION',
                   paymentPlan: pricing.planLabel,
                   amountNaira: pricing.amountNaira,
                   creditedAmount: pricing.appliedCredit || 0,
@@ -1250,21 +1285,38 @@
                   ]
                 },
                 onSuccess: async function (response) {
-                  try {
-                    await fetch('/api/v1/university/application', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({
-                        ...payload,
-                        feeStatus: 'PAID',
-                        paymentRef: response.reference
-                      })
-                    });
-                  } catch (e) { }
+                  if (isBalancePayment) {
+                    try {
+                      await fetch('/api/v1/university/application/pay-balance', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          paymentRef: currentApplicantData?.paymentRef || payload.paymentRef,
+                          email: payload.email,
+                          balancePaymentRef: response.reference,
+                          amountPaid: pricing.amountNaira
+                        })
+                      });
+                    } catch (e) { }
+                  } else {
+                    try {
+                      await fetch('/api/v1/university/application', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          ...payload,
+                          feeStatus: 'PAID',
+                          paymentRef: response.reference
+                        })
+                      });
+                    } catch (e) { }
+                  }
 
                   const firstName = encodeURIComponent(payload.name.split(' ')[0] || '');
                   const ref = encodeURIComponent(response.reference || '');
-                  window.location.href = `/academy/thank-you?ref=${ref}&name=${firstName}&amount=${pricing.amountNaira}`;
+                  const originalRef = encodeURIComponent(currentApplicantData?.paymentRef || payload.paymentRef || '');
+                  const email = encodeURIComponent(payload.email || '');
+                  window.location.href = `/academy/thank-you?ref=${ref}&originalRef=${originalRef}&email=${email}&name=${firstName}&amount=${pricing.amountNaira}${isBalancePayment ? '&balancePaid=true' : ''}`;
                 },
                 onCancel: async function () {
                   submitBtn.disabled = false;

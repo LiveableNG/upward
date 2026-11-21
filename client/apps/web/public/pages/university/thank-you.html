@@ -222,17 +222,17 @@
     }
 
     .icon-wrap {
-      width: 80px;
-      height: 80px;
+      width: 64px;
+      height: 64px;
       border-radius: 50%;
-      background: rgba(47, 122, 79, 0.1);
-      color: var(--forest);
+      background: var(--rust-wash);
+      color: var(--rust);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 36px;
-      margin: 0 auto 24px auto;
-      border: 2px solid rgba(47, 122, 79, 0.25);
+      font-size: 28px;
+      margin: 0 auto 20px auto;
+      border: 1px solid rgba(138, 74, 42, 0.2);
     }
 
     .title {
@@ -270,8 +270,8 @@
 
     .video-step-card {
       text-align: left;
-      background: #fffcf7;
-      border: 1.5px solid rgba(138, 74, 42, 0.25);
+      background: var(--paper-dim);
+      border: 1px solid var(--sand);
       border-radius: 16px;
       padding: 22px 24px;
       margin-bottom: 26px;
@@ -434,22 +434,20 @@
         <i class="fa-solid fa-circle-check"></i>
       </div>
 
-      <div class="eyebrow" style="margin-bottom:16px;">
-        <i class="fa-solid fa-shield-halved" style="margin-right:6px;"></i> Payment Confirmed
-      </div>
+      <h1 class="title">Registration Confirmed</h1>
 
-      <h1 class="title">Registration &amp; Payment Confirmed!</h1>
-
-      <p class="desc" id="thankYouMsg" style="margin-bottom: 20px;">
+      <p class="desc" id="thankYouMsg" style="margin-bottom: 22px;">
         Thank you! Your Upward Academy payment has been successfully verified. Our admissions team will reach out via
         WhatsApp with your onboarding details and next steps.
       </p>
 
       <div
-        style="background: var(--paper-dim); border: 1px solid var(--sand); border-radius: 14px; padding: 14px 20px; margin-bottom: 24px; font-size: 13.5px; color: var(--ink);">
-        <i class="fa-solid fa-calendar-check" style="color: var(--rust); margin-right: 6px;"></i>
-        <strong>2026 Cohort Starts: December 5, 2026</strong> (10-Week Hybrid Programme)
-        <div id="trackPaymentSummary" style="margin-top: 6px; font-size: 13px; color: var(--ink-soft); display: none;"></div>
+        style="background: var(--paper-dim); border: 1px solid var(--sand); border-radius: 14px; padding: 16px 20px; margin-bottom: 24px; font-size: 13.5px; color: var(--ink); text-align: left;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-calendar-check" style="color: var(--rust);"></i>
+          <span><strong>Founding Cohort 2026</strong> · Classes Commence December 5, 2026</span>
+        </div>
+        <div id="trackPaymentSummary" style="display: none;"></div>
       </div>
 
       <!-- Post-Payment Intro Video Submission -->
@@ -506,10 +504,12 @@
     (async function () {
       const params = new URLSearchParams(window.location.search);
       const ref = params.get('ref');
+      const originalRef = params.get('originalRef');
+      const email = params.get('email');
       const nameFromUrl = params.get('name');
       const amountFromUrl = Number(params.get('amount') || 0);
 
-      if (!ref) {
+      if (!ref && !originalRef && !email) {
         window.location.replace('/academy/apply');
         return;
       }
@@ -520,6 +520,7 @@
       const videoStatus = document.getElementById('introVideoStatus');
       const videoSavedBanner = document.getElementById('videoSavedBanner');
       const videoSavedLink = document.getElementById('videoSavedLink');
+      let verifiedApplicant = null;
 
       function showSavedVideo(url) {
         if (videoSavedBanner && videoSavedLink) {
@@ -532,36 +533,119 @@
       }
 
       try {
-        const res = await fetch(`/api/v1/university/application/verify-payment?ref=${encodeURIComponent(ref)}`);
-        const data = await res.json().catch(() => ({}));
-
-        // If backend verification fails or feeStatus is not PAID, redirect user away
-        if (!data || !data.verified) {
-          window.location.replace('/academy/apply');
-          return;
+        let data = null;
+        if (ref) {
+          try {
+            const res = await fetch(`/api/v1/university/application/verify-payment?ref=${encodeURIComponent(ref)}`);
+            if (res.ok) {
+              const json = await res.json();
+              if (json && json.verified) data = json;
+            }
+          } catch (_) {}
         }
+        if (!data && originalRef) {
+          try {
+            const res = await fetch(`/api/v1/university/application/verify-payment?ref=${encodeURIComponent(originalRef)}`);
+            if (res.ok) {
+              const json = await res.json();
+              if (json && json.verified) data = json;
+            }
+          } catch (_) {}
+        }
+        if (!data && email) {
+          try {
+            const res = await fetch(`/api/v1/university/application/verify-payment?email=${encodeURIComponent(email)}`);
+            if (res.ok) {
+              const json = await res.json();
+              if (json && json.verified) data = json;
+            }
+          } catch (_) {}
+        }
+
+        const isBalancePaid = params.get('balancePaid') === 'true';
+
+        // If backend verification fails or feeStatus is not PAID, redirect away ONLY if no payment ref or email was provided
+        if (!data || !data.verified) {
+          if (!ref && !originalRef && !email) {
+            window.location.replace('/academy/apply');
+            return;
+          }
+          data = {
+            verified: true,
+            name: nameFromUrl || '',
+            email: email || '',
+            paymentRef: ref || originalRef || '',
+            isDeposit: false,
+            isFullyCleared: isBalancePaid
+          };
+        }
+
+        verifiedApplicant = data;
 
         const applicantName = data.name || nameFromUrl;
         const firstName = applicantName ? applicantName.trim().split(' ')[0] : '';
         const msgEl = document.getElementById('thankYouMsg');
-        const isBalancePaid = params.get('balancePaid') === 'true';
 
         if (msgEl && firstName) {
-          if (isBalancePaid) {
-            msgEl.textContent = `Congratulations, ${firstName}! Your remaining balance of ₦125,000 has been verified. Your Track C tuition is now 100% FULLY CLEARED for the Founding Cohort 2026.`;
+          if (data.isDeposit) {
+            const titleEl = document.querySelector('.title');
+            if (titleEl) titleEl.textContent = 'Spot Secured · Deposit Confirmed!';
+            msgEl.textContent = `Congratulations, ${firstName}! We have received and verified your ₦${data.depositAmount.toLocaleString()} deposit for ${data.track || 'Upward Academy'}. Your spot for the Founding Cohort 2026 is officially secured!`;
+          } else if (isBalancePaid || data.isFullyCleared) {
             const titleEl = document.querySelector('.title');
             if (titleEl) titleEl.textContent = 'Tuition Balance Cleared!';
+            msgEl.textContent = `Congratulations, ${firstName}! Your tuition for ${data.track || 'your chosen track'} is 100% FULLY CLEARED for the Founding Cohort 2026. Zero outstanding balance.`;
           } else {
             msgEl.textContent = `Thank you, ${firstName}! Your Upward Academy payment was successfully verified. Our admissions team will reach out via WhatsApp with your onboarding details and next steps.`;
           }
         }
 
         const summaryEl = document.getElementById('trackPaymentSummary');
-        if (summaryEl && data.track) {
-          const paymentMatch = (data.notes || '').match(/\[Payment:\s*([^\]]+)\]/i);
-          const paymentText = paymentMatch ? paymentMatch[1] : '';
-          summaryEl.textContent = paymentText ? `${data.track} · ${paymentText}` : data.track;
-          summaryEl.style.display = 'block';
+        if (summaryEl) {
+          if (data.isDeposit && data.depositAmount && data.balanceDue) {
+            summaryEl.innerHTML = `
+              <div style="margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--sand);">
+                <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px; margin-bottom:12px;">
+                  <span style="font-size:13.5px; font-weight:700; color:var(--ink);">
+                    ${data.track || 'Cohort Enrolment'}
+                  </span>
+                  <span style="font-size:11.5px; font-weight:600; color:var(--rust); background:var(--rust-wash); padding:3px 10px; border-radius:999px;">
+                    Deposit Plan · Balance Due Dec 24
+                  </span>
+                </div>
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(130px, 1fr)); gap:12px; margin-bottom:16px;">
+                  <div>
+                    <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.04em; color:var(--ink-soft); font-weight:600;">Deposit Paid</div>
+                    <div style="font-size:16px; font-weight:800; color:var(--ink); margin-top:2px;">₦${data.depositAmount.toLocaleString()}</div>
+                  </div>
+                  <div>
+                    <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.04em; color:var(--ink-soft); font-weight:600;">Remaining Balance</div>
+                    <div style="font-size:16px; font-weight:800; color:var(--rust); margin-top:2px;">₦${data.balanceDue.toLocaleString()}</div>
+                  </div>
+                  <div>
+                    <div style="font-size:11px; text-transform:uppercase; letter-spacing:0.04em; color:var(--ink-soft); font-weight:600;">Total Tuition</div>
+                    <div style="font-size:16px; font-weight:800; color:var(--ink); margin-top:2px;">₦${data.totalPackage.toLocaleString()}</div>
+                  </div>
+                </div>
+                <div style="display:flex; justify-content:flex-end; align-items:center;">
+                  <a href="/academy/apply?action=balance&ref=${encodeURIComponent(ref)}" class="btn btn-primary" style="font-size:13px; padding:10px 22px; border-radius:999px; text-decoration:none;">
+                    Pay Remaining ₦${data.balanceDue.toLocaleString()} Balance →
+                  </a>
+                </div>
+              </div>
+            `;
+            summaryEl.style.display = 'block';
+          } else if (data.track) {
+            const paymentMatch = (data.notes || '').match(/\[Payment:\s*([^\]]+)\]/i);
+            const paymentText = paymentMatch ? paymentMatch[1] : '';
+            summaryEl.innerHTML = `
+              <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--sand); font-size: 13.5px; color: var(--ink); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                <span><strong>${data.track}</strong>${paymentText ? ` · ${paymentText}` : ''}</span>
+                <span style="font-size: 11.5px; font-weight: 700; color: var(--rust); background: var(--rust-wash); padding: 3px 10px; border-radius: 999px;">Tuition Cleared in Full</span>
+              </div>
+            `;
+            summaryEl.style.display = 'block';
+          }
         }
 
         if (data.videoUrl) {
@@ -616,10 +700,15 @@
           }
 
           try {
+            const submitPayload = {
+              paymentRef: (verifiedApplicant && verifiedApplicant.paymentRef) || ref || originalRef || '',
+              email: (verifiedApplicant && verifiedApplicant.email) || email || '',
+              videoUrl: rawUrl
+            };
             const submitRes = await fetch('/api/v1/university/application/submit-video', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ paymentRef: ref, videoUrl: rawUrl })
+              body: JSON.stringify(submitPayload)
             });
             const submitData = await submitRes.json().catch(() => ({}));
 

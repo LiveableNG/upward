@@ -7,6 +7,10 @@ import {
   UNIVERSITY_TRAFFIC_REPOSITORY,
   IUniversityTrafficRepository,
 } from '../../../domains/university-traffic/university-traffic.repository'
+import {
+  EARLY_ACCESS_REPOSITORY,
+  IEarlyAccessRepository,
+} from '../../../domains/early-access/early-access.repository'
 import { UniversityApplication } from '../../../domains/university-application/university-application.entity'
 import { EmailService } from '../../../shared/infrastructure/email/email.service'
 import { buildGlobalLayoutHtml } from '../../../shared/infrastructure/email/email.helper'
@@ -52,10 +56,28 @@ export class SubmitUniversityApplicationUseCase {
     private readonly emailService: EmailService,
     @Inject(UNIVERSITY_TRAFFIC_REPOSITORY)
     private readonly trafficRepo: IUniversityTrafficRepository,
+    @Inject(EARLY_ACCESS_REPOSITORY)
+    private readonly earlyAccessRepo: IEarlyAccessRepository,
   ) {}
 
   async execute(command: SubmitUniversityApplicationCommand): Promise<SubmitUniversityApplicationResult> {
-    const existing = await this.applicationRepo.findByEmail(command.email.trim().toLowerCase())
+    const cleanEmail = command.email.trim().toLowerCase()
+    const existing = await this.applicationRepo.findByEmail(cleanEmail)
+    const isMaskedPhone = Boolean(command.whatsapp && (command.whatsapp.includes('•') || command.whatsapp.includes('*')))
+    const existingHasMaskedPhone = Boolean(
+      existing && existing.toObject().whatsapp && (existing.toObject().whatsapp.includes('•') || existing.toObject().whatsapp.includes('*')),
+    )
+
+    let earlyAccessUnmaskedPhone: string | null = null
+    if (isMaskedPhone && (!existing || existingHasMaskedPhone)) {
+      const ea = await this.earlyAccessRepo.findByEmail(cleanEmail)
+      if (ea) {
+        const eaPhone = ea.toObject().whatsapp
+        if (eaPhone && !eaPhone.includes('•') && !eaPhone.includes('*')) {
+          earlyAccessUnmaskedPhone = eaPhone
+        }
+      }
+    }
     
     let application: UniversityApplication
     let isAlreadyPaid = false
@@ -71,15 +93,16 @@ export class SubmitUniversityApplicationUseCase {
       }
 
       const notes = existingProps.notes || ''
+      const notesLower = notes.toLowerCase()
       const isDeposit =
-        notes.toLowerCase().includes('deposit') ||
-        notes.toLowerCase().includes('down payment') ||
-        notes.includes('Lock-In') ||
-        notes.includes('25,000') ||
-        notes.includes('30,000') ||
-        notes.includes('50,000') ||
-        notes.includes('70,000')
-      const isFullyCleared = notes.includes('FULLY CLEARED')
+        isAlreadyPaid &&
+        !notesLower.includes('full offer') &&
+        !notesLower.includes('full fee') &&
+        (notesLower.includes('deposit') ||
+          notesLower.includes('down payment') ||
+          notesLower.includes('lock-in') ||
+          notes.includes('₦25,000'))
+      const isFullyCleared = isAlreadyPaid && notes.includes('FULLY CLEARED')
 
       // Disallow track switching for active deposit holders on new tracks
       // Note: Applicants on legacy Track 1 or Track 2 have not chosen among the 3 new tracks yet and can freely choose.
@@ -94,25 +117,41 @@ export class SubmitUniversityApplicationUseCase {
         resolvedTrack = existingProps.track
       }
 
+      // If existing record is already PAID (e.g. previous 5k fee) and this request is just pre-checkout or cancelled checkout (command.feeStatus !== 'PAID'),
+      // do not overwrite their paid track or notes until payment actually succeeds.
+      if (isAlreadyPaid && command.feeStatus !== 'PAID') {
+        resolvedTrack = existingProps.track
+      }
+
       const newFeeStatus = isAlreadyPaid ? 'PAID' : ((command.feeStatus as any) || existingProps.feeStatus || 'PENDING')
       const newPaymentRef = command.paymentRef || existingProps.paymentRef || null
 
-      const trackNote = resolvedTrack ? `[Track: ${resolvedTrack}]` : ''
-      const paymentNote = command.paymentPlan
-        ? `[Payment: ${command.paymentPlan}]`
-        : command.amountPaid
-          ? `[Payment: ₦${command.amountPaid.toLocaleString()}]`
-          : ''
       let updatedNotes = existingProps.notes || ''
-      if (trackNote && !updatedNotes.includes(trackNote)) {
-        updatedNotes = `${trackNote} ${updatedNotes}`.trim()
-      }
-      if (paymentNote && !updatedNotes.includes(paymentNote)) {
-        updatedNotes = `${updatedNotes} ${paymentNote}`.trim()
+      if (!isAlreadyPaid || command.feeStatus === 'PAID') {
+        updatedNotes = updatedNotes
+          .replace(/\[Track:\s*[^\]]+\]/gi, '')
+          .replace(/\[Payment:\s*[^\]]+\]/gi, '')
+          .trim()
+
+        const trackNote = resolvedTrack ? `[Track: ${resolvedTrack}]` : ''
+        const paymentNote = command.paymentPlan
+          ? `[Payment: ${command.paymentPlan}]`
+          : command.amountPaid
+            ? `[Payment: ₦${command.amountPaid.toLocaleString()}]`
+            : ''
+        if (trackNote) {
+          updatedNotes = `${trackNote} ${updatedNotes}`.trim()
+        }
+        if (paymentNote) {
+          updatedNotes = `${updatedNotes} ${paymentNote}`.trim()
+        }
       }
 
-      const isMaskedPhone = command.whatsapp && (command.whatsapp.includes('•') || command.whatsapp.includes('*'))
-      const resolvedWhatsapp = isMaskedPhone && existingProps.whatsapp ? existingProps.whatsapp : command.whatsapp
+      const resolvedWhatsapp = isMaskedPhone
+        ? (!existingHasMaskedPhone && existingProps.whatsapp
+            ? existingProps.whatsapp
+            : (earlyAccessUnmaskedPhone || existingProps.whatsapp || command.whatsapp))
+        : command.whatsapp
 
       application = UniversityApplication.restore({
         ...existingProps,
@@ -132,6 +171,7 @@ export class SubmitUniversityApplicationUseCase {
         sessionTime: command.sessionTime ?? existingProps.sessionTime,
         sourceIdentifier: command.sourceIdentifier ?? existingProps.sourceIdentifier,
         abVariant: command.abVariant ?? existingProps.abVariant ?? 'A',
+        status: newFeeStatus === 'PAID' && existingProps.status === 'SUBMITTED' ? 'FEE_PAID' : existingProps.status,
         feeStatus: newFeeStatus,
         paymentRef: newPaymentRef,
         notes: updatedNotes || null,
@@ -146,11 +186,12 @@ export class SubmitUniversityApplicationUseCase {
         noteParts.push(`[Payment: ₦${command.amountPaid.toLocaleString()}]`)
       }
       const initialNotes = noteParts.length > 0 ? noteParts.join(' ') : null
+      const resolvedNewWhatsapp = isMaskedPhone && earlyAccessUnmaskedPhone ? earlyAccessUnmaskedPhone : command.whatsapp
 
       application = UniversityApplication.create({
         name: command.name,
-        whatsapp: command.whatsapp,
-        email: command.email.trim().toLowerCase(),
+        whatsapp: resolvedNewWhatsapp,
+        email: cleanEmail,
         city: command.city,
         ageBracket: command.ageBracket,
         occupation: command.occupation,
@@ -165,6 +206,7 @@ export class SubmitUniversityApplicationUseCase {
         sessionTime: command.sessionTime,
         sourceIdentifier: command.sourceIdentifier,
         abVariant: command.abVariant || 'A',
+        status: command.feeStatus === 'PAID' ? 'FEE_PAID' : 'SUBMITTED',
         feeStatus: (command.feeStatus as any) || 'PENDING',
         paymentRef: command.paymentRef || null,
         notes: initialNotes,
@@ -188,7 +230,7 @@ export class SubmitUniversityApplicationUseCase {
     if (command.email && shouldSendEmail) {
       try {
         const firstName = command.name.trim().split(' ')[0] || 'there'
-        const isPaidNow = saved.feeStatus === 'PAID'
+        const isPaidNow = command.feeStatus === 'PAID'
         
         let contentHtml = ''
         let subjectText = ''
@@ -212,28 +254,88 @@ export class SubmitUniversityApplicationUseCase {
             ? `https://upward.goodtenants.io/academy/thank-you?ref=${encodeURIComponent(saved.paymentRef)}`
             : 'https://upward.goodtenants.io/academy'
           
+          const notesText = ((command.paymentPlan || '') + ' ' + (saved.notes || '')).toLowerCase()
           const isDepositPlan =
-            (command.paymentPlan && command.paymentPlan.toLowerCase().includes('lock-in')) ||
-            command.amountPaid === 25000
+            !notesText.includes('full offer') &&
+            !notesText.includes('full fee') &&
+            (notesText.includes('deposit') ||
+              notesText.includes('down payment') ||
+              notesText.includes('lock-in') ||
+              command.amountPaid === 25000 ||
+              command.amountPaid === 30000 ||
+              command.amountPaid === 70000)
 
           const balancePayUrl = saved.paymentRef
             ? `https://upward.goodtenants.io/academy/apply?action=balance&ref=${encodeURIComponent(saved.paymentRef)}`
             : `https://upward.goodtenants.io/academy/apply?action=balance&email=${encodeURIComponent(command.email)}`
 
+          let depositPaid = command.amountPaid || 50000
+          let balanceRemaining = 60000
+          let totalPackage = 110000
+          let trackLabel = saved.track || 'Track B · Career Development'
+
+          if (isDepositPlan) {
+            const isTrackC = trackLabel.includes('Track C') || notesText.includes('track c') || notesText.includes('₦70,000')
+            const isTrackB = !isTrackC && (trackLabel.includes('Track B') || notesText.includes('track b') || notesText.includes('₦50,000'))
+            const isTrackA = !isTrackC && !isTrackB && (trackLabel.includes('Track A') || notesText.includes('track a') || notesText.includes('₦30,000'))
+
+            if (isTrackA) {
+              trackLabel = 'Track A · Foundation'
+              depositPaid = 30000
+              balanceRemaining = 30000
+              totalPackage = 60000
+            } else if (isTrackB) {
+              trackLabel = 'Track B · Career Development'
+              depositPaid = 50000
+              const is48h = notesText.includes('110,000') || notesText.includes('48-hour') || notesText.includes('48h')
+              balanceRemaining = is48h ? 60000 : 70000
+              totalPackage = depositPaid + balanceRemaining
+            } else {
+              trackLabel = 'Track C · Practical Experience & Networking'
+              if (notesText.includes('₦25,000') || notesText.includes('lock-in') || command.amountPaid === 25000) {
+                depositPaid = 25000
+                balanceRemaining = 125000
+                totalPackage = 150000
+              } else {
+                depositPaid = 70000
+                const is48h = notesText.includes('150,000') || notesText.includes('48-hour') || notesText.includes('48h') || !notesText.includes('160,000')
+                balanceRemaining = is48h ? 80000 : 90000
+                totalPackage = depositPaid + balanceRemaining
+              }
+            }
+          }
+
           const balanceSection = isDepositPlan
             ? `
-              <div style="background: #fff7ed; border-left: 4px solid #ea580c; padding: 12px 14px; margin: 16px 0; border-radius: 4px;">
-                <p style="margin: 0; font-size: 13.5px; color: #9a3412;"><strong>Locked-In Discount:</strong> ₦50,000 Off Track C (Tuition: ₦150,000)</p>
-                <p style="margin: 4px 0 0 0; font-size: 13px; color: #9a3412;"><strong>Deposit Paid Today:</strong> ₦25,000 (Verified)</p>
-                <p style="margin: 4px 0 0 0; font-size: 13px; color: #9a3412;"><strong>Remaining Balance:</strong> ₦125,000 (Due before Dec 5, 2026)</p>
-                <p style="margin: 8px 0 0 0; font-size: 12.5px;"><a href="${balancePayUrl}" style="color: #ea580c; font-weight: 700; text-decoration: underline;">Pay Remaining ₦125,000 Balance Anytime →</a></p>
+              <div style="background: #fff7ed; border-left: 4px solid #ea580c; padding: 14px 16px; margin: 18px 0; border-radius: 6px;">
+                <p style="margin: 0; font-size: 14px; font-weight: 700; color: #9a3412;">Tuition &amp; Balance Breakdown</p>
+                <div style="margin-top: 8px; font-size: 13.5px; color: #7c2d12; line-height: 1.6;">
+                  <div><strong>Enrolled Track:</strong> ${trackLabel}</div>
+                  <div><strong>Deposit Paid Today:</strong> ₦${depositPaid.toLocaleString()} (Verified)</div>
+                  <div><strong>Remaining Tuition Balance:</strong> ₦${balanceRemaining.toLocaleString()} (Due by December 24, 2026)</div>
+                  <div><strong>Total Cohort Fee:</strong> ₦${totalPackage.toLocaleString()}</div>
+                </div>
+                <p style="margin: 12px 0 0 0; font-size: 13px;">
+                  <a href="${balancePayUrl}" style="display: inline-block; background: #ea580c; color: #ffffff; padding: 8px 16px; border-radius: 6px; font-weight: 700; text-decoration: none;">
+                    Pay Outstanding ₦${balanceRemaining.toLocaleString()} Balance →
+                  </a>
+                </p>
               </div>
             `
-            : ''
+            : `
+              <div style="background: #f0fdf4; border-left: 4px solid #166534; padding: 14px 16px; margin: 18px 0; border-radius: 6px;">
+                <p style="margin: 0; font-size: 14px; font-weight: 700; color: #166534;">Tuition Cleared in Full</p>
+                <div style="margin-top: 8px; font-size: 13.5px; color: #14532d; line-height: 1.6;">
+                  <div><strong>Enrolled Track:</strong> ${saved.track || 'Upward Academy'}</div>
+                  <div><strong>Amount Paid:</strong> ${amountLabel} (Verified)</div>
+                  <div><strong>Outstanding Balance:</strong> ₦0 (100% Cleared)</div>
+                </div>
+              </div>
+            `
 
           subjectText = isDepositPlan
-            ? 'Spot Secured (₦25k Deposit Received) — Upward Academy Cohort 2026'
-            : 'Payment Confirmed — Upward Academy Cohort 2026'
+            ? `Spot Secured (₦${(depositPaid / 1000)}k Deposit Received) — ${trackLabel} Upward Academy`
+            : 'Payment Confirmed (Paid in Full) — Upward Academy Cohort 2026'
           buttonText = 'Submit Your Intro Video (Required) →'
           buttonUrl = videoSubmitUrl
           contentHtml = `
@@ -327,7 +429,7 @@ export class SubmitUniversityApplicationUseCase {
             <table style="width: 100%; border-collapse: collapse; margin-top: 12px; margin-bottom: 20px;">
               <tr><td style="padding: 6px 0; font-weight: bold; width: 140px; border-bottom: 1px solid #eee;">Applicant Name:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.name}</td></tr>
               <tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">Email:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.email}</td></tr>
-              <tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">WhatsApp:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.whatsapp}</td></tr>
+              <tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">WhatsApp:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${saved.whatsapp}</td></tr>
               <tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">City:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.city}</td></tr>
               <tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">Age Bracket:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;">${command.ageBracket}</td></tr>
               ${command.track ? `<tr><td style="padding: 6px 0; font-weight: bold; border-bottom: 1px solid #eee;">Track:</td><td style="padding: 6px 0; border-bottom: 1px solid #eee;"><strong>${command.track}</strong></td></tr>` : ''}

@@ -75,12 +75,34 @@ export class PayUniversityApplicationBalanceUseCase {
       }
     }
 
+    // Safeguard: If initial deposit has not been marked PAID yet, treat this payment as the initial deposit rather than balance clearance
+    if (existingProps.feeStatus !== 'PAID') {
+      const initialPaid = UniversityApplication.restore({
+        ...existingProps,
+        feeStatus: 'PAID',
+        status: existingProps.status === 'SUBMITTED' ? 'FEE_PAID' : existingProps.status,
+        paymentRef: existingProps.paymentRef || balanceRef,
+        updatedAt: new Date(),
+      })
+      const savedInitial = await this.applicationRepo.save(initialPaid)
+      return {
+        id: savedInitial.id || '',
+        email: savedInitial.email,
+        name: savedInitial.name,
+        track: trackName,
+        balancePaymentRef: balanceRef,
+        amountPaid: amount,
+        isFullyCleared: false,
+      }
+    }
+
     const balanceNote = `[Balance Paid: ₦${amount.toLocaleString()} via ref ${balanceRef}] [Tuition Status: FULLY CLEARED]`
     const updatedNotes = `${currentNotes} ${balanceNote}`.trim()
 
     const updated = UniversityApplication.restore({
       ...existingProps,
       feeStatus: 'PAID',
+      status: existingProps.status === 'SUBMITTED' ? 'FEE_PAID' : existingProps.status,
       notes: updatedNotes,
       updatedAt: new Date(),
     })

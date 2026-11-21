@@ -4,6 +4,10 @@ import {
   IUniversityApplicationRepository,
   ApplicationStats,
 } from '../../../domains/university-application/university-application.repository'
+import {
+  EARLY_ACCESS_REPOSITORY,
+  IEarlyAccessRepository,
+} from '../../../domains/early-access/early-access.repository'
 import { UniversityApplication } from '../../../domains/university-application/university-application.entity'
 
 @Injectable()
@@ -31,6 +35,8 @@ export class GetUniversityApplicationsUseCase {
   constructor(
     @Inject(UNIVERSITY_APPLICATION_REPOSITORY)
     private readonly applicationRepo: IUniversityApplicationRepository,
+    @Inject(EARLY_ACCESS_REPOSITORY)
+    private readonly earlyAccessRepo: IEarlyAccessRepository,
   ) {}
 
   async execute(query: GetUniversityApplicationsQuery): Promise<{
@@ -49,8 +55,32 @@ export class GetUniversityApplicationsUseCase {
       offset,
     })
 
+    // Auto-heal any applications that previously stored a masked WhatsApp number from Early Access prefill
+    const resolvedApplications = await Promise.all(
+      applications.map(async (app) => {
+        const props = app.toObject()
+        if (props.whatsapp && (props.whatsapp.includes('•') || props.whatsapp.includes('*'))) {
+          try {
+            const ea = await this.earlyAccessRepo.findByEmail(props.email.trim().toLowerCase())
+            const eaPhone = ea?.toObject().whatsapp
+            if (eaPhone && !eaPhone.includes('•') && !eaPhone.includes('*')) {
+              const healed = UniversityApplication.restore({
+                ...props,
+                whatsapp: eaPhone,
+              })
+              await this.applicationRepo.save(healed)
+              return healed
+            }
+          } catch (_) {
+            // Keep existing if lookup fails
+          }
+        }
+        return app
+      }),
+    )
+
     return {
-      data: applications,
+      data: resolvedApplications,
       meta: {
         total,
         page,

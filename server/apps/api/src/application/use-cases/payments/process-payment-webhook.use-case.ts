@@ -158,9 +158,12 @@ export class ProcessPaymentWebhookUseCase {
       }
 
       const isAcademyApp =
-        (typeof reference === 'string' && reference.startsWith('UPW_APP_')) ||
+        (typeof reference === 'string' &&
+          (reference.startsWith('UPW_APP_') || reference.startsWith('UPW_BAL_'))) ||
         metadata?.paymentKind === 'ACADEMY_APPLICATION' ||
-        metadata?.type === 'ACADEMY_APPLICATION'
+        metadata?.type === 'ACADEMY_APPLICATION' ||
+        metadata?.paymentKind === 'ACADEMY_TUITION_BALANCE' ||
+        metadata?.type === 'ACADEMY_TUITION_BALANCE'
 
       if (isAcademyApp) {
         this.logger.log(`Academy application payment detected for reference ${reference}`)
@@ -631,6 +634,28 @@ export class ProcessPaymentWebhookUseCase {
     if (!app) {
       this.logger.warn(`No university application found for ref ${reference} or email ${customerEmail}`)
       return { success: true, message: 'Academy application not found for payment' }
+    }
+
+    const isBalancePayment =
+      (typeof reference === 'string' && reference.startsWith('UPW_BAL_')) ||
+      metadata?.paymentKind === 'ACADEMY_TUITION_BALANCE' ||
+      metadata?.type === 'ACADEMY_TUITION_BALANCE'
+
+    if (isBalancePayment && app.feeStatus === 'PAID') {
+      const currentNotes = app.notes || ''
+      if (!currentNotes.includes('FULLY CLEARED')) {
+        const amountNaira = data.amount ? Math.round(Number(data.amount) / 100) : 0
+        const balanceNote = `[Balance Paid: ₦${amountNaira.toLocaleString()} via ref ${reference}] [Tuition Status: FULLY CLEARED]`
+        await this.prisma.upward_university_application.update({
+          where: { id: app.id },
+          data: {
+            status: app.status === 'SUBMITTED' ? 'FEE_PAID' : app.status,
+            notes: `${currentNotes} ${balanceNote}`.trim(),
+            updatedAt: new Date(),
+          },
+        })
+      }
+      return { success: true, academyApplicationPaid: true, balanceCleared: true }
     }
 
     if (app.feeStatus !== 'PAID') {

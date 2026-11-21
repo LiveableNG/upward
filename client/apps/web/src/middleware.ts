@@ -652,7 +652,7 @@ export async function middleware(request: NextRequest) {
   if (pathname === '/academy/faq' || pathname === '/academy/faqs') {
     return NextResponse.rewrite(new URL('/pages/university/faq.html', request.url))
   }
-  if (pathname === '/academy/thank-you') {
+  if (pathname === '/academy/thank-you' || pathname === '/academy/submit-video') {
     return NextResponse.rewrite(new URL('/pages/university/thank-you.html', request.url))
   }
   if (pathname.startsWith('/academy/')) {
@@ -712,7 +712,7 @@ export async function middleware(request: NextRequest) {
   ) {
     return NextResponse.rewrite(new URL('/pages/university/lecturers.html', request.url))
   }
-  if (pathname === '/university/thank-you') {
+  if (pathname === '/university/thank-you' || pathname === '/university/submit-video') {
     return NextResponse.rewrite(new URL('/pages/university/thank-you.html', request.url))
   }
   if (pathname.startsWith('/university/')) {

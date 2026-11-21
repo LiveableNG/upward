@@ -540,6 +540,8 @@ export interface PaymentAndBalanceMeta {
   isDeposit: boolean
   depositAmount: number
   balanceDue: number
+  totalPackage?: number
+  trackName?: string
   isFullyCleared: boolean
   color: string
   background: string
@@ -549,11 +551,14 @@ export interface PaymentAndBalanceMeta {
 export function getPaymentAndBalanceMeta(app: {
   feeStatus?: string
   notes?: string | null
+  track?: string | null
   applicationFee?: number
 }): PaymentAndBalanceMeta {
   const isPaid = app.feeStatus === 'PAID'
   const isRefunded = app.feeStatus === 'REFUNDED'
   const notes = app.notes || ''
+  const notesLower = notes.toLowerCase()
+  const trackStr = (app.track || notes || '')
 
   if (!isPaid && !isRefunded) {
     return {
@@ -585,32 +590,78 @@ export function getPaymentAndBalanceMeta(app: {
   }
 
   // Check if it's a deposit payment
-  const isDeposit = notes.includes('Lock-In') || notes.includes('25,000') || notes.includes('₦25,000')
+  const isDeposit =
+    !notesLower.includes('full offer') &&
+    !notesLower.includes('full fee') &&
+    (notesLower.includes('deposit') ||
+      notesLower.includes('down payment') ||
+      notesLower.includes('lock-in') ||
+      notes.includes('₦25,000'))
   const isFullyCleared = notes.includes('FULLY CLEARED')
 
-  if (isDeposit && !isFullyCleared) {
-    return {
-      status: 'DEPOSIT_PENDING',
-      badgeLabel: 'DEPOSIT: ₦25k · ₦125k DUE',
-      detailText: '₦25,000 paid · ₦125,000 balance remaining (Total ₦150,000)',
-      isDeposit: true,
-      depositAmount: 25000,
-      balanceDue: 125000,
-      isFullyCleared: false,
-      color: '#b45309',
-      background: '#fef3c7',
-      border: '#fde68a',
-    }
-  }
+  if (isDeposit) {
+    let depositAmount = 70000
+    let balanceDue = 80000
+    let totalPackage = 150000
+    let trackName = 'Track C - Practical Experience'
 
-  if (isDeposit && isFullyCleared) {
+    const isTrackC = trackStr.includes('Track C') || notes.includes('Track C') || notes.includes('₦70,000')
+    const isTrackB = !isTrackC && (trackStr.includes('Track B') || notes.includes('Track B') || notes.includes('₦50,000'))
+    const isTrackA = !isTrackC && !isTrackB && (trackStr.includes('Track A') || notes.includes('Track A') || notes.includes('₦30,000'))
+
+    if (isTrackA) {
+      trackName = 'Track A - Foundation'
+      depositAmount = 30000
+      balanceDue = 30000
+      totalPackage = 60000
+    } else if (isTrackB) {
+      trackName = 'Track B - Career Development'
+      depositAmount = 50000
+      const is48h = notes.includes('110,000') || notesLower.includes('48-hour') || notesLower.includes('48h')
+      balanceDue = is48h ? 60000 : 70000
+      totalPackage = depositAmount + balanceDue
+    } else {
+      trackName = 'Track C - Practical Experience'
+      if (notes.includes('₦25,000') || notesLower.includes('lock-in')) {
+        depositAmount = 25000
+        balanceDue = 125000
+        totalPackage = 150000
+      } else {
+        depositAmount = 70000
+        const is48h = notes.includes('150,000') || notesLower.includes('48-hour') || notesLower.includes('48h') || !notes.includes('160,000')
+        balanceDue = is48h ? 80000 : 90000
+        totalPackage = depositAmount + balanceDue
+      }
+    }
+
+    if (!isFullyCleared) {
+      const depLabel = (depositAmount / 1000)
+      const balLabel = (balanceDue / 1000)
+      return {
+        status: 'DEPOSIT_PENDING',
+        badgeLabel: `DEPOSIT: ₦${depLabel}k · ₦${balLabel}k DUE`,
+        detailText: `₦${depositAmount.toLocaleString()} paid · ₦${balanceDue.toLocaleString()} balance remaining (Total ₦${totalPackage.toLocaleString()})`,
+        isDeposit: true,
+        depositAmount,
+        balanceDue,
+        totalPackage,
+        trackName,
+        isFullyCleared: false,
+        color: '#b45309',
+        background: '#fef3c7',
+        border: '#fde68a',
+      }
+    }
+
     return {
       status: 'PAID_FULL',
-      badgeLabel: 'PAID IN FULL (₦150k)',
-      detailText: '₦25,000 deposit + ₦125,000 balance paid · FULLY CLEARED',
+      badgeLabel: `PAID IN FULL (₦${(totalPackage / 1000)}k)`,
+      detailText: `₦${depositAmount.toLocaleString()} deposit + ₦${balanceDue.toLocaleString()} balance paid · FULLY CLEARED`,
       isDeposit: true,
-      depositAmount: 25000,
+      depositAmount,
       balanceDue: 0,
+      totalPackage,
+      trackName,
       isFullyCleared: true,
       color: '#15803d',
       background: '#dcfce7',
@@ -618,16 +669,38 @@ export function getPaymentAndBalanceMeta(app: {
     }
   }
 
-  // Check notes for amount or track
+  // Full upfront payment
   const paymentMatch = notes.match(/\[Payment:\s*([^\]]+)\]/i)?.[1]
   let paidLabel = '✓ PAID IN FULL'
-  if (paymentMatch) {
+  if (trackStr.includes('Track A')) {
+    if (notes.includes('50,000') || notes.includes('50k')) {
+      paidLabel = 'PAID IN FULL (₦50k)'
+    } else {
+      paidLabel = 'PAID IN FULL (₦60k)'
+    }
+  } else if (trackStr.includes('Track B')) {
+    if (notes.includes('100,000') || notes.includes('100k')) {
+      paidLabel = 'PAID IN FULL (₦100k)'
+    } else {
+      paidLabel = 'PAID IN FULL (₦120k)'
+    }
+  } else if (trackStr.includes('Track C')) {
+    if (notes.includes('135,000') || notes.includes('135k')) {
+      paidLabel = 'PAID IN FULL (₦135k)'
+    } else if (notes.includes('160,000') || notes.includes('160k')) {
+      paidLabel = 'PAID IN FULL (₦160k)'
+    } else {
+      paidLabel = 'PAID IN FULL (₦200k)'
+    }
+  } else if (paymentMatch) {
     if (paymentMatch.includes('135,000') || paymentMatch.includes('135k')) {
       paidLabel = 'PAID IN FULL (₦135k)'
     } else if (paymentMatch.includes('200,000') || paymentMatch.includes('200k')) {
       paidLabel = 'PAID IN FULL (₦200k)'
     } else if (paymentMatch.includes('100,000') || paymentMatch.includes('100k')) {
       paidLabel = 'PAID IN FULL (₦100k)'
+    } else if (paymentMatch.includes('50,000') || paymentMatch.includes('50k')) {
+      paidLabel = 'PAID IN FULL (₦50k)'
     } else if (paymentMatch.includes('60,000') || paymentMatch.includes('60k')) {
       paidLabel = 'PAID IN FULL (₦60k)'
     }
