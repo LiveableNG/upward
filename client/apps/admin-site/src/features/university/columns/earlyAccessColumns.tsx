@@ -127,6 +127,27 @@ export const getEarlyAccessColumns = ({
 
             {/* Clean Parsed Track and Session Badges */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '5px' }}>
+              {parsed.attendedStatus !== 'None' && (
+                <span
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    background: '#ecfdf5',
+                    color: '#065f46',
+                    border: '1px solid #a7f3d0',
+                  }}
+                  title={`Checked in to webinar live via ${parsed.attendedStatus}${parsed.attendedAt ? ` at ${parsed.attendedAt}` : ''}`}
+                >
+                  <Video size={11} />
+                  Attended ({parsed.attendedStatus})
+                </span>
+              )}
+
               {parsed.trackCode !== 'NONE' && (() => {
                 const badgeMeta = getTrackBadgeMeta(parsed.trackCode)
                 return (

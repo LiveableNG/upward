@@ -11,6 +11,7 @@ import { SubmitStudentEarlyAccessUseCase } from '../../../application/use-cases/
 import { SubmitLandlordEarlyAccessUseCase } from '../../../application/use-cases/early-access/submit-landlord-early-access.use-case'
 import { CreateStudentEarlyAccessDto } from '../dto/create-student-early-access.dto'
 import { CreateLandlordEarlyAccessDto } from '../dto/create-landlord-early-access.dto'
+import { WebinarCheckinDto } from '../dto/webinar-checkin.dto'
 
 @Controller('early-access')
 export class EarlyAccessController {
@@ -24,12 +25,12 @@ export class EarlyAccessController {
   @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
   async submitStudent(@Body() dto: CreateStudentEarlyAccessDto) {
     const entry = await this.submitStudentEarlyAccessUseCase.execute({
-      name: dto.name,
+      name: dto.name || '',
       whatsapp: dto.whatsapp,
       email: dto.email,
-      city: dto.city,
-      ageBracket: dto.ageBracket,
-      experienceLevel: dto.experienceLevel,
+      city: dto.city || '',
+      ageBracket: dto.ageBracket || '',
+      experienceLevel: dto.experienceLevel || '',
       track: dto.track,
       occupation: dto.occupation,
       interest: dto.interest,
@@ -41,6 +42,29 @@ export class EarlyAccessController {
     return {
       success: true,
       message: 'Student early access application received successfully',
+      data: entry.toObject(),
+    }
+  }
+
+  @Post('webinar-checkin')
+  @HttpCode(HttpStatus.OK)
+  @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))
+  async webinarCheckin(@Body() dto: WebinarCheckinDto) {
+    const entry = await this.submitStudentEarlyAccessUseCase.execute({
+      name: dto.name || '',
+      whatsapp: dto.whatsapp,
+      email: dto.email,
+      city: 'Online',
+      ageBracket: '',
+      experienceLevel: '',
+      track: dto.track || `Webinar Attended - ${dto.platform || 'Google Meet'}`,
+      sessionTime: dto.sessionTime || 'Saturday 21st November 2026',
+      sourceIdentifier: dto.sourceIdentifier || 'webinar_join_direct',
+    })
+
+    return {
+      success: true,
+      message: 'Webinar attendance verified successfully',
       data: entry.toObject(),
     }
   }

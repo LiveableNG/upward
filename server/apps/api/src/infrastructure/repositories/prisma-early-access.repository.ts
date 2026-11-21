@@ -81,6 +81,60 @@ export class PrismaEarlyAccessRepository implements IEarlyAccessRepository {
     return EarlyAccessEntry.restore(record as EarlyAccessProps)
   }
 
+  async findByEmailOrPhone(email?: string, phone?: string): Promise<EarlyAccessEntry | null> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const conditions: any[] = []
+    if (email && email.trim().length > 0) {
+      conditions.push({ email: email.trim().toLowerCase() })
+    }
+    if (phone && phone.trim().length > 0) {
+      conditions.push({ whatsapp: phone.trim() })
+    }
+    if (conditions.length === 0) return null
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const record = await (this.prisma as any).upward_early_access.findFirst({
+      where: { OR: conditions },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    if (!record) return null
+
+    return EarlyAccessEntry.restore(record as EarlyAccessProps)
+  }
+
+  async update(entry: EarlyAccessEntry): Promise<EarlyAccessEntry> {
+    const rawData = entry.toObject()
+    if (!rawData.id) throw new Error('Cannot update entry without ID')
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updated = await (this.prisma as any).upward_early_access.update({
+      where: { id: rawData.id },
+      data: {
+        interest: rawData.interest ?? null,
+        sourceIdentifier: rawData.sourceIdentifier ?? null,
+      },
+    })
+
+    return EarlyAccessEntry.restore({
+      id: updated.id,
+      type: updated.type,
+      name: updated.name,
+      whatsapp: updated.whatsapp,
+      email: updated.email,
+      city: updated.city,
+      ageBracket: updated.ageBracket,
+      experienceLevel: updated.experienceLevel,
+      interest: updated.interest,
+      propertyCount: updated.propertyCount,
+      landlordStatus: updated.landlordStatus,
+      managementStyle: updated.managementStyle,
+      sourceIdentifier: updated.sourceIdentifier,
+      abVariant: updated.abVariant || 'A',
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt,
+    })
+  }
   async findAll(params?: {
     type?: string
     search?: string
@@ -102,7 +156,25 @@ export class PrismaEarlyAccessRepository implements IEarlyAccessRepository {
 
     if (params?.sessionDate && params.sessionDate !== 'ALL') {
       const s = params.sessionDate.trim()
-      if (s === 'WEBINAR_NOV_21' || /21st\s*nov/i.test(s)) {
+      if (s === 'WEBINAR_ATTENDED') {
+        conditions.push({ interest: { contains: '[Attended:', mode: 'insensitive' } })
+      } else if (s === 'WEBINAR_ATTENDED_MEET') {
+        conditions.push({ interest: { contains: '[Attended: Google Meet', mode: 'insensitive' } })
+      } else if (s === 'WEBINAR_ATTENDED_YOUTUBE') {
+        conditions.push({ interest: { contains: '[Attended: YouTube', mode: 'insensitive' } })
+      } else if (s === 'WEBINAR_REGISTERED_ONLY') {
+        conditions.push({
+          AND: [
+            {
+              OR: [
+                { interest: { contains: '21st November', mode: 'insensitive' } },
+                { interest: { contains: 'Webinar', mode: 'insensitive' } },
+              ],
+            },
+            { NOT: { interest: { contains: '[Attended:', mode: 'insensitive' } } },
+          ],
+        })
+      } else if (s === 'WEBINAR_NOV_21' || /21st\s*nov/i.test(s)) {
         conditions.push({
           OR: [
             { interest: { contains: '21st November', mode: 'insensitive' } },
