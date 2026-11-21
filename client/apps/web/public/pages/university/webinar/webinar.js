@@ -404,11 +404,6 @@
         hasError = true;
       }
 
-      if (!ageBracket) {
-        markFieldError('field_webinar_age', 'Please select your age bracket');
-        hasError = true;
-      }
-
       if (!experienceLevel) {
         markFieldError('field_webinar_exp', 'Please select your experience level');
         hasError = true;
@@ -442,7 +437,7 @@
         whatsapp: formattedPhone,
         email: email,
         city: city,
-        ageBracket: ageBracket,
+        ageBracket: ageBracket || undefined,
         experienceLevel: experienceLevel,
         track: selectedTrack,
         sessionTime: 'Saturday 21st November 2026 (Online Webinar)',

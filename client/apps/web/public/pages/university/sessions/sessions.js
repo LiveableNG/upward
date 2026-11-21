@@ -653,7 +653,6 @@
       validateField(whatsappInput, 'field_whatsapp', normPhone.replace(/\D/g, '').length >= 7);
       validateField(emailInput, 'field_email', /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normEmail));
       validateField(citySelect, 'field_city', citySelect && citySelect.value.trim() !== '');
-      validateField(ageSelect, 'field_age', ageSelect && ageSelect.value.trim() !== '');
       validateField(expSelect, 'field_exp', expSelect && expSelect.value.trim() !== '');
       const trackVal = trackInput ? trackInput.value : 'Track A - Foundation';
       validateField(trackInput, 'field_track', Boolean(trackVal));
@@ -702,7 +701,7 @@
         whatsapp: normPhone,
         email: normEmail,
         city: citySelect.value.trim(),
-        ageBracket: ageSelect.value.trim(),
+        ageBracket: (ageSelect && ageSelect.value.trim()) || undefined,
         experienceLevel: expSelect.value.trim(),
         track: trackVal,
         interest: formattedInterest,
