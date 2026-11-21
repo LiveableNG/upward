@@ -181,6 +181,9 @@ export const getApplicationColumns = ({
         </div>
         {row.sessionTime && (() => {
           const parsed = parseSessionAndTrack({ sessionTime: row.sessionTime })
+          if (parsed.attendanceMode === 'None' || parsed.sessionBadgeText.includes('Waitlist Only')) {
+            return null
+          }
           return (
             <div
               style={{
@@ -205,30 +208,6 @@ export const getApplicationColumns = ({
         })()}
       </div>
     ),
-  },
-  {
-    key: 'abVariant',
-    label: 'A/B Test Variant',
-    render: (row) => {
-      const isVariantB = row.abVariant === 'B'
-      return (
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            padding: '3px 8px',
-            borderRadius: '6px',
-            fontSize: '11px',
-            fontWeight: 700,
-            background: isVariantB ? '#f3e8ff' : '#eff6ff',
-            color: isVariantB ? '#7e22ce' : '#1d4ed8',
-            border: `1px solid ${isVariantB ? '#d8b4fe' : '#bfdbfe'}`,
-          }}
-        >
-          {isVariantB ? 'Variant B (Post-Reg)' : 'Variant A (Upfront)'}
-        </span>
-      )
-    },
   },
   {
     key: 'feeStatus',

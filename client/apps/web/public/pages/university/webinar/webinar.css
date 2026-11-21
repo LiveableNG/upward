@@ -1801,8 +1801,14 @@ body.track-modal-open {
 
 .track-modal-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 14px;
+}
+
+@media (max-width: 840px) {
+  .track-modal-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .track-modal-card {

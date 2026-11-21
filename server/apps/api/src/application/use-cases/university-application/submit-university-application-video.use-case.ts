@@ -8,7 +8,8 @@ import { EmailService } from '../../../shared/infrastructure/email/email.service
 import { buildGlobalLayoutHtml } from '../../../shared/infrastructure/email/email.helper'
 
 export interface SubmitUniversityApplicationVideoCommand {
-  paymentRef: string
+  paymentRef?: string
+  email?: string
   videoUrl: string
 }
 
@@ -31,20 +32,28 @@ export class SubmitUniversityApplicationVideoUseCase {
   async execute(
     command: SubmitUniversityApplicationVideoCommand,
   ): Promise<SubmitUniversityApplicationVideoResult> {
-    const ref = command.paymentRef.trim()
+    const ref = (command.paymentRef || '').trim()
+    const email = (command.email || '').trim().toLowerCase()
     const videoUrl = command.videoUrl.trim()
 
-    if (!ref) {
-      throw new BadRequestException('Payment reference is required')
+    if (!ref && !email) {
+      throw new BadRequestException('Payment reference or email is required')
     }
 
     if (!/^https?:\/\/.+/i.test(videoUrl)) {
       throw new BadRequestException('Please provide a valid video link starting with http:// or https://')
     }
 
-    const existing = await this.applicationRepo.findByPaymentRef(ref)
+    let existing: UniversityApplication | null = null
+    if (ref) {
+      existing = await this.applicationRepo.findByPaymentRef(ref)
+    }
+    if (!existing && email) {
+      existing = await this.applicationRepo.findByEmail(email)
+    }
+
     if (!existing) {
-      throw new NotFoundException('Application payment reference not found')
+      throw new NotFoundException('Application not found by payment reference or email')
     }
 
     const existingProps = existing.toObject()

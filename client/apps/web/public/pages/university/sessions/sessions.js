@@ -147,13 +147,11 @@
     'track-a': 'Track A - Foundation',
     'track-b': 'Track B - Career Development',
     'track-c': 'Track C - Practical Experience',
-    'track-d': 'Track D - Premium Networking',
   };
 
   function resolveTrackKey(rawKey) {
     const k = String(rawKey || '').toLowerCase().trim();
-    if (k === 'track-d' || k === 'd' || k === '4' || k.includes('network') || k.includes('premium')) return 'track-d';
-    if (k === 'track-c' || k === 'c' || k === '3' || k.includes('practical')) return 'track-c';
+    if (k === 'track-c' || k === 'track-d' || k === 'c' || k === 'd' || k === '3' || k === '4' || k.includes('practical') || k.includes('network') || k.includes('premium')) return 'track-c';
     if (k === 'track-b' || k === 'b' || k === 'track2' || k === '2' || k.includes('career') || k.includes('started')) return 'track-b';
     return 'track-a';
   }

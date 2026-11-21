@@ -1,6 +1,4 @@
 import {
-  GraduationCap,
-  Building,
   MapPin,
   Eye,
   Trash2,
@@ -26,32 +24,6 @@ export const getEarlyAccessColumns = ({
   onDelete,
   isDeveloper,
 }: EarlyAccessColumnsOptions): ColumnDef<EarlyAccessRecord>[] => [
-  {
-    key: 'type',
-    label: 'Application Type',
-    render: (row) => {
-      const isStudent = row.type === 'STUDENT'
-      return (
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            padding: '4px 10px',
-            borderRadius: '20px',
-            fontSize: '12px',
-            fontWeight: 600,
-            background: isStudent ? '#fbf1ed' : '#f0f7f2',
-            color: isStudent ? '#d97757' : '#166534',
-            border: `1px solid ${isStudent ? 'rgba(217, 119, 87, 0.2)' : 'rgba(22, 101, 52, 0.2)'}`,
-          }}
-        >
-          {isStudent ? <GraduationCap size={14} /> : <Building size={14} />}
-          {isStudent ? 'Student Cohort' : 'Landlord Programme'}
-        </span>
-      )
-    },
-  },
   {
     key: 'applicant',
     label: 'Applicant',

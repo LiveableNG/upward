@@ -251,9 +251,7 @@
       const trackParam = (urlParams.get('track') || '').toLowerCase().trim();
       const trackEl = document.getElementById('webinar_track');
       if (trackEl && trackParam) {
-        if (trackParam === 'track-d' || trackParam === 'd' || trackParam === '4' || trackParam.includes('network') || trackParam.includes('premium')) {
-          trackEl.value = 'Track D - Premium Networking';
-        } else if (trackParam === 'track-c' || trackParam === 'c' || trackParam === '3' || trackParam.includes('practical')) {
+        if (trackParam === 'track-c' || trackParam === 'track-d' || trackParam === 'c' || trackParam === 'd' || trackParam === '3' || trackParam === '4' || trackParam.includes('practical') || trackParam.includes('network') || trackParam.includes('premium')) {
           trackEl.value = 'Track C - Practical Experience';
         } else if (trackParam === 'track-b' || trackParam === 'b' || trackParam === 'track2' || trackParam === '2' || trackParam.includes('career')) {
           trackEl.value = 'Track B - Career Development';

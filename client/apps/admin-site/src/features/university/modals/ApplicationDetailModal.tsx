@@ -66,12 +66,13 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
 
   const handleMarkBalancePaid = () => {
     if (!application) return
+    const balAmt = paymentMeta?.balanceDue || 60000
     const confirmed = window.confirm(
-      `Mark remaining ₦125,000 balance as PAID for ${application.name}?\n\nThis confirms the applicant has paid their balance (e.g. via direct bank transfer) and will update their tuition status to FULLY CLEARED.`
+      `Mark remaining ₦${balAmt.toLocaleString()} balance as PAID for ${application.name}?\n\nThis confirms the applicant has paid their balance (e.g. via direct bank transfer) and will update their tuition status to FULLY CLEARED.`
     )
     if (!confirmed) return
     const currentNotes = application.notes || ''
-    const updatedNotes = `${currentNotes} [Balance Paid: ₦125,000 (Manual Transfer)] [Tuition Status: FULLY CLEARED]`.trim()
+    const updatedNotes = `${currentNotes} [Balance Paid: ₦${balAmt.toLocaleString()} (Manual Transfer)] [Tuition Status: FULLY CLEARED]`.trim()
     onUpdateStatus(application.id, { feeStatus: 'PAID', notes: updatedNotes })
   }
 
@@ -209,7 +210,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
             </div>
           </div>
 
-          {/* DEDICATED TRACK C LOCK-IN DEPOSIT & BALANCE CARD */}
+          {/* DEDICATED DEPOSIT & BALANCE CARD */}
           {paymentMeta?.isDeposit && (
             <div
               style={{
@@ -223,7 +224,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
                 <span style={{ fontSize: '12px', fontWeight: 800, color: paymentMeta.isFullyCleared ? '#15803d' : '#b45309', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <CreditCard size={15} />
-                  {paymentMeta.isFullyCleared ? 'TRACK C TUITION FULLY CLEARED' : 'TRACK C DEPOSIT · BALANCE OUTSTANDING'}
+                  {paymentMeta.isFullyCleared ? `${(paymentMeta.trackName || 'COHORT TUITION').toUpperCase()} FULLY CLEARED` : `${(paymentMeta.trackName || 'COHORT').toUpperCase()} DEPOSIT · BALANCE OUTSTANDING`}
                 </span>
                 <span
                   style={{
@@ -235,23 +236,23 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                     color: paymentMeta.isFullyCleared ? '#15803d' : '#92400e',
                   }}
                 >
-                  {paymentMeta.isFullyCleared ? 'Fully Paid' : '₦125,000 Balance Due'}
+                  {paymentMeta.isFullyCleared ? 'Fully Paid' : `₦${paymentMeta.balanceDue.toLocaleString()} Balance Due`}
                 </span>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', margin: '10px 0', fontSize: '12px' }}>
                 <div style={{ background: '#ffffff', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border)' }}>
-                  <div style={{ color: 'var(--text-muted)', fontSize: '10.5px' }}>Total Tuition</div>
-                  <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>₦150,000 (Saved ₦50k)</div>
+                  <div style={{ color: 'var(--text-muted)', fontSize: '10.5px' }}>Total Package</div>
+                  <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginTop: '2px' }}>₦{paymentMeta.totalPackage?.toLocaleString() || '---'}</div>
                 </div>
                 <div style={{ background: '#ffffff', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border)' }}>
                   <div style={{ color: 'var(--text-muted)', fontSize: '10.5px' }}>Deposit Paid</div>
-                  <div style={{ fontWeight: 700, color: '#15803d', marginTop: '2px' }}>₦25,000 ✓</div>
+                  <div style={{ fontWeight: 700, color: '#15803d', marginTop: '2px' }}>₦{paymentMeta.depositAmount.toLocaleString()} ✓</div>
                 </div>
                 <div style={{ background: '#ffffff', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border)' }}>
                   <div style={{ color: 'var(--text-muted)', fontSize: '10.5px' }}>Balance Due</div>
                   <div style={{ fontWeight: 700, color: paymentMeta.isFullyCleared ? '#15803d' : '#b45309', marginTop: '2px' }}>
-                    {paymentMeta.isFullyCleared ? '₦0.00 (Cleared)' : '₦125,000'}
+                    {paymentMeta.isFullyCleared ? '₦0.00 (Cleared)' : `₦${paymentMeta.balanceDue.toLocaleString()}`}
                   </div>
                 </div>
               </div>
@@ -297,7 +298,7 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
                     }}
                   >
                     <CheckCircle2 size={13} />
-                    Mark Balance Paid (Manual/Bank Transfer)
+                    Mark ₦{paymentMeta.balanceDue.toLocaleString()} Balance Paid ✓
                   </button>
                 )}
               </div>
@@ -428,6 +429,9 @@ export const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({
 
             {application.sessionTime && (() => {
               const parsed = parseSessionAndTrack({ sessionTime: application.sessionTime })
+              if (parsed.attendanceMode === 'None' || parsed.sessionBadgeText.includes('Waitlist Only')) {
+                return null
+              }
               return (
                 <div style={{ marginBottom: '14px' }}>
                   <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>
