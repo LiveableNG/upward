@@ -1,6 +1,6 @@
 /**
  * Upward Academy — Webinar Waiting & Join Page
- * Target: 9:00 AM, 21st November (Nigeria Time · WAT / UTC+1)
+ * Target: 5:00 PM, 26th November (Nigeria Time · WAT / UTC+1)
  */
 (function () {
   'use strict';
@@ -11,11 +11,11 @@
     location: 'Online Webinar (Google Meet & YouTube Live)',
     googleMeetUrl: 'https://meet.google.com/quk-vgxu-wvd',
     youtubeUrl: 'https://youtube.com/live/ldY3QzmSORo',
-    // 21st November 2026: Countdown stops at 8:30 AM WAT (UTC+1 = 07:30 UTC)
+    // 26th November 2026: Countdown stops at 4:30 PM WAT (UTC+1 = 15:30 UTC)
     targetYear: 2026,
     targetMonth: 10, // 0-indexed: 10 is November
-    targetDay: 21,
-    targetHourWat: 8,
+    targetDay: 26,
+    targetHourWat: 16,
     targetMinuteWat: 30,
     /**
      * TEST SWITCH:
@@ -35,8 +35,8 @@
       if (!isNaN(parsed.getTime())) return parsed;
     }
 
-    // 8:30 AM WAT (UTC+1) corresponds to 07:30 AM UTC on 21st November 2026
-    return new Date(Date.UTC(WEBINAR_CONFIG.targetYear, WEBINAR_CONFIG.targetMonth, WEBINAR_CONFIG.targetDay, 7, 30, 0));
+    // 4:30 PM WAT (UTC+1) corresponds to 15:30 UTC on 26th November 2026
+    return new Date(Date.UTC(WEBINAR_CONFIG.targetYear, WEBINAR_CONFIG.targetMonth, WEBINAR_CONFIG.targetDay, 15, 30, 0));
   }
 
   const targetDate = getTargetDate();
@@ -144,25 +144,25 @@
   function setWaiting() {
     isLive = false;
     if (elStatusPill) elStatusPill.classList.remove('is-live');
-    if (elStatusText) elStatusText.textContent = 'Links Open at 8:30 AM WAT (Session at 9:00 AM)';
+    if (elStatusText) elStatusText.textContent = 'Links Open at 4:30 PM WAT (Session at 5:00 PM)';
     if (elCountdownCard) elCountdownCard.classList.remove('is-live');
 
     if (elMeetBtn) {
       elMeetBtn.classList.add('is-disabled');
       elMeetBtn.classList.remove('is-active');
       elMeetBtn.setAttribute('aria-disabled', 'true');
-      elMeetBtn.textContent = 'Opens at 8:30 AM WAT';
+      elMeetBtn.textContent = 'Opens at 4:30 PM WAT';
     }
 
     if (elYoutubeBtn) {
       elYoutubeBtn.classList.add('is-disabled');
       elYoutubeBtn.classList.remove('is-active');
       elYoutubeBtn.setAttribute('aria-disabled', 'true');
-      elYoutubeBtn.textContent = 'Opens at 8:30 AM WAT';
+      elYoutubeBtn.textContent = 'Opens at 4:30 PM WAT';
     }
 
     if (elNotice) {
-      elNotice.textContent = 'Webinar links unlock automatically at 8:30 AM WAT for early check-in before the 9:00 AM session.';
+      elNotice.textContent = 'Webinar links unlock automatically at 4:30 PM WAT for early check-in before the 5:00 PM session.';
     }
   }
 
@@ -204,7 +204,7 @@
       email: email.trim().toLowerCase(),
       whatsapp: phone.trim(),
       track: `Webinar Attended - ${platformLabel}`,
-      sessionTime: 'Saturday 21st November 2026',
+      sessionTime: 'Thursday 26th November 2026 at 5:00 PM',
       sourceIdentifier: `webinar_join_${platform}`,
       platform: platformLabel
     };
@@ -273,7 +273,7 @@
       elMeetBtn.addEventListener('click', function (e) {
         e.preventDefault();
         if (!isLive) {
-          showToast('Google Meet access opens at 8:30 AM WAT for early check-in.');
+          showToast('Google Meet access opens at 4:30 PM WAT for early check-in.');
           return;
         }
 
@@ -291,7 +291,7 @@
       elYoutubeBtn.addEventListener('click', function (e) {
         e.preventDefault();
         if (!isLive) {
-          showToast('YouTube Live access opens at 8:30 AM WAT for early check-in.');
+          showToast('YouTube Live access opens at 4:30 PM WAT for early check-in.');
           return;
         }
 
@@ -413,7 +413,7 @@
         const blob = new Blob([icsData], { type: 'text/calendar;charset=utf-8' });
         const link = document.createElement('a');
         link.href = window.URL.createObjectURL(blob);
-        link.download = 'Upward_Academy_Webinar_Nov21.ics';
+        link.download = 'Upward_Academy_Webinar_Nov26.ics';
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
