@@ -175,12 +175,17 @@ export class PrismaEarlyAccessRepository implements IEarlyAccessRepository {
             { NOT: { interest: { contains: '[Attended:', mode: 'insensitive' } } },
           ],
         })
-      } else if (s === 'WEBINAR_NOV_26' || s === 'WEBINAR_NOV_21' || /26th\s*nov|21st\s*nov/i.test(s)) {
+      } else if (s === 'WEBINAR_NOV_26' || /26th\s*nov/i.test(s)) {
         conditions.push({
           OR: [
             { interest: { contains: '26th November', mode: 'insensitive' } },
             { interest: { contains: 'Nov 26', mode: 'insensitive' } },
             { interest: { contains: '26 Nov', mode: 'insensitive' } },
+          ],
+        })
+      } else if (s === 'WEBINAR_NOV_21' || /21st\s*nov/i.test(s)) {
+        conditions.push({
+          OR: [
             { interest: { contains: '21st November', mode: 'insensitive' } },
             { interest: { contains: 'Nov 21', mode: 'insensitive' } },
             { interest: { contains: '21 Nov', mode: 'insensitive' } },

@@ -280,9 +280,10 @@ export function matchesSessionFilter(
   switch (filter) {
     case 'WEBINAR_NOV_26':
     case '26th November 2026':
+      return /26th\s*november|nov\s*26|26\s*nov/i.test(fullText)
     case 'WEBINAR_NOV_21':
     case '21st November 2026':
-      return /26th\s*november|nov\s*26|26\s*nov|21st\s*november|nov\s*21|21\s*nov/i.test(fullText)
+      return /21st\s*november|nov\s*21|21\s*nov/i.test(fullText)
     case 'WEBINAR_ATTENDED':
       return parsed.attendedStatus !== 'None' || /attended:\s*(google meet|youtube)/i.test(fullText)
     case 'WEBINAR_ATTENDED_MEET':
@@ -290,7 +291,7 @@ export function matchesSessionFilter(
     case 'WEBINAR_ATTENDED_YOUTUBE':
       return parsed.attendedStatus === 'YouTube Live' || /attended:\s*youtube/i.test(fullText)
     case 'WEBINAR_REGISTERED_ONLY':
-      return /26th\s*november|nov\s*26|26\s*nov|21st\s*november|nov\s*21|21\s*nov/i.test(fullText) && parsed.attendedStatus === 'None' && !/attended:/i.test(fullText)
+      return /webinar|26th\s*november|21st\s*november/i.test(fullText) && parsed.attendedStatus === 'None' && !/attended:/i.test(fullText)
     case 'WEBINAR_ALL':
       return /webinar|26th\s*november|21st\s*november/i.test(fullText)
     case 'ONLINE_ALL':

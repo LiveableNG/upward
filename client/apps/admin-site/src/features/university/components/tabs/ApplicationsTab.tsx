@@ -202,6 +202,7 @@ export const ApplicationsTab: React.FC<ApplicationsTabProps> = ({
             <option value="ALL">All Session Times & Modes</option>
             <optgroup label="Live Webinars">
               <option value="WEBINAR_NOV_26">Webinar · Thursday 26th Nov 2026 (5:00 PM)</option>
+              <option value="WEBINAR_NOV_21">Webinar · Saturday 21st Nov 2026</option>
               <option value="WEBINAR_ALL">All Webinars</option>
             </optgroup>
             <optgroup label="Online Sessions (Weekly)">
