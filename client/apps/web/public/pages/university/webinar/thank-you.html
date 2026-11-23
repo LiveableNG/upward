@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Seat Confirmed — Upward Academy Webinar</title>
   <meta name="description"
-    content="Your seat is confirmed for the Tech-Driven Property Management & Brokerage Webinar on 21st November 2026.">
+    content="Your seat is confirmed for the Tech-Driven Property Management & Brokerage Webinar on Thursday, 26th November 2026 at 5:00 PM.">
 
   <!-- OpenGraph / Social Meta Tags -->
   <meta property="og:type" content="website">
@@ -47,7 +47,7 @@
     fbq('init', '1079928187833425');
     fbq('track', 'PageView');
     fbq('track', 'CompleteRegistration', {
-      content_name: 'Property Management & Brokerage Webinar Nov 21',
+      content_name: 'Property Management & Brokerage Webinar Nov 26',
       status: 'Confirmed'
     });
     fbq('track', 'Lead', {
@@ -332,14 +332,14 @@
               <i class="fa-regular fa-calendar-check"></i>
               <div>
                 <strong>Date</strong>
-                <span>Saturday, 21st Nov 2026</span>
+                <span>Thursday, 26th Nov 2026</span>
               </div>
             </div>
             <div class="event-item">
               <i class="fa-regular fa-clock"></i>
               <div>
                 <strong>Time</strong>
-                <span>10:00 AM (WAT / Lagos)</span>
+                <span>5:00 PM (WAT / Lagos)</span>
               </div>
             </div>
             <div class="event-item">
@@ -397,8 +397,8 @@
       }
 
       // 2. Calendar Event Helpers
-      var webinarStart = new Date(Date.UTC(2026, 10, 21, 9, 0, 0)); // 10:00 AM WAT (UTC+1) = 09:00 UTC
-      var webinarEnd = new Date(Date.UTC(2026, 10, 21, 10, 30, 0));  // 11:30 AM WAT (UTC+1) = 10:30 UTC
+      var webinarStart = new Date(Date.UTC(2026, 10, 26, 16, 0, 0)); // 5:00 PM WAT (UTC+1) = 16:00 UTC
+      var webinarEnd = new Date(Date.UTC(2026, 10, 26, 17, 30, 0));  // 6:30 PM WAT (UTC+1) = 17:30 UTC
       var eventTitle = 'Upward Academy: Tech-Driven Property Management & Brokerage Webinar';
       var eventDetails = 'Build a 6 Figure Income Career/Business in Tech-Driven Property Management/Brokerage.\\n\\nLive Online Webinar hosted by Upward Academy.\\nJoining details sent via WhatsApp & Email.';
       var eventLocation = 'Online (Live Session)';
@@ -447,7 +447,7 @@
           var blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
           var link = document.createElement('a');
           link.href = window.URL.createObjectURL(blob);
-          link.setAttribute('download', 'Upward_Academy_Webinar_Nov21.ics');
+          link.setAttribute('download', 'Upward_Academy_Webinar_Nov26.ics');
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);

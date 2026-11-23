@@ -2489,7 +2489,7 @@
 
       <div class="tracks-footer-cta">
         <span>Not sure which track fits you best?</span>
-        <a href="/academy/webinar">Join our free live webinar on 21st Nov →</a>
+        <a href="/academy/webinar">Join our free live webinar on 26th Nov →</a>
       </div>
     </div>
   </section>
@@ -2755,10 +2755,10 @@
     contactDrawerClose?.addEventListener('click', () => setContactDrawerOpen(false));
     contactDrawerOverlay?.addEventListener('click', () => setContactDrawerOpen(false));
 
-    // Webinar Announcement Expiration (Disappears after Nov 21, 2026 23:59:59 WAT)
+    // Webinar Announcement Expiration (Disappears after Nov 26, 2026 23:59:59 WAT)
     (function checkWebinarExpiration() {
       try {
-        const webinarExpiry = new Date('2026-11-21T23:59:59+01:00');
+        const webinarExpiry = new Date('2026-11-26T23:59:59+01:00');
         if (new Date() > webinarExpiry) {
           const banner = document.getElementById('webinar-top-banner');
           if (banner) banner.style.display = 'none';

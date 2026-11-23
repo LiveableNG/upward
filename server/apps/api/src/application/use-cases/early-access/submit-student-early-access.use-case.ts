@@ -136,7 +136,7 @@ export class SubmitStudentEarlyAccessUseCase {
         let contentHtml: string
 
         if (isWebinar) {
-          subject = 'Confirmed: Your spot for the Upward Academy Webinar (21st Nov, 9:00 AM WAT)'
+          subject = 'Confirmed: Your spot for the Upward Academy Webinar (Thursday, 26th Nov, 5:00 PM WAT)'
           title = 'Your Webinar Spot is Confirmed'
 
           const whatsappCommunityUrl = 'https://chat.whatsapp.com/EVzHouLPtchBFxv2TOb3ra'
@@ -158,11 +158,11 @@ export class SubmitStudentEarlyAccessUseCase {
                 </tr>
                 <tr>
                   <td style="color: #6b7280; width: 85px; font-weight: 600; text-transform: uppercase; font-size: 11.5px; letter-spacing: 0.5px;">Date:</td>
-                  <td style="font-weight: 700; color: #111827;">Saturday, 21st November 2026</td>
+                  <td style="font-weight: 700; color: #111827;">Thursday, 26th November 2026</td>
                 </tr>
                 <tr>
                   <td style="color: #6b7280; width: 85px; font-weight: 600; text-transform: uppercase; font-size: 11.5px; letter-spacing: 0.5px;">Time:</td>
-                  <td style="font-weight: 700; color: #111827;">9:00 AM WAT (West Africa Time)</td>
+                  <td style="font-weight: 700; color: #111827;">5:00 PM WAT (West Africa Time)</td>
                 </tr>
                 <tr>
                   <td style="color: #6b7280; width: 85px; font-weight: 600; text-transform: uppercase; font-size: 11.5px; letter-spacing: 0.5px;">Location:</td>
@@ -171,13 +171,13 @@ export class SubmitStudentEarlyAccessUseCase {
               </table>
             </div>
 
-            <!-- Early Login Notice (8:50 AM WAT) -->
+            <!-- Early Login Notice (4:50 PM WAT) -->
             <div style="background: #ffffff; border-left: 4px solid #8A4A2A; border-top: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; border-radius: 8px; padding: 18px 20px; margin: 24px 0;">
               <p style="margin: 0 0 6px 0; font-size: 14.5px; font-weight: 700; color: #8A4A2A;">
-                Please log in by 8:50 AM WAT
+                Please log in by 4:50 PM WAT
               </p>
               <p style="margin: 0; font-size: 14px; color: #374151; line-height: 1.6;">
-                To make sure you don’t miss a moment, please log in by <strong>8:50 a.m.</strong> That gives you time to settle in and sort out any audio or connection issues before we begin promptly at 9:00 a.m.
+                To make sure you don’t miss a moment, please log in by <strong>4:50 p.m.</strong> That gives you time to settle in and sort out any audio or connection issues before we begin promptly at 5:00 p.m.
               </p>
             </div>
 
@@ -187,7 +187,7 @@ export class SubmitStudentEarlyAccessUseCase {
                 Join Webinar &amp; Add to Calendar &rarr;
               </a>
               <p style="font-size: 12.5px; color: #6b7280; margin: 8px 0 0 0;">
-                Save this link to enter the live session on Saturday, 21st November. Both Google Meet and YouTube stream links unlock here.
+                Save this link to enter the live session on Thursday, 26th November. Both Google Meet and YouTube stream links unlock here.
               </p>
             </div>
 
@@ -222,7 +222,7 @@ export class SubmitStudentEarlyAccessUseCase {
             </p>
 
             <p style="margin: 22px 0 8px 0; color: #374151; line-height: 1.6; font-size: 14.5px;">
-              We look forward to hosting you on Saturday, 21st November.<br>
+              We look forward to hosting you on Thursday, 26th November.<br>
               <strong>The Upward Academy Team</strong>
             </p>
 

@@ -32,13 +32,13 @@
   });
 
   // ==========================================
-  // ACTIVE ONLINE WEBINAR SESSION (21st November 2026) & CONCLUDED PHYSICAL SESSIONS
+  // ACTIVE ONLINE WEBINAR SESSION (26th November 2026) & CONCLUDED PHYSICAL SESSIONS
   // ==========================================
   const ACTIVE_WEBINAR_SESSION = {
-    value: 'Saturday 21st November 2026 (Online Webinar)',
-    selectLabel: 'Online Webinar — Saturday, 21st November 2026 (Open Nationwide)',
+    value: 'Thursday 26th November 2026 at 5:00 PM (Online Webinar)',
+    selectLabel: 'Online Webinar — Thursday, 26th November 2026 at 5:00 PM (Open Nationwide)',
     slotTitle: 'Online Webinar',
-    slotSubtitle: 'Sat, 21st Nov 2026 · Nationwide',
+    slotSubtitle: 'Thu, 26th Nov 2026 (5:00 PM) · Nationwide',
   };
 
   const CONCLUDED_PHYSICAL_SESSIONS = [
@@ -130,7 +130,7 @@
     }
 
     if (counterBadge) {
-      counterBadge.textContent = 'Online Webinar · 21st Nov 2026';
+      counterBadge.textContent = 'Online Webinar · 26th Nov 2026 (5:00 PM)';
     }
   }
 
@@ -693,8 +693,8 @@
 
       const userInterest = interestInput ? interestInput.value.trim() : '';
       const formattedInterest = userInterest
-        ? `[${trackVal}] Webinar (21st November 2026): ${userInterest}`
-        : `[${trackVal}] Webinar (21st November 2026) Attendee`;
+        ? `[${trackVal}] Webinar (26th November 2026, 5:00 PM): ${userInterest}`
+        : `[${trackVal}] Webinar (26th November 2026, 5:00 PM) Attendee`;
 
       const payload = {
         name: nameInput.value.trim(),

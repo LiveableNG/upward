@@ -58,7 +58,7 @@ export class EarlyAccessController {
       ageBracket: '',
       experienceLevel: '',
       track: dto.track || `Webinar Attended - ${dto.platform || 'Google Meet'}`,
-      sessionTime: dto.sessionTime || 'Saturday 21st November 2026',
+      sessionTime: dto.sessionTime || 'Thursday 26th November 2026 at 5:00 PM',
       sourceIdentifier: dto.sourceIdentifier || 'webinar_join_direct',
     })
 

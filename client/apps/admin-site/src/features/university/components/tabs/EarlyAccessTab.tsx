@@ -77,6 +77,7 @@ export const EarlyAccessTab: React.FC<EarlyAccessTabProps> = ({
         parsed.sessionDateTime !== 'N/A' &&
         parsed.sessionDateTime !== 'Online Live Session' &&
         parsed.sessionDateTime !== 'Date Coming Soon' &&
+        !parsed.sessionDateTime.toLowerCase().includes('26th nov') &&
         !parsed.sessionDateTime.toLowerCase().includes('21st nov')
       ) {
         dates.add(parsed.sessionDateTime)
@@ -132,10 +133,13 @@ export const EarlyAccessTab: React.FC<EarlyAccessTabProps> = ({
       }
 
       const isWebinarAttendance = activeSessionFilter.startsWith('WEBINAR_ATTENDED')
-      const isWebinar = activeSessionFilter === 'WEBINAR_NOV_21' || activeSessionFilter.toLowerCase().includes('21st nov') || isWebinarAttendance
+      const isWebinar26 = activeSessionFilter === 'WEBINAR_NOV_26' || activeSessionFilter.toLowerCase().includes('26th nov')
+      const isWebinar21 = activeSessionFilter === 'WEBINAR_NOV_21' || activeSessionFilter.toLowerCase().includes('21st nov')
       const customFilename = isWebinarAttendance
         ? `Upward_Academy_Webinar_Attendees_${activeSessionFilter}_${new Date().toISOString().split('T')[0]}.xls`
-        : isWebinar
+        : isWebinar26
+        ? `Upward_Academy_Webinar_26Nov2026_${new Date().toISOString().split('T')[0]}.xls`
+        : isWebinar21
         ? `Upward_Academy_Webinar_21Nov2026_${new Date().toISOString().split('T')[0]}.xls`
         : activeSessionFilter === 'WEBINAR_ALL'
         ? `Upward_Academy_Webinars_${new Date().toISOString().split('T')[0]}.xls`
@@ -374,7 +378,8 @@ export const EarlyAccessTab: React.FC<EarlyAccessTabProps> = ({
             >
               <option value="ALL">All Attendance Modes & Sessions</option>
               <optgroup label="Academic Webinars">
-                <option value="WEBINAR_NOV_21">Webinar · All Registrations (21st Nov 2026)</option>
+                <option value="WEBINAR_NOV_26">Webinar · Thursday 26th Nov 2026</option>
+                <option value="WEBINAR_NOV_21">Webinar · Saturday 21st Nov 2026</option>
                 <option value="WEBINAR_ATTENDED">Webinar · Attended Live (All Channels)</option>
                 <option value="WEBINAR_ATTENDED_MEET">Webinar · Attended via Google Meet</option>
                 <option value="WEBINAR_ATTENDED_YOUTUBE">Webinar · Attended via YouTube Live</option>
