@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
-import { Mail, Search, RefreshCcw, RotateCcw, MessageSquare, Smartphone, Eye } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
+import { Mail, Search, RefreshCcw, RotateCcw, MessageSquare, Smartphone, Eye, Send, List } from 'lucide-react'
 import { apiService } from '../services/api.service'
 import { showToast } from '@upward/client-core'
 import { DataTable, type ColumnDef, type ActionItem } from '../components/common/table/DataTable'
@@ -11,12 +12,19 @@ import {
   EmailLogViewerModal,
   type EmailLog,
 } from '../features/emails/components/EmailLogViewerModal'
+import { BulkEmailCampaignsTab } from '../features/emails/components/BulkEmailCampaignsTab'
 
 interface EmailLogsProps {
   token: string
 }
 
 const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const activeTab = searchParams.get('tab') === 'campaigns' ? 'campaigns' : 'logs'
+  const setActiveTab = (tab: 'campaigns' | 'logs') => {
+    setSearchParams(tab === 'campaigns' ? { tab: 'campaigns' } : {})
+  }
+
   const [logs, setLogs] = useState<EmailLog[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -27,6 +35,7 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
   const [channelFilter, setChannelFilter] = useState('All')
   const [openFilter, setOpenFilter] = useState('All')
   const [dateFilter, setDateFilter] = useState('')
+  const [hideSystemAlerts, setHideSystemAlerts] = useState(true)
   const [viewLog, setViewLog] = useState<EmailLog | null>(null)
   const [retrying, setRetrying] = useState<string | null>(null)
   const [page, setPage] = useState(1)
@@ -52,7 +61,7 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
   const handleRetryFilteredFailed = async () => {
     try {
       const response = await apiService.post(
-        `/admin/email/logs/retry-batch?email=${search}&type=${typeFilter}&acquisition=${acquisitionFilter}`,
+        `/admin/email/logs/retry-batch?email=${encodeURIComponent(search)}&type=${typeFilter}&acquisition=${acquisitionFilter}&channel=${channelFilter}&date=${dateFilter}`,
         {},
         token,
       )
@@ -107,7 +116,7 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
     setLoading(true)
     try {
       const response = await apiService.get(
-        `/admin/email/logs?email=${debouncedSearch}&type=${typeFilter}&status=${statusFilter}&acquisition=${acquisitionFilter}&channel=${channelFilter}&opened=${openFilter}&date=${dateFilter}&page=${pageNum}&limit=10`,
+        `/admin/email/logs?email=${encodeURIComponent(debouncedSearch)}&type=${typeFilter}&status=${statusFilter}&acquisition=${acquisitionFilter}&channel=${channelFilter}&opened=${openFilter}&date=${dateFilter}&hideSystemAlerts=${hideSystemAlerts}&page=${pageNum}&limit=10`,
         token,
       )
       if (response) {
@@ -168,19 +177,33 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
     channelFilter,
     openFilter,
     dateFilter,
+    hideSystemAlerts,
   ])
 
   useEffect(() => {
     setPage(1)
-  }, [debouncedSearch, typeFilter, statusFilter, acquisitionFilter, channelFilter, openFilter, dateFilter])
+  }, [
+    debouncedSearch,
+    typeFilter,
+    statusFilter,
+    acquisitionFilter,
+    channelFilter,
+    openFilter,
+    dateFilter,
+    hideSystemAlerts,
+  ])
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'SENT':
+      case 'RETRIED_SUCCESS':
         return '#10b981'
       case 'FAILED':
+      case 'PERMANENT_FAILED':
         return '#ef4444'
       case 'PENDING':
         return '#f59e0b'
+      case 'SUPERSEDED':
+        return '#6b7280'
       default:
         return 'var(--text-muted)'
     }
@@ -468,6 +491,7 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
           </div>
         </div>
 
+        {activeTab === 'logs' && (
         <div style={{ display: 'flex', gap: '12px' }}>
           <button
             onClick={handleRetryFilteredFailed}
@@ -525,7 +549,63 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
             Refresh
           </button>
         </div>
+        )}
       </div>
+
+      {/* View Switcher Tabs */}
+      <div
+        style={{
+          display: 'flex',
+          gap: '8px',
+          marginBottom: '20px',
+          borderBottom: '1px solid var(--border)',
+          paddingBottom: '12px',
+        }}
+      >
+        <button
+          onClick={() => setActiveTab('campaigns')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '9px 18px',
+            borderRadius: '10px',
+            border: activeTab === 'campaigns' ? '1px solid var(--accent)' : '1px solid var(--border)',
+            background: activeTab === 'campaigns' ? 'var(--accent)' : 'var(--white)',
+            color: activeTab === 'campaigns' ? '#fff' : 'inherit',
+            fontSize: '13px',
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          <Send size={15} />
+          Bulk Campaigns
+        </button>
+        <button
+          onClick={() => setActiveTab('logs')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '9px 18px',
+            borderRadius: '10px',
+            border: activeTab === 'logs' ? '1px solid var(--accent)' : '1px solid var(--border)',
+            background: activeTab === 'logs' ? 'var(--accent)' : 'var(--white)',
+            color: activeTab === 'logs' ? '#fff' : 'inherit',
+            fontSize: '13px',
+            fontWeight: 600,
+            cursor: 'pointer',
+          }}
+        >
+          <List size={15} />
+          Individual Logs
+        </button>
+      </div>
+
+      {activeTab === 'campaigns' ? (
+        <BulkEmailCampaignsTab token={token} />
+      ) : (
+        <>
 
       {batchProgress && (
         <EmailBatchProgressBanner
@@ -695,6 +775,29 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
                 color: dateFilter ? 'inherit' : 'var(--text-muted)',
               }}
             />
+
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 14px',
+                borderRadius: '12px',
+                border: '1px solid var(--border)',
+                background: 'var(--surface)',
+                fontSize: '13px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                userSelect: 'none',
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={hideSystemAlerts}
+                onChange={(e) => setHideSystemAlerts(e.target.checked)}
+              />
+              Hide Internal Alerts
+            </label>
           </div>
         </div>
       </div>
@@ -719,6 +822,8 @@ const EmailLogs: React.FC<EmailLogsProps> = ({ token }) => {
         retrying={retrying}
         getStatusColor={getStatusColor}
       />
+        </>
+      )}
     </div>
   )
 }

@@ -11,6 +11,8 @@ export interface EmailLog {
   channel?: 'EMAIL' | 'SMS' | 'WHATSAPP'
   recipient?: string
   body: string | null
+  lastError?: string | null
+  friendlyError?: string | null
   sentAt: string | null
   createdAt: string
   isOpened?: boolean
@@ -70,7 +72,7 @@ export const EmailLogViewerModal: React.FC<EmailLogViewerModalProps> = ({
           Close Viewer
         </button>
       </div>
-      {viewLog.status === 'FAILED' && (
+      {(viewLog.status === 'FAILED' || viewLog.status === 'PERMANENT_FAILED') && (
         <div
           style={{
             background: '#fef2f2',
@@ -79,6 +81,7 @@ export const EmailLogViewerModal: React.FC<EmailLogViewerModalProps> = ({
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
+            gap: '12px',
             margin: '-24px -28px 24px -28px',
           }}
         >
@@ -91,29 +94,36 @@ export const EmailLogViewerModal: React.FC<EmailLogViewerModalProps> = ({
               fontSize: '13px',
             }}
           >
-            <AlertCircle size={16} />
-            <span>This email failed to deliver. You can attempt a manual retry.</span>
+            <AlertCircle size={16} style={{ flexShrink: 0 }} />
+            <span>
+              {viewLog.friendlyError ||
+                viewLog.lastError ||
+                'This email failed to deliver. You can attempt a manual retry.'}
+            </span>
           </div>
-          <button
-            onClick={() => onRetry(viewLog.id)}
-            disabled={!!retrying}
-            style={{
-              padding: '8px 16px',
-              borderRadius: '8px',
-              backgroundColor: '#dc2626',
-              color: '#fff',
-              border: 'none',
-              fontSize: '12px',
-              fontWeight: 600,
-              cursor: retrying === viewLog.id ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-            }}
-          >
-            <RotateCcw size={14} className={retrying === viewLog.id ? 'spin' : ''} />
-            {retrying === viewLog.id ? 'Processing Retry...' : 'Retry Now'}
-          </button>
+          {viewLog.status === 'FAILED' && (
+            <button
+              onClick={() => onRetry(viewLog.id)}
+              disabled={!!retrying}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '8px',
+                backgroundColor: '#dc2626',
+                color: '#fff',
+                border: 'none',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: retrying === viewLog.id ? 'not-allowed' : 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                flexShrink: 0,
+              }}
+            >
+              <RotateCcw size={14} className={retrying === viewLog.id ? 'spin' : ''} />
+              {retrying === viewLog.id ? 'Processing Retry...' : 'Retry Now'}
+            </button>
+          )}
         </div>
       )}
 

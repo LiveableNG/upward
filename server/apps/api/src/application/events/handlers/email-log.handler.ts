@@ -64,6 +64,8 @@ export class EmailLogEventHandler implements OnModuleInit, OnModuleDestroy {
             channel: 'EMAIL',
             recipient: event.email,
             sessionId: event.sessionId ?? null,
+            campaignId: event.campaignId ?? null,
+            retriedFromLogId: event.retriedFromLogId ?? null,
             body: event.body ?? null,
             mailgunId: event.mailgunId ?? null,
             lastError: event.lastError ?? null,
