@@ -479,6 +479,7 @@ export class PaymentsController {
       beneficiaryBank: body.beneficiaryBank,
       beneficiaryAccount: body.beneficiaryAccount,
       amount: Number(body.amount),
+      narration: typeof body.narration === 'string' ? body.narration : undefined,
     })
   }
 
@@ -564,12 +565,31 @@ export class PaymentsController {
         } as MessageEvent);
       });
 
+      const subRentVaultUpdated = this.eventBus.subscribe('rent-vault.updated', (event: any) => {
+        const belongsToUser =
+          event?.userId === userId ||
+          event?.userUuid === userUuid ||
+          String(event?.userId) === userUuid;
+        if (belongsToUser) {
+          subscriber.next({
+            data: {
+              type: 'rent-vault.updated',
+              vaultUuid: event?.vaultUuid,
+              amountKobo: event?.amountKobo,
+              reference: event?.reference,
+              timestamp: Date.now(),
+            },
+          } as MessageEvent);
+        }
+      });
+
       return () => {
         subSucceeded.unsubscribe();
         subRequestCreated.unsubscribe();
         subRequestUpdated.unsubscribe();
         subGoalsUpdated.unsubscribe();
         subCatalogUpdated.unsubscribe();
+        subRentVaultUpdated.unsubscribe();
       };
     });
 

@@ -80,6 +80,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             'profile',
             'user-profile',
             'wallet',
+            'rent-vault',
+            'rent-deposit-summary',
             'dashboard-counts',
             'activeTenancy',
             'rentalDetails',
@@ -90,6 +92,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           })
           
           window.dispatchEvent(new CustomEvent('upward:payment.succeeded', { detail: data }))
+        } else if (data.type === 'rent-vault.updated') {
+          const keysToInvalidate = [
+            'rent-vault',
+            'rent-deposit-summary',
+            'dashboard',
+            'scoreProfile',
+            'score-profile',
+            'notifications',
+            'dashboard-counts',
+          ]
+          keysToInvalidate.forEach((key) => {
+            queryClient.invalidateQueries({ queryKey: [key] })
+          })
+          window.dispatchEvent(new CustomEvent('upward:rent-vault.updated', { detail: data }))
         } else if (data.type === 'payment.request.created' || data.type === 'payment.request.updated') {
           const keysToInvalidate = [
             'dashboard',

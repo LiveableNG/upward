@@ -113,17 +113,36 @@ export function RentCalculatorView({
 
   const targetAmountNaira = parseCurrencyInput(targetAmountRaw) || 0
   const tomorrow = new Date(nowTimestamp + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  const activePropertyDueDate = activeProperty?.rentEndDate
+    ? activeProperty.rentEndDate.split('T')[0]
+    : ''
   const hasSavedRent = Boolean(
-    (activeProperty?.rentAmount && activeProperty?.rentEndDate) ||
+    (activeProperty?.rentAmount && activePropertyDueDate && activePropertyDueDate >= tomorrow) ||
     (targetAmountNaira > 0 && contractualDueDate && contractualDueDate >= tomorrow)
   )
   const [rentConfirmed, setRentConfirmed] = useState(false)
   const hasRentDetails = hasSavedRent || rentConfirmed
 
-  // Flow Stage State
-  const [initialStage] = useState<Stage>(() => (hasSavedRent ? 'BENEFIT' : 'RENT_INPUT'))
+  // Flow Stage State: Users with existing rental info (e.g. GoodTenants or onboarding)
+  // start on PROTECTION so they always see and choose their savings option first.
+  const [initialStage, setInitialStage] = useState<Stage>(() =>
+    hasSavedRent ? 'PROTECTION' : 'RENT_INPUT',
+  )
   const [stage, setStage] = useState<Stage>(initialStage)
   const [protectionFromBenefit, setProtectionFromBenefit] = useState(false)
+  const [rentInputFromBenefit, setRentInputFromBenefit] = useState(false)
+
+  // If activeProperty finishes hydrating after mount while untouched on RENT_INPUT, advance to PROTECTION
+  if (
+    hasSavedRent &&
+    initialStage === 'RENT_INPUT' &&
+    stage === 'RENT_INPUT' &&
+    !rentConfirmed &&
+    !rentInputFromBenefit
+  ) {
+    setInitialStage('PROTECTION')
+    setStage('PROTECTION')
+  }
 
   const canConfirmRent =
     targetAmountNaira > 0 && Boolean(contractualDueDate) && contractualDueDate >= tomorrow
@@ -575,6 +594,11 @@ export function RentCalculatorView({
   }
 
   const handleRentInputBack = () => {
+    if (rentInputFromBenefit) {
+      setRentInputFromBenefit(false)
+      setStage('BENEFIT')
+      return
+    }
     router.push('/dashboard')
   }
 
@@ -640,6 +664,7 @@ export function RentCalculatorView({
                 } catch {}
               }
               setRentConfirmed(true)
+              setRentInputFromBenefit(false)
               setProtectionFromBenefit(false)
               setStage('PROTECTION')
             }}
@@ -885,7 +910,10 @@ export function RentCalculatorView({
                 </div>
                 <button
                   type="button"
-                  onClick={() => setStage('RENT_INPUT')}
+                  onClick={() => {
+                    setRentInputFromBenefit(true)
+                    setStage('RENT_INPUT')
+                  }}
                   style={{
                     background: 'none',
                     border: 'none',

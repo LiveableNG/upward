@@ -32,6 +32,7 @@ import {
   OnboardSavingsInvestorUseCase,
   OnboardSavingsInvestorDto,
 } from '../../../application/use-cases/rent-savings/onboard-savings-investor.use-case'
+import { VerifyRentVaultFundingUseCase } from '../../../application/use-cases/rent-savings/verify-rent-vault-funding.use-case'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 
 @Controller('rent-vaults')
@@ -43,6 +44,7 @@ export class RentVaultController {
     private readonly executeSettlementUseCase: ExecuteLandlordSettlementUseCase,
     private readonly breakoutVaultUseCase: BreakoutRentVaultUseCase,
     private readonly onboardInvestorUseCase: OnboardSavingsInvestorUseCase,
+    private readonly verifyVaultFundingUseCase: VerifyRentVaultFundingUseCase,
     @Inject(USER_REPOSITORY) private readonly userRepo: UserRepository,
   ) {}
 
@@ -125,6 +127,14 @@ export class RentVaultController {
   async getMyVault(@Req() req: any) {
     const userId = await this.getNumericUserId(req)
     return this.getMyVaultUseCase.execute(userId)
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('me/verify-funding')
+  @HttpCode(HttpStatus.OK)
+  async verifyVaultFunding(@Req() req: any) {
+    const userId = await this.getNumericUserId(req)
+    return this.verifyVaultFundingUseCase.execute(userId)
   }
 
   @UseGuards(JwtAuthGuard)

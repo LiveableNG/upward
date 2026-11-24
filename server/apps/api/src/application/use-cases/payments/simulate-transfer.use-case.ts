@@ -15,7 +15,12 @@ export class SimulateTransferUseCase {
     private readonly processWebhook: ProcessPaymentWebhookUseCase,
   ) { }
 
-  async execute(data: { beneficiaryBank: string; beneficiaryAccount: string; amount: number }) {
+  async execute(data: {
+    beneficiaryBank: string
+    beneficiaryAccount: string
+    amount: number
+    narration?: string
+  }) {
     const secret = this.configService.get<string>('PAYSTACK_SECRET_KEY')
     if (isProductionRuntime(secret)) {
       throw new ForbiddenException('Transfer simulation is disabled in production.')
@@ -26,9 +31,48 @@ export class SimulateTransferUseCase {
       throw new BadRequestException('Simulation is only allowed in Test Mode (using sandbox keys).')
     }
 
-    let dva = await this.prisma.upward_dedicated_virtual_account.findUnique({
-      where: { accountNumber: data.beneficiaryAccount }
-    })
+    let dva: any = null
+    let matchedVaultUuid: string | undefined = undefined
+
+    if (this.prisma?.upward_rent_vault) {
+      const rentVault = await this.prisma.upward_rent_vault.findFirst({
+        where: {
+          dvaAccountNumber: data.beneficiaryAccount,
+          lockStatus: { in: ['LOCKED', 'SETTLEMENT_READY'] },
+        },
+        orderBy: { createdAt: 'desc' },
+      })
+
+      if (rentVault) {
+        matchedVaultUuid = rentVault.uuid
+        dva = {
+          id: rentVault.id,
+          accountNumber: rentVault.dvaAccountNumber,
+          accountName: rentVault.dvaAccountName || 'Upward Rent Savings',
+          bankName: rentVault.dvaBankName || data.beneficiaryBank,
+          bankCode: (rentVault.dvaBankName || data.beneficiaryBank)
+            .toLowerCase()
+            .replace(/\s+/g, '-'),
+          paystackCustomerId: rentVault.dvaCustomerCode || 'CUS_rent_vault_dva',
+        }
+
+        // Remove any accidental mock DVA record created before Rent Vault DVA lookup existed
+        await this.prisma.upward_dedicated_virtual_account
+          .deleteMany({
+            where: {
+              accountNumber: data.beneficiaryAccount,
+              paystackCustomerId: 'CUS_mock_dva_test',
+            },
+          })
+          .catch(() => {})
+      }
+    }
+
+    if (!dva) {
+      dva = await this.prisma.upward_dedicated_virtual_account.findUnique({
+        where: { accountNumber: data.beneficiaryAccount },
+      })
+    }
 
     if (!dva) {
       const pmDva = await this.prisma.upward_pm_dedicated_virtual_account.findUnique({
@@ -92,6 +136,8 @@ export class SimulateTransferUseCase {
         ip_address: '127.0.0.1',
         metadata: {
           source_app: 'upward',
+          ...(matchedVaultUuid ? { vault_id: matchedVaultUuid } : {}),
+          ...(data.narration?.trim() ? { narration: data.narration.trim() } : {}),
         },
         customer: {
           id: 999999,

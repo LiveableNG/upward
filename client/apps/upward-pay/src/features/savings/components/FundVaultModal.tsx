@@ -8,10 +8,15 @@ import {
   CheckCircle2,
   Loader2,
 } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/components/common/Toast'
 import { BottomSheetModal } from '@/components/common/BottomSheetModal'
 import { formatCurrency } from '@/lib/utils'
-import { useSimulateVaultDeposit } from '../hooks/useRentSavings'
+import {
+  RENT_VAULT_QUERY_KEY,
+  useSimulateVaultDeposit,
+  useVerifyVaultFunding,
+} from '../hooks/useRentSavings'
 import {
   calculatePayLessPlan,
   type SavingsCadence,
@@ -67,10 +72,13 @@ export function FundVaultModal({
   const [customAmountOverride, setCustomAmountOverride] = useState<string | null>(null)
   const customAmount = customAmountOverride !== null ? customAmountOverride : defaultInitialAmount.toLocaleString()
   const [hasPaidNotified, setHasPaidNotified] = useState(false)
+  const [verifyNotice, setVerifyNotice] = useState<string | null>(null)
 
+  const queryClient = useQueryClient()
   const { success: toastSuccess, error: toastError } = useToast()
   const { rates: platformRates } = usePlatformRates()
   const simulateMutation = useSimulateVaultDeposit()
+  const verifyMutation = useVerifyVaultFunding()
 
   const isClient = useSyncExternalStore(
     emptySubscribe,
@@ -91,6 +99,7 @@ export function FundVaultModal({
 
   const handleClose = () => {
     setHasPaidNotified(false)
+    setVerifyNotice(null)
     setCustomAmountOverride(null)
     onClose()
   }
@@ -148,17 +157,36 @@ export function FundVaultModal({
     }
   }
 
-  const handleIHavePaid = () => {
-    setHasPaidNotified(true)
-    toastSuccess('Payment recorded! We will credit your vault as soon as your transfer arrives.')
-    if (typeof window !== 'undefined') {
-      try {
-        sessionStorage.setItem('upward_dismissed_initial_deposit_prompt', 'true')
-      } catch {}
+  const handleIHavePaid = async () => {
+    setVerifyNotice(null)
+    try {
+      const res = await verifyMutation.mutateAsync()
+      await queryClient.invalidateQueries({ queryKey: RENT_VAULT_QUERY_KEY })
+
+      const prevBalanceKobo = Math.round(currentBalanceNaira * 100)
+      if (res.detected || res.current_balance_kobo > prevBalanceKobo) {
+        setHasPaidNotified(true)
+        toastSuccess('Deposit received and credited to your Rent Savings wallet!')
+        if (typeof window !== 'undefined') {
+          try {
+            sessionStorage.setItem('upward_dismissed_initial_deposit_prompt', 'true')
+          } catch {}
+        }
+        setTimeout(() => {
+          onClose()
+        }, 800)
+        return
+      }
+
+      setVerifyNotice(
+        `No bank transfer detected on ${accountNumber} yet. Once your bank completes the transfer, your wallet will update automatically.`,
+      )
+    } catch {
+      await queryClient.invalidateQueries({ queryKey: RENT_VAULT_QUERY_KEY })
+      setVerifyNotice(
+        `No bank transfer detected yet. Once your bank completes the transfer, your wallet will update automatically.`,
+      )
     }
-    setTimeout(() => {
-      onClose()
-    }, 1500)
   }
 
   const parsedDepositAmount = Number(customAmount.replace(/,/g, '')) || 0
@@ -299,6 +327,22 @@ export function FundVaultModal({
           </div>
         )}
 
+        {verifyNotice && (
+          <div
+            style={{
+              padding: '10px 12px',
+              borderRadius: '10px',
+              background: 'rgba(194, 80, 31, 0.06)',
+              border: '1px solid rgba(194, 80, 31, 0.2)',
+              fontSize: '0.75rem',
+              color: 'var(--text-secondary)',
+              lineHeight: 1.45,
+            }}
+          >
+            {verifyNotice}
+          </div>
+        )}
+
         {/* Action Buttons */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 2 }}>
           <button
@@ -306,10 +350,19 @@ export function FundVaultModal({
             className="vault-btn-primary"
             style={{ height: 44 }}
             onClick={handleIHavePaid}
-            disabled={hasPaidNotified || !accountNumber}
+            disabled={hasPaidNotified || verifyMutation.isPending || !accountNumber}
           >
-            <CheckCircle2 size={16} />
-            <span>{hasPaidNotified ? 'Transfer Recorded!' : 'I Have Transferred'}</span>
+            {verifyMutation.isPending ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                <span>Checking Transfer...</span>
+              </>
+            ) : (
+              <>
+                <CheckCircle2 size={16} />
+                <span>{hasPaidNotified ? 'Transfer Confirmed!' : 'I Have Transferred'}</span>
+              </>
+            )}
           </button>
 
           {isNonProd && accountNumber && (

@@ -34,7 +34,9 @@ export function useRentVault() {
         throw err
       }
     },
-    staleTime: 1000 * 30, // 30 seconds
+    staleTime: 1000 * 10, // 10 seconds
+    refetchInterval: 1000 * 15, // Poll every 15s while mounted so incoming bank transfers reflect automatically
+    refetchOnWindowFocus: true,
     retry: false,
   })
 }
@@ -144,6 +146,16 @@ export function useSimulateVaultDeposit() {
   return useMutation({
     mutationFn: ({ accountNumber, amountKobo }: { accountNumber: string; amountKobo: number }) =>
       savingsService.simulateVaultDeposit(accountNumber, amountKobo),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: RENT_VAULT_QUERY_KEY })
+    },
+  })
+}
+
+export function useVerifyVaultFunding() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => savingsService.verifyRentVaultFunding(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: RENT_VAULT_QUERY_KEY })
     },

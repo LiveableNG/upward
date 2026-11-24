@@ -104,6 +104,7 @@ const DemoBank: React.FC<DemoBankProps> = ({ token }) => {
           beneficiaryBank,
           beneficiaryAccount,
           amount: transferAmount,
+          ...(narration.trim() ? { narration: narration.trim() } : {}),
         }),
       })
 
