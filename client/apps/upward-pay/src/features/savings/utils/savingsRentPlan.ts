@@ -47,15 +47,25 @@ function purgeLegacyRentDefaults() {
   } catch {}
 }
 
-/** Returns the rent plan only if the user actually entered it. */
-export function readSavingsRentPlan(): SavingsRentPlan | null {
+/** Returns the rent plan only if the user actually entered it (and matches currentUserId when provided). */
+export function readSavingsRentPlan(currentUserId?: number | string | null): SavingsRentPlan | null {
   if (typeof window === 'undefined') return null
   purgeLegacyRentDefaults()
   try {
     const raw = localStorage.getItem(PLAN_KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw) as SavingsRentPlan
-    return parsed?.source === 'user' ? parsed : null
+    if (parsed?.source !== 'user') return null
+    if (
+      currentUserId !== undefined &&
+      currentUserId !== null &&
+      parsed.userId !== undefined &&
+      parsed.userId !== null &&
+      String(parsed.userId) !== String(currentUserId)
+    ) {
+      return null
+    }
+    return parsed
   } catch {
     return null
   }

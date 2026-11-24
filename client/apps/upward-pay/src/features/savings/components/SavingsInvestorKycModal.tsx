@@ -705,7 +705,7 @@ export function SavingsInvestorKycModal({
                 <div className="rent-calculator__input-wrapper">
                   <input
                     type="tel"
-                    placeholder="080XXXXXXXX"
+                    placeholder="e.g. 0801 234 5678"
                     className="rent-calculator__input rent-calculator__input--no-prefix"
                     value={nextOfKinPhone}
                     onChange={handleNextOfKinPhoneChange}
