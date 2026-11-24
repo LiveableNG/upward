@@ -14,11 +14,13 @@ import {
   Check,
   FileText,
   Receipt,
+  Loader2,
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
 import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
+import { getRentDepositReceipt } from '@/features/payments/services/paymentService'
 import { FundVaultModal } from './FundVaultModal'
 import { readSavingsRentPlan } from '../utils/savingsRentPlan'
 import {
@@ -95,8 +97,9 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
     return isInitialPrompt
   })
   const [copiedAccount, setCopiedAccount] = useState(false)
+  const [downloadingReceiptId, setDownloadingReceiptId] = useState<string | null>(null)
   const { user } = useAuth()
-  const { success: toastSuccess } = useToast()
+  const { success: toastSuccess, error: toastError } = useToast()
   const [nowTimestamp] = useState(() => Date.now())
   const activeProperty = (user?.properties || []).find(
     (p: { isPastTenancy?: boolean; rentAmount?: number; rentEndDate?: string }) =>
@@ -145,6 +148,63 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
     setCopiedAccount(true)
     toastSuccess('Rent savings account number copied!')
     setTimeout(() => setCopiedAccount(false), 2000)
+  }
+
+  const handleOpenReceipt = async (tx: VaultTransactionItem) => {
+    if (downloadingReceiptId) return
+    setDownloadingReceiptId(tx.id)
+
+    try {
+      const txIdentifier = tx.uuid || tx.reference || ''
+      if (txIdentifier) {
+        const res = await getRentDepositReceipt(txIdentifier)
+        const receiptUrl: string | undefined = res?.url
+        const fileName: string = res?.fileName || `upward_receipt_${txIdentifier}.pdf`
+
+        if (receiptUrl && receiptUrl.startsWith('data:application/pdf;base64,')) {
+          const base64Data = receiptUrl.split(',')[1] || ''
+          const byteCharacters = atob(base64Data)
+          const byteNumbers = new Array(byteCharacters.length)
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i)
+          }
+          const pdfBlob = new Blob([new Uint8Array(byteNumbers)], { type: 'application/pdf' })
+          const blobUrl = URL.createObjectURL(pdfBlob)
+          const opened = window.open(blobUrl, '_blank', 'noopener,noreferrer')
+          if (!opened) {
+            const link = document.createElement('a')
+            link.href = blobUrl
+            link.download = fileName
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+          }
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000)
+          return
+        }
+
+        if (receiptUrl && /^https?:\/\//i.test(receiptUrl)) {
+          window.open(receiptUrl, '_blank', 'noopener,noreferrer')
+          return
+        }
+      }
+
+      if (tx.receipt_url) {
+        const apiRoot =
+          process.env.NEXT_PUBLIC_API_URL ||
+          (typeof window !== 'undefined' ? `${window.location.origin}/api/v1` : '')
+        const normalizedPath = tx.receipt_url.replace(/^\/api\/v1/, '')
+        const fullUrl = /^https?:\/\//i.test(tx.receipt_url)
+          ? tx.receipt_url
+          : `${apiRoot}${normalizedPath}${tx.receipt_url.includes('?') ? '&' : '?'}format=pdf`
+        window.open(fullUrl, '_blank', 'noopener,noreferrer')
+      }
+    } catch (err: unknown) {
+      const error = err as { message?: string }
+      toastError(error?.message || 'Unable to generate receipt right now.')
+    } finally {
+      setDownloadingReceiptId(null)
+    }
   }
 
   return (
@@ -356,14 +416,25 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
                       {formatCurrency(amountNaira, 'NGN')}
                     </span>
                     {tx.receipt_url && (
-                      <a
-                        href={tx.receipt_url}
+                      <button
+                        type="button"
                         className="vault-ledger__receipt-link"
-                        target="_blank"
-                        rel="noreferrer"
+                        onClick={() => handleOpenReceipt(tx)}
+                        disabled={downloadingReceiptId === tx.id}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: downloadingReceiptId === tx.id ? 'wait' : 'pointer',
+                          padding: 0,
+                        }}
                       >
-                        <FileText size={11} /> Receipt
-                      </a>
+                        {downloadingReceiptId === tx.id ? (
+                          <Loader2 size={11} className="animate-spin" />
+                        ) : (
+                          <FileText size={11} />
+                        )}{' '}
+                        Receipt
+                      </button>
                     )}
                   </div>
                 </div>
@@ -377,16 +448,50 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
         isOpen={showFundModal}
         onClose={() => setShowFundModal(false)}
         recommendedAmountNaira={(() => {
-          const savedPlan = readSavingsRentPlan()
+          const periodicNaira = Math.round(
+            (vault.pay_less_projection?.periodic_deposit_kobo ?? 0) / 100,
+          )
+
+          // Once the user has already started saving, recommend their next periodic deposit
+          // capped at the remaining rent target (never repeat the upfront initial deposit).
+          if (vault.current_balance_kobo > 0) {
+            const remainingToTarget = Math.max(
+              0,
+              Math.round(targetAmountNaira - currentBalanceNaira),
+            )
+            if (remainingToTarget > 0) {
+              return periodicNaira > 0
+                ? Math.min(remainingToTarget, periodicNaira)
+                : remainingToTarget
+            }
+            return periodicNaira > 0 ? periodicNaira : 50_000
+          }
+
+          // First deposit (balance === 0): clamp any stale >50% initial deposit to 25% of target rent
+          const maxSensibleInitial =
+            targetAmountNaira > 0 ? Math.round(targetAmountNaira * 0.5) : Infinity
+          const savedPlan = readSavingsRentPlan(user?.id)
+
           if (vault.initial_deposit_kobo && vault.initial_deposit_kobo > 0) {
-            return vault.initial_deposit_kobo / 100
+            const vaultInitialNaira = Math.round(vault.initial_deposit_kobo / 100)
+            if (vaultInitialNaira <= maxSensibleInitial) {
+              return vaultInitialNaira
+            }
           }
+
           if (savedPlan?.initialDeposit && Number(savedPlan.initialDeposit) > 0) {
-            return Number(savedPlan.initialDeposit)
+            const planInit = Math.round(Number(savedPlan.initialDeposit))
+            const matchesRent =
+              !targetAmountNaira || Number(savedPlan.rentAmount || 0) === targetAmountNaira
+            if (matchesRent && planInit <= maxSensibleInitial) {
+              return planInit
+            }
           }
+
           if (vault.plan_pattern === 'EQUAL' || vault.plan_pattern === 'STEP_UP') {
-            return Math.round((vault.pay_less_projection?.periodic_deposit_kobo ?? 0) / 100) || 100_000
+            return periodicNaira || (targetAmountNaira > 0 ? Math.round(targetAmountNaira / 10) : 100_000)
           }
+
           return targetAmountNaira > 0 ? Math.round(targetAmountNaira * 0.25) : 100_000
         })()}
         cadence="MONTHLY"

@@ -606,6 +606,7 @@ import { DisburseEmergencyAdvanceUseCase } from './use-cases/rent-savings/disbur
 import { ExecuteLandlordSettlementUseCase } from './use-cases/rent-savings/execute-landlord-settlement.use-case'
 import { BreakoutRentVaultUseCase } from './use-cases/rent-savings/breakout-rent-vault.use-case'
 import { OnboardSavingsInvestorUseCase } from './use-cases/rent-savings/onboard-savings-investor.use-case'
+import { VerifyRentVaultFundingUseCase } from './use-cases/rent-savings/verify-rent-vault-funding.use-case'
 
 import { TogglePmAllianceEnablementUseCase } from './alliance/use-cases/toggle-pm-alliance-enablement.use-case'
 import { CreateAllianceQualificationUseCase } from './alliance/use-cases/create-alliance-qualification.use-case'
@@ -661,6 +662,7 @@ const UseCases: any[] = [
   ExecuteLandlordSettlementUseCase,
   BreakoutRentVaultUseCase,
   OnboardSavingsInvestorUseCase,
+  VerifyRentVaultFundingUseCase,
 
   TogglePmAllianceEnablementUseCase,
   CreateAllianceQualificationUseCase,

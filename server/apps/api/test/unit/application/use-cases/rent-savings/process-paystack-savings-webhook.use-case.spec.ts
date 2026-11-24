@@ -147,4 +147,36 @@ describe('ProcessPaystackSavingsWebhookUseCase', () => {
     expect(result.status).toBe('already_processed')
     expect(rentVaultRepo.incrementBalances).not.toHaveBeenCalled()
   })
+
+  it('should process dedicatedaccount.payment.success and publish RentVaultUpdatedEvent', async () => {
+    const mockEventBus = {
+      publish: jest.fn(),
+      publishAll: jest.fn(),
+      subscribe: jest.fn(),
+    }
+
+    const useCaseWithBus = new ProcessPaystackSavingsWebhookUseCase(
+      configService,
+      rentVaultRepo,
+      providerRegistry,
+      mockEventBus as any,
+    )
+
+    const result = await useCaseWithBus.execute({
+      event: 'dedicatedaccount.payment.success',
+      data: {
+        reference: 'TFD_9012345678_350000_12345',
+        amount: 35000000,
+        currency: 'NGN',
+        dedicated_account: {
+          account_number: '9012345678',
+        },
+      },
+    })
+
+    expect(result.status).toBe('success')
+    expect(rentVaultRepo.findByDvaAccountNumber).toHaveBeenCalledWith('9012345678')
+    expect(rentVaultRepo.incrementBalances).toHaveBeenCalledWith(1, 35000000n, 0n)
+    expect(mockEventBus.publish).toHaveBeenCalledTimes(1)
+  })
 })

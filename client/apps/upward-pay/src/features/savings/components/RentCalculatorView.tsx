@@ -19,10 +19,12 @@ import {
   useSimulateRentSavings,
   useSavingsOnboardingPrefill,
   useOnboardSavingsInvestor,
+  useVerifyVaultFunding,
 } from '../hooks/useRentSavings'
 import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
 import {
   calculatePayLessPlan,
+  verifyRentVaultFunding,
   type SavingsCadence,
   type SavingsPlanPattern,
   type SavingsProductOption,
@@ -76,7 +78,7 @@ export function RentCalculatorView({
         const draft = loadSetupDraft()
         const draftAmount = draft?.formData?.rentAmount ? (parseCurrencyInput(draft.formData.rentAmount) || 0) : 0
         if (draftAmount > 0) return formatCurrencyInput(draftAmount)
-        const plan = readSavingsRentPlan()
+        const plan = readSavingsRentPlan(user?.id)
         if (plan?.rentAmount) return formatCurrencyInput(Number(plan.rentAmount))
       } catch {}
     }
@@ -91,7 +93,7 @@ export function RentCalculatorView({
       try {
         const draft = loadSetupDraft()
         if (draft?.formData?.rentEndDate) return draft.formData.rentEndDate.split('T')[0]
-        const plan = readSavingsRentPlan()
+        const plan = readSavingsRentPlan(user?.id)
         if (plan?.dueDate) return plan.dueDate.split('T')[0]
       } catch {}
     }
@@ -113,17 +115,36 @@ export function RentCalculatorView({
 
   const targetAmountNaira = parseCurrencyInput(targetAmountRaw) || 0
   const tomorrow = new Date(nowTimestamp + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  const activePropertyDueDate = activeProperty?.rentEndDate
+    ? activeProperty.rentEndDate.split('T')[0]
+    : ''
   const hasSavedRent = Boolean(
-    (activeProperty?.rentAmount && activeProperty?.rentEndDate) ||
+    (activeProperty?.rentAmount && activePropertyDueDate && activePropertyDueDate >= tomorrow) ||
     (targetAmountNaira > 0 && contractualDueDate && contractualDueDate >= tomorrow)
   )
   const [rentConfirmed, setRentConfirmed] = useState(false)
   const hasRentDetails = hasSavedRent || rentConfirmed
 
-  // Flow Stage State
-  const [initialStage] = useState<Stage>(() => (hasSavedRent ? 'BENEFIT' : 'RENT_INPUT'))
+  // Flow Stage State: Users with existing rental info (e.g. GoodTenants or onboarding)
+  // start on PROTECTION so they always see and choose their savings option first.
+  const [initialStage, setInitialStage] = useState<Stage>(() =>
+    hasSavedRent ? 'PROTECTION' : 'RENT_INPUT',
+  )
   const [stage, setStage] = useState<Stage>(initialStage)
   const [protectionFromBenefit, setProtectionFromBenefit] = useState(false)
+  const [rentInputFromBenefit, setRentInputFromBenefit] = useState(false)
+
+  // If activeProperty finishes hydrating after mount while untouched on RENT_INPUT, advance to PROTECTION
+  if (
+    hasSavedRent &&
+    initialStage === 'RENT_INPUT' &&
+    stage === 'RENT_INPUT' &&
+    !rentConfirmed &&
+    !rentInputFromBenefit
+  ) {
+    setInitialStage('PROTECTION')
+    setStage('PROTECTION')
+  }
 
   const canConfirmRent =
     targetAmountNaira > 0 && Boolean(contractualDueDate) && contractualDueDate >= tomorrow
@@ -163,6 +184,8 @@ export function RentCalculatorView({
   // KYC Prefill & Form State
   const { data: prefill } = useSavingsOnboardingPrefill(true)
   const onboardMutation = useOnboardSavingsInvestor()
+  const verifyFundingMutation = useVerifyVaultFunding()
+  const [successVerifyNotice, setSuccessVerifyNotice] = useState<string | null>(null)
 
   const hasVerifiedBvnOnFile = Boolean(prefill?.has_verified_bvn || user?.isIdentityVerified)
   const [bvn, setBvn] = useState(() => prefill?.bvn || '')
@@ -207,14 +230,31 @@ export function RentCalculatorView({
   const [customInitialDeposit, setCustomInitialDeposit] = useState<string | null>(() => {
     if (typeof window !== 'undefined') {
       try {
-        const plan = readSavingsRentPlan()
-        if (plan?.planPattern === 'INITIAL_DEPOSIT' && plan.initialDeposit && Number(plan.initialDeposit) > 0) {
-          return formatCurrencyInput(Number(plan.initialDeposit))
+        const plan = readSavingsRentPlan(user?.id)
+        const baseRent = activeProperty?.rentAmount || Number(plan?.rentAmount || 0)
+        const savedInit = Number(plan?.initialDeposit || 0)
+        const matchesPropertyRent =
+          !activeProperty?.rentAmount || Number(plan?.rentAmount || 0) === activeProperty.rentAmount
+        if (
+          plan?.planPattern === 'INITIAL_DEPOSIT' &&
+          savedInit > 0 &&
+          matchesPropertyRent &&
+          (baseRent <= 0 || savedInit <= baseRent * 0.5)
+        ) {
+          return formatCurrencyInput(savedInit)
         }
       } catch {}
     }
     return null
   })
+
+  const [prevPropForDeposit, setPrevPropForDeposit] = useState<number | string | undefined>(
+    activeProperty?.id,
+  )
+  if (activeProperty?.id !== prevPropForDeposit) {
+    setPrevPropForDeposit(activeProperty?.id)
+    setCustomInitialDeposit(null)
+  }
   const [stepInputMode, setStepInputMode] = useState<'START' | 'INCREMENT' | null>(null)
   const [customStepStart, setCustomStepStart] = useState<string | null>(null)
   const [customStepIncrement, setCustomStepIncrement] = useState<string | null>(null)
@@ -574,7 +614,61 @@ export function RentCalculatorView({
     }
   }
 
+  const handleSuccessConfirmTransfer = async () => {
+    setSuccessVerifyNotice(null)
+    try {
+      const res = await verifyFundingMutation.mutateAsync()
+      if (res.detected || res.current_balance_kobo > 0) {
+        toastSuccess('Deposit received and credited to your Rent Savings wallet!')
+        await handleFinish()
+        return
+      }
+      setSuccessVerifyNotice(
+        `No bank transfer detected on ${createdDva?.account_number || 'your account'} yet. Once your bank completes the transfer, your wallet will credit automatically.`,
+      )
+    } catch {
+      setSuccessVerifyNotice(
+        'No bank transfer detected yet. Once your bank completes the transfer, your wallet will credit automatically.',
+      )
+    }
+  }
+
+  // Auto-detect incoming transfer while on SUCCESS stage
+  useEffect(() => {
+    if (stage !== 'SUCCESS') return
+    let cancelled = false
+
+    const handleSseUpdate = () => {
+      if (cancelled) return
+      toastSuccess('Deposit detected and credited to your Rent Savings!')
+      handleFinish()
+    }
+    window.addEventListener('upward:rent-vault.updated', handleSseUpdate)
+
+    const interval = setInterval(async () => {
+      if (cancelled) return
+      try {
+        const res = await verifyRentVaultFunding()
+        if (!cancelled && (res.detected || res.current_balance_kobo > 0)) {
+          toastSuccess('Deposit detected and credited to your Rent Savings!')
+          handleFinish()
+        }
+      } catch {}
+    }, 6000)
+
+    return () => {
+      cancelled = true
+      window.removeEventListener('upward:rent-vault.updated', handleSseUpdate)
+      clearInterval(interval)
+    }
+  }, [stage])
+
   const handleRentInputBack = () => {
+    if (rentInputFromBenefit) {
+      setRentInputFromBenefit(false)
+      setStage('BENEFIT')
+      return
+    }
     router.push('/dashboard')
   }
 
@@ -640,6 +734,7 @@ export function RentCalculatorView({
                 } catch {}
               }
               setRentConfirmed(true)
+              setRentInputFromBenefit(false)
               setProtectionFromBenefit(false)
               setStage('PROTECTION')
             }}
@@ -885,7 +980,10 @@ export function RentCalculatorView({
                 </div>
                 <button
                   type="button"
-                  onClick={() => setStage('RENT_INPUT')}
+                  onClick={() => {
+                    setRentInputFromBenefit(true)
+                    setStage('RENT_INPUT')
+                  }}
                   style={{
                     background: 'none',
                     border: 'none',
@@ -1625,7 +1723,7 @@ export function RentCalculatorView({
               <label className="rent-calculator__label">Next of Kin Phone</label>
               <input
                 type="tel"
-                placeholder="08012345678"
+                placeholder="e.g. 0801 234 5678"
                 className="rent-calculator__input rent-calculator__input--no-prefix"
                 value={nextOfKinPhone}
                 onChange={(e) =>
@@ -1670,8 +1768,12 @@ export function RentCalculatorView({
         pinFooter
         footer={
           <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <PayFlowPrimaryButton onClick={handleFinish}>
-              I Have Transferred
+            <PayFlowPrimaryButton
+              onClick={handleSuccessConfirmTransfer}
+              loading={verifyFundingMutation.isPending}
+              disabled={verifyFundingMutation.isPending}
+            >
+              {verifyFundingMutation.isPending ? 'Checking Transfer...' : 'I Have Transferred'}
             </PayFlowPrimaryButton>
 
             <button
@@ -1865,6 +1967,38 @@ export function RentCalculatorView({
               <strong>{platformRates.partnerName || 'Asset & Resource Management Holding Company (ARM)'}</strong>.
             </span>
           </div>
+
+          {createdDva?.account_number && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                fontSize: '0.75rem',
+                color: 'var(--text-muted)',
+                padding: '2px 2px 0',
+              }}
+            >
+              <Loader2 size={13} className="animate-spin" color="var(--clay)" style={{ flexShrink: 0 }} />
+              <span>Your deposit will be detected automatically once your transfer completes.</span>
+            </div>
+          )}
+
+          {successVerifyNotice && (
+            <div
+              style={{
+                padding: '10px 12px',
+                borderRadius: '10px',
+                background: 'rgba(194, 80, 31, 0.06)',
+                border: '1px solid rgba(194, 80, 31, 0.2)',
+                fontSize: '0.75rem',
+                color: 'var(--text-secondary)',
+                lineHeight: 1.45,
+              }}
+            >
+              {successVerifyNotice}
+            </div>
+          )}
         </div>
       </PayPageShell>
     )

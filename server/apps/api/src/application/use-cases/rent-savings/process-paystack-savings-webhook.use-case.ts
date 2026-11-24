@@ -4,6 +4,7 @@ import {
   Logger,
   BadRequestException,
   UnauthorizedException,
+  Optional,
 } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import * as crypto from 'crypto'
@@ -13,6 +14,9 @@ import {
 } from '../../../domains/rent-savings/rent-vault.repository'
 import { AssetManagementProviderRegistry } from '../../../infrastructure/providers/asset-management/asset-management-provider.registry'
 import { isProductionRuntime } from '../../../shared/utils/runtime-env'
+import { EVENT_BUS, EventBus } from '../../events/domain-event'
+import { RentVaultUpdatedEvent } from '../../events/definition/rent-vault-updated.event'
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 
 export interface PaystackWebhookPayload {
   event: string
@@ -44,6 +48,11 @@ export class ProcessPaystackSavingsWebhookUseCase {
     @Inject(RENT_VAULT_REPOSITORY)
     private readonly rentVaultRepo: IRentVaultRepository,
     private readonly providerRegistry: AssetManagementProviderRegistry,
+    @Optional()
+    @Inject(EVENT_BUS)
+    private readonly eventBus?: EventBus,
+    @Optional()
+    private readonly prisma?: PrismaService,
   ) {
     this.secretKey = this.configService.get<string>('PAYSTACK_SECRET_KEY') || ''
   }
@@ -89,12 +98,20 @@ export class ProcessPaystackSavingsWebhookUseCase {
       throw new BadRequestException('Invalid webhook signature')
     }
 
-    if (payload.event !== 'charge.success') {
+    if (payload.event !== 'charge.success' && payload.event !== 'dedicatedaccount.payment.success') {
       this.logger.log(`Ignoring unsupported Paystack event: ${payload.event}`)
       return { status: 'ignored', message: `Unhandled event: ${payload.event}` }
     }
 
-    const { reference, amount, channel, metadata } = payload.data
+    const { reference, amount, channel } = payload.data
+    let metadata = payload.data.metadata
+    if (typeof metadata === 'string') {
+      try {
+        metadata = JSON.parse(metadata)
+      } catch {
+        metadata = undefined
+      }
+    }
     const amountKobo = BigInt(Math.round(amount || 0))
 
     if (amountKobo <= 0n) {
@@ -112,10 +129,16 @@ export class ProcessPaystackSavingsWebhookUseCase {
       vault = await this.rentVaultRepo.findByUuid(String(metadata.vault_id))
     }
 
-    if (!vault && payload.data.dedicated_account) {
-      const dvaAcc = (payload.data.dedicated_account as any)?.account_number
+    if (!vault) {
+      const dvaAcc =
+        (payload.data.dedicated_account as any)?.account_number ||
+        (typeof payload.data.dedicated_account === 'string'
+          ? payload.data.dedicated_account
+          : undefined) ||
+        (payload.data.authorization as any)?.receiver_bank_account_number ||
+        (metadata?.receiver_account_number as string | undefined)
       if (dvaAcc) {
-        vault = await this.rentVaultRepo.findByDvaAccountNumber(dvaAcc)
+        vault = await this.rentVaultRepo.findByDvaAccountNumber(String(dvaAcc))
       }
     }
 
@@ -128,6 +151,10 @@ export class ProcessPaystackSavingsWebhookUseCase {
 
     const currentBalance = vault.currentPrincipalKobo + vault.accruedYieldKobo
     const newBalance = currentBalance + amountKobo
+    const customNarration =
+      typeof metadata?.narration === 'string' && metadata.narration.trim()
+        ? metadata.narration.trim()
+        : null
 
     await this.rentVaultRepo.createTransaction({
       vaultId: vault.id,
@@ -139,7 +166,7 @@ export class ProcessPaystackSavingsWebhookUseCase {
       balanceAfterKobo: newBalance,
       reference,
       channel: channel || 'DVA_NIP',
-      narration: `Rent savings deposit via ${channel || 'Paystack DVA'}`,
+      narration: customNarration || `Rent savings deposit via ${channel || 'Paystack DVA'}`,
       metadata: {
         customer: payload.data.customer,
         receivedAt: new Date().toISOString(),
@@ -150,6 +177,34 @@ export class ProcessPaystackSavingsWebhookUseCase {
     this.logger.log(
       `Successfully credited vault ${vault.uuid} with ₦${Number(amountKobo) / 100} (ref: ${reference})`,
     )
+
+    if (this.prisma?.upward_notification) {
+      const amountNaira = Number(amountKobo) / 100
+      const balanceNaira = Number(newBalance) / 100
+      await this.prisma.upward_notification
+        .create({
+          data: {
+            userId: vault.userId,
+            title: 'Rent Savings Credited',
+            message: `NGN ${amountNaira.toLocaleString()} has been added to your Rent Savings wallet. New balance: NGN ${balanceNaira.toLocaleString()}.`,
+            type: 'PAYMENT',
+            url: '/dashboard/savings',
+          },
+        })
+        .catch((err: any) => {
+          this.logger.warn(`Failed to create rent savings deposit notification: ${err?.message}`)
+        })
+    }
+
+    if (this.eventBus) {
+      try {
+        this.eventBus.publish(
+          new RentVaultUpdatedEvent(vault.userId, vault.uuid, Number(amountKobo), reference),
+        )
+      } catch (err: any) {
+        this.logger.warn(`Failed to publish RentVaultUpdatedEvent: ${err?.message}`)
+      }
+    }
 
     if (vault.investmentProvider) {
       try {

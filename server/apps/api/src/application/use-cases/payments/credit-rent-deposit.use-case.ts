@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common'
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common'
 import {
   RENT_DEPOSIT_BALANCE_REPOSITORY,
   IRentDepositBalanceRepository,
@@ -6,6 +6,8 @@ import {
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 import { UnifiedCommunicationService } from '../../../shared/infrastructure/communication/unified-communication.service'
+import { EVENT_BUS, EventBus } from '../../events/domain-event'
+import { RentVaultUpdatedEvent } from '../../events/definition/rent-vault-updated.event'
 
 @Injectable()
 export class CreditRentDepositUseCase {
@@ -17,6 +19,9 @@ export class CreditRentDepositUseCase {
     private readonly prisma: PrismaService,
     private readonly encryption: EncryptionService,
     private readonly unifiedCommService: UnifiedCommunicationService,
+    @Optional()
+    @Inject(EVENT_BUS)
+    private readonly eventBus?: EventBus,
   ) {}
 
   async execute(params: {
@@ -171,6 +176,16 @@ export class CreditRentDepositUseCase {
     this.logger.log(
       `Credited ${amount} ${currency} to Rent Deposit Balance (User: ${userId}, Prop: ${userPropertyId}, Ref: ${reference}, New Balance: ${balanceAfter})`
     )
+
+    if (this.eventBus) {
+      try {
+        this.eventBus.publish(
+          new RentVaultUpdatedEvent(userId, 'deposit-balance', Math.round(amount * 100), reference),
+        )
+      } catch (err: any) {
+        this.logger.warn(`Failed to publish RentVaultUpdatedEvent for deposit credit: ${err?.message}`)
+      }
+    }
 
     return depositTx
   }

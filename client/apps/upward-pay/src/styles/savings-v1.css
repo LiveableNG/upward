@@ -108,6 +108,12 @@
   transition: all 0.2s ease;
 }
 
+.rent-calculator__input::placeholder {
+  font-weight: 400;
+  color: var(--text-muted, #9a948c);
+  opacity: 0.55;
+}
+
 .rent-calculator__input:focus {
   outline: none;
   border-color: var(--clay);

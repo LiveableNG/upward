@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/common'
+import { Inject, Injectable, Logger, Optional, UnauthorizedException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { createHmac } from 'node:crypto'
 import { RecordTransactionUseCase } from './record-transaction.use-case'
@@ -17,6 +17,7 @@ import { PaymentConfigurationService } from '../../../shared/infrastructure/comm
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 import { UnifiedCommunicationService } from '../../../shared/infrastructure/communication/unified-communication.service'
 import { ConfirmCommercePaymentUseCase } from '../../commerce/use-cases/confirm-commerce-payment.use-case'
+import { ProcessPaystackSavingsWebhookUseCase } from '../rent-savings/process-paystack-savings-webhook.use-case'
 import { isProductionRuntime } from '../../../shared/utils/runtime-env'
 
 @Injectable()
@@ -39,6 +40,8 @@ export class ProcessPaymentWebhookUseCase {
     private readonly creditWalletUseCase: CreditWalletUseCase,
     private readonly unifiedCommService: UnifiedCommunicationService,
     private readonly confirmCommercePaymentUseCase: ConfirmCommercePaymentUseCase,
+    @Optional()
+    private readonly processSavingsWebhookUseCase?: ProcessPaystackSavingsWebhookUseCase,
   ) { }
 
   async execute(payload: any, signature?: string, url: string = '/payments/webhook') {
@@ -168,6 +171,14 @@ export class ProcessPaymentWebhookUseCase {
       if (isAcademyApp) {
         this.logger.log(`Academy application payment detected for reference ${reference}`)
         return this.handleAcademyApplicationPayment(payload.data, metadata)
+      }
+
+      if (metadata?.vault_id && this.processSavingsWebhookUseCase) {
+        this.logger.log(`Rent Savings vault payment detected via metadata for reference: ${reference}`)
+        return this.processSavingsWebhookUseCase.execute({
+          event: 'charge.success',
+          data: payload.data,
+        })
       }
 
       if (payload.data.dedicated_account || payload.data.channel === 'dedicated_account' || payload.data.channel === 'dedicated_nuban') {
@@ -352,6 +363,44 @@ export class ProcessPaymentWebhookUseCase {
     }
 
     this.logger.log(`Processing DVA Payment for account: ${accountNumber}`)
+
+    // 1. Check active Rent Savings Vaults first (dedicated rent savings virtual accounts)
+    if (this.prisma?.upward_rent_vault && this.processSavingsWebhookUseCase) {
+      const rentVault = await this.prisma.upward_rent_vault.findFirst({
+        where: {
+          dvaAccountNumber: String(accountNumber),
+          lockStatus: { in: ['LOCKED', 'SETTLEMENT_READY'] },
+        },
+        orderBy: { createdAt: 'desc' },
+      })
+
+      if (rentVault) {
+        this.logger.log(
+          `Routing DVA Payment for Rent Savings Vault: Vault ${rentVault.uuid} (Account: ${accountNumber})`,
+        )
+
+        // Clean up any accidental mock DVA record created before Rent Vault DVA routing existed
+        await this.prisma.upward_dedicated_virtual_account
+          .deleteMany({
+            where: {
+              accountNumber: String(accountNumber),
+              paystackCustomerId: 'CUS_mock_dva_test',
+            },
+          })
+          .catch(() => {})
+
+        return this.processSavingsWebhookUseCase.execute({
+          event: 'charge.success',
+          data: {
+            ...data,
+            dedicated_account:
+              typeof data.dedicated_account === 'object' && data.dedicated_account !== null
+                ? { ...data.dedicated_account, account_number: String(accountNumber) }
+                : { account_number: String(accountNumber) },
+          },
+        })
+      }
+    }
 
     const pmDva = await this.prisma.upward_pm_dedicated_virtual_account.findUnique({
       where: { accountNumber }
