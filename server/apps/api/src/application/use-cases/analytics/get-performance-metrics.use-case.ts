@@ -17,6 +17,9 @@ export interface GetPerformanceMetricsOptions {
 @Injectable()
 export class GetPerformanceMetricsUseCase {
   private readonly logger = new Logger(GetPerformanceMetricsUseCase.name)
+  private readonly inFlight = new Map<string, Promise<any>>()
+  private readonly cache = new Map<string, { expiresAt: number; data: any }>()
+  private readonly CACHE_TTL_MS = 30_000
 
   constructor(
     private readonly prisma: PrismaService,
@@ -30,6 +33,31 @@ export class GetPerformanceMetricsUseCase {
   ) {}
 
   async execute(options: GetPerformanceMetricsOptions = {}) {
+    const cacheKey = `${options.startDate || ''}|${options.endDate || ''}|${options.search || ''}`
+    const cached = this.cache.get(cacheKey)
+    if (cached && cached.expiresAt > Date.now()) {
+      return cached.data
+    }
+
+    const existingPromise = this.inFlight.get(cacheKey)
+    if (existingPromise) {
+      return existingPromise
+    }
+
+    const promise = this.computeMetrics(options)
+      .then((result) => {
+        this.cache.set(cacheKey, { expiresAt: Date.now() + this.CACHE_TTL_MS, data: result })
+        return result
+      })
+      .finally(() => {
+        this.inFlight.delete(cacheKey)
+      })
+
+    this.inFlight.set(cacheKey, promise)
+    return promise
+  }
+
+  private async computeMetrics(options: GetPerformanceMetricsOptions = {}) {
     const { startDate, endDate, search } = options
 
     const _results = await Promise.all([
@@ -493,34 +521,39 @@ export class GetPerformanceMetricsUseCase {
       return hasCycles || hasSuccessTx
     })
 
-    await Promise.all(
-      candidateUsers.map(async (u) => {
-        try {
-          const scoreRes: any = await this.calculateRentScore.execute(u.uuid)
-          if (scoreRes && scoreRes.success && scoreRes.data && scoreRes.data.isScorable) {
-            const rentScore = scoreRes.data.score || 500
-            const scoreBand = scoreRes.data.band || 'Fair'
-            let bandColor = '#4f46e5'
-            if (rentScore >= 750) {
-              bandColor = '#16a34a'
-            } else if (rentScore >= 650) {
-              bandColor = '#0284c7'
-            } else if (rentScore >= 550) {
-              bandColor = '#4f46e5'
-            } else {
-              bandColor = '#dc2626'
+    // Bounded concurrency (3 at a time) so rent-score calculations never exhaust Prisma's connection pool
+    const SCORE_CONCURRENCY = 3
+    for (let i = 0; i < candidateUsers.length; i += SCORE_CONCURRENCY) {
+      const chunk = candidateUsers.slice(i, i + SCORE_CONCURRENCY)
+      await Promise.all(
+        chunk.map(async (u) => {
+          try {
+            const scoreRes: any = await this.calculateRentScore.execute(u.uuid)
+            if (scoreRes && scoreRes.success && scoreRes.data && scoreRes.data.isScorable) {
+              const rentScore = scoreRes.data.score || 500
+              const scoreBand = scoreRes.data.band || 'Fair'
+              let bandColor = '#4f46e5'
+              if (rentScore >= 750) {
+                bandColor = '#16a34a'
+              } else if (rentScore >= 650) {
+                bandColor = '#0284c7'
+              } else if (rentScore >= 550) {
+                bandColor = '#4f46e5'
+              } else {
+                bandColor = '#dc2626'
+              }
+              scoreMap.set(u.uuid, {
+                score: rentScore,
+                band: scoreBand,
+                color: bandColor,
+              })
             }
-            scoreMap.set(u.uuid, {
-              score: rentScore,
-              band: scoreBand,
-              color: bandColor,
-            })
+          } catch (err: any) {
+            this.logger.warn(`Failed to compute rent score for user ${u.uuid}: ${err?.message || err}`)
           }
-        } catch (err: any) {
-          this.logger.warn(`Failed to compute rent score for user ${u.uuid}: ${err?.message || err}`)
-        }
-      })
-    )
+        }),
+      )
+    }
 
     const revenueMetrics = this.getRevenueMetrics.execute(successTransactions)
     const waitlistMetrics = this.getWaitlistMetrics.execute(mergedUsers, allWaitlistEntries, userMap, allUserEmailHashes)

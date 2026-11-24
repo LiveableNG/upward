@@ -218,6 +218,7 @@ import { GetBulkEmailCampaignDetailUseCase } from './use-cases/email/get-bulk-em
 import { RetryBulkEmailCampaignFailedUseCase } from './use-cases/email/retry-bulk-email-campaign-failed.use-case'
 import { ControlBulkEmailCampaignUseCase } from './use-cases/email/control-bulk-email-campaign.use-case'
 import { PruneCommunicationLogsUseCase } from './use-cases/email/prune-communication-logs.use-case'
+import { GetEmailRecipientsDirectoryUseCase } from './use-cases/email/get-email-recipients-directory.use-case'
 
 import { GetErrorLogsUseCase } from './use-cases/system/get-error-logs.use-case'
 import { ResolveErrorUseCase } from './use-cases/system/resolve-error.use-case'
@@ -804,6 +805,7 @@ const UseCases: any[] = [
   RetryBulkEmailCampaignFailedUseCase,
   ControlBulkEmailCampaignUseCase,
   PruneCommunicationLogsUseCase,
+  GetEmailRecipientsDirectoryUseCase,
   GetErrorLogsUseCase,
   ResolveErrorUseCase,
   ClearErrorLogsUseCase,

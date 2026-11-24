@@ -63,6 +63,7 @@ import { GetBulkEmailCampaignsUseCase } from '../../../application/use-cases/ema
 import { GetBulkEmailCampaignDetailUseCase } from '../../../application/use-cases/email/get-bulk-email-campaign-detail.use-case'
 import { RetryBulkEmailCampaignFailedUseCase } from '../../../application/use-cases/email/retry-bulk-email-campaign-failed.use-case'
 import { ControlBulkEmailCampaignUseCase } from '../../../application/use-cases/email/control-bulk-email-campaign.use-case'
+import { GetEmailRecipientsDirectoryUseCase } from '../../../application/use-cases/email/get-email-recipients-directory.use-case'
 
 import { GetErrorLogsUseCase } from '../../../application/use-cases/system/get-error-logs.use-case'
 import { ResolveErrorUseCase } from '../../../application/use-cases/system/resolve-error.use-case'
@@ -132,6 +133,7 @@ export class AdminController {
     private readonly getBulkEmailCampaignDetailUseCase: GetBulkEmailCampaignDetailUseCase,
     private readonly retryBulkEmailCampaignFailedUseCase: RetryBulkEmailCampaignFailedUseCase,
     private readonly controlBulkEmailCampaignUseCase: ControlBulkEmailCampaignUseCase,
+    private readonly getEmailRecipientsDirectoryUseCase: GetEmailRecipientsDirectoryUseCase,
     private readonly getErrorLogsUseCase: GetErrorLogsUseCase,
     private readonly resolveErrorUseCase: ResolveErrorUseCase,
     private readonly clearErrorLogsUseCase: ClearErrorLogsUseCase,
@@ -435,6 +437,13 @@ export class AdminController {
     }
     await this.triggerSequencesUseCase.execute(data.channel, data.stage, req.user.id)
     return { success: true }
+  }
+
+  @Get('email/recipients-directory')
+  async getEmailRecipientsDirectory() {
+    return {
+      data: await this.getEmailRecipientsDirectoryUseCase.execute(),
+    }
   }
 
   @Post('email/bulk')

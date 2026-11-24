@@ -157,31 +157,21 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
     }
   }, [location.state])
 
-  // Cache database directory for local instant search
+  // Cache lightweight recipient directory for instant local search
   useEffect(() => {
     const fetchDirectories = async () => {
       setLoadingDirectory(true)
       try {
-        const res = await apiService.get('/admin/performance-metrics', token)
-
-        const isValidEmail = (email: string) => {
-          if (!email) return false
-          const e = email.toLowerCase()
-          return e.includes('@') && !e.endsWith('@upward.com') && !e.endsWith('@upward.local')
-        }
-
-        const allTenants = [
-          ...(res.directories?.signedUp || []),
-          ...(res.directories?.invited || []),
-        ].filter((t) => isValidEmail(t.email) && t.hasPassword)
+        const res = await apiService.get('/admin/email/recipients-directory', token)
+        const dir = res?.data || {}
 
         setDirectoryData({
-          tenants: allTenants,
-          pms: res.directories?.pms || [],
-          waitlist: res.directories?.waitlist || [],
+          tenants: dir.tenants || [],
+          pms: dir.pms || [],
+          waitlist: dir.waitlist || [],
         })
       } catch (err) {
-        console.error('Failed to fetch directories', err)
+        console.error('Failed to fetch recipient directories', err)
       } finally {
         setLoadingDirectory(false)
       }
