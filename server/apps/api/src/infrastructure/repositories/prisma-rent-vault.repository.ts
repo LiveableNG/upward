@@ -35,7 +35,7 @@ export class PrismaRentVaultRepository implements IRentVaultRepository {
         planPattern: data.planPattern ?? 'INITIAL_DEPOSIT',
         initialDepositKobo: data.initialDepositKobo ?? 0n,
         appliedAnnualRatePct:
-          data.appliedAnnualRatePct ?? (data.productOption === 'RENT_PROTEC' ? 10.0 : 14.0),
+          data.appliedAnnualRatePct ?? (data.productOption === 'RENT_PROTEC' ? 10.0 : 16.0),
         insurancePremiumPct:
           data.insurancePremiumPct ?? (data.productOption === 'RENT_PROTEC' ? 2.0 : 0.0),
         paydayDayOfMonth: data.paydayDayOfMonth ?? null,

@@ -9,7 +9,7 @@ model upward_rent_vault {
   productOption           String                           @default("SAVE_AND_EARN") // SAVE_AND_EARN, RENT_PROTEC
   planPattern             String                           @default("INITIAL_DEPOSIT") // EQUAL, INITIAL_DEPOSIT, STEP_UP, ACCELERATED
   initialDepositKobo      BigInt                           @default(0)
-  appliedAnnualRatePct    Float                            @default(14.0)
+  appliedAnnualRatePct    Float                            @default(16.0)
   insurancePremiumPct     Float                            @default(0)
   contractualDueDate      DateTime
   unlockDate              DateTime                         // Strictly contractualDueDate - 30 days

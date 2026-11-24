@@ -51,7 +51,7 @@ export class RentSavingsScheduler {
       let annualRatePct = `${platformRates.savingsAnnualRatePct}%`
       try {
         const metrics = await armProvider.getYieldMetrics('ARMMMF')
-        if (metrics?.dailyYieldRate > 0 && platformRates.savingsAnnualRatePct === 14.5) {
+        if (metrics?.dailyYieldRate > 0 && platformRates.savingsAnnualRatePct === 16.0) {
           dailyYieldRate = metrics.dailyYieldRate
           annualRatePct = `${(metrics.annualNetYieldRate * 100).toFixed(1)}%`
         }

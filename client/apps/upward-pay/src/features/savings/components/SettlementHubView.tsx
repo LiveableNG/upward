@@ -10,6 +10,7 @@ import { useExecuteSettlement, useSavingsOnboardingPrefill } from '../hooks/useR
 import type { SettlementResultData } from '../services/savingsService'
 import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/features/auth/AuthContext'
+import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
 import { SettlementSuccessModal } from './SettlementSuccessModal'
 
 interface SettlementHubViewProps {
@@ -41,6 +42,8 @@ export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewPr
 
   const { error: toastError, success: toastSuccess } = useToast()
   const { user } = useAuth()
+  const { rates: platformRates } = usePlatformRates()
+  const annualRate = platformRates?.savingsAnnualRatePct ?? 16
   const { data: prefill } = useSavingsOnboardingPrefill(true)
   const settlementMutation = useExecuteSettlement()
 
@@ -223,7 +226,7 @@ export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewPr
       >
         <TrendingUp size={20} style={{ flexShrink: 0 }} />
         <span>
-          <strong>Daily Yield Continues:</strong> Your funds continue compounding at 14.5% p.a.
+          <strong>Daily Yield Continues:</strong> Your funds continue compounding at {annualRate}% p.a.
           right up until the exact second you authorize payment.
         </span>
       </div>

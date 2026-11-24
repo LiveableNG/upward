@@ -43,7 +43,7 @@ export interface SimulationResult {
 }
 
 export class RentSavingsCalculatorEngine {
-  public static readonly ANNUAL_NET_YIELD = 0.145 // 14.5% p.a.
+  public static readonly ANNUAL_NET_YIELD = 0.16 // 16.0% p.a.
   public static readonly ANNUAL_BASE_EXIT_YIELD = 0.07 // 7.0% p.a. (Fair Exit)
   public static readonly DAYS_IN_YEAR = 365
   public static readonly DAILY_RATE =
@@ -101,7 +101,7 @@ export class RentSavingsCalculatorEngine {
         ? input.annualNetYieldRate
         : productOption === 'RENT_PROTEC'
           ? 0.1
-          : 0.14
+          : 0.16
 
     // Exact monthly effective rate: r_m = (1 + r_a)^(1/12) - 1 (Section 3.4)
     const monthlyRate = Math.pow(1 + effectiveAnnualYield, 1 / 12) - 1

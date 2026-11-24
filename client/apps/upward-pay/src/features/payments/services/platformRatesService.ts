@@ -19,14 +19,14 @@ export interface PlatformRates {
 
 export const DEFAULT_PLATFORM_RATES: PlatformRates = {
   savingsEnabled: true,
-  savingsAnnualRatePct: 14.0,
+  savingsAnnualRatePct: 16.0,
   rentProtecRatePct: 10.0,
   insurancePremiumPct: 2.0,
   rentProtecMinMonths: 6,
   maxSavingsMonths: 11,
-  savingsAnnualRateDecimal: 0.14,
+  savingsAnnualRateDecimal: 0.16,
   rentProtecRateDecimal: 0.1,
-  savingsDailyRate: 0.14 / 365,
+  savingsDailyRate: 0.16 / 365,
   rentProtecDailyRate: 0.1 / 365,
   insurancePremiumRateDecimal: 0.02,
   partnerName: 'Asset & Resource Management Holding Company (ARM)',

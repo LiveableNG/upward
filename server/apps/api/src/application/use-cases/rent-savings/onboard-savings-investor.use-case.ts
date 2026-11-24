@@ -627,7 +627,7 @@ export class OnboardSavingsInvestorUseCase {
       updateData.appliedAnnualRatePct =
         chosenOption === 'RENT_PROTEC'
           ? (platformRates?.rentProtecRatePct ?? 10.0)
-          : (platformRates?.savingsAnnualRatePct ?? 14.0)
+          : (platformRates?.savingsAnnualRatePct ?? 16.0)
       updateData.insurancePremiumPct =
         chosenOption === 'RENT_PROTEC' ? (platformRates?.insurancePremiumPct ?? 2.0) : 0
 
@@ -659,7 +659,7 @@ export class OnboardSavingsInvestorUseCase {
           appliedAnnualRatePct:
             chosenOption === 'RENT_PROTEC'
               ? (platformRates?.rentProtecRatePct ?? 10.0)
-              : (platformRates?.savingsAnnualRatePct ?? 14.0),
+              : (platformRates?.savingsAnnualRatePct ?? 16.0),
           insurancePremiumPct:
             chosenOption === 'RENT_PROTEC' ? (platformRates?.insurancePremiumPct ?? 2.0) : 0,
           contractualDueDate: resolvedDueDate,

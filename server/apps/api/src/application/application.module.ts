@@ -121,6 +121,11 @@ import {
   GetSettlementTransactionsUseCase,
   ResolveFlaggedSettlementUseCase,
 } from './use-cases/admin/admin-settlements.use-cases'
+import {
+  GetArmPortfolioStatsUseCase,
+  GetArmCustomersUseCase,
+  GetArmTransactionsUseCase,
+} from './use-cases/admin/admin-arm.use-cases'
 
 import { JoinWaitlistUseCase } from './use-cases/waitlist/join-waitlist.use-case'
 import { GetInviteDataUseCase } from './use-cases/invite/get-invite-data.use-case'
@@ -738,6 +743,9 @@ const UseCases: any[] = [
   GetFlaggedSettlementsUseCase,
   GetSettlementTransactionsUseCase,
   ResolveFlaggedSettlementUseCase,
+  GetArmPortfolioStatsUseCase,
+  GetArmCustomersUseCase,
+  GetArmTransactionsUseCase,
   SearchFeeTargetsUseCase,
   GetAreaPriceGuideUseCase,
   GetAreaPriceGuideStatesUseCase,

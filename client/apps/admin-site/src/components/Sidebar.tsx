@@ -26,6 +26,7 @@ import {
   ShoppingBag,
   BarChart3,
   TrendingDown,
+  TrendingUp,
   GraduationCap,
   Lock,
   ChevronDown,
@@ -124,6 +125,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
 
     // 3. Operations
     const opsItems: NavItem[] = [
+      { name: 'ARM Portfolio & Inflows', path: '/arm-portfolio', icon: TrendingUp },
       { name: 'Settlements & Payouts', path: '/settlements', icon: Landmark },
       { name: 'Requests Hub', path: '/requests', icon: Inbox },
       { name: 'Verifications', path: '/verifications', icon: ShieldCheck },

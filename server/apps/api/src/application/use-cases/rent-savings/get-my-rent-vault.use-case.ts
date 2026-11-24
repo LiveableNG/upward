@@ -125,7 +125,7 @@ export class GetMyRentVaultUseCase {
           tx.type === 'DEPOSIT'
             ? 'Rent Vault Deposit'
             : tx.type === 'YIELD_ACCRUAL'
-              ? 'Daily Compound Yield (14.5% p.a.)'
+              ? 'Daily Compound Yield (16.0% p.a.)'
               : tx.type === 'SETTLEMENT_DISBURSEMENT'
                 ? 'Landlord Rent Settlement'
                 : tx.type === 'CASHBACK'
@@ -213,7 +213,7 @@ export class GetMyRentVaultUseCase {
       (vault as any).appliedAnnualRatePct ??
       (resolvedProductOption === 'RENT_PROTEC'
         ? (rates?.rentProtecRatePct ?? 10.0)
-        : (rates?.savingsAnnualRatePct ?? 14.0))
+        : (rates?.savingsAnnualRatePct ?? 16.0))
     const annualYieldDecimal = annualYieldPct / 100
     const dailyYieldRate = annualYieldDecimal / 365
     const insurancePremiumPct =

@@ -18,9 +18,9 @@ export class MockInvestmentProvider implements IAssetManagementProvider {
 
   async getYieldMetrics(productCode: string = 'ARMMMF'): Promise<YieldMetrics> {
     return {
-      annualNetYieldRate: 0.145,
-      annualGrossYieldRate: 0.165,
-      dailyYieldRate: 0.145 / 365,
+      annualNetYieldRate: 0.16,
+      annualGrossYieldRate: 0.18,
+      dailyYieldRate: 0.16 / 365,
       productCode,
       canInvest: true,
     }

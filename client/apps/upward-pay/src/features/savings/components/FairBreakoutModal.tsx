@@ -7,6 +7,7 @@ import { formatCurrency } from '@/lib/utils'
 import { useBreakoutRentVault } from '../hooks/useRentSavings'
 import type { BreakoutResultData } from '../services/savingsService'
 import { useToast } from '@/components/common/Toast'
+import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
 
 interface FairBreakoutModalProps {
   vaultId: string
@@ -33,6 +34,8 @@ export function FairBreakoutModal({
   )
 
   const { error: toastError, success: toastSuccess } = useToast()
+  const { rates: platformRates } = usePlatformRates()
+  const annualRate = platformRates?.savingsAnnualRatePct ?? 16
   const breakoutMutation = useBreakoutRentVault()
 
   useEffect(() => {
@@ -143,7 +146,7 @@ export function FairBreakoutModal({
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
             <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
               Upward is built to protect your roof. If you need to withdraw your savings before rent
-              day, your money is completely safe, but the 14.5% annual bonus returns will be
+              day, your money is completely safe, but the {annualRate}% annual bonus returns will be
               adjusted to the 7% base rate.
             </p>
 
@@ -153,7 +156,7 @@ export function FairBreakoutModal({
                 <span style={{ fontWeight: 600 }}>{formatCurrency(principalNaira, 'NGN')}</span>
               </div>
               <div className="vault-fee-breakdown__row">
-                <span>Forfeited Bonus Interest (14.5%)</span>
+                <span>Forfeited Bonus Interest ({annualRate}%)</span>
                 <span style={{ color: 'var(--text-muted)', textDecoration: 'line-through' }}>
                   {formatCurrency(accruedYieldNaira, 'NGN')}
                 </span>

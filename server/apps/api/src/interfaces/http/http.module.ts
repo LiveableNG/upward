@@ -27,6 +27,7 @@ import { WalletController } from './user/wallet.controller'
 import { PaymentsController } from './public/payments.controller'
 import { AdminAnnouncementsController } from './admin/announcements.controller'
 import { AdminSettlementsController } from './admin/admin-settlements.controller'
+import { AdminArmController } from './admin/admin-arm.controller'
 import { UserNotificationsController } from './user/notifications.controller'
 import { ContractController } from './user/contract.controller'
 import { PublicProfileController } from './public/public-profile.controller'
@@ -161,6 +162,7 @@ import { NotificationsGateway } from '../websockets/notifications.gateway'
     PaymentsController,
     AdminAnnouncementsController,
     AdminSettlementsController,
+    AdminArmController,
     UserNotificationsController,
     ContractController,
     PublicProfileController,

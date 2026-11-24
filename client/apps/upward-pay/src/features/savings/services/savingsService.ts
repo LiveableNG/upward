@@ -271,7 +271,7 @@ export function calculatePayLessPlan(
   runwayDays: number,
   cadence: SavingsCadence = 'MONTHLY',
   initialSavedNaira = 0,
-  annualRatePct = 14.0,
+  annualRatePct = 16.0,
   options?: {
     productOption?: SavingsProductOption
     planPattern?: SavingsPlanPattern

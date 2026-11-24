@@ -38,7 +38,7 @@ export class ArmConnectInvestmentProvider implements IAssetManagementProvider {
     this.baseUrl = (
       this.configService.get<string>('ARM_BASE_URL') || 'https://sandapi.arm.com.ng'
     ).replace(/\/$/, '')
-    this.email = this.configService.get<string>('ARM_EMAIL') || 'tech@goodtenants.africa'
+    this.email = this.configService.get<string>('ARM_EMAIL') || 'GoodTenant@yopmail.com'
     this.password = this.configService.get<string>('ARM_PASSWORD') || 'Test@123'
   }
 
@@ -58,7 +58,7 @@ export class ArmConnectInvestmentProvider implements IAssetManagementProvider {
 
     this.logger.log(`Authenticating with ARM Connect API (${this.baseUrl})...`)
     try {
-      const response = await fetch(`${this.baseUrl}/api/v1/merchant/login`, {
+      const response = await fetch(`${this.baseUrl}/merchant2/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -110,11 +110,11 @@ export class ArmConnectInvestmentProvider implements IAssetManagementProvider {
         )
 
         if (fund) {
-          const rateNum = Number(fund.productRate || 14.5) / 100
+          const rateNum = Number(fund.productRate || 16.0) / 100
           return {
-            annualNetYieldRate: rateNum > 0 ? rateNum : 0.145,
-            annualGrossYieldRate: (rateNum > 0 ? rateNum : 0.145) + 0.02,
-            dailyYieldRate: (rateNum > 0 ? rateNum : 0.145) / 365,
+            annualNetYieldRate: rateNum > 0 ? rateNum : 0.16,
+            annualGrossYieldRate: (rateNum > 0 ? rateNum : 0.16) + 0.02,
+            dailyYieldRate: (rateNum > 0 ? rateNum : 0.16) / 365,
             productCode,
             canInvest: fund.canInvest !== false && fund.isActive !== false,
           }
@@ -122,16 +122,16 @@ export class ArmConnectInvestmentProvider implements IAssetManagementProvider {
       }
     } catch (err) {
       this.logger.warn(
-        `Could not fetch live rate from ARM for ${productCode}, falling back to baseline 14.5% p.a.`,
+        `Could not fetch live rate from ARM for ${productCode}, falling back to baseline 16.0% p.a.`,
         err,
       )
     }
 
     // Default baseline if ARM network is slow or sandbox fund list is empty
     return {
-      annualNetYieldRate: 0.145,
-      annualGrossYieldRate: 0.165,
-      dailyYieldRate: 0.145 / 365,
+      annualNetYieldRate: 0.16,
+      annualGrossYieldRate: 0.18,
+      dailyYieldRate: 0.16 / 365,
       productCode,
       canInvest: true,
     }
