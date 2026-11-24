@@ -12,10 +12,10 @@ import {
   RefreshCcw,
   Users,
   Search,
-  X,
 } from 'lucide-react'
 import { apiService } from '../../../services/api.service'
 import { showToast } from '@upward/client-core'
+import { Modal } from '../../../components/common/modal/Modal'
 
 export interface BulkCampaignSummary {
   id: string
@@ -519,181 +519,40 @@ export const BulkEmailCampaignsTab: React.FC<BulkEmailCampaignsTabProps> = ({ to
         </div>
       )}
 
-      {/* Campaign Recipients & Failures Modal */}
-      {selectedCampaign && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 2000,
-            padding: '20px',
-          }}
-          onClick={() => setSelectedCampaign(null)}
-        >
+      {/* Campaign Recipients & Failures Modal (using standard reusable Modal) */}
+      <Modal
+        isOpen={!!selectedCampaign}
+        onClose={() => setSelectedCampaign(null)}
+        title={selectedCampaign?.subject || 'Campaign Recipients'}
+        description={
+          selectedCampaign
+            ? `${selectedCampaign.sentCount.toLocaleString()} sent • ${selectedCampaign.failedCount.toLocaleString()} failed • ${selectedCampaign.pendingCount.toLocaleString()} pending`
+            : undefined
+        }
+        icon={<Users size={20} />}
+        maxWidth="840px"
+        footerActions={
           <div
-            className="card"
             style={{
               width: '100%',
-              maxWidth: '820px',
-              maxHeight: '85vh',
               display: 'flex',
-              flexDirection: 'column',
-              padding: '24px',
-              gap: '16px',
-              overflow: 'hidden',
-              background: 'var(--white)',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: '12px',
             }}
-            onClick={(e) => e.stopPropagation()}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <h2 style={{ margin: 0, fontSize: '18px' }}>{selectedCampaign.subject}</h2>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                  {selectedCampaign.sentCount.toLocaleString()} sent •{' '}
-                  {selectedCampaign.failedCount.toLocaleString()} failed •{' '}
-                  {selectedCampaign.pendingCount.toLocaleString()} pending
-                </div>
-              </div>
-              <button
-                onClick={() => setSelectedCampaign(null)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: '6px',
-                  color: 'var(--text-muted)',
-                }}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
-              {(['ALL', 'FAILED', 'SENT', 'PENDING'] as const).map((st) => (
-                <button
-                  key={st}
-                  onClick={() => {
-                    setRecipientStatus(st)
-                    setRecipientPage(1)
-                  }}
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border)',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    background: recipientStatus === st ? 'var(--accent)' : 'var(--surface)',
-                    color: recipientStatus === st ? '#fff' : 'inherit',
-                  }}
-                >
-                  {st === 'ALL' ? 'All' : st === 'FAILED' ? 'Failed' : st === 'SENT' ? 'Sent' : 'Queued'}
-                </button>
-              ))}
-              <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
-                <Search
-                  size={14}
-                  style={{
-                    position: 'absolute',
-                    left: '10px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: 'var(--text-muted)',
-                  }}
-                />
-                <input
-                  type="text"
-                  placeholder="Search recipient email..."
-                  value={recipientSearch}
-                  onChange={(e) => {
-                    setRecipientSearch(e.target.value)
-                    setRecipientPage(1)
-                  }}
-                  style={{
-                    width: '100%',
-                    padding: '7px 10px 7px 32px',
-                    borderRadius: '8px',
-                    border: '1px solid var(--border)',
-                    fontSize: '13px',
-                  }}
-                />
-              </div>
-            </div>
-
-            <div style={{ overflowY: 'auto', flex: 1, border: '1px solid var(--border)', borderRadius: '10px' }}>
-              {loadingRecipients ? (
-                <div style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  Loading recipients…
-                </div>
-              ) : recipients.length === 0 ? (
-                <div style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  No recipients match this filter.
-                </div>
-              ) : (
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                  <thead>
-                    <tr style={{ background: 'var(--surface)', textAlign: 'left' }}>
-                      <th style={{ padding: '10px 14px' }}>Email</th>
-                      <th style={{ padding: '10px 14px' }}>Status</th>
-                      <th style={{ padding: '10px 14px' }}>Details / Reason</th>
-                      <th style={{ padding: '10px 14px' }}>Sent At</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recipients.map((r) => (
-                      <tr key={r.id} style={{ borderTop: '1px solid var(--border)' }}>
-                        <td style={{ padding: '10px 14px', fontWeight: 500 }}>{r.email}</td>
-                        <td style={{ padding: '10px 14px' }}>
-                          <span
-                            style={{
-                              fontSize: '11px',
-                              fontWeight: 700,
-                              padding: '2px 8px',
-                              borderRadius: '999px',
-                              background:
-                                r.status === 'SENT'
-                                  ? '#d1fae5'
-                                  : r.status === 'FAILED' || r.status === 'PERMANENT_FAILED'
-                                    ? '#fee2e2'
-                                    : '#fef3c7',
-                              color:
-                                r.status === 'SENT'
-                                  ? '#059669'
-                                  : r.status === 'FAILED' || r.status === 'PERMANENT_FAILED'
-                                    ? '#dc2626'
-                                    : '#d97706',
-                            }}
-                          >
-                            {r.status === 'PERMANENT_FAILED' ? 'Invalid / Permanent' : r.status}
-                          </span>
-                        </td>
-                        <td style={{ padding: '10px 14px', color: 'var(--text-muted)', fontSize: '12px' }}>
-                          {r.friendlyError || (r.status === 'SENT' ? 'Accepted by Mailgun' : 'Waiting in queue')}
-                        </td>
-                        <td style={{ padding: '10px 14px', color: 'var(--text-muted)', fontSize: '12px' }}>
-                          {r.sentAt ? new Date(r.sentAt).toLocaleTimeString() : '—'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-
-            {recipientTotalPages > 1 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            {recipientTotalPages > 1 ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <button
                   onClick={() => setRecipientPage((p) => Math.max(1, p - 1))}
                   disabled={recipientPage <= 1}
                   style={{
-                    padding: '6px 12px',
-                    borderRadius: '8px',
+                    padding: '8px 14px',
+                    borderRadius: '10px',
                     border: '1px solid var(--border)',
                     background: 'var(--white)',
+                    fontSize: '13px',
+                    fontWeight: 600,
                     cursor: recipientPage <= 1 ? 'not-allowed' : 'pointer',
                   }}
                 >
@@ -706,20 +565,152 @@ export const BulkEmailCampaignsTab: React.FC<BulkEmailCampaignsTabProps> = ({ to
                   onClick={() => setRecipientPage((p) => Math.min(recipientTotalPages, p + 1))}
                   disabled={recipientPage >= recipientTotalPages}
                   style={{
-                    padding: '6px 12px',
-                    borderRadius: '8px',
+                    padding: '8px 14px',
+                    borderRadius: '10px',
                     border: '1px solid var(--border)',
                     background: 'var(--white)',
+                    fontSize: '13px',
+                    fontWeight: 600,
                     cursor: recipientPage >= recipientTotalPages ? 'not-allowed' : 'pointer',
                   }}
                 >
                   Next
                 </button>
               </div>
+            ) : (
+              <div />
+            )}
+            <button
+              onClick={() => setSelectedCampaign(null)}
+              className="btn btn-primary"
+              style={{ padding: '10px 24px', borderRadius: '12px' }}
+            >
+              Close
+            </button>
+          </div>
+        }
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+            {(['ALL', 'FAILED', 'SENT', 'PENDING'] as const).map((st) => (
+              <button
+                key={st}
+                onClick={() => {
+                  setRecipientStatus(st)
+                  setRecipientPage(1)
+                }}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border)',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  background: recipientStatus === st ? 'var(--accent)' : 'var(--surface)',
+                  color: recipientStatus === st ? '#fff' : 'inherit',
+                }}
+              >
+                {st === 'ALL' ? 'All' : st === 'FAILED' ? 'Failed' : st === 'SENT' ? 'Sent' : 'Queued'}
+              </button>
+            ))}
+            <div style={{ position: 'relative', flex: 1, minWidth: '200px' }}>
+              <Search
+                size={14}
+                style={{
+                  position: 'absolute',
+                  left: '10px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--text-muted)',
+                }}
+              />
+              <input
+                type="text"
+                placeholder="Search recipient email..."
+                value={recipientSearch}
+                onChange={(e) => {
+                  setRecipientSearch(e.target.value)
+                  setRecipientPage(1)
+                }}
+                style={{
+                  width: '100%',
+                  padding: '7px 10px 7px 32px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border)',
+                  fontSize: '13px',
+                }}
+              />
+            </div>
+          </div>
+
+          <div
+            style={{
+              maxHeight: '52vh',
+              overflowY: 'auto',
+              border: '1px solid var(--border)',
+              borderRadius: '12px',
+            }}
+          >
+            {loadingRecipients ? (
+              <div style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                Loading recipients…
+              </div>
+            ) : recipients.length === 0 ? (
+              <div style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                No recipients match this filter.
+              </div>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                <thead>
+                  <tr style={{ background: 'var(--surface)', textAlign: 'left' }}>
+                    <th style={{ padding: '10px 14px' }}>Email</th>
+                    <th style={{ padding: '10px 14px' }}>Status</th>
+                    <th style={{ padding: '10px 14px' }}>Details / Reason</th>
+                    <th style={{ padding: '10px 14px' }}>Sent At</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recipients.map((r) => (
+                    <tr key={r.id} style={{ borderTop: '1px solid var(--border)' }}>
+                      <td style={{ padding: '10px 14px', fontWeight: 500 }}>{r.email}</td>
+                      <td style={{ padding: '10px 14px' }}>
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            padding: '2px 8px',
+                            borderRadius: '999px',
+                            background:
+                              r.status === 'SENT'
+                                ? '#d1fae5'
+                                : r.status === 'FAILED' || r.status === 'PERMANENT_FAILED'
+                                  ? '#fee2e2'
+                                  : '#fef3c7',
+                            color:
+                              r.status === 'SENT'
+                                ? '#059669'
+                                : r.status === 'FAILED' || r.status === 'PERMANENT_FAILED'
+                                  ? '#dc2626'
+                                  : '#d97706',
+                          }}
+                        >
+                          {r.status === 'PERMANENT_FAILED' ? 'Invalid / Permanent' : r.status}
+                        </span>
+                      </td>
+                      <td style={{ padding: '10px 14px', color: 'var(--text-muted)', fontSize: '12px' }}>
+                        {r.friendlyError || (r.status === 'SENT' ? 'Accepted by Mailgun' : 'Waiting in queue')}
+                      </td>
+                      <td style={{ padding: '10px 14px', color: 'var(--text-muted)', fontSize: '12px' }}>
+                        {r.sentAt ? new Date(r.sentAt).toLocaleTimeString() : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             )}
           </div>
         </div>
-      )}
+      </Modal>
     </div>
   )
 }
