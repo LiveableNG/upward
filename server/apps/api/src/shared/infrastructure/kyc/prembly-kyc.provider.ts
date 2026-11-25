@@ -51,7 +51,7 @@ export class PremblyKycProvider implements IKycProvider {
     // https://docs.prembly.com/guides/products/verification/kyc#option-b-verification-services-rest-api
     const serviceName = idType.toLowerCase() // 'bvn' | 'nin' | 'vnin'
     const primaryUrl = `${this.baseUrl}/api/v1/verification/api/${serviceName}/`
-    const fallbackUrl = `${this.baseUrl}/verification/${serviceName}`
+    const fallbackUrl = `${this.baseUrl}/identitypass/verification/${serviceName}`
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -80,6 +80,24 @@ export class PremblyKycProvider implements IKycProvider {
       payload['dob'] = expectedUser.dateOfBirth
     }
 
+    const isTransientGatewayStatus = (status: number) =>
+      status === 502 || status === 503 || status === 504
+
+    const parseResponsePayload = async (
+      response: Response,
+    ): Promise<{ data: Record<string, any>; rawText: string }> => {
+      if (typeof response.text === 'function') {
+        const rawText = await response.text().catch(() => '')
+        try {
+          return { data: rawText ? JSON.parse(rawText) : {}, rawText }
+        } catch {
+          return { data: {}, rawText }
+        }
+      }
+      const data = await response.json().catch(() => ({}))
+      return { data: data || {}, rawText: '' }
+    }
+
     try {
       this.logger.log(`Initiating ${idType} verification with Prembly Verification Services API`)
       let res = await fetch(primaryUrl, {
@@ -88,10 +106,10 @@ export class PremblyKycProvider implements IKycProvider {
         body: JSON.stringify(payload),
       })
 
-      // If primary Option B route returns 404, fall back to root /verification/{service_name}
-      if (res.status === 404) {
+      // Fall back to /identitypass/verification/{serviceName} on 404 or transient 502/503/504 upstream errors
+      if (res.status === 404 || isTransientGatewayStatus(res.status)) {
         this.logger.warn(
-          `Primary Prembly endpoint 404'd (${primaryUrl}), attempting fallback route: ${fallbackUrl}`,
+          `Primary Prembly endpoint returned ${res.status} (${primaryUrl}), attempting fallback route: ${fallbackUrl}`,
         )
         res = await fetch(fallbackUrl, {
           method: 'POST',
@@ -100,7 +118,20 @@ export class PremblyKycProvider implements IKycProvider {
         })
       }
 
-      const data = await res.json().catch(() => ({}))
+      // One final retry on primaryUrl after short backoff if Prembly gateway returned transient 502/503/504
+      if (isTransientGatewayStatus(res.status)) {
+        await new Promise((resolve) => setTimeout(resolve, 600))
+        this.logger.warn(
+          `Prembly fallback returned ${res.status}; retrying primary route once: ${primaryUrl}`,
+        )
+        res = await fetch(primaryUrl, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload),
+        })
+      }
+
+      const { data, rawText } = await parseResponsePayload(res)
 
       // Prembly standard response codes from KYC guide:
       // "00": Success (matched and retrieved from authoritative registry)
@@ -117,12 +148,13 @@ export class PremblyKycProvider implements IKycProvider {
         let failureMessage = data.message || data.detail || `Failed to verify ${idType}`
         if (responseCode === '01') {
           failureMessage = `The provided ${idType} (${cleanedNumber}) was not found in the official registry.`
-        } else if (responseCode === '02') {
-          failureMessage = `The official ${idType} registry is temporarily unavailable. Please try again in a few moments.`
+        } else if (responseCode === '02' || isTransientGatewayStatus(res.status)) {
+          failureMessage = `The official ${idType} verification service (Prembly) is temporarily unavailable. Please try again in a few moments.`
         }
 
+        const extraDetail = rawText && !data.message ? ` | body: ${rawText.slice(0, 120)}` : ''
         this.logger.warn(
-          `Prembly ${idType} verification unsuccessful [${res.status} | code: ${responseCode}]: ${failureMessage}`,
+          `Prembly ${idType} verification unsuccessful [${res.status} | code: ${responseCode}]: ${failureMessage}${extraDetail}`,
         )
         return {
           success: false,

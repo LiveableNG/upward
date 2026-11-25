@@ -195,6 +195,7 @@ function checkNameMatch(
   userLast: string,
   provFirst: string,
   provLast: string,
+  rawResponse?: Record<string, any>,
 ): boolean {
   const uf = cleanName(userFirst)
   const ul = cleanName(userLast)
@@ -213,13 +214,16 @@ function checkNameMatch(
     return true
   }
 
-  // In non-production environments, Prembly sandbox always returns "RONALD EKOM".
-  // Allow non-production testers to verify their accounts without needing to rename their profiles.
+  // In non-production environments, Prembly sandbox returns fixed test personas
+  // ("RONALD EKOM" for BVN and "CHIDERA JOHNSON" for NIN, or `is_sandbox: true`).
+  const allowSandboxNames =
+    process.env.NODE_ENV !== 'production' || process.env.ALLOW_KYC_TEST_NAMES === 'true'
   if (
-    (process.env.NODE_ENV !== 'production' ||
-      process.env.ALLOW_KYC_TEST_NAMES === 'true') &&
-    provFull.includes('ronald') &&
-    provFull.includes('ekom')
+    allowSandboxNames &&
+    ((provFull.includes('ronald') && provFull.includes('ekom')) ||
+      (provFull.includes('chidera') && provFull.includes('johnson')) ||
+      rawResponse?.is_sandbox === true ||
+      rawResponse?.verification_status === 'sandbox')
   ) {
     return true
   }
@@ -701,7 +705,13 @@ export class OnboardSavingsInvestorUseCase {
     const returnedLast = verificationResult.lastName || ''
     const returnedDob = verificationResult.dateOfBirth || ''
 
-    const nameMatched = checkNameMatch(user.firstName, user.lastName, returnedFirst, returnedLast)
+    const nameMatched = checkNameMatch(
+      user.firstName,
+      user.lastName,
+      returnedFirst,
+      returnedLast,
+      verificationResult.rawResponse,
+    )
     if (!nameMatched) {
       throw new BadRequestException(
         `The names on your Upward account (${user.firstName} ${user.lastName}) do not match the legal name registered under this BVN (${returnedFirst} ${returnedLast}).`,
@@ -725,7 +735,13 @@ export class OnboardSavingsInvestorUseCase {
     const ninFirst = ninVerificationResult.firstName || ''
     const ninLast = ninVerificationResult.lastName || ''
     if (ninFirst && ninLast) {
-      const ninNameMatched = checkNameMatch(user.firstName, user.lastName, ninFirst, ninLast)
+      const ninNameMatched = checkNameMatch(
+        user.firstName,
+        user.lastName,
+        ninFirst,
+        ninLast,
+        ninVerificationResult.rawResponse,
+      )
       if (!ninNameMatched) {
         throw new BadRequestException(
           `The names on your Upward account (${user.firstName} ${user.lastName}) do not match the legal name registered under this NIN (${ninFirst} ${ninLast}).`,
