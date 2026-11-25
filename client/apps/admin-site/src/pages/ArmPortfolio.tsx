@@ -1,4 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
+import { InternalLedgerTab } from '../components/arm/InternalLedgerTab'
+import { ActivationCashbackTab } from '../components/arm/ActivationCashbackTab'
 import {
   Landmark,
   Search,
@@ -242,7 +244,9 @@ interface LiveArmStatusResponse {
 }
 
 export default function ArmPortfolio({ token }: ArmPortfolioProps) {
-  const [activeTab, setActiveTab] = useState<'CUSTOMERS' | 'INFLOWS' | 'JOBS' | 'CONSENT'>('CUSTOMERS')
+  const [activeTab, setActiveTab] = useState<
+    'CUSTOMERS' | 'INFLOWS' | 'JOBS' | 'CONSENT' | 'LEDGER' | 'CASHBACK'
+  >('CUSTOMERS')
   const [stats, setStats] = useState<PortfolioStats | null>(null)
   const [customers, setCustomers] = useState<ArmCustomer[]>([])
   const [transactions, setTransactions] = useState<ArmTransaction[]>([])
@@ -978,6 +982,40 @@ export default function ArmPortfolio({ token }: ArmPortfolioProps) {
           }}
         >
           B2B2C Auto-Consent Verification Ledger
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('LEDGER')}
+          style={{
+            padding: '10px 18px',
+            border: 'none',
+            background: 'none',
+            fontSize: '14px',
+            fontWeight: activeTab === 'LEDGER' ? 700 : 500,
+            color: activeTab === 'LEDGER' ? 'var(--primary, #c2501f)' : 'var(--text-muted)',
+            borderBottom: activeTab === 'LEDGER' ? '2.5px solid var(--primary, #c2501f)' : 'none',
+            cursor: 'pointer',
+          }}
+        >
+          Internal Ledger &amp; Economics
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('CASHBACK')}
+          style={{
+            padding: '10px 18px',
+            border: 'none',
+            background: 'none',
+            fontSize: '14px',
+            fontWeight: activeTab === 'CASHBACK' ? 700 : 500,
+            color: activeTab === 'CASHBACK' ? 'var(--primary, #c2501f)' : 'var(--text-muted)',
+            borderBottom: activeTab === 'CASHBACK' ? '2.5px solid var(--primary, #c2501f)' : 'none',
+            cursor: 'pointer',
+          }}
+        >
+          Activation Cashback
         </button>
       </div>
 
@@ -1879,6 +1917,10 @@ export default function ArmPortfolio({ token }: ArmPortfolioProps) {
           </table>
         </div>
       )}
+
+      {activeTab === 'LEDGER' && <InternalLedgerTab token={token} />}
+
+      {activeTab === 'CASHBACK' && <ActivationCashbackTab token={token} />}
 
       {/* ── SLIDE-OVER DETAIL DRAWER (CUSTOMER / TRANSACTION / JOB) ── */}
       {detailDrawer && (

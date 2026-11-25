@@ -34,6 +34,7 @@ export class AdminFeesController {
   private async savePlatformRates(
     body: {
       savingsEnabled?: boolean
+      savingsMode?: 'COMING_SOON' | 'OPT_IN_ONLY' | 'LIVE'
       savingsAnnualRatePct?: number
       rentProtecRatePct?: number
       insurancePremiumPct?: number
@@ -46,6 +47,7 @@ export class AdminFeesController {
   ) {
     const data = await this.platformRatesService.updateRates({
       savingsEnabled: body.savingsEnabled,
+      savingsMode: body.savingsMode,
       savingsAnnualRatePct: body.savingsAnnualRatePct,
       rentProtecRatePct: body.rentProtecRatePct,
       insurancePremiumPct: body.insurancePremiumPct,

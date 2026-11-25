@@ -39,6 +39,7 @@ import { BulkImportDetail } from './pages/BulkImportDetail'
 import Requests from './pages/Requests'
 import UpwardUniversity from './pages/UpwardUniversity'
 import ArmPortfolio from './pages/ArmPortfolio'
+import InsuranceLedger from './pages/InsuranceLedger'
 import Settlements from './pages/Settlements'
 import CommerceWorkspace from './pages/CommerceWorkspace'
 import TenantGoalsAnalytics from './pages/TenantGoalsAnalytics'
@@ -120,6 +121,10 @@ function AppRoutes() {
           <Route
             path="/arm-portfolio"
             element={<ArmPortfolio token={auth.token} adminRole={auth.user?.role} />}
+          />
+          <Route
+            path="/insurance-ledger"
+            element={<InsuranceLedger token={auth.token} />}
           />
           <Route path="/settlements" element={<Settlements token={auth.token} adminRole={auth.user?.role} />} />
           <Route path="/support" element={<SupportTickets token={auth.token} />} />

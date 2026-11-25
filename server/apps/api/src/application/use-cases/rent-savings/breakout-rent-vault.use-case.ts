@@ -78,6 +78,37 @@ export class BreakoutRentVaultUseCase {
       netPayout = netPayout > advanceDeduction ? netPayout - advanceDeduction : 0n
     }
 
+    // Rent Protec early-exit premium recovery:
+    // If Upward paid the 2% insurance premium upfront and has not yet recovered it
+    // through daily yield spread, recover the remaining unrecovered amount on early exit.
+    let premiumRecoveryDeduction = 0n
+    let treasurySummary: {
+      id: number
+      unrecoveredPremiumKobo: bigint
+      upfrontPremiumObligationKobo: bigint
+    } | null = null
+
+    if (
+      vault.productOption === 'RENT_PROTEC' &&
+      this.prisma?.upward_vault_treasury_summary
+    ) {
+      treasurySummary = await this.prisma.upward_vault_treasury_summary.findUnique({
+        where: { vaultId: vault.id },
+        select: {
+          id: true,
+          unrecoveredPremiumKobo: true,
+          upfrontPremiumObligationKobo: true,
+        },
+      })
+      if (treasurySummary && treasurySummary.unrecoveredPremiumKobo > 0n) {
+        premiumRecoveryDeduction =
+          netPayout > treasurySummary.unrecoveredPremiumKobo
+            ? treasurySummary.unrecoveredPremiumKobo
+            : netPayout
+        netPayout = netPayout - premiumRecoveryDeduction
+      }
+    }
+
     const breakoutReference = `UPW_BREAKOUT_${Date.now()}`
 
     // Liquidate underlying MMF units via BullMQ durable outbox job (or direct fallback in tests)
@@ -133,11 +164,15 @@ export class BreakoutRentVaultUseCase {
             balanceAfterKobo: 0n,
             reference: breakoutReference,
             channel: 'SYSTEM_YIELD',
-            narration: `Fair exit breakout executed: 7.0% base yield applied, 1.5% admin fee deducted`,
+            narration:
+              premiumRecoveryDeduction > 0n
+                ? `Fair exit breakout executed: 7.0% base yield applied, 1.5% admin fee & unrecovered Rent Protec premium deducted`
+                : `Fair exit breakout executed: 7.0% base yield applied, 1.5% admin fee deducted`,
             metadata: {
               recalculatedYieldKobo: Number(breakout.recalculatedYieldKobo),
               adminFeeKobo: Number(breakout.adminFeeKobo),
               advanceDeductionKobo: Number(advanceDeduction),
+              premiumRecoveryDeductionKobo: Number(premiumRecoveryDeduction),
               netPayoutKobo: Number(netPayout),
               armSyncStatus:
                 freshVault.investmentProvider && totalVaultBalance > 0n
@@ -256,6 +291,41 @@ export class BreakoutRentVaultUseCase {
       })
     }
 
+    // Record internal treasury early-exit premium recovery if applicable
+    if (
+      premiumRecoveryDeduction > 0n &&
+      treasurySummary &&
+      this.prisma?.upward_vault_treasury_summary &&
+      this.prisma?.upward_savings_internal_ledger
+    ) {
+      const nextUnrecovered =
+        treasurySummary.unrecoveredPremiumKobo > premiumRecoveryDeduction
+          ? treasurySummary.unrecoveredPremiumKobo - premiumRecoveryDeduction
+          : 0n
+      await this.prisma.upward_vault_treasury_summary
+        .update({
+          where: { vaultId: vault.id },
+          data: {
+            premiumRecoveredKobo: { increment: premiumRecoveryDeduction },
+            unrecoveredPremiumKobo: nextUnrecovered,
+          },
+        })
+        .catch(() => {})
+      await this.prisma.upward_savings_internal_ledger
+        .create({
+          data: {
+            vaultId: vault.id,
+            entryType: 'EARLY_EXIT_RECOVERY',
+            productOption: vault.productOption || 'RENT_PROTEC',
+            principalBaseKobo: vault.currentPrincipalKobo,
+            premiumRecoveryAppliedKobo: premiumRecoveryDeduction,
+            reference: `EXIT_REC_${breakoutReference}`,
+            notes: `Recovered unrecovered upfront 2% Rent Protec premium on Fair Exit breakout`,
+          },
+        })
+        .catch(() => {})
+    }
+
     // Update savings score discipline penalty (-30 points)
     const currentScore = await this.rentVaultRepo.findSavingsScoreByVaultId(vault.id)
     const newScore = Math.max(0, (currentScore?.totalScore || 20) - 30)
@@ -281,6 +351,7 @@ export class BreakoutRentVaultUseCase {
         recalculated_base_yield_kobo: Number(breakout.recalculatedYieldKobo),
         admin_fee_kobo: Number(breakout.adminFeeKobo),
         advance_deduction_kobo: Number(advanceDeduction),
+        premium_recovery_deduction_kobo: Number(premiumRecoveryDeduction),
         net_payout_kobo: Number(netPayout),
       },
     }

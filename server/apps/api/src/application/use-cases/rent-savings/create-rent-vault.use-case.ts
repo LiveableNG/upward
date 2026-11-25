@@ -214,6 +214,49 @@ export class CreateRentVaultUseCase {
         .catch(() => {})
     }
 
+    // Initialize internal treasury & Rent Protec upfront premium obligation ledger
+    // NOTE: Upward pays the 2% Rent Protec insurance premium upfront internally;
+    // it is NEVER deducted from the customer's principal or shown as a debit on their balance.
+    if (this.prisma?.upward_vault_treasury_summary && this.prisma?.upward_savings_internal_ledger) {
+      const insurancePremiumPct = rates?.insurancePremiumPct ?? 2.0
+      const upfrontPremiumObligationKobo =
+        chosenOption === 'RENT_PROTEC'
+          ? BigInt(Math.round(Number(targetAmountKobo) * (insurancePremiumPct / 100)))
+          : 0n
+
+      await this.prisma.upward_vault_treasury_summary
+        .upsert({
+          where: { vaultId: vault.id },
+          create: {
+            vaultId: vault.id,
+            productOption: chosenOption,
+            upfrontPremiumObligationKobo,
+            unrecoveredPremiumKobo: upfrontPremiumObligationKobo,
+          },
+          update: {
+            productOption: chosenOption,
+          },
+        })
+        .catch(() => {})
+
+      if (upfrontPremiumObligationKobo > 0n) {
+        await this.prisma.upward_savings_internal_ledger
+          .create({
+            data: {
+              vaultId: vault.id,
+              entryType: 'PREMIUM_OBLIGATION',
+              productOption: chosenOption,
+              principalBaseKobo: targetAmountKobo,
+              customerRatePct: appliedAnnualRatePct,
+              premiumObligationDeltaKobo: upfrontPremiumObligationKobo,
+              reference: `PREM_OBLIG_${vault.id}_${Date.now()}`,
+              notes: `Upfront ${insurancePremiumPct}% Rent Protec insurance premium obligation funded internally by Upward (recovered from ARM yield spread)`,
+            },
+          })
+          .catch(() => {})
+      }
+    }
+
     // Initialize baseline savings score (20 points for setup)
     await this.rentVaultRepo.upsertSavingsScore(vault.id, userId, {
       cadencePoints: 0,

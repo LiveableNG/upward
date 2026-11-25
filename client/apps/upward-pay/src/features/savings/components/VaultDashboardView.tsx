@@ -260,9 +260,31 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
   }
 
   const fundDisplayName = platformRates.fundName || SAVINGS_FUND_NAME
+  const isOptInOnly = platformRates.savingsMode === 'OPT_IN_ONLY'
 
   return (
     <div className="rent-savings">
+      {isOptInOnly && (
+        <div
+          className="savings-kyc-banner savings-kyc-banner--verified"
+          style={{ marginBottom: 14 }}
+        >
+          <div className="savings-kyc-banner__icon">
+            <ShieldCheck size={18} color="#059669" />
+          </div>
+          <div className="savings-kyc-banner__content">
+            <span className="savings-kyc-banner__title">
+              Activation Opt-In Complete — Deposits Opening Soon
+            </span>
+            <span className="savings-kyc-banner__desc">
+              Your Rent Vault and ARM investor onboarding are locked in. Any activation cashback
+              credited to your vault appears in your balance below, and live deposits will open
+              shortly.
+            </span>
+          </div>
+        </div>
+      )}
+
       <div className="vault-dashboard__hero">
         <div className="vault-dashboard__top-row">
           <div className="vault-arm-badge">
@@ -323,14 +345,16 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
         </div>
 
         <div className="vault-dashboard__actions">
-          <button
-            type="button"
-            className="vault-btn-primary"
-            onClick={() => setShowFundModal(true)}
-          >
-            <PlusCircle size={18} />
-            <span>Add Funds</span>
-          </button>
+          {!isOptInOnly && (
+            <button
+              type="button"
+              className="vault-btn-primary"
+              onClick={() => setShowFundModal(true)}
+            >
+              <PlusCircle size={18} />
+              <span>Add Funds</span>
+            </button>
+          )}
 
           {canSettleLandlord && (
             <button

@@ -126,6 +126,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isSuperadmin, isMobileOpen, onClose }
     // 3. Operations
     const opsItems: NavItem[] = [
       { name: 'ARM Portfolio & Inflows', path: '/arm-portfolio', icon: TrendingUp },
+      { name: 'Insurance Ledger', path: '/insurance-ledger', icon: ShieldCheck },
       { name: 'Settlements & Payouts', path: '/settlements', icon: Landmark },
       { name: 'Requests Hub', path: '/requests', icon: Inbox },
       { name: 'Verifications', path: '/verifications', icon: ShieldCheck },

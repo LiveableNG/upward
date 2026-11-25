@@ -68,6 +68,28 @@ export function SavingsConsentCard({
           </button>
         </div>
 
+        <div className="savings-lock-terms">
+          <div className="savings-lock-terms__row">
+            <span className="savings-lock-terms__badge savings-lock-terms__badge--full">
+              Full Term (T-30 Days)
+            </span>
+            <p className="savings-lock-terms__text">
+              Keep your savings locked until 30 days before rent day to earn the full{' '}
+              <strong>{annualRatePct}% p.a.</strong> compounding return.
+            </p>
+          </div>
+          <div className="savings-lock-terms__row">
+            <span className="savings-lock-terms__badge savings-lock-terms__badge--early">
+              Early Withdrawal Option
+            </span>
+            <p className="savings-lock-terms__text">
+              Need funds early? You can withdraw anytime before T-30 under Fair Exit terms (yield
+              recalculated at <strong>7.0% p.a.</strong> + <strong>1.5%</strong> admin fee, plus any
+              unrecovered Rent Protec coverage cost if applicable).
+            </p>
+          </div>
+        </div>
+
         <div className="savings-consent__checkboxes">
           <label className="savings-consent__checkbox-row">
             <input
@@ -88,8 +110,8 @@ export function SavingsConsentCard({
                 }}
               >
                 Rent Savings Terms &amp; Conditions
-              </button>
-              , including locking my rent savings until 30 days before rent day.
+              </button>{' '}
+              and the Lock &amp; Early Withdrawal Terms above.
             </span>
           </label>
 

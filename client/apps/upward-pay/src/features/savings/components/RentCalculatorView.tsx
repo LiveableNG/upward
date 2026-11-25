@@ -750,12 +750,31 @@ export function RentCalculatorView({
     )
   }
 
-  // STAGE 1.5: Savings Track / Protection Plan Selection (Nov 16 Spec: before schedule breakdown)
+  // STAGE 1.5: Side-by-Side Subscription-Style Plan Comparison (No bias / no "Recommended" badge)
   if (stage === 'PROTECTION') {
+    const saveAndEarnEndValue = previewRentAmount > 0 ? previewRentAmount : 0
+    const effectiveMonths = Math.min(Math.max(1, rawDaysRemaining / 30), 11)
+    const rentProtecYieldPreview =
+      previewRentAmount > 0
+        ? Math.round(
+            previewRentAmount *
+              (((platformRates.rentProtecRatePct / 100) * effectiveMonths) / 12) *
+              0.55,
+          )
+        : 0
+    const saveAndEarnYieldPreview =
+      previewRentAmount > 0
+        ? Math.round(
+            previewRentAmount *
+              (((platformRates.savingsAnnualRatePct / 100) * effectiveMonths) / 12) *
+              0.55,
+          )
+        : 0
+
     return (
       <PayPageShell
-        title="Choose Your Plan Track"
-        subtitle="Include rent protection or earn higher pure interest towards your rent."
+        title="Compare Savings Tracks"
+        subtitle="Compare pure compound interest against rent protection side by side."
         showBack
         onBack={handleProtectionBack}
         pinFooter
@@ -766,135 +785,128 @@ export function RentCalculatorView({
               setStage('BENEFIT')
             }}
           >
-            Continue
+            Continue with {activeProductOption === 'RENT_PROTEC' ? 'Rent Protec' : 'Save & Earn'}
             <ArrowRight size={18} aria-hidden />
           </PayFlowPrimaryButton>
         }
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingTop: 4 }}>
-          {/* Option 1: Rent Protec (Recommended) */}
-          <button
-            type="button"
-            onClick={() => setSelectedProductOption('RENT_PROTEC')}
-            disabled={!isRentProtecEligible}
-            style={{
-              width: '100%',
-              textAlign: 'left',
-              padding: '18px',
-              borderRadius: '16px',
-              border:
-                activeProductOption === 'RENT_PROTEC'
-                  ? '2px solid var(--clay)'
-                  : '1.5px solid var(--shell-border, #f0e9df)',
-              background:
-                activeProductOption === 'RENT_PROTEC'
-                  ? '#fffaf7'
-                  : 'var(--surface, #ffffff)',
-              cursor: isRentProtecEligible ? 'pointer' : 'not-allowed',
-              opacity: isRentProtecEligible ? 1 : 0.45,
-              transition: 'all 0.15s ease',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 8,
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <ShieldCheck size={18} color="var(--clay)" style={{ flexShrink: 0 }} />
-                <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text)' }}>
-                  Rent Protec
-                </span>
-                <span
-                  style={{
-                    fontSize: '0.625rem',
-                    fontWeight: 800,
-                    letterSpacing: '0.04em',
-                    textTransform: 'uppercase',
-                    padding: '2px 7px',
-                    borderRadius: '999px',
-                    background: 'var(--shell-tint, #fbede5)',
-                    color: 'var(--clay)',
-                  }}
-                >
-                  Recommended
-                </span>
+        <div className="plan-compare">
+          <div className="plan-compare__grid">
+            {/* Column 1: Save & Earn */}
+            <button
+              type="button"
+              onClick={() => setSelectedProductOption('SAVE_AND_EARN')}
+              className={`plan-compare__col ${
+                activeProductOption === 'SAVE_AND_EARN' ? 'plan-compare__col--active' : ''
+              }`}
+              aria-pressed={activeProductOption === 'SAVE_AND_EARN'}
+            >
+              <div className="plan-compare__col-header">
+                <div className="plan-compare__col-title-row">
+                  <TrendingUp size={16} color="var(--clay)" />
+                  <span className="plan-compare__col-name">Save &amp; Earn</span>
+                </div>
+                <span className="plan-compare__radio" aria-hidden />
               </div>
 
-              <span style={{ fontSize: '0.875rem', fontWeight: 800, color: '#059669' }}>
-                {platformRates.rentProtecRatePct}% p.a.
-              </span>
-            </div>
-
-            <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.45, paddingLeft: '26px' }}>
-              Earn compound returns plus Upward rent coverage in case of job loss or illness.
-            </div>
-
-            {!isRentProtecEligible && (
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', paddingLeft: '26px' }}>
-                Requires at least {platformRates.rentProtecMinMonths} months before rent is due.
-              </div>
-            )}
-          </button>
-
-          {/* Option 2: Save & Earn (Basic Savings Only) */}
-          <button
-            type="button"
-            onClick={() => setSelectedProductOption('SAVE_AND_EARN')}
-            style={{
-              width: '100%',
-              textAlign: 'left',
-              padding: '18px',
-              borderRadius: '16px',
-              border:
-                activeProductOption === 'SAVE_AND_EARN'
-                  ? '2px solid var(--clay)'
-                  : '1.5px solid var(--shell-border, #f0e9df)',
-              background:
-                activeProductOption === 'SAVE_AND_EARN'
-                  ? '#fffaf7'
-                  : 'var(--surface, #ffffff)',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 8,
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <TrendingUp size={18} color="var(--text-muted)" style={{ flexShrink: 0 }} />
-                <span
-                  style={{
-                    fontSize: '1rem',
-                    fontWeight: 700,
-                    color: activeProductOption === 'SAVE_AND_EARN' ? 'var(--clay)' : 'var(--text)',
-                  }}
-                >
-                  Save &amp; Earn
+              <div className="plan-compare__rate">
+                <span className="plan-compare__rate-value">
+                  {platformRates.savingsAnnualRatePct}%
                 </span>
-                <span
-                  style={{
-                    fontSize: '0.625rem',
-                    fontWeight: 600,
-                    color: 'var(--text-muted)',
-                    background: 'var(--surface2, #efefef)',
-                    padding: '2px 7px',
-                    borderRadius: '999px',
-                  }}
-                >
-                  Savings only
-                </span>
+                <span className="plan-compare__rate-unit">p.a.</span>
               </div>
 
-              <span style={{ fontSize: '0.875rem', fontWeight: 800, color: '#059669' }}>
-                {platformRates.savingsAnnualRatePct}% p.a.
-              </span>
-            </div>
+              <div className="plan-compare__rows">
+                <div className="plan-compare__row">
+                  <span className="plan-compare__row-label">Est. Interest Earned</span>
+                  <span className="plan-compare__row-value plan-compare__row-value--accent">
+                    ~{formatCurrency(saveAndEarnYieldPreview, 'NGN')}
+                  </span>
+                </div>
+                <div className="plan-compare__row">
+                  <span className="plan-compare__row-label">End-of-Term Value</span>
+                  <span className="plan-compare__row-value">
+                    {saveAndEarnEndValue > 0 ? formatCurrency(saveAndEarnEndValue, 'NGN') : 'Full target'}
+                  </span>
+                </div>
+                <div className="plan-compare__row">
+                  <span className="plan-compare__row-label">Rent Protection</span>
+                  <span className="plan-compare__row-value plan-compare__row-value--muted">
+                    Not included
+                  </span>
+                </div>
+                <div className="plan-compare__row">
+                  <span className="plan-compare__row-label">Best For</span>
+                  <span className="plan-compare__row-value">Maximum pure returns</span>
+                </div>
+              </div>
+            </button>
 
-            <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', lineHeight: 1.45, paddingLeft: '26px' }}>
-              Earn maximum compound returns towards your rent without insurance coverage.
-            </div>
-          </button>
+            {/* Column 2: Rent Protec */}
+            <button
+              type="button"
+              onClick={() => setSelectedProductOption('RENT_PROTEC')}
+              disabled={!isRentProtecEligible}
+              className={`plan-compare__col ${
+                activeProductOption === 'RENT_PROTEC' ? 'plan-compare__col--active' : ''
+              } ${!isRentProtecEligible ? 'plan-compare__col--disabled' : ''}`}
+              aria-pressed={activeProductOption === 'RENT_PROTEC'}
+            >
+              <div className="plan-compare__col-header">
+                <div className="plan-compare__col-title-row">
+                  <ShieldCheck size={16} color="var(--clay)" />
+                  <span className="plan-compare__col-name">Rent Protec</span>
+                </div>
+                <span className="plan-compare__radio" aria-hidden />
+              </div>
+
+              <div className="plan-compare__rate">
+                <span className="plan-compare__rate-value">
+                  {platformRates.rentProtecRatePct}%
+                </span>
+                <span className="plan-compare__rate-unit">p.a. + Cover</span>
+              </div>
+
+              <div className="plan-compare__rows">
+                <div className="plan-compare__row">
+                  <span className="plan-compare__row-label">Est. Interest Earned</span>
+                  <span className="plan-compare__row-value plan-compare__row-value--accent">
+                    ~{formatCurrency(rentProtecYieldPreview, 'NGN')}
+                  </span>
+                </div>
+                <div className="plan-compare__row">
+                  <span className="plan-compare__row-label">Value Range</span>
+                  <span className="plan-compare__row-value">
+                    {platformRates.rentProtecRatePct}% yield up to{' '}
+                    {saveAndEarnEndValue > 0 ? formatCurrency(saveAndEarnEndValue, 'NGN') : '100% rent'}
+                  </span>
+                </div>
+                <div className="plan-compare__row">
+                  <span className="plan-compare__row-label">Rent Protection</span>
+                  <span className="plan-compare__row-value">
+                    Job loss, illness or breadwinner cover
+                  </span>
+                </div>
+                <div className="plan-compare__row">
+                  <span className="plan-compare__row-label">Premium Deduction</span>
+                  <span className="plan-compare__row-value plan-compare__row-value--accent">
+                    ₦0 from your savings
+                  </span>
+                </div>
+              </div>
+
+              {!isRentProtecEligible && (
+                <div className="plan-compare__ineligible">
+                  Requires {platformRates.rentProtecMinMonths}+ months before rent due date.
+                </div>
+              )}
+            </button>
+          </div>
+
+          <p className="plan-compare__footnote">
+            Both plans earn daily compounding returns on 100% of your deposits with no hidden premium
+            deductions from your balance.
+          </p>
         </div>
       </PayPageShell>
     )
@@ -1050,7 +1062,7 @@ export function RentCalculatorView({
                     flexShrink: 0,
                   }}
                 >
-                  Compare plans
+                  Change savings plan
                   <ChevronRight size={14} />
                 </button>
               </div>
@@ -1411,11 +1423,11 @@ export function RentCalculatorView({
           </div>
         </PayPageShell>
 
-        {/* Compare Other Savings Plans Modal (Kunle Spec) */}
+        {/* Change Savings Plan Modal */}
         <BottomSheetModal
           isOpen={showComparePlans}
           onClose={() => setShowComparePlans(false)}
-          title="Compare Savings Plans"
+          title="Choose Your Savings Plan"
           maxWidth="480px"
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingBottom: 8 }}>
@@ -1778,11 +1790,11 @@ export function RentCalculatorView({
             </div>
           )}
 
-          {/* Partner Info Badge */}
+          {/* Partner Info & Zero-Delay Verification Badge */}
           <div
             style={{
               display: 'flex',
-              alignItems: 'center',
+              alignItems: 'flex-start',
               gap: 8,
               padding: '10px 14px',
               borderRadius: '12px',
@@ -1790,19 +1802,34 @@ export function RentCalculatorView({
               border: '1px solid rgba(217, 119, 87, 0.12)',
               fontSize: '0.75rem',
               color: 'var(--text-secondary)',
+              lineHeight: 1.45,
             }}
           >
-            <ShieldCheck size={16} color="var(--clay)" style={{ flexShrink: 0 }} />
+            <ShieldCheck size={16} color="var(--clay)" style={{ flexShrink: 0, marginTop: 2 }} />
             <span>
-              Funds are invested in the{' '}
-              <strong>
-                {fundDisplayName} ({SAVINGS_FUND_CODE})
-              </strong>{' '}
-              managed by{' '}
-              <strong>
-                {platformRates.partnerName || 'Asset & Resource Management Holding Company (ARM)'}
-              </strong>
-              .
+              {platformRates.savingsMode === 'OPT_IN_ONLY' ? (
+                <>
+                  <strong>Activation Opt-In Complete!</strong> Your investor profile for{' '}
+                  <strong>
+                    {fundDisplayName} ({SAVINGS_FUND_CODE})
+                  </strong>{' '}
+                  is submitted. Live deposits open shortly — you will be notified as soon as funding
+                  is enabled.
+                </>
+              ) : (
+                <>
+                  Your dedicated Wema account is ready — you can deposit anytime.{' '}
+                  <strong>
+                    {platformRates.partnerShortName || 'ARM'}
+                  </strong>{' '}
+                  verification completes within <strong>24 hours to 3 business days</strong>, after
+                  which your funds earn daily compounding returns in{' '}
+                  <strong>
+                    {fundDisplayName} ({SAVINGS_FUND_CODE})
+                  </strong>
+                  .
+                </>
+              )}
             </span>
           </div>
 

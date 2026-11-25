@@ -133,6 +133,13 @@ import {
   GetArmTransactionLiveStatusUseCase,
   GetAdminArmCustomerDocumentUseCase,
 } from './use-cases/admin/admin-arm.use-cases'
+import { GetAdminSavingsLedgerUseCase } from './use-cases/admin/admin-savings-ledger.use-case'
+import { GetAdminInsuranceLedgerUseCase } from './use-cases/admin/admin-insurance-ledger.use-case'
+import {
+  GetSavingsCashbackOverviewUseCase,
+  UpsertSavingsCashbackCampaignUseCase,
+  CreditSavingsCashbackUseCase,
+} from './use-cases/admin/admin-savings-cashback.use-cases'
 
 import { JoinWaitlistUseCase } from './use-cases/waitlist/join-waitlist.use-case'
 import { GetInviteDataUseCase } from './use-cases/invite/get-invite-data.use-case'
@@ -784,6 +791,11 @@ const UseCases: any[] = [
   RetryArmJobUseCase,
   GetArmTransactionLiveStatusUseCase,
   GetAdminArmCustomerDocumentUseCase,
+  GetAdminSavingsLedgerUseCase,
+  GetAdminInsuranceLedgerUseCase,
+  GetSavingsCashbackOverviewUseCase,
+  UpsertSavingsCashbackCampaignUseCase,
+  CreditSavingsCashbackUseCase,
   SearchFeeTargetsUseCase,
   GetAreaPriceGuideUseCase,
   GetAreaPriceGuideStatesUseCase,

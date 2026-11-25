@@ -1,9 +1,11 @@
 import {
+  Body,
   Controller,
   Get,
   Param,
   Post,
   Query,
+  Req,
   Res,
   UseGuards,
 } from '@nestjs/common'
@@ -20,6 +22,15 @@ import {
   GetArmTransactionLiveStatusUseCase,
   GetAdminArmCustomerDocumentUseCase,
 } from '../../../application/use-cases/admin/admin-arm.use-cases'
+import { GetAdminSavingsLedgerUseCase } from '../../../application/use-cases/admin/admin-savings-ledger.use-case'
+import { GetAdminInsuranceLedgerUseCase } from '../../../application/use-cases/admin/admin-insurance-ledger.use-case'
+import {
+  CreditSavingsCashbackDto,
+  CreditSavingsCashbackUseCase,
+  GetSavingsCashbackOverviewUseCase,
+  UpsertCashbackCampaignDto,
+  UpsertSavingsCashbackCampaignUseCase,
+} from '../../../application/use-cases/admin/admin-savings-cashback.use-cases'
 
 @Controller('admin/arm')
 @UseGuards(AdminJwtAuthGuard, RolesGuard)
@@ -32,6 +43,11 @@ export class AdminArmController {
     private readonly retryJobUseCase: RetryArmJobUseCase,
     private readonly getTxLiveStatusUseCase: GetArmTransactionLiveStatusUseCase,
     private readonly getCustomerDocUseCase: GetAdminArmCustomerDocumentUseCase,
+    private readonly getSavingsLedgerUseCase: GetAdminSavingsLedgerUseCase,
+    private readonly getInsuranceLedgerUseCase: GetAdminInsuranceLedgerUseCase,
+    private readonly getCashbackOverviewUseCase: GetSavingsCashbackOverviewUseCase,
+    private readonly upsertCashbackCampaignUseCase: UpsertSavingsCashbackCampaignUseCase,
+    private readonly creditCashbackUseCase: CreditSavingsCashbackUseCase,
   ) {}
 
   @Get('stats')
@@ -111,5 +127,48 @@ export class AdminArmController {
     @Res({ passthrough: true }) res: any,
   ) {
     return this.getCustomerDocUseCase.execute(userUuid, kind, res)
+  }
+
+  @Get('internal-ledger')
+  @Roles(AdminRole.SUPERADMIN, AdminRole.DEVELOPER)
+  async getInternalLedger(
+    @Query('productOption') productOption?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.getSavingsLedgerUseCase.execute({ productOption, search })
+  }
+
+  @Get('insurance-ledger')
+  @Roles(AdminRole.SUPERADMIN, AdminRole.CUSTOMER_SUPPORT, AdminRole.DEVELOPER)
+  async getInsuranceLedger(
+    @Query('source') source?: string,
+    @Query('status') status?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.getInsuranceLedgerUseCase.execute({ source, status, search })
+  }
+
+  @Get('cashback')
+  @Roles(AdminRole.SUPERADMIN, AdminRole.CUSTOMER_SUPPORT, AdminRole.DEVELOPER)
+  async getCashbackOverview(@Query('campaignCode') campaignCode?: string) {
+    return this.getCashbackOverviewUseCase.execute(campaignCode)
+  }
+
+  @Post('cashback/campaign')
+  @Roles(AdminRole.SUPERADMIN, AdminRole.DEVELOPER)
+  async upsertCashbackCampaign(
+    @Body() dto: UpsertCashbackCampaignDto,
+    @Req() req: any,
+  ) {
+    return this.upsertCashbackCampaignUseCase.execute(
+      dto,
+      req.user?.id || req.user?.sub,
+    )
+  }
+
+  @Post('cashback/credit')
+  @Roles(AdminRole.SUPERADMIN, AdminRole.DEVELOPER)
+  async creditCashback(@Body() dto: CreditSavingsCashbackDto, @Req() req: any) {
+    return this.creditCashbackUseCase.execute(dto, req.user?.id || req.user?.sub)
   }
 }

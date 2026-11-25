@@ -1,7 +1,10 @@
 import { request } from '@/lib/api-client'
 
+export type SavingsMode = 'COMING_SOON' | 'OPT_IN_ONLY' | 'LIVE'
+
 export interface PlatformRates {
   savingsEnabled: boolean
+  savingsMode?: SavingsMode
   savingsAnnualRatePct: number
   rentProtecRatePct: number
   insurancePremiumPct: number
@@ -21,6 +24,7 @@ export interface PlatformRates {
 
 export const DEFAULT_PLATFORM_RATES: PlatformRates = {
   savingsEnabled: true,
+  savingsMode: 'LIVE',
   savingsAnnualRatePct: 16.0,
   rentProtecRatePct: 10.0,
   insurancePremiumPct: 2.0,

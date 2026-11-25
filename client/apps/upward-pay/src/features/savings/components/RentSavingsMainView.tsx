@@ -58,7 +58,11 @@ export function RentSavingsMainView() {
     )
   }
 
-  if (platformRates.savingsEnabled === false) {
+  const effectiveSavingsMode =
+    platformRates.savingsMode ||
+    (platformRates.savingsEnabled === false ? 'COMING_SOON' : 'LIVE')
+
+  if (effectiveSavingsMode === 'COMING_SOON') {
     return (
       <PayPageShell
         title="Rent Savings"

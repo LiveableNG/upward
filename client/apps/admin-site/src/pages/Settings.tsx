@@ -26,8 +26,9 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
 
   // Platform Rates State
   const [savingsEnabled, setSavingsEnabled] = useState(true)
+  const [savingsMode, setSavingsMode] = useState<'COMING_SOON' | 'OPT_IN_ONLY' | 'LIVE'>('LIVE')
   const [togglingSavings, setTogglingSavings] = useState(false)
-  const [savingsRatePct, setSavingsRatePct] = useState('14')
+  const [savingsRatePct, setSavingsRatePct] = useState('16')
   const [rentProtecRatePct, setRentProtecRatePct] = useState('10')
   const [insurancePremiumPct, setInsurancePremiumPct] = useState('2')
   const [rentProtecMinMonths, setRentProtecMinMonths] = useState('6')
@@ -63,8 +64,12 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
       const result = await apiService.get('/admin/fees/rates', token)
       const data = result?.data || result
       if (data) {
-        if (data.savingsEnabled !== undefined) {
+        if (data.savingsMode) {
+          setSavingsMode(data.savingsMode)
+          setSavingsEnabled(data.savingsMode !== 'COMING_SOON')
+        } else if (data.savingsEnabled !== undefined) {
           setSavingsEnabled(Boolean(data.savingsEnabled))
+          setSavingsMode(data.savingsEnabled ? 'LIVE' : 'COMING_SOON')
         }
         if (data.savingsAnnualRatePct !== undefined) {
           setSavingsRatePct(String(data.savingsAnnualRatePct))
@@ -172,25 +177,29 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
     )
   }
 
-  const handleToggleSavingsAvailability = async () => {
-    const nextEnabled = !savingsEnabled
+  const handleChangeSavingsMode = async (
+    nextMode: 'COMING_SOON' | 'OPT_IN_ONLY' | 'LIVE',
+  ) => {
     try {
       setTogglingSavings(true)
       const result = await apiService.post(
         '/admin/fees/rates',
-        { savingsEnabled: nextEnabled },
+        { savingsMode: nextMode, savingsEnabled: nextMode !== 'COMING_SOON' },
         token,
       )
       const data = result?.data || result
-      setSavingsEnabled(nextEnabled)
+      setSavingsMode(nextMode)
+      setSavingsEnabled(nextMode !== 'COMING_SOON')
       if (data?.updatedAt) setRatesUpdatedAt(data.updatedAt)
       showToast(
-        nextEnabled
-          ? 'Rent Savings is now LIVE in the app!'
-          : 'Rent Savings turned OFF — users cannot enter the savings flow.',
+        nextMode === 'LIVE'
+          ? 'Rent Savings is now LIVE for deposits!'
+          : nextMode === 'OPT_IN_ONLY'
+            ? 'Rent Savings set to OPT-IN & KYC ONLY mode for activation events.'
+            : 'Rent Savings set to COMING SOON (paused).',
       )
     } catch (err: any) {
-      showToast(err.message || 'Failed to toggle Rent Savings availability', true)
+      showToast(err.message || 'Failed to update Rent Savings mode', true)
     } finally {
       setTogglingSavings(false)
     }
@@ -372,19 +381,37 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
               padding: '14px 16px',
               borderRadius: '12px',
               marginBottom: '20px',
-              border: savingsEnabled ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)',
-              background: savingsEnabled ? 'rgba(16, 185, 129, 0.06)' : 'rgba(239, 68, 68, 0.06)',
+              border:
+                savingsMode === 'LIVE'
+                  ? '1px solid rgba(16, 185, 129, 0.3)'
+                  : savingsMode === 'OPT_IN_ONLY'
+                    ? '1px solid rgba(217, 119, 6, 0.35)'
+                    : '1px solid rgba(239, 68, 68, 0.3)',
+              background:
+                savingsMode === 'LIVE'
+                  ? 'rgba(16, 185, 129, 0.06)'
+                  : savingsMode === 'OPT_IN_ONLY'
+                    ? 'rgba(217, 119, 6, 0.06)'
+                    : 'rgba(239, 68, 68, 0.06)',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <Power
                 size={18}
-                style={{ color: savingsEnabled ? '#059669' : '#dc2626', flexShrink: 0 }}
+                style={{
+                  color:
+                    savingsMode === 'LIVE'
+                      ? '#059669'
+                      : savingsMode === 'OPT_IN_ONLY'
+                        ? '#d97706'
+                        : '#dc2626',
+                  flexShrink: 0,
+                }}
               />
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text)' }}>
-                    Rent Savings Feature Availability
+                    Rent Savings Launch Mode
                   </span>
                   <span
                     style={{
@@ -392,34 +419,57 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
                       fontWeight: 700,
                       padding: '2px 8px',
                       borderRadius: '999px',
-                      background: savingsEnabled ? 'rgba(16, 185, 129, 0.16)' : 'rgba(239, 68, 68, 0.16)',
-                      color: savingsEnabled ? '#047857' : '#b91c1c',
+                      background:
+                        savingsMode === 'LIVE'
+                          ? 'rgba(16, 185, 129, 0.16)'
+                          : savingsMode === 'OPT_IN_ONLY'
+                            ? 'rgba(217, 119, 6, 0.16)'
+                            : 'rgba(239, 68, 68, 0.16)',
+                      color:
+                        savingsMode === 'LIVE'
+                          ? '#047857'
+                          : savingsMode === 'OPT_IN_ONLY'
+                            ? '#b45309'
+                            : '#b91c1c',
                     }}
                   >
-                    {savingsEnabled ? 'LIVE FOR USERS' : 'OFF (PAUSED)'}
+                    {savingsMode === 'LIVE'
+                      ? 'LIVE FOR DEPOSITS'
+                      : savingsMode === 'OPT_IN_ONLY'
+                        ? 'OPT-IN & KYC ONLY'
+                        : 'COMING SOON (OFF)'}
                   </span>
                 </div>
                 <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '3px 0 0' }}>
-                  {savingsEnabled
-                    ? 'Users can tap into Rent Savings and open a vault.'
-                    : 'Turned off until ARM activates production — clicking Rent Savings in the app will not proceed.'}
+                  {savingsMode === 'LIVE'
+                    ? 'Users can onboard, open a vault, and make live ARM deposits.'
+                    : savingsMode === 'OPT_IN_ONLY'
+                      ? 'Activation mode: users can pick a plan, complete ARM KYC & consent, and receive cashback while deposits remain paused.'
+                      : 'Paused: users see the Coming Soon screen.'}
                 </p>
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={handleToggleSavingsAvailability}
-              disabled={ratesLoading || togglingSavings}
-              className={savingsEnabled ? 'btn btn-secondary' : 'btn btn-primary'}
-              style={{ minWidth: '150px' }}
-            >
-              {togglingSavings
-                ? 'Updating...'
-                : savingsEnabled
-                  ? 'Turn Off Savings'
-                  : 'Turn On Savings'}
-            </button>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {(
+                [
+                  { id: 'COMING_SOON', label: 'Coming Soon' },
+                  { id: 'OPT_IN_ONLY', label: 'Opt-In & KYC Only' },
+                  { id: 'LIVE', label: 'Live' },
+                ] as const
+              ).map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => handleChangeSavingsMode(opt.id)}
+                  disabled={ratesLoading || togglingSavings || savingsMode === opt.id}
+                  className={savingsMode === opt.id ? 'btn btn-primary' : 'btn btn-secondary'}
+                  style={{ fontSize: '12px', padding: '7px 12px' }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           <form

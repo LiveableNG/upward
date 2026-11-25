@@ -2738,3 +2738,201 @@ select.rent-calculator__input:focus {
 .vault-consent-bar__link:hover {
   background: var(--clay-faint);
 }
+
+/* ============================================================================
+   Side-by-Side Subscription-Style Plan Comparison (Stage PROTECTION)
+   ============================================================================ */
+.plan-compare {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 4px;
+}
+
+.plan-compare__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  align-items: stretch;
+}
+
+.plan-compare__col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  text-align: left;
+  padding: 14px 12px;
+  border-radius: 16px;
+  border: 1.5px solid var(--shell-border, #e8e1d7);
+  background: var(--surface, #ffffff);
+  cursor: pointer;
+  transition: border-color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.plan-compare__col--active {
+  border: 2px solid var(--clay);
+  background: #fffaf7;
+  box-shadow: 0 6px 18px rgba(194, 80, 31, 0.08);
+}
+
+.plan-compare__col--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.plan-compare__col-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.plan-compare__col-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.plan-compare__col-name {
+  font-size: 0.875rem;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.plan-compare__radio {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  border: 2px solid var(--border, #d4cdc4);
+  flex-shrink: 0;
+  position: relative;
+}
+
+.plan-compare__col--active .plan-compare__radio {
+  border-color: var(--clay);
+  background: var(--clay);
+  box-shadow: inset 0 0 0 3px #ffffff;
+}
+
+.plan-compare__rate {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--shell-border, #f0e9df);
+}
+
+.plan-compare__rate-value {
+  font-size: 1.375rem;
+  font-weight: 800;
+  color: #059669;
+  letter-spacing: -0.02em;
+}
+
+.plan-compare__rate-unit {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.plan-compare__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  flex: 1;
+}
+
+.plan-compare__row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.plan-compare__row-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-muted);
+}
+
+.plan-compare__row-value {
+  font-size: 0.775rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.35;
+}
+
+.plan-compare__row-value--accent {
+  color: #047857;
+}
+
+.plan-compare__row-value--muted {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.plan-compare__ineligible {
+  margin-top: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--clay);
+  line-height: 1.35;
+}
+
+.plan-compare__footnote {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+  text-align: center;
+  margin: 0;
+}
+
+/* ============================================================================
+   Upfront Lock & Early Withdrawal Terms Card
+   ============================================================================ */
+.savings-lock-terms {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--bg, #faf7f2);
+  border: 1px solid var(--shell-border, #ebe3d8);
+}
+
+.savings-lock-terms__row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.savings-lock-terms__badge {
+  display: inline-flex;
+  align-self: flex-start;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+
+.savings-lock-terms__badge--full {
+  background: rgba(5, 150, 105, 0.12);
+  color: #047857;
+}
+
+.savings-lock-terms__badge--early {
+  background: rgba(194, 80, 31, 0.1);
+  color: var(--clay);
+}
+
+.savings-lock-terms__text {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin: 0;
+}
