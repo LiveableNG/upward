@@ -15,10 +15,9 @@ const prisma = new PrismaClient({
 })
 
 const API_BASE_URL = (
-  process.env.API_URL ||
-  process.env.BACKEND_URL ||
-  'http://localhost:4000'
-).replace(/\/+$/, '')
+  process.env.ASSET_API_URL ||
+  'https://upward-api.goodtenants.io'
+).replace(/\/+$/, '').replace(/\/api\/v1$/, '')
 
 const ASSET_BASE = `${API_BASE_URL}/api/v1/public/documents/marketplace/swisscom-interiors`
 
