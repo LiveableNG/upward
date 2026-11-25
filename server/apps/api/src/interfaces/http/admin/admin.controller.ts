@@ -59,6 +59,11 @@ import { SendTestEmailsUseCase } from '../../../application/use-cases/email/send
 import { RetryEmailUseCase } from '../../../application/use-cases/email/retry-email.use-case'
 import { RetryBatchEmailsUseCase } from '../../../application/use-cases/email/retry-batch-emails.use-case'
 import { EmailBatchRetryManager } from '../../../application/use-cases/email/email-batch-retry-manager.service'
+import { GetBulkEmailCampaignsUseCase } from '../../../application/use-cases/email/get-bulk-email-campaigns.use-case'
+import { GetBulkEmailCampaignDetailUseCase } from '../../../application/use-cases/email/get-bulk-email-campaign-detail.use-case'
+import { RetryBulkEmailCampaignFailedUseCase } from '../../../application/use-cases/email/retry-bulk-email-campaign-failed.use-case'
+import { ControlBulkEmailCampaignUseCase } from '../../../application/use-cases/email/control-bulk-email-campaign.use-case'
+import { GetEmailRecipientsDirectoryUseCase } from '../../../application/use-cases/email/get-email-recipients-directory.use-case'
 
 import { GetErrorLogsUseCase } from '../../../application/use-cases/system/get-error-logs.use-case'
 import { ResolveErrorUseCase } from '../../../application/use-cases/system/resolve-error.use-case'
@@ -124,6 +129,11 @@ export class AdminController {
     private readonly retryEmailUseCase: RetryEmailUseCase,
     private readonly retryBatchEmailsUseCase: RetryBatchEmailsUseCase,
     private readonly emailBatchRetryManager: EmailBatchRetryManager,
+    private readonly getBulkEmailCampaignsUseCase: GetBulkEmailCampaignsUseCase,
+    private readonly getBulkEmailCampaignDetailUseCase: GetBulkEmailCampaignDetailUseCase,
+    private readonly retryBulkEmailCampaignFailedUseCase: RetryBulkEmailCampaignFailedUseCase,
+    private readonly controlBulkEmailCampaignUseCase: ControlBulkEmailCampaignUseCase,
+    private readonly getEmailRecipientsDirectoryUseCase: GetEmailRecipientsDirectoryUseCase,
     private readonly getErrorLogsUseCase: GetErrorLogsUseCase,
     private readonly resolveErrorUseCase: ResolveErrorUseCase,
     private readonly clearErrorLogsUseCase: ClearErrorLogsUseCase,
@@ -429,9 +439,24 @@ export class AdminController {
     return { success: true }
   }
 
+  @Get('email/recipients-directory')
+  async getEmailRecipientsDirectory() {
+    return {
+      data: await this.getEmailRecipientsDirectoryUseCase.execute(),
+    }
+  }
+
   @Post('email/bulk')
   async sendBulkEmail(
-    @Body() payload: { userIds: string[]; subject: string; content: string; targetGroup?: 'TENANTS' | 'PMS' | 'WAITLIST'; sessionId?: string },
+    @Body()
+    payload: {
+      userIds: string[]
+      subject: string
+      content: string
+      targetGroup?: 'TENANTS' | 'PMS' | 'WAITLIST' | 'RAW'
+      sessionId?: string
+      idempotencyKey?: string
+    },
     @Req() req: AuthenticatedRequest,
   ) {
     return {
@@ -440,6 +465,52 @@ export class AdminController {
         requesterId: req.user.id,
       }),
     }
+  }
+
+  @Get('email/campaigns')
+  async getBulkEmailCampaigns(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('status') status?: string,
+  ) {
+    return this.getBulkEmailCampaignsUseCase.execute({
+      page: page ? parseInt(page) : 1,
+      limit: limit ? parseInt(limit) : 15,
+      status,
+    })
+  }
+
+  @Get('email/campaigns/:campaignId')
+  async getBulkEmailCampaignDetail(
+    @Param('campaignId') campaignId: string,
+    @Query('status') status?: string,
+    @Query('search') search?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.getBulkEmailCampaignDetailUseCase.execute(campaignId, {
+      status,
+      search,
+      page: page ? parseInt(page) : 1,
+      limit: limit ? parseInt(limit) : 25,
+    })
+  }
+
+  @Post('email/campaigns/:campaignId/retry-failed')
+  async retryBulkEmailCampaignFailed(
+    @Param('campaignId') campaignId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.retryBulkEmailCampaignFailedUseCase.execute(campaignId, req.user.id)
+  }
+
+  @Post('email/campaigns/:campaignId/control')
+  async controlBulkEmailCampaign(
+    @Param('campaignId') campaignId: string,
+    @Body() body: { action: 'PAUSE' | 'RESUME' | 'CANCEL' },
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.controlBulkEmailCampaignUseCase.execute(campaignId, body.action, req.user.id)
   }
 
   @Post('email/resend-confirmation/:userId')
@@ -493,6 +564,8 @@ export class AdminController {
     @Query('channel') channel?: string,
     @Query('opened') opened?: string,
     @Query('date') date?: string,
+    @Query('hideSystemAlerts') hideSystemAlerts?: string,
+    @Query('campaignId') campaignId?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
@@ -504,6 +577,8 @@ export class AdminController {
       channel,
       opened,
       date,
+      hideSystemAlerts: hideSystemAlerts === 'true',
+      campaignId,
       page: page ? parseInt(page) : 1,
       limit: limit ? parseInt(limit) : 10,
     })
@@ -545,14 +620,21 @@ export class AdminController {
     @Query('email') qEmail?: string,
     @Query('type') qType?: string,
     @Query('acquisition') qAcquisition?: string,
-    @Body() body?: { email?: string; type?: string; acquisition?: string },
+    @Query('channel') qChannel?: string,
+    @Query('date') qDate?: string,
+    @Body() body?: { email?: string; type?: string; acquisition?: string; channel?: string; date?: string },
     @Req() req?: AuthenticatedRequest,
   ) {
     const email = qEmail || body?.email
     const type = qType || body?.type
     const acquisition = qAcquisition || body?.acquisition
+    const channel = qChannel || body?.channel
+    const date = qDate || body?.date
     const requesterId = req?.user?.id || 'SYSTEM'
-    return this.retryBatchEmailsUseCase.execute({ email, type, acquisition }, requesterId)
+    return this.retryBatchEmailsUseCase.execute(
+      { email, type, acquisition, channel, date },
+      requesterId,
+    )
   }
 
   @Get('email/logs/jobs/:jobId/status')
