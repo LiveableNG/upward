@@ -407,7 +407,7 @@ export class UniversityApplicationController {
       whatsapp: dto.whatsapp,
       email: dto.email,
       city: dto.city,
-      ageBracket: dto.ageBracket,
+      ageBracket: dto.ageBracket || '',
       occupation: dto.occupation,
       track: dto.track,
       experienceLevel: dto.experienceLevel,

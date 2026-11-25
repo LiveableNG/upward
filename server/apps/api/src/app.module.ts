@@ -23,6 +23,7 @@ import { SchedulingModule } from './scheduling/scheduling.module'
 import { SubscriptionModule } from './domains/subscription/subscription.module'
 
 import { CommunicationModule } from './shared/infrastructure/communication/communication.module'
+import { QueueModule } from './shared/infrastructure/queue/queue.module'
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { CommunicationModule } from './shared/infrastructure/communication/commu
     ScheduleModule.forRoot(),
     EventEmitterModule.forRoot(),
     PrismaModule,
+    QueueModule,
     AdminLogModule,
     EmailModule,
     CommunicationModule,

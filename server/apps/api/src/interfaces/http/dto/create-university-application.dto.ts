@@ -19,9 +19,9 @@ export class CreateUniversityApplicationDto {
   @IsString()
   city!: string
 
-  @IsNotEmpty({ message: 'Age bracket is required' })
+  @IsOptional()
   @IsString()
-  ageBracket!: string
+  ageBracket?: string
 
   @IsOptional()
   @IsString()

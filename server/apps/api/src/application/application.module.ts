@@ -212,6 +212,14 @@ import { SendTestEmailsUseCase } from './use-cases/email/send-test-emails.use-ca
 import { RetryEmailUseCase } from './use-cases/email/retry-email.use-case'
 import { EmailBatchRetryManager } from './use-cases/email/email-batch-retry-manager.service'
 import { RetryBatchEmailsUseCase } from './use-cases/email/retry-batch-emails.use-case'
+import { BulkEmailWorkerService } from './use-cases/email/bulk-email-worker.service'
+import { BulkEmailProcessor } from './use-cases/email/bulk-email.processor'
+import { GetBulkEmailCampaignsUseCase } from './use-cases/email/get-bulk-email-campaigns.use-case'
+import { GetBulkEmailCampaignDetailUseCase } from './use-cases/email/get-bulk-email-campaign-detail.use-case'
+import { RetryBulkEmailCampaignFailedUseCase } from './use-cases/email/retry-bulk-email-campaign-failed.use-case'
+import { ControlBulkEmailCampaignUseCase } from './use-cases/email/control-bulk-email-campaign.use-case'
+import { PruneCommunicationLogsUseCase } from './use-cases/email/prune-communication-logs.use-case'
+import { GetEmailRecipientsDirectoryUseCase } from './use-cases/email/get-email-recipients-directory.use-case'
 
 import { GetErrorLogsUseCase } from './use-cases/system/get-error-logs.use-case'
 import { ResolveErrorUseCase } from './use-cases/system/resolve-error.use-case'
@@ -794,6 +802,14 @@ const UseCases: any[] = [
   RetryEmailUseCase,
   EmailBatchRetryManager,
   RetryBatchEmailsUseCase,
+  BulkEmailWorkerService,
+  BulkEmailProcessor,
+  GetBulkEmailCampaignsUseCase,
+  GetBulkEmailCampaignDetailUseCase,
+  RetryBulkEmailCampaignFailedUseCase,
+  ControlBulkEmailCampaignUseCase,
+  PruneCommunicationLogsUseCase,
+  GetEmailRecipientsDirectoryUseCase,
   GetErrorLogsUseCase,
   ResolveErrorUseCase,
   ClearErrorLogsUseCase,

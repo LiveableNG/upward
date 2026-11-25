@@ -33,8 +33,25 @@ pm2 startup ubuntu -u $USER --hp $HOME
 echo "Installing Git and build tools..."
 sudo apt install -y git build-essential
 
+# 7. Install & configure self-hosted Redis for BullMQ queues
+echo "Installing Redis server..."
+sudo apt install -y redis-server
+
+echo "Configuring Redis for BullMQ (localhost-only, AOF persistence, noeviction)..."
+sudo sed -i 's/^appendonly no$/appendonly yes/' /etc/redis/redis.conf
+if ! grep -q '^maxmemory ' /etc/redis/redis.conf; then
+  echo 'maxmemory 256mb' | sudo tee -a /etc/redis/redis.conf > /dev/null
+fi
+if ! grep -q '^maxmemory-policy ' /etc/redis/redis.conf; then
+  echo 'maxmemory-policy noeviction' | sudo tee -a /etc/redis/redis.conf > /dev/null
+fi
+
+sudo systemctl enable --now redis-server
+sudo systemctl restart redis-server
+
 echo "Setup complete! You can now clone the repository and run the deployment script."
 echo "Verify installations:"
 node -v
 pnpm -v
 pm2 -v
+redis-cli ping

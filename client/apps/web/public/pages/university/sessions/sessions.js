@@ -32,13 +32,13 @@
   });
 
   // ==========================================
-  // ACTIVE ONLINE WEBINAR SESSION (21st November 2026) & CONCLUDED PHYSICAL SESSIONS
+  // ACTIVE ONLINE WEBINAR SESSION (26th November 2026) & CONCLUDED PHYSICAL SESSIONS
   // ==========================================
   const ACTIVE_WEBINAR_SESSION = {
-    value: 'Saturday 21st November 2026 (Online Webinar)',
-    selectLabel: 'Online Webinar — Saturday, 21st November 2026 (Open Nationwide)',
+    value: 'Thursday 26th November 2026 at 5:00 PM (Online Webinar)',
+    selectLabel: 'Online Webinar — Thursday, 26th November 2026 at 5:00 PM (Open Nationwide)',
     slotTitle: 'Online Webinar',
-    slotSubtitle: 'Sat, 21st Nov 2026 · Nationwide',
+    slotSubtitle: 'Thu, 26th Nov 2026 (5:00 PM) · Nationwide',
   };
 
   const CONCLUDED_PHYSICAL_SESSIONS = [
@@ -130,7 +130,7 @@
     }
 
     if (counterBadge) {
-      counterBadge.textContent = 'Online Webinar · 21st Nov 2026';
+      counterBadge.textContent = 'Online Webinar · 26th Nov 2026 (5:00 PM)';
     }
   }
 
@@ -653,7 +653,6 @@
       validateField(whatsappInput, 'field_whatsapp', normPhone.replace(/\D/g, '').length >= 7);
       validateField(emailInput, 'field_email', /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normEmail));
       validateField(citySelect, 'field_city', citySelect && citySelect.value.trim() !== '');
-      validateField(ageSelect, 'field_age', ageSelect && ageSelect.value.trim() !== '');
       validateField(expSelect, 'field_exp', expSelect && expSelect.value.trim() !== '');
       const trackVal = trackInput ? trackInput.value : 'Track A - Foundation';
       validateField(trackInput, 'field_track', Boolean(trackVal));
@@ -694,15 +693,15 @@
 
       const userInterest = interestInput ? interestInput.value.trim() : '';
       const formattedInterest = userInterest
-        ? `[${trackVal}] Webinar (21st November 2026): ${userInterest}`
-        : `[${trackVal}] Webinar (21st November 2026) Attendee`;
+        ? `[${trackVal}] Webinar (26th November 2026, 5:00 PM): ${userInterest}`
+        : `[${trackVal}] Webinar (26th November 2026, 5:00 PM) Attendee`;
 
       const payload = {
         name: nameInput.value.trim(),
         whatsapp: normPhone,
         email: normEmail,
         city: citySelect.value.trim(),
-        ageBracket: ageSelect.value.trim(),
+        ageBracket: (ageSelect && ageSelect.value.trim()) || undefined,
         experienceLevel: expSelect.value.trim(),
         track: trackVal,
         interest: formattedInterest,

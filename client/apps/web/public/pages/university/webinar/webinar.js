@@ -404,11 +404,6 @@
         hasError = true;
       }
 
-      if (!ageBracket) {
-        markFieldError('field_webinar_age', 'Please select your age bracket');
-        hasError = true;
-      }
-
       if (!experienceLevel) {
         markFieldError('field_webinar_exp', 'Please select your experience level');
         hasError = true;
@@ -442,10 +437,10 @@
         whatsapp: formattedPhone,
         email: email,
         city: city,
-        ageBracket: ageBracket,
+        ageBracket: ageBracket || undefined,
         experienceLevel: experienceLevel,
         track: selectedTrack,
-        sessionTime: 'Saturday 21st November 2026 (Online Webinar)',
+        sessionTime: 'Thursday 26th November 2026 at 5:00 PM (Online Webinar)',
         interest: 'Webinar: Build a 6 Figure Income Career/Business in Tech-Driven Property Management/Brokerage.',
         sourceIdentifier: sourceIdentifier,
         abVariant: abVariant
@@ -472,7 +467,7 @@
         // Fire Pixel & Tracking events
         if (typeof window.fbq === 'function') {
           window.fbq('track', 'CompleteRegistration', {
-            content_name: 'Property Management & Brokerage Webinar Nov 21',
+            content_name: 'Property Management & Brokerage Webinar Nov 26',
             status: 'Confirmed'
           });
         }
@@ -498,8 +493,8 @@
         return;
 
         // Setup 1-Click Calendar Links
-        const webinarStart = new Date(Date.UTC(2026, 10, 21, 10, 0, 0));
-        const webinarEnd = new Date(Date.UTC(2026, 10, 21, 11, 30, 0));
+        const webinarStart = new Date(Date.UTC(2026, 10, 26, 16, 0, 0));
+        const webinarEnd = new Date(Date.UTC(2026, 10, 26, 17, 30, 0));
         const eventTitle = 'Upward Academy: Tech-Driven Property Management & Brokerage Webinar';
         const eventDetails = 'Build a 6 Figure Income Career/Business in Tech-Driven Property Management/Brokerage.\n\nJoining details will be sent via WhatsApp & Email.';
         const eventLocation = 'Online';
