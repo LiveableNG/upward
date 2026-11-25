@@ -46,6 +46,7 @@ model upward_rent_vault {
   settlements             upward_rent_settlement[]
   savingsScore            upward_rent_savings_score?
   armJobs                 upward_arm_job[]
+  savingsConsents         upward_savings_consent[]
 
   @@index([userId])
   @@index([lockStatus])
@@ -193,4 +194,30 @@ model upward_arm_job {
   @@index([userId])
   @@index([reference])
   @@index([transactionId])
+}
+
+model upward_savings_consent {
+  id                 Int                @id @default(autoincrement())
+  uuid               String             @unique @default(uuid())
+  userId             Int
+  vaultId            Int?
+  termsVersion       String
+  consentDocVersion  String
+  fundCode           String             @default("ARMMMF")
+  fundName           String             @default("ARM Money Market Fund")
+  acceptedTerms      Boolean            @default(true)
+  acceptedArmMandate Boolean            @default(true)
+  acceptedLockPolicy Boolean            @default(true)
+  acceptedAt         DateTime           @default(now())
+  ipAddress          String?
+  userAgent          String?
+  consentDocKey      String?
+  consentSnapshot    Json?
+  createdAt          DateTime           @default(now())
+
+  user               upward_user        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vault              upward_rent_vault? @relation(fields: [vaultId], references: [id], onDelete: SetNull)
+
+  @@index([userId, acceptedAt])
+  @@index([vaultId])
 }

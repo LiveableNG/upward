@@ -1,11 +1,15 @@
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common'
 import { UnrecoverableError } from 'bullmq'
+import * as fs from 'fs/promises'
+import * as path from 'path'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
+import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service'
 import { AssetManagementProviderRegistry } from '../../providers/asset-management/asset-management-provider.registry'
 import { ArmConnectInvestmentProvider } from '../../providers/asset-management/arm-connect-investment.provider'
 import {
   ArmOperationError,
   InvestorOnboardingRequest,
+  OnboardingDocumentAsset,
 } from '../../../domains/rent-savings/asset-management.provider'
 import {
   ARM_NOTIFICATION_QUEUE,
@@ -31,6 +35,8 @@ export class ArmJobProcessorService {
     private readonly notificationQueue?: IArmNotificationQueue,
     @Optional()
     private readonly notificationProcessor?: ArmNotificationProcessorService,
+    @Optional()
+    private readonly s3Service?: S3Service,
   ) {}
 
   /**
@@ -218,7 +224,8 @@ export class ArmJobProcessorService {
           throw new ArmOperationError('Missing onboardingRequest payload on ARM job', 400, false)
         }
 
-        const onboardRes = await provider.onboardInvestor(onboardingPayload)
+        const hydratedPayload = await this.hydrateOnboardingDocuments(onboardingPayload)
+        const onboardRes = await provider.onboardInvestor(hydratedPayload)
         if (!onboardRes.success) {
           const reason = onboardRes.failureReason || 'ARM onboarding rejected'
           const isTransient = /timeout|temporar|unavailable|rate limit|502|503|504|network/i.test(
@@ -286,6 +293,54 @@ export class ArmJobProcessorService {
         throw new UnrecoverableError(errorMessage)
       }
       throw err
+    }
+  }
+
+  private async hydrateOnboardingDocuments(
+    request: InvestorOnboardingRequest,
+  ): Promise<InvestorOnboardingRequest> {
+    if (!request.documents) return request
+
+    const hydrateOne = async (
+      doc?: string | OnboardingDocumentAsset,
+    ): Promise<string | OnboardingDocumentAsset | undefined> => {
+      if (!doc || typeof doc === 'string') return doc
+      if (doc.base64) return doc
+      if (!doc.s3Key) return doc
+
+      if (doc.s3Key.startsWith('local:')) {
+        const relPath = doc.s3Key.slice('local:'.length).replace(/^\/+/, '')
+        const absPath = path.resolve(process.cwd(), '.uploads', relPath)
+        const buf = await fs.readFile(absPath)
+        return { ...doc, base64: buf.toString('base64') }
+      }
+
+      if (!this.s3Service) {
+        throw new ArmOperationError(
+          `Cannot hydrate ARM onboarding document (${doc.s3Key}): S3Service unavailable`,
+          500,
+          true,
+        )
+      }
+      const buf = await this.s3Service.getFileBuffer(doc.s3Key)
+      return { ...doc, base64: buf.toString('base64') }
+    }
+
+    const [passport, bvn_passport, id_card, utility_bill] = await Promise.all([
+      hydrateOne(request.documents.passport),
+      hydrateOne(request.documents.bvn_passport),
+      hydrateOne(request.documents.id_card),
+      hydrateOne(request.documents.utility_bill),
+    ])
+
+    return {
+      ...request,
+      documents: {
+        passport,
+        bvn_passport,
+        id_card,
+        utility_bill,
+      },
     }
   }
 

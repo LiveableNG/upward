@@ -55,7 +55,7 @@ export class SimulateRentSavingsUseCase {
     const annualYieldRateDecimal =
       productOption === 'RENT_PROTEC'
         ? (rates?.rentProtecRateDecimal ?? 0.1)
-        : (rates?.savingsAnnualRateDecimal ?? 0.14)
+        : (rates?.savingsAnnualRateDecimal ?? 0.16)
 
     const result = RentSavingsCalculatorEngine.simulate({
       targetAmountKobo: BigInt(Math.round(dto.target_amount_kobo)),

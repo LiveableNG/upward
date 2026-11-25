@@ -7,6 +7,8 @@ import {
   YieldMetrics,
   InvestorOnboardingRequest,
   InvestorOnboardingResponse,
+  MeansOfIdentificationType,
+  OnboardingDocumentAsset,
   PurchaseSubscriptionRequest,
   PurchaseSubscriptionResponse,
   RedemptionRequest,
@@ -29,8 +31,13 @@ interface ArmLoginData {
   merchantType: string
 }
 
-const SYNTHETIC_PDF_BASE64 =
-  'JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MDAgMjAwXSAvUmVzb3VyY2VzIDw8IC9Gb250IDw8IC9GMSA0IDAgUiA+PiA+PiAvQ29udGVudHMgNSAwIFIgPj4KZW5kb2JqCjQgMCBvYmoKPDwgL1R5cGUgL0ZvbnQgL1N1YnR5cGUgL1R1cGUxIC9CYXNlRm9udCAvSGVsdmV0aWNhID4+CmVuZG9iago1IDAgb2JqCjw8IC9MZW5ndGggODAgPj4Kc3RyZWFtCkJUIC9GMSAxMiBUZiA0MCAxMDAgVGQgKFNZTlRIRVRJQyBET0NVTUVOVCAtIE5PVCBWQUxJRCBGT1IgSURFTlRJRklDQVRJT04pIFRqIEVUCmVuZHN0cmVhbQplbmRvYmoKeHJlZgowIDYKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAwNTggMDAwMDAgbiAKMDAwMDAwMDExNSAwMDAwMCBuIAowMDAwMDAwMjQxIDAwMDAwIG4gCjAwMDAwMDAzMTEgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA2IC9Sb290IDEgMCBSID4+CnN0YXJ0eHJlZgo0NDEKJSVFT0YK'
+const ARM_ALLOWED_DOCUMENT_MIMES = new Set([
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/webp',
+  'application/pdf',
+])
 
 const SYNTHETIC_PNG_BASE64 =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
@@ -149,6 +156,37 @@ export class ArmConnectInvestmentProvider implements IAssetManagementProvider {
       return '1994-01-01T00:00:00Z'
     }
     return parsed.toISOString()
+  }
+
+  private static toDateOnly(raw?: string): string | null {
+    if (!raw) return null
+    const parsed = new Date(raw)
+    if (Number.isNaN(parsed.getTime())) return null
+    return parsed.toISOString().split('T')[0] || null
+  }
+
+  public static mapMeansOfIdentification(
+    type?: MeansOfIdentificationType | string,
+  ): { idType: string; meansOfIdentification: string } {
+    const normalized = String(type || 'NIN').toUpperCase()
+    if (normalized === 'INTERNATIONAL_PASSPORT' || normalized === 'PASSPORT') {
+      return { idType: '1', meansOfIdentification: 'InternationalPassport' }
+    }
+    if (normalized === 'DRIVERS_LICENSE' || normalized === 'DRIVER_LICENSE') {
+      return { idType: '2', meansOfIdentification: 'DriversLicense' }
+    }
+    return { idType: '5', meansOfIdentification: 'NIN' }
+  }
+
+  public static normalizeStateCode(state?: string): string {
+    const clean = (state || 'LAGOS')
+      .trim()
+      .toUpperCase()
+      .replace(/\s+STATE$/, '')
+    if (!clean) return 'LAGOS'
+    if (clean === 'LA' || clean.includes('LAGOS')) return 'LAGOS'
+    if (clean.includes('ABUJA') || clean.includes('FCT')) return 'FCT'
+    return clean
   }
 
   /**
@@ -489,12 +527,25 @@ export class ArmConnectInvestmentProvider implements IAssetManagementProvider {
         ? nokParts.slice(1).join(' ')
         : customer.personalDetails.surname || 'Relative'
 
-    const cleanBvn = (customer.kycDetails?.bvn || '00000000000').replace(/\D/g, '')
-    const cleanNin = (
-      customer.kycDetails?.nin ||
-      customer.kycDetails?.idNumber ||
-      cleanBvn
-    ).replace(/\D/g, '')
+    const cleanBvn = (customer.kycDetails?.bvn || '').replace(/\D/g, '')
+    const cleanNin = (customer.kycDetails?.nin || '').replace(/\D/g, '')
+
+    if (cleanBvn.length !== 11) {
+      return {
+        success: false,
+        status: 'Failed',
+        failureReason: 'Compulsory 11-digit BVN is required for ARM investor onboarding.',
+      }
+    }
+
+    if (cleanNin.length !== 11) {
+      return {
+        success: false,
+        status: 'Failed',
+        failureReason: 'Compulsory 11-digit NIN is required for ARM investor onboarding.',
+      }
+    }
+
     const normalizedPhone = ArmConnectInvestmentProvider.normalizeNigerianPhone(
       customer.personalDetails.mobilePhone,
     )
@@ -502,16 +553,129 @@ export class ArmConnectInvestmentProvider implements IAssetManagementProvider {
       customer.nextOfKin?.phone || customer.personalDetails.mobilePhone,
     )
 
-    const stripDataPrefix = (raw?: string) =>
-      raw ? raw.replace(/^data:[^;]+;base64,/, '').trim() : ''
+    const resolveDoc = (
+      raw: string | OnboardingDocumentAsset | undefined,
+      folder: 'passport' | 'bvn_passport' | 'id_card' | 'utility_bill',
+      defaultMime: string,
+      defaultName: string,
+    ): { name: string; type: string; size: number; folder: string; document: string } | null => {
+      if (!raw) return null
+      const strip = (s?: string) => (s ? s.replace(/^data:[^;]+;base64,/, '').trim() : '')
+      if (typeof raw === 'string') {
+        const mimeMatch = raw.match(/^data:([^;]+);base64,/)
+        const detectedMime = mimeMatch?.[1]?.toLowerCase() || defaultMime
+        const safeMime = ARM_ALLOWED_DOCUMENT_MIMES.has(detectedMime) ? detectedMime : defaultMime
+        const b64 = strip(raw)
+        if (!b64) return null
+        return {
+          name: defaultName,
+          type: safeMime,
+          size: Buffer.from(b64, 'base64').length,
+          folder,
+          document: b64,
+        }
+      }
+      const b64 = strip(raw.base64)
+      if (!b64) return null
+      const normalizedMime = (raw.mimeType || defaultMime).toLowerCase()
+      const safeMime = ARM_ALLOWED_DOCUMENT_MIMES.has(normalizedMime)
+        ? normalizedMime
+        : defaultMime
+      const extFromMime =
+        safeMime === 'application/pdf'
+          ? 'pdf'
+          : safeMime === 'image/png'
+            ? 'png'
+            : safeMime === 'image/webp'
+              ? 'webp'
+              : 'jpg'
+      const safeName = raw.fileName?.trim() || `${folder}.${extFromMime}`
+      return {
+        name: safeName,
+        type: safeMime,
+        size: Buffer.from(b64, 'base64').length,
+        folder,
+        document: b64,
+      }
+    }
 
-    const passportDoc = stripDataPrefix(customer.documents?.passport) || SYNTHETIC_PNG_BASE64
-    const passportMime = customer.documents?.passport ? 'image/jpeg' : 'image/png'
-    const bvnPassportDoc =
-      stripDataPrefix(customer.documents?.bvn_passport || customer.documents?.passport) ||
-      SYNTHETIC_PNG_BASE64
-    const idCardDoc = stripDataPrefix(customer.documents?.id_card) || SYNTHETIC_PDF_BASE64
-    const utilityDoc = stripDataPrefix(customer.documents?.utility_bill) || SYNTHETIC_PDF_BASE64
+    const passportItem = resolveDoc(
+      customer.documents?.passport,
+      'passport',
+      'image/jpeg',
+      'passport.jpg',
+    ) || {
+      name: 'passport.png',
+      type: 'image/png',
+      size: Buffer.from(SYNTHETIC_PNG_BASE64, 'base64').length,
+      folder: 'passport',
+      document: SYNTHETIC_PNG_BASE64,
+    }
+
+    const bvnPassportItem = resolveDoc(
+      customer.documents?.bvn_passport || customer.documents?.passport,
+      'bvn_passport',
+      'image/jpeg',
+      'bvn_passport.jpg',
+    ) || {
+      name: 'bvn_passport.png',
+      type: 'image/png',
+      size: Buffer.from(SYNTHETIC_PNG_BASE64, 'base64').length,
+      folder: 'bvn_passport',
+      document: SYNTHETIC_PNG_BASE64,
+    }
+
+    const idCardItem = resolveDoc(
+      customer.documents?.id_card,
+      'id_card',
+      'image/jpeg',
+      'id_card.jpg',
+    )
+    const utilityBillItem = resolveDoc(
+      customer.documents?.utility_bill,
+      'utility_bill',
+      'image/jpeg',
+      'utility_bill.jpg',
+    )
+
+    if (!idCardItem || !utilityBillItem) {
+      return {
+        success: false,
+        status: 'Failed',
+        failureReason:
+          'Uploaded valid Means of Identification and Proof of Address (Utility Bill) documents are required for ARM onboarding.',
+      }
+    }
+
+    const meansOfId = ArmConnectInvestmentProvider.mapMeansOfIdentification(
+      customer.kycDetails?.meansOfIdentification,
+    )
+    const cardNumber =
+      meansOfId.meansOfIdentification === 'NIN'
+        ? cleanNin
+        : (customer.kycDetails?.idNumber || cleanNin).trim()
+
+    const issueDateOfId =
+      ArmConnectInvestmentProvider.toDateOnly(customer.kycDetails?.idIssueDate) || '2021-01-01'
+    const expiryDateOfId =
+      ArmConnectInvestmentProvider.toDateOnly(customer.kycDetails?.idExpiryDate) || '2031-01-01'
+
+    const nowDate = new Date()
+    const defaultUtilityIssue = new Date(nowDate.getTime() - 15 * 24 * 60 * 60 * 1000)
+    const issueDateOfUtilityBill =
+      ArmConnectInvestmentProvider.toDateOnly(customer.kycDetails?.utilityBillIssueDate) ||
+      defaultUtilityIssue.toISOString().split('T')[0]!
+    const utilityIssueParsed = new Date(issueDateOfUtilityBill)
+    const expiryDateOfUtilityBill = new Date(
+      (Number.isNaN(utilityIssueParsed.getTime()) ? nowDate.getTime() : utilityIssueParsed.getTime()) +
+        90 * 24 * 60 * 60 * 1000,
+    )
+      .toISOString()
+      .split('T')[0]!
+
+    const residentialStateCode = ArmConnectInvestmentProvider.normalizeStateCode(
+      customer.address.residentialStateCode,
+    )
 
     const fullCustomerName =
       `${customer.personalDetails.firstName} ${customer.personalDetails.surname}`.trim()
@@ -530,8 +694,10 @@ export class ArmConnectInvestmentProvider implements IAssetManagementProvider {
         gender: customer.personalDetails.gender === 'Female' ? 'Female' : 'Male',
         nationality: 'Nigeria',
         title: customer.personalDetails.gender === 'Female' ? 'Ms' : 'Mr',
-        stateOfOrigin: (customer.personalDetails.stateOfOrigin || 'LAGOS').toUpperCase(),
-        placeOfBirth: customer.personalDetails.placeOfBirth || 'Lagos',
+        stateOfOrigin: ArmConnectInvestmentProvider.normalizeStateCode(
+          customer.personalDetails.stateOfOrigin || residentialStateCode,
+        ),
+        placeOfBirth: customer.personalDetails.placeOfBirth || customer.address.town || 'Lagos',
         annualExpectedAnnualIncomeRange: ArmConnectInvestmentProvider.mapIncomeRange(
           customer.personalDetails.annualExpectedIncomeRange,
         ),
@@ -553,23 +719,23 @@ export class ArmConnectInvestmentProvider implements IAssetManagementProvider {
         bvnComplianceCheck: 'Verified',
         bvnValidationStatus: 'Verified',
         bvnVerificationNumberStatus: 1,
-        idType: '5',
-        cardNumber: cleanNin,
-        issueDateOfId: '2021-01-01',
-        expiryDateOfId: '2031-01-01',
-        meansOfIdentification: 'NIN',
+        idType: meansOfId.idType,
+        cardNumber,
+        issueDateOfId,
+        expiryDateOfId,
+        meansOfIdentification: meansOfId.meansOfIdentification,
         idCardVerified: true,
         nin: cleanNin,
         utilityBillIdType: 'UtilityBill',
-        issueDateOfUtilityBill: '2026-09-01',
-        expiryDateOfUtilityBill: '2026-12-01',
+        issueDateOfUtilityBill,
+        expiryDateOfUtilityBill,
       },
       address: {
-        addressNumber: customer.address.addressNumber || '1',
-        streetName: customer.address.streetName || 'Admiralty Way',
-        town: customer.address.town || 'Lagos',
-        residentialCountry: 'Nigeria',
-        residentialStateCode: 'LAGOS',
+        addressNumber: customer.address.addressNumber?.trim() || '1',
+        streetName: customer.address.streetName.trim(),
+        town: customer.address.town.trim(),
+        residentialCountry: customer.address.residentialCountry?.trim() || 'Nigeria',
+        residentialStateCode,
       },
       nextOfKin: {
         firstName: nokFirstName,
@@ -585,7 +751,7 @@ export class ArmConnectInvestmentProvider implements IAssetManagementProvider {
         phoneNumber: normalizedNokPhone,
         emailAddress: customer.nextOfKin?.email || customer.customerEmail.trim(),
         address: customer.nextOfKin?.address || customer.address.streetName || 'Lagos, Nigeria',
-        addressNumber: customer.address.addressNumber || '1',
+        addressNumber: customer.address.addressNumber?.trim() || '1',
       },
       bankDetails: {
         bankCode,
@@ -596,36 +762,7 @@ export class ArmConnectInvestmentProvider implements IAssetManagementProvider {
         accountName: bankAccountName,
         bankName,
       },
-      documents: [
-        {
-          name: passportMime === 'image/png' ? 'passport.png' : 'passport.jpg',
-          type: passportMime,
-          size: Buffer.from(passportDoc, 'base64').length,
-          folder: 'passport',
-          document: passportDoc,
-        },
-        {
-          name: passportMime === 'image/png' ? 'bvn_passport.png' : 'bvn_passport.jpg',
-          type: passportMime,
-          size: Buffer.from(bvnPassportDoc, 'base64').length,
-          folder: 'bvn_passport',
-          document: bvnPassportDoc,
-        },
-        {
-          name: 'id_card.pdf',
-          type: 'application/pdf',
-          size: Buffer.from(idCardDoc, 'base64').length,
-          folder: 'id_card',
-          document: idCardDoc,
-        },
-        {
-          name: 'utility_bill.pdf',
-          type: 'application/pdf',
-          size: Buffer.from(utilityDoc, 'base64').length,
-          folder: 'utility_bill',
-          document: utilityDoc,
-        },
-      ],
+      documents: [passportItem, bvnPassportItem, idCardItem, utilityBillItem],
     }
 
     try {

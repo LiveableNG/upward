@@ -3,6 +3,16 @@ import { request } from '@/lib/api-client'
 export type SavingsCadence = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY'
 export type SavingsProductOption = 'SAVE_AND_EARN' | 'RENT_PROTEC'
 export type SavingsPlanPattern = 'EQUAL' | 'INITIAL_DEPOSIT' | 'STEP_UP' | 'ACCELERATED'
+export type MeansOfIdentificationType = 'NIN' | 'INTERNATIONAL_PASSPORT' | 'DRIVERS_LICENSE'
+export type SavingsKycDocumentKind = 'id_card' | 'utility_bill'
+
+export interface UploadedKycDocument {
+  doc_key: string
+  file_name: string
+  mime_type: string
+  size_bytes: number
+  kind: SavingsKycDocumentKind
+}
 
 export interface SimulateRentSavingsPayload {
   target_amount_kobo: number
@@ -23,6 +33,9 @@ export interface CreateVaultPayload {
   initial_deposit_kobo?: number
   payday_day_of_month?: number
   card_authorization_code?: string
+  consent_accepted?: boolean
+  terms_version?: string
+  consent_doc_version?: string
 }
 
 export interface DisburseAdvancePayload {
@@ -120,6 +133,17 @@ export interface RentVaultData {
   initial_deposit_kobo?: number
   is_rent_protec?: boolean
   insurance_premium_pct?: number
+  has_completed_arm_kyc?: boolean
+  address_verification_status?: string | null
+  consent?: {
+    consent_uuid: string
+    terms_version: string
+    consent_doc_version: string
+    fund_code: string
+    fund_name: string
+    accepted_at: string
+    has_document: boolean
+  } | null
   current_balance_kobo: number
   principal_kobo: number
   vault_principal_kobo?: number
@@ -172,47 +196,72 @@ export interface RentVaultData {
 export interface SavingsOnboardingPrefillData {
   is_verified: boolean
   has_verified_bvn: boolean
-  bvn: string
+  has_verified_nin?: boolean
+  has_completed_arm_kyc?: boolean
+  has_signed_consent?: boolean
+  consent_accepted_at?: string | null
+  bvn: string | null
   masked_bvn: string | null
-  mothers_maiden_name: string
-  occupation: string
-  source_of_funds: 'Salary' | 'Business' | 'Savings' | 'Investment'
-  income_range: string
-  next_of_kin_name: string
-  next_of_kin_relationship: string
-  next_of_kin_phone: string
-  next_of_kin_email: string
-  next_of_kin_address: string
-  settlement_bank_code: string
-  settlement_account_number: string
-  settlement_account_name: string
-  settlement_bank_name: string
+  nin?: string | null
+  masked_nin?: string | null
+  means_of_id_type?: MeansOfIdentificationType
+  means_of_id_number_masked?: string | null
+  means_of_id_issue_date?: string | null
+  means_of_id_expiry_date?: string | null
+  means_of_id_doc_key?: string | null
+  means_of_id_file_name?: string | null
+  means_of_id_mime_type?: string | null
+  residential_address_number?: string | null
+  residential_street?: string | null
+  residential_town?: string | null
+  residential_state?: string | null
+  utility_bill_issue_date?: string | null
+  utility_bill_doc_key?: string | null
+  utility_bill_file_name?: string | null
+  utility_bill_mime_type?: string | null
+  mothers_maiden_name: string | null
+  occupation: string | null
+  source_of_funds: 'Salary' | 'Business' | 'Savings' | 'Investment' | null
+  income_range: string | null
+  next_of_kin_name: string | null
+  next_of_kin_relationship: string | null
+  next_of_kin_phone: string | null
+  next_of_kin_email: string | null
+  next_of_kin_address: string | null
+  settlement_bank_code?: string
+  settlement_account_number?: string
+  settlement_account_name?: string
+  settlement_bank_name?: string
   kyc_address?: string | null
   target_rent?: number | null
   rent_due_date?: string | null
   property: {
     uuid: string
-    name: string
-    address: string
+    name?: string
+    address: string | null
     rent_amount: number | null
     rent_end_date: string | null
-    landlord_name: string
-    landlord_bank_code: string
-    landlord_bank_name: string
-    landlord_account_number: string
+    landlord_name: string | null
+    landlord_bank_code: string | null
+    landlord_bank_name: string | null
+    landlord_account_number: string | null
   } | null
 }
 
 export interface OnboardInvestorData {
   is_verified: boolean
+  has_completed_arm_kyc?: boolean
   masked_bvn: string
+  masked_nin?: string
   provider: string
+  consent_uuid?: string | null
+  consent_accepted_at?: string | null
   dedicated_account: {
     bank_name: string
     account_number: string
     account_name: string
     assignment_status?: string
-  }
+  } | null
 }
 
 export async function simulateRentSavings(
@@ -246,16 +295,36 @@ export async function getMyRentVault(): Promise<RentVaultData> {
 export async function consentToSavings(
   cadence?: SavingsCadence,
   extra?: {
+    consent_accepted?: boolean
+    accepted_terms?: boolean
+    accepted_arm_mandate?: boolean
+    accepted_lock_policy?: boolean
+    terms_version?: string
+    consent_doc_version?: string
     product_option?: SavingsProductOption
     plan_pattern?: SavingsPlanPattern
     initial_deposit_kobo?: number
   },
 ) {
   const payload = {
+    consent_accepted: extra?.consent_accepted ?? true,
+    accepted_terms: extra?.accepted_terms ?? true,
+    accepted_arm_mandate: extra?.accepted_arm_mandate ?? true,
+    accepted_lock_policy: extra?.accepted_lock_policy ?? true,
     ...(cadence ? { cadence } : {}),
     ...(extra || {}),
   }
-  const res = await request<{ status: string; message: string }>('/rent-vaults/consent', {
+  const res = await request<{
+    status: string
+    message: string
+    data?: {
+      consent_uuid: string
+      terms_version: string
+      consent_doc_version: string
+      accepted_at: string
+      has_document: boolean
+    }
+  }>('/rent-vaults/consent', {
     method: 'POST',
     body: JSON.stringify(payload),
   })
@@ -475,6 +544,25 @@ export async function simulateVaultDeposit(accountNumber: string, amountKobo: nu
 
 export interface OnboardInvestorPayload {
   bvn?: string
+  nin?: string
+  means_of_id_type: MeansOfIdentificationType
+  means_of_id_number?: string
+  means_of_id_issue_date?: string
+  means_of_id_expiry_date?: string
+  means_of_id_doc_key: string
+  means_of_id_mime_type?: string
+  means_of_id_file_name?: string
+  residential_address_number: string
+  residential_street: string
+  residential_town: string
+  residential_state: string
+  utility_bill_issue_date?: string
+  utility_bill_doc_key: string
+  utility_bill_mime_type?: string
+  utility_bill_file_name?: string
+  consent_accepted: boolean
+  terms_version?: string
+  consent_doc_version?: string
   mothers_maiden_name: string
   occupation: string
   source_of_funds: 'Salary' | 'Business' | 'Savings' | 'Investment'
@@ -494,6 +582,32 @@ export interface OnboardInvestorPayload {
   product_option?: SavingsProductOption
   plan_pattern?: SavingsPlanPattern
   initial_deposit_kobo?: number
+}
+
+export async function uploadSavingsKycDocument(
+  kind: SavingsKycDocumentKind,
+  file: File,
+): Promise<UploadedKycDocument> {
+  const formData = new FormData()
+  formData.append('kind', kind)
+  formData.append('fileName', file.name)
+  formData.append('file', file)
+
+  const res = await request<{ status: string; data: UploadedKycDocument }>(
+    '/rent-vaults/kyc/upload-document',
+    {
+      method: 'POST',
+      body: formData,
+    },
+  )
+  return res.data
+}
+
+export function getSavingsConsentDocumentUrl(): string {
+  const apiRoot =
+    process.env.NEXT_PUBLIC_API_URL ||
+    (typeof window !== 'undefined' ? `${window.location.origin}/api/v1` : '')
+  return `${apiRoot.replace(/\/$/, '')}/rent-vaults/consent-document`
 }
 
 export async function getSavingsOnboardingPrefill(): Promise<SavingsOnboardingPrefillData> {

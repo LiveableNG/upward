@@ -35,6 +35,8 @@ import { BottomSheetModal } from '@/components/common/BottomSheetModal'
 import { PayPageShell, PayFlowPrimaryButton } from '@/features/dashboard/components/payment/PayPageShell'
 import { loadSetupDraft, patchSetupDraft } from '@/features/dashboard/setup/setupDraft'
 import { readSavingsRentPlan } from '../utils/savingsRentPlan'
+import { ArmInvestorKycForm, type ArmInvestorKycSubmitData } from './ArmInvestorKycForm'
+import { SAVINGS_FUND_CODE, SAVINGS_FUND_NAME } from '../constants/savingsLegal'
 
 type Stage = 'RENT_INPUT' | 'PROTECTION' | 'BENEFIT' | 'KYC' | 'SUCCESS'
 
@@ -186,39 +188,9 @@ export function RentCalculatorView({
   const onboardMutation = useOnboardSavingsInvestor()
   const verifyFundingMutation = useVerifyVaultFunding()
   const [successVerifyNotice, setSuccessVerifyNotice] = useState<string | null>(null)
-
-  const hasVerifiedBvnOnFile = Boolean(prefill?.has_verified_bvn || user?.isIdentityVerified)
-  const [bvn, setBvn] = useState(() => prefill?.bvn || '')
-  const [mothersMaidenName, setMothersMaidenName] = useState(() => prefill?.mothers_maiden_name || '')
-  const [occupation, setOccupation] = useState(() => prefill?.occupation || '')
-  const [sourceOfFunds, setSourceOfFunds] = useState<'Salary' | 'Business' | 'Savings' | 'Investment'>(
-    () => prefill?.source_of_funds || 'Salary',
-  )
-  const [nextOfKinName, setNextOfKinName] = useState(() => prefill?.next_of_kin_name || '')
-  const [nextOfKinRelationship, setNextOfKinRelationship] = useState(
-    () => prefill?.next_of_kin_relationship || 'Spouse',
-  )
-  const [nextOfKinPhone, setNextOfKinPhone] = useState(() => prefill?.next_of_kin_phone || '')
-  const [agreeToLock, setAgreeToLock] = useState(false)
+  const [isArmKycFormValid, setIsArmKycFormValid] = useState(false)
   const [kycError, setKycError] = useState<string | null>(null)
-
-  const [prevPrefill, setPrevPrefill] = useState<typeof prefill | null>(null)
-  if (prefill && prefill !== prevPrefill) {
-    setPrevPrefill(prefill)
-    if (prefill.bvn && !bvn) setBvn(prefill.bvn)
-    if (prefill.mothers_maiden_name && !mothersMaidenName) {
-      setMothersMaidenName(prefill.mothers_maiden_name)
-    }
-    if (prefill.occupation && !occupation) setOccupation(prefill.occupation)
-    if (prefill.source_of_funds && (!sourceOfFunds || sourceOfFunds === 'Salary')) {
-      setSourceOfFunds(prefill.source_of_funds)
-    }
-    if (prefill.next_of_kin_name && !nextOfKinName) setNextOfKinName(prefill.next_of_kin_name)
-    if (prefill.next_of_kin_relationship && (!nextOfKinRelationship || nextOfKinRelationship === 'Spouse')) {
-      setNextOfKinRelationship(prefill.next_of_kin_relationship)
-    }
-    if (prefill.next_of_kin_phone && !nextOfKinPhone) setNextOfKinPhone(prefill.next_of_kin_phone)
-  }
+  const fundDisplayName = platformRates.fundName || SAVINGS_FUND_NAME
 
   const [createdDva, setCreatedDva] = useState<{
     bank_name: string
@@ -545,26 +517,18 @@ export function RentCalculatorView({
     } catch {}
   }
 
-  const isBvnValid = hasVerifiedBvnOnFile || bvn.trim().length === 11
-  const isMaidenNameValid = mothersMaidenName.trim().length > 0
-  const isOccupationValid = occupation.trim().length > 0
-  const isNextOfKinValid = nextOfKinName.trim().length > 0 && nextOfKinPhone.trim().length >= 10
-  const isKycValid =
-    isBvnValid && isMaidenNameValid && isOccupationValid && isNextOfKinValid && agreeToLock
-
-  const handleSubmitKyc = async () => {
-    if (!isKycValid) return
+  const handleSubmitKyc = async (kycData: ArmInvestorKycSubmitData) => {
     setKycError(null)
 
     try {
       const res = await onboardMutation.mutateAsync({
-        bvn: bvn.length === 11 ? bvn : undefined,
-        mothers_maiden_name: mothersMaidenName.trim(),
-        occupation: occupation.trim(),
-        source_of_funds: sourceOfFunds,
-        next_of_kin_name: nextOfKinName.trim(),
-        next_of_kin_relationship: nextOfKinRelationship || 'Spouse',
-        next_of_kin_phone: nextOfKinPhone.trim(),
+        ...kycData,
+        next_of_kin_email: prefill?.next_of_kin_email || undefined,
+        next_of_kin_address: prefill?.next_of_kin_address || undefined,
+        settlement_bank_code: prefill?.settlement_bank_code || undefined,
+        settlement_account_number: prefill?.settlement_account_number || undefined,
+        settlement_account_name: prefill?.settlement_account_name || undefined,
+        settlement_bank_name: prefill?.settlement_bank_name || undefined,
         target_amount: targetAmountNaira,
         rent_due_date: contractualDueDate,
         cadence: 'MONTHLY',
@@ -1584,176 +1548,43 @@ export function RentCalculatorView({
     )
   }
 
-  // STAGE 3: KYC Step
+  // STAGE 3: KYC & Consent Step
   if (stage === 'KYC') {
     return (
       <PayPageShell
-        title="Activate Rent Account"
-        subtitle="Link your BVN to generate your personal rent account."
+        title="Verify Identity & Consent"
+        subtitle={`Complete BVN, NIN, valid ID, proof of address, and consent for ${fundDisplayName} (${SAVINGS_FUND_CODE}).`}
         showBack
         onBack={() => setStage('BENEFIT')}
         pinFooter
         footer={
           <PayFlowPrimaryButton
-            disabled={!isKycValid || onboardMutation.isPending}
+            type="button"
+            onClick={() => {
+              const formEl = document.getElementById(
+                'rent-calc-arm-kyc-form',
+              ) as HTMLFormElement | null
+              formEl?.requestSubmit()
+            }}
+            disabled={!isArmKycFormValid || onboardMutation.isPending}
             loading={onboardMutation.isPending}
-            onClick={handleSubmitKyc}
           >
-            Activate Account
+            Verify &amp; Activate Account
             <ArrowRight size={18} aria-hidden />
           </PayFlowPrimaryButton>
         }
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {kycError && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '8px 12px',
-                borderRadius: '8px',
-                background: 'rgba(239, 68, 68, 0.08)',
-                border: '1px solid rgba(239, 68, 68, 0.25)',
-                fontSize: '0.75rem',
-                color: 'var(--error)',
-              }}
-            >
-              <AlertCircle size={14} style={{ flexShrink: 0 }} />
-              <span>{kycError}</span>
-            </div>
-          )}
-
-          {/* BVN */}
-          {hasVerifiedBvnOnFile ? (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '12px 14px',
-                borderRadius: '10px',
-                background: 'rgba(16, 185, 129, 0.08)',
-                border: '1px solid rgba(16, 185, 129, 0.25)',
-                color: '#10b981',
-                fontSize: '0.8125rem',
-                fontWeight: 600,
-              }}
-            >
-              <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
-              <span>
-                Identity Verified · BVN ({prefill?.masked_bvn || '••••' + (user?.phone?.slice(-4) || '1234')}) on file
-              </span>
-            </div>
-          ) : (
-            <div className="rent-calculator__field">
-              <label className="rent-calculator__label">Bank Verification Number (BVN)</label>
-              <div className="rent-calculator__input-wrapper">
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="Enter 11-digit BVN"
-                  className="rent-calculator__input rent-calculator__input--no-prefix"
-                  value={bvn}
-                  onChange={(e) => setBvn(e.target.value.replace(/\D/g, '').slice(0, 11))}
-                  maxLength={11}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Mother's Maiden Name */}
-          <div className="rent-calculator__field">
-            <label className="rent-calculator__label">Mother&apos;s Maiden Name</label>
-            <div className="rent-calculator__input-wrapper">
-              <input
-                type="text"
-                placeholder="Mother's birth family name"
-                className="rent-calculator__input rent-calculator__input--no-prefix"
-                value={mothersMaidenName}
-                onChange={(e) => setMothersMaidenName(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* Occupation & Source of Funds */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <div className="rent-calculator__field">
-              <label className="rent-calculator__label">Occupation</label>
-              <input
-                type="text"
-                placeholder="e.g. Consultant"
-                className="rent-calculator__input rent-calculator__input--no-prefix"
-                value={occupation}
-                onChange={(e) => setOccupation(e.target.value)}
-              />
-            </div>
-            <div className="rent-calculator__field">
-              <label className="rent-calculator__label">Source of Funds</label>
-              <select
-                className="rent-calculator__input rent-calculator__input--no-prefix"
-                value={sourceOfFunds}
-                onChange={(e) =>
-                  setSourceOfFunds(
-                    e.target.value as 'Salary' | 'Business' | 'Savings' | 'Investment',
-                  )
-                }
-              >
-                <option value="Salary">Salary</option>
-                <option value="Business">Business</option>
-                <option value="Savings">Savings</option>
-                <option value="Investment">Investment</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Next of Kin */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <div className="rent-calculator__field">
-              <label className="rent-calculator__label">Next of Kin Name</label>
-              <input
-                type="text"
-                placeholder="Full name"
-                className="rent-calculator__input rent-calculator__input--no-prefix"
-                value={nextOfKinName}
-                onChange={(e) => setNextOfKinName(e.target.value)}
-              />
-            </div>
-            <div className="rent-calculator__field">
-              <label className="rent-calculator__label">Next of Kin Phone</label>
-              <input
-                type="tel"
-                placeholder="e.g. 0801 234 5678"
-                className="rent-calculator__input rent-calculator__input--no-prefix"
-                value={nextOfKinPhone}
-                onChange={(e) =>
-                  setNextOfKinPhone(e.target.value.replace(/[^\d+]/g, '').slice(0, 14))
-                }
-              />
-            </div>
-          </div>
-
-          {/* Lock Agreement */}
-          <label
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              marginTop: 6,
-              fontSize: '0.8125rem',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer',
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={agreeToLock}
-              onChange={(e) => setAgreeToLock(e.target.checked)}
-              style={{ width: 18, height: 18, accentColor: 'var(--clay)', cursor: 'pointer' }}
-            />
-            <span>I agree to lock my rent savings until 30 days before rent day.</span>
-          </label>
-        </div>
+        <ArmInvestorKycForm
+          formId="rent-calc-arm-kyc-form"
+          prefill={prefill}
+          annualRatePct={savingsAnnualRatePct}
+          fundName={fundDisplayName}
+          serverError={kycError}
+          isSubmitting={onboardMutation.isPending}
+          hideSubmitButton
+          onValidityChange={setIsArmKycFormValid}
+          onSubmit={handleSubmitKyc}
+        />
       </PayPageShell>
     )
   }
@@ -1963,8 +1794,15 @@ export function RentCalculatorView({
           >
             <ShieldCheck size={16} color="var(--clay)" style={{ flexShrink: 0 }} />
             <span>
-              Funds are invested in a <strong>Money Market Fund (MMF)</strong> managed by{' '}
-              <strong>{platformRates.partnerName || 'Asset & Resource Management Holding Company (ARM)'}</strong>.
+              Funds are invested in the{' '}
+              <strong>
+                {fundDisplayName} ({SAVINGS_FUND_CODE})
+              </strong>{' '}
+              managed by{' '}
+              <strong>
+                {platformRates.partnerName || 'Asset & Resource Management Holding Company (ARM)'}
+              </strong>
+              .
             </span>
           </div>
 

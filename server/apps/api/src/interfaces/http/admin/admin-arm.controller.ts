@@ -4,6 +4,7 @@ import {
   Param,
   Post,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common'
 import { AdminRole } from '@upward/shared-types'
@@ -17,6 +18,7 @@ import {
   GetArmJobsUseCase,
   RetryArmJobUseCase,
   GetArmTransactionLiveStatusUseCase,
+  GetAdminArmCustomerDocumentUseCase,
 } from '../../../application/use-cases/admin/admin-arm.use-cases'
 
 @Controller('admin/arm')
@@ -29,6 +31,7 @@ export class AdminArmController {
     private readonly getJobsUseCase: GetArmJobsUseCase,
     private readonly retryJobUseCase: RetryArmJobUseCase,
     private readonly getTxLiveStatusUseCase: GetArmTransactionLiveStatusUseCase,
+    private readonly getCustomerDocUseCase: GetAdminArmCustomerDocumentUseCase,
   ) {}
 
   @Get('stats')
@@ -89,5 +92,24 @@ export class AdminArmController {
   @Roles(AdminRole.SUPERADMIN, AdminRole.DEVELOPER)
   async retryJob(@Param('id') id: string) {
     return this.retryJobUseCase.execute(id)
+  }
+
+  @Get('customers/:userUuid/consent-document')
+  @Roles(AdminRole.SUPERADMIN, AdminRole.CUSTOMER_SUPPORT, AdminRole.DEVELOPER)
+  async getCustomerConsentDocument(
+    @Param('userUuid') userUuid: string,
+    @Res({ passthrough: true }) res: any,
+  ) {
+    return this.getCustomerDocUseCase.execute(userUuid, 'consent', res)
+  }
+
+  @Get('customers/:userUuid/kyc-document/:kind')
+  @Roles(AdminRole.SUPERADMIN, AdminRole.CUSTOMER_SUPPORT, AdminRole.DEVELOPER)
+  async getCustomerKycDocument(
+    @Param('userUuid') userUuid: string,
+    @Param('kind') kind: 'id_card' | 'utility_bill',
+    @Res({ passthrough: true }) res: any,
+  ) {
+    return this.getCustomerDocUseCase.execute(userUuid, kind, res)
   }
 }

@@ -5,12 +5,17 @@ import {
   Logger,
   NotFoundException,
   Optional,
+  StreamableFile,
 } from '@nestjs/common'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 import { AssetManagementProviderRegistry } from '../../../infrastructure/providers/asset-management/asset-management-provider.registry'
 import { ArmMerchantOverview } from '../../../domains/rent-savings/asset-management.provider'
 import { ARM_JOB_QUEUE, ArmJobType, IArmJobQueue } from '../../../domains/rent-savings/arm-job.interface'
+import {
+  GetSavingsConsentDocumentUseCase,
+  GetSavingsKycDocumentUseCase,
+} from '../rent-savings/get-savings-consent-document.use-case'
 
 @Injectable()
 export class GetArmPortfolioStatsUseCase {
@@ -189,6 +194,10 @@ export class GetArmCustomersUseCase {
               orderBy: { createdAt: 'desc' },
               take: 1,
             },
+            savingsConsents: {
+              orderBy: { acceptedAt: 'desc' },
+              take: 1,
+            },
             rentSavingsScores: true,
             properties: {
               where: { isPastTenancy: false },
@@ -216,6 +225,7 @@ export class GetArmCustomersUseCase {
       vaults.map(async (vault: any) => {
         const u = vault.user
         const kyc = u?.kycVerifications?.[0]
+        const latestConsent = u?.savingsConsents?.[0] || null
         const latestSettlement = vault.settlements?.[0]
         const score = vault.savingsScore || u?.rentSavingsScores?.[0]
 
@@ -275,6 +285,18 @@ export class GetArmCustomersUseCase {
           vault.providerCrmStatus ||
           (vault.currentPrincipalKobo > 0n ? 'Submitted' : 'Pending')
 
+        const residentialAddress =
+          [
+            kyc?.residentialAddressNumber,
+            kyc?.residentialStreet,
+            kyc?.residentialTown,
+            kyc?.residentialState,
+          ]
+            .filter(Boolean)
+            .join(', ') ||
+          kyc?.nextOfKinAddress ||
+          null
+
         return {
           customerId: u.id,
           userUuid: u.uuid,
@@ -291,7 +313,25 @@ export class GetArmCustomersUseCase {
           armCrmAccountNumber: resolvedCrm,
           armSyncStatus: resolvedSyncStatus,
           armCompletedSections: kyc?.armCompletedSections ?? (u.isIdentityVerified ? 63 : 0),
-          b2b2cConsentOnRecord: true,
+          // Real Persisted B2B2C Consent Audit
+          b2b2cConsentOnRecord: Boolean(latestConsent),
+          consentUuid: latestConsent?.uuid || null,
+          consentAcceptedAt: latestConsent?.acceptedAt?.toISOString() || null,
+          consentTermsVersion: latestConsent?.termsVersion || null,
+          consentDocVersion: latestConsent?.consentDocVersion || null,
+          consentIpAddress: latestConsent?.ipAddress || null,
+          hasConsentDocument: Boolean(latestConsent),
+          // KYC & Proof of Address Details
+          maskedBvn: kyc?.idNumberMasked || null,
+          maskedNin: kyc?.ninMasked || null,
+          meansOfIdType: kyc?.meansOfIdType || null,
+          meansOfIdNumberMasked: kyc?.meansOfIdNumberMasked || null,
+          meansOfIdFileName: kyc?.meansOfIdFileName || null,
+          hasIdDocument: Boolean(kyc?.meansOfIdDocKey),
+          residentialAddress,
+          utilityBillFileName: kyc?.utilityBillFileName || null,
+          hasUtilityBillDocument: Boolean(kyc?.utilityBillDocKey),
+          addressVerificationStatus: kyc?.addressVerificationStatus || (kyc?.utilityBillDocKey ? 'SUBMITTED' : 'MISSING'),
           // Vault & Balances
           vaultId: vault.id,
           vaultUuid: vault.uuid,
@@ -346,7 +386,23 @@ export class GetArmCustomersUseCase {
           (c.customerMembershipId ? `${c.customerMembershipId}-ARMMMF-01` : null),
         armSyncStatus: c.status,
         armCompletedSections: 63,
-        b2b2cConsentOnRecord: true,
+        b2b2cConsentOnRecord: false,
+        consentUuid: null,
+        consentAcceptedAt: null,
+        consentTermsVersion: null,
+        consentDocVersion: null,
+        consentIpAddress: null,
+        hasConsentDocument: false,
+        maskedBvn: null,
+        maskedNin: null,
+        meansOfIdType: null,
+        meansOfIdNumberMasked: null,
+        meansOfIdFileName: null,
+        hasIdDocument: false,
+        residentialAddress: null,
+        utilityBillFileName: null,
+        hasUtilityBillDocument: false,
+        addressVerificationStatus: 'ARM_SANDBOX_ONLY',
         vaultId: -(idx + 1),
         vaultUuid: `arm-vault-${c.customerId}`,
         lockStatus: 'ARM_PROVISIONED',
@@ -927,5 +983,34 @@ export class GetArmTransactionLiveStatusUseCase {
         checkedAt: new Date().toISOString(),
       },
     }
+  }
+}
+
+@Injectable()
+export class GetAdminArmCustomerDocumentUseCase {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly getConsentDocUseCase: GetSavingsConsentDocumentUseCase,
+    private readonly getKycDocUseCase: GetSavingsKycDocumentUseCase,
+  ) {}
+
+  async execute(
+    userUuid: string,
+    docType: 'consent' | 'id_card' | 'utility_bill',
+    res: any,
+  ): Promise<StreamableFile> {
+    const user = await this.prisma.upward_user.findUnique({
+      where: { uuid: userUuid },
+      select: { id: true },
+    })
+    if (!user) {
+      throw new NotFoundException('Customer not found.')
+    }
+
+    if (docType === 'consent') {
+      return this.getConsentDocUseCase.execute(user.id, res)
+    }
+
+    return this.getKycDocUseCase.execute(user.id, docType, res)
   }
 }

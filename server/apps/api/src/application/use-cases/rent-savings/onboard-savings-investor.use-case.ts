@@ -1,7 +1,9 @@
 import { Injectable, Inject, Logger, BadRequestException, ForbiddenException, NotFoundException, Optional } from '@nestjs/common'
-import { IsEmail, IsIn, IsNotEmpty, IsNumber, IsOptional, IsString, Matches } from 'class-validator'
+import { IsBoolean, IsEmail, IsIn, IsNotEmpty, IsNumber, IsOptional, IsString, Matches } from 'class-validator'
 import { Type } from 'class-transformer'
 import * as crypto from 'crypto'
+import * as fs from 'fs/promises'
+import * as path from 'path'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { UserRepository, USER_REPOSITORY } from '../../../domains/users/user.repository'
 import { IKycProvider, KYC_PROVIDER } from '../../../domains/kyc/kyc-provider.interface'
@@ -10,10 +12,14 @@ import { IPaymentGateway, PAYMENT_GATEWAY } from '../../../domains/payments/paym
 import {
   IAssetManagementProvider,
   ASSET_MANAGEMENT_PROVIDER,
+  MeansOfIdentificationType,
+  OnboardingDocumentAsset,
 } from '../../../domains/rent-savings/asset-management.provider'
 import { ARM_JOB_QUEUE, IArmJobQueue } from '../../../domains/rent-savings/arm-job.interface'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 import { PlatformRatesService } from '../../../shared/infrastructure/common/platform-rates.service'
+import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service'
+import { RecordSavingsConsentUseCase } from './record-savings-consent.use-case'
 import { isProductionRuntime } from '../../../shared/utils/runtime-env'
 
 export class OnboardSavingsInvestorDto {
@@ -21,6 +27,82 @@ export class OnboardSavingsInvestorDto {
   @IsString()
   @Matches(/^\d{11}$/, { message: 'BVN must be exactly 11 numeric digits' })
   bvn?: string
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^\d{11}$/, { message: 'NIN must be exactly 11 numeric digits' })
+  nin?: string
+
+  @IsNotEmpty()
+  @IsIn(['NIN', 'INTERNATIONAL_PASSPORT', 'DRIVERS_LICENSE'])
+  means_of_id_type!: MeansOfIdentificationType
+
+  @IsOptional()
+  @IsString()
+  means_of_id_number?: string
+
+  @IsOptional()
+  @IsString()
+  means_of_id_issue_date?: string
+
+  @IsOptional()
+  @IsString()
+  means_of_id_expiry_date?: string
+
+  @IsNotEmpty()
+  @IsString()
+  means_of_id_doc_key!: string
+
+  @IsOptional()
+  @IsString()
+  means_of_id_mime_type?: string
+
+  @IsOptional()
+  @IsString()
+  means_of_id_file_name?: string
+
+  @IsNotEmpty()
+  @IsString()
+  residential_address_number!: string
+
+  @IsNotEmpty()
+  @IsString()
+  residential_street!: string
+
+  @IsNotEmpty()
+  @IsString()
+  residential_town!: string
+
+  @IsNotEmpty()
+  @IsString()
+  residential_state!: string
+
+  @IsOptional()
+  @IsString()
+  utility_bill_issue_date?: string
+
+  @IsNotEmpty()
+  @IsString()
+  utility_bill_doc_key!: string
+
+  @IsOptional()
+  @IsString()
+  utility_bill_mime_type?: string
+
+  @IsOptional()
+  @IsString()
+  utility_bill_file_name?: string
+
+  @IsBoolean()
+  consent_accepted!: boolean
+
+  @IsOptional()
+  @IsString()
+  terms_version?: string
+
+  @IsOptional()
+  @IsString()
+  consent_doc_version?: string
 
   @IsNotEmpty()
   @IsString()
@@ -168,7 +250,41 @@ export class OnboardSavingsInvestorUseCase {
     @Optional()
     @Inject(ARM_JOB_QUEUE)
     private readonly armJobQueue?: IArmJobQueue,
+    @Optional() private readonly recordSavingsConsentUseCase?: RecordSavingsConsentUseCase,
+    @Optional() private readonly s3Service?: S3Service,
   ) {}
+
+  private assertOwnedKycDocKey(userUuid: string, docKey: string, label: string): string {
+    const trimmed = (docKey || '').trim()
+    if (!trimmed) {
+      throw new BadRequestException(`${label} document upload is required.`)
+    }
+    const validS3Prefix = `users/${userUuid}/arm-kyc/`
+    const validLocalPrefix = `local:arm-kyc/${userUuid}/`
+    if (!trimmed.startsWith(validS3Prefix) && !trimmed.startsWith(validLocalPrefix)) {
+      throw new BadRequestException(`Invalid ${label} document reference. Please re-upload your document.`)
+    }
+    return trimmed
+  }
+
+  private async readDocKeyToBase64(docKey: string): Promise<string | undefined> {
+    if (!docKey) return undefined
+    try {
+      if (docKey.startsWith('local:')) {
+        const relPath = docKey.slice('local:'.length).replace(/^\/+/, '')
+        const absPath = path.resolve(process.cwd(), '.uploads', relPath)
+        const buf = await fs.readFile(absPath)
+        return buf.toString('base64')
+      }
+      if (this.s3Service) {
+        const buf = await this.s3Service.getFileBuffer(docKey)
+        return buf.toString('base64')
+      }
+    } catch (err: any) {
+      this.logger.warn(`Could not hydrate KYC document (${docKey}): ${err?.message}`)
+    }
+    return undefined
+  }
 
   async getOnboardingPrefill(userId: number) {
     const user = await this.userRepository.findById(userId)
@@ -184,13 +300,28 @@ export class OnboardSavingsInvestorUseCase {
       : null
 
     let decryptedBvn: string | null = null
+    let decryptedNin: string | null = null
     let decryptedMaidenName: string | null = null
 
-    if (latestKyc?.idNumberEncrypted) {
+    if (latestKyc?.idType === 'BVN' && latestKyc?.idNumberEncrypted) {
       try {
         decryptedBvn = this.encryption.decrypt(latestKyc.idNumberEncrypted)
       } catch {
         decryptedBvn = null
+      }
+    }
+
+    if (latestKyc?.ninEncrypted) {
+      try {
+        decryptedNin = this.encryption.decrypt(latestKyc.ninEncrypted)
+      } catch {
+        decryptedNin = null
+      }
+    } else if (latestKyc?.idType === 'NIN' && latestKyc?.idNumberEncrypted) {
+      try {
+        decryptedNin = this.encryption.decrypt(latestKyc.idNumberEncrypted)
+      } catch {
+        decryptedNin = null
       }
     }
 
@@ -201,6 +332,15 @@ export class OnboardSavingsInvestorUseCase {
         decryptedMaidenName = null
       }
     }
+
+    const latestConsent = this.prisma?.upward_savings_consent
+      ? await this.prisma.upward_savings_consent
+          .findFirst({
+            where: { userId },
+            orderBy: { acceptedAt: 'desc' },
+          })
+          .catch(() => null)
+      : null
 
     // Check PM tenant record for Next of Kin fallback if not in KYC yet
     let pmTenant: any = null
@@ -265,12 +405,56 @@ export class OnboardSavingsInvestorUseCase {
         ? new Date(activeProp.rentEndDate).toISOString().split('T')[0]
         : null
 
+    const hasVerifiedBvn = !!(
+      latestKyc?.status === 'VERIFIED' &&
+      (decryptedBvn || latestKyc?.idType === 'BVN')
+    )
+    const hasVerifiedNin = !!(latestKyc?.ninHash || decryptedNin)
+    const hasCompletedArmKyc = Boolean(
+      hasVerifiedBvn &&
+        hasVerifiedNin &&
+        latestKyc?.meansOfIdDocKey &&
+        latestKyc?.utilityBillDocKey &&
+        latestKyc?.residentialStreet,
+    )
+
     return {
       status: 'success',
       data: {
-        has_verified_bvn: !!(latestKyc?.status === 'VERIFIED' && decryptedBvn),
-        masked_bvn: latestKyc?.idNumberMasked || (decryptedBvn ? maskId(decryptedBvn) : null),
+        is_verified: Boolean(user.isIdentityVerified),
+        has_verified_bvn: hasVerifiedBvn,
+        has_verified_nin: hasVerifiedNin,
+        has_completed_arm_kyc: hasCompletedArmKyc,
+        has_signed_consent: Boolean(latestConsent),
+        consent_accepted_at: latestConsent?.acceptedAt?.toISOString() || null,
+        masked_bvn:
+          latestKyc?.idType === 'BVN'
+            ? latestKyc.idNumberMasked
+            : decryptedBvn
+              ? maskId(decryptedBvn)
+              : null,
         bvn: decryptedBvn || null,
+        masked_nin:
+          latestKyc?.ninMasked ||
+          (latestKyc?.idType === 'NIN' ? latestKyc.idNumberMasked : null) ||
+          (decryptedNin ? maskId(decryptedNin) : null),
+        nin: decryptedNin || null,
+        means_of_id_type: (latestKyc?.meansOfIdType as MeansOfIdentificationType) || 'NIN',
+        means_of_id_number_masked: latestKyc?.meansOfIdNumberMasked || null,
+        means_of_id_issue_date: latestKyc?.meansOfIdIssueDate || null,
+        means_of_id_expiry_date: latestKyc?.meansOfIdExpiryDate || null,
+        means_of_id_doc_key: latestKyc?.meansOfIdDocKey || null,
+        means_of_id_file_name: latestKyc?.meansOfIdFileName || null,
+        means_of_id_mime_type: latestKyc?.meansOfIdMimeType || null,
+        residential_address_number: latestKyc?.residentialAddressNumber || null,
+        residential_street:
+          latestKyc?.residentialStreet || activeProp?.location?.address || null,
+        residential_town: latestKyc?.residentialTown || activeProp?.location?.area || null,
+        residential_state: latestKyc?.residentialState || activeProp?.location?.state || null,
+        utility_bill_issue_date: latestKyc?.utilityBillIssueDate || null,
+        utility_bill_doc_key: latestKyc?.utilityBillDocKey || null,
+        utility_bill_file_name: latestKyc?.utilityBillFileName || null,
+        utility_bill_mime_type: latestKyc?.utilityBillMimeType || null,
         mothers_maiden_name: decryptedMaidenName || null,
         occupation: latestKyc?.occupation || null,
         source_of_funds: latestKyc?.sourceOfFunds || null,
@@ -283,7 +467,17 @@ export class OnboardSavingsInvestorUseCase {
         next_of_kin_email:
           latestKyc?.nextOfKinEmail || tryDecrypt(pmTenant?.nextOfKinEmail) || user.email || null,
         next_of_kin_address: latestKyc?.nextOfKinAddress || propAddress || null,
-        kyc_address: latestKyc?.nextOfKinAddress || null,
+        kyc_address:
+          [
+            latestKyc?.residentialAddressNumber,
+            latestKyc?.residentialStreet,
+            latestKyc?.residentialTown,
+            latestKyc?.residentialState,
+          ]
+            .filter(Boolean)
+            .join(', ') ||
+          latestKyc?.nextOfKinAddress ||
+          null,
         target_rent: effectiveTargetRent,
         rent_due_date: effectiveDueDate,
         settlement_bank: bankDetails
@@ -325,7 +519,11 @@ export class OnboardSavingsInvestorUseCase {
     }
   }
 
-  async execute(userId: number, dto: OnboardSavingsInvestorDto) {
+  async execute(
+    userId: number,
+    dto: OnboardSavingsInvestorDto,
+    requestMeta?: { ipAddress?: string | null; userAgent?: string | null },
+  ) {
     if (this.platformRates) {
       const rates = await this.platformRates.getRates()
       if (rates?.savingsEnabled === false) {
@@ -333,20 +531,27 @@ export class OnboardSavingsInvestorUseCase {
       }
     }
 
+    if (dto.consent_accepted !== true) {
+      throw new BadRequestException(
+        'You must review and accept the Rent Savings Terms & Conditions and ARM Money Market Fund Consent Mandate.',
+      )
+    }
+
     const user = await this.userRepository.findById(userId)
     if (!user) {
       throw new NotFoundException('User not found')
     }
 
+    // 1. Resolve & validate compulsory 11-digit BVN
     let rawBvn = dto.bvn ? dto.bvn.replace(/\D/g, '') : ''
     if (rawBvn.length !== 11 && this.prisma?.upward_kyc_verification) {
-      const priorKyc = await this.prisma.upward_kyc_verification.findFirst({
+      const priorBvnKyc = await this.prisma.upward_kyc_verification.findFirst({
         where: { userId, idType: 'BVN', idNumberEncrypted: { not: null } },
         orderBy: { createdAt: 'desc' },
       })
-      if (priorKyc?.idNumberEncrypted) {
+      if (priorBvnKyc?.idNumberEncrypted) {
         try {
-          rawBvn = this.encryption.decrypt(priorKyc.idNumberEncrypted).replace(/\D/g, '')
+          rawBvn = this.encryption.decrypt(priorBvnKyc.idNumberEncrypted).replace(/\D/g, '')
         } catch {
           rawBvn = ''
         }
@@ -358,22 +563,91 @@ export class OnboardSavingsInvestorUseCase {
       throw new BadRequestException('BVN must be exactly 11 numeric digits')
     }
 
+    // 2. Resolve & validate compulsory 11-digit NIN (required by ARM regardless of BVN)
+    let rawNin = dto.nin ? dto.nin.replace(/\D/g, '') : ''
+    if (rawNin.length !== 11 && this.prisma?.upward_kyc_verification) {
+      const priorNinKyc = await this.prisma.upward_kyc_verification.findFirst({
+        where: {
+          userId,
+          OR: [{ ninEncrypted: { not: null } }, { idType: 'NIN', idNumberEncrypted: { not: null } }],
+        },
+        orderBy: { createdAt: 'desc' },
+      })
+      const encNin = priorNinKyc?.ninEncrypted || priorNinKyc?.idNumberEncrypted
+      if (encNin) {
+        try {
+          rawNin = this.encryption.decrypt(encNin).replace(/\D/g, '')
+        } catch {
+          rawNin = ''
+        }
+      }
+    }
+
+    const cleanNin = rawNin
+    if (cleanNin.length !== 11) {
+      throw new BadRequestException(
+        'NIN must be exactly 11 numeric digits (compulsory alongside BVN for ARM onboarding).',
+      )
+    }
+
+    // 3. Validate Means of Identification & Uploaded KYC Documents (IDOR-safe ownership check)
+    const meansOfIdType: MeansOfIdentificationType = dto.means_of_id_type || 'NIN'
+    const meansOfIdNumber =
+      meansOfIdType === 'NIN' ? cleanNin : (dto.means_of_id_number || '').trim()
+    if (!meansOfIdNumber) {
+      throw new BadRequestException(
+        `Please enter your ${meansOfIdType === 'INTERNATIONAL_PASSPORT' ? 'International Passport' : "Driver's License"} number.`,
+      )
+    }
+
+    const idDocKey = this.assertOwnedKycDocKey(
+      user.uuid,
+      dto.means_of_id_doc_key,
+      'Valid Means of Identification',
+    )
+    const utilityBillDocKey = this.assertOwnedKycDocKey(
+      user.uuid,
+      dto.utility_bill_doc_key,
+      'Proof of Address (Utility Bill)',
+    )
+
+    // 4. Validate Residential Address
+    const residentialAddressNumber = dto.residential_address_number?.trim()
+    const residentialStreet = dto.residential_street?.trim()
+    const residentialTown = dto.residential_town?.trim()
+    const residentialState = dto.residential_state?.trim()
+    if (!residentialAddressNumber || !residentialStreet || !residentialTown || !residentialState) {
+      throw new BadRequestException(
+        'Full residential address (house number, street, city/town, and state) is required to verify your proof of address.',
+      )
+    }
+    const formattedResidentialAddress = [
+      residentialAddressNumber,
+      residentialStreet,
+      residentialTown,
+      residentialState,
+    ]
+      .filter(Boolean)
+      .join(', ')
+
     const bvnHash = this.encryption.hash(cleanBvn)
     const bvnMasked = maskId(cleanBvn)
+    const ninHash = this.encryption.hash(cleanNin)
+    const ninMasked = maskId(cleanNin)
 
-    // Anti-fraud: Check if BVN is already verified under another account
-    const existingVerified = await this.kycRepository.findVerifiedByHash(bvnHash)
-    if (existingVerified && existingVerified.userId !== user.id) {
+    // Anti-fraud: Check if BVN or NIN is already verified under another account
+    const existingVerifiedBvn = await this.kycRepository.findVerifiedByHash(bvnHash)
+    if (existingVerifiedBvn && existingVerifiedBvn.userId !== user.id) {
       if (
         (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') ||
         process.env.ALLOW_TEST_KYC_DUPLICATES === 'true'
       ) {
         this.logger.warn(
-          `[Dev Sandbox] Allowing duplicate BVN for dev user ID ${user.id} (previously used by user ID ${existingVerified.userId})`,
+          `[Dev Sandbox] Allowing duplicate BVN for dev user ID ${user.id} (previously used by user ID ${existingVerifiedBvn.userId})`,
         )
       } else {
         this.logger.warn(
-          `Fraud collision: BVN hash collision for user ID ${user.id} against user ID ${existingVerified.userId}`,
+          `Fraud collision: BVN hash collision for user ID ${user.id} against user ID ${existingVerifiedBvn.userId}`,
         )
         throw new BadRequestException(
           'This BVN is already linked to another verified account. Please contact support.',
@@ -381,7 +655,35 @@ export class OnboardSavingsInvestorUseCase {
       }
     }
 
-    this.logger.log(`Executing identity verification via KYC provider for user ID ${user.id}...`)
+    if (this.prisma?.upward_kyc_verification) {
+      const existingNinOwner = await this.prisma.upward_kyc_verification
+        .findFirst({
+          where: {
+            OR: [{ ninHash }, { idType: 'NIN', idNumberHash: ninHash }],
+            status: 'VERIFIED',
+            userId: { not: user.id },
+          },
+          select: { userId: true },
+        })
+        .catch(() => null)
+      if (existingNinOwner) {
+        if (
+          (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') ||
+          process.env.ALLOW_TEST_KYC_DUPLICATES === 'true'
+        ) {
+          this.logger.warn(
+            `[Dev Sandbox] Allowing duplicate NIN for dev user ID ${user.id} (previously used by user ID ${existingNinOwner.userId})`,
+          )
+        } else {
+          throw new BadRequestException(
+            'This NIN is already linked to another verified account. Please contact support.',
+          )
+        }
+      }
+    }
+
+    // 5. Verify BVN & NIN via configured KYC provider (Prembly)
+    this.logger.log(`Executing BVN verification via KYC provider for user ID ${user.id}...`)
     const verificationResult = await this.kycProvider.verify('BVN', cleanBvn, {
       firstName: user.firstName,
       lastName: user.lastName,
@@ -395,7 +697,6 @@ export class OnboardSavingsInvestorUseCase {
       )
     }
 
-    // Name cross-matching
     const returnedFirst = verificationResult.firstName || ''
     const returnedLast = verificationResult.lastName || ''
     const returnedDob = verificationResult.dateOfBirth || ''
@@ -407,21 +708,54 @@ export class OnboardSavingsInvestorUseCase {
       )
     }
 
-    // Extract biometric portrait photo from provider response (Monnify / Prembly)
+    this.logger.log(`Executing NIN verification via KYC provider for user ID ${user.id}...`)
+    const ninVerificationResult = await this.kycProvider.verify('NIN', cleanNin, {
+      firstName: user.firstName,
+      lastName: user.lastName,
+      dateOfBirth: user.dateOfBirth || returnedDob,
+      phone: user.phone,
+    })
+
+    if (!ninVerificationResult.success) {
+      throw new BadRequestException(
+        ninVerificationResult.message || 'NIN verification failed with identity provider (Prembly).',
+      )
+    }
+
+    const ninFirst = ninVerificationResult.firstName || ''
+    const ninLast = ninVerificationResult.lastName || ''
+    if (ninFirst && ninLast) {
+      const ninNameMatched = checkNameMatch(user.firstName, user.lastName, ninFirst, ninLast)
+      if (!ninNameMatched) {
+        throw new BadRequestException(
+          `The names on your Upward account (${user.firstName} ${user.lastName}) do not match the legal name registered under this NIN (${ninFirst} ${ninLast}).`,
+        )
+      }
+    }
+
+    // Extract biometric portrait photo from BVN or NIN provider response (Prembly / Monnify)
     let photoBase64: string | undefined = undefined
     const rawRes = verificationResult.rawResponse || {}
+    const rawNinRes = ninVerificationResult.rawResponse || {}
     if (verificationResult.photo && typeof verificationResult.photo === 'string') {
       photoBase64 = verificationResult.photo.replace(/^data:image\/\w+;base64,/, '')
+    } else if (ninVerificationResult.photo && typeof ninVerificationResult.photo === 'string') {
+      photoBase64 = ninVerificationResult.photo.replace(/^data:image\/\w+;base64,/, '')
     } else if (rawRes.image && typeof rawRes.image === 'string') {
       photoBase64 = rawRes.image.replace(/^data:image\/\w+;base64,/, '')
     } else if (rawRes.data?.image && typeof rawRes.data?.image === 'string') {
       photoBase64 = rawRes.data.image.replace(/^data:image\/\w+;base64,/, '')
     } else if (rawRes.photo && typeof rawRes.photo === 'string') {
       photoBase64 = rawRes.photo.replace(/^data:image\/\w+;base64,/, '')
+    } else if (rawNinRes.data?.photo && typeof rawNinRes.data?.photo === 'string') {
+      photoBase64 = rawNinRes.data.photo.replace(/^data:image\/\w+;base64,/, '')
     }
 
     // Reversible AES-256 encryption for secure transmission
     const idNumberEncrypted = this.encryption.encrypt(cleanBvn)
+    const ninEncrypted = this.encryption.encrypt(cleanNin)
+    const meansOfIdNumberEnc = this.encryption.encrypt(meansOfIdNumber)
+    const meansOfIdNumberMasked = maskId(meansOfIdNumber)
     const mothersMaidenNameEnc = this.encryption.encrypt(dto.mothers_maiden_name.trim())
 
     // Update user record: Mark verified and sync biometrics
@@ -462,7 +796,7 @@ export class OnboardSavingsInvestorUseCase {
       })
     }
 
-    // Record verified investor KYC audit record
+    // Record verified investor KYC audit record (BVN + NIN + Means of ID + Residential Address + Utility Bill)
     const createdKyc = await this.prisma.upward_kyc_verification.create({
       data: {
         uuid: crypto.randomUUID(),
@@ -471,11 +805,35 @@ export class OnboardSavingsInvestorUseCase {
         idNumberHash: bvnHash,
         idNumberMasked: bvnMasked,
         idNumberEncrypted,
+        ninHash,
+        ninMasked,
+        ninEncrypted,
+        ninVerifiedAt: new Date(),
+        meansOfIdType,
+        meansOfIdNumberEnc,
+        meansOfIdNumberMasked,
+        meansOfIdIssueDate: dto.means_of_id_issue_date || null,
+        meansOfIdExpiryDate: dto.means_of_id_expiry_date || null,
+        meansOfIdDocKey: idDocKey,
+        meansOfIdMimeType: dto.means_of_id_mime_type || 'image/jpeg',
+        meansOfIdFileName: dto.means_of_id_file_name || 'id_card.jpg',
+        residentialAddressNumber,
+        residentialStreet,
+        residentialTown,
+        residentialState,
+        utilityBillIssueDate: dto.utility_bill_issue_date || null,
+        utilityBillDocKey,
+        utilityBillMimeType: dto.utility_bill_mime_type || 'image/jpeg',
+        utilityBillFileName: dto.utility_bill_file_name || 'utility_bill.jpg',
+        addressVerificationStatus: 'SUBMITTED',
         provider: verificationResult.provider,
         status: 'VERIFIED',
         matchScore: 1.0,
         verifiedAt: new Date(),
-        metadata: rawRes,
+        metadata: {
+          bvn: rawRes,
+          nin: rawNinRes,
+        },
         mothersMaidenNameEnc,
         occupation: dto.occupation.trim(),
         sourceOfFunds: dto.source_of_funds,
@@ -485,7 +843,7 @@ export class OnboardSavingsInvestorUseCase {
         nextOfKinRelationship: dto.next_of_kin_relationship,
         nextOfKinPhone: dto.next_of_kin_phone.trim(),
         nextOfKinEmail: dto.next_of_kin_email?.trim() || user.email,
-        nextOfKinAddress: dto.next_of_kin_address?.trim() || 'Lagos, Nigeria',
+        nextOfKinAddress: dto.next_of_kin_address?.trim() || formattedResidentialAddress,
         armSyncStatus: 'PENDING',
         armCompletedSections: 0,
       },
@@ -707,8 +1065,48 @@ export class OnboardSavingsInvestorUseCase {
       )
     }
 
+    // Persist versioned Rent Savings T&C + ARM B2B2C Consent Mandate & generate signed PDF
+    let recordedConsent: { consent_uuid?: string; accepted_at?: string } | null = null
+    if (this.recordSavingsConsentUseCase) {
+      try {
+        const consentRes = await this.recordSavingsConsentUseCase.execute(
+          userId,
+          {
+            consent_accepted: true,
+            accepted_terms: true,
+            accepted_arm_mandate: true,
+            accepted_lock_policy: true,
+            terms_version: dto.terms_version,
+            consent_doc_version: dto.consent_doc_version,
+          },
+          {
+            ipAddress: requestMeta?.ipAddress || null,
+            userAgent: requestMeta?.userAgent || null,
+            vaultId: targetVaultId,
+            maskedBvn: bvnMasked,
+            maskedNin: ninMasked,
+            residentialAddress: formattedResidentialAddress,
+          },
+        )
+        recordedConsent = consentRes.data
+      } catch (consentErr: any) {
+        this.logger.warn(`Failed to record savings consent audit row: ${consentErr?.message}`)
+      }
+    }
+
     // Dispatch all 6 sections (Bitmask 63) to ARM Connect asynchronously via durable BullMQ job when available
     if (this.assetManagementProvider.onboardInvestor) {
+      const idCardDocAsset: OnboardingDocumentAsset = {
+        s3Key: idDocKey,
+        mimeType: dto.means_of_id_mime_type || 'image/jpeg',
+        fileName: dto.means_of_id_file_name || 'id_card.jpg',
+      }
+      const utilityBillDocAsset: OnboardingDocumentAsset = {
+        s3Key: utilityBillDocKey,
+        mimeType: dto.utility_bill_mime_type || 'image/jpeg',
+        fileName: dto.utility_bill_file_name || 'utility_bill.jpg',
+      }
+
       const onboardingRequest = {
         customerEmail: user.email,
         personalDetails: {
@@ -726,16 +1124,20 @@ export class OnboardSavingsInvestorUseCase {
           mobilePhone: user.phone || dto.next_of_kin_phone,
         },
         address: {
-          addressNumber: '1',
-          streetName: dto.next_of_kin_address || 'Lagos',
-          town: 'Lagos',
+          addressNumber: residentialAddressNumber,
+          streetName: residentialStreet,
+          town: residentialTown,
           residentialCountry: 'Nigeria',
-          residentialStateCode: 'LA',
+          residentialStateCode: residentialState,
         },
         kycDetails: {
           bvn: cleanBvn,
-          idType: 'NationalId',
-          idNumber: cleanBvn,
+          nin: cleanNin,
+          meansOfIdentification: meansOfIdType,
+          idNumber: meansOfIdNumber,
+          idIssueDate: dto.means_of_id_issue_date,
+          idExpiryDate: dto.means_of_id_expiry_date,
+          utilityBillIssueDate: dto.utility_bill_issue_date,
         },
         bankDetails:
           dto.settlement_bank_code && dto.settlement_account_number
@@ -752,14 +1154,18 @@ export class OnboardSavingsInvestorUseCase {
           relationshipType: dto.next_of_kin_relationship,
           phone: dto.next_of_kin_phone,
           email: dto.next_of_kin_email || user.email,
-          address: dto.next_of_kin_address || 'Lagos',
+          address: dto.next_of_kin_address || formattedResidentialAddress,
         },
-        documents: photoBase64
-          ? {
-              passport: photoBase64,
-              bvn_passport: photoBase64,
-            }
-          : undefined,
+        documents: {
+          ...(photoBase64
+            ? {
+                passport: photoBase64,
+                bvn_passport: photoBase64,
+              }
+            : {}),
+          id_card: idCardDocAsset,
+          utility_bill: utilityBillDocAsset,
+        },
       }
 
       if (this.armJobQueue && this.prisma?.upward_arm_job) {
@@ -798,7 +1204,19 @@ export class OnboardSavingsInvestorUseCase {
           this.logger.log(
             `Forwarding 6-section investor onboarding to ARM Connect for ${user.email}...`,
           )
-          const armRes = await this.assetManagementProvider.onboardInvestor(onboardingRequest)
+          const [idCardBase64, utilityBillBase64] = await Promise.all([
+            this.readDocKeyToBase64(idDocKey),
+            this.readDocKeyToBase64(utilityBillDocKey),
+          ])
+          const syncRequest = {
+            ...onboardingRequest,
+            documents: {
+              ...onboardingRequest.documents,
+              id_card: { ...idCardDocAsset, base64: idCardBase64 },
+              utility_bill: { ...utilityBillDocAsset, base64: utilityBillBase64 },
+            },
+          }
+          const armRes = await this.assetManagementProvider.onboardInvestor(syncRequest)
 
           if (armRes && armRes.success) {
             await this.prisma.upward_kyc_verification.updateMany({
@@ -838,8 +1256,12 @@ export class OnboardSavingsInvestorUseCase {
         : 'Investor KYC verified. Your dedicated funding account is being provisioned.',
       data: {
         is_verified: true,
+        has_completed_arm_kyc: true,
         masked_bvn: bvnMasked,
+        masked_nin: ninMasked,
         provider: verificationResult.provider,
+        consent_uuid: recordedConsent?.consent_uuid || null,
+        consent_accepted_at: recordedConsent?.accepted_at || null,
         dedicated_account: dvaAccountNumber
           ? {
               bank_name: dvaBankName,

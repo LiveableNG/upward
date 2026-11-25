@@ -1,5 +1,6 @@
 import { Global, Module } from '@nestjs/common'
 import { ConfigModule } from '@nestjs/config'
+import { S3Module } from '../../../shared/infrastructure/common/s3/s3.module'
 import {
   ARM_JOB_QUEUE,
   ARM_NOTIFICATION_QUEUE,
@@ -16,7 +17,7 @@ import { ArmJobWorkerService } from './arm-job-worker.service'
 
 @Global()
 @Module({
-  imports: [ConfigModule],
+  imports: [ConfigModule, S3Module],
   providers: [
     PrismaDeviceTokenRepository,
     PushNotificationService,

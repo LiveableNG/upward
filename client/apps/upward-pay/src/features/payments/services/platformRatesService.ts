@@ -14,6 +14,8 @@ export interface PlatformRates {
   insurancePremiumRateDecimal: number
   partnerName?: string
   partnerShortName?: string
+  fundName?: string
+  fundCode?: string
   updatedAt: string | null
 }
 
@@ -31,6 +33,8 @@ export const DEFAULT_PLATFORM_RATES: PlatformRates = {
   insurancePremiumRateDecimal: 0.02,
   partnerName: 'Asset & Resource Management Holding Company (ARM)',
   partnerShortName: 'ARM',
+  fundName: 'ARM Money Market Fund',
+  fundCode: 'ARMMMF',
   updatedAt: null,
 }
 

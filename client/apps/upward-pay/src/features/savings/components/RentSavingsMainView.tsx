@@ -126,11 +126,18 @@ export function RentSavingsMainView() {
   const isVaultActive =
     vault && vault.lock_status !== 'SETTLED' && vault.lock_status !== 'BROKEN_OUT'
 
-  const isKycRequired = Boolean(user && !user.isIdentityVerified && !vault?.vault_id)
+  const isKycRequired = Boolean(
+    user &&
+      (!user.isIdentityVerified ||
+        (vault && vault.has_completed_arm_kyc === false)),
+  )
   const hasConsented = Boolean(
-    user?.savingsWalletEnabled || isVaultActive || (vault && vault.current_balance_kobo > 0),
+    vault?.consent?.accepted_at ||
+      user?.savingsWalletEnabled ||
+      (vault && vault.current_balance_kobo > 0),
   )
   const shouldBlurActivities = (isKycRequired || !hasConsented) && Boolean(isVaultActive)
+  const fundDisplayName = platformRates.fundName || 'ARM Money Market Fund'
 
   // Only render top banners when the vault is already active (to avoid duplicate headers/buttons before starting)
   const renderKycBanner = () => {
@@ -144,13 +151,13 @@ export function RentSavingsMainView() {
           </div>
           <div className="savings-kyc-banner__content">
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span className="savings-kyc-banner__title">Identity Verification Required</span>
+              <span className="savings-kyc-banner__title">Identity &amp; Address Verification Required</span>
               <span className="savings-kyc-banner__partner">
-                Money Market Fund (MMF) managed by {platformRates.partnerShortName || 'ARM'}
+                {fundDisplayName} (ARMMMF)
               </span>
             </div>
             <span className="savings-kyc-banner__desc">
-              Verify your identity to unlock rent savings and start earning daily compound returns.
+              Complete your BVN, NIN, valid ID, and utility bill verification to invest and earn daily compound returns.
             </span>
           </div>
           <button
@@ -174,7 +181,7 @@ export function RentSavingsMainView() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <span className="savings-kyc-banner__title">Rent Savings Plan Ready</span>
               <span className="savings-kyc-banner__partner">
-                Money Market Fund (MMF) managed by {platformRates.partnerShortName || 'ARM'}
+                {fundDisplayName} (ARMMMF)
               </span>
             </div>
             <span className="savings-kyc-banner__desc">

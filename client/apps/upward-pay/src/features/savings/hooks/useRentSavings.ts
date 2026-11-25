@@ -101,6 +101,18 @@ export function useBreakoutRentVault() {
   })
 }
 
+export function useUploadSavingsKycDocument() {
+  return useMutation({
+    mutationFn: ({
+      kind,
+      file,
+    }: {
+      kind: savingsService.SavingsKycDocumentKind
+      file: File
+    }) => savingsService.uploadSavingsKycDocument(kind, file),
+  })
+}
+
 export function useOnboardSavingsInvestor() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -109,6 +121,7 @@ export function useOnboardSavingsInvestor() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user'] })
       queryClient.invalidateQueries({ queryKey: RENT_VAULT_QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: RENT_VAULT_PREFILL_QUERY_KEY })
     },
   })
 }
@@ -123,6 +136,12 @@ export function useConsentToSavings() {
         | 'MONTHLY'
         | 'QUARTERLY'
         | {
+            consent_accepted?: boolean
+            accepted_terms?: boolean
+            accepted_arm_mandate?: boolean
+            accepted_lock_policy?: boolean
+            terms_version?: string
+            consent_doc_version?: string
             cadence?: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY'
             product_option?: 'SAVE_AND_EARN' | 'RENT_PROTEC'
             plan_pattern?: 'EQUAL' | 'INITIAL_DEPOSIT' | 'STEP_UP' | 'ACCELERATED'
@@ -130,13 +149,14 @@ export function useConsentToSavings() {
           },
     ) => {
       if (typeof input === 'string') {
-        return savingsService.consentToSavings(input)
+        return savingsService.consentToSavings(input, { consent_accepted: true })
       }
       return savingsService.consentToSavings(input?.cadence, input)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user'] })
       queryClient.invalidateQueries({ queryKey: RENT_VAULT_QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: RENT_VAULT_PREFILL_QUERY_KEY })
     },
   })
 }

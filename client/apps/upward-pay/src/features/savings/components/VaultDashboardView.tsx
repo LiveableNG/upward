@@ -13,10 +13,13 @@ import {
   Copy,
   Check,
   FileText,
+  FileCheck2,
   Receipt,
   Loader2,
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
+import { API_BASE } from '@/lib/api-client'
+import { getAccessToken } from '@/lib/auth-token'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
 import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
@@ -29,6 +32,7 @@ import {
   type SavingsProductOption,
   type VaultTransactionItem,
 } from '../services/savingsService'
+import { SAVINGS_FUND_CODE, SAVINGS_FUND_NAME } from '../constants/savingsLegal'
 
 interface VaultDashboardViewProps {
   vault: {
@@ -40,6 +44,17 @@ interface VaultDashboardViewProps {
     initial_deposit_kobo?: number
     is_rent_protec?: boolean
     insurance_premium_pct?: number
+    has_completed_arm_kyc?: boolean
+    address_verification_status?: string | null
+    consent?: {
+      consent_uuid: string
+      terms_version: string
+      consent_doc_version: string
+      fund_code: string
+      fund_name: string
+      accepted_at: string
+      has_document: boolean
+    } | null
     current_balance_kobo: number
     principal_kobo: number
     vault_principal_kobo?: number
@@ -98,6 +113,7 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
   })
   const [copiedAccount, setCopiedAccount] = useState(false)
   const [downloadingReceiptId, setDownloadingReceiptId] = useState<string | null>(null)
+  const [downloadingConsent, setDownloadingConsent] = useState(false)
   const { user } = useAuth()
   const { success: toastSuccess, error: toastError } = useToast()
   const [nowTimestamp] = useState(() => Date.now())
@@ -207,6 +223,44 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
     }
   }
 
+  const handleOpenConsentPdf = async () => {
+    if (downloadingConsent) return
+    setDownloadingConsent(true)
+    try {
+      const token = getAccessToken()
+      const headers: Record<string, string> = {}
+      if (token) headers.Authorization = `Bearer ${token}`
+      const res = await fetch(`${API_BASE}/rent-vaults/consent-document`, {
+        method: 'GET',
+        credentials: 'include',
+        headers,
+      })
+      if (!res.ok) {
+        throw new Error('Could not open your signed consent mandate yet.')
+      }
+      const blob = await res.blob()
+      const blobUrl = URL.createObjectURL(blob)
+      const opened = window.open(blobUrl, '_blank', 'noopener,noreferrer')
+      if (!opened) {
+        const link = document.createElement('a')
+        link.href = blobUrl
+        link.download = `ARM_MMF_Consent_Mandate.pdf`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+      }
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000)
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : 'Unable to download your signed consent document.'
+      toastError(message)
+    } finally {
+      setDownloadingConsent(false)
+    }
+  }
+
+  const fundDisplayName = platformRates.fundName || SAVINGS_FUND_NAME
+
   return (
     <div className="rent-savings">
       <div className="vault-dashboard__hero">
@@ -214,7 +268,10 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
           <div className="vault-arm-badge">
             <ShieldCheck size={14} className="vault-arm-badge__icon" />
             <span>
-              <strong>Money Market Fund (MMF)</strong> managed by{' '}
+              <strong>
+                {fundDisplayName} ({SAVINGS_FUND_CODE})
+              </strong>{' '}
+              managed by{' '}
               <strong>
                 {platformRates.partnerName || 'Asset & Resource Management Holding Company (ARM)'}
               </strong>
@@ -442,6 +499,49 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
             })}
           </div>
         )}
+      </div>
+
+      <div className="vault-consent-bar">
+        <div className="vault-consent-bar__info">
+          <FileCheck2 size={15} color="var(--clay)" style={{ flexShrink: 0 }} />
+          <span>
+            {vault.consent?.accepted_at ? (
+              <>
+                <strong>ARM B2B2C Consent Mandate</strong> signed on{' '}
+                {new Date(vault.consent.accepted_at).toLocaleDateString('en-GB', {
+                  day: 'numeric',
+                  month: 'short',
+                  year: 'numeric',
+                })}
+              </>
+            ) : (
+              <>
+                <strong>{fundDisplayName} ({SAVINGS_FUND_CODE})</strong> Terms &amp; Mandate
+              </>
+            )}
+          </span>
+        </div>
+        <div className="vault-consent-bar__actions">
+          <Link href="/dashboard/legal/savings-terms" className="vault-consent-bar__link">
+            <FileText size={13} />
+            <span>T&amp;Cs</span>
+          </Link>
+          {vault.consent?.has_document && (
+            <button
+              type="button"
+              className="vault-consent-bar__link"
+              onClick={handleOpenConsentPdf}
+              disabled={downloadingConsent}
+            >
+              {downloadingConsent ? (
+                <Loader2 size={13} className="animate-spin" />
+              ) : (
+                <FileCheck2 size={13} />
+              )}
+              <span>Consent Doc (PDF)</span>
+            </button>
+          )}
+        </div>
       </div>
 
       <FundVaultModal

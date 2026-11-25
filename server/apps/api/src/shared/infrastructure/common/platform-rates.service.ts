@@ -15,6 +15,8 @@ export interface PlatformRatesSnapshot {
   insurancePremiumRateDecimal: number;
   partnerName: string;
   partnerShortName: string;
+  fundName: string;
+  fundCode: string;
   updatedAt: string | null;
 }
 
@@ -28,6 +30,10 @@ const DEFAULT_PARTNER_NAME =
   process.env.INVESTMENT_PARTNER_NAME || 'Asset & Resource Management Holding Company (ARM)';
 const DEFAULT_PARTNER_SHORT_NAME =
   process.env.INVESTMENT_PARTNER_SHORT_NAME || 'ARM';
+const DEFAULT_FUND_NAME =
+  process.env.INVESTMENT_FUND_NAME || 'ARM Money Market Fund';
+const DEFAULT_FUND_CODE =
+  process.env.INVESTMENT_FUND_CODE || 'ARMMMF';
 const GLOBAL_KEY = 'GLOBAL';
 const LEGACY_SAVINGS_CONFIG_KEY = 'GLOBAL_DAILY_INTEREST';
 
@@ -110,6 +116,8 @@ export class PlatformRatesService implements OnModuleInit {
       insurancePremiumRateDecimal,
       partnerName: this.cachedPartnerName,
       partnerShortName: this.cachedPartnerShortName,
+      fundName: DEFAULT_FUND_NAME,
+      fundCode: DEFAULT_FUND_CODE,
       updatedAt: this.cachedUpdatedAt ? this.cachedUpdatedAt.toISOString() : null,
     };
   }

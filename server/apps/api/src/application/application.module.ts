@@ -131,6 +131,7 @@ import {
   GetArmJobsUseCase,
   RetryArmJobUseCase,
   GetArmTransactionLiveStatusUseCase,
+  GetAdminArmCustomerDocumentUseCase,
 } from './use-cases/admin/admin-arm.use-cases'
 
 import { JoinWaitlistUseCase } from './use-cases/waitlist/join-waitlist.use-case'
@@ -625,6 +626,13 @@ import { ExecuteLandlordSettlementUseCase } from './use-cases/rent-savings/execu
 import { BreakoutRentVaultUseCase } from './use-cases/rent-savings/breakout-rent-vault.use-case'
 import { OnboardSavingsInvestorUseCase } from './use-cases/rent-savings/onboard-savings-investor.use-case'
 import { VerifyRentVaultFundingUseCase } from './use-cases/rent-savings/verify-rent-vault-funding.use-case'
+import { UploadSavingsKycDocumentUseCase } from './use-cases/rent-savings/upload-savings-kyc-document.use-case'
+import { RecordSavingsConsentUseCase } from './use-cases/rent-savings/record-savings-consent.use-case'
+import {
+  GetSavingsConsentDocumentUseCase,
+  GetSavingsKycDocumentUseCase,
+} from './use-cases/rent-savings/get-savings-consent-document.use-case'
+import { SavingsConsentPdfService } from '../shared/infrastructure/common/rent-savings/savings-consent-pdf.service'
 
 import { TogglePmAllianceEnablementUseCase } from './alliance/use-cases/toggle-pm-alliance-enablement.use-case'
 import { CreateAllianceQualificationUseCase } from './alliance/use-cases/create-alliance-qualification.use-case'
@@ -683,6 +691,10 @@ const UseCases: any[] = [
   BreakoutRentVaultUseCase,
   OnboardSavingsInvestorUseCase,
   VerifyRentVaultFundingUseCase,
+  UploadSavingsKycDocumentUseCase,
+  RecordSavingsConsentUseCase,
+  GetSavingsConsentDocumentUseCase,
+  GetSavingsKycDocumentUseCase,
 
   TogglePmAllianceEnablementUseCase,
   CreateAllianceQualificationUseCase,
@@ -771,6 +783,7 @@ const UseCases: any[] = [
   GetArmJobsUseCase,
   RetryArmJobUseCase,
   GetArmTransactionLiveStatusUseCase,
+  GetAdminArmCustomerDocumentUseCase,
   SearchFeeTargetsUseCase,
   GetAreaPriceGuideUseCase,
   GetAreaPriceGuideStatesUseCase,
@@ -1318,6 +1331,7 @@ import { PrismaModule } from '../shared/infrastructure/prisma/prisma.module'
     UnifiedReminderService,
     PaymentConfigurationService,
     PlatformRatesService,
+    SavingsConsentPdfService,
     RentalPeriodService,
     QueueDailySequencesUseCase,
     GetQueuedSequencesUseCase,
@@ -1355,6 +1369,7 @@ import { PrismaModule } from '../shared/infrastructure/prisma/prisma.module'
     UnifiedReminderService,
     PaymentConfigurationService,
     PlatformRatesService,
+    SavingsConsentPdfService,
     RentalPeriodService,
     QueueDailySequencesUseCase,
     GetQueuedSequencesUseCase,

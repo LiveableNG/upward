@@ -13,6 +13,18 @@ export interface YieldMetrics {
   isLive?: boolean
 }
 
+export type MeansOfIdentificationType =
+  | 'NIN'
+  | 'INTERNATIONAL_PASSPORT'
+  | 'DRIVERS_LICENSE'
+
+export interface OnboardingDocumentAsset {
+  base64?: string
+  s3Key?: string
+  mimeType: string
+  fileName: string
+}
+
 export interface InvestorOnboardingRequest {
   customerEmail: string
   personalDetails: {
@@ -41,9 +53,13 @@ export interface InvestorOnboardingRequest {
   }
   kycDetails?: {
     bvn: string
+    nin: string
+    meansOfIdentification?: MeansOfIdentificationType
     idType?: string
     idNumber?: string
-    nin?: string
+    idIssueDate?: string
+    idExpiryDate?: string
+    utilityBillIssueDate?: string
   }
   bankDetails?: {
     bankName: string
@@ -61,10 +77,10 @@ export interface InvestorOnboardingRequest {
     address?: string
   }
   documents?: {
-    passport?: string
-    bvn_passport?: string
-    id_card?: string
-    utility_bill?: string
+    passport?: string | OnboardingDocumentAsset
+    bvn_passport?: string | OnboardingDocumentAsset
+    id_card?: string | OnboardingDocumentAsset
+    utility_bill?: string | OnboardingDocumentAsset
   }
 }
 

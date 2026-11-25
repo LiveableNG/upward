@@ -20,8 +20,13 @@ import {
   Check,
   ExternalLink,
   Eye,
+  FileText,
+  FileCheck2,
+  Home,
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
+
+const ADMIN_API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000/api/v1'
 
 interface ArmPortfolioProps {
   token: string
@@ -87,6 +92,22 @@ interface ArmCustomer {
   armSyncStatus: string
   armCompletedSections: number
   b2b2cConsentOnRecord: boolean
+  consentUuid?: string | null
+  consentAcceptedAt?: string | null
+  consentTermsVersion?: string | null
+  consentDocVersion?: string | null
+  consentIpAddress?: string | null
+  hasConsentDocument?: boolean
+  maskedBvn?: string | null
+  maskedNin?: string | null
+  meansOfIdType?: string | null
+  meansOfIdNumberMasked?: string | null
+  meansOfIdFileName?: string | null
+  hasIdDocument?: boolean
+  residentialAddress?: string | null
+  utilityBillFileName?: string | null
+  hasUtilityBillDocument?: boolean
+  addressVerificationStatus?: string | null
   vaultId: number
   vaultUuid: string
   lockStatus: string
@@ -343,6 +364,33 @@ export default function ArmPortfolio({ token }: ArmPortfolioProps) {
       setError(err?.message || 'Could not verify live ARM transaction status')
     } finally {
       setCheckingLiveTx(false)
+    }
+  }
+
+  const openCustomerDocument = async (
+    userUuid: string,
+    docType: 'consent' | 'id_card' | 'utility_bill',
+  ) => {
+    setError(null)
+    try {
+      const path =
+        docType === 'consent'
+          ? `/admin/arm/customers/${encodeURIComponent(userUuid)}/consent-document`
+          : `/admin/arm/customers/${encodeURIComponent(userUuid)}/kyc-document/${docType}`
+      const response = await fetch(`${ADMIN_API_BASE}${path}`, {
+        method: 'GET',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: 'include',
+      })
+      if (!response.ok) {
+        throw new Error(`Could not load ${docType.replace('_', ' ')} document (${response.status})`)
+      }
+      const blob = await response.blob()
+      const blobUrl = URL.createObjectURL(blob)
+      window.open(blobUrl, '_blank', 'noopener,noreferrer')
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000)
+    } catch (err: any) {
+      setError(err?.message || 'Failed to open customer document')
     }
   }
 
@@ -829,7 +877,9 @@ export default function ArmPortfolio({ token }: ArmPortfolioProps) {
           </div>
           <div style={{ fontSize: '12px', color: '#059669', display: 'flex', alignItems: 'center', gap: 4 }}>
             <ShieldCheck size={13} />
-            <span>100% Auto-Consent on Record</span>
+            <span>
+              {customers.filter((c) => c.b2b2cConsentOnRecord).length}/{customers.length} Signed Consent on Record
+            </span>
           </div>
         </div>
       </div>
@@ -1708,11 +1758,12 @@ export default function ArmPortfolio({ token }: ArmPortfolioProps) {
             <thead>
               <tr style={{ background: 'var(--surface-sunken, #f8f6f3)', borderBottom: '1px solid var(--border)' }}>
                 <th style={{ padding: '12px 16px', fontWeight: 600 }}>Customer Name</th>
-                <th style={{ padding: '12px 16px', fontWeight: 600 }}>Customer Email</th>
-                <th style={{ padding: '12px 16px', fontWeight: 600 }}>ARM Customer Membership ID</th>
-                <th style={{ padding: '12px 16px', fontWeight: 600 }}>Consent Form Type</th>
-                <th style={{ padding: '12px 16px', fontWeight: 600 }}>SEC Suitability (Bitmask)</th>
+                <th style={{ padding: '12px 16px', fontWeight: 600 }}>ARM Membership ID</th>
+                <th style={{ padding: '12px 16px', fontWeight: 600 }}>Terms / Mandate Version</th>
+                <th style={{ padding: '12px 16px', fontWeight: 600 }}>Signed At</th>
+                <th style={{ padding: '12px 16px', fontWeight: 600 }}>KYC &amp; Proof of Address</th>
                 <th style={{ padding: '12px 16px', fontWeight: 600 }}>Status</th>
+                <th style={{ padding: '12px 16px', fontWeight: 600 }}>Consent Doc</th>
               </tr>
             </thead>
             <tbody>
@@ -1721,27 +1772,59 @@ export default function ArmPortfolio({ token }: ArmPortfolioProps) {
                   key={c.userUuid}
                   onClick={() => setDetailDrawer({ kind: 'CUSTOMER', item: c })}
                   style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
-                  title="Click to inspect full customer & consent details"
+                  title="Click to inspect full customer, KYC documents & consent details"
                 >
-                  <td style={{ padding: '12px 16px', fontWeight: 600 }}>{c.fullName}</td>
-                  <td style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>{c.email}</td>
+                  <td style={{ padding: '12px 16px' }}>
+                    <div style={{ fontWeight: 600 }}>{c.fullName}</div>
+                    <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>{c.email}</div>
+                  </td>
                   <td style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--primary, #c2501f)' }}>
                     {c.armCustomerMembershipId || omnibusMembershipId}
                   </td>
-                  <td style={{ padding: '12px 16px' }}>Auto-Signed Digital Mandate (ARM B2B2C)</td>
+                  <td style={{ padding: '12px 16px', fontSize: '12px' }}>
+                    {c.b2b2cConsentOnRecord ? (
+                      <>
+                        <div style={{ fontWeight: 600 }}>{c.consentDocVersion || 'ARM-B2B2C-2026-v1'}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                          T&amp;C: {c.consentTermsVersion || '2026-11-v1'}
+                        </div>
+                      </>
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)' }}>Not signed yet</span>
+                    )}
+                  </td>
+                  <td style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                    {c.consentAcceptedAt
+                      ? new Date(c.consentAcceptedAt).toLocaleString('en-NG')
+                      : '—'}
+                  </td>
                   <td style={{ padding: '12px 16px' }}>
-                    <span
-                      style={{
-                        padding: '2px 8px',
-                        borderRadius: '4px',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        background: '#eff6ff',
-                        color: '#2563eb',
-                      }}
-                    >
-                      {c.armCompletedSections || 63}/63 Sections Verified
-                    </span>
+                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                      <span
+                        style={{
+                          padding: '2px 7px',
+                          borderRadius: '4px',
+                          fontSize: '10.5px',
+                          fontWeight: 700,
+                          background: c.maskedNin ? '#ecfdf5' : '#fef3c7',
+                          color: c.maskedNin ? '#059669' : '#b45309',
+                        }}
+                      >
+                        {c.maskedNin ? 'BVN+NIN' : 'BVN Only'}
+                      </span>
+                      <span
+                        style={{
+                          padding: '2px 7px',
+                          borderRadius: '4px',
+                          fontSize: '10.5px',
+                          fontWeight: 700,
+                          background: c.hasUtilityBillDocument ? '#eff6ff' : '#fef2f2',
+                          color: c.hasUtilityBillDocument ? '#2563eb' : '#b91c1c',
+                        }}
+                      >
+                        {c.hasUtilityBillDocument ? 'Utility Bill' : 'No Utility Bill'}
+                      </span>
+                    </div>
                   </td>
                   <td style={{ padding: '12px 16px' }}>
                     <span
@@ -1750,15 +1833,45 @@ export default function ArmPortfolio({ token }: ArmPortfolioProps) {
                         borderRadius: '6px',
                         fontSize: '11px',
                         fontWeight: 700,
-                        background: '#ecfdf5',
-                        color: '#059669',
+                        background: c.b2b2cConsentOnRecord ? '#ecfdf5' : '#fef3c7',
+                        color: c.b2b2cConsentOnRecord ? '#059669' : '#b45309',
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: 4,
                       }}
                     >
-                      <ShieldCheck size={12} /> Auto-Consent Verified
+                      <ShieldCheck size={12} />{' '}
+                      {c.b2b2cConsentOnRecord ? 'Consent Signed' : 'Pending Consent'}
                     </span>
+                  </td>
+                  <td style={{ padding: '12px 16px' }}>
+                    {c.hasConsentDocument ? (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          openCustomerDocument(c.userUuid, 'consent')
+                        }}
+                        style={{
+                          padding: '5px 10px',
+                          borderRadius: '6px',
+                          border: '1px solid var(--border)',
+                          background: 'var(--surface, #ffffff)',
+                          color: 'var(--primary, #c2501f)',
+                          fontSize: '11.5px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 5,
+                        }}
+                      >
+                        <FileCheck2 size={13} />
+                        <span>View PDF</span>
+                      </button>
+                    ) : (
+                      <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>—</span>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -1959,6 +2072,72 @@ export default function ArmPortfolio({ token }: ArmPortfolioProps) {
                         {renderCopyRow('ARM Sync Status', `${c.armSyncStatus} (${c.armCompletedSections}/63 sections)`, 'cust-sync')}
                         {renderCopyRow('Latest ARM Purchase ID', c.armPurchaseId, 'cust-pur', Boolean(c.armPurchaseId))}
                         {renderCopyRow('Latest ARM Withdrawal ID', c.armWithdrawalId, 'cust-wdl', Boolean(c.armWithdrawalId))}
+                      </div>
+
+                      <div>
+                        <h4 style={{ fontSize: '12px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', margin: '0 0 6px' }}>
+                          KYC, Proof of Address &amp; Consent Compliance
+                        </h4>
+                        {renderCopyRow('BVN (Masked)', c.maskedBvn, 'cust-bvn')}
+                        {renderCopyRow('NIN (Masked)', c.maskedNin, 'cust-nin')}
+                        {renderCopyRow(
+                          'Valid Means of ID',
+                          c.meansOfIdType
+                            ? `${c.meansOfIdType}${c.meansOfIdNumberMasked ? ` (${c.meansOfIdNumberMasked})` : ''}`
+                            : null,
+                          'cust-id-type',
+                        )}
+                        {renderCopyRow('Residential Address', c.residentialAddress, 'cust-addr')}
+                        {renderCopyRow(
+                          'Address Verification',
+                          c.addressVerificationStatus || (c.hasUtilityBillDocument ? 'SUBMITTED' : 'MISSING'),
+                          'cust-addr-status',
+                          Boolean(c.hasUtilityBillDocument),
+                        )}
+                        {renderCopyRow(
+                          'B2B2C Consent Status',
+                          c.b2b2cConsentOnRecord
+                            ? `Signed ${c.consentAcceptedAt ? new Date(c.consentAcceptedAt).toLocaleString('en-NG') : ''} (${c.consentDocVersion || 'v1'})`
+                            : 'Pending',
+                          'cust-consent-status',
+                          c.b2b2cConsentOnRecord,
+                        )}
+
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '10px' }}>
+                          {c.hasIdDocument && (
+                            <button
+                              type="button"
+                              className="btn btn-secondary"
+                              onClick={() => openCustomerDocument(c.userUuid, 'id_card')}
+                              style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '12px' }}
+                            >
+                              <FileText size={13} />
+                              <span>View ID Document</span>
+                            </button>
+                          )}
+                          {c.hasUtilityBillDocument && (
+                            <button
+                              type="button"
+                              className="btn btn-secondary"
+                              onClick={() => openCustomerDocument(c.userUuid, 'utility_bill')}
+                              style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '12px' }}
+                            >
+                              <Home size={13} />
+                              <span>View Utility Bill</span>
+                            </button>
+                          )}
+                          {c.hasConsentDocument && (
+                            <button
+                              type="button"
+                              className="btn btn-secondary"
+                              onClick={() => openCustomerDocument(c.userUuid, 'consent')}
+                              style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: '12px' }}
+                            >
+                              <FileCheck2 size={13} />
+                              <span>Download Consent PDF</span>
+                            </button>
+                          )}
+                        </div>
                       </div>
 
                       <div>

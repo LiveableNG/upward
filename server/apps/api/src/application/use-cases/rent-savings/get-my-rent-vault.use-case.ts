@@ -42,7 +42,7 @@ export class GetMyRentVaultUseCase {
         data.appliedAnnualRatePct =
           options.productOption === 'RENT_PROTEC'
             ? (rates?.rentProtecRatePct ?? 10.0)
-            : (rates?.savingsAnnualRatePct ?? 14.0)
+            : (rates?.savingsAnnualRatePct ?? 16.0)
         data.insurancePremiumPct =
           options.productOption === 'RENT_PROTEC' ? (rates?.insurancePremiumPct ?? 2.0) : 0
       }
@@ -112,6 +112,15 @@ export class GetMyRentVaultUseCase {
       }
     }
 
+    const rates = this.platformRates ? await this.platformRates.getRates() : null
+    const resolvedProductOptionEarly =
+      (vault as any).productOption === 'RENT_PROTEC' ? 'RENT_PROTEC' : 'SAVE_AND_EARN'
+    const annualYieldPctForLabels =
+      (vault as any).appliedAnnualRatePct ??
+      (resolvedProductOptionEarly === 'RENT_PROTEC'
+        ? (rates?.rentProtecRatePct ?? 10.0)
+        : (rates?.savingsAnnualRatePct ?? 16.0))
+
     const unifiedTransactions = [
       ...vaultTransactions.map((tx: any) => ({
         id: `vault_${tx.id}`,
@@ -125,7 +134,7 @@ export class GetMyRentVaultUseCase {
           tx.type === 'DEPOSIT'
             ? 'Rent Vault Deposit'
             : tx.type === 'YIELD_ACCRUAL'
-              ? 'Daily Compound Yield (16.0% p.a.)'
+              ? `Daily Compound Yield (${Number(annualYieldPctForLabels).toFixed(1)}% p.a.)`
               : tx.type === 'SETTLEMENT_DISBURSEMENT'
                 ? 'Landlord Rent Settlement'
                 : tx.type === 'CASHBACK'
@@ -208,12 +217,7 @@ export class GetMyRentVaultUseCase {
       rent_discount_pct: 0,
     }
 
-    const rates = this.platformRates ? await this.platformRates.getRates() : null
-    const annualYieldPct =
-      (vault as any).appliedAnnualRatePct ??
-      (resolvedProductOption === 'RENT_PROTEC'
-        ? (rates?.rentProtecRatePct ?? 10.0)
-        : (rates?.savingsAnnualRatePct ?? 16.0))
+    const annualYieldPct = annualYieldPctForLabels
     const annualYieldDecimal = annualYieldPct / 100
     const dailyYieldRate = annualYieldDecimal / 365
     const insurancePremiumPct =
@@ -266,6 +270,29 @@ export class GetMyRentVaultUseCase {
       }
     }
 
+    const [latestConsent, latestArmKyc] = this.prisma
+      ? await Promise.all([
+          this.prisma.upward_savings_consent
+            ?.findFirst({
+              where: { userId },
+              orderBy: { acceptedAt: 'desc' },
+            })
+            .catch(() => null),
+          this.prisma.upward_kyc_verification
+            ?.findFirst({
+              where: {
+                userId,
+                ninHash: { not: null },
+                meansOfIdDocKey: { not: null },
+                utilityBillDocKey: { not: null },
+              },
+              orderBy: { createdAt: 'desc' },
+              select: { id: true, addressVerificationStatus: true },
+            })
+            .catch(() => null),
+        ])
+      : [null, null]
+
     return {
       status: 'success',
       data: {
@@ -277,6 +304,19 @@ export class GetMyRentVaultUseCase {
         initial_deposit_kobo: Number(plannedInitialDepositKobo),
         is_rent_protec: resolvedProductOption === 'RENT_PROTEC',
         insurance_premium_pct: insurancePremiumPct,
+        has_completed_arm_kyc: Boolean(latestArmKyc),
+        address_verification_status: latestArmKyc?.addressVerificationStatus || null,
+        consent: latestConsent
+          ? {
+              consent_uuid: latestConsent.uuid,
+              terms_version: latestConsent.termsVersion,
+              consent_doc_version: latestConsent.consentDocVersion,
+              fund_code: latestConsent.fundCode,
+              fund_name: latestConsent.fundName,
+              accepted_at: latestConsent.acceptedAt.toISOString(),
+              has_document: true,
+            }
+          : null,
         current_balance_kobo: Number(currentBalanceKobo),
         principal_kobo: Number(combinedPrincipalKobo),
         vault_principal_kobo: Number(vault.currentPrincipalKobo),

@@ -147,6 +147,7 @@ async function main() {
       await prisma.upward_rent_savings_score.deleteMany({ where: { userId: existing.id } })
       await prisma.upward_rent_vault_transaction.deleteMany({ where: { userId: existing.id } })
       await prisma.upward_rent_advance.deleteMany({ where: { userId: existing.id } })
+      await prisma.upward_savings_consent.deleteMany({ where: { userId: existing.id } })
       await prisma.upward_rent_vault.deleteMany({ where: { userId: existing.id } })
       await prisma.upward_kyc_verification.deleteMany({ where: { userId: existing.id } })
       await prisma.upward_user_property.deleteMany({ where: { userId: existing.id } })
@@ -284,6 +285,7 @@ async function main() {
   ])
 
   const bvn2 = '22233344455'
+  const nin2 = '11133344455'
   await prisma.upward_kyc_verification.create({
     data: {
       userId: user2.id,
@@ -291,7 +293,21 @@ async function main() {
       idNumberHash: hash(bvn2),
       idNumberMasked: '*******4455',
       idNumberEncrypted: encrypt(bvn2),
-      provider: 'ARM',
+      ninHash: hash(nin2),
+      ninMasked: '*******4455',
+      ninEncrypted: encrypt(nin2),
+      ninVerifiedAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000),
+      meansOfIdType: 'NIN',
+      meansOfIdNumberEnc: encrypt(nin2),
+      meansOfIdNumberMasked: '*******4455',
+      meansOfIdFileName: 'funke-nin-slip.jpg',
+      residentialAddressNumber: 'Plot 14',
+      residentialStreet: 'Admiralty Way, Lekki Phase 1',
+      residentialTown: 'Lekki',
+      residentialState: 'Lagos',
+      utilityBillFileName: 'funke-ekedc-bill.pdf',
+      addressVerificationStatus: 'VERIFIED',
+      provider: 'PREMBLY',
       status: 'VERIFIED',
       mothersMaidenNameEnc: encrypt('Balogun'),
       occupation: 'Lead Product Manager',
@@ -338,6 +354,31 @@ async function main() {
       providerCrmStatus: 'Submitted',
       armPurchaseId: pur2C.purchaseId || null,
       lastYieldSyncAt: new Date(),
+    },
+  })
+
+  await prisma.upward_savings_consent.create({
+    data: {
+      userId: user2.id,
+      vaultId: vault2.id,
+      termsVersion: '2026-11-v1-draft',
+      consentDocVersion: 'ARM-B2B2C-2026-v1-draft',
+      fundCode: 'ARMMMF',
+      fundName: 'ARM Money Market Fund',
+      acceptedTerms: true,
+      acceptedArmMandate: true,
+      acceptedLockPolicy: true,
+      acceptedAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000),
+      ipAddress: '102.89.32.14',
+      userAgent: 'UpwardPay/1.0 (iOS)',
+      consentSnapshot: {
+        customerFullName: 'Funke Akindele',
+        customerEmail: 'arm-subscriber@goodtenants.africa',
+        customerPhone: '+2348032223344',
+        maskedBvn: '*******4455',
+        maskedNin: '*******4455',
+        residentialAddress: 'Plot 14, Admiralty Way, Lekki Phase 1, Lekki, Lagos',
+      },
     },
   })
 
@@ -481,6 +522,7 @@ async function main() {
   ])
 
   const bvn3 = '22244455566'
+  const nin3 = '11144455566'
   await prisma.upward_kyc_verification.create({
     data: {
       userId: user3.id,
@@ -488,7 +530,21 @@ async function main() {
       idNumberHash: hash(bvn3),
       idNumberMasked: '*******5566',
       idNumberEncrypted: encrypt(bvn3),
-      provider: 'ARM',
+      ninHash: hash(nin3),
+      ninMasked: '*******5566',
+      ninEncrypted: encrypt(nin3),
+      ninVerifiedAt: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000),
+      meansOfIdType: 'INTERNATIONAL_PASSPORT',
+      meansOfIdNumberEnc: encrypt('A09876543'),
+      meansOfIdNumberMasked: '*****6543',
+      meansOfIdFileName: 'babatunde-passport-bio.jpg',
+      residentialAddressNumber: 'Plot 14',
+      residentialStreet: 'Admiralty Way, Lekki Phase 1',
+      residentialTown: 'Lekki',
+      residentialState: 'Lagos',
+      utilityBillFileName: 'babatunde-lawma-waste-bill.pdf',
+      addressVerificationStatus: 'VERIFIED',
+      provider: 'PREMBLY',
       status: 'VERIFIED',
       mothersMaidenNameEnc: encrypt('Adeleke'),
       occupation: 'Managing Director',
@@ -534,6 +590,31 @@ async function main() {
       providerCrmStatus: 'Submitted',
       armPurchaseId: pur3B.purchaseId || null,
       lastYieldSyncAt: new Date(),
+    },
+  })
+
+  await prisma.upward_savings_consent.create({
+    data: {
+      userId: user3.id,
+      vaultId: vault3.id,
+      termsVersion: '2026-11-v1-draft',
+      consentDocVersion: 'ARM-B2B2C-2026-v1-draft',
+      fundCode: 'ARMMMF',
+      fundName: 'ARM Money Market Fund',
+      acceptedTerms: true,
+      acceptedArmMandate: true,
+      acceptedLockPolicy: true,
+      acceptedAt: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000),
+      ipAddress: '102.89.44.21',
+      userAgent: 'UpwardPay/1.0 (Android)',
+      consentSnapshot: {
+        customerFullName: 'Babatunde Fashola',
+        customerEmail: 'arm-redemption@goodtenants.africa',
+        customerPhone: '+2348033334455',
+        maskedBvn: '*******5566',
+        maskedNin: '*******5566',
+        residentialAddress: 'Plot 14, Admiralty Way, Lekki Phase 1, Lekki, Lagos',
+      },
     },
   })
 
@@ -636,6 +717,7 @@ async function main() {
   })
 
   const bvn4 = '22255566677'
+  const nin4 = '11155566677'
   await prisma.upward_kyc_verification.create({
     data: {
       userId: user4.id,
@@ -643,7 +725,21 @@ async function main() {
       idNumberHash: hash(bvn4),
       idNumberMasked: '*******6677',
       idNumberEncrypted: encrypt(bvn4),
-      provider: 'ARM',
+      ninHash: hash(nin4),
+      ninMasked: '*******6677',
+      ninEncrypted: encrypt(nin4),
+      ninVerifiedAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
+      meansOfIdType: 'DRIVERS_LICENSE',
+      meansOfIdNumberEnc: encrypt('LAG8821990'),
+      meansOfIdNumberMasked: '******1990',
+      meansOfIdFileName: 'ngozi-drivers-license.jpg',
+      residentialAddressNumber: '12B',
+      residentialStreet: 'Bourdillon Road, Ikoyi',
+      residentialTown: 'Ikoyi',
+      residentialState: 'Lagos',
+      utilityBillFileName: 'ngozi-bank-statement-address.pdf',
+      addressVerificationStatus: 'VERIFIED',
+      provider: 'PREMBLY',
       status: 'VERIFIED',
       occupation: 'Chief Economist',
       sourceOfFunds: 'Salary',
@@ -682,6 +778,31 @@ async function main() {
       providerAccountNumber: `${omnibusMembershipId}-ARMMMF-01`,
       providerCrmStatus: 'Approved',
       armPurchaseId: pur4.purchaseId || null,
+    },
+  })
+
+  await prisma.upward_savings_consent.create({
+    data: {
+      userId: user4.id,
+      vaultId: vault4.id,
+      termsVersion: '2026-11-v1-draft',
+      consentDocVersion: 'ARM-B2B2C-2026-v1-draft',
+      fundCode: 'ARMMMF',
+      fundName: 'ARM Money Market Fund',
+      acceptedTerms: true,
+      acceptedArmMandate: true,
+      acceptedLockPolicy: true,
+      acceptedAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
+      ipAddress: '102.89.18.92',
+      userAgent: 'UpwardPay/1.0 (Web)',
+      consentSnapshot: {
+        customerFullName: 'Ngozi Okonjo',
+        customerEmail: 'arm-breakout@goodtenants.africa',
+        customerPhone: '+2348034445566',
+        maskedBvn: '*******6677',
+        maskedNin: '*******6677',
+        residentialAddress: '12B, Bourdillon Road, Ikoyi, Ikoyi, Lagos',
+      },
     },
   })
 
@@ -751,6 +872,7 @@ async function main() {
   })
 
   const bvn5 = '22266677788'
+  const nin5 = '11166677788'
   await prisma.upward_kyc_verification.create({
     data: {
       userId: user5.id,
@@ -758,7 +880,21 @@ async function main() {
       idNumberHash: hash(bvn5),
       idNumberMasked: '*******7788',
       idNumberEncrypted: encrypt(bvn5),
-      provider: 'ARM',
+      ninHash: hash(nin5),
+      ninMasked: '*******7788',
+      ninEncrypted: encrypt(nin5),
+      ninVerifiedAt: new Date(Date.now() - 370 * 24 * 60 * 60 * 1000),
+      meansOfIdType: 'NIN',
+      meansOfIdNumberEnc: encrypt(nin5),
+      meansOfIdNumberMasked: '*******7788',
+      meansOfIdFileName: 'emeka-nin-card.png',
+      residentialAddressNumber: '8',
+      residentialStreet: 'Adeola Odeku Street, Victoria Island',
+      residentialTown: 'Victoria Island',
+      residentialState: 'Lagos',
+      utilityBillFileName: 'emeka-ikedc-bill.pdf',
+      addressVerificationStatus: 'VERIFIED',
+      provider: 'PREMBLY',
       status: 'VERIFIED',
       occupation: 'Tech Executive',
       sourceOfFunds: 'Salary',
@@ -798,6 +934,31 @@ async function main() {
       providerCrmStatus: 'Approved',
       armPurchaseId: pur5.purchaseId || null,
       armWithdrawalId: red5.withdrawalId || null,
+    },
+  })
+
+  await prisma.upward_savings_consent.create({
+    data: {
+      userId: user5.id,
+      vaultId: vault5.id,
+      termsVersion: '2026-11-v1-draft',
+      consentDocVersion: 'ARM-B2B2C-2026-v1-draft',
+      fundCode: 'ARMMMF',
+      fundName: 'ARM Money Market Fund',
+      acceptedTerms: true,
+      acceptedArmMandate: true,
+      acceptedLockPolicy: true,
+      acceptedAt: new Date(Date.now() - 370 * 24 * 60 * 60 * 1000),
+      ipAddress: '102.89.51.40',
+      userAgent: 'UpwardPay/1.0 (iOS)',
+      consentSnapshot: {
+        customerFullName: 'Emeka Nwosu',
+        customerEmail: 'arm-settled@goodtenants.africa',
+        customerPhone: '+2348035556677',
+        maskedBvn: '*******7788',
+        maskedNin: '*******7788',
+        residentialAddress: '8, Adeola Odeku Street, Victoria Island, Lagos',
+      },
     },
   })
 

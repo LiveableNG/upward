@@ -258,4 +258,97 @@ describe('ArmJobProcessorService', () => {
       }),
     )
   })
+
+  it('should hydrate S3-stored id_card and utility_bill documents before dispatching ONBOARD job to ARM', async () => {
+    const mockS3 = {
+      getFileBuffer: jest
+        .fn()
+        .mockResolvedValueOnce(Buffer.from('fake-id-image-bytes'))
+        .mockResolvedValueOnce(Buffer.from('%PDF-1.4 fake-utility-bill')),
+    } as any
+
+    mockArmProvider.onboardInvestor = jest.fn().mockResolvedValue({
+      success: true,
+      status: 'Submitted',
+      customerId: 'ARM-TRACK-99',
+      customerMembershipId: '3009999',
+      crmAccountNumber: '3009999-ARMMMF-01',
+      completedSections: 63,
+    })
+
+    const onboardJob = {
+      ...baseJob,
+      id: 99,
+      uuid: 'job-uuid-99',
+      idempotencyKey: 'ARM_ONBOARD__12__55',
+      jobType: 'ONBOARD',
+      payload: {
+        provider: 'ARM',
+        onboardingRequest: {
+          customerEmail: 'funke@example.com',
+          personalDetails: {
+            surname: 'Akindele',
+            firstName: 'Funke',
+            dateOfBirth: '1991-09-24',
+            gender: 'Female',
+            mobilePhone: '08031234567',
+          },
+          address: {
+            addressNumber: '14',
+            streetName: 'Admiralty Way',
+            town: 'Lekki',
+            residentialStateCode: 'Lagos',
+          },
+          kycDetails: {
+            bvn: '22233344455',
+            nin: '11122233344',
+            meansOfIdentification: 'NIN',
+          },
+          documents: {
+            id_card: {
+              s3Key: 'users/u-12/arm-kyc/id_card/nin.jpg',
+              mimeType: 'image/jpeg',
+              fileName: 'nin.jpg',
+            },
+            utility_bill: {
+              s3Key: 'users/u-12/arm-kyc/utility_bill/nepa.pdf',
+              mimeType: 'application/pdf',
+              fileName: 'nepa.pdf',
+            },
+          },
+        },
+      },
+    }
+
+    prisma.upward_arm_job.findUnique.mockResolvedValueOnce(onboardJob)
+    const processorWithS3 = new ArmJobProcessorService(
+      prisma,
+      providerRegistry,
+      notificationQueue,
+      undefined,
+      mockS3,
+    )
+
+    const res = await processorWithS3.processArmJob(99)
+    expect(res.status).toBe('completed')
+    expect(res.armInstructionId).toBe('3009999')
+    expect(mockS3.getFileBuffer).toHaveBeenCalledWith('users/u-12/arm-kyc/id_card/nin.jpg')
+    expect(mockS3.getFileBuffer).toHaveBeenCalledWith('users/u-12/arm-kyc/utility_bill/nepa.pdf')
+    expect(mockArmProvider.onboardInvestor).toHaveBeenCalledWith(
+      expect.objectContaining({
+        documents: expect.objectContaining({
+          id_card: expect.objectContaining({
+            base64: Buffer.from('fake-id-image-bytes').toString('base64'),
+            mimeType: 'image/jpeg',
+            fileName: 'nin.jpg',
+          }),
+          utility_bill: expect.objectContaining({
+            base64: Buffer.from('%PDF-1.4 fake-utility-bill').toString('base64'),
+            mimeType: 'application/pdf',
+            fileName: 'nepa.pdf',
+          }),
+        }),
+      }),
+    )
+  })
 })

@@ -215,10 +215,13 @@ describe('Production simulation & mock DVA guards', () => {
 
       const prisma = {
         upward_kyc_verification: {
-          findFirst: jest.fn().mockResolvedValue({
-            bvnVerified: true,
-            ninVerified: true,
-            idNumberEncrypted: 'enc_22211122233',
+          findFirst: jest.fn().mockImplementation(async (args?: any) => {
+            if (args?.where?.userId?.not) return null
+            return {
+              bvnVerified: true,
+              ninVerified: true,
+              idNumberEncrypted: 'enc_22211122233',
+            }
           }),
           create: jest.fn().mockResolvedValue({ id: 1 }),
           update: jest.fn(),
@@ -248,6 +251,7 @@ describe('Production simulation & mock DVA guards', () => {
       const userRepo = {
         findById: jest.fn().mockResolvedValue({
           id: 10,
+          uuid: 'user-uuid-10',
           email: 'user@example.com',
           firstName: 'Ada',
           lastName: 'Okafor',
@@ -294,6 +298,19 @@ describe('Production simulation & mock DVA guards', () => {
 
       const res = await uc.execute(10, {
         bvn: '22211122233',
+        nin: '11122233344',
+        means_of_id_type: 'NIN',
+        means_of_id_doc_key: 'users/user-uuid-10/arm-kyc/id_card/test-id.jpg',
+        means_of_id_mime_type: 'image/jpeg',
+        means_of_id_file_name: 'nin-slip.jpg',
+        residential_address_number: '14',
+        residential_street: 'Admiralty Way',
+        residential_town: 'Lekki',
+        residential_state: 'Lagos',
+        utility_bill_doc_key: 'users/user-uuid-10/arm-kyc/utility_bill/nepa-bill.pdf',
+        utility_bill_mime_type: 'application/pdf',
+        utility_bill_file_name: 'nepa-bill.pdf',
+        consent_accepted: true,
         mothers_maiden_name: 'Okafor',
         occupation: 'Engineer',
         source_of_funds: 'Salary',

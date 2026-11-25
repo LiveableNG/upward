@@ -1,5 +1,6 @@
-import { Injectable, Inject, BadRequestException, ConflictException } from '@nestjs/common'
+import { Injectable, Inject, BadRequestException, ConflictException, Optional } from '@nestjs/common'
 import {
+  IsBoolean,
   IsDateString,
   IsIn,
   IsNotEmpty,
@@ -17,6 +18,8 @@ import {
 import { CadenceType, FundingMethodType } from '../../../domains/rent-savings/rent-vault.types'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
+import { PlatformRatesService } from '../../../shared/infrastructure/common/platform-rates.service'
+import { RecordSavingsConsentUseCase } from './record-savings-consent.use-case'
 import { isProductionRuntime } from '../../../shared/utils/runtime-env'
 
 export class CreateRentVaultDto {
@@ -56,6 +59,18 @@ export class CreateRentVaultDto {
   @IsOptional()
   @IsString()
   card_authorization_code?: string
+
+  @IsOptional()
+  @IsBoolean()
+  consent_accepted?: boolean
+
+  @IsOptional()
+  @IsString()
+  terms_version?: string
+
+  @IsOptional()
+  @IsString()
+  consent_doc_version?: string
 }
 
 @Injectable()
@@ -66,9 +81,15 @@ export class CreateRentVaultUseCase {
     @Inject(USER_REPOSITORY)
     private readonly userRepo: UserRepository,
     private readonly prisma: PrismaService,
+    @Optional() private readonly platformRates?: PlatformRatesService,
+    @Optional() private readonly recordSavingsConsentUseCase?: RecordSavingsConsentUseCase,
   ) {}
 
-  async execute(userId: number, dto: CreateRentVaultDto) {
+  async execute(
+    userId: number,
+    dto: CreateRentVaultDto,
+    requestMeta?: { ipAddress?: string | null; userAgent?: string | null },
+  ) {
     const existingVault = await this.rentVaultRepo.findActiveByUserId(userId)
     if (existingVault) {
       throw new ConflictException('You already have an active rent vault.')
@@ -141,11 +162,19 @@ export class CreateRentVaultUseCase {
       dvaAssignmentStatus = 'ACTIVE'
     }
 
+    const rates = this.platformRates ? await this.platformRates.getRates() : null
+    const chosenOption = dto.product_option || 'SAVE_AND_EARN'
+    const appliedAnnualRatePct =
+      chosenOption === 'RENT_PROTEC'
+        ? (rates?.rentProtecRatePct ?? 10.0)
+        : (rates?.savingsAnnualRatePct ?? 16.0)
+
     const vault = await this.rentVaultRepo.create({
       userId,
       targetAmountKobo,
       cadence: dto.cadence,
-      productOption: dto.product_option || 'SAVE_AND_EARN',
+      productOption: chosenOption,
+      appliedAnnualRatePct,
       initialDepositKobo: dto.initial_deposit_kobo ? BigInt(Math.round(dto.initial_deposit_kobo)) : 0n,
       contractualDueDate: dueDate,
       unlockDate,
@@ -163,6 +192,27 @@ export class CreateRentVaultUseCase {
       providerAccountNumber: latestKyc?.armCrmAccountNumber || null,
       providerCrmStatus: latestKyc?.armSyncStatus || 'PENDING',
     })
+
+    if (dto.consent_accepted === true && this.recordSavingsConsentUseCase) {
+      await this.recordSavingsConsentUseCase
+        .execute(
+          userId,
+          {
+            consent_accepted: true,
+            accepted_terms: true,
+            accepted_arm_mandate: true,
+            accepted_lock_policy: true,
+            terms_version: dto.terms_version,
+            consent_doc_version: dto.consent_doc_version,
+          },
+          {
+            ipAddress: requestMeta?.ipAddress || null,
+            userAgent: requestMeta?.userAgent || null,
+            vaultId: vault.id,
+          },
+        )
+        .catch(() => {})
+    }
 
     // Initialize baseline savings score (20 points for setup)
     await this.rentVaultRepo.upsertSavingsScore(vault.id, userId, {
