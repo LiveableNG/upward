@@ -8,7 +8,7 @@ export default function CookiesPage() {
       <section className="legal-content">
         <h2 className="legal-h2">1. What are Cookies?</h2>
         <p>
-          Liveable Smartcity Technologies uses Cookies to identify the areas of our Website that you
+          Goodtenants Limited uses Cookies to identify the areas of our Website that you
           have visited. A Cookie is a small piece of data stored on your web browser by a website.
           Cookies help us recognise your browser, collect analytics, and remember preferences (like
           language or login information) to enhance your experience on our Website.
