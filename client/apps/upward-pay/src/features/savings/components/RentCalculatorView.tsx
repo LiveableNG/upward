@@ -888,9 +888,9 @@ export function RentCalculatorView({
                   </span>
                 </div>
                 <div className="plan-compare__row">
-                  <span className="plan-compare__row-label">Premium Deduction</span>
+                  <span className="plan-compare__row-label">Coverage Limit</span>
                   <span className="plan-compare__row-value plan-compare__row-value--accent">
-                    ₦0 from your savings
+                    Up to 100% annual rent
                   </span>
                 </div>
               </div>
@@ -904,8 +904,7 @@ export function RentCalculatorView({
           </div>
 
           <p className="plan-compare__footnote">
-            Both plans earn daily compounding returns on 100% of your deposits with no hidden premium
-            deductions from your balance.
+            Both plans earn daily compounding returns on 100% of your deposits.
           </p>
         </div>
       </PayPageShell>
