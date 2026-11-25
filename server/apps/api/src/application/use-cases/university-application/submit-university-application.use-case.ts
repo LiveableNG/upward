@@ -298,7 +298,7 @@ export class SubmitUniversityApplicationUseCase {
                 totalPackage = 150000
               } else {
                 depositPaid = 70000
-                const is48h = notesText.includes('150,000') || notesText.includes('48-hour') || notesText.includes('48h') || !notesText.includes('160,000')
+                const is48h = notesText.includes('150,000') || notesText.includes('48-hour') || notesText.includes('48h')
                 balanceRemaining = is48h ? 80000 : 90000
                 totalPackage = depositPaid + balanceRemaining
               }
