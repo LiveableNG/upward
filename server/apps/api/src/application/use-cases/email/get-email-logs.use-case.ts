@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { Prisma } from '@prisma/client'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
+import { humanizeEmailError } from './get-bulk-email-campaign-detail.use-case'
 
 @Injectable()
 export class GetEmailLogsUseCase {
@@ -18,46 +19,61 @@ export class GetEmailLogsUseCase {
     channel?: string
     opened?: string
     date?: string
+    hideSystemAlerts?: boolean
+    campaignId?: string
     page?: number
     limit?: number
   }) {
-    const { email, type, status, acquisition, channel, opened, date, page = 1, limit = 10 } = query
+    const {
+      email,
+      type,
+      status,
+      acquisition,
+      channel,
+      opened,
+      date,
+      hideSystemAlerts,
+      campaignId,
+      page = 1,
+      limit = 10,
+    } = query
     const skip = (page - 1) * limit
     const where: Prisma.upward_communication_logWhereInput = {
-      ...(email ? { 
-        OR: [
-          { email: { contains: email, mode: 'insensitive' as const } },
-          { recipient: { contains: email, mode: 'insensitive' as const } }
-        ]
-      } : {}),
-      ...(date ? {
-        createdAt: {
-          gte: new Date(`${date}T00:00:00.000Z`),
-          lte: new Date(`${date}T23:59:59.999Z`),
-        }
-      } : {}),
+      ...(email
+        ? {
+            OR: [
+              { email: { contains: email, mode: 'insensitive' as const } },
+              { recipient: { contains: email, mode: 'insensitive' as const } },
+            ],
+          }
+        : {}),
+      ...(date
+        ? {
+            createdAt: {
+              gte: new Date(`${date}T00:00:00.000Z`),
+              lte: new Date(`${date}T23:59:59.999Z`),
+            },
+          }
+        : {}),
+      ...(campaignId ? { campaignId } : {}),
       ...(type && type !== 'All'
         ? type === 'CAMPAIGN'
           ? { type: { startsWith: 'CAMPAIGN' } }
           : { type }
-        : {}),
+        : hideSystemAlerts
+          ? { type: { not: 'SYSTEM_ALERT' } }
+          : {}),
       ...(status && status !== 'All' ? { status } : {}),
       ...(channel && channel !== 'All' ? { channel } : {}),
       ...(opened && opened !== 'All'
         ? opened === 'Opened'
           ? {
-              OR: [
-                { isOpened: true },
-                { emailSequenceLog: { isOpened: true } },
-              ],
+              OR: [{ isOpened: true }, { emailSequenceLog: { isOpened: true } }],
             }
           : {
               OR: [
                 {
-                  AND: [
-                    { emailSequenceLog: { is: null } },
-                    { isOpened: false },
-                  ],
+                  AND: [{ emailSequenceLog: { is: null } }, { isOpened: false }],
                 },
                 {
                   AND: [
@@ -96,20 +112,25 @@ export class GetEmailLogsUseCase {
           emailSequenceLog: {
             select: { isOpened: true, openedAt: true, openCount: true },
           },
+          campaign: {
+            select: { id: true, subject: true, htmlTemplate: true },
+          },
         },
       }),
       this.prisma.upward_communication_log.count({ where }),
     ])
 
     const decryptedData = data.map((log) => {
+      const effectiveBody = log.body || log.campaign?.htmlTemplate || null
       const decryptedLog = {
         ...log,
+        body: effectiveBody
+          ? effectiveBody.replace(/<img[^>]*email-tracking\/open[^>]*>/gi, '')
+          : null,
+        friendlyError: humanizeEmailError(log.lastError),
         isOpened: log.isOpened || log.emailSequenceLog?.isOpened || false,
         openedAt: log.openedAt || log.emailSequenceLog?.openedAt || null,
         openCount: log.openCount || log.emailSequenceLog?.openCount || 0,
-      }
-      if (decryptedLog.body) {
-        decryptedLog.body = decryptedLog.body.replace(/<img[^>]*email-tracking\/open[^>]*>/gi, '')
       }
       if (decryptedLog.registeredUser) {
         decryptedLog.registeredUser = {

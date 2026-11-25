@@ -38,42 +38,56 @@ export function isQueueDisabledEnvironment(): boolean {
 }
 
 export function buildRedisConnectionOptions(redisUrl?: string): ConnectionOptions {
-  const raw = (redisUrl || process.env['REDIS_URL'] || 'redis://127.0.0.1:6379').trim()
+  const raw = (redisUrl || process.env['REDIS_URL'] || '').trim()
 
-  try {
-    const parsed = new URL(raw)
-    const isTls = parsed.protocol === 'rediss:'
-    const dbSegment = parsed.pathname?.replace(/^\//, '')
-    const db = dbSegment && /^\d+$/.test(dbSegment) ? parseInt(dbSegment, 10) : 0
+  if (raw) {
+    try {
+      const parsed = new URL(raw)
+      const isTls = parsed.protocol === 'rediss:'
+      const dbSegment = parsed.pathname?.replace(/^\//, '')
+      const db = dbSegment && /^\d+$/.test(dbSegment) ? parseInt(dbSegment, 10) : 0
 
-    const opts: ConnectionOptions = {
-      host: parsed.hostname || '127.0.0.1',
-      port: parsed.port ? parseInt(parsed.port, 10) : 6379,
-      db,
-      maxRetriesPerRequest: null,
-      enableReadyCheck: false,
-      retryStrategy(times: number) {
-        return Math.min(times * 500, 10_000)
-      },
-    }
+      const opts: ConnectionOptions = {
+        host: parsed.hostname || '127.0.0.1',
+        port: parsed.port ? parseInt(parsed.port, 10) : 6379,
+        db,
+        maxRetriesPerRequest: null,
+        enableReadyCheck: false,
+        retryStrategy(times: number) {
+          return Math.min(times * 500, 10_000)
+        },
+      }
 
-    if (parsed.username) {
-      opts.username = decodeURIComponent(parsed.username)
-    }
-    if (parsed.password) {
-      opts.password = decodeURIComponent(parsed.password)
-    }
-    if (isTls) {
-      opts.tls = { rejectUnauthorized: false }
-    }
+      if (parsed.username) {
+        opts.username = decodeURIComponent(parsed.username)
+      }
+      if (parsed.password) {
+        opts.password = decodeURIComponent(parsed.password)
+      }
+      if (isTls) {
+        opts.tls = { rejectUnauthorized: false }
+      }
 
-    return opts
-  } catch {
-    return {
-      host: '127.0.0.1',
-      port: 6379,
-      maxRetriesPerRequest: null,
-      enableReadyCheck: false,
+      return opts
+    } catch {
+      // Fall through to REDIS_HOST / REDIS_PORT configuration
     }
+  }
+
+  const host = (process.env['REDIS_HOST'] || '127.0.0.1').trim()
+  const port = parseInt(process.env['REDIS_PORT'] || '6379', 10) || 6379
+  const db = parseInt(process.env['REDIS_DB'] || '0', 10) || 0
+  const password = process.env['REDIS_PASSWORD']?.trim() || undefined
+
+  return {
+    host,
+    port,
+    db,
+    ...(password ? { password } : {}),
+    maxRetriesPerRequest: null,
+    enableReadyCheck: false,
+    retryStrategy(times: number) {
+      return Math.min(times * 500, 10_000)
+    },
   }
 }

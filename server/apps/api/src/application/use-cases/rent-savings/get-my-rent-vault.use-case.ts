@@ -136,8 +136,8 @@ export class GetMyRentVaultUseCase {
         narration: tx.narration || 'Rent Savings Transaction',
         reference: tx.reference,
         receipt_url:
-          tx.type === 'SETTLEMENT_DISBURSEMENT'
-            ? `/api/v1/rent-vaults/${vault.uuid}/receipt.pdf`
+          tx.type === 'SETTLEMENT_DISBURSEMENT' || tx.type === 'DEPOSIT'
+            ? `/api/v1/payments/rent-deposit/receipt/${tx.uuid}?format=pdf`
             : null,
         created_at: tx.createdAt ? new Date(tx.createdAt).toISOString() : now.toISOString(),
       })),
@@ -157,7 +157,7 @@ export class GetMyRentVaultUseCase {
                 : 'Rent Deposit Credit',
         narration: tx.narration || 'Rent Deposit Transaction',
         reference: tx.reference,
-        receipt_url: tx.receiptUrl || `/api/v1/payments/rent-deposit/receipt/${tx.uuid}`,
+        receipt_url: tx.receiptUrl || `/api/v1/payments/rent-deposit/receipt/${tx.uuid}?format=pdf`,
         created_at: tx.createdAt ? new Date(tx.createdAt).toISOString() : now.toISOString(),
       })),
     ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())

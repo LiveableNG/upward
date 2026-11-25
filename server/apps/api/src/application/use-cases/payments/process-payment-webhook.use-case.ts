@@ -161,13 +161,21 @@ export class ProcessPaymentWebhookUseCase {
       }
 
       const isAcademyApp =
-        (typeof reference === 'string' && reference.startsWith('UPW_APP_')) ||
+        (typeof reference === 'string' &&
+          (reference.startsWith('UPW_APP_') || reference.startsWith('UPW_BAL_'))) ||
         metadata?.paymentKind === 'ACADEMY_APPLICATION' ||
-        metadata?.type === 'ACADEMY_APPLICATION'
+        metadata?.type === 'ACADEMY_APPLICATION' ||
+        metadata?.paymentKind === 'ACADEMY_TUITION_BALANCE' ||
+        metadata?.type === 'ACADEMY_TUITION_BALANCE'
 
       if (isAcademyApp) {
         this.logger.log(`Academy application payment detected for reference ${reference}`)
         return this.handleAcademyApplicationPayment(payload.data, metadata)
+      }
+
+      if (metadata?.vault_id && this.processPaystackSavingsWebhookUseCase) {
+        this.logger.log(`Rent Savings vault payment detected via metadata for reference: ${reference}`)
+        return this.processPaystackSavingsWebhookUseCase.verifyAndProcessPaystackDeposit(payload.data)
       }
 
       if (payload.data.dedicated_account || payload.data.channel === 'dedicated_account' || payload.data.channel === 'dedicated_nuban') {
@@ -352,6 +360,41 @@ export class ProcessPaymentWebhookUseCase {
     }
 
     this.logger.log(`Processing DVA Payment for account: ${accountNumber}`)
+
+    // 1. Check active Rent Savings Vaults first (dedicated rent savings virtual accounts)
+    if (this.prisma?.upward_rent_vault && this.processPaystackSavingsWebhookUseCase) {
+      const rentVault = await this.prisma.upward_rent_vault.findFirst({
+        where: {
+          dvaAccountNumber: String(accountNumber),
+          lockStatus: { in: ['LOCKED', 'SETTLEMENT_READY'] },
+        },
+        orderBy: { createdAt: 'desc' },
+      })
+
+      if (rentVault) {
+        this.logger.log(
+          `Routing verified Paystack DVA Payment for Rent Savings Vault: Vault ${rentVault.uuid} (Account: ${accountNumber})`,
+        )
+
+        // Clean up any accidental mock DVA record created before Rent Vault DVA routing existed
+        await this.prisma.upward_dedicated_virtual_account
+          .deleteMany({
+            where: {
+              accountNumber: String(accountNumber),
+              paystackCustomerId: 'CUS_mock_dva_test',
+            },
+          })
+          .catch(() => {})
+
+        return this.processPaystackSavingsWebhookUseCase.verifyAndProcessPaystackDeposit({
+          ...data,
+          dedicated_account:
+            typeof data.dedicated_account === 'object' && data.dedicated_account !== null
+              ? { ...data.dedicated_account, account_number: String(accountNumber) }
+              : { account_number: String(accountNumber) },
+        })
+      }
+    }
 
     const pmDva = await this.prisma.upward_pm_dedicated_virtual_account.findUnique({
       where: { accountNumber }
@@ -647,6 +690,28 @@ export class ProcessPaymentWebhookUseCase {
     if (!app) {
       this.logger.warn(`No university application found for ref ${reference} or email ${customerEmail}`)
       return { success: true, message: 'Academy application not found for payment' }
+    }
+
+    const isBalancePayment =
+      (typeof reference === 'string' && reference.startsWith('UPW_BAL_')) ||
+      metadata?.paymentKind === 'ACADEMY_TUITION_BALANCE' ||
+      metadata?.type === 'ACADEMY_TUITION_BALANCE'
+
+    if (isBalancePayment && app.feeStatus === 'PAID') {
+      const currentNotes = app.notes || ''
+      if (!currentNotes.includes('FULLY CLEARED')) {
+        const amountNaira = data.amount ? Math.round(Number(data.amount) / 100) : 0
+        const balanceNote = `[Balance Paid: ₦${amountNaira.toLocaleString()} via ref ${reference}] [Tuition Status: FULLY CLEARED]`
+        await this.prisma.upward_university_application.update({
+          where: { id: app.id },
+          data: {
+            status: app.status === 'SUBMITTED' ? 'FEE_PAID' : app.status,
+            notes: `${currentNotes} ${balanceNote}`.trim(),
+            updatedAt: new Date(),
+          },
+        })
+      }
+      return { success: true, academyApplicationPaid: true, balanceCleared: true }
     }
 
     if (app.feeStatus !== 'PAID') {

@@ -24,6 +24,7 @@ import { SubscriptionModule } from './domains/subscription/subscription.module'
 
 import { CommunicationModule } from './shared/infrastructure/communication/communication.module'
 import { ArmOperationsQueueModule } from './infrastructure/queues/arm-operations/arm-operations-queue.module'
+import { QueueModule } from './shared/infrastructure/queue/queue.module'
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { ArmOperationsQueueModule } from './infrastructure/queues/arm-operations
     ScheduleModule.forRoot(),
     EventEmitterModule.forRoot(),
     PrismaModule,
+    QueueModule,
     AdminLogModule,
     EmailModule,
     CommunicationModule,

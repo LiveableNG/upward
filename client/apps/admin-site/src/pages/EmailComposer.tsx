@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { Send, Search, Users, Monitor, EyeOff, Building2, Clock, Mail } from 'lucide-react'
 import { Editor } from '@hugerte/hugerte-react'
 import { apiService } from '../services/api.service'
@@ -92,10 +92,16 @@ const buildPreviewHtml = (content: string, _subject: string = 'Upward Update') =
 
 const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
   const location = useLocation()
+  const navigate = useNavigate()
 
   // Recipients & Target State
   const [targetGroup, setTargetGroup] = useState<'TENANTS' | 'PMS' | 'WAITLIST' | 'RAW'>('TENANTS')
   const [recipients, setRecipients] = useState<EmailRecipient[]>([])
+  const [idempotencyKey, setIdempotencyKey] = useState<string>(() =>
+    typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  )
 
   // Form Fields
   const [subject, setSubject] = useState('')
@@ -151,31 +157,21 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
     }
   }, [location.state])
 
-  // Cache database directory for local instant search
+  // Cache lightweight recipient directory for instant local search
   useEffect(() => {
     const fetchDirectories = async () => {
       setLoadingDirectory(true)
       try {
-        const res = await apiService.get('/admin/performance-metrics', token)
-
-        const isValidEmail = (email: string) => {
-          if (!email) return false
-          const e = email.toLowerCase()
-          return e.includes('@') && !e.endsWith('@upward.com') && !e.endsWith('@upward.local')
-        }
-
-        const allTenants = [
-          ...(res.directories?.signedUp || []),
-          ...(res.directories?.invited || []),
-        ].filter((t) => isValidEmail(t.email) && t.hasPassword)
+        const res = await apiService.get('/admin/email/recipients-directory', token)
+        const dir = res?.data || {}
 
         setDirectoryData({
-          tenants: allTenants,
-          pms: res.directories?.pms || [],
-          waitlist: res.directories?.waitlist || [],
+          tenants: dir.tenants || [],
+          pms: dir.pms || [],
+          waitlist: dir.waitlist || [],
         })
       } catch (err) {
-        console.error('Failed to fetch directories', err)
+        console.error('Failed to fetch recipient directories', err)
       } finally {
         setLoadingDirectory(false)
       }
@@ -376,26 +372,42 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
   }
 
   const handleConfirmedSend = async () => {
+    if (sending) return
     setSending(true)
     try {
-      await apiService.post(
+      const res = await apiService.post(
         '/admin/email/bulk',
         {
           userIds: recipients.map((r) => r.id),
           subject,
           content,
           targetGroup: targetGroup,
+          idempotencyKey,
         },
         token,
       )
-      showToast(`Bulk email queue successfully triggered for ${recipients.length} recipients! ✓`)
+      const data = res?.data
+      const queuedCount = data?.totalQueued ?? recipients.length
+      const dupMsg =
+        data?.duplicatesRemoved > 0 ? ` (${data.duplicatesRemoved} duplicate(s) removed)` : ''
+      showToast(
+        data?.deduplicatedSubmission
+          ? `This campaign was already queued (${queuedCount} recipients). Opening live tracker…`
+          : `Campaign queued for ${queuedCount} unique recipients${dupMsg}! Sending safely in the background.`,
+      )
       setSubject('')
       setContent('')
       setRecipients([])
       setShowConfirmModal(false)
+      setIdempotencyKey(
+        typeof crypto !== 'undefined' && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      )
+      navigate('/email-logs?tab=campaigns')
     } catch (err: unknown) {
       const error = err as { message?: string }
-      showToast(error.message || 'Failed to process bulk dispatch', true)
+      showToast(error.message || 'Failed to queue bulk email campaign', true)
     } finally {
       setSending(false)
     }
@@ -597,9 +609,12 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
                       if (validEmails.length > 0) {
                         e.preventDefault()
                         if (targetGroup === 'RAW') {
+                          const uniquePasted = Array.from(new Set(validEmails))
+                          const internalDuplicates = validEmails.length - uniquePasted.length
+                          let addedCount = 0
                           setRecipients((prev) => {
                             const existingEmails = new Set(prev.map((r) => r.email.toLowerCase()))
-                            const newRecipients = validEmails
+                            const newRecipients = uniquePasted
                               .filter((email) => !existingEmails.has(email))
                               .map((email) => ({
                                 id: email,
@@ -607,9 +622,16 @@ const EmailComposer: React.FC<EmailComposerProps> = ({ token, adminEmail }) => {
                                 name: email,
                                 type: 'RAW' as const,
                               }))
+                            addedCount = newRecipients.length
                             return [...prev, ...newRecipients]
                           })
-                          showToast(`Successfully added ${validEmails.length} custom email(s)!`)
+                          const skippedCount =
+                            internalDuplicates + Math.max(0, uniquePasted.length - addedCount)
+                          showToast(
+                            skippedCount > 0
+                              ? `Added ${uniquePasted.length} unique email(s) (${skippedCount} duplicate(s) automatically removed)`
+                              : `Successfully added ${uniquePasted.length} unique email(s)!`,
+                          )
                         } else {
                           const activeDir = getActiveDirectory()
                           const matchedUsers = activeDir.filter(

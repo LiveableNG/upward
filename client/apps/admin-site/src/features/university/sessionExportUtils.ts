@@ -1,9 +1,11 @@
 import { showToast } from '@upward/client-core'
 import type { EarlyAccessRecord, UniversityApplicationRecord } from './types'
 
+export type TrackCode = 'TRACK_A' | 'TRACK_B' | 'TRACK_C' | 'TRACK_D' | 'TRACK_1' | 'TRACK_2' | 'NONE'
+
 export interface ParsedSessionDetails {
   track: string
-  trackCode: 'TRACK_1' | 'TRACK_2' | 'NONE'
+  trackCode: TrackCode
   attendanceMode: 'Online' | 'In-Person' | 'None'
   sessionDay: string
   sessionVenue: string
@@ -12,6 +14,32 @@ export interface ParsedSessionDetails {
   cleanNotes: string
   funnelStatus: string
   rawSession: string
+  attendedStatus: 'Google Meet' | 'YouTube Live' | 'None'
+  attendedAt?: string
+}
+
+export function getTrackBadgeMeta(trackCode: TrackCode): {
+  label: string
+  background: string
+  color: string
+  border: string
+} {
+  switch (trackCode) {
+    case 'TRACK_A':
+      return { label: 'Track A · Foundation', background: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' }
+    case 'TRACK_B':
+      return { label: 'Track B · Career Dev', background: '#f0fdf4', color: '#166534', border: '#bbf7d0' }
+    case 'TRACK_C':
+      return { label: 'Track C · Practical & Networking', background: '#fff7ed', color: '#9a3412', border: '#fed7aa' }
+    case 'TRACK_D':
+      return { label: 'Track D · Networking (Legacy)', background: '#faf5ff', color: '#6b21a8', border: '#e9d5ff' }
+    case 'TRACK_2':
+      return { label: 'Track 2', background: '#f0fdf4', color: '#166534', border: '#bbf7d0' }
+    case 'TRACK_1':
+      return { label: 'Track 1', background: '#fff7ed', color: '#9a3412', border: '#ffedd5' }
+    default:
+      return { label: 'Not Specified', background: '#f3f4f6', color: '#4b5563', border: '#e5e7eb' }
+  }
 }
 
 /**
@@ -35,10 +63,22 @@ export function parseSessionAndTrack(data: {
 
   // 2. Parse Track
   let track = 'Not Specified'
-  let trackCode: 'TRACK_1' | 'TRACK_2' | 'NONE' = 'NONE'
+  let trackCode: TrackCode = 'NONE'
 
   const fullTrackSource = `${trackRaw} ${interestRaw} ${expRaw}`
-  if (/track[\s_-]*2|already\s*started/i.test(fullTrackSource)) {
+  if (/track[\s_-]*d\b|premium\s*networking/i.test(fullTrackSource)) {
+    track = 'Track D — Premium Networking (₦200,000)'
+    trackCode = 'TRACK_D'
+  } else if (/track[\s_-]*c\b|practical\s*experience/i.test(fullTrackSource)) {
+    track = 'Track C — Practical Experience (₦160,000)'
+    trackCode = 'TRACK_C'
+  } else if (/track[\s_-]*b\b|career\s*development/i.test(fullTrackSource)) {
+    track = 'Track B — Career Development (₦100,000)'
+    trackCode = 'TRACK_B'
+  } else if (/track[\s_-]*a\b|track[\s_-]*a\s*-|\bfoundation\b/i.test(fullTrackSource)) {
+    track = 'Track A — Foundation (₦60,000)'
+    trackCode = 'TRACK_A'
+  } else if (/track[\s_-]*2|already\s*started/i.test(fullTrackSource)) {
     track = 'Track 2 (Already Started)'
     trackCode = 'TRACK_2'
   } else if (/track[\s_-]*1|starting\s*from\s*zero/i.test(fullTrackSource)) {
@@ -73,7 +113,12 @@ export function parseSessionAndTrack(data: {
   ) {
     const sLower = sessionString.toLowerCase()
 
-    if (sLower.includes('online') || sLower.includes('zoom') || sLower.includes('meet')) {
+    if (
+      sLower.includes('online') ||
+      sLower.includes('zoom') ||
+      sLower.includes('meet') ||
+      sLower.includes('webinar')
+    ) {
       attendanceMode = 'Online'
       sessionVenue = 'Zoom / Google Meet (Live Webinar)'
 
@@ -170,11 +215,29 @@ export function parseSessionAndTrack(data: {
     }
   }
 
-  // 5. Clean Attendee Notes (strip out serialized bracket tags)
+  // 5. Detect Webinar Attendance Check-in
+  let attendedStatus: 'Google Meet' | 'YouTube Live' | 'None' = 'None'
+  let attendedAt: string | undefined = undefined
+  const attendedMatch = interestRaw.match(/\[Attended:\s*([^\]]+)\]/i)
+  if (attendedMatch) {
+    const rawVal = attendedMatch[1].trim()
+    if (/meet/i.test(rawVal)) {
+      attendedStatus = 'Google Meet'
+    } else if (/youtube/i.test(rawVal)) {
+      attendedStatus = 'YouTube Live'
+    }
+    const atMatch = rawVal.match(/at\s+([\d-T:.Z]+)/i)
+    if (atMatch) {
+      attendedAt = atMatch[1]
+    }
+  }
+
+  // 6. Clean Attendee Notes (strip out serialized bracket tags)
   let cleanNotes = interestRaw
     .replace(/\[Track:\s*[^\]]+\]/gi, '')
     .replace(/\[Session:\s*[^\]]+\]/gi, '')
     .replace(/\[Track\s*[12][^\]]*\]/gi, '')
+    .replace(/\[Attended:\s*[^\]]+\]/gi, '')
     .trim()
 
   if (!cleanNotes || cleanNotes === 'Info Session Attendee' || cleanNotes.startsWith('Drop-off Stage 1')) {
@@ -192,11 +255,13 @@ export function parseSessionAndTrack(data: {
     cleanNotes,
     funnelStatus,
     rawSession: sessionString || 'None',
+    attendedStatus,
+    attendedAt,
   }
 }
 
 /**
- * Filter matcher for Session types
+ * Filter matcher for Session types and Academic Webinar dates
  */
 export function matchesSessionFilter(
   data: {
@@ -210,14 +275,31 @@ export function matchesSessionFilter(
   if (!filter || filter === 'ALL') return true
 
   const parsed = parseSessionAndTrack(data)
+  const fullText = `${data.interest || ''} ${data.sessionTime || ''} ${data.track || ''} ${parsed.rawSession || ''} ${parsed.sessionDateTime || ''}`.toLowerCase()
 
   switch (filter) {
+    case 'WEBINAR_NOV_26':
+    case '26th November 2026':
+      return /26th\s*november|nov\s*26|26\s*nov/i.test(fullText)
+    case 'WEBINAR_NOV_21':
+    case '21st November 2026':
+      return /21st\s*november|nov\s*21|21\s*nov/i.test(fullText)
+    case 'WEBINAR_ATTENDED':
+      return parsed.attendedStatus !== 'None' || /attended:\s*(google meet|youtube)/i.test(fullText)
+    case 'WEBINAR_ATTENDED_MEET':
+      return parsed.attendedStatus === 'Google Meet' || /attended:\s*google meet/i.test(fullText)
+    case 'WEBINAR_ATTENDED_YOUTUBE':
+      return parsed.attendedStatus === 'YouTube Live' || /attended:\s*youtube/i.test(fullText)
+    case 'WEBINAR_REGISTERED_ONLY':
+      return /webinar|26th\s*november|21st\s*november/i.test(fullText) && parsed.attendedStatus === 'None' && !/attended:/i.test(fullText)
+    case 'WEBINAR_ALL':
+      return /webinar|26th\s*november|21st\s*november/i.test(fullText)
     case 'ONLINE_ALL':
       return parsed.attendanceMode === 'Online'
     case 'ONLINE_TUE':
-      return parsed.attendanceMode === 'Online' && parsed.sessionDay === 'Tuesday'
+      return parsed.attendanceMode === 'Online' && (parsed.sessionDay === 'Tuesday' || /tuesday|tue/i.test(fullText))
     case 'ONLINE_SAT':
-      return parsed.attendanceMode === 'Online' && parsed.sessionDay === 'Saturday'
+      return parsed.attendanceMode === 'Online' && (parsed.sessionDay === 'Saturday' || /saturday|sat/i.test(fullText))
     case 'PHYSICAL_ALL':
       return parsed.attendanceMode === 'In-Person'
     case 'PHYSICAL_ABUJA':
@@ -231,7 +313,11 @@ export function matchesSessionFilter(
     case 'NO_SESSION':
       return parsed.attendanceMode === 'None'
     default:
-      return true
+      if (filter.startsWith('DATE:')) {
+        const targetDate = filter.replace('DATE:', '').toLowerCase().trim()
+        return fullText.includes(targetDate)
+      }
+      return fullText.includes(filter.toLowerCase().trim())
   }
 }
 
@@ -357,6 +443,8 @@ export function exportEarlyAccessToCsv(records: EarlyAccessRecord[], filename?: 
     'Session Day / City',
     'Session Venue',
     'Session Date & Time',
+    'Webinar Attendance',
+    'Referral / Traffic Source',
     'Notes / Reason for Interest',
   ]
 
@@ -370,6 +458,10 @@ export function exportEarlyAccessToCsv(records: EarlyAccessRecord[], filename?: 
     const dateFormatted = d
       ? `${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}, ${d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`
       : 'N/A'
+
+    const attendedLabel = parsed.attendedStatus !== 'None'
+      ? `Attended (${parsed.attendedStatus})${parsed.attendedAt ? ` at ${parsed.attendedAt}` : ''}`
+      : (/26th\s*november|nov\s*26|26\s*nov|21st\s*november|nov\s*21|21\s*nov/i.test(rec.interest || '') ? 'Registered (Did Not Check In)' : 'N/A')
 
     return [
       { val: dateFormatted },
@@ -385,6 +477,8 @@ export function exportEarlyAccessToCsv(records: EarlyAccessRecord[], filename?: 
       { val: parsed.sessionDay },
       { val: parsed.sessionVenue },
       { val: parsed.sessionDateTime },
+      { val: attendedLabel },
+      { val: rec.sourceIdentifier || 'Direct' },
       { val: parsed.cleanNotes },
     ]
   })
@@ -476,4 +570,191 @@ export function exportApplicationsToCsv(
 
   downloadSpreadsheet(htmlContent, filename || defaultName)
   showToast(`Exported ${applications.length} applications to spreadsheet`)
+}
+
+export interface PaymentAndBalanceMeta {
+  status: 'PAID_FULL' | 'DEPOSIT_PENDING' | 'REFUNDED' | 'UNPAID'
+  badgeLabel: string
+  detailText?: string
+  isDeposit: boolean
+  depositAmount: number
+  balanceDue: number
+  totalPackage?: number
+  trackName?: string
+  isFullyCleared: boolean
+  color: string
+  background: string
+  border: string
+}
+
+export function getPaymentAndBalanceMeta(app: {
+  feeStatus?: string
+  notes?: string | null
+  track?: string | null
+  applicationFee?: number
+}): PaymentAndBalanceMeta {
+  const isPaid = app.feeStatus === 'PAID'
+  const isRefunded = app.feeStatus === 'REFUNDED'
+  const notes = app.notes || ''
+  const notesLower = notes.toLowerCase()
+  const trackStr = (app.track || notes || '')
+
+  if (!isPaid && !isRefunded) {
+    return {
+      status: 'UNPAID',
+      badgeLabel: 'UNPAID',
+      detailText: 'Stage 1 Saved (Payment Pending)',
+      isDeposit: false,
+      depositAmount: 0,
+      balanceDue: 0,
+      isFullyCleared: false,
+      color: '#64748b',
+      background: '#f1f5f9',
+      border: '#cbd5e1',
+    }
+  }
+
+  if (isRefunded) {
+    return {
+      status: 'REFUNDED',
+      badgeLabel: 'REFUNDED',
+      isDeposit: false,
+      depositAmount: 0,
+      balanceDue: 0,
+      isFullyCleared: false,
+      color: '#991b1b',
+      background: '#fef2f2',
+      border: '#fecaca',
+    }
+  }
+
+  // Check if it's a deposit payment
+  const isDeposit =
+    !notesLower.includes('full offer') &&
+    !notesLower.includes('full fee') &&
+    (notesLower.includes('deposit') ||
+      notesLower.includes('down payment') ||
+      notesLower.includes('lock-in') ||
+      notes.includes('₦25,000'))
+  const isFullyCleared = notes.includes('FULLY CLEARED')
+
+  if (isDeposit) {
+    let depositAmount = 70000
+    let balanceDue = 80000
+    let totalPackage = 150000
+    let trackName = 'Track C - Practical Experience'
+
+    const isTrackC = trackStr.includes('Track C') || notes.includes('Track C') || notes.includes('₦70,000')
+    const isTrackB = !isTrackC && (trackStr.includes('Track B') || notes.includes('Track B') || notes.includes('₦50,000'))
+    const isTrackA = !isTrackC && !isTrackB && (trackStr.includes('Track A') || notes.includes('Track A') || notes.includes('₦30,000'))
+
+    if (isTrackA) {
+      trackName = 'Track A - Foundation'
+      depositAmount = 30000
+      balanceDue = 30000
+      totalPackage = 60000
+    } else if (isTrackB) {
+      trackName = 'Track B - Career Development'
+      depositAmount = 50000
+      const is48h = notes.includes('110,000') || notesLower.includes('48-hour') || notesLower.includes('48h')
+      balanceDue = is48h ? 60000 : 70000
+      totalPackage = depositAmount + balanceDue
+    } else {
+      trackName = 'Track C - Practical Experience'
+      if (notes.includes('₦25,000') || notesLower.includes('lock-in')) {
+        depositAmount = 25000
+        balanceDue = 125000
+        totalPackage = 150000
+      } else {
+        depositAmount = 70000
+        const is48h = notes.includes('150,000') || notesLower.includes('48-hour') || notesLower.includes('48h') || !notes.includes('160,000')
+        balanceDue = is48h ? 80000 : 90000
+        totalPackage = depositAmount + balanceDue
+      }
+    }
+
+    if (!isFullyCleared) {
+      const depLabel = (depositAmount / 1000)
+      const balLabel = (balanceDue / 1000)
+      return {
+        status: 'DEPOSIT_PENDING',
+        badgeLabel: `DEPOSIT: ₦${depLabel}k · ₦${balLabel}k DUE`,
+        detailText: `₦${depositAmount.toLocaleString()} paid · ₦${balanceDue.toLocaleString()} balance remaining (Total ₦${totalPackage.toLocaleString()})`,
+        isDeposit: true,
+        depositAmount,
+        balanceDue,
+        totalPackage,
+        trackName,
+        isFullyCleared: false,
+        color: '#b45309',
+        background: '#fef3c7',
+        border: '#fde68a',
+      }
+    }
+
+    return {
+      status: 'PAID_FULL',
+      badgeLabel: `PAID IN FULL (₦${(totalPackage / 1000)}k)`,
+      detailText: `₦${depositAmount.toLocaleString()} deposit + ₦${balanceDue.toLocaleString()} balance paid · FULLY CLEARED`,
+      isDeposit: true,
+      depositAmount,
+      balanceDue: 0,
+      totalPackage,
+      trackName,
+      isFullyCleared: true,
+      color: '#15803d',
+      background: '#dcfce7',
+      border: '#bbf7d0',
+    }
+  }
+
+  // Full upfront payment
+  const paymentMatch = notes.match(/\[Payment:\s*([^\]]+)\]/i)?.[1]
+  let paidLabel = '✓ PAID IN FULL'
+  if (trackStr.includes('Track A')) {
+    if (notes.includes('50,000') || notes.includes('50k')) {
+      paidLabel = 'PAID IN FULL (₦50k)'
+    } else {
+      paidLabel = 'PAID IN FULL (₦60k)'
+    }
+  } else if (trackStr.includes('Track B')) {
+    if (notes.includes('100,000') || notes.includes('100k')) {
+      paidLabel = 'PAID IN FULL (₦100k)'
+    } else {
+      paidLabel = 'PAID IN FULL (₦120k)'
+    }
+  } else if (trackStr.includes('Track C')) {
+    if (notes.includes('135,000') || notes.includes('135k')) {
+      paidLabel = 'PAID IN FULL (₦135k)'
+    } else if (notes.includes('160,000') || notes.includes('160k')) {
+      paidLabel = 'PAID IN FULL (₦160k)'
+    } else {
+      paidLabel = 'PAID IN FULL (₦200k)'
+    }
+  } else if (paymentMatch) {
+    if (paymentMatch.includes('135,000') || paymentMatch.includes('135k')) {
+      paidLabel = 'PAID IN FULL (₦135k)'
+    } else if (paymentMatch.includes('200,000') || paymentMatch.includes('200k')) {
+      paidLabel = 'PAID IN FULL (₦200k)'
+    } else if (paymentMatch.includes('100,000') || paymentMatch.includes('100k')) {
+      paidLabel = 'PAID IN FULL (₦100k)'
+    } else if (paymentMatch.includes('50,000') || paymentMatch.includes('50k')) {
+      paidLabel = 'PAID IN FULL (₦50k)'
+    } else if (paymentMatch.includes('60,000') || paymentMatch.includes('60k')) {
+      paidLabel = 'PAID IN FULL (₦60k)'
+    }
+  }
+
+  return {
+    status: 'PAID_FULL',
+    badgeLabel: paidLabel,
+    detailText: paymentMatch || 'Verified Cohort Tuition',
+    isDeposit: false,
+    depositAmount: 0,
+    balanceDue: 0,
+    isFullyCleared: true,
+    color: '#15803d',
+    background: '#dcfce7',
+    border: '#bbf7d0',
+  }
 }

@@ -35,6 +35,9 @@ export interface UnifiedUserRecord {
   hasPaidOutsideNote?: boolean
   latestNote?: string | null
   adminNotes?: any[]
+  hasSignupVoucher?: boolean
+  voucherBalanceNaira?: number
+  voucherEarnedNaira?: number
   rawRecord: any
 }
 

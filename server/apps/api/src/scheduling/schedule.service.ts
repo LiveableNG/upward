@@ -16,6 +16,8 @@ import { getZonedParts, Schedule, ScheduledJob } from './schedule.builder'
 import { PrismaService } from '../shared/infrastructure/prisma/prisma.service'
 import { S3Service } from '../shared/infrastructure/common/s3/s3.service'
 import { SubscriptionBillingScheduler } from './subscription-billing.scheduler'
+import { BulkEmailWorkerService } from '../application/use-cases/email/bulk-email-worker.service'
+import { PruneCommunicationLogsUseCase } from '../application/use-cases/email/prune-communication-logs.use-case'
 
 @Injectable()
 export class ScheduleService implements OnModuleInit {
@@ -40,6 +42,8 @@ export class ScheduleService implements OnModuleInit {
     private readonly prisma: PrismaService,
     private readonly s3Service: S3Service,
     private readonly subscriptionBillingScheduler: SubscriptionBillingScheduler,
+    private readonly bulkEmailWorker: BulkEmailWorkerService,
+    private readonly pruneCommunicationLogsUseCase: PruneCommunicationLogsUseCase,
   ) {
     this.timeZone =
       this.config?.get<string>('SCHEDULE_TIMEZONE') ||
@@ -63,6 +67,18 @@ export class ScheduleService implements OnModuleInit {
       .everyMinute()
       .withoutOverlapping()
       .description('Process pending bulk tenant invites')
+
+    s.call('bulkEmailQueue', () => this.bulkEmailWorker.processQueueTick())
+      .everyMinute()
+      .withoutOverlapping()
+      .description('Drain PostgreSQL-backed bulk email queue and recover stale jobs')
+
+    s.call('pruneCommunicationLogs', async () => {
+      await this.pruneCommunicationLogsUseCase.execute()
+    })
+      .dailyAt('03:00')
+      .withoutOverlapping()
+      .description('Tiered communication log retention (strip >30d bodies, purge >30d alerts & >90d non-financial logs)')
 
     s.call('webhooks', () => this.webhookService.retryFailedWebhooks())
       .everyFifteenMinutes()

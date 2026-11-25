@@ -341,6 +341,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/invite')
 
   const isPayOnlyRoute =
+    pathname.startsWith('/signup/voucher') ||
     pathname.startsWith('/dashboard/lifestyle') ||
     pathname.startsWith('/dashboard/goals') ||
     pathname.startsWith('/dashboard/pay-rent') ||
@@ -588,8 +589,8 @@ export async function middleware(request: NextRequest) {
   if (pathname === '/academy') {
     return NextResponse.rewrite(new URL('/pages/university/index.html', request.url))
   }
-  if (pathname === '/academy/apply' || pathname.startsWith('/academy/apply/')) {
-    return NextResponse.rewrite(new URL('/pages/university/apply.html', request.url))
+  if (pathname === '/academy/apply' || pathname.startsWith('/academy/apply/') || pathname === '/pages/university/apply.html') {
+    return NextResponse.rewrite(new URL('/pages/university/apply/index.html', request.url))
   }
   if (pathname === '/academy/programme') {
     return NextResponse.rewrite(new URL('/pages/university/programme.html', request.url))
@@ -609,6 +610,26 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/academy/session/')
   ) {
     return NextResponse.rewrite(new URL('/pages/university/sessions/index.html', request.url))
+  }
+  if (
+    pathname === '/academy/webinar/join' ||
+    pathname === '/webinar/join' ||
+    pathname === '/university/webinar/join' ||
+    pathname === '/academy/join' ||
+    pathname === '/join' ||
+    pathname.startsWith('/academy/webinar/join/') ||
+    pathname.startsWith('/webinar/join/') ||
+    pathname.startsWith('/university/webinar/join/')
+  ) {
+    return NextResponse.rewrite(new URL('/pages/university/webinar/join/index.html', request.url))
+  }
+  if (
+    pathname === '/academy/webinar/thank-you' ||
+    pathname === '/webinar/thank-you' ||
+    pathname === '/enroll/thank-you' ||
+    pathname === '/university/webinar/thank-you'
+  ) {
+    return NextResponse.rewrite(new URL('/pages/university/webinar/thank-you.html', request.url))
   }
   if (
     pathname === '/academy/enroll' ||
@@ -643,7 +664,7 @@ export async function middleware(request: NextRequest) {
   if (pathname === '/academy/faq' || pathname === '/academy/faqs') {
     return NextResponse.rewrite(new URL('/pages/university/faq.html', request.url))
   }
-  if (pathname === '/academy/thank-you') {
+  if (pathname === '/academy/thank-you' || pathname === '/academy/submit-video') {
     return NextResponse.rewrite(new URL('/pages/university/thank-you.html', request.url))
   }
   if (pathname.startsWith('/academy/')) {
@@ -655,7 +676,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.rewrite(new URL('/pages/university/index.html', request.url))
   }
   if (pathname === '/university/apply' || pathname.startsWith('/university/apply/')) {
-    return NextResponse.rewrite(new URL('/pages/university/apply.html', request.url))
+    return NextResponse.rewrite(new URL('/pages/university/apply/index.html', request.url))
   }
   if (pathname === '/university/programme') {
     return NextResponse.rewrite(new URL('/pages/university/programme.html', request.url))
@@ -703,7 +724,7 @@ export async function middleware(request: NextRequest) {
   ) {
     return NextResponse.rewrite(new URL('/pages/university/lecturers.html', request.url))
   }
-  if (pathname === '/university/thank-you') {
+  if (pathname === '/university/thank-you' || pathname === '/university/submit-video') {
     return NextResponse.rewrite(new URL('/pages/university/thank-you.html', request.url))
   }
   if (pathname.startsWith('/university/')) {
@@ -726,6 +747,8 @@ export const config = {
     '/webinar/:path*',
     '/enroll',
     '/enroll/:path*',
+    '/join',
+    '/join/:path*',
     '/landing-analytics.js',
     '/pm',
     '/_upward_pay/:path*',
@@ -733,6 +756,7 @@ export const config = {
     '/_next/:path*',
     '/login',
     '/signup',
+    '/signup/:path*',
     '/forgot-password',
     '/reset-password',
     '/pm-login',

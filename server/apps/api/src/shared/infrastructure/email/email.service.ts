@@ -14,6 +14,8 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
 import { UnifiedCommunicationService } from '../communication/unified-communication.service'
 import {
   applyPmBranding,
+  buildSignupVoucherEmailHtml,
+  buildGamingRewardVoucherEmailHtml,
 } from './email.helper'
 
 @Injectable()
@@ -145,8 +147,30 @@ export class EmailService {
     cc?: string
     bcc?: string
     emailSequenceLogId?: number
+    campaignId?: string
+    retriedFromLogId?: string
+    omitLogBody?: boolean
+    skipPmLookup?: boolean
+    maxRetriesOverride?: number
   }) {
-    const { userId, pmUuid, email, subject, text, html, type, sessionId, fromOverride, replyToOverride, attachments } = params
+    const {
+      userId,
+      pmUuid,
+      email,
+      subject,
+      text,
+      html,
+      type,
+      sessionId,
+      fromOverride,
+      replyToOverride,
+      attachments,
+      campaignId,
+      retriedFromLogId,
+      omitLogBody,
+      skipPmLookup,
+      maxRetriesOverride,
+    } = params
     let { cc, bcc } = params
     let domain = this.configService.get<string>('MAILGUN_DOMAIN')
     if (!domain) {
@@ -173,7 +197,7 @@ export class EmailService {
 
     const targetPmUuid = pmUuid || userId
     let emailSetting: any = null
-    if (targetPmUuid && !isPlatformSpecial) {
+    if (targetPmUuid && !isPlatformSpecial && !skipPmLookup) {
       let pm = await this.prisma.upward_property_manager.findUnique({
         where: { uuid: targetPmUuid },
         include: { emailSetting: true },
@@ -314,7 +338,10 @@ export class EmailService {
 
     const unsubscribeToken = Buffer.from(email).toString('base64url')
 
-    while (retries < this.MAX_RETRIES && !success) {
+    const maxRetries = maxRetriesOverride ?? this.MAX_RETRIES
+    let isPermanentError = false
+
+    while (retries < maxRetries && !success) {
       try {
         const mailData: any = {
           from,
@@ -370,20 +397,37 @@ export class EmailService {
         this.logger.log(`Email ${type} sent to ${email} (Attempt ${retries + 1})`)
       } catch (error: unknown) {
         retries++
-        lastError = error instanceof Error ? error.message : 'Unknown error'
+        const errObj = error as { status?: number; details?: string; message?: string }
+        const statusCode = errObj?.status
+        lastError = errObj?.details
+          ? `${errObj.message || 'Error'}: ${errObj.details}`
+          : error instanceof Error
+            ? error.message
+            : 'Unknown error'
+
+        // Never retry permanent 4xx errors (except 429 Too Many Requests)
+        if (
+          (statusCode && statusCode >= 400 && statusCode < 500 && statusCode !== 429) ||
+          /bad request|invalid.*address|is not a valid|suppress|unsubscribed/i.test(lastError)
+        ) {
+          isPermanentError = true
+          this.logger.warn(`Permanent email error for ${email} (skipping retries): ${lastError}`)
+          break
+        }
+
         this.logger.warn(
-          `Failed to send email to ${email} (Attempt ${retries}/${this.MAX_RETRIES}): ${lastError}`,
+          `Failed to send email to ${email} (Attempt ${retries}/${maxRetries}): ${lastError}`,
         )
-        if (retries < this.MAX_RETRIES) {
+        if (retries < maxRetries) {
           // Exponential backoff: 2s, 4s, 8s...
           await new Promise((resolve) => setTimeout(resolve, Math.pow(2, retries) * 1000))
         }
       }
     }
 
-    // Resolve userId if not provided
+    // Resolve userId if not provided (skip expensive fallback lookups for bulk campaigns)
     let resolvedUserId = userId
-    if (!resolvedUserId && email) {
+    if (!resolvedUserId && email && !skipPmLookup) {
       const user = await this.prisma.upward_user.findFirst({
         where: { email },
         select: { id: true },
@@ -413,10 +457,12 @@ export class EmailService {
         success ? undefined : lastError,
         retries - 1 >= 0 ? retries - 1 : 0,
         sessionId,
-        brandedHtml,
+        omitLogBody ? undefined : brandedHtml,
         params.emailSequenceLogId,
         emailTrackingToken,
         trackedLinks,
+        campaignId,
+        retriedFromLogId,
       ),
     )
 
@@ -447,7 +493,7 @@ export class EmailService {
       }
     }
 
-    return { success, mailgunId, error: lastError }
+    return { success, mailgunId, error: lastError, isPermanentError }
   }
 
   async sendGenericEmail(email: string, subject: string, content: string, userId?: string, pmUuid?: string, fromOverride?: string) {
@@ -977,6 +1023,75 @@ export class EmailService {
 
     const info = await transporter.sendMail(mailOptions)
     return info.messageId || `oauth-${Date.now()}`
+  }
+
+  async sendSignupVoucherEmail(params: {
+    userId?: string
+    email: string
+    firstName: string
+    amountNaira: number
+    totalBalanceNaira: number
+    campaignName?: string
+  }) {
+    const appUrl =
+      this.configService.get<string>('PAY_APP_URL') ||
+      this.configService.get<string>('UPWARD_PAY_URL') ||
+      `${this.frontendUrl}/dashboard/lifestyle`
+    const html = buildSignupVoucherEmailHtml({
+      firstName: params.firstName,
+      amountNaira: params.amountNaira,
+      totalBalanceNaira: params.totalBalanceNaira,
+      campaignName: params.campaignName,
+      appUrl,
+    })
+    const formattedAmount = params.amountNaira.toLocaleString('en-NG')
+    return this.sendEmailWithRetry({
+      userId: params.userId,
+      email: params.email,
+      subject: `You unlocked a ₦${formattedAmount} Upward Home Refresh Voucher!`,
+      html,
+      text: `Hi ${params.firstName}, you unlocked a ₦${formattedAmount} Upward voucher toward the Home Refresh Package. Your available balance is ₦${params.totalBalanceNaira.toLocaleString('en-NG')}. Open Upward Pay: ${appUrl}`,
+      type: 'VOUCHER_SIGNUP_CREDIT',
+    })
+  }
+
+  async sendGamingRewardVoucherEmail(params: {
+    userId?: string
+    email: string
+    firstName: string
+    amountNaira: number
+    totalBalanceNaira: number
+    subject?: string
+    customMessage?: string
+    reason?: string
+  }) {
+    const appUrl =
+      this.configService.get<string>('PAY_APP_URL') ||
+      this.configService.get<string>('UPWARD_PAY_URL') ||
+      `${this.frontendUrl}/dashboard/lifestyle`
+    const formattedAmount = params.amountNaira.toLocaleString('en-NG')
+    const resolvedSubject =
+      params.subject?.trim() ||
+      `Congratulations! You just won a ₦${formattedAmount} Upward Voucher!`
+    const html = buildGamingRewardVoucherEmailHtml({
+      firstName: params.firstName,
+      amountNaira: params.amountNaira,
+      totalBalanceNaira: params.totalBalanceNaira,
+      headline: resolvedSubject,
+      customMessage: params.customMessage,
+      reason: params.reason,
+      appUrl,
+    })
+    return this.sendEmailWithRetry({
+      userId: params.userId,
+      email: params.email,
+      subject: resolvedSubject,
+      html,
+      text:
+        params.customMessage?.trim() ||
+        `Hi ${params.firstName}, congratulations! You won a ₦${formattedAmount} Upward voucher. Your total accumulated voucher balance is now ₦${params.totalBalanceNaira.toLocaleString('en-NG')}.`,
+      type: 'VOUCHER_GAMING_REWARD',
+    })
   }
 
   private createTrackingToken(originalUrl: string, linkId: string): string {

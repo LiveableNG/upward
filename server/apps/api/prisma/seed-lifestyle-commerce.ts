@@ -349,15 +349,15 @@ export async function seedLifestyleAndCommerce(client: PrismaClient) {
   })
 
   // ── D. 23-PIECE NEW YEAR HOME REFRESH PACKAGE ──
-  console.log('  📦 Seeding New Year Home Refresh Package (Total ₦84,000, ₦104,000 Strikethrough)...')
+  console.log('  📦 Seeding New Year Home Refresh Package (Total ₦89,000, Voucher Eligible)...')
 
   // Total sum of all 23 items:
-  // 3000 + 1500 + 2500 + 3000 + 3500 + 500 + 2000 + 8000 + 5000 + 500 +
-  // 3000 + 12000 + 5000 + 4000 + 4000 + 4000 + 2000 + 3000 + 4000 + 3000 + 4000 + 2500 + 4000 = ₦84,000
+  // 4000 + 1500 + 2500 + 3000 + 3500 + 500 + 2000 + 9000 + 6000 + 500 +
+  // 3000 + 13000 + 6000 + 4000 + 4000 + 4000 + 2000 + 3000 + 4000 + 3000 + 4000 + 2500 + 4000 = ₦89,000
   const ITEMS_MANIFEST = [
     {
       title: '360-Degree Spin Mop & Bucket System',
-      price: 3000,
+      price: 4000,
       img: 'https://images.pexels.com/photos/38304325/pexels-photo-38304325/free-photo-of-professional-cleaner-mopping-floor-with-caution-sign.jpeg?auto=compress&cs=tinysrgb&w=600',
       desc: 'Microfiber mop with dual-chamber spinning wash bucket',
     },
@@ -399,13 +399,13 @@ export async function seedLifestyleAndCommerce(client: PrismaClient) {
     },
     {
       title: 'Dual Large Waste Dustbins',
-      price: 8000,
+      price: 9000,
       img: 'https://images.pexels.com/photos/6913203/pexels-photo-6913203.jpeg?auto=compress&cs=tinysrgb&w=600',
       desc: 'Pedal-operated durable waste bins for kitchen and room',
     },
     {
       title: 'Non-Slip Bathroom Footmats / Carpets',
-      price: 5000,
+      price: 6000,
       img: 'https://images.pexels.com/photos/12273900/pexels-photo-12273900.jpeg?auto=compress&cs=tinysrgb&w=600',
       desc: 'Plush microfiber bath mat with anti-skid rubber backing',
     },
@@ -423,13 +423,13 @@ export async function seedLifestyleAndCommerce(client: PrismaClient) {
     },
     {
       title: '16-Piece Stainless Steel Cutlery Set',
-      price: 12000,
+      price: 13000,
       img: 'https://images.pexels.com/photos/7001922/pexels-photo-7001922.jpeg?auto=compress&cs=tinysrgb&w=600',
       desc: 'Food-grade stainless steel dining forks, spoons, and table knives',
     },
     {
       title: 'Non-Slip Kitchen Floor Mat',
-      price: 5000,
+      price: 6000,
       img: 'https://images.pexels.com/photos/12689256/pexels-photo-12689256.jpeg?auto=compress&cs=tinysrgb&w=600',
       desc: 'Waterproof cushioned standing mat for kitchen prep area',
     },
@@ -539,9 +539,9 @@ export async function seedLifestyleAndCommerce(client: PrismaClient) {
       description: packageCleanDescription,
       type: OfferingType.PACKAGE,
       pricingModel: OfferingPricingModel.FIXED,
-      price: 84000, // Total sum of all 23 items
-      minPrice: 84000,
-      maxPrice: 104000, // Strikethrough comparison (₦104,000)
+      price: 89000, // Total sum of all 23 items
+      minPrice: 89000,
+      maxPrice: null, // No default strikethrough — dynamically personalized when user has voucher credits
       currency: 'NGN',
       vendorId: vendorHavenCraft.id,
       inStock: true,
@@ -553,6 +553,7 @@ export async function seedLifestyleAndCommerce(client: PrismaClient) {
       status: GoalPublishStatus.PUBLISHED,
       isFeatured: true,
       isPromoted: true, // Elevates to Spotlight Hero Banner in upward-pay
+      voucherEligible: true, // User voucher credits apply dynamically to this package
       promoBadge: 'HOME REFRESH',
       promoTitle: 'Prepare Your Home for the New Year',
       promoSubtitle: 'Curated 23-piece household cleaning & apartment renewal kit',
@@ -785,6 +786,25 @@ export async function seedLifestyleAndCommerce(client: PrismaClient) {
   for (const link of linksToCreate) {
     await client.upward_goal_offering.create({ data: link })
   }
+
+  // ── G. DEFAULT SIGNUP VOUCHER CAMPAIGN ──
+  console.log('  🎟️ Seeding default signup voucher campaign (HOME_REFRESH_1K)...')
+  await client.upward_voucher_campaign.upsert({
+    where: { code: 'HOME_REFRESH_1K' },
+    update: {
+      isActive: true,
+      defaultAmountKobo: 100000n, // ₦1,000
+    },
+    create: {
+      code: 'HOME_REFRESH_1K',
+      name: 'Home Refresh Welcome Voucher',
+      description: 'Special ₦1,000 signup voucher credit toward the New Year Home Refresh Package',
+      type: 'SIGNUP_LINK',
+      defaultAmountKobo: 100000n, // ₦1,000
+      isActive: true,
+      emailTemplateKey: 'signup_voucher_1k',
+    },
+  })
 
   console.log('✅ [2/2] Lifestyle & Commerce seeding completed successfully!')
 }

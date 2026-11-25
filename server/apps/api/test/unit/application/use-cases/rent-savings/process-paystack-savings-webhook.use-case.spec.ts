@@ -319,4 +319,59 @@ describe('ProcessPaystackSavingsWebhookUseCase', () => {
     expect(result.status).toBe('already_processed')
     expect(armJobQueue.enqueueJob).not.toHaveBeenCalled()
   })
+
+  it('should process dedicatedaccount.payment.success and publish RentVaultUpdatedEvent', async () => {
+    const mockEventBus = {
+      publish: jest.fn(),
+      publishAll: jest.fn(),
+      subscribe: jest.fn(),
+    }
+
+    paymentGateway.verifyTransaction.mockResolvedValueOnce({
+      status: true,
+      amount: 350000,
+      amountKobo: 35000000n,
+      currency: 'NGN',
+      channel: 'dedicated_nuban',
+      reference: 'TFD_9012345678_350000_12345',
+      gatewayStatus: 'success',
+      customerCode: 'CUS_valid_001',
+      customerEmail: 'saver@example.com',
+      receiverAccountNumber: '9012345678',
+    })
+
+    const useCaseWithBus = new ProcessPaystackSavingsWebhookUseCase(
+      configService,
+      rentVaultRepo,
+      paymentGateway,
+      prisma,
+      encryption,
+      armJobQueue,
+      mockEventBus as any,
+    )
+
+    const payload: PaystackWebhookPayload = {
+      event: 'dedicatedaccount.payment.success',
+      data: {
+        reference: 'TFD_9012345678_350000_12345',
+        amount: 35000000,
+        currency: 'NGN',
+        dedicated_account: {
+          account_number: '9012345678',
+        },
+      },
+    }
+    const { rawBody, signature } = signPayload(payload)
+
+    const result = await useCaseWithBus.execute(payload, signature, rawBody)
+
+    expect(result.status).toBe('success')
+    expect(rentVaultRepo.findByDvaAccountNumber).toHaveBeenCalledWith('9012345678')
+    expect(txClient.upward_rent_vault.update).toHaveBeenCalledWith({
+      where: { id: 1 },
+      data: { currentPrincipalKobo: { increment: 35000000n } },
+    })
+    expect(armJobQueue.enqueueJob).toHaveBeenCalledTimes(1)
+    expect(mockEventBus.publish).toHaveBeenCalledTimes(1)
+  })
 })

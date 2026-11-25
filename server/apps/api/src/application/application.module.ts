@@ -28,6 +28,9 @@ import { CreateCustomGoalUseCase } from './goals/use-cases/create-custom-goal.us
 import { ToggleGoalActionUseCase } from './goals/use-cases/toggle-goal-action.use-case'
 import { SubmitGoalQuestionnaireUseCase } from './goals/use-cases/submit-goal-questionnaire.use-case'
 import { GetOfferingsUseCase } from './goals/use-cases/get-offerings.use-case'
+import { CreditSignupVoucherUseCase } from './vouchers/use-cases/credit-signup-voucher.use-case'
+import { AdminGrantVoucherUseCase } from './vouchers/use-cases/admin-grant-voucher.use-case'
+import { GetUserVoucherSummaryUseCase } from './vouchers/use-cases/get-user-voucher-summary.use-case'
 import { GetOfferingDetailUseCase } from './goals/use-cases/get-offering-detail.use-case'
 import { AdminManageCategoriesUseCase } from './goals/use-cases/admin/admin-manage-categories.use-case'
 import { AdminManageGoalsUseCase } from './goals/use-cases/admin/admin-manage-goals.use-case'
@@ -150,6 +153,8 @@ import {
   DeleteEarlyAccessEntryUseCase,
 } from './use-cases/early-access/get-early-access-admin.use-case'
 import { SubmitUniversityApplicationUseCase } from './use-cases/university-application/submit-university-application.use-case'
+import { SubmitUniversityApplicationVideoUseCase } from './use-cases/university-application/submit-university-application-video.use-case'
+import { PayUniversityApplicationBalanceUseCase } from './use-cases/university-application/pay-university-application-balance.use-case'
 import { SubmitUniversityReferralsUseCase } from './use-cases/university-referral/submit-university-referrals.use-case'
 import {
   GetUniversityReferralStatsUseCase,
@@ -215,6 +220,14 @@ import { SendTestEmailsUseCase } from './use-cases/email/send-test-emails.use-ca
 import { RetryEmailUseCase } from './use-cases/email/retry-email.use-case'
 import { EmailBatchRetryManager } from './use-cases/email/email-batch-retry-manager.service'
 import { RetryBatchEmailsUseCase } from './use-cases/email/retry-batch-emails.use-case'
+import { BulkEmailWorkerService } from './use-cases/email/bulk-email-worker.service'
+import { BulkEmailProcessor } from './use-cases/email/bulk-email.processor'
+import { GetBulkEmailCampaignsUseCase } from './use-cases/email/get-bulk-email-campaigns.use-case'
+import { GetBulkEmailCampaignDetailUseCase } from './use-cases/email/get-bulk-email-campaign-detail.use-case'
+import { RetryBulkEmailCampaignFailedUseCase } from './use-cases/email/retry-bulk-email-campaign-failed.use-case'
+import { ControlBulkEmailCampaignUseCase } from './use-cases/email/control-bulk-email-campaign.use-case'
+import { PruneCommunicationLogsUseCase } from './use-cases/email/prune-communication-logs.use-case'
+import { GetEmailRecipientsDirectoryUseCase } from './use-cases/email/get-email-recipients-directory.use-case'
 
 import { GetErrorLogsUseCase } from './use-cases/system/get-error-logs.use-case'
 import { ResolveErrorUseCase } from './use-cases/system/resolve-error.use-case'
@@ -611,6 +624,7 @@ import { DisburseEmergencyAdvanceUseCase } from './use-cases/rent-savings/disbur
 import { ExecuteLandlordSettlementUseCase } from './use-cases/rent-savings/execute-landlord-settlement.use-case'
 import { BreakoutRentVaultUseCase } from './use-cases/rent-savings/breakout-rent-vault.use-case'
 import { OnboardSavingsInvestorUseCase } from './use-cases/rent-savings/onboard-savings-investor.use-case'
+import { VerifyRentVaultFundingUseCase } from './use-cases/rent-savings/verify-rent-vault-funding.use-case'
 
 import { TogglePmAllianceEnablementUseCase } from './alliance/use-cases/toggle-pm-alliance-enablement.use-case'
 import { CreateAllianceQualificationUseCase } from './alliance/use-cases/create-alliance-qualification.use-case'
@@ -668,6 +682,7 @@ const UseCases: any[] = [
   ExecuteLandlordSettlementUseCase,
   BreakoutRentVaultUseCase,
   OnboardSavingsInvestorUseCase,
+  VerifyRentVaultFundingUseCase,
 
   TogglePmAllianceEnablementUseCase,
   CreateAllianceQualificationUseCase,
@@ -805,6 +820,14 @@ const UseCases: any[] = [
   RetryEmailUseCase,
   EmailBatchRetryManager,
   RetryBatchEmailsUseCase,
+  BulkEmailWorkerService,
+  BulkEmailProcessor,
+  GetBulkEmailCampaignsUseCase,
+  GetBulkEmailCampaignDetailUseCase,
+  RetryBulkEmailCampaignFailedUseCase,
+  ControlBulkEmailCampaignUseCase,
+  PruneCommunicationLogsUseCase,
+  GetEmailRecipientsDirectoryUseCase,
   GetErrorLogsUseCase,
   ResolveErrorUseCase,
   ClearErrorLogsUseCase,
@@ -1116,6 +1139,8 @@ const UseCases: any[] = [
   GetEarlyAccessEntriesUseCase,
   DeleteEarlyAccessEntryUseCase,
   SubmitUniversityApplicationUseCase,
+  SubmitUniversityApplicationVideoUseCase,
+  PayUniversityApplicationBalanceUseCase,
   SubmitUniversityReferralsUseCase,
   GetUniversityReferralStatsUseCase,
   GetUniversityReferralsAdminUseCase,
@@ -1229,6 +1254,11 @@ const UseCases: any[] = [
   AdminUpdateDeliveryZoneUseCase,
   AdminToggleDeliveryZoneUseCase,
   AdminDeleteDeliveryZoneUseCase,
+
+  // Voucher & Gaming Reward Use Cases
+  CreditSignupVoucherUseCase,
+  AdminGrantVoucherUseCase,
+  GetUserVoucherSummaryUseCase,
 ]
 
 // AI Document ingestion imports

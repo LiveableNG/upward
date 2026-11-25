@@ -113,13 +113,26 @@ export class PrismaRentVaultRepository implements IRentVaultRepository {
 
   async findByDvaAccountNumber(accountNumber: string, tx?: unknown): Promise<RentVault | null> {
     const client = this.getClient(tx)
-    const record = await client.upward_rent_vault.findFirst({
-      where: { dvaAccountNumber: accountNumber },
+    const activeRecord = await client.upward_rent_vault.findFirst({
+      where: {
+        dvaAccountNumber: accountNumber,
+        lockStatus: { in: ['LOCKED', 'SETTLEMENT_READY'] },
+      },
+      orderBy: { createdAt: 'desc' },
       include: {
         savingsScore: true,
       },
     })
-    return record ? this.mapVault(record) : null
+    if (activeRecord) return this.mapVault(activeRecord)
+
+    const fallbackRecord = await client.upward_rent_vault.findFirst({
+      where: { dvaAccountNumber: accountNumber },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        savingsScore: true,
+      },
+    })
+    return fallbackRecord ? this.mapVault(fallbackRecord) : null
   }
 
   async findMaturedLockedVaults(asOfDate: Date, tx?: unknown): Promise<RentVault[]> {
@@ -144,6 +157,18 @@ export class PrismaRentVaultRepository implements IRentVaultRepository {
     if (data.currentPrincipalKobo !== undefined)
       updatePayload.currentPrincipalKobo = data.currentPrincipalKobo
     if (data.accruedYieldKobo !== undefined) updatePayload.accruedYieldKobo = data.accruedYieldKobo
+    if (data.cadence !== undefined) updatePayload.cadence = data.cadence
+    if (data.productOption !== undefined) updatePayload.productOption = data.productOption
+    if (data.planPattern !== undefined) updatePayload.planPattern = data.planPattern
+    if (data.initialDepositKobo !== undefined)
+      updatePayload.initialDepositKobo = data.initialDepositKobo
+    if (data.appliedAnnualRatePct !== undefined)
+      updatePayload.appliedAnnualRatePct = data.appliedAnnualRatePct
+    if (data.insurancePremiumPct !== undefined)
+      updatePayload.insurancePremiumPct = data.insurancePremiumPct
+    if (data.contractualDueDate !== undefined)
+      updatePayload.contractualDueDate = data.contractualDueDate
+    if (data.unlockDate !== undefined) updatePayload.unlockDate = data.unlockDate
     if (data.lockStatus !== undefined) updatePayload.lockStatus = data.lockStatus
     if (data.preferredFundingMethod !== undefined)
       updatePayload.preferredFundingMethod = data.preferredFundingMethod
@@ -365,6 +390,11 @@ export class PrismaRentVaultRepository implements IRentVaultRepository {
       currentPrincipalKobo: record.currentPrincipalKobo,
       accruedYieldKobo: record.accruedYieldKobo,
       cadence: record.cadence as RentVault['cadence'],
+      productOption: record.productOption as RentVault['productOption'],
+      planPattern: record.planPattern as RentVault['planPattern'],
+      initialDepositKobo: record.initialDepositKobo,
+      appliedAnnualRatePct: record.appliedAnnualRatePct,
+      insurancePremiumPct: record.insurancePremiumPct,
       contractualDueDate: record.contractualDueDate,
       unlockDate: record.unlockDate,
       lockStatus: record.lockStatus as RentVault['lockStatus'],

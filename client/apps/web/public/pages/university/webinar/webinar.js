@@ -1,11 +1,11 @@
 /**
- * Upward Academy — Property Management Webinar Page Script
- * High-performance, self-contained interactivity, form validation & calendar generation
+ * Upward Academy — Tech-Driven Property Management & Brokerage Webinar Script
+ * Self-contained interactivity, form validation & calendar generation
  */
 (function () {
   'use strict';
 
-  // 1. Comprehensive Countries Dataset for Phone Code Picker
+  // 1. Countries Dataset for Phone Code Picker
   const ALL_COUNTRIES = [
     { code: 'NG', name: 'Nigeria', dial: '+234', flag: '🇳🇬' },
     { code: 'GH', name: 'Ghana', dial: '+233', flag: '🇬🇭' },
@@ -33,9 +33,7 @@
     { code: 'SN', name: 'Senegal', dial: '+221', flag: '🇸🇳' }
   ];
 
-
-
-  // 3. Country Code Picker Logic
+  // 2. Country Code Picker Logic
   function setupCountryPicker() {
     const pickerBtn = document.getElementById('countryPickerBtn');
     const popover = document.getElementById('countryPopover');
@@ -116,7 +114,7 @@
     });
   }
 
-  // 4. FAQ Accordion Logic
+  // 3. FAQ Accordion Logic
   function setupFaqAccordion() {
     const faqItems = document.querySelectorAll('.faq-item');
     faqItems.forEach(function (item) {
@@ -127,7 +125,6 @@
       questionBtn.addEventListener('click', function () {
         const isCurrentlyOpen = item.classList.contains('open');
 
-        // Close other items
         faqItems.forEach(function (otherItem) {
           if (otherItem !== item) {
             otherItem.classList.remove('open');
@@ -151,7 +148,7 @@
     });
   }
 
-  // 5. Contact Drawer Float
+  // 4. Contact Drawer Float
   function setupContactDrawer() {
     const contactUsBtn = document.getElementById('contact-us-btn');
     const contactDrawer = document.getElementById('contact-drawer');
@@ -171,7 +168,7 @@
     contactDrawerOverlay?.addEventListener('click', function () { setDrawerOpen(false); });
   }
 
-  // 6. Calendar Integration Helpers
+  // 5. Calendar Integration Helpers
   function generateGoogleCalendarUrl(title, details, location, startDate, endDate) {
     function formatDate(date) {
       return date.toISOString().replace(/-|:|\.\d\d\d/g, '');
@@ -212,13 +209,13 @@
     const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
     const link = document.createElement('a');
     link.href = window.URL.createObjectURL(blob);
-    link.setAttribute('download', 'Upward_Academy_Webinar_Oct29.ics');
+    link.setAttribute('download', 'Upward_Academy_Webinar_Nov21.ics');
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   }
 
-  // 7. Form Validation & Submission Logic
+  // 6. Form Validation & Submission Logic
   function setupWebinarForm() {
     const form = document.getElementById('webinarRegistrationForm');
     const submitBtn = document.getElementById('webinarSubmitBtn');
@@ -248,6 +245,119 @@
       }
     }
 
+    // Pre-fill preferred track from URL parameter (e.g. ?track=track-a)
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      const trackParam = (urlParams.get('track') || '').toLowerCase().trim();
+      const trackEl = document.getElementById('webinar_track');
+      if (trackEl && trackParam) {
+        if (trackParam === 'track-c' || trackParam === 'track-d' || trackParam === 'c' || trackParam === 'd' || trackParam === '3' || trackParam === '4' || trackParam.includes('practical') || trackParam.includes('network') || trackParam.includes('premium')) {
+          trackEl.value = 'Track C - Practical Experience';
+        } else if (trackParam === 'track-b' || trackParam === 'b' || trackParam === 'track2' || trackParam === '2' || trackParam.includes('career')) {
+          trackEl.value = 'Track B - Career Development';
+        } else if (trackParam === 'track-a' || trackParam === 'a' || trackParam === 'track1' || trackParam === '1' || trackParam.includes('foundation')) {
+          trackEl.value = 'Track A - Foundation';
+        }
+      }
+    } catch (e) {}
+
+    // Track Comparison Modal / Mobile Bottom Sheet
+    (function initTrackCompareModal() {
+      const triggerBtn = document.getElementById('webinarTrackCompareBtn');
+      const modal = document.getElementById('trackCompareModal');
+      const closeBtn = document.getElementById('trackCompareCloseBtn');
+      const trackSelect = document.getElementById('webinar_track');
+      const trackField = document.getElementById('field_webinar_track');
+
+      if (!triggerBtn || !modal) return;
+
+      const trackCards = modal.querySelectorAll('.track-modal-card[data-track-value]');
+      const undecidedBtn = modal.querySelector('.track-modal-undecided-btn[data-track-value]');
+
+      function syncSelectedState() {
+        const currentVal = trackSelect ? trackSelect.value : '';
+        trackCards.forEach(function (card) {
+          const val = card.getAttribute('data-track-value');
+          const isMatch = Boolean(currentVal && val === currentVal);
+          card.classList.toggle('is-selected', isMatch);
+          const labelEl = card.querySelector('.select-label');
+          if (labelEl) {
+            const letter = val.replace(/^Track\s+([A-D]).*$/i, '$1');
+            labelEl.textContent = isMatch ? 'Selected' : ('Select Track ' + letter);
+          }
+        });
+      }
+
+      let savedScrollY = 0;
+
+      function openModal() {
+        syncSelectedState();
+        savedScrollY = window.scrollY || window.pageYOffset || 0;
+        document.documentElement.classList.add('track-modal-open');
+        document.body.classList.add('track-modal-open');
+        document.body.style.position = 'fixed';
+        document.body.style.top = '-' + savedScrollY + 'px';
+        document.body.style.left = '0';
+        document.body.style.right = '0';
+        document.body.style.width = '100%';
+        modal.classList.add('is-open');
+        modal.setAttribute('aria-hidden', 'false');
+        if (closeBtn) closeBtn.focus({ preventScroll: true });
+      }
+
+      function closeModal() {
+        modal.classList.remove('is-open');
+        modal.setAttribute('aria-hidden', 'true');
+        document.documentElement.classList.remove('track-modal-open');
+        document.body.classList.remove('track-modal-open');
+        document.body.style.position = '';
+        document.body.style.top = '';
+        document.body.style.left = '';
+        document.body.style.right = '';
+        document.body.style.width = '';
+        window.scrollTo({ top: savedScrollY, behavior: 'instant' });
+        triggerBtn.focus({ preventScroll: true });
+      }
+
+      function chooseTrack(value) {
+        if (trackSelect) {
+          trackSelect.value = value;
+          trackSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        if (trackField) {
+          trackField.classList.remove('has-error');
+        }
+        closeModal();
+      }
+
+      triggerBtn.addEventListener('click', openModal);
+      if (closeBtn) closeBtn.addEventListener('click', closeModal);
+
+      modal.addEventListener('click', function (e) {
+        if (e.target === modal) closeModal();
+      });
+
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && modal.classList.contains('is-open')) {
+          closeModal();
+        }
+      });
+
+      trackCards.forEach(function (card) {
+        card.addEventListener('click', function () {
+          const val = card.getAttribute('data-track-value');
+          if (val) chooseTrack(val);
+        });
+      });
+
+      if (undecidedBtn) {
+        undecidedBtn.addEventListener('click', function () {
+          const val = undecidedBtn.getAttribute('data-track-value');
+          if (val) chooseTrack(val);
+        });
+      }
+    })();
+
     form.addEventListener('submit', async function (e) {
       e.preventDefault();
       clearFieldErrors();
@@ -259,6 +369,7 @@
       const citySelect = document.getElementById('webinar_city');
       const ageSelect = document.getElementById('webinar_age');
       const expSelect = document.getElementById('webinar_exp');
+      const trackSelect = document.getElementById('webinar_track');
 
       const name = nameInput ? nameInput.value.trim() : '';
       const dialCode = countryCodeInput ? countryCodeInput.value.trim() : '+234';
@@ -267,6 +378,7 @@
       const city = citySelect ? citySelect.value.trim() : '';
       const ageBracket = ageSelect ? ageSelect.value.trim() : '';
       const experienceLevel = expSelect ? expSelect.value.trim() : '';
+      const selectedTrack = trackSelect ? trackSelect.value.trim() : '';
 
       let hasError = false;
 
@@ -292,13 +404,13 @@
         hasError = true;
       }
 
-      if (!ageBracket) {
-        markFieldError('field_webinar_age', 'Please select your age bracket');
+      if (!experienceLevel) {
+        markFieldError('field_webinar_exp', 'Please select your experience level');
         hasError = true;
       }
 
-      if (!experienceLevel) {
-        markFieldError('field_webinar_exp', 'Please select your experience level');
+      if (!selectedTrack) {
+        markFieldError('field_webinar_track', 'Please select your preferred track');
         hasError = true;
       }
 
@@ -325,11 +437,11 @@
         whatsapp: formattedPhone,
         email: email,
         city: city,
-        ageBracket: ageBracket,
+        ageBracket: ageBracket || undefined,
         experienceLevel: experienceLevel,
-        track: 'Property Management Webinar',
-        sessionTime: 'Thursday 29th October 2026, 11:00 AM (Online)',
-        interest: 'Build a 6 Figure Income Career/Business in Property Management - Live Webinar',
+        track: selectedTrack,
+        sessionTime: 'Thursday 26th November 2026 at 5:00 PM (Online Webinar)',
+        interest: 'Webinar: Build a 6 Figure Income Career/Business in Tech-Driven Property Management/Brokerage.',
         sourceIdentifier: sourceIdentifier,
         abVariant: abVariant
       };
@@ -337,7 +449,7 @@
       // Button loading state
       if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="spinner"></span> <span>Securing Your Free Seat...</span>';
+        submitBtn.innerHTML = '<span class="spinner"></span> <span>Registering...</span>';
       }
 
       try {
@@ -355,7 +467,7 @@
         // Fire Pixel & Tracking events
         if (typeof window.fbq === 'function') {
           window.fbq('track', 'CompleteRegistration', {
-            content_name: 'Property Management Webinar Oct 29',
+            content_name: 'Property Management & Brokerage Webinar Nov 26',
             status: 'Confirmed'
           });
         }
@@ -366,25 +478,26 @@
           });
         }
 
-        // Smooth transition to Success State
-        const firstName = name.split(' ')[0] || 'Friend';
-        const successTitle = document.getElementById('successAttendeeName');
-        if (successTitle) {
-          successTitle.textContent = 'Seat Confirmed, ' + firstName + '! 🎉';
-        }
+        // Store attendee first name in sessionStorage for clean Thank You page greeting
+        try {
+          const firstName = name.trim().split(' ')[0] || '';
+          if (firstName) {
+            sessionStorage.setItem('upward_webinar_attendee', firstName);
+          }
+        } catch (e) {}
 
-        form.style.display = 'none';
-        if (formHeader) formHeader.style.display = 'none';
-        if (urgencyCard) urgencyCard.style.display = 'none';
-        if (successBox) successBox.classList.add('visible');
+        // Redirect directly to dedicated Thank You conversion page (clean URL)
+        const isAcademy = window.location.pathname.startsWith('/academy');
+        const thankYouUrl = isAcademy ? '/academy/webinar/thank-you' : '/webinar/thank-you';
+        window.location.href = thankYouUrl;
+        return;
 
         // Setup 1-Click Calendar Links
-        // Event Date: Thursday October 29, 2026 at 11:00 AM WAT (UTC+1) -> 10:00 AM UTC
-        const webinarStart = new Date(Date.UTC(2026, 9, 29, 10, 0, 0));
-        const webinarEnd = new Date(Date.UTC(2026, 9, 29, 11, 30, 0));
-        const eventTitle = 'Upward Academy: Property Management Career & Business Webinar';
-        const eventDetails = 'FREE Live Webinar: Build a 6 Figure Income Career/Business in Property Management.\n\nJoin link & access details will be sent via WhatsApp & Email before 11:00 AM WAT.';
-        const eventLocation = 'Online (Live Stream / Zoom)';
+        const webinarStart = new Date(Date.UTC(2026, 10, 26, 16, 0, 0));
+        const webinarEnd = new Date(Date.UTC(2026, 10, 26, 17, 30, 0));
+        const eventTitle = 'Upward Academy: Tech-Driven Property Management & Brokerage Webinar';
+        const eventDetails = 'Build a 6 Figure Income Career/Business in Tech-Driven Property Management/Brokerage.\n\nJoining details will be sent via WhatsApp & Email.';
+        const eventLocation = 'Online';
 
         const googleCalBtn = document.getElementById('btnGoogleCalendar');
         if (googleCalBtn) {
@@ -403,10 +516,9 @@
         // Setup WhatsApp Waitlist Community Link
         const whatsappCommunityBtn = document.getElementById('btnWebinarWhatsappCommunity');
         if (whatsappCommunityBtn) {
-          whatsappCommunityBtn.href = 'https://chat.whatsapp.com/LcFwiekT2UQLUSzrm2zGER?s=cl&p=a&mlu=4&ilr=4&iam=2';
+          whatsappCommunityBtn.href = 'https://chat.whatsapp.com/EVzHouLPtchBFxv2TOb3ra';
         }
 
-        // Scroll smoothly to success box
         successBox?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
       } catch (err) {
@@ -417,13 +529,12 @@
         }
         if (submitBtn) {
           submitBtn.disabled = false;
-          submitBtn.innerHTML = '<span>Reserve My Free Spot →</span>';
+          submitBtn.innerHTML = '<span>Reserve My Free Seat →</span>';
         }
       }
     });
   }
 
-  // Initialize all interactive modules on DOM Ready
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initAll);
   } else {

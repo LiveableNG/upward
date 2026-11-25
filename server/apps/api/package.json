@@ -52,6 +52,7 @@
     "@fastify/cookie": "^11.0.2",
     "@fastify/multipart": "^9.4.0",
     "@google-analytics/data": "^6.1.0",
+    "@nestjs/bullmq": "^11.0.5",
     "@nestjs/common": "^11.0.11",
     "@nestjs/config": "^4.0.3",
     "@nestjs/core": "^11.0.11",

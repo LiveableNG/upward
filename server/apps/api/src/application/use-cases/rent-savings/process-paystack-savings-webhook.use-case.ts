@@ -20,6 +20,8 @@ import {
 import { ARM_JOB_QUEUE, IArmJobQueue } from '../../../domains/rent-savings/arm-job.interface'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
+import { EVENT_BUS, EventBus } from '../../events/domain-event'
+import { RentVaultUpdatedEvent } from '../../events/definition/rent-vault-updated.event'
 
 export interface PaystackWebhookPayload {
   event: string
@@ -75,6 +77,9 @@ export class ProcessPaystackSavingsWebhookUseCase {
     @Optional()
     @Inject(ARM_JOB_QUEUE)
     private readonly armJobQueue?: IArmJobQueue,
+    @Optional()
+    @Inject(EVENT_BUS)
+    private readonly eventBus?: EventBus,
   ) {
     this.secretKey = (this.configService.get<string>('PAYSTACK_SECRET_KEY') || '').trim()
   }
@@ -207,6 +212,16 @@ export class ProcessPaystackSavingsWebhookUseCase {
       }
     }
 
+    let parsedPayloadMeta: Record<string, unknown> | undefined =
+      typeof data?.metadata === 'object' && data.metadata !== null ? data.metadata : undefined
+    if (typeof data?.metadata === 'string') {
+      try {
+        parsedPayloadMeta = JSON.parse(data.metadata)
+      } catch {
+        parsedPayloadMeta = undefined
+      }
+    }
+
     // Resolve target vault strictly using Paystack-verified correlation data first
     const verifiedReceiverAccount = verification.receiverAccountNumber?.trim()
     const verifiedMetaVaultId =
@@ -214,9 +229,13 @@ export class ProcessPaystackSavingsWebhookUseCase {
         ? verification.metadata.vault_id.trim()
         : undefined
     const payloadDvaAccount =
-      data?.dedicated_account?.account_number ||
+      (typeof data?.dedicated_account === 'string'
+        ? data.dedicated_account
+        : data?.dedicated_account?.account_number) ||
       data?.authorization?.receiver_bank_account_number ||
-      data?.metadata?.receiver_account_number
+      (typeof parsedPayloadMeta?.receiver_account_number === 'string'
+        ? parsedPayloadMeta.receiver_account_number
+        : undefined)
 
     let vault = null
 
@@ -288,13 +307,17 @@ export class ProcessPaystackSavingsWebhookUseCase {
     }
 
     const effectiveChannel = verification.channel || data?.channel || 'DVA_NIP'
+    const customNarration =
+      (typeof verification.metadata?.narration === 'string' && verification.metadata.narration.trim()) ||
+      (typeof parsedPayloadMeta?.narration === 'string' && parsedPayloadMeta.narration.trim()) ||
+      null
 
     return this.creditVaultAndEnqueueArm({
       vaultId: vault.id,
       reference,
       amountKobo: verifiedAmountKobo,
       channel: effectiveChannel,
-      narration: `Rent savings deposit via ${effectiveChannel}`,
+      narration: customNarration || `Rent savings deposit via ${effectiveChannel}`,
       source: 'PAYSTACK_WEBHOOK',
       metadata: {
         paystackVerified: true,
@@ -488,7 +511,42 @@ export class ProcessPaystackSavingsWebhookUseCase {
       queuedInRedis = await this.armJobQueue.enqueueJob(commitResult.armJob)
     }
 
-    // 8. Update savings score asynchronously (non-blocking for ledger consistency)
+    // 8. Emit real-time domain event so SSE clients (e.g. FundVaultModal) reflect balance immediately
+    if (this.eventBus) {
+      try {
+        this.eventBus.publish(
+          new RentVaultUpdatedEvent(
+            commitResult.userId,
+            commitResult.vaultUuid,
+            Number(amountKobo),
+            reference,
+          ),
+        )
+      } catch (err: any) {
+        this.logger.warn(`Failed to publish RentVaultUpdatedEvent: ${err?.message}`)
+      }
+    }
+
+    // 9. For non-ARM vaults only, create immediate in-app notification (ARM vaults notify via ArmNotificationProcessorService after ARM confirms)
+    if (!commitResult.armJob && this.prisma?.upward_notification) {
+      const amountNaira = Number(amountKobo) / 100
+      const balanceNaira = Number(commitResult.newBalanceKobo) / 100
+      await this.prisma.upward_notification
+        .create({
+          data: {
+            userId: commitResult.userId,
+            title: 'Rent Savings Credited',
+            message: `NGN ${amountNaira.toLocaleString()} has been added to your Rent Savings wallet. New balance: NGN ${balanceNaira.toLocaleString()}.`,
+            type: 'PAYMENT',
+            url: '/dashboard/savings',
+          },
+        })
+        .catch((err: any) => {
+          this.logger.warn(`Failed to create rent savings deposit notification: ${err?.message}`)
+        })
+    }
+
+    // 10. Update savings score asynchronously (non-blocking for ledger consistency)
     await this.updateSavingsScoreOnDeposit(
       commitResult.vaultId,
       commitResult.userId,

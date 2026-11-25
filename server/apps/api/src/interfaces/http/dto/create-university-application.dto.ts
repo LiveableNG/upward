@@ -1,4 +1,4 @@
-import { IsBoolean, IsEmail, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator'
+import { IsBoolean, IsEmail, IsNotEmpty, IsNumber, IsOptional, IsString, MinLength } from 'class-validator'
 
 export class CreateUniversityApplicationDto {
   @IsNotEmpty({ message: 'Full name is required' })
@@ -19,9 +19,9 @@ export class CreateUniversityApplicationDto {
   @IsString()
   city!: string
 
-  @IsNotEmpty({ message: 'Age bracket is required' })
+  @IsOptional()
   @IsString()
-  ageBracket!: string
+  ageBracket?: string
 
   @IsOptional()
   @IsString()
@@ -82,6 +82,14 @@ export class CreateUniversityApplicationDto {
   @IsOptional()
   @IsString()
   paymentRef?: string
+
+  @IsOptional()
+  @IsString()
+  paymentPlan?: string
+
+  @IsOptional()
+  @IsNumber()
+  amountPaid?: number
 
   @IsOptional()
   sendEmail?: boolean

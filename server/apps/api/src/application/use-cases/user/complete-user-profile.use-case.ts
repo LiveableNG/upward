@@ -1,6 +1,6 @@
-import { Injectable, Logger, Inject } from '@nestjs/common'
+import { Injectable, Logger, Inject, Optional } from '@nestjs/common'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
-import { UserRepository, USER_REPOSITORY, User } from '../../../domains/users/user.repository'
+import { UserRepository, USER_REPOSITORY, User, PASS_PLACEHOLDERS } from '../../../domains/users/user.repository'
 import { WAITLIST_REPOSITORY, WaitlistRepository } from '../../../domains/waitlist/waitlist.repository'
 import * as bcrypt from 'bcrypt'
 import { UserAuthService } from '../../../application/auth/user-auth.service'
@@ -9,6 +9,7 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
 import { EmailService } from '../../../shared/infrastructure/email/email.service'
 import { RentalPeriodService } from '../../services/rental-period.service'
 import { SyncUserSequenceChannelUseCase } from '../sequence/sync-user-sequence-channel.use-case'
+import { CreditSignupVoucherUseCase } from '../../vouchers/use-cases/credit-signup-voucher.use-case'
 
 @Injectable()
 export class CompleteUserProfileUseCase {
@@ -24,6 +25,8 @@ export class CompleteUserProfileUseCase {
     private readonly emailService: EmailService,
     private readonly rentalPeriodService: RentalPeriodService,
     private readonly syncUserSequenceChannelUseCase: SyncUserSequenceChannelUseCase,
+    @Optional()
+    private readonly creditSignupVoucherUseCase?: CreditSignupVoucherUseCase,
   ) {}
 
   async execute(dto: {
@@ -38,6 +41,7 @@ export class CompleteUserProfileUseCase {
     rentAmount?: number
     address?: string
     rentType?: string
+    voucherCode?: string
     properties?: Array<{
       uuid?: string;
       address: string;
@@ -71,6 +75,18 @@ export class CompleteUserProfileUseCase {
     }
 
     let user = await this.userRepository.findByEmail(dto.email)
+    // Match the authoritative Admin Dashboard signed-up check:
+    // Eligible ONLY if brand new (!user) or still a shadow/unaccepted-invite account
+    const isConvertingOrNewSignup =
+      !user ||
+      !user.passwordHash ||
+      user.passwordHash === PASS_PLACEHOLDERS.INVITED ||
+      user.passwordHash === PASS_PLACEHOLDERS.SHADOW ||
+      user.passwordHash === 'INVITED_NO_PASSWORD' ||
+      user.passwordHash === 'SHADOW_GUEST' ||
+      (!user.passwordHash.startsWith('$2') &&
+        user.passwordHash !== PASS_PLACEHOLDERS.SOCIAL &&
+        user.passwordHash !== 'SOCIAL_AUTH')
 
     const nameParts = dto.fullName.split(' ')
     const firstName = nameParts[0] || ''
@@ -191,6 +207,20 @@ export class CompleteUserProfileUseCase {
           pmName,
         })
         .catch(e => this.logger.error('Failed to sync sequence channel on complete profile', e));
+    }
+
+    // Credit signup link voucher if net-new signup or converting an unaccepted invite/waitlist account
+    if (isConvertingOrNewSignup && dto.voucherCode && this.creditSignupVoucherUseCase && user?.id) {
+      await this.creditSignupVoucherUseCase
+        .execute({
+          userId: user.id,
+          userUuid: user.uuid,
+          email: user.email,
+          firstName: user.firstName || firstName || 'there',
+          voucherCode: dto.voucherCode,
+          source: 'COMPLETE_PROFILE',
+        })
+        .catch((e) => this.logger.error('Failed to credit signup voucher on complete profile', e))
     }
 
     // Reuse UserAuthService login logic to create session and tokens

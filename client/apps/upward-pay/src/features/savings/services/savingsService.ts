@@ -506,6 +506,20 @@ export async function getSavingsOnboardingPrefill(): Promise<SavingsOnboardingPr
   return res.data
 }
 
+export async function verifyRentVaultFunding(): Promise<{
+  detected: boolean
+  newly_reconciled: number
+  current_balance_kobo: number
+}> {
+  const res = await request<{
+    status: string
+    data: { detected: boolean; newly_reconciled: number; current_balance_kobo: number }
+  }>('/rent-vaults/me/verify-funding', {
+    method: 'POST',
+  })
+  return res.data
+}
+
 export async function onboardSavingsInvestor(
   payload: OnboardInvestorPayload,
 ): Promise<OnboardInvestorData> {

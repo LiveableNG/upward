@@ -3,7 +3,6 @@ import {
   Users,
   Share2,
   Gift,
-  Briefcase,
 } from 'lucide-react'
 import type { UniversityTab } from '../types'
 
@@ -14,7 +13,7 @@ interface UniversityTabNavProps {
   totalEarlyAccess: number
   totalTrafficSources: number
   totalReferrals: number
-  totalHireRequests: number
+  totalHireRequests?: number
 }
 
 export const UniversityTabNav: React.FC<UniversityTabNavProps> = ({
@@ -24,7 +23,6 @@ export const UniversityTabNav: React.FC<UniversityTabNavProps> = ({
   totalEarlyAccess,
   totalTrafficSources,
   totalReferrals,
-  totalHireRequests,
 }) => {
   const tabs = [
     {
@@ -36,11 +34,6 @@ export const UniversityTabNav: React.FC<UniversityTabNavProps> = ({
       id: 'EARLY_ACCESS' as UniversityTab,
       label: `Early Access & Info Leads (${totalEarlyAccess})`,
       icon: Users,
-    },
-    {
-      id: 'HIRE_REQUESTS' as UniversityTab,
-      label: `Company Hiring Inquiries (${totalHireRequests})`,
-      icon: Briefcase,
     },
     {
       id: 'TRAFFIC' as UniversityTab,

@@ -12,6 +12,8 @@ import WaitlistClient from '@/app/waitlist/[uuid]/WaitlistClient'
 import InviteClient from '@/app/invite/[uuid]/InviteClient'
 import WelcomeClient from '@/app/welcome/[uuid]/WelcomeClient'
 import { GoogleAuthProvider } from '@/features/auth/components/GoogleAuthProvider'
+import { persistSignupVoucherCode, getSignupVoucherCode } from '@/lib/voucher-code'
+import { Gift } from 'lucide-react'
 
 type Mode = 'welcome' | 'signup' | 'login' | 'waitlist' | 'invite' | 'priority'
 
@@ -27,6 +29,18 @@ function SignupPageContent() {
     (searchParams.get('mode') as Mode) || (initialEmail ? 'signup' : 'welcome')
   )
   const [credentials, setCredentials] = useState<{ email: string; password: string } | null>(null)
+  const [activeVoucherCode, setActiveVoucherCode] = useState<string | null>(null)
+
+  useEffect(() => {
+    const paramCode = searchParams.get('voucher') || searchParams.get('v')
+    if (paramCode) {
+      const saved = persistSignupVoucherCode(paramCode)
+      if (saved) setActiveVoucherCode(saved)
+    } else {
+      const existing = getSignupVoucherCode()
+      if (existing) setActiveVoucherCode(existing)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     if (!loading && !authInitialized) {
@@ -63,12 +77,52 @@ function SignupPageContent() {
 
   if (loading) return <FallbackSuspense message="Getting ready…" />
 
+  const voucherBanner = activeVoucherCode ? (
+    <div
+      role="status"
+      aria-live="polite"
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 50,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '6px',
+        padding: '8px 10px',
+        paddingTop: 'max(8px, env(safe-area-inset-top))',
+        background: 'rgba(253, 246, 242, 0.92)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        borderBottom: '1px solid rgba(194, 80, 31, 0.18)',
+        color: 'var(--clay, #C2501F)',
+        fontSize: 'clamp(10.5px, 2.9vw, 12.5px)',
+        fontWeight: 600,
+        lineHeight: 1.2,
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        pointerEvents: 'none',
+      }}
+    >
+      <Gift size={14} style={{ flexShrink: 0 }} />
+      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        ₦1,000 Home Refresh voucher unlocked • Sign up to claim
+      </span>
+    </div>
+  ) : null
+
   if (mode === 'welcome') {
     return (
-      <BenefitsStep 
-        onSignup={() => setMode('signup')} 
-        onLogin={() => setMode('login')} 
-      />
+      <>
+        {voucherBanner}
+        <BenefitsStep 
+          onSignup={() => setMode('signup')} 
+          onLogin={() => setMode('login')} 
+        />
+      </>
     )
   }
 
@@ -95,13 +149,16 @@ function SignupPageContent() {
   }
 
   return (
-    <SignupFormFlow 
-      initialEmail={initialEmail}
-      onBackToWelcome={() => setMode('welcome')} 
-      onSignupSuccess={() => {
-        router.replace('/dashboard')
-      }}
-    />
+    <>
+      {voucherBanner}
+      <SignupFormFlow 
+        initialEmail={initialEmail}
+        onBackToWelcome={() => setMode('welcome')} 
+        onSignupSuccess={() => {
+          router.replace('/dashboard')
+        }}
+      />
+    </>
   )
 }
 

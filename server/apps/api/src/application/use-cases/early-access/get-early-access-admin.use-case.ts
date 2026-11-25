@@ -8,6 +8,8 @@ import {
 export interface GetEarlyAccessEntriesQuery {
   type?: string
   search?: string
+  sourceIdentifier?: string
+  sessionDate?: string
   page?: number
   limit?: number
 }
@@ -39,6 +41,8 @@ export class GetEarlyAccessEntriesUseCase {
     const { entries, total } = await this.earlyAccessRepo.findAll({
       type: query.type,
       search: query.search,
+      sourceIdentifier: query.sourceIdentifier,
+      sessionDate: query.sessionDate,
       limit,
       offset,
     })

@@ -78,6 +78,8 @@ model upward_user {
   kycVerifications      upward_kyc_verification[]
   userGoals             upward_user_goal[]
   commerceOrders        upward_commerce_order[]
+  voucherWallet         upward_voucher_wallet?
+  voucherLedgerEntries  upward_voucher_ledger_entry[]
 
   @@index([email])
   @@index([createdAt])
@@ -147,6 +149,7 @@ model upward_admin {
   subscriptionLogs               upward_subscription_log[]
   assignedAllianceQualifications upward_alliance_pm_qualification[]
   tenantNotes                    upward_admin_tenant_note[]
+  grantedVoucherEntries          upward_voucher_ledger_entry[]
 
   @@index([email])
 }

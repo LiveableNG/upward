@@ -21,7 +21,7 @@ import '@/styles/savings-v1.css'
 
 export function RentSavingsMainView() {
   const router = useRouter()
-  const { user, refreshUser } = useAuth()
+  const { user, loading: authLoading, refreshUser } = useAuth()
   const { data: vault, isLoading, error, refetch } = useRentVault()
   const { rates: platformRates, isLoading: ratesLoading } = usePlatformRates()
 
@@ -33,7 +33,7 @@ export function RentSavingsMainView() {
       !p.isPastTenancy && p.rentAmount,
   )
 
-  if (isLoading || ratesLoading) {
+  if (isLoading || ratesLoading || (authLoading && !user)) {
     return (
       <PayPageShell
         title="Rent Savings"

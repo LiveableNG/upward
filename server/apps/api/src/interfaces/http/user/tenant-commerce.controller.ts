@@ -113,8 +113,9 @@ export class TenantCommerceController {
 
   @Post('preview')
   @HttpCode(HttpStatus.OK)
-  async previewOrder(@Body() dto: PreviewCommerceOrderDto) {
-    const data = await this.previewCommerceOrderUseCase.execute(dto)
+  async previewOrder(@Req() req: any, @Body() dto: PreviewCommerceOrderDto) {
+    const userUuid = req.user?.id || req.user?.sub
+    const data = await this.previewCommerceOrderUseCase.execute(dto, userUuid)
     return { data }
   }
 

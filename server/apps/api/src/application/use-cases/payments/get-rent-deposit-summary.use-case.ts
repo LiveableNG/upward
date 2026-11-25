@@ -145,7 +145,7 @@ export class GetRentDepositSummaryUseCase {
             : 'Deposit Credit',
         reference: tx.reference,
         narration: tx.narration,
-        receiptUrl: tx.receiptUrl || `/api/v1/payments/rent-deposit/receipt/${tx.uuid}`,
+        receiptUrl: tx.receiptUrl || `/api/v1/payments/rent-deposit/receipt/${tx.uuid}?format=pdf`,
         createdAt: tx.createdAt,
         paymentRequestId: tx.paymentRequestId,
         paymentRequestUuid: tx.paymentRequest?.uuid || null,

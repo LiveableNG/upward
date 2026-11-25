@@ -58,30 +58,83 @@ model upward_attendance {
   @@unique([sessionId, userId])
 }
 
-model upward_communication_log {
+model upward_bulk_email_campaign {
+  id              String                         @id @default(uuid())
+  subject         String
+  htmlTemplate    String
+  targetGroup     String                         @default("RAW")
+  status          String                         @default("QUEUED")
+  idempotencyKey  String?                        @unique
+  totalRecipients Int                            @default(0)
+  sentCount       Int                            @default(0)
+  failedCount     Int                            @default(0)
+  skippedCount    Int                            @default(0)
+  createdById     String?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  lastError       String?
+  createdAt       DateTime                       @default(now())
+  updatedAt       DateTime                       @updatedAt
+  recipients      upward_bulk_email_recipient[]
+  logs            upward_communication_log[]
+
+  @@index([status, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+  @@map("upward_bulk_email_campaign")
+}
+
+model upward_bulk_email_recipient {
   id                 String                     @id @default(uuid())
+  campaignId         String
+  email              String
+  firstName          String?
+  lastName           String?
+  recipientUserId    String?
+  status             String                     @default("PENDING")
+  attempts           Int                        @default(0)
+  maxAttempts        Int                        @default(3)
+  nextRetryAt        DateTime?
+  lastError          String?
+  mailgunId          String?
+  communicationLogId String?
+  sentAt             DateTime?
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+  campaign           upward_bulk_email_campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, email])
+  @@index([status, nextRetryAt])
+  @@index([campaignId, status])
+  @@map("upward_bulk_email_recipient")
+}
+
+model upward_communication_log {
+  id                 String                      @id @default(uuid())
   userId             String?
   sessionId          String?
+  campaignId         String?
+  retriedFromLogId   String?
   subject            String
   sentAt             DateTime?
   status             String
-  createdAt          DateTime                   @default(now())
+  createdAt          DateTime                    @default(now())
   email              String?
   lastError          String?
   mailgunId          String?
-  type               String                     @default("GENERIC")
-  updatedAt          DateTime                   @updatedAt
-  retries            Int                        @default(0)
+  type               String                      @default("GENERIC")
+  updatedAt          DateTime                    @updatedAt
+  retries            Int                         @default(0)
   body               String?
   registeredUserId   Int?
-  channel            String                     @default("EMAIL")
+  channel            String                      @default("EMAIL")
   recipient          String?
   emailSequenceLogId Int?
-  emailTrackingToken String?                    @unique
-  isOpened           Boolean                    @default(false)
-  openCount          Int                        @default(0)
+  emailTrackingToken String?                     @unique
+  isOpened           Boolean                     @default(false)
+  openCount          Int                         @default(0)
   openedAt           DateTime?
   userAgent          String?
+  campaign           upward_bulk_email_campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
   emailSequenceLog   upward_email_sequence_log? @relation(fields: [emailSequenceLogId], references: [id])
   registeredUser     upward_user?               @relation(fields: [registeredUserId], references: [id], onDelete: Cascade)
   session            upward_session?            @relation(fields: [sessionId], references: [id])
@@ -91,10 +144,14 @@ model upward_communication_log {
   @@index([userId])
   @@index([registeredUserId])
   @@index([sessionId])
+  @@index([campaignId, status])
   @@index([status])
+  @@index([status, createdAt(sort: Desc)])
   @@index([type])
   @@index([channel])
   @@index([emailSequenceLogId])
+  @@index([createdAt(sort: Desc)])
+  @@index([email])
   @@map("upward_communication_log")
 }
 

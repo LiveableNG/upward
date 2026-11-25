@@ -27,6 +27,7 @@ export class PrismaEarlyAccessRepository implements IEarlyAccessRepository {
         propertyCount: rawData.propertyCount ?? null,
         landlordStatus: rawData.landlordStatus ?? null,
         managementStyle: rawData.managementStyle ?? null,
+        sourceIdentifier: rawData.sourceIdentifier ?? null,
         abVariant: rawData.abVariant ? rawData.abVariant.toUpperCase() : 'A',
       },
     })
@@ -44,6 +45,7 @@ export class PrismaEarlyAccessRepository implements IEarlyAccessRepository {
       propertyCount: created.propertyCount,
       landlordStatus: created.landlordStatus,
       managementStyle: created.managementStyle,
+      sourceIdentifier: created.sourceIdentifier,
       abVariant: created.abVariant || 'A',
       createdAt: created.createdAt,
       updatedAt: created.updatedAt,
@@ -61,24 +63,185 @@ export class PrismaEarlyAccessRepository implements IEarlyAccessRepository {
     return EarlyAccessEntry.restore(record as EarlyAccessProps)
   }
 
-  async findAll(params?: { type?: string; search?: string; limit?: number; offset?: number }): Promise<{ entries: EarlyAccessEntry[]; total: number }> {
+  async findByEmail(email: string): Promise<EarlyAccessEntry | null> {
+    const normalized = email.trim().toLowerCase()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: any = {}
+    const record = await (this.prisma as any).upward_early_access.findFirst({
+      where: {
+        email: {
+          equals: normalized,
+          mode: 'insensitive',
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    if (!record) return null
+
+    return EarlyAccessEntry.restore(record as EarlyAccessProps)
+  }
+
+  async findByEmailOrPhone(email?: string, phone?: string): Promise<EarlyAccessEntry | null> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const conditions: any[] = []
+    if (email && email.trim().length > 0) {
+      conditions.push({ email: email.trim().toLowerCase() })
+    }
+    if (phone && phone.trim().length > 0) {
+      conditions.push({ whatsapp: phone.trim() })
+    }
+    if (conditions.length === 0) return null
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const record = await (this.prisma as any).upward_early_access.findFirst({
+      where: { OR: conditions },
+      orderBy: { createdAt: 'desc' },
+    })
+
+    if (!record) return null
+
+    return EarlyAccessEntry.restore(record as EarlyAccessProps)
+  }
+
+  async update(entry: EarlyAccessEntry): Promise<EarlyAccessEntry> {
+    const rawData = entry.toObject()
+    if (!rawData.id) throw new Error('Cannot update entry without ID')
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updated = await (this.prisma as any).upward_early_access.update({
+      where: { id: rawData.id },
+      data: {
+        interest: rawData.interest ?? null,
+        sourceIdentifier: rawData.sourceIdentifier ?? null,
+      },
+    })
+
+    return EarlyAccessEntry.restore({
+      id: updated.id,
+      type: updated.type,
+      name: updated.name,
+      whatsapp: updated.whatsapp,
+      email: updated.email,
+      city: updated.city,
+      ageBracket: updated.ageBracket,
+      experienceLevel: updated.experienceLevel,
+      interest: updated.interest,
+      propertyCount: updated.propertyCount,
+      landlordStatus: updated.landlordStatus,
+      managementStyle: updated.managementStyle,
+      sourceIdentifier: updated.sourceIdentifier,
+      abVariant: updated.abVariant || 'A',
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt,
+    })
+  }
+  async findAll(params?: {
+    type?: string
+    search?: string
+    sourceIdentifier?: string
+    sessionDate?: string
+    limit?: number
+    offset?: number
+  }): Promise<{ entries: EarlyAccessEntry[]; total: number }> {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const conditions: any[] = []
 
     if (params?.type && params.type !== 'ALL') {
-      where.type = params.type.toUpperCase()
+      conditions.push({ type: params.type.toUpperCase() })
+    }
+
+    if (params?.sourceIdentifier && params.sourceIdentifier !== 'ALL') {
+      conditions.push({ sourceIdentifier: params.sourceIdentifier })
+    }
+
+    if (params?.sessionDate && params.sessionDate !== 'ALL') {
+      const s = params.sessionDate.trim()
+      if (s === 'WEBINAR_ATTENDED') {
+        conditions.push({ interest: { contains: '[Attended:', mode: 'insensitive' } })
+      } else if (s === 'WEBINAR_ATTENDED_MEET') {
+        conditions.push({ interest: { contains: '[Attended: Google Meet', mode: 'insensitive' } })
+      } else if (s === 'WEBINAR_ATTENDED_YOUTUBE') {
+        conditions.push({ interest: { contains: '[Attended: YouTube', mode: 'insensitive' } })
+      } else if (s === 'WEBINAR_REGISTERED_ONLY') {
+        conditions.push({
+          AND: [
+            {
+              OR: [
+                { interest: { contains: '26th November', mode: 'insensitive' } },
+                { interest: { contains: '21st November', mode: 'insensitive' } },
+                { interest: { contains: 'Webinar', mode: 'insensitive' } },
+              ],
+            },
+            { NOT: { interest: { contains: '[Attended:', mode: 'insensitive' } } },
+          ],
+        })
+      } else if (s === 'WEBINAR_NOV_26' || /26th\s*nov/i.test(s)) {
+        conditions.push({
+          OR: [
+            { interest: { contains: '26th November', mode: 'insensitive' } },
+            { interest: { contains: 'Nov 26', mode: 'insensitive' } },
+            { interest: { contains: '26 Nov', mode: 'insensitive' } },
+          ],
+        })
+      } else if (s === 'WEBINAR_NOV_21' || /21st\s*nov/i.test(s)) {
+        conditions.push({
+          OR: [
+            { interest: { contains: '21st November', mode: 'insensitive' } },
+            { interest: { contains: 'Nov 21', mode: 'insensitive' } },
+            { interest: { contains: '21 Nov', mode: 'insensitive' } },
+          ],
+        })
+      } else if (s === 'WEBINAR_ALL') {
+        conditions.push({
+          OR: [
+            { interest: { contains: 'Webinar', mode: 'insensitive' } },
+            { interest: { contains: '26th November', mode: 'insensitive' } },
+            { interest: { contains: '21st November', mode: 'insensitive' } },
+          ],
+        })
+      } else if (s === 'ONLINE_TUE') {
+        conditions.push({ interest: { contains: 'Tuesday', mode: 'insensitive' } })
+      } else if (s === 'ONLINE_SAT') {
+        conditions.push({ interest: { contains: 'Saturday', mode: 'insensitive' } })
+      } else if (s === 'PHYSICAL_ABUJA') {
+        conditions.push({ interest: { contains: 'Abuja', mode: 'insensitive' } })
+      } else if (s === 'PHYSICAL_PH') {
+        conditions.push({
+          OR: [
+            { interest: { contains: 'Port Harcourt', mode: 'insensitive' } },
+            { interest: { contains: 'PH', mode: 'insensitive' } },
+          ],
+        })
+      } else if (s === 'PHYSICAL_LAGOS') {
+        conditions.push({ interest: { contains: 'Lagos', mode: 'insensitive' } })
+      } else if (s === 'PHYSICAL_IBADAN') {
+        conditions.push({
+          OR: [
+            { interest: { contains: 'Ibadan', mode: 'insensitive' } },
+            { interest: { contains: 'Bodija', mode: 'insensitive' } },
+          ],
+        })
+      } else {
+        const cleanDate = s.startsWith('DATE:') ? s.replace('DATE:', '') : s
+        conditions.push({ interest: { contains: cleanDate, mode: 'insensitive' } })
+      }
     }
 
     if (params?.search && params.search.trim().length > 0) {
       const query = params.search.trim()
-      where.OR = [
-        { name: { contains: query, mode: 'insensitive' } },
-        { email: { contains: query, mode: 'insensitive' } },
-        { whatsapp: { contains: query, mode: 'insensitive' } },
-        { city: { contains: query, mode: 'insensitive' } },
-        { interest: { contains: query, mode: 'insensitive' } },
-      ]
+      conditions.push({
+        OR: [
+          { name: { contains: query, mode: 'insensitive' } },
+          { email: { contains: query, mode: 'insensitive' } },
+          { whatsapp: { contains: query, mode: 'insensitive' } },
+          { city: { contains: query, mode: 'insensitive' } },
+          { interest: { contains: query, mode: 'insensitive' } },
+          { sourceIdentifier: { contains: query, mode: 'insensitive' } },
+        ],
+      })
     }
+
+    const where = conditions.length > 0 ? { AND: conditions } : {}
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const [records, total] = await Promise.all([
