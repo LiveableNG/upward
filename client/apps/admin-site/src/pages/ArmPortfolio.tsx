@@ -20,12 +20,25 @@ interface ArmPortfolioProps {
   adminRole?: string
 }
 
+interface ArmVirtualAccount {
+  accountNumber: string
+  bankName: string
+  bankCode?: string
+  customerName: string
+  currency: string
+  active: boolean
+}
+
 interface PortfolioStats {
   partnerName: string
   partnerShortName: string
   productCode: string
+  productName?: string
   annualYieldRatePct: number
+  liveFundYieldRatePct?: number
   dailyRate: number
+  netAssetValue?: string | null
+  valuationDate?: string | null
   totalPooledPrincipalNaira: number
   totalAccruedYieldNaira: number
   totalRedeemedNaira: number
@@ -35,17 +48,32 @@ interface PortfolioStats {
   activeVaultsCount: number
   settledVaultsCount: number
   lastReconciledAt: string
+  armSandbox?: {
+    connected: boolean
+    baseUrl: string
+    merchantId: string | null
+    businessName: string | null
+    merchantMembershipId: string | null
+    merchantType: string | null
+    cashWalletBalanceNaira: number
+    virtualAccounts: ArmVirtualAccount[]
+    onboardedCustomersCount: number
+    masterPortfolioUnits: number
+    masterPortfolioMarketValueNaira: number
+  }
 }
 
 interface ArmCustomer {
   customerId: number
   userUuid: string
+  source?: 'UPWARD_VAULT' | 'ARM_SANDBOX'
   fullName: string
   email: string
   phone: string | null
   gender: string
   isIdentityVerified: boolean
   savingsWalletEnabled: boolean
+  armTrackingId?: string | null
   armCustomerMembershipId: string | null
   armCrmAccountNumber: string | null
   armSyncStatus: string
@@ -90,6 +118,11 @@ interface ArmTransaction {
   customerName: string
   customerEmail: string
   armMembershipId: string
+  armPurchaseId?: string | null
+  armWithdrawalId?: string | null
+  armTransactionId?: string | null
+  armInstructionId?: string | null
+  armLiveStatus?: string | null
   vaultUuid?: string
   dvaAccountNumber?: string | null
   createdAt: string
@@ -113,13 +146,14 @@ export default function ArmPortfolio({ token }: ArmPortfolioProps) {
   const formatNaira = (val: number) =>
     `₦${Number(val || 0).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
-  const fetchData = async () => {
+  const fetchData = async (forceRefresh = false) => {
     setLoading(true)
     setError(null)
     try {
+      const qs = forceRefresh ? '?refresh=true' : ''
       const [statsRes, customersRes, txsRes] = await Promise.all([
-        apiService.get('/admin/arm/stats', token),
-        apiService.get('/admin/arm/customers', token),
+        apiService.get(`/admin/arm/stats${qs}`, token),
+        apiService.get(`/admin/arm/customers${qs}`, token),
         apiService.get('/admin/arm/transactions?limit=100', token),
       ])
 
@@ -195,6 +229,7 @@ export default function ArmPortfolio({ token }: ArmPortfolioProps) {
   const exportInflowStatementCsv = () => {
     const headers = [
       'Transaction Reference',
+      'ARM Instruction ID',
       'Sender Name',
       'Sender Email',
       'ARM Membership ID',
@@ -208,6 +243,7 @@ export default function ArmPortfolio({ token }: ArmPortfolioProps) {
 
     const rows = filteredTransactions.map((tx) => [
       `"${tx.reference}"`,
+      `"${tx.armInstructionId || ''}"`,
       `"${tx.customerName}"`,
       `"${tx.customerEmail}"`,
       `"${tx.armMembershipId}"`,
@@ -360,7 +396,14 @@ export default function ArmPortfolio({ token }: ArmPortfolioProps) {
           </div>
           <p style={{ margin: 0, fontSize: '13.5px', color: 'var(--text-muted)' }}>
             Asset & Resource Management Holding Company (ARM) • Product:{' '}
-            <strong>ARMMMF (16.0% p.a. Daily Compounding)</strong> • Inflow access statement
+            <strong>
+              {stats?.productCode || 'ARMMMF'} (
+              {stats?.liveFundYieldRatePct
+                ? `${stats.liveFundYieldRatePct.toFixed(2)}% Live NAV / `
+                : ''}
+              16.0% p.a. Daily Compounding)
+            </strong>{' '}
+            • Inflow access statement
           </p>
         </div>
 
@@ -384,7 +427,7 @@ export default function ArmPortfolio({ token }: ArmPortfolioProps) {
           <button
             type="button"
             className="btn btn-secondary"
-            onClick={fetchData}
+            onClick={() => fetchData(true)}
             disabled={loading}
             style={{
               height: '38px',
@@ -395,10 +438,61 @@ export default function ArmPortfolio({ token }: ArmPortfolioProps) {
             }}
           >
             <RefreshCw size={14} className={loading ? 'loader' : ''} />
-            <span>Refresh</span>
+            <span>Sync Live ARM</span>
           </button>
         </div>
       </div>
+
+      {stats?.armSandbox && (
+        <div
+          className="card"
+          style={{
+            padding: '14px 18px',
+            marginBottom: '20px',
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '12px',
+            background: stats.armSandbox.connected ? '#f0fdf4' : 'var(--surface)',
+            borderColor: stats.armSandbox.connected ? '#bbf7d0' : 'var(--border)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <span
+              style={{
+                padding: '3px 9px',
+                borderRadius: '12px',
+                fontSize: '11.5px',
+                fontWeight: 700,
+                background: stats.armSandbox.connected ? '#059669' : '#64748b',
+                color: '#ffffff',
+              }}
+            >
+              {stats.armSandbox.connected ? 'ARM API LIVE' : 'LOCAL LEDGER'}
+            </span>
+            <span style={{ fontSize: '13px', color: 'var(--text)' }}>
+              Merchant: <strong>{stats.armSandbox.businessName || 'GoodTenant'}</strong> (
+              <code>{stats.armSandbox.merchantId || 'ESTHER'}</code> • Membership{' '}
+              <code>{stats.armSandbox.merchantMembershipId || '3005679'}</code> •{' '}
+              {stats.armSandbox.merchantType || 'B2B2C'})
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', fontSize: '12.5px' }}>
+            {stats.armSandbox.virtualAccounts.map((va) => (
+              <span key={va.accountNumber} style={{ color: 'var(--text-muted)' }}>
+                {va.bankName}: <strong style={{ color: 'var(--text)' }}>{va.accountNumber}</strong>
+              </span>
+            ))}
+            {stats.netAssetValue && (
+              <span style={{ color: 'var(--text-muted)' }}>
+                Fund NAV: <strong style={{ color: '#059669' }}>₦{stats.netAssetValue}</strong>
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       {error && (
         <div
@@ -729,11 +823,19 @@ export default function ArmPortfolio({ token }: ArmPortfolioProps) {
                       </td>
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ fontWeight: 600, color: 'var(--primary, #c2501f)' }}>
-                          {c.armCustomerMembershipId || 'ARM-GT-PENDING'}
+                          {c.armCustomerMembershipId || 'ARM-PENDING'}
                         </div>
                         <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                          {c.armCrmAccountNumber || 'CRM-PENDING'} • Sec: {c.armCompletedSections}/63
+                          {c.armCrmAccountNumber || 'CRM-PENDING'} • {c.armSyncStatus} • Sec:{' '}
+                          {c.armCompletedSections}/63
                         </div>
+                        {(c.armPurchaseId || c.armWithdrawalId) && (
+                          <div style={{ fontSize: '10.5px', fontFamily: 'monospace', color: '#059669', marginTop: 2 }}>
+                            {c.armWithdrawalId
+                              ? `WDL: ${c.armWithdrawalId.slice(0, 14)}…`
+                              : `PUR: ${c.armPurchaseId!.slice(0, 14)}…`}
+                          </div>
+                        )}
                       </td>
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ fontWeight: 600 }}>{formatNaira(c.targetAmountNaira)}</div>
@@ -915,7 +1017,14 @@ export default function ArmPortfolio({ token }: ArmPortfolioProps) {
                       }}
                     >
                       <td style={{ padding: '12px 16px', fontFamily: 'monospace', fontSize: '12px' }}>
-                        {tx.reference}
+                        <div>{tx.reference}</div>
+                        {tx.armInstructionId && (
+                          <div style={{ fontSize: '10.5px', color: '#059669', marginTop: 2 }}>
+                            ARM: {tx.armInstructionId.slice(0, 18)}
+                            {tx.armInstructionId.length > 18 ? '…' : ''}
+                            {tx.armLiveStatus ? ` (${tx.armLiveStatus})` : ''}
+                          </div>
+                        )}
                       </td>
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ fontWeight: 600 }}>{tx.customerName}</div>

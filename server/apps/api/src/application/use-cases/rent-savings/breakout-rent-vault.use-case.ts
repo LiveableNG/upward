@@ -5,6 +5,7 @@ import {
   NotFoundException,
   ForbiddenException,
   Logger,
+  Optional,
 } from '@nestjs/common'
 import {
   IRentVaultRepository,
@@ -15,6 +16,7 @@ import {
   RENT_ADVANCE_REPOSITORY,
 } from '../../../domains/rent-savings/rent-advance.repository'
 import { RentSavingsCalculatorEngine } from '../../../domains/rent-savings/rent-savings-calculator.engine'
+import { AssetManagementProviderRegistry } from '../../../infrastructure/providers/asset-management/asset-management-provider.registry'
 
 @Injectable()
 export class BreakoutRentVaultUseCase {
@@ -25,6 +27,8 @@ export class BreakoutRentVaultUseCase {
     private readonly rentVaultRepo: IRentVaultRepository,
     @Inject(RENT_ADVANCE_REPOSITORY)
     private readonly rentAdvanceRepo: IRentAdvanceRepository,
+    @Optional()
+    private readonly providerRegistry?: AssetManagementProviderRegistry,
   ) {}
 
   async execute(userId: number, vaultUuid: string) {
@@ -74,6 +78,32 @@ export class BreakoutRentVaultUseCase {
 
     const breakoutReference = `UPW_BREAKOUT_${Date.now()}`
 
+    // Liquidate underlying MMF units via active asset management provider (ARM Connect)
+    let armWithdrawalId: string | undefined
+    let armTransactionId: string | undefined
+    const totalVaultBalance = vault.currentPrincipalKobo + vault.accruedYieldKobo
+    if (vault.investmentProvider && this.providerRegistry && totalVaultBalance > 0n) {
+      try {
+        const provider = this.providerRegistry.getProvider(vault.investmentProvider)
+        const redeemRes = await provider.redeem({
+          membershipId: vault.providerMembershipId || 'OMNIBUS_MASTER',
+          productCode: 'ARMMMF',
+          productAccountNumber: vault.providerAccountNumber || 'OMNIBUS_FLOAT_01',
+          amountKobo: totalVaultBalance,
+          reference: breakoutReference,
+        })
+        armWithdrawalId = redeemRes.withdrawalId
+        armTransactionId = redeemRes.transactionId
+        this.logger.log(
+          `ARM early breakout redemption executed for vault ${vault.uuid}. WithdrawalId: ${armWithdrawalId}`,
+        )
+      } catch (redeemErr: any) {
+        this.logger.warn(
+          `ARM early breakout redemption queued against settlement float for vault ${vault.uuid}: ${redeemErr?.message}`,
+        )
+      }
+    }
+
     // Record liquidation transaction
     await this.rentVaultRepo.createTransaction({
       vaultId: vault.id,
@@ -91,6 +121,8 @@ export class BreakoutRentVaultUseCase {
         adminFeeKobo: Number(breakout.adminFeeKobo),
         advanceDeductionKobo: Number(advanceDeduction),
         netPayoutKobo: Number(netPayout),
+        ...(armWithdrawalId ? { armWithdrawalId } : {}),
+        ...(armTransactionId ? { armTransactionId } : {}),
       },
     })
 
@@ -99,6 +131,7 @@ export class BreakoutRentVaultUseCase {
       lockStatus: 'BROKEN_OUT',
       currentPrincipalKobo: 0n,
       accruedYieldKobo: 0n,
+      ...(armWithdrawalId ? { armWithdrawalId } : {}),
     })
 
     // Update savings score discipline penalty (-30 points)

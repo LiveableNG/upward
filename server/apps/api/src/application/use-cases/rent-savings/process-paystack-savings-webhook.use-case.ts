@@ -129,6 +129,35 @@ export class ProcessPaystackSavingsWebhookUseCase {
     const currentBalance = vault.currentPrincipalKobo + vault.accruedYieldKobo
     const newBalance = currentBalance + amountKobo
 
+    let armPurchaseId: string | undefined
+    let armTransactionId: string | undefined
+
+    if (vault.investmentProvider) {
+      try {
+        const provider = this.providerRegistry.getProvider(vault.investmentProvider)
+        const purchaseRes = await provider.subscribe({
+          membershipId: vault.providerMembershipId || 'OMNIBUS_MASTER',
+          productCode: 'ARMMMF',
+          amountKobo,
+          reference: `ARM_${reference}`,
+        })
+        armPurchaseId = purchaseRes.purchaseId
+        armTransactionId = purchaseRes.transactionId
+        if (armPurchaseId) {
+          await this.rentVaultRepo.update(vault.id, {
+            armPurchaseId,
+          })
+          this.logger.log(
+            `Successfully submitted purchase to ARM for vault ${vault.uuid}. PurchaseId: ${armPurchaseId}`,
+          )
+        }
+      } catch (armErr: any) {
+        this.logger.warn(
+          `Instant ARM subscription queued/pending for vault ${vault.uuid} (will be captured in omnibus sweep): ${armErr?.message}`,
+        )
+      }
+    }
+
     await this.rentVaultRepo.createTransaction({
       vaultId: vault.id,
       userId: vault.userId,
@@ -143,6 +172,8 @@ export class ProcessPaystackSavingsWebhookUseCase {
       metadata: {
         customer: payload.data.customer,
         receivedAt: new Date().toISOString(),
+        ...(armPurchaseId ? { armPurchaseId } : {}),
+        ...(armTransactionId ? { armTransactionId } : {}),
       },
     })
 
@@ -150,30 +181,6 @@ export class ProcessPaystackSavingsWebhookUseCase {
     this.logger.log(
       `Successfully credited vault ${vault.uuid} with ₦${Number(amountKobo) / 100} (ref: ${reference})`,
     )
-
-    if (vault.investmentProvider) {
-      try {
-        const provider = this.providerRegistry.getProvider(vault.investmentProvider)
-        const purchaseRes = await provider.subscribe({
-          membershipId: vault.providerMembershipId || 'OMNIBUS_MASTER',
-          productCode: 'ARMMMF',
-          amountKobo,
-          reference: `ARM_${reference}`,
-        })
-        if (purchaseRes.purchaseId) {
-          await this.rentVaultRepo.update(vault.id, {
-            armPurchaseId: purchaseRes.purchaseId,
-          })
-          this.logger.log(
-            `Successfully submitted purchase to ARM for vault ${vault.uuid}. PurchaseId: ${purchaseRes.purchaseId}`,
-          )
-        }
-      } catch (armErr: any) {
-        this.logger.warn(
-          `Instant ARM subscription queued/pending for vault ${vault.uuid} (will be captured in omnibus sweep): ${armErr?.message}`,
-        )
-      }
-    }
 
     await this.updateSavingsScoreOnDeposit(
       vault.id,

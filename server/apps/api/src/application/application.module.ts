@@ -602,6 +602,7 @@ import { SimulateRentSavingsUseCase } from './use-cases/rent-savings/simulate-re
 import { CreateRentVaultUseCase } from './use-cases/rent-savings/create-rent-vault.use-case'
 import { GetMyRentVaultUseCase } from './use-cases/rent-savings/get-my-rent-vault.use-case'
 import { ProcessPaystackSavingsWebhookUseCase } from './use-cases/rent-savings/process-paystack-savings-webhook.use-case'
+import { ProcessArmWebhookUseCase } from './use-cases/rent-savings/process-arm-webhook.use-case'
 import { DisburseEmergencyAdvanceUseCase } from './use-cases/rent-savings/disburse-emergency-advance.use-case'
 import { ExecuteLandlordSettlementUseCase } from './use-cases/rent-savings/execute-landlord-settlement.use-case'
 import { BreakoutRentVaultUseCase } from './use-cases/rent-savings/breakout-rent-vault.use-case'
@@ -657,6 +658,7 @@ const UseCases: any[] = [
   CreateRentVaultUseCase,
   GetMyRentVaultUseCase,
   ProcessPaystackSavingsWebhookUseCase,
+  ProcessArmWebhookUseCase,
   DisburseEmergencyAdvanceUseCase,
   ExecuteLandlordSettlementUseCase,
   BreakoutRentVaultUseCase,

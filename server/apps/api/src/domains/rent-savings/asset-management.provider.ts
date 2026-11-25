@@ -1,9 +1,16 @@
 export interface YieldMetrics {
-  annualNetYieldRate: number // e.g. 0.145 (14.5% p.a.)
-  annualGrossYieldRate: number // e.g. 0.165 (16.5% p.a.)
-  dailyYieldRate: number // e.g. 0.00039726
+  annualNetYieldRate: number // e.g. 0.1655 (16.55% p.a.)
+  annualGrossYieldRate: number // e.g. 0.1855 (18.55% p.a.)
+  dailyYieldRate: number // e.g. 0.0004535
   productCode: string // e.g. "ARMMMF"
+  productName?: string
+  netAssetValue?: string
+  valuationDate?: string
+  rateUpdatedAtUtc?: string
+  minimumInvestmentNaira?: number
+  factSheetLink?: string
   canInvest: boolean
+  isLive?: boolean
 }
 
 export interface InvestorOnboardingRequest {
@@ -65,9 +72,59 @@ export interface InvestorOnboardingResponse {
   success: boolean
   status: 'Submitted' | 'Approved' | 'InProgress' | 'Failed'
   customerId?: string
+  trackingId?: string
   customerMembershipId?: string
   crmAccountNumber?: string
+  crmApprovalStatus?: string
+  completedSections?: number
   failureReason?: string
+}
+
+export interface ArmVirtualAccountSummary {
+  accountNumber: string
+  bankName: string
+  bankCode?: string
+  customerName: string
+  currency: string
+  active: boolean
+}
+
+export interface ArmOnboardedCustomerSummary {
+  customerId: string
+  customerFirstName: string
+  customerSurname: string
+  customerEmail: string
+  crmAccountNumber: string | null
+  customerMembershipId: string | null
+  status: string
+  createdAt: string
+}
+
+export interface ArmTransactionStatusItem {
+  status: boolean
+  purchaseId?: string
+  withdrawalId?: string
+  transactionId?: string
+  message?: string
+  amount?: number
+  productCode?: string
+  membershipId?: string
+  transactionReference?: string
+}
+
+export interface ArmMerchantOverview {
+  connected: boolean
+  baseUrl: string
+  merchantId: string | null
+  businessName: string | null
+  merchantMembershipId: string | null
+  merchantType: string | null
+  cashWalletBalanceNaira: number
+  virtualAccounts: ArmVirtualAccountSummary[]
+  customers: ArmOnboardedCustomerSummary[]
+  yieldMetrics: YieldMetrics
+  masterPortfolio: PortfolioSummary
+  fetchedAt: string
 }
 
 export interface PurchaseSubscriptionRequest {
@@ -124,6 +181,15 @@ export interface IAssetManagementProvider {
   redeem(request: RedemptionRequest): Promise<RedemptionResponse>
 
   getPortfolio(membershipIdOrAccountId: string): Promise<PortfolioSummary>
+
+  getMerchantOverview?(forceRefresh?: boolean): Promise<ArmMerchantOverview>
+
+  getOnboardingStatus?(trackingId: string): Promise<InvestorOnboardingResponse>
+
+  getTransactionStatus?(params: {
+    purchaseId?: string
+    transactionId?: string
+  }): Promise<ArmTransactionStatusItem[]>
 }
 
 export const ASSET_MANAGEMENT_PROVIDER = Symbol('ASSET_MANAGEMENT_PROVIDER')

@@ -1,11 +1,43 @@
 import { PrismaClient } from '@prisma/client'
 import * as bcrypt from 'bcrypt'
 import * as crypto from 'crypto'
+import * as fs from 'fs'
+import * as path from 'path'
+import { ConfigService } from '@nestjs/config'
+import { ArmConnectInvestmentProvider } from '../src/infrastructure/providers/asset-management/arm-connect-investment.provider'
 
+// Load server/apps/api/.env manually so ConfigService & ENCRYPTION_KEY match runtime
+function loadEnvFile(): Record<string, string> {
+  const envMap: Record<string, string> = {}
+  const envPath = path.resolve(__dirname, '../.env')
+  if (fs.existsSync(envPath)) {
+    const lines = fs.readFileSync(envPath, 'utf8').split(/\r?\n/)
+    for (const rawLine of lines) {
+      const line = rawLine.trim()
+      if (!line || line.startsWith('#')) continue
+      const eqIdx = line.indexOf('=')
+      if (eqIdx === -1) continue
+      const k = line.slice(0, eqIdx).trim()
+      const v = line
+        .slice(eqIdx + 1)
+        .trim()
+        .replace(/^['"]|['"]$/g, '')
+      envMap[k] = v
+      if (!process.env[k]) process.env[k] = v
+    }
+  }
+  return envMap
+}
+
+const envVars = loadEnvFile()
 const prisma = new PrismaClient()
+const configService = new ConfigService(envVars)
+const armProvider = new ArmConnectInvestmentProvider(configService)
 
 // Encryption key matching server/apps/api/.env or default fallback
-const hexKey = process.env.ENCRYPTION_KEY || 'd7f3e2a1b0c9d8e7f6a5b4c3d2e1f0a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8'
+const hexKey =
+  process.env.ENCRYPTION_KEY ||
+  'd7f3e2a1b0c9d8e7f6a5b4c3d2e1f0a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8'
 const key = Buffer.from(hexKey, 'hex')
 
 function encrypt(text: string): string {
@@ -24,7 +56,22 @@ function hash(text: string): string {
 }
 
 async function main() {
-  console.log('🚀 Seeding ARM Subscription & Redemption Demo Users on localhost...')
+  console.log('🚀 Seeding ARM Subscription & Redemption Demo Users via LIVE ARM Sandbox API...')
+
+  // Authenticate & inspect live ARM Sandbox state
+  const overview = await armProvider.getMerchantOverview(true)
+  const omnibusMembershipId = overview.merchantMembershipId || '3005679'
+  const activeArmCustomers = overview.customers.filter(
+    (c) => c.customerMembershipId && c.status !== 'Failed',
+  )
+  const primaryCustomerMembershipId =
+    activeArmCustomers[0]?.customerMembershipId || omnibusMembershipId
+  const secondaryCustomerMembershipId =
+    activeArmCustomers[1]?.customerMembershipId || omnibusMembershipId
+
+  console.log(
+    `🔗 Connected to ARM Sandbox (${overview.baseUrl}) | Merchant: ${overview.merchantId} (${omnibusMembershipId}) | Live ARMMMF Yield: ${(overview.yieldMetrics.annualNetYieldRate * 100).toFixed(2)}% p.a.`,
+  )
 
   const defaultPassword = 'Password123'
   const passwordHash = await bcrypt.hash(defaultPassword, 10)
@@ -46,7 +93,6 @@ async function main() {
       savingsEnabled: true,
     },
   })
-  console.log('📈 Set platform savings rate to 16.0% p.a.')
 
   // 0b. Ensure shared Demo Location exists
   let location = await prisma.upward_location.findFirst({
@@ -61,10 +107,9 @@ async function main() {
         country: 'Nigeria',
       },
     })
-    console.log(`📍 Created demo location: ID ${location.id}`)
   }
 
-  // 0b. Ensure shared Demo Landlord Manual Settlement Account exists
+  // 0c. Ensure shared Demo Landlord Manual Settlement Account exists
   let manualAccount = await prisma.upward_manual_account.findFirst({
     where: { accountNumber: '0123456789', bankCode: '058' },
   })
@@ -79,10 +124,8 @@ async function main() {
         isPrimary: true,
       },
     })
-    console.log(`🏦 Created demo landlord manual account: ID ${manualAccount.id}`)
   }
 
-  // Helper function to clean up and upsert a demo user
   async function setupDemoUser(data: {
     email: string
     firstName: string
@@ -100,8 +143,6 @@ async function main() {
     })
 
     if (existing) {
-      console.log(`🔄 Cleaning existing data for demo user ${data.email}...`)
-      // Clean up child records to ensure fresh state
       await prisma.upward_rent_settlement.deleteMany({ where: { userId: existing.id } })
       await prisma.upward_rent_savings_score.deleteMany({ where: { userId: existing.id } })
       await prisma.upward_rent_vault_transaction.deleteMany({ where: { userId: existing.id } })
@@ -111,7 +152,7 @@ async function main() {
       await prisma.upward_user_property.deleteMany({ where: { userId: existing.id } })
       await prisma.upward_auth_session.deleteMany({ where: { userId: existing.id } })
 
-      const updated = await prisma.upward_user.update({
+      return prisma.upward_user.update({
         where: { id: existing.id },
         data: {
           email: encrypt(data.email),
@@ -131,10 +172,9 @@ async function main() {
           termsVersion: '2026-08-24',
         },
       })
-      return updated
     }
 
-    const created = await prisma.upward_user.create({
+    return prisma.upward_user.create({
       data: {
         email: encrypt(data.email),
         emailHash,
@@ -154,7 +194,6 @@ async function main() {
         termsVersion: '2026-08-24',
       },
     })
-    return created
   }
 
   // =========================================================================
@@ -173,8 +212,7 @@ async function main() {
     profileSlug: 'chidi-eze-arm-demo',
   })
 
-  // User 1 has a tenancy property attached, but NO vault and NO KYC yet
-  const user1DueDate = new Date(Date.now() + 240 * 24 * 60 * 60 * 1000) // 8 months ahead
+  const user1DueDate = new Date(Date.now() + 240 * 24 * 60 * 60 * 1000)
   await prisma.upward_user_property.create({
     data: {
       userId: user1.id,
@@ -187,10 +225,10 @@ async function main() {
       verificationStatus: 'VERIFIED',
     },
   })
-  console.log(`✅ [User 1] Fresh Onboarding created: ${'arm-onboard@goodtenants.africa'}`)
+  console.log(`✅ [User 1] Fresh Onboarding ready: arm-onboard@goodtenants.africa`)
 
   // =========================================================================
-  // USER 2: Active Subscriptions & Daily Yield Compounding
+  // USER 2: Active Subscriptions & Daily Yield Compounding (Live ARM Purchases)
   // Email: arm-subscriber@goodtenants.africa
   // =========================================================================
   const user2 = await setupDemoUser({
@@ -205,7 +243,7 @@ async function main() {
     profileSlug: 'funke-akindele-arm-demo',
   })
 
-  const user2DueDate = new Date(Date.now() + 120 * 24 * 60 * 60 * 1000) // 4 months ahead
+  const user2DueDate = new Date(Date.now() + 120 * 24 * 60 * 60 * 1000)
   await prisma.upward_user_property.create({
     data: {
       userId: user2.id,
@@ -219,7 +257,32 @@ async function main() {
     },
   })
 
-  // KYC Verification record (ARM approved member)
+  // Execute 3 real live subscriptions on ARM Sandbox for User 2
+  const depRef2A = `UPW-SUB-U2A-${Date.now()}`
+  const depRef2B = `UPW-SUB-U2B-${Date.now() + 1}`
+  const depRef2C = `UPW-SUB-U2C-${Date.now() + 2}`
+
+  const [pur2A, pur2B, pur2C] = await Promise.all([
+    armProvider.subscribe({
+      membershipId: primaryCustomerMembershipId,
+      productCode: 'ARMMMF',
+      amountKobo: 60000000n,
+      reference: depRef2A,
+    }),
+    armProvider.subscribe({
+      membershipId: primaryCustomerMembershipId,
+      productCode: 'ARMMMF',
+      amountKobo: 60000000n,
+      reference: depRef2B,
+    }),
+    armProvider.subscribe({
+      membershipId: primaryCustomerMembershipId,
+      productCode: 'ARMMMF',
+      amountKobo: 60000000n,
+      reference: depRef2C,
+    }),
+  ])
+
   const bvn2 = '22233344455'
   await prisma.upward_kyc_verification.create({
     data: {
@@ -240,22 +303,21 @@ async function main() {
       nextOfKinPhone: '+2348039991122',
       nextOfKinEmail: 'jide@akindele.com',
       nextOfKinAddress: 'Plot 14, Admiralty Way, Lekki Phase 1, Lagos',
-      armCustomerMembershipId: 'ARM-GT-884920',
-      armCrmAccountNumber: 'CRM-003948271',
-      armSyncStatus: 'APPROVED',
+      armCustomerMembershipId: primaryCustomerMembershipId,
+      armCrmAccountNumber: `${primaryCustomerMembershipId}-ARMMMF-01`,
+      armSyncStatus: 'Submitted',
       armCompletedSections: 63,
       verifiedAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000),
     },
   })
 
-  // Active Rent Vault with ₦1.8M principal + ₦64.8K accrued yield
   const user2UnlockDate = new Date(user2DueDate.getTime() - 30 * 24 * 60 * 60 * 1000)
   const vault2 = await prisma.upward_rent_vault.create({
     data: {
       userId: user2.id,
-      targetAmountKobo: 360000000n, // ₦3,600,000
-      currentPrincipalKobo: 180000000n, // ₦1,800,000
-      accruedYieldKobo: 6485000n, // ₦64,850
+      targetAmountKobo: 360000000n,
+      currentPrincipalKobo: 180000000n,
+      accruedYieldKobo: 6485000n,
       cadence: 'MONTHLY',
       productOption: 'SAVE_AND_EARN',
       planPattern: 'EQUAL',
@@ -264,22 +326,21 @@ async function main() {
       unlockDate: user2UnlockDate,
       lockStatus: 'LOCKED',
       preferredFundingMethod: 'DVA',
-      dvaBankName: 'Providus Bank',
+      dvaBankName: 'Wema Bank',
       dvaAccountNumber: '9928374102',
-      dvaAccountName: 'GTN/Funke Akindele',
+      dvaAccountName: 'Upward / Funke Akindele',
       dvaAssignmentStatus: 'ACTIVE',
       dvaCustomerCode: 'CUS_arm_sub_02',
       autoBypassPmApproval: true,
       investmentProvider: 'ARM',
-      providerMembershipId: 'ARM-GT-884920',
-      providerAccountNumber: 'ARM-MMF-003948271',
-      providerCrmStatus: 'Approved',
-      armPurchaseId: 'ARM_PUR_992810',
+      providerMembershipId: primaryCustomerMembershipId,
+      providerAccountNumber: `${primaryCustomerMembershipId}-ARMMMF-01`,
+      providerCrmStatus: 'Submitted',
+      armPurchaseId: pur2C.purchaseId || null,
       lastYieldSyncAt: new Date(),
     },
   })
 
-  // Past subscription transactions (Schedule of units)
   await prisma.upward_rent_vault_transaction.createMany({
     data: [
       {
@@ -290,9 +351,10 @@ async function main() {
         principalDeltaKobo: 60000000n,
         yieldDeltaKobo: 0n,
         balanceAfterKobo: 60000000n,
-        reference: `ARM_DEP_01_${vault2.id}`,
+        reference: depRef2A,
         channel: 'DVA_NIP',
-        narration: 'Rent savings deposit via Paystack DVA (Inflow to ARM Virtual Account)',
+        narration: `Rent savings deposit swept to ARM MMF (PurchaseId: ${pur2A.purchaseId})`,
+        metadata: { armPurchaseId: pur2A.purchaseId, armTransactionId: pur2A.transactionId },
         createdAt: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000),
       },
       {
@@ -303,7 +365,7 @@ async function main() {
         principalDeltaKobo: 0n,
         yieldDeltaKobo: 2380000n,
         balanceAfterKobo: 62380000n,
-        reference: `ARM_YIELD_01_${vault2.id}`,
+        reference: `UPW-YLD-U2A-${vault2.id}`,
         channel: 'SYSTEM_YIELD',
         narration: 'ARM MMF Daily Compounding Yield (16.0% p.a.)',
         createdAt: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000),
@@ -316,9 +378,10 @@ async function main() {
         principalDeltaKobo: 60000000n,
         yieldDeltaKobo: 0n,
         balanceAfterKobo: 122380000n,
-        reference: `ARM_DEP_02_${vault2.id}`,
+        reference: depRef2B,
         channel: 'DVA_NIP',
-        narration: 'Rent savings deposit via Paystack DVA (Inflow to ARM Virtual Account)',
+        narration: `Rent savings deposit swept to ARM MMF (PurchaseId: ${pur2B.purchaseId})`,
+        metadata: { armPurchaseId: pur2B.purchaseId, armTransactionId: pur2B.transactionId },
         createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
       },
       {
@@ -329,9 +392,10 @@ async function main() {
         principalDeltaKobo: 60000000n,
         yieldDeltaKobo: 0n,
         balanceAfterKobo: 182380000n,
-        reference: `ARM_DEP_03_${vault2.id}`,
+        reference: depRef2C,
         channel: 'DVA_NIP',
-        narration: 'Rent savings deposit via Paystack DVA (Inflow to ARM Virtual Account)',
+        narration: `Rent savings deposit swept to ARM MMF (PurchaseId: ${pur2C.purchaseId})`,
+        metadata: { armPurchaseId: pur2C.purchaseId, armTransactionId: pur2C.transactionId },
         createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
       },
       {
@@ -342,7 +406,7 @@ async function main() {
         principalDeltaKobo: 0n,
         yieldDeltaKobo: 4105000n,
         balanceAfterKobo: 186485000n,
-        reference: `ARM_YIELD_02_${vault2.id}`,
+        reference: `UPW-YLD-U2B-${vault2.id}`,
         channel: 'SYSTEM_YIELD',
         narration: 'ARM MMF Daily Compounding Yield (16.0% p.a.)',
         createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
@@ -350,7 +414,6 @@ async function main() {
     ],
   })
 
-  // Savings score
   await prisma.upward_rent_savings_score.create({
     data: {
       vaultId: vault2.id,
@@ -364,10 +427,12 @@ async function main() {
       ],
     },
   })
-  console.log(`✅ [User 2] Active Subscriptions & Yield created: ${'arm-subscriber@goodtenants.africa'}`)
+  console.log(
+    `✅ [User 2] Active Subscriptions seeded with real ARM PurchaseIds: ${pur2A.purchaseId}, ${pur2B.purchaseId}, ${pur2C.purchaseId}`,
+  )
 
   // =========================================================================
-  // USER 3: Settlement Ready / Redemption Demo
+  // USER 3: Settlement Ready / Redemption Demo (Live ARM Purchases)
   // Email: arm-redeem@goodtenants.africa
   // =========================================================================
   const user3 = await setupDemoUser({
@@ -382,9 +447,8 @@ async function main() {
     profileSlug: 'babatunde-fashola-arm-demo',
   })
 
-  // Contractual due date in 12 days (within T-30 unlock window!)
   const user3DueDate = new Date(Date.now() + 12 * 24 * 60 * 60 * 1000)
-  const user3UnlockDate = new Date(user3DueDate.getTime() - 30 * 24 * 60 * 60 * 1000) // 18 days ago
+  const user3UnlockDate = new Date(user3DueDate.getTime() - 30 * 24 * 60 * 60 * 1000)
 
   await prisma.upward_user_property.create({
     data: {
@@ -399,7 +463,23 @@ async function main() {
     },
   })
 
-  // KYC Verification record (ARM approved member with auto-signed consent on file)
+  const depRef3A = `UPW-SUB-U3A-${Date.now()}`
+  const depRef3B = `UPW-SUB-U3B-${Date.now() + 1}`
+  const [pur3A, pur3B] = await Promise.all([
+    armProvider.subscribe({
+      membershipId: secondaryCustomerMembershipId,
+      productCode: 'ARMMMF',
+      amountKobo: 120000000n,
+      reference: depRef3A,
+    }),
+    armProvider.subscribe({
+      membershipId: secondaryCustomerMembershipId,
+      productCode: 'ARMMMF',
+      amountKobo: 120000000n,
+      reference: depRef3B,
+    }),
+  ])
+
   const bvn3 = '22244455566'
   await prisma.upward_kyc_verification.create({
     data: {
@@ -420,40 +500,39 @@ async function main() {
       nextOfKinPhone: '+2348038887766',
       nextOfKinEmail: 'abimbola@fashola.com',
       nextOfKinAddress: 'Plot 14, Admiralty Way, Lekki Phase 1, Lagos',
-      armCustomerMembershipId: 'ARM-GT-772019',
-      armCrmAccountNumber: 'CRM-001829440',
-      armSyncStatus: 'APPROVED',
+      armCustomerMembershipId: secondaryCustomerMembershipId,
+      armCrmAccountNumber: `${secondaryCustomerMembershipId}-ARMMMF-01`,
+      armSyncStatus: 'Submitted',
       armCompletedSections: 63,
       verifiedAt: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000),
     },
   })
 
-  // Vault in SETTLEMENT_READY state with 100% saved (₦2.4M target, ₦98.4K yield)
   const vault3 = await prisma.upward_rent_vault.create({
     data: {
       userId: user3.id,
-      targetAmountKobo: 240000000n, // ₦2,400,000
-      currentPrincipalKobo: 240000000n, // ₦2,400,000
-      accruedYieldKobo: 9840000n, // ₦98,400
+      targetAmountKobo: 240000000n,
+      currentPrincipalKobo: 240000000n,
+      accruedYieldKobo: 9840000n,
       cadence: 'MONTHLY',
       productOption: 'SAVE_AND_EARN',
       planPattern: 'EQUAL',
       appliedAnnualRatePct: 16.0,
       contractualDueDate: user3DueDate,
       unlockDate: user3UnlockDate,
-      lockStatus: 'SETTLEMENT_READY', // Ready for immediate redemption!
+      lockStatus: 'SETTLEMENT_READY',
       preferredFundingMethod: 'DVA',
-      dvaBankName: 'Providus Bank',
+      dvaBankName: 'Wema Bank',
       dvaAccountNumber: '9928374103',
-      dvaAccountName: 'GTN/Babatunde Fashola',
+      dvaAccountName: 'Upward / Babatunde Fashola',
       dvaAssignmentStatus: 'ACTIVE',
       dvaCustomerCode: 'CUS_arm_red_03',
       autoBypassPmApproval: true,
       investmentProvider: 'ARM',
-      providerMembershipId: 'ARM-GT-772019',
-      providerAccountNumber: 'ARM-MMF-001829440',
-      providerCrmStatus: 'Approved',
-      armPurchaseId: 'ARM_PUR_772019',
+      providerMembershipId: secondaryCustomerMembershipId,
+      providerAccountNumber: `${secondaryCustomerMembershipId}-ARMMMF-01`,
+      providerCrmStatus: 'Submitted',
+      armPurchaseId: pur3B.purchaseId || null,
       lastYieldSyncAt: new Date(),
     },
   })
@@ -468,9 +547,10 @@ async function main() {
         principalDeltaKobo: 120000000n,
         yieldDeltaKobo: 0n,
         balanceAfterKobo: 120000000n,
-        reference: `ARM_DEP_01_${vault3.id}`,
+        reference: depRef3A,
         channel: 'DVA_NIP',
-        narration: 'Rent savings deposit via Paystack DVA (Inflow to ARM Virtual Account)',
+        narration: `Rent savings deposit swept to ARM MMF (PurchaseId: ${pur3A.purchaseId})`,
+        metadata: { armPurchaseId: pur3A.purchaseId, armTransactionId: pur3A.transactionId },
         createdAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000),
       },
       {
@@ -481,9 +561,10 @@ async function main() {
         principalDeltaKobo: 120000000n,
         yieldDeltaKobo: 0n,
         balanceAfterKobo: 240000000n,
-        reference: `ARM_DEP_02_${vault3.id}`,
+        reference: depRef3B,
         channel: 'DVA_NIP',
-        narration: 'Rent savings deposit via Paystack DVA (Inflow to ARM Virtual Account)',
+        narration: `Rent savings deposit swept to ARM MMF (PurchaseId: ${pur3B.purchaseId})`,
+        metadata: { armPurchaseId: pur3B.purchaseId, armTransactionId: pur3B.transactionId },
         createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
       },
       {
@@ -494,7 +575,7 @@ async function main() {
         principalDeltaKobo: 0n,
         yieldDeltaKobo: 9840000n,
         balanceAfterKobo: 249840000n,
-        reference: `ARM_YIELD_01_${vault3.id}`,
+        reference: `UPW-YLD-U3A-${vault3.id}`,
         channel: 'SYSTEM_YIELD',
         narration: 'Accumulated ARM MMF Compounding Returns (16.0% p.a.)',
         createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
@@ -512,10 +593,12 @@ async function main() {
       totalScore: 92,
     },
   })
-  console.log(`✅ [User 3] Settlement Ready / Redemption created: ${'arm-redeem@goodtenants.africa'}`)
+  console.log(
+    `✅ [User 3] Settlement Ready seeded with real ARM PurchaseIds: ${pur3A.purchaseId}, ${pur3B.purchaseId}`,
+  )
 
   // =========================================================================
-  // USER 4: Early Breakout Demo
+  // USER 4: Early Breakout Demo (Live ARM Purchase)
   // Email: arm-breakout@goodtenants.africa
   // =========================================================================
   const user4 = await setupDemoUser({
@@ -544,6 +627,14 @@ async function main() {
     },
   })
 
+  const depRef4 = `UPW-SUB-U4-${Date.now()}`
+  const pur4 = await armProvider.subscribe({
+    membershipId: omnibusMembershipId,
+    productCode: 'ARMMMF',
+    amountKobo: 150000000n,
+    reference: depRef4,
+  })
+
   const bvn4 = '22255566677'
   await prisma.upward_kyc_verification.create({
     data: {
@@ -561,9 +652,9 @@ async function main() {
       nextOfKinName: 'Ifeanyi Okonjo',
       nextOfKinRelationship: 'Spouse',
       nextOfKinPhone: '+2348037776655',
-      armCustomerMembershipId: 'ARM-GT-663918',
-      armCrmAccountNumber: 'CRM-002948119',
-      armSyncStatus: 'APPROVED',
+      armCustomerMembershipId: omnibusMembershipId,
+      armCrmAccountNumber: `${omnibusMembershipId}-ARMMMF-01`,
+      armSyncStatus: 'Approved',
       armCompletedSections: 63,
     },
   })
@@ -572,8 +663,8 @@ async function main() {
     data: {
       userId: user4.id,
       targetAmountKobo: 300000000n,
-      currentPrincipalKobo: 150000000n, // ₦1,500,000
-      accruedYieldKobo: 3850000n, // ₦38,500
+      currentPrincipalKobo: 150000000n,
+      accruedYieldKobo: 3850000n,
       cadence: 'MONTHLY',
       productOption: 'SAVE_AND_EARN',
       planPattern: 'EQUAL',
@@ -582,13 +673,15 @@ async function main() {
       unlockDate: new Date(user4DueDate.getTime() - 30 * 24 * 60 * 60 * 1000),
       lockStatus: 'LOCKED',
       preferredFundingMethod: 'DVA',
-      dvaBankName: 'Providus Bank',
+      dvaBankName: 'Wema Bank',
       dvaAccountNumber: '9928374104',
-      dvaAccountName: 'GTN/Ngozi Okonjo',
+      dvaAccountName: 'Upward / Ngozi Okonjo',
       dvaAssignmentStatus: 'ACTIVE',
       investmentProvider: 'ARM',
-      providerMembershipId: 'ARM-GT-663918',
-      providerAccountNumber: 'ARM-MMF-002948119',
+      providerMembershipId: omnibusMembershipId,
+      providerAccountNumber: `${omnibusMembershipId}-ARMMMF-01`,
+      providerCrmStatus: 'Approved',
+      armPurchaseId: pur4.purchaseId || null,
     },
   })
 
@@ -601,15 +694,16 @@ async function main() {
       principalDeltaKobo: 150000000n,
       yieldDeltaKobo: 0n,
       balanceAfterKobo: 150000000n,
-      reference: `ARM_DEP_01_${vault4.id}`,
+      reference: depRef4,
       channel: 'DVA_NIP',
-      narration: 'Rent savings deposit via Paystack DVA',
+      narration: `Rent savings deposit swept to ARM MMF (PurchaseId: ${pur4.purchaseId})`,
+      metadata: { armPurchaseId: pur4.purchaseId, armTransactionId: pur4.transactionId },
     },
   })
-  console.log(`✅ [User 4] Early Breakout Demo created: ${'arm-breakout@goodtenants.africa'}`)
+  console.log(`✅ [User 4] Early Breakout seeded with real ARM PurchaseId: ${pur4.purchaseId}`)
 
   // =========================================================================
-  // USER 5: Completed Settlement / Historical Record Demo
+  // USER 5: Completed Settlement / Redemption Record (Live ARM Purchase + Redeem)
   // Email: arm-settled@goodtenants.africa
   // =========================================================================
   const user5 = await setupDemoUser({
@@ -624,7 +718,7 @@ async function main() {
     profileSlug: 'emeka-nwosu-arm-demo',
   })
 
-  const user5DueDate = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) // 5 days ago (settled!)
+  const user5DueDate = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)
   await prisma.upward_user_property.create({
     data: {
       userId: user5.id,
@@ -636,6 +730,24 @@ async function main() {
       isVerified: true,
       verificationStatus: 'VERIFIED',
     },
+  })
+
+  const depRef5 = `UPW-SUB-U5-${Date.now()}`
+  const settleRef = `UPW-SETTLE-U5-${Date.now()}`
+
+  const pur5 = await armProvider.subscribe({
+    membershipId: omnibusMembershipId,
+    productCode: 'ARMMMF',
+    amountKobo: 250000000n,
+    reference: depRef5,
+  })
+
+  const red5 = await armProvider.redeem({
+    membershipId: omnibusMembershipId,
+    productCode: 'ARMMMF',
+    productAccountNumber: `${omnibusMembershipId}-ARMMMF-01`,
+    amountKobo: 250000000n,
+    reference: settleRef,
   })
 
   const bvn5 = '22266677788'
@@ -655,9 +767,9 @@ async function main() {
       nextOfKinName: 'Chiamaka Nwosu',
       nextOfKinRelationship: 'Spouse',
       nextOfKinPhone: '+2348036665544',
-      armCustomerMembershipId: 'ARM-GT-551029',
-      armCrmAccountNumber: 'CRM-001928472',
-      armSyncStatus: 'APPROVED',
+      armCustomerMembershipId: omnibusMembershipId,
+      armCrmAccountNumber: `${omnibusMembershipId}-ARMMMF-01`,
+      armSyncStatus: 'Approved',
       armCompletedSections: 63,
     },
   })
@@ -676,19 +788,19 @@ async function main() {
       unlockDate: new Date(user5DueDate.getTime() - 30 * 24 * 60 * 60 * 1000),
       lockStatus: 'SETTLED',
       preferredFundingMethod: 'DVA',
-      dvaBankName: 'Providus Bank',
+      dvaBankName: 'Wema Bank',
       dvaAccountNumber: '9928374105',
-      dvaAccountName: 'GTN/Emeka Nwosu',
+      dvaAccountName: 'Upward / Emeka Nwosu',
       dvaAssignmentStatus: 'ACTIVE',
       investmentProvider: 'ARM',
-      providerMembershipId: 'ARM-GT-551029',
-      providerAccountNumber: 'ARM-MMF-001928472',
-      armWithdrawalId: 'ARM_WDL_551029',
+      providerMembershipId: omnibusMembershipId,
+      providerAccountNumber: `${omnibusMembershipId}-ARMMMF-01`,
+      providerCrmStatus: 'Approved',
+      armPurchaseId: pur5.purchaseId || null,
+      armWithdrawalId: red5.withdrawalId || null,
     },
   })
 
-  // Full settlement record
-  const settleRef = `UPW_SETTLE_ARM_DEMO_${Date.now()}`
   await prisma.upward_rent_settlement.create({
     data: {
       vaultId: vault5.id,
@@ -697,8 +809,8 @@ async function main() {
       landlordAccountNumber: '0123456789',
       landlordName: 'Chief Adewale Adeyemi',
       propertyAddress: 'Plot 14, Admiralty Way, Lekki Phase 1, Lagos',
-      amountPaidToLandlordKobo: 250000000n, // ₦2,500,000 disbursed
-      cashbackCreditedKobo: 1500000n, // ₦15,000 cashback
+      amountPaidToLandlordKobo: 250000000n,
+      cashbackCreditedKobo: 1500000n,
       earlyBirdMultiplierApplied: true,
       nipSessionId: '999058172900018274619',
       settlementReference: settleRef,
@@ -713,6 +825,20 @@ async function main() {
       {
         vaultId: vault5.id,
         userId: user5.id,
+        type: 'DEPOSIT',
+        amountKobo: 250000000n,
+        principalDeltaKobo: 250000000n,
+        yieldDeltaKobo: 0n,
+        balanceAfterKobo: 250000000n,
+        reference: depRef5,
+        channel: 'DVA_NIP',
+        narration: `Rent savings deposit swept to ARM MMF (PurchaseId: ${pur5.purchaseId})`,
+        metadata: { armPurchaseId: pur5.purchaseId, armTransactionId: pur5.transactionId },
+        createdAt: new Date(Date.now() - 180 * 24 * 60 * 60 * 1000),
+      },
+      {
+        vaultId: vault5.id,
+        userId: user5.id,
         type: 'SETTLEMENT_DISBURSEMENT',
         amountKobo: 250000000n,
         principalDeltaKobo: -250000000n,
@@ -720,7 +846,9 @@ async function main() {
         balanceAfterKobo: 0n,
         reference: settleRef,
         channel: 'NIP_TRANSFER',
-        narration: 'Rent disbursed to landlord: Chief Adewale Adeyemi (ARM Redemption Executed)',
+        narration: `Rent disbursed to landlord: Chief Adewale Adeyemi (ARM WithdrawalId: ${red5.withdrawalId})`,
+        metadata: { armWithdrawalId: red5.withdrawalId, armTransactionId: red5.transactionId },
+        createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
       },
       {
         vaultId: vault5.id,
@@ -730,9 +858,10 @@ async function main() {
         principalDeltaKobo: 0n,
         yieldDeltaKobo: 0n,
         balanceAfterKobo: 0n,
-        reference: `CB_${settleRef}`,
+        reference: `CB-${settleRef}`,
         channel: 'SYSTEM_YIELD',
         narration: 'Gamified Cashback Credited (1.2x early-bird bonus applied)',
+        createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
       },
     ],
   })
@@ -747,17 +876,11 @@ async function main() {
       totalScore: 100,
     },
   })
-  console.log(`✅ [User 5] Completed Settlement / Historical Record created: ${'arm-settled@goodtenants.africa'}`)
+  console.log(
+    `✅ [User 5] Completed Settlement seeded with real ARM PurchaseId (${pur5.purchaseId}) & WithdrawalId (${red5.withdrawalId})`,
+  )
 
-  console.log('\n🎉 ALL ARM DEMO USERS SEEDED SUCCESSFULLY!')
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
-  console.log('ALL USERS PASSWORD: Password123\n')
-  console.log('1. Onboarding Demo:     arm-onboard@goodtenants.africa')
-  console.log('2. Active Subscriptions: arm-subscriber@goodtenants.africa')
-  console.log('3. Redemption Demo:      arm-redeem@goodtenants.africa')
-  console.log('4. Early Breakout Demo:  arm-breakout@goodtenants.africa')
-  console.log('5. Completed Settlement: arm-settled@goodtenants.africa')
-  console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━')
+  console.log('\n🎉 ALL ARM DEMO USERS SEEDED WITH LIVE ARM SANDBOX TRANSACTIONS!')
 }
 
 main()

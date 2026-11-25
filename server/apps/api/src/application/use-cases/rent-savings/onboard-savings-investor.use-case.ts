@@ -582,6 +582,8 @@ export class OnboardSavingsInvestorUseCase {
 
     const resolvedUnlockDate = new Date(resolvedDueDate.getTime() - 30 * 24 * 60 * 60 * 1000)
 
+    let targetVaultId: number | null = activeVault?.id ?? null
+
     if (activeVault) {
       const updateData: any = {
         dvaCustomerCode: paystackCustomerCode,
@@ -675,6 +677,7 @@ export class OnboardSavingsInvestorUseCase {
           investmentProvider: 'ARM',
         },
       })
+      targetVaultId = newVault.id
 
       await this.prisma.upward_rent_savings_score.upsert({
         where: { vaultId: newVault.id },
@@ -763,14 +766,25 @@ export class OnboardSavingsInvestorUseCase {
           await this.prisma.upward_kyc_verification.updateMany({
             where: { userId: user.id },
             data: {
-              armCustomerMembershipId: armRes.customerMembershipId || null,
+              armCustomerMembershipId: armRes.customerMembershipId || armRes.customerId || null,
               armCrmAccountNumber: armRes.crmAccountNumber || null,
               armSyncStatus: armRes.status || 'Submitted',
-              armCompletedSections: 63,
+              armCompletedSections: armRes.completedSections ?? 63,
             },
           })
+          if (targetVaultId && this.prisma?.upward_rent_vault) {
+            await this.prisma.upward_rent_vault.update({
+              where: { id: targetVaultId },
+              data: {
+                investmentProvider: 'ARM',
+                providerMembershipId: armRes.customerMembershipId || null,
+                providerAccountNumber: armRes.crmAccountNumber || null,
+                providerCrmStatus: armRes.status || 'Submitted',
+              },
+            })
+          }
           this.logger.log(
-            `ARM investor onboarding successfully registered: membershipId: ${armRes.customerMembershipId}`,
+            `ARM investor onboarding successfully registered: membershipId: ${armRes.customerMembershipId || armRes.customerId}`,
           )
         }
       } catch (armErr: any) {

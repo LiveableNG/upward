@@ -25,14 +25,14 @@ export class AdminArmController {
 
   @Get('stats')
   @Roles(AdminRole.SUPERADMIN, AdminRole.CUSTOMER_SUPPORT, AdminRole.DEVELOPER)
-  async getStats() {
-    return this.getStatsUseCase.execute()
+  async getStats(@Query('refresh') refresh?: string) {
+    return this.getStatsUseCase.execute(refresh === 'true')
   }
 
   @Get('customers')
   @Roles(AdminRole.SUPERADMIN, AdminRole.CUSTOMER_SUPPORT, AdminRole.DEVELOPER)
-  async getCustomers() {
-    return this.getCustomersUseCase.execute()
+  async getCustomers(@Query('refresh') refresh?: string) {
+    return this.getCustomersUseCase.execute(refresh === 'true')
   }
 
   @Get('transactions')

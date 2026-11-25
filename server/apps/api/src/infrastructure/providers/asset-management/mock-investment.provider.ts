@@ -22,7 +22,9 @@ export class MockInvestmentProvider implements IAssetManagementProvider {
       annualGrossYieldRate: 0.18,
       dailyYieldRate: 0.16 / 365,
       productCode,
+      productName: 'ARM Money Market Fund (Mock)',
       canInvest: true,
+      isLive: false,
     }
   }
 

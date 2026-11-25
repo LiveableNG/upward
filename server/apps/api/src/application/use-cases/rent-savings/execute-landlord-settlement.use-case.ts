@@ -126,6 +126,7 @@ export class ExecuteLandlordSettlementUseCase {
 
     // Redeem investment funds from asset manager (ARM Connect) to Upward settlement float
     let armWithdrawalId: string | null = null
+    let armTransactionId: string | null = null
     if (vault.investmentProvider) {
       try {
         const provider = this.providerRegistry.getProvider(vault.investmentProvider)
@@ -139,6 +140,9 @@ export class ExecuteLandlordSettlementUseCase {
         if (redeemRes.withdrawalId) {
           armWithdrawalId = redeemRes.withdrawalId
           this.logger.log(`ARM settlement redemption processed. WithdrawalId: ${armWithdrawalId}`)
+        }
+        if (redeemRes.transactionId) {
+          armTransactionId = redeemRes.transactionId
         }
       } catch (redeemErr: any) {
         this.logger.warn(
@@ -184,6 +188,7 @@ export class ExecuteLandlordSettlementUseCase {
         accountNumber: dto.landlord_account_number,
         nipSessionId,
         armWithdrawalId,
+        ...(armTransactionId ? { armTransactionId } : {}),
       },
     })
 
