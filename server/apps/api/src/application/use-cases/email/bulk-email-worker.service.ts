@@ -30,6 +30,7 @@ export class BulkEmailWorkerService implements OnModuleInit, OnModuleDestroy {
   ) {}
 
   onModuleInit() {
+    if (process.env.NODE_ENV === 'test') return
     this.startupTimer = setTimeout(() => {
       this.processQueueTick().catch((err) => {
         this.logger.error('Startup BullMQ bulk email reconciliation failed:', err)
