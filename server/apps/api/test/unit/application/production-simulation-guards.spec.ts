@@ -3,6 +3,7 @@ import * as crypto from 'crypto'
 import { isProductionRuntime } from '../../../src/shared/utils/runtime-env'
 import { SimulateTransferUseCase } from '../../../src/application/use-cases/payments/simulate-transfer.use-case'
 import { ProcessPaystackSavingsWebhookUseCase } from '../../../src/application/use-cases/rent-savings/process-paystack-savings-webhook.use-case'
+import { SimulateVaultDepositUseCase } from '../../../src/application/use-cases/rent-savings/simulate-vault-deposit.use-case'
 import { ProcessPaymentWebhookUseCase } from '../../../src/application/use-cases/payments/process-payment-webhook.use-case'
 import { OnboardSavingsInvestorUseCase } from '../../../src/application/use-cases/rent-savings/onboard-savings-investor.use-case'
 
@@ -84,6 +85,8 @@ describe('Production simulation & mock DVA guards', () => {
         { get: () => 'sk_live_secret' } as any,
         {} as any,
         {} as any,
+        {} as any,
+        {} as any,
       )
 
       const payload = {
@@ -102,6 +105,8 @@ describe('Production simulation & mock DVA guards', () => {
 
       const uc = new ProcessPaystackSavingsWebhookUseCase(
         { get: () => '' } as any,
+        {} as any,
+        {} as any,
         {} as any,
         {} as any,
       )
@@ -125,6 +130,8 @@ describe('Production simulation & mock DVA guards', () => {
         { get: () => secret } as any,
         { findTransactionByReference: jest.fn().mockResolvedValue({ id: 1 }) } as any,
         {} as any,
+        {} as any,
+        {} as any,
       )
 
       const payload = {
@@ -139,6 +146,30 @@ describe('Production simulation & mock DVA guards', () => {
         status: 'already_processed',
         reference: 'DEP_OK',
       })
+    })
+  })
+
+  describe('SimulateVaultDepositUseCase', () => {
+    it('blocks simulated vault deposits in production and with live Paystack keys', async () => {
+      process.env.NODE_ENV = 'production'
+      const ucProd = new SimulateVaultDepositUseCase(
+        { get: () => 'sk_test_123' } as any,
+        {} as any,
+        {} as any,
+      )
+      await expect(
+        ucProd.execute(1, { amount_kobo: 500000 }),
+      ).rejects.toThrow(ForbiddenException)
+
+      process.env.NODE_ENV = 'development'
+      const ucLive = new SimulateVaultDepositUseCase(
+        { get: () => 'sk_live_secret' } as any,
+        {} as any,
+        {} as any,
+      )
+      await expect(
+        ucLive.execute(1, { amount_kobo: 500000 }),
+      ).rejects.toThrow(ForbiddenException)
     })
   })
 

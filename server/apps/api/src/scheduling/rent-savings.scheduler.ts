@@ -1,4 +1,4 @@
-import { Injectable, Logger, Inject } from '@nestjs/common'
+import { Injectable, Logger, Inject, Optional } from '@nestjs/common'
 import { Cron } from '@nestjs/schedule'
 import { PrismaService } from '../shared/infrastructure/prisma/prisma.service'
 import {
@@ -9,6 +9,7 @@ import {
   IRentAdvanceRepository,
   RENT_ADVANCE_REPOSITORY,
 } from '../domains/rent-savings/rent-advance.repository'
+import { ARM_JOB_QUEUE, IArmJobQueue } from '../domains/rent-savings/arm-job.interface'
 import { RentSavingsCalculatorEngine } from '../domains/rent-savings/rent-savings-calculator.engine'
 import { AssetManagementProviderRegistry } from '../infrastructure/providers/asset-management/asset-management-provider.registry'
 import { PlatformRatesService } from '../shared/infrastructure/common/platform-rates.service'
@@ -25,6 +26,9 @@ export class RentSavingsScheduler {
     private readonly rentAdvanceRepo: IRentAdvanceRepository,
     private readonly providerRegistry: AssetManagementProviderRegistry,
     private readonly platformRates: PlatformRatesService,
+    @Optional()
+    @Inject(ARM_JOB_QUEUE)
+    private readonly armJobQueue?: IArmJobQueue,
   ) {}
 
   /**
@@ -150,46 +154,28 @@ export class RentSavingsScheduler {
   }
 
   /**
-   * Cron 2: Omnibus Bulk Sweep Routine (03:30 PM WAT / 14:30 UTC)
-   * Aggregates collections from past 24h and subscribes to master MMF pool via active provider.
+   * Cron 2: Durable ARM Outbox Safety-Net Reconciler (Every 2 minutes)
+   * Re-enqueues any `upward_arm_job` stuck in QUEUED (e.g. brief Redis blip during commit)
+   * and recovers stale PROCESSING locks (>10m). Never double-subscribes already processed deposits.
+   */
+  @Cron('*/2 * * * *')
+  async reconcileArmBackgroundJobs() {
+    if (!this.armJobQueue) return
+    try {
+      await this.armJobQueue.reconcilePendingJobs()
+    } catch (err) {
+      this.logger.error('Failed to reconcile pending ARM background jobs', err)
+    }
+  }
+
+  /**
+   * Retained for backward compatibility with external schedulers.
+   * Delegates strictly to the idempotent outbox reconciler so deposits are NEVER double-invested.
    */
   @Cron('30 14 * * *')
   async executeOmnibusSweep() {
-    this.logger.log('Starting Omnibus Sweep routine to fund manager pool...')
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
-
-    try {
-      const recentDeposits = await this.prisma.upward_rent_vault_transaction.findMany({
-        where: {
-          type: 'DEPOSIT',
-          createdAt: { gte: twentyFourHoursAgo },
-        },
-      })
-
-      if (recentDeposits.length === 0) {
-        this.logger.log('No new deposits to sweep in the past 24 hours.')
-        return
-      }
-
-      const totalKobo = recentDeposits.reduce((sum, tx) => sum + tx.amountKobo, 0n)
-      this.logger.log(
-        `Sweeping ₦${Number(totalKobo) / 100} across ${recentDeposits.length} deposits to ARM pool...`,
-      )
-
-      const provider = this.providerRegistry.getProvider('ARM')
-      const sweepRef = `SWEEP_${Date.now()}`
-
-      await provider.subscribe({
-        membershipId: 'OMNIBUS_MASTER',
-        productCode: 'ARMMMF',
-        amountKobo: totalKobo,
-        reference: sweepRef,
-      })
-
-      this.logger.log(`Omnibus sweep completed successfully. Reference: ${sweepRef}`)
-    } catch (err) {
-      this.logger.error('Failed to execute Omnibus Sweep routine', err)
-    }
+    this.logger.log('Running daily ARM outbox reconciliation check...')
+    await this.reconcileArmBackgroundJobs()
   }
 
   /**

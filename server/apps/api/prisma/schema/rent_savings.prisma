@@ -45,6 +45,7 @@ model upward_rent_vault {
   advances                upward_rent_advance[]
   settlements             upward_rent_settlement[]
   savingsScore            upward_rent_savings_score?
+  armJobs                 upward_arm_job[]
 
   @@index([userId])
   @@index([lockStatus])
@@ -70,6 +71,7 @@ model upward_rent_vault_transaction {
 
   vault                 upward_rent_vault   @relation(fields: [vaultId], references: [id], onDelete: Cascade)
   user                  upward_user         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  armJobs               upward_arm_job[]
 
   @@index([vaultId])
   @@index([userId])
@@ -153,4 +155,42 @@ model upward_rent_savings_score {
   user                  upward_user       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model upward_arm_job {
+  id               Int       @id @default(autoincrement())
+  uuid             String    @unique @default(uuid())
+  idempotencyKey   String    @unique
+  jobType          String    // SUBSCRIBE, REDEEM, ONBOARD
+  status           String    @default("QUEUED") // QUEUED, PROCESSING, COMPLETED, FAILED
+  vaultId          Int?
+  userId           Int?
+  transactionId    Int?
+  amountKobo       BigInt?
+  reference        String
+  armTransactionId String    @unique
+  armInstructionId String?   // ARM purchaseId, withdrawalId, or customerId — once set, job can never re-execute
+  payload          Json
+  result           Json?
+  attempts         Int       @default(0)
+  maxAttempts      Int       @default(5)
+  lastError        String?   @db.Text
+  lockedAt         DateTime?
+  completedAt      DateTime?
+  failedAt         DateTime?
+  notifiedUserAt   DateTime?
+  notifiedAdminAt  DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @default(now()) @updatedAt
+
+  vault            upward_rent_vault?             @relation(fields: [vaultId], references: [id], onDelete: SetNull)
+  user             upward_user?                   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  transaction      upward_rent_vault_transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([status, lockedAt])
+  @@index([vaultId])
+  @@index([userId])
+  @@index([reference])
+  @@index([transactionId])
 }

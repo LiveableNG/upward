@@ -5,8 +5,10 @@ import {
   NotFoundException,
   ForbiddenException,
   Logger,
+  Optional,
 } from '@nestjs/common'
 import { IsBoolean, IsNotEmpty, IsOptional, IsString } from 'class-validator'
+import * as crypto from 'crypto'
 import {
   IRentVaultRepository,
   RENT_VAULT_REPOSITORY,
@@ -19,8 +21,10 @@ import {
   IRentSettlementRepository,
   RENT_SETTLEMENT_REPOSITORY,
 } from '../../../domains/rent-savings/rent-settlement.repository'
+import { ARM_JOB_QUEUE, IArmJobQueue } from '../../../domains/rent-savings/arm-job.interface'
 import { RentSavingsCalculatorEngine } from '../../../domains/rent-savings/rent-savings-calculator.engine'
 import { AssetManagementProviderRegistry } from '../../../infrastructure/providers/asset-management/asset-management-provider.registry'
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 
 export class ExecuteLandlordSettlementDto {
   @IsNotEmpty()
@@ -56,6 +60,11 @@ export class ExecuteLandlordSettlementUseCase {
     @Inject(RENT_SETTLEMENT_REPOSITORY)
     private readonly rentSettlementRepo: IRentSettlementRepository,
     private readonly providerRegistry: AssetManagementProviderRegistry,
+    @Optional()
+    private readonly prisma?: PrismaService,
+    @Optional()
+    @Inject(ARM_JOB_QUEUE)
+    private readonly armJobQueue?: IArmJobQueue,
   ) {}
 
   async execute(userId: number, vaultUuid: string, dto: ExecuteLandlordSettlementDto) {
@@ -104,12 +113,6 @@ export class ExecuteLandlordSettlementUseCase {
       )
       amountToDisburse =
         totalAccumulatedBalance > totalOwed ? totalAccumulatedBalance - totalOwed : 0n
-
-      await this.rentAdvanceRepo.update(activeAdvance.id, {
-        status: 'OFFSET_AT_SETTLEMENT',
-        amountRepaidKobo: activeAdvance.totalRepayableKobo,
-        repaidAt: now,
-      })
     }
 
     // Calculate gamified cashback
@@ -124,96 +127,252 @@ export class ExecuteLandlordSettlementUseCase {
     const settlementStatus = vault.autoBypassPmApproval ? 'PAID' : 'DISBURSED_PENDING_PM_APPROVAL'
     const receiptDownloadUrl = `/api/v1/rent-vaults/${vault.uuid}/receipt.pdf`
 
-    // Redeem investment funds from asset manager (ARM Connect) to Upward settlement float
     let armWithdrawalId: string | null = null
     let armTransactionId: string | null = null
-    if (vault.investmentProvider) {
-      try {
-        const provider = this.providerRegistry.getProvider(vault.investmentProvider)
-        const redeemRes = await provider.redeem({
-          membershipId: vault.providerMembershipId || 'OMNIBUS_MASTER',
-          productCode: 'ARMMMF',
-          productAccountNumber: vault.providerAccountNumber || 'OMNIBUS_FLOAT_01',
-          amountKobo: totalAccumulatedBalance,
-          reference: `RED_${settlementReference}`,
+    let queuedArmJob: {
+      id: number
+      uuid: string
+      idempotencyKey: string
+      jobType: 'REDEEM'
+    } | null = null
+
+    if (this.prisma && this.armJobQueue) {
+      // Atomic PostgreSQL transaction: lock vault FOR UPDATE, create settlement + ledger + durable ARM REDEEM job
+      armTransactionId = vault.investmentProvider ? crypto.randomUUID() : null
+
+      await this.prisma.$transaction(async (tx) => {
+        if (typeof tx.$queryRaw === 'function') {
+          await tx.$queryRaw`SELECT id FROM upward_rent_vault WHERE id = ${vault.id} FOR UPDATE`
+        }
+
+        const freshVault = await tx.upward_rent_vault.findUniqueOrThrow({
+          where: { id: vault.id },
         })
-        if (redeemRes.withdrawalId) {
-          armWithdrawalId = redeemRes.withdrawalId
-          this.logger.log(`ARM settlement redemption processed. WithdrawalId: ${armWithdrawalId}`)
+        if (freshVault.lockStatus === 'SETTLED') {
+          throw new BadRequestException('This vault has already been settled.')
         }
-        if (redeemRes.transactionId) {
-          armTransactionId = redeemRes.transactionId
+        if (freshVault.lockStatus === 'BROKEN_OUT') {
+          throw new BadRequestException('This vault was previously broken out and closed.')
         }
-      } catch (redeemErr: any) {
-        this.logger.warn(
-          `Direct ARM redemption queued / offset against pre-funded settlement float for vault ${vault.uuid}: ${redeemErr?.message}`,
+
+        if (activeAdvance && activeAdvance.status === 'ACTIVE') {
+          await this.rentAdvanceRepo.update(
+            activeAdvance.id,
+            {
+              status: 'OFFSET_AT_SETTLEMENT',
+              amountRepaidKobo: activeAdvance.totalRepayableKobo,
+              repaidAt: now,
+            },
+            tx,
+          )
+        }
+
+        await this.rentSettlementRepo.create(
+          {
+            vaultId: vault.id,
+            userId,
+            landlordBankCode: dto.landlord_bank_code,
+            landlordAccountNumber: dto.landlord_account_number,
+            landlordName: dto.landlord_name,
+            propertyAddress: dto.property_address || null,
+            amountPaidToLandlordKobo: amountToDisburse,
+            cashbackCreditedKobo,
+            earlyBirdMultiplierApplied: cashbackResult.earlyBirdApplied,
+            nipSessionId,
+            settlementReference,
+            receiptPdfUrl: receiptDownloadUrl,
+            settlementStatus,
+            smsAlertDispatched: true,
+            disburseSurplusToWallet: dto.disburse_surplus_to_wallet ?? true,
+          },
+          tx,
         )
+
+        const settlementTx = await this.rentVaultRepo.createTransaction(
+          {
+            vaultId: vault.id,
+            userId,
+            type: 'SETTLEMENT_DISBURSEMENT',
+            amountKobo: amountToDisburse,
+            principalDeltaKobo: -freshVault.currentPrincipalKobo,
+            yieldDeltaKobo: -freshVault.accruedYieldKobo,
+            balanceAfterKobo: 0n,
+            reference: settlementReference,
+            channel: 'NIP_TRANSFER',
+            narration: `Rent settlement payout to landlord ${dto.landlord_name}`,
+            metadata: {
+              landlordName: dto.landlord_name,
+              bankCode: dto.landlord_bank_code,
+              accountNumber: dto.landlord_account_number,
+              nipSessionId,
+              armSyncStatus: freshVault.investmentProvider ? 'QUEUED' : 'NOT_APPLICABLE',
+              ...(armTransactionId ? { armTransactionId } : {}),
+            },
+          },
+          tx,
+        )
+
+        if (cashbackCreditedKobo > 0n) {
+          await this.rentVaultRepo.createTransaction(
+            {
+              vaultId: vault.id,
+              userId,
+              type: 'CASHBACK',
+              amountKobo: cashbackCreditedKobo,
+              principalDeltaKobo: 0n,
+              yieldDeltaKobo: 0n,
+              balanceAfterKobo: 0n,
+              reference: `CBK_${settlementReference}`,
+              channel: 'SYSTEM_YIELD',
+              narration: `Gamified rent savings cashback credited (${cashbackResult.earlyBirdApplied ? '1.2x early-bird bonus' : 'standard'})`,
+            },
+            tx,
+          )
+        }
+
+        await this.rentVaultRepo.update(
+          vault.id,
+          {
+            lockStatus: 'SETTLED',
+            currentPrincipalKobo: 0n,
+            accruedYieldKobo: 0n,
+          },
+          tx,
+        )
+
+        if (freshVault.investmentProvider && armTransactionId) {
+          const createdJob = await tx.upward_arm_job.create({
+            data: {
+              idempotencyKey: `ARM_REDEEM__${settlementReference}`,
+              jobType: 'REDEEM',
+              status: 'QUEUED',
+              vaultId: freshVault.id,
+              userId,
+              transactionId: settlementTx.id,
+              amountKobo: freshVault.currentPrincipalKobo + freshVault.accruedYieldKobo,
+              reference: settlementReference,
+              armTransactionId,
+              maxAttempts: 5,
+              payload: {
+                provider: freshVault.investmentProvider,
+                membershipId: freshVault.providerMembershipId || 'OMNIBUS_MASTER',
+                productCode: 'ARMMMF',
+                productAccountNumber: freshVault.providerAccountNumber || 'OMNIBUS_FLOAT_01',
+                amountKobo: (
+                  freshVault.currentPrincipalKobo + freshVault.accruedYieldKobo
+                ).toString(),
+                armReference: `RED-${settlementReference}`,
+                reason: 'LANDLORD_SETTLEMENT',
+              } as any,
+            },
+          })
+          queuedArmJob = {
+            id: createdJob.id,
+            uuid: createdJob.uuid,
+            idempotencyKey: createdJob.idempotencyKey,
+            jobType: 'REDEEM',
+          }
+        }
+      })
+
+      if (queuedArmJob) {
+        await this.armJobQueue.enqueueJob(queuedArmJob)
       }
-    }
+    } else {
+      // Direct fallback when running in isolated unit tests without Prisma/BullMQ
+      if (activeAdvance && activeAdvance.status === 'ACTIVE') {
+        await this.rentAdvanceRepo.update(activeAdvance.id, {
+          status: 'OFFSET_AT_SETTLEMENT',
+          amountRepaidKobo: activeAdvance.totalRepayableKobo,
+          repaidAt: now,
+        })
+      }
 
-    // Create settlement record
-    await this.rentSettlementRepo.create({
-      vaultId: vault.id,
-      userId,
-      landlordBankCode: dto.landlord_bank_code,
-      landlordAccountNumber: dto.landlord_account_number,
-      landlordName: dto.landlord_name,
-      propertyAddress: dto.property_address || null,
-      amountPaidToLandlordKobo: amountToDisburse,
-      cashbackCreditedKobo,
-      earlyBirdMultiplierApplied: cashbackResult.earlyBirdApplied,
-      nipSessionId,
-      settlementReference,
-      receiptPdfUrl: receiptDownloadUrl,
-      settlementStatus,
-      smsAlertDispatched: true,
-      disburseSurplusToWallet: dto.disburse_surplus_to_wallet ?? true,
-    })
+      if (vault.investmentProvider) {
+        try {
+          const provider = this.providerRegistry.getProvider(vault.investmentProvider)
+          const redeemRes = await provider.redeem({
+            membershipId: vault.providerMembershipId || 'OMNIBUS_MASTER',
+            productCode: 'ARMMMF',
+            productAccountNumber: vault.providerAccountNumber || 'OMNIBUS_FLOAT_01',
+            amountKobo: totalAccumulatedBalance,
+            reference: `RED_${settlementReference}`,
+          })
+          if (redeemRes.withdrawalId) {
+            armWithdrawalId = redeemRes.withdrawalId
+            this.logger.log(`ARM settlement redemption processed. WithdrawalId: ${armWithdrawalId}`)
+          }
+          if (redeemRes.transactionId) {
+            armTransactionId = redeemRes.transactionId
+          }
+        } catch (redeemErr: any) {
+          this.logger.warn(
+            `Direct ARM redemption queued / offset against pre-funded settlement float for vault ${vault.uuid}: ${redeemErr?.message}`,
+          )
+        }
+      }
 
-    // Record ledger transactions
-    await this.rentVaultRepo.createTransaction({
-      vaultId: vault.id,
-      userId,
-      type: 'SETTLEMENT_DISBURSEMENT',
-      amountKobo: amountToDisburse,
-      principalDeltaKobo: -vault.currentPrincipalKobo,
-      yieldDeltaKobo: -vault.accruedYieldKobo,
-      balanceAfterKobo: 0n,
-      reference: settlementReference,
-      channel: 'NIP_TRANSFER',
-      narration: `Rent settlement payout to landlord ${dto.landlord_name}`,
-      metadata: {
+      await this.rentSettlementRepo.create({
+        vaultId: vault.id,
+        userId,
+        landlordBankCode: dto.landlord_bank_code,
+        landlordAccountNumber: dto.landlord_account_number,
         landlordName: dto.landlord_name,
-        bankCode: dto.landlord_bank_code,
-        accountNumber: dto.landlord_account_number,
+        propertyAddress: dto.property_address || null,
+        amountPaidToLandlordKobo: amountToDisburse,
+        cashbackCreditedKobo,
+        earlyBirdMultiplierApplied: cashbackResult.earlyBirdApplied,
         nipSessionId,
-        armWithdrawalId,
-        ...(armTransactionId ? { armTransactionId } : {}),
-      },
-    })
+        settlementReference,
+        receiptPdfUrl: receiptDownloadUrl,
+        settlementStatus,
+        smsAlertDispatched: true,
+        disburseSurplusToWallet: dto.disburse_surplus_to_wallet ?? true,
+      })
 
-    if (cashbackCreditedKobo > 0n) {
       await this.rentVaultRepo.createTransaction({
         vaultId: vault.id,
         userId,
-        type: 'CASHBACK',
-        amountKobo: cashbackCreditedKobo,
-        principalDeltaKobo: 0n,
-        yieldDeltaKobo: 0n,
+        type: 'SETTLEMENT_DISBURSEMENT',
+        amountKobo: amountToDisburse,
+        principalDeltaKobo: -vault.currentPrincipalKobo,
+        yieldDeltaKobo: -vault.accruedYieldKobo,
         balanceAfterKobo: 0n,
-        reference: `CBK_${settlementReference}`,
-        channel: 'SYSTEM_YIELD',
-        narration: `Gamified rent savings cashback credited (${cashbackResult.earlyBirdApplied ? '1.2x early-bird bonus' : 'standard'})`,
+        reference: settlementReference,
+        channel: 'NIP_TRANSFER',
+        narration: `Rent settlement payout to landlord ${dto.landlord_name}`,
+        metadata: {
+          landlordName: dto.landlord_name,
+          bankCode: dto.landlord_bank_code,
+          accountNumber: dto.landlord_account_number,
+          nipSessionId,
+          armWithdrawalId,
+          ...(armTransactionId ? { armTransactionId } : {}),
+        },
+      })
+
+      if (cashbackCreditedKobo > 0n) {
+        await this.rentVaultRepo.createTransaction({
+          vaultId: vault.id,
+          userId,
+          type: 'CASHBACK',
+          amountKobo: cashbackCreditedKobo,
+          principalDeltaKobo: 0n,
+          yieldDeltaKobo: 0n,
+          balanceAfterKobo: 0n,
+          reference: `CBK_${settlementReference}`,
+          channel: 'SYSTEM_YIELD',
+          narration: `Gamified rent savings cashback credited (${cashbackResult.earlyBirdApplied ? '1.2x early-bird bonus' : 'standard'})`,
+        })
+      }
+
+      await this.rentVaultRepo.update(vault.id, {
+        lockStatus: 'SETTLED',
+        currentPrincipalKobo: 0n,
+        accruedYieldKobo: 0n,
+        armWithdrawalId: armWithdrawalId || undefined,
       })
     }
-
-    // Mark vault as settled
-    await this.rentVaultRepo.update(vault.id, {
-      lockStatus: 'SETTLED',
-      currentPrincipalKobo: 0n,
-      accruedYieldKobo: 0n,
-      armWithdrawalId: armWithdrawalId || undefined,
-    })
 
     // Award completion points to savings score (+15 points)
     const currentScore = await this.rentVaultRepo.findSavingsScoreByVaultId(vault.id)

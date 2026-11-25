@@ -24,8 +24,8 @@ export class RentSavingsWebhookController {
     @Headers('x-paystack-signature') signature: string,
     @Req() req: any,
   ) {
-    this.logger.log(`Received Paystack webhook event: ${payload?.event}`)
-    const rawBody = req.rawBody || JSON.stringify(payload)
+    this.logger.log(`Received Paystack savings webhook event: ${payload?.event}`)
+    const rawBody: string | Buffer | undefined = req.rawBody ?? JSON.stringify(payload)
     return this.processPaystackWebhookUseCase.execute(payload, signature, rawBody)
   }
 

@@ -125,6 +125,8 @@ import {
   GetArmPortfolioStatsUseCase,
   GetArmCustomersUseCase,
   GetArmTransactionsUseCase,
+  GetArmJobsUseCase,
+  RetryArmJobUseCase,
 } from './use-cases/admin/admin-arm.use-cases'
 
 import { JoinWaitlistUseCase } from './use-cases/waitlist/join-waitlist.use-case'
@@ -603,6 +605,7 @@ import { CreateRentVaultUseCase } from './use-cases/rent-savings/create-rent-vau
 import { GetMyRentVaultUseCase } from './use-cases/rent-savings/get-my-rent-vault.use-case'
 import { ProcessPaystackSavingsWebhookUseCase } from './use-cases/rent-savings/process-paystack-savings-webhook.use-case'
 import { ProcessArmWebhookUseCase } from './use-cases/rent-savings/process-arm-webhook.use-case'
+import { SimulateVaultDepositUseCase } from './use-cases/rent-savings/simulate-vault-deposit.use-case'
 import { DisburseEmergencyAdvanceUseCase } from './use-cases/rent-savings/disburse-emergency-advance.use-case'
 import { ExecuteLandlordSettlementUseCase } from './use-cases/rent-savings/execute-landlord-settlement.use-case'
 import { BreakoutRentVaultUseCase } from './use-cases/rent-savings/breakout-rent-vault.use-case'
@@ -659,6 +662,7 @@ const UseCases: any[] = [
   GetMyRentVaultUseCase,
   ProcessPaystackSavingsWebhookUseCase,
   ProcessArmWebhookUseCase,
+  SimulateVaultDepositUseCase,
   DisburseEmergencyAdvanceUseCase,
   ExecuteLandlordSettlementUseCase,
   BreakoutRentVaultUseCase,
@@ -748,6 +752,8 @@ const UseCases: any[] = [
   GetArmPortfolioStatsUseCase,
   GetArmCustomersUseCase,
   GetArmTransactionsUseCase,
+  GetArmJobsUseCase,
+  RetryArmJobUseCase,
   SearchFeeTargetsUseCase,
   GetAreaPriceGuideUseCase,
   GetAreaPriceGuideStatesUseCase,

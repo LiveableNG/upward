@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config'
 import * as crypto from 'crypto'
 import {
   IAssetManagementProvider,
+  ArmOperationError,
   YieldMetrics,
   InvestorOnboardingRequest,
   InvestorOnboardingResponse,
@@ -690,14 +691,36 @@ export class ArmConnectInvestmentProvider implements IAssetManagementProvider {
     }
   }
 
+  /**
+   * Derives a deterministic RFC-4122 UUID for omnibus fallback requests from a primary
+   * armTransactionId so retry reconciliation can check both primary and omnibus IDs
+   * against ARM without ever re-submitting a completed instruction.
+   */
+  public static deriveOmnibusTransactionId(primaryTransactionId: string): string {
+    const hash = crypto
+      .createHash('sha256')
+      .update(`${primaryTransactionId}:arm-omnibus-fallback`)
+      .digest()
+    const bytes = Buffer.from(hash.subarray(0, 16))
+    bytes[6] = (bytes[6]! & 0x0f) | 0x40
+    bytes[8] = (bytes[8]! & 0x3f) | 0x80
+    const hex = bytes.toString('hex')
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`
+  }
+
+  private static isRetryableHttpStatus(status: number): boolean {
+    return status === 408 || status === 425 || status === 429 || status >= 500
+  }
+
   private async executeBulkPurchase(
     membershipId: string,
     productCode: string,
     amountInNaira: number,
     reference: string,
     reInvestDividends = true,
+    explicitTransactionId?: string,
   ): Promise<{ response: Response; resJson: any; transactionId: string }> {
-    const transactionId = crypto.randomUUID()
+    const transactionId = explicitTransactionId || crypto.randomUUID()
     const transactionReference = ArmConnectInvestmentProvider.sanitizeTransactionReference(
       reference,
       'UPW-SUB',
@@ -735,9 +758,10 @@ export class ArmConnectInvestmentProvider implements IAssetManagementProvider {
     )
       ? request.membershipId.trim()
       : omnibusMembershipId
+    const primaryTransactionId = request.transactionId || crypto.randomUUID()
 
     this.logger.log(
-      `Executing ARM bulk purchase: ₦${amountInNaira} for product ${productCode} (membershipId=${preferredMembershipId})...`,
+      `Executing ARM bulk purchase: ₦${amountInNaira} for product ${productCode} (membershipId=${preferredMembershipId}, txId=${primaryTransactionId})...`,
     )
 
     let { response, resJson, transactionId } = await this.executeBulkPurchase(
@@ -746,6 +770,7 @@ export class ArmConnectInvestmentProvider implements IAssetManagementProvider {
       amountInNaira,
       request.reference,
       request.reInvestDividends ?? true,
+      primaryTransactionId,
     )
 
     const items = resJson.data ?? resJson.Data
@@ -761,8 +786,10 @@ export class ArmConnectInvestmentProvider implements IAssetManagementProvider {
         itemMessage.toLowerCase().includes('merchant identities') ||
         itemMessage.toLowerCase().includes('not belong'))
     ) {
+      const omnibusTransactionId =
+        ArmConnectInvestmentProvider.deriveOmnibusTransactionId(primaryTransactionId)
       this.logger.log(
-        `Customer ${preferredMembershipId} pending CRM approval (${itemMessage}); routing ₦${amountInNaira} purchase through GoodTenant B2B2C Omnibus (${omnibusMembershipId})...`,
+        `Customer ${preferredMembershipId} pending CRM approval (${itemMessage}); routing ₦${amountInNaira} purchase through GoodTenant B2B2C Omnibus (${omnibusMembershipId}, txId=${omnibusTransactionId})...`,
       )
       const fallback = await this.executeBulkPurchase(
         omnibusMembershipId,
@@ -770,6 +797,7 @@ export class ArmConnectInvestmentProvider implements IAssetManagementProvider {
         amountInNaira,
         `${request.reference}-OMNI`,
         request.reInvestDividends ?? true,
+        omnibusTransactionId,
       )
       response = fallback.response
       resJson = fallback.resJson
@@ -779,13 +807,17 @@ export class ArmConnectInvestmentProvider implements IAssetManagementProvider {
     }
 
     if (!response.ok) {
-      throw new Error(`ARM purchase call failed (${response.status}): ${JSON.stringify(resJson)}`)
+      throw new ArmOperationError(
+        `ARM purchase call failed (${response.status}): ${JSON.stringify(resJson)}`,
+        response.status,
+        ArmConnectInvestmentProvider.isRetryableHttpStatus(response.status),
+      )
     }
 
     if (item && (item.status ?? item.Status) === false) {
-      throw new Error(
-        `ARM purchase item rejected: ${item.message || item.Message || 'Unknown reason'}`,
-      )
+      const msg = item.message || item.Message || 'Unknown reason'
+      const isTransient = /timeout|temporar|unavailable|rate limit|try again|network/i.test(msg)
+      throw new ArmOperationError(`ARM purchase item rejected: ${msg}`, response.status, isTransient)
     }
 
     this.overviewCache = null
@@ -831,14 +863,14 @@ export class ArmConnectInvestmentProvider implements IAssetManagementProvider {
       productAccountNumber = `${effectiveMembershipId}-${productCode}-01`
     }
 
-    const transactionId = crypto.randomUUID()
+    const transactionId = request.transactionId || crypto.randomUUID()
     const transactionReference = ArmConnectInvestmentProvider.sanitizeTransactionReference(
       request.reference,
       'UPW-RED',
     )
 
     this.logger.log(
-      `Executing ARM bulk withdrawal: ₦${amountInNaira} from account ${productAccountNumber} (membershipId=${effectiveMembershipId})...`,
+      `Executing ARM bulk withdrawal: ₦${amountInNaira} from account ${productAccountNumber} (membershipId=${effectiveMembershipId}, txId=${transactionId})...`,
     )
 
     const payload = {
@@ -892,11 +924,14 @@ export class ArmConnectInvestmentProvider implements IAssetManagementProvider {
           membershipId: omnibusMembershipId,
           productAccountNumber: `${omnibusMembershipId}-${productCode}-01`,
           reference: `${request.reference}-OMNI`,
+          transactionId: ArmConnectInvestmentProvider.deriveOmnibusTransactionId(transactionId),
         })
       }
 
-      throw new Error(
+      throw new ArmOperationError(
         `ARM withdrawal call failed (${response.status}): ${itemMsg || JSON.stringify(resJson)}`,
+        response.status,
+        ArmConnectInvestmentProvider.isRetryableHttpStatus(response.status),
       )
     }
 

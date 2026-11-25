@@ -11,6 +11,7 @@ import {
   IAssetManagementProvider,
   ASSET_MANAGEMENT_PROVIDER,
 } from '../../../domains/rent-savings/asset-management.provider'
+import { ARM_JOB_QUEUE, IArmJobQueue } from '../../../domains/rent-savings/arm-job.interface'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 import { PlatformRatesService } from '../../../shared/infrastructure/common/platform-rates.service'
 import { isProductionRuntime } from '../../../shared/utils/runtime-env'
@@ -164,6 +165,9 @@ export class OnboardSavingsInvestorUseCase {
     @Inject(ASSET_MANAGEMENT_PROVIDER)
     private readonly assetManagementProvider: IAssetManagementProvider,
     @Optional() private readonly platformRates?: PlatformRatesService,
+    @Optional()
+    @Inject(ARM_JOB_QUEUE)
+    private readonly armJobQueue?: IArmJobQueue,
   ) {}
 
   async getOnboardingPrefill(userId: number) {
@@ -459,7 +463,7 @@ export class OnboardSavingsInvestorUseCase {
     }
 
     // Record verified investor KYC audit record
-    await this.prisma.upward_kyc_verification.create({
+    const createdKyc = await this.prisma.upward_kyc_verification.create({
       data: {
         uuid: crypto.randomUUID(),
         userId,
@@ -703,92 +707,127 @@ export class OnboardSavingsInvestorUseCase {
       )
     }
 
-    // Dispatch all 6 sections (Bitmask 63) to ARM Connect
+    // Dispatch all 6 sections (Bitmask 63) to ARM Connect asynchronously via durable BullMQ job when available
     if (this.assetManagementProvider.onboardInvestor) {
-      try {
-        this.logger.log(
-          `Forwarding 6-section investor onboarding to ARM Connect for ${user.email}...`,
-        )
-        const armRes = await this.assetManagementProvider.onboardInvestor({
-          customerEmail: user.email,
-          personalDetails: {
-            surname: user.lastName,
-            firstName: user.firstName,
-            dateOfBirth: user.dateOfBirth || returnedDob || '1995-01-01',
-            gender: user.gender === 'Female' ? 'Female' : 'Male',
-            nationality: 'Nigerian',
-            occupation: dto.occupation,
-            sourceOfFunds: dto.source_of_funds,
-            annualExpectedIncomeRange: dto.income_range || '1M-5M',
-            riskAppetite: 'Conservative',
-            riskProfile: 'Balanced',
-            mothersMaidenName: dto.mothers_maiden_name,
-            mobilePhone: user.phone || dto.next_of_kin_phone,
-          },
-          address: {
-            addressNumber: '1',
-            streetName: dto.next_of_kin_address || 'Lagos',
-            town: 'Lagos',
-            residentialCountry: 'Nigeria',
-            residentialStateCode: 'LA',
-          },
-          kycDetails: {
-            bvn: cleanBvn,
-            idType: 'NationalId',
-            idNumber: cleanBvn,
-          },
-          bankDetails:
-            dto.settlement_bank_code && dto.settlement_account_number
-              ? {
-                  bankName: dto.settlement_bank_name || 'Commercial Bank',
-                  accountName: dto.settlement_account_name || `${user.firstName} ${user.lastName}`,
-                  accountNumber: dto.settlement_account_number,
-                  bankCode: dto.settlement_bank_code,
-                }
-              : undefined,
-          nextOfKin: {
-            name: dto.next_of_kin_name,
-            gender: 'Male',
-            relationshipType: dto.next_of_kin_relationship,
-            phone: dto.next_of_kin_phone,
-            email: dto.next_of_kin_email || user.email,
-            address: dto.next_of_kin_address || 'Lagos',
-          },
-          documents: photoBase64
+      const onboardingRequest = {
+        customerEmail: user.email,
+        personalDetails: {
+          surname: user.lastName,
+          firstName: user.firstName,
+          dateOfBirth: user.dateOfBirth || returnedDob || '1995-01-01',
+          gender: (user.gender === 'Female' ? 'Female' : 'Male') as 'Male' | 'Female',
+          nationality: 'Nigerian',
+          occupation: dto.occupation,
+          sourceOfFunds: dto.source_of_funds,
+          annualExpectedIncomeRange: dto.income_range || '1M-5M',
+          riskAppetite: 'Conservative',
+          riskProfile: 'Balanced',
+          mothersMaidenName: dto.mothers_maiden_name,
+          mobilePhone: user.phone || dto.next_of_kin_phone,
+        },
+        address: {
+          addressNumber: '1',
+          streetName: dto.next_of_kin_address || 'Lagos',
+          town: 'Lagos',
+          residentialCountry: 'Nigeria',
+          residentialStateCode: 'LA',
+        },
+        kycDetails: {
+          bvn: cleanBvn,
+          idType: 'NationalId',
+          idNumber: cleanBvn,
+        },
+        bankDetails:
+          dto.settlement_bank_code && dto.settlement_account_number
             ? {
-                passport: photoBase64,
-                bvn_passport: photoBase64,
+                bankName: dto.settlement_bank_name || 'Commercial Bank',
+                accountName: dto.settlement_account_name || `${user.firstName} ${user.lastName}`,
+                accountNumber: dto.settlement_account_number,
+                bankCode: dto.settlement_bank_code,
               }
             : undefined,
-        })
+        nextOfKin: {
+          name: dto.next_of_kin_name,
+          gender: 'Male' as const,
+          relationshipType: dto.next_of_kin_relationship,
+          phone: dto.next_of_kin_phone,
+          email: dto.next_of_kin_email || user.email,
+          address: dto.next_of_kin_address || 'Lagos',
+        },
+        documents: photoBase64
+          ? {
+              passport: photoBase64,
+              bvn_passport: photoBase64,
+            }
+          : undefined,
+      }
 
-        if (armRes && armRes.success) {
-          await this.prisma.upward_kyc_verification.updateMany({
-            where: { userId: user.id },
+      if (this.armJobQueue && this.prisma?.upward_arm_job) {
+        try {
+          const ref = `ONB-${user.id}-${createdKyc?.id || Date.now()}`
+          const armJob = await this.prisma.upward_arm_job.create({
             data: {
-              armCustomerMembershipId: armRes.customerMembershipId || armRes.customerId || null,
-              armCrmAccountNumber: armRes.crmAccountNumber || null,
-              armSyncStatus: armRes.status || 'Submitted',
-              armCompletedSections: armRes.completedSections ?? 63,
+              idempotencyKey: `ARM_ONBOARD__${user.id}__${createdKyc?.id || Date.now()}`,
+              jobType: 'ONBOARD',
+              status: 'QUEUED',
+              vaultId: targetVaultId,
+              userId: user.id,
+              reference: ref,
+              armTransactionId: crypto.randomUUID(),
+              maxAttempts: 5,
+              payload: {
+                provider: 'ARM',
+                onboardingRequest,
+              } as any,
             },
           })
-          if (targetVaultId && this.prisma?.upward_rent_vault) {
-            await this.prisma.upward_rent_vault.update({
-              where: { id: targetVaultId },
+          await this.armJobQueue.enqueueJob({
+            id: armJob.id,
+            uuid: armJob.uuid,
+            idempotencyKey: armJob.idempotencyKey,
+            jobType: 'ONBOARD',
+          })
+          this.logger.log(
+            `Queued background ARM investor onboarding job ${armJob.uuid} for user ${user.id}`,
+          )
+        } catch (queueErr: any) {
+          this.logger.warn(`Could not enqueue ARM onboarding job: ${queueErr?.message}`)
+        }
+      } else {
+        try {
+          this.logger.log(
+            `Forwarding 6-section investor onboarding to ARM Connect for ${user.email}...`,
+          )
+          const armRes = await this.assetManagementProvider.onboardInvestor(onboardingRequest)
+
+          if (armRes && armRes.success) {
+            await this.prisma.upward_kyc_verification.updateMany({
+              where: { userId: user.id },
               data: {
-                investmentProvider: 'ARM',
-                providerMembershipId: armRes.customerMembershipId || null,
-                providerAccountNumber: armRes.crmAccountNumber || null,
-                providerCrmStatus: armRes.status || 'Submitted',
+                armCustomerMembershipId: armRes.customerMembershipId || armRes.customerId || null,
+                armCrmAccountNumber: armRes.crmAccountNumber || null,
+                armSyncStatus: armRes.status || 'Submitted',
+                armCompletedSections: armRes.completedSections ?? 63,
               },
             })
+            if (targetVaultId && this.prisma?.upward_rent_vault) {
+              await this.prisma.upward_rent_vault.update({
+                where: { id: targetVaultId },
+                data: {
+                  investmentProvider: 'ARM',
+                  providerMembershipId: armRes.customerMembershipId || null,
+                  providerAccountNumber: armRes.crmAccountNumber || null,
+                  providerCrmStatus: armRes.status || 'Submitted',
+                },
+              })
+            }
+            this.logger.log(
+              `ARM investor onboarding successfully registered: membershipId: ${armRes.customerMembershipId || armRes.customerId}`,
+            )
           }
-          this.logger.log(
-            `ARM investor onboarding successfully registered: membershipId: ${armRes.customerMembershipId || armRes.customerId}`,
-          )
+        } catch (armErr: any) {
+          this.logger.warn(`ARM onboarding dispatch non-blocking error: ${armErr.message}`)
         }
-      } catch (armErr: any) {
-        this.logger.warn(`ARM onboarding dispatch non-blocking error: ${armErr.message}`)
       }
     }
 

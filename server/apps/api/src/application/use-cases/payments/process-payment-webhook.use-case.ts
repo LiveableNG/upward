@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger, UnauthorizedException } from '@nestjs/common'
+import { Inject, Injectable, Logger, Optional, UnauthorizedException } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { createHmac } from 'node:crypto'
 import { RecordTransactionUseCase } from './record-transaction.use-case'
@@ -17,6 +17,7 @@ import { PaymentConfigurationService } from '../../../shared/infrastructure/comm
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 import { UnifiedCommunicationService } from '../../../shared/infrastructure/communication/unified-communication.service'
 import { ConfirmCommercePaymentUseCase } from '../../commerce/use-cases/confirm-commerce-payment.use-case'
+import { ProcessPaystackSavingsWebhookUseCase } from '../rent-savings/process-paystack-savings-webhook.use-case'
 import { isProductionRuntime } from '../../../shared/utils/runtime-env'
 
 @Injectable()
@@ -39,6 +40,8 @@ export class ProcessPaymentWebhookUseCase {
     private readonly creditWalletUseCase: CreditWalletUseCase,
     private readonly unifiedCommService: UnifiedCommunicationService,
     private readonly confirmCommercePaymentUseCase: ConfirmCommercePaymentUseCase,
+    @Optional()
+    private readonly processPaystackSavingsWebhookUseCase?: ProcessPaystackSavingsWebhookUseCase,
   ) { }
 
   async execute(payload: any, signature?: string, url: string = '/payments/webhook') {
@@ -465,6 +468,19 @@ export class ProcessPaymentWebhookUseCase {
 
     const dva = await this.dvaRepo.findByAccountNumber(accountNumber)
     if (!dva || !dva.userPropertyId) {
+      // Check if this DVA belongs to an Upward Rent Savings Vault (ARM MMF)
+      if (this.processPaystackSavingsWebhookUseCase && this.prisma?.upward_rent_vault) {
+        const rentVault = await this.prisma.upward_rent_vault.findFirst({
+          where: { dvaAccountNumber: accountNumber },
+          select: { id: true, uuid: true },
+        })
+        if (rentVault) {
+          this.logger.log(
+            `Routing verified Paystack DVA payment for account ${accountNumber} to Rent Savings Vault ${rentVault.uuid}`,
+          )
+          return this.processPaystackSavingsWebhookUseCase.verifyAndProcessPaystackDeposit(data)
+        }
+      }
       this.logger.warn(`DVA payment received for unknown or unlinked account: ${accountNumber}`)
       return { success: true, message: 'Unlinked account' }
     }

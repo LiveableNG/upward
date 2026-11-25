@@ -47,7 +47,7 @@ export class MockInvestmentProvider implements IAssetManagementProvider {
     const id = Date.now().toString()
     return {
       success: true,
-      transactionId: `MOCK_TXN_${id}`,
+      transactionId: request.transactionId || `MOCK_TXN_${id}`,
       purchaseId: `MOCK_PUR_${id}`,
       unitsAllocated: Number(request.amountKobo) / 100,
       message: 'Mock subscription successful',
@@ -61,7 +61,7 @@ export class MockInvestmentProvider implements IAssetManagementProvider {
     const id = Date.now().toString()
     return {
       success: true,
-      transactionId: `MOCK_TXN_${id}`,
+      transactionId: request.transactionId || `MOCK_TXN_${id}`,
       withdrawalId: `MOCK_WDL_${id}`,
       message: 'Mock redemption successful',
     }

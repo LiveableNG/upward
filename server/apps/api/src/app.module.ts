@@ -23,6 +23,7 @@ import { SchedulingModule } from './scheduling/scheduling.module'
 import { SubscriptionModule } from './domains/subscription/subscription.module'
 
 import { CommunicationModule } from './shared/infrastructure/communication/communication.module'
+import { ArmOperationsQueueModule } from './infrastructure/queues/arm-operations/arm-operations-queue.module'
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { CommunicationModule } from './shared/infrastructure/communication/commu
     AdminLogModule,
     EmailModule,
     CommunicationModule,
+    ArmOperationsQueueModule,
     LocationModule,
     BugsnagModule,
     ActivityTrackingModule,

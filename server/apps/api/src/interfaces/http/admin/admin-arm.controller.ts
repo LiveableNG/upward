@@ -1,6 +1,8 @@
 import {
   Controller,
   Get,
+  Param,
+  Post,
   Query,
   UseGuards,
 } from '@nestjs/common'
@@ -12,6 +14,8 @@ import {
   GetArmPortfolioStatsUseCase,
   GetArmCustomersUseCase,
   GetArmTransactionsUseCase,
+  GetArmJobsUseCase,
+  RetryArmJobUseCase,
 } from '../../../application/use-cases/admin/admin-arm.use-cases'
 
 @Controller('admin/arm')
@@ -21,6 +25,8 @@ export class AdminArmController {
     private readonly getStatsUseCase: GetArmPortfolioStatsUseCase,
     private readonly getCustomersUseCase: GetArmCustomersUseCase,
     private readonly getTransactionsUseCase: GetArmTransactionsUseCase,
+    private readonly getJobsUseCase: GetArmJobsUseCase,
+    private readonly retryJobUseCase: RetryArmJobUseCase,
   ) {}
 
   @Get('stats')
@@ -51,5 +57,29 @@ export class AdminArmController {
       page,
       limit,
     })
+  }
+
+  @Get('jobs')
+  @Roles(AdminRole.SUPERADMIN, AdminRole.CUSTOMER_SUPPORT, AdminRole.DEVELOPER)
+  async getJobs(
+    @Query('status') status?: string,
+    @Query('jobType') jobType?: string,
+    @Query('search') search?: string,
+    @Query('page') page?: number,
+    @Query('limit') limit?: number,
+  ) {
+    return this.getJobsUseCase.execute({
+      status,
+      jobType,
+      search,
+      page,
+      limit,
+    })
+  }
+
+  @Post('jobs/:id/retry')
+  @Roles(AdminRole.SUPERADMIN, AdminRole.DEVELOPER)
+  async retryJob(@Param('id') id: string) {
+    return this.retryJobUseCase.execute(id)
   }
 }

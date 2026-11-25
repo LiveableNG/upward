@@ -458,24 +458,18 @@ export async function simulateVaultDeposit(accountNumber: string, amountKobo: nu
   if (process.env.NODE_ENV === 'production') {
     throw new Error('Simulated deposits are only available in non-production environments.')
   }
-  const res = await request<{ status: string; reference?: string }>(
-    '/payments/webhooks/rent-savings/paystack',
-    {
-      method: 'POST',
-      body: JSON.stringify({
-        event: 'charge.success',
-        data: {
-          reference: `TEST_DEP_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-          amount: amountKobo,
-          currency: 'NGN',
-          channel: 'dedicated_nuban',
-          dedicated_account: {
-            account_number: accountNumber,
-          },
-        },
-      }),
-    },
-  )
+  const res = await request<{
+    status: string
+    reference?: string
+    arm_job_id?: string | null
+    arm_job_status?: string | null
+  }>('/rent-vaults/simulate-deposit', {
+    method: 'POST',
+    body: JSON.stringify({
+      account_number: accountNumber,
+      amount_kobo: amountKobo,
+    }),
+  })
   return res
 }
 

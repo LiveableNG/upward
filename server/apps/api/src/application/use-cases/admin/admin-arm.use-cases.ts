@@ -1,8 +1,16 @@
-import { Injectable, Logger } from '@nestjs/common'
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+  Optional,
+} from '@nestjs/common'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 import { AssetManagementProviderRegistry } from '../../../infrastructure/providers/asset-management/asset-management-provider.registry'
 import { ArmMerchantOverview } from '../../../domains/rent-savings/asset-management.provider'
+import { ARM_JOB_QUEUE, ArmJobType, IArmJobQueue } from '../../../domains/rent-savings/arm-job.interface'
 
 @Injectable()
 export class GetArmPortfolioStatsUseCase {
@@ -24,7 +32,7 @@ export class GetArmPortfolioStatsUseCase {
       }
     }
 
-    const [vaults, settlements, kycRecords] = await Promise.all([
+    const [vaults, settlements, kycRecords, jobCountsRaw] = await Promise.all([
       this.prisma.upward_rent_vault.findMany({
         select: {
           id: true,
@@ -46,7 +54,26 @@ export class GetArmPortfolioStatsUseCase {
         },
         select: { userId: true },
       }),
+      this.prisma.upward_arm_job
+        .groupBy({
+          by: ['status'],
+          _count: { id: true },
+        })
+        .catch(() => []),
     ])
+
+    const jobQueueSummary = {
+      queued: 0,
+      processing: 0,
+      completed: 0,
+      failed: 0,
+    }
+    for (const row of jobCountsRaw as Array<{ status: string; _count: { id: number } }>) {
+      if (row.status === 'QUEUED') jobQueueSummary.queued = row._count.id
+      if (row.status === 'PROCESSING') jobQueueSummary.processing = row._count.id
+      if (row.status === 'COMPLETED') jobQueueSummary.completed = row._count.id
+      if (row.status === 'FAILED') jobQueueSummary.failed = row._count.id
+    }
 
     const activeVaults = vaults.filter(
       (v) => v.lockStatus === 'LOCKED' || v.lockStatus === 'SETTLEMENT_READY',
@@ -120,6 +147,7 @@ export class GetArmPortfolioStatsUseCase {
           masterPortfolioMarketValueNaira:
             Number(armOverview?.masterPortfolio?.marketValueKobo ?? 0n) / 100,
         },
+        jobQueueSummary,
       },
     }
   }
@@ -551,6 +579,226 @@ export class GetArmTransactionsUseCase {
           limit,
           totalPages: Math.ceil(totalCount / limit),
         },
+      },
+    }
+  }
+}
+
+@Injectable()
+export class GetArmJobsUseCase {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly encryption: EncryptionService,
+  ) {}
+
+  private safeDecrypt(val?: string | null): string {
+    if (!val) return ''
+    try {
+      return this.encryption.decrypt(val)
+    } catch {
+      return val
+    }
+  }
+
+  async execute(filters?: {
+    status?: string
+    jobType?: string
+    search?: string
+    page?: number
+    limit?: number
+  }) {
+    const page = Math.max(1, Number(filters?.page) || 1)
+    const limit = Math.min(100, Math.max(1, Number(filters?.limit) || 50))
+    const skip = (page - 1) * limit
+
+    const where: any = {}
+    if (filters?.status && filters.status !== 'ALL') {
+      where.status = filters.status
+    }
+    if (filters?.jobType && filters.jobType !== 'ALL') {
+      where.jobType = filters.jobType
+    }
+
+    const [totalCount, jobs, grouped] = await Promise.all([
+      this.prisma.upward_arm_job.count({ where }),
+      this.prisma.upward_arm_job.findMany({
+        where,
+        include: {
+          user: {
+            select: {
+              id: true,
+              uuid: true,
+              firstName: true,
+              lastName: true,
+              email: true,
+            },
+          },
+          vault: {
+            select: {
+              uuid: true,
+              dvaAccountNumber: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.upward_arm_job.groupBy({
+        by: ['status'],
+        _count: { id: true },
+      }),
+    ])
+
+    const summary = { queued: 0, processing: 0, completed: 0, failed: 0 }
+    for (const row of grouped) {
+      if (row.status === 'QUEUED') summary.queued = row._count.id
+      if (row.status === 'PROCESSING') summary.processing = row._count.id
+      if (row.status === 'COMPLETED') summary.completed = row._count.id
+      if (row.status === 'FAILED') summary.failed = row._count.id
+    }
+
+    let items = jobs.map((job) => {
+      const fullName = job.user
+        ? `${this.safeDecrypt(job.user.firstName)} ${this.safeDecrypt(job.user.lastName)}`.trim()
+        : 'System / Omnibus'
+      const email = job.user ? this.safeDecrypt(job.user.email) : ''
+
+      return {
+        id: job.id,
+        uuid: job.uuid,
+        idempotencyKey: job.idempotencyKey,
+        jobType: job.jobType,
+        status: job.status,
+        reference: job.reference,
+        amountNaira: job.amountKobo ? Number(job.amountKobo) / 100 : 0,
+        armTransactionId: job.armTransactionId,
+        armInstructionId: job.armInstructionId,
+        attempts: job.attempts,
+        maxAttempts: job.maxAttempts,
+        lastError: job.lastError,
+        customerName: fullName,
+        customerEmail: email,
+        vaultUuid: job.vault?.uuid || null,
+        canRetry: job.status === 'FAILED' && !job.armInstructionId,
+        notifiedUserAt: job.notifiedUserAt?.toISOString() || null,
+        notifiedAdminAt: job.notifiedAdminAt?.toISOString() || null,
+        lockedAt: job.lockedAt?.toISOString() || null,
+        completedAt: job.completedAt?.toISOString() || null,
+        failedAt: job.failedAt?.toISOString() || null,
+        createdAt: job.createdAt.toISOString(),
+        updatedAt: job.updatedAt.toISOString(),
+      }
+    })
+
+    if (filters?.search && filters.search.trim()) {
+      const q = filters.search.toLowerCase().trim()
+      items = items.filter(
+        (j) =>
+          j.reference.toLowerCase().includes(q) ||
+          j.idempotencyKey.toLowerCase().includes(q) ||
+          j.customerName.toLowerCase().includes(q) ||
+          j.customerEmail.toLowerCase().includes(q) ||
+          j.armTransactionId.toLowerCase().includes(q) ||
+          (j.armInstructionId && j.armInstructionId.toLowerCase().includes(q)) ||
+          (j.lastError && j.lastError.toLowerCase().includes(q)),
+      )
+    }
+
+    return {
+      status: 'success',
+      data: {
+        summary,
+        items,
+        pagination: {
+          total: totalCount,
+          page,
+          limit,
+          totalPages: Math.ceil(totalCount / limit),
+        },
+      },
+    }
+  }
+}
+
+@Injectable()
+export class RetryArmJobUseCase {
+  private readonly logger = new Logger(RetryArmJobUseCase.name)
+
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional()
+    @Inject(ARM_JOB_QUEUE)
+    private readonly armJobQueue?: IArmJobQueue,
+  ) {}
+
+  async execute(jobIdOrUuid: string) {
+    const isNumeric = /^\d+$/.test(jobIdOrUuid)
+    const job = await this.prisma.upward_arm_job.findFirst({
+      where: isNumeric ? { id: parseInt(jobIdOrUuid, 10) } : { uuid: jobIdOrUuid },
+    })
+
+    if (!job) {
+      throw new NotFoundException('ARM background job not found.')
+    }
+
+    if (job.armInstructionId || job.status === 'COMPLETED') {
+      throw new BadRequestException(
+        'This job already completed with an ARM instruction ID and cannot be retried.',
+      )
+    }
+
+    if (job.status !== 'FAILED') {
+      throw new BadRequestException(
+        `Only FAILED jobs can be retried (current status: ${job.status}).`,
+      )
+    }
+
+    // Atomic state reset guarded by status='FAILED' AND armInstructionId IS NULL
+    const nextMaxAttempts = Math.max(job.maxAttempts, job.attempts + 3)
+    const updated = await this.prisma.upward_arm_job.updateMany({
+      where: {
+        id: job.id,
+        status: 'FAILED',
+        armInstructionId: null,
+      },
+      data: {
+        status: 'QUEUED',
+        failedAt: null,
+        lockedAt: null,
+        notifiedAdminAt: null,
+        maxAttempts: nextMaxAttempts,
+      },
+    })
+
+    if (updated.count === 0) {
+      throw new BadRequestException('Job state changed concurrently; retry aborted safely.')
+    }
+
+    let enqueued = false
+    if (this.armJobQueue) {
+      enqueued = await this.armJobQueue.enqueueJob(
+        {
+          id: job.id,
+          uuid: job.uuid,
+          idempotencyKey: job.idempotencyKey,
+          jobType: job.jobType as ArmJobType,
+        },
+        { allowReplaceFailed: true },
+      )
+    }
+
+    this.logger.log(
+      `Admin triggered safe retry for ARM job ${job.uuid} (${job.idempotencyKey}), enqueued=${enqueued}`,
+    )
+
+    return {
+      status: 'success',
+      message: 'ARM background job re-queued safely (ARM transaction status will be verified first before re-submission).',
+      data: {
+        uuid: job.uuid,
+        status: 'QUEUED',
+        enqueued,
       },
     }
   }

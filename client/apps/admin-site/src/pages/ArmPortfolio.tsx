@@ -12,6 +12,9 @@ import {
   UserCheck,
   CreditCard,
   ChevronRight,
+  AlertTriangle,
+  RotateCcw,
+  Activity,
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
 
@@ -128,11 +131,51 @@ interface ArmTransaction {
   createdAt: string
 }
 
+interface ArmBackgroundJob {
+  id: number
+  uuid: string
+  idempotencyKey: string
+  jobType: 'SUBSCRIBE' | 'REDEEM' | 'ONBOARD' | string
+  status: 'QUEUED' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | string
+  reference: string
+  amountNaira: number
+  armTransactionId: string
+  armInstructionId: string | null
+  attempts: number
+  maxAttempts: number
+  lastError: string | null
+  customerName: string
+  customerEmail: string
+  vaultUuid: string | null
+  canRetry: boolean
+  notifiedUserAt: string | null
+  notifiedAdminAt: string | null
+  completedAt: string | null
+  failedAt: string | null
+  createdAt: string
+}
+
+interface ArmJobsSummary {
+  queued: number
+  processing: number
+  completed: number
+  failed: number
+}
+
 export default function ArmPortfolio({ token }: ArmPortfolioProps) {
-  const [activeTab, setActiveTab] = useState<'CUSTOMERS' | 'INFLOWS' | 'CONSENT'>('CUSTOMERS')
+  const [activeTab, setActiveTab] = useState<'CUSTOMERS' | 'INFLOWS' | 'JOBS' | 'CONSENT'>('CUSTOMERS')
   const [stats, setStats] = useState<PortfolioStats | null>(null)
   const [customers, setCustomers] = useState<ArmCustomer[]>([])
   const [transactions, setTransactions] = useState<ArmTransaction[]>([])
+  const [jobs, setJobs] = useState<ArmBackgroundJob[]>([])
+  const [jobsSummary, setJobsSummary] = useState<ArmJobsSummary>({
+    queued: 0,
+    processing: 0,
+    completed: 0,
+    failed: 0,
+  })
+  const [jobStatusFilter, setJobStatusFilter] = useState('ALL')
+  const [retryingJobUuid, setRetryingJobUuid] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -151,10 +194,11 @@ export default function ArmPortfolio({ token }: ArmPortfolioProps) {
     setError(null)
     try {
       const qs = forceRefresh ? '?refresh=true' : ''
-      const [statsRes, customersRes, txsRes] = await Promise.all([
+      const [statsRes, customersRes, txsRes, jobsRes] = await Promise.all([
         apiService.get(`/admin/arm/stats${qs}`, token),
         apiService.get(`/admin/arm/customers${qs}`, token),
         apiService.get('/admin/arm/transactions?limit=100', token),
+        apiService.get('/admin/arm/jobs?limit=50', token).catch(() => null),
       ])
 
       if (statsRes?.data) {
@@ -175,6 +219,14 @@ export default function ArmPortfolio({ token }: ArmPortfolioProps) {
         setTransactions(txsRes.items)
       } else if (Array.isArray(txsRes?.data)) {
         setTransactions(txsRes.data)
+      }
+
+      const jobsPayload = jobsRes?.data || jobsRes
+      if (Array.isArray(jobsPayload?.items)) {
+        setJobs(jobsPayload.items)
+      }
+      if (jobsPayload?.summary) {
+        setJobsSummary(jobsPayload.summary)
       }
     } catch (err: any) {
       console.error('Failed to load ARM portfolio data:', err)
@@ -224,6 +276,23 @@ export default function ArmPortfolio({ token }: ArmPortfolioProps) {
       return matchesCustomer && matchesType && matchesSearch
     })
   }, [transactions, selectedCustomerEmail, txTypeFilter, txSearch])
+
+  const handleRetryJob = async (jobUuid: string) => {
+    setRetryingJobUuid(jobUuid)
+    setError(null)
+    try {
+      await apiService.post(`/admin/arm/jobs/${jobUuid}/retry`, {}, token)
+      await fetchData(false)
+    } catch (err: any) {
+      setError(err?.message || 'Failed to retry ARM background job')
+    } finally {
+      setRetryingJobUuid(null)
+    }
+  }
+
+  const filteredJobs = useMemo(() => {
+    return jobs.filter((j) => jobStatusFilter === 'ALL' || j.status === jobStatusFilter)
+  }, [jobs, jobStatusFilter])
 
   // Export CSV of Inflow Statement (Criteria #1 for ARM)
   const exportInflowStatementCsv = () => {
@@ -689,6 +758,42 @@ export default function ArmPortfolio({ token }: ArmPortfolioProps) {
 
         <button
           type="button"
+          onClick={() => setActiveTab('JOBS')}
+          style={{
+            padding: '10px 18px',
+            border: 'none',
+            background: 'none',
+            fontSize: '14px',
+            fontWeight: activeTab === 'JOBS' ? 700 : 500,
+            color: activeTab === 'JOBS' ? 'var(--primary, #c2501f)' : 'var(--text-muted)',
+            borderBottom: activeTab === 'JOBS' ? '2.5px solid var(--primary, #c2501f)' : 'none',
+            cursor: 'pointer',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '6px',
+          }}
+        >
+          <Activity size={14} />
+          <span>Background Jobs ({jobs.length})</span>
+          {jobsSummary.failed > 0 && (
+            <span
+              style={{
+                padding: '1px 7px',
+                borderRadius: '10px',
+                fontSize: '11px',
+                fontWeight: 700,
+                background: '#fef2f2',
+                color: '#dc2626',
+                border: '1px solid #fecaca',
+              }}
+            >
+              {jobsSummary.failed} failed
+            </span>
+          )}
+        </button>
+
+        <button
+          type="button"
           onClick={() => setActiveTab('CONSENT')}
           style={{
             padding: '10px 18px',
@@ -1089,7 +1194,238 @@ export default function ArmPortfolio({ token }: ArmPortfolioProps) {
         </div>
       )}
 
-      {/* ── TAB 3: B2B2C CONSENT & COMPLIANCE LEDGER ────────────── */}
+      {/* ── TAB 3: BULLMQ BACKGROUND JOBS QUEUE ────────────────── */}
+      {activeTab === 'JOBS' && (
+        <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
+          <div
+            style={{
+              padding: '16px 20px',
+              borderBottom: '1px solid var(--border)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              gap: '12px',
+              flexWrap: 'wrap',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <span
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  background: '#eff6ff',
+                  color: '#2563eb',
+                }}
+              >
+                Queued: {jobsSummary.queued}
+              </span>
+              <span
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  background: '#fef3c7',
+                  color: '#b45309',
+                }}
+              >
+                Processing: {jobsSummary.processing}
+              </span>
+              <span
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  background: '#ecfdf5',
+                  color: '#059669',
+                }}
+              >
+                Completed: {jobsSummary.completed}
+              </span>
+              <span
+                style={{
+                  padding: '4px 10px',
+                  borderRadius: '6px',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  background: jobsSummary.failed > 0 ? '#fef2f2' : '#f1f5f9',
+                  color: jobsSummary.failed > 0 ? '#dc2626' : '#64748b',
+                }}
+              >
+                Failed: {jobsSummary.failed}
+              </span>
+            </div>
+
+            <select
+              value={jobStatusFilter}
+              onChange={(e) => setJobStatusFilter(e.target.value)}
+              style={{
+                padding: '8px 12px',
+                borderRadius: '6px',
+                border: '1px solid var(--border)',
+                fontSize: '13px',
+                background: 'var(--surface)',
+              }}
+            >
+              <option value="ALL">All Job Statuses</option>
+              <option value="QUEUED">Queued</option>
+              <option value="PROCESSING">Processing</option>
+              <option value="COMPLETED">Completed</option>
+              <option value="FAILED">Failed (Action Required)</option>
+            </select>
+          </div>
+
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+              <thead>
+                <tr style={{ background: 'var(--surface-sunken, #f8f6f3)', borderBottom: '1px solid var(--border)' }}>
+                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>Job / Reference</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>Customer</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>Type & Amount</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>Status & Attempts</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>ARM Instruction / Error</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>Alerts Sent</th>
+                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredJobs.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                      No ARM background jobs recorded yet.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredJobs.map((job) => (
+                    <tr key={job.uuid} style={{ borderBottom: '1px solid var(--border)' }}>
+                      <td style={{ padding: '12px 16px', fontFamily: 'monospace', fontSize: '12px' }}>
+                        <div style={{ fontWeight: 600, color: 'var(--text)' }}>{job.reference}</div>
+                        <div style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>
+                          Tx: {job.armTransactionId.slice(0, 18)}…
+                        </div>
+                        <div style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>
+                          {new Date(job.createdAt).toLocaleString('en-NG')}
+                        </div>
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <div style={{ fontWeight: 600 }}>{job.customerName}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                          {job.customerEmail || '—'}
+                        </div>
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <div style={{ fontWeight: 700 }}>{job.jobType}</div>
+                        <div style={{ fontSize: '12px', color: '#059669', fontWeight: 600 }}>
+                          {job.amountNaira > 0 ? formatNaira(job.amountNaira) : '—'}
+                        </div>
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        <span
+                          style={{
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            background:
+                              job.status === 'COMPLETED'
+                                ? '#ecfdf5'
+                                : job.status === 'FAILED'
+                                  ? '#fef2f2'
+                                  : job.status === 'PROCESSING'
+                                    ? '#fef3c7'
+                                    : '#eff6ff',
+                            color:
+                              job.status === 'COMPLETED'
+                                ? '#059669'
+                                : job.status === 'FAILED'
+                                  ? '#dc2626'
+                                  : job.status === 'PROCESSING'
+                                    ? '#b45309'
+                                    : '#2563eb',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                          }}
+                        >
+                          {job.status === 'FAILED' && <AlertTriangle size={11} />}
+                          {job.status === 'COMPLETED' && <CheckCircle2 size={11} />}
+                          {job.status}
+                        </span>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: 3 }}>
+                          Attempts: {job.attempts}/{job.maxAttempts}
+                        </div>
+                      </td>
+                      <td style={{ padding: '12px 16px', maxWidth: '300px' }}>
+                        {job.armInstructionId ? (
+                          <div style={{ fontFamily: 'monospace', fontSize: '11.5px', color: '#059669' }}>
+                            {job.armInstructionId}
+                          </div>
+                        ) : job.lastError ? (
+                          <div
+                            style={{
+                              fontSize: '11.5px',
+                              color: '#dc2626',
+                              wordBreak: 'break-word',
+                            }}
+                          >
+                            {job.lastError}
+                          </div>
+                        ) : (
+                          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                            Awaiting ARM execution…
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ padding: '12px 16px', fontSize: '11.5px' }}>
+                        <div style={{ color: job.notifiedUserAt ? '#059669' : 'var(--text-muted)' }}>
+                          User: {job.notifiedUserAt ? 'Sent' : '—'}
+                        </div>
+                        <div style={{ color: job.notifiedAdminAt ? '#059669' : 'var(--text-muted)' }}>
+                          Admin: {job.notifiedAdminAt ? 'Sent' : '—'}
+                        </div>
+                      </td>
+                      <td style={{ padding: '12px 16px' }}>
+                        {job.canRetry ? (
+                          <button
+                            type="button"
+                            onClick={() => handleRetryJob(job.uuid)}
+                            disabled={retryingJobUuid === job.uuid}
+                            style={{
+                              padding: '5px 10px',
+                              borderRadius: '6px',
+                              border: '1px solid #fecaca',
+                              background: '#fef2f2',
+                              color: '#dc2626',
+                              fontSize: '12px',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                            }}
+                          >
+                            <RotateCcw size={12} />
+                            <span>{retryingJobUuid === job.uuid ? 'Retrying…' : 'Retry'}</span>
+                          </button>
+                        ) : (
+                          <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>
+                            {job.status === 'COMPLETED' ? 'Locked' : 'In flight'}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* ── TAB 4: B2B2C CONSENT & COMPLIANCE LEDGER ────────────── */}
       {activeTab === 'CONSENT' && (
         <div className="card" style={{ padding: '24px' }}>
           <div style={{ maxWidth: '800px', marginBottom: '20px' }}>

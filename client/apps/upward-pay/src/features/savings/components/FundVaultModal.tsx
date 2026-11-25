@@ -135,7 +135,9 @@ export function FundVaultModal({
         accountNumber,
         amountKobo,
       })
-      toastSuccess(`Deposit of ${formatCurrency(rawNumber, 'NGN')} credited to your vault!`)
+      toastSuccess(
+        `Deposit of ${formatCurrency(rawNumber, 'NGN')} received! Investing into ARM MMF in the background — we'll notify you once confirmed.`,
+      )
       if (typeof window !== 'undefined') {
         try {
           sessionStorage.setItem('upward_dismissed_initial_deposit_prompt', 'true')

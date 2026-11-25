@@ -59,6 +59,7 @@ model upward_user {
   rentAdvances          upward_rent_advance[]
   rentSettlements       upward_rent_settlement[]
   rentSavingsScores     upward_rent_savings_score[]
+  armJobs               upward_arm_job[]
   supportTickets        upward_support_ticket[]
   transactions          upward_transaction[]
   announcementStates    upward_user_announcement_state[]

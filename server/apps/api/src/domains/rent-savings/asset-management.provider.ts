@@ -127,12 +127,24 @@ export interface ArmMerchantOverview {
   fetchedAt: string
 }
 
+export class ArmOperationError extends Error {
+  constructor(
+    message: string,
+    public readonly httpStatus?: number,
+    public readonly retryable: boolean = true,
+  ) {
+    super(message)
+    this.name = 'ArmOperationError'
+  }
+}
+
 export interface PurchaseSubscriptionRequest {
   membershipId: string
   productCode: string
   amountKobo: bigint
   reInvestDividends?: boolean
   reference: string
+  transactionId?: string
 }
 
 export interface PurchaseSubscriptionResponse {
@@ -149,6 +161,7 @@ export interface RedemptionRequest {
   productAccountNumber: string
   amountKobo: bigint
   reference: string
+  transactionId?: string
 }
 
 export interface RedemptionResponse {

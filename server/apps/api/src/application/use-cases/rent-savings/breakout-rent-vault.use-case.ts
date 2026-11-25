@@ -7,6 +7,7 @@ import {
   Logger,
   Optional,
 } from '@nestjs/common'
+import * as crypto from 'crypto'
 import {
   IRentVaultRepository,
   RENT_VAULT_REPOSITORY,
@@ -15,8 +16,10 @@ import {
   IRentAdvanceRepository,
   RENT_ADVANCE_REPOSITORY,
 } from '../../../domains/rent-savings/rent-advance.repository'
+import { ARM_JOB_QUEUE, IArmJobQueue } from '../../../domains/rent-savings/arm-job.interface'
 import { RentSavingsCalculatorEngine } from '../../../domains/rent-savings/rent-savings-calculator.engine'
 import { AssetManagementProviderRegistry } from '../../../infrastructure/providers/asset-management/asset-management-provider.registry'
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 
 @Injectable()
 export class BreakoutRentVaultUseCase {
@@ -29,6 +32,11 @@ export class BreakoutRentVaultUseCase {
     private readonly rentAdvanceRepo: IRentAdvanceRepository,
     @Optional()
     private readonly providerRegistry?: AssetManagementProviderRegistry,
+    @Optional()
+    private readonly prisma?: PrismaService,
+    @Optional()
+    @Inject(ARM_JOB_QUEUE)
+    private readonly armJobQueue?: IArmJobQueue,
   ) {}
 
   async execute(userId: number, vaultUuid: string) {
@@ -68,71 +76,185 @@ export class BreakoutRentVaultUseCase {
       const penalties = activeAdvance.latePenaltiesKobo
       advanceDeduction = outstanding + penalties
       netPayout = netPayout > advanceDeduction ? netPayout - advanceDeduction : 0n
-
-      await this.rentAdvanceRepo.update(activeAdvance.id, {
-        status: 'OFFSET_AT_SETTLEMENT',
-        amountRepaidKobo: activeAdvance.totalRepayableKobo,
-        repaidAt: now,
-      })
     }
 
     const breakoutReference = `UPW_BREAKOUT_${Date.now()}`
 
-    // Liquidate underlying MMF units via active asset management provider (ARM Connect)
+    // Liquidate underlying MMF units via BullMQ durable outbox job (or direct fallback in tests)
     let armWithdrawalId: string | undefined
     let armTransactionId: string | undefined
     const totalVaultBalance = vault.currentPrincipalKobo + vault.accruedYieldKobo
-    if (vault.investmentProvider && this.providerRegistry && totalVaultBalance > 0n) {
-      try {
-        const provider = this.providerRegistry.getProvider(vault.investmentProvider)
-        const redeemRes = await provider.redeem({
-          membershipId: vault.providerMembershipId || 'OMNIBUS_MASTER',
-          productCode: 'ARMMMF',
-          productAccountNumber: vault.providerAccountNumber || 'OMNIBUS_FLOAT_01',
-          amountKobo: totalVaultBalance,
-          reference: breakoutReference,
+
+    if (this.prisma && this.armJobQueue) {
+      armTransactionId =
+        vault.investmentProvider && totalVaultBalance > 0n ? crypto.randomUUID() : undefined
+      let queuedArmJob: {
+        id: number
+        uuid: string
+        idempotencyKey: string
+        jobType: 'REDEEM'
+      } | null = null
+
+      await this.prisma.$transaction(async (tx) => {
+        if (typeof tx.$queryRaw === 'function') {
+          await tx.$queryRaw`SELECT id FROM upward_rent_vault WHERE id = ${vault.id} FOR UPDATE`
+        }
+
+        const freshVault = await tx.upward_rent_vault.findUniqueOrThrow({
+          where: { id: vault.id },
         })
-        armWithdrawalId = redeemRes.withdrawalId
-        armTransactionId = redeemRes.transactionId
-        this.logger.log(
-          `ARM early breakout redemption executed for vault ${vault.uuid}. WithdrawalId: ${armWithdrawalId}`,
+        if (freshVault.lockStatus === 'SETTLED') {
+          throw new BadRequestException('Cannot break out of an already settled vault.')
+        }
+        if (freshVault.lockStatus === 'BROKEN_OUT') {
+          throw new BadRequestException('This vault has already been broken out.')
+        }
+
+        if (activeAdvance && activeAdvance.status === 'ACTIVE') {
+          await this.rentAdvanceRepo.update(
+            activeAdvance.id,
+            {
+              status: 'OFFSET_AT_SETTLEMENT',
+              amountRepaidKobo: activeAdvance.totalRepayableKobo,
+              repaidAt: now,
+            },
+            tx,
+          )
+        }
+
+        const breakoutTx = await this.rentVaultRepo.createTransaction(
+          {
+            vaultId: freshVault.id,
+            userId,
+            type: 'LIQUIDATION_PENALTY',
+            amountKobo: breakout.adminFeeKobo,
+            principalDeltaKobo: -freshVault.currentPrincipalKobo,
+            yieldDeltaKobo: -freshVault.accruedYieldKobo,
+            balanceAfterKobo: 0n,
+            reference: breakoutReference,
+            channel: 'SYSTEM_YIELD',
+            narration: `Fair exit breakout executed: 7.0% base yield applied, 1.5% admin fee deducted`,
+            metadata: {
+              recalculatedYieldKobo: Number(breakout.recalculatedYieldKobo),
+              adminFeeKobo: Number(breakout.adminFeeKobo),
+              advanceDeductionKobo: Number(advanceDeduction),
+              netPayoutKobo: Number(netPayout),
+              armSyncStatus:
+                freshVault.investmentProvider && totalVaultBalance > 0n
+                  ? 'QUEUED'
+                  : 'NOT_APPLICABLE',
+              ...(armTransactionId ? { armTransactionId } : {}),
+            },
+          },
+          tx,
         )
-      } catch (redeemErr: any) {
-        this.logger.warn(
-          `ARM early breakout redemption queued against settlement float for vault ${vault.uuid}: ${redeemErr?.message}`,
+
+        await this.rentVaultRepo.update(
+          freshVault.id,
+          {
+            lockStatus: 'BROKEN_OUT',
+            currentPrincipalKobo: 0n,
+            accruedYieldKobo: 0n,
+          },
+          tx,
         )
+
+        const freshBalance = freshVault.currentPrincipalKobo + freshVault.accruedYieldKobo
+        if (freshVault.investmentProvider && freshBalance > 0n && armTransactionId) {
+          const createdJob = await tx.upward_arm_job.create({
+            data: {
+              idempotencyKey: `ARM_REDEEM__${breakoutReference}`,
+              jobType: 'REDEEM',
+              status: 'QUEUED',
+              vaultId: freshVault.id,
+              userId,
+              transactionId: breakoutTx.id,
+              amountKobo: freshBalance,
+              reference: breakoutReference,
+              armTransactionId,
+              maxAttempts: 5,
+              payload: {
+                provider: freshVault.investmentProvider,
+                membershipId: freshVault.providerMembershipId || 'OMNIBUS_MASTER',
+                productCode: 'ARMMMF',
+                productAccountNumber: freshVault.providerAccountNumber || 'OMNIBUS_FLOAT_01',
+                amountKobo: freshBalance.toString(),
+                armReference: `RED-${breakoutReference}`,
+                reason: 'FAIR_EXIT_BREAKOUT',
+              } as any,
+            },
+          })
+          queuedArmJob = {
+            id: createdJob.id,
+            uuid: createdJob.uuid,
+            idempotencyKey: createdJob.idempotencyKey,
+            jobType: 'REDEEM',
+          }
+        }
+      })
+
+      if (queuedArmJob) {
+        await this.armJobQueue.enqueueJob(queuedArmJob)
       }
-    }
+    } else {
+      if (activeAdvance && activeAdvance.status === 'ACTIVE') {
+        await this.rentAdvanceRepo.update(activeAdvance.id, {
+          status: 'OFFSET_AT_SETTLEMENT',
+          amountRepaidKobo: activeAdvance.totalRepayableKobo,
+          repaidAt: now,
+        })
+      }
 
-    // Record liquidation transaction
-    await this.rentVaultRepo.createTransaction({
-      vaultId: vault.id,
-      userId,
-      type: 'LIQUIDATION_PENALTY',
-      amountKobo: breakout.adminFeeKobo,
-      principalDeltaKobo: -vault.currentPrincipalKobo,
-      yieldDeltaKobo: -vault.accruedYieldKobo,
-      balanceAfterKobo: 0n,
-      reference: breakoutReference,
-      channel: 'SYSTEM_YIELD',
-      narration: `Fair exit breakout executed: 7.0% base yield applied, 1.5% admin fee deducted`,
-      metadata: {
-        recalculatedYieldKobo: Number(breakout.recalculatedYieldKobo),
-        adminFeeKobo: Number(breakout.adminFeeKobo),
-        advanceDeductionKobo: Number(advanceDeduction),
-        netPayoutKobo: Number(netPayout),
+      if (vault.investmentProvider && this.providerRegistry && totalVaultBalance > 0n) {
+        try {
+          const provider = this.providerRegistry.getProvider(vault.investmentProvider)
+          const redeemRes = await provider.redeem({
+            membershipId: vault.providerMembershipId || 'OMNIBUS_MASTER',
+            productCode: 'ARMMMF',
+            productAccountNumber: vault.providerAccountNumber || 'OMNIBUS_FLOAT_01',
+            amountKobo: totalVaultBalance,
+            reference: breakoutReference,
+          })
+          armWithdrawalId = redeemRes.withdrawalId
+          armTransactionId = redeemRes.transactionId
+          this.logger.log(
+            `ARM early breakout redemption executed for vault ${vault.uuid}. WithdrawalId: ${armWithdrawalId}`,
+          )
+        } catch (redeemErr: any) {
+          this.logger.warn(
+            `ARM early breakout redemption queued against settlement float for vault ${vault.uuid}: ${redeemErr?.message}`,
+          )
+        }
+      }
+
+      await this.rentVaultRepo.createTransaction({
+        vaultId: vault.id,
+        userId,
+        type: 'LIQUIDATION_PENALTY',
+        amountKobo: breakout.adminFeeKobo,
+        principalDeltaKobo: -vault.currentPrincipalKobo,
+        yieldDeltaKobo: -vault.accruedYieldKobo,
+        balanceAfterKobo: 0n,
+        reference: breakoutReference,
+        channel: 'SYSTEM_YIELD',
+        narration: `Fair exit breakout executed: 7.0% base yield applied, 1.5% admin fee deducted`,
+        metadata: {
+          recalculatedYieldKobo: Number(breakout.recalculatedYieldKobo),
+          adminFeeKobo: Number(breakout.adminFeeKobo),
+          advanceDeductionKobo: Number(advanceDeduction),
+          netPayoutKobo: Number(netPayout),
+          ...(armWithdrawalId ? { armWithdrawalId } : {}),
+          ...(armTransactionId ? { armTransactionId } : {}),
+        },
+      })
+
+      await this.rentVaultRepo.update(vault.id, {
+        lockStatus: 'BROKEN_OUT',
+        currentPrincipalKobo: 0n,
+        accruedYieldKobo: 0n,
         ...(armWithdrawalId ? { armWithdrawalId } : {}),
-        ...(armTransactionId ? { armTransactionId } : {}),
-      },
-    })
-
-    // Mark vault as BROKEN_OUT
-    await this.rentVaultRepo.update(vault.id, {
-      lockStatus: 'BROKEN_OUT',
-      currentPrincipalKobo: 0n,
-      accruedYieldKobo: 0n,
-      ...(armWithdrawalId ? { armWithdrawalId } : {}),
-    })
+      })
+    }
 
     // Update savings score discipline penalty (-30 points)
     const currentScore = await this.rentVaultRepo.findSavingsScoreByVaultId(vault.id)
