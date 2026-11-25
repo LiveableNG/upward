@@ -764,6 +764,8 @@ export class ArmConnectInvestmentProvider implements IAssetManagementProvider {
       `Executing ARM bulk purchase: ₦${amountInNaira} for product ${productCode} (membershipId=${preferredMembershipId}, txId=${primaryTransactionId})...`,
     )
 
+    let executedMembershipId = preferredMembershipId
+
     let { response, resJson, transactionId } = await this.executeBulkPurchase(
       preferredMembershipId,
       productCode,
@@ -799,6 +801,7 @@ export class ArmConnectInvestmentProvider implements IAssetManagementProvider {
         request.reInvestDividends ?? true,
         omnibusTransactionId,
       )
+      executedMembershipId = omnibusMembershipId
       response = fallback.response
       resJson = fallback.resJson
       transactionId = fallback.transactionId
@@ -825,6 +828,8 @@ export class ArmConnectInvestmentProvider implements IAssetManagementProvider {
       success: true,
       transactionId: resJson.transactionId || resJson.TransactionId || transactionId,
       purchaseId: item?.purchaseId || item?.PurchaseId,
+      membershipId: executedMembershipId,
+      accountNumber: `${executedMembershipId}-${productCode}-01`,
       unitsAllocated: amountInNaira,
       message: item?.message || 'ARM purchase successfully processed',
     }
@@ -909,6 +914,8 @@ export class ArmConnectInvestmentProvider implements IAssetManagementProvider {
           success: true,
           transactionId: resJson.transactionId || resJson.TransactionId || transactionId,
           withdrawalId,
+          membershipId: effectiveMembershipId,
+          accountNumber: productAccountNumber,
           message: itemMsg,
         }
       }
@@ -940,6 +947,8 @@ export class ArmConnectInvestmentProvider implements IAssetManagementProvider {
       success: true,
       transactionId: resJson.transactionId || resJson.TransactionId || transactionId,
       withdrawalId,
+      membershipId: effectiveMembershipId,
+      accountNumber: productAccountNumber,
       message: itemMsg || 'ARM withdrawal successfully processed',
     }
   }

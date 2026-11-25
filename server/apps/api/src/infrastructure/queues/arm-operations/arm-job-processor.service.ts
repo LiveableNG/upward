@@ -156,6 +156,8 @@ export class ArmJobProcessorService {
           result: {
             purchaseId: purchaseRes.purchaseId || null,
             transactionId: purchaseRes.transactionId || job.armTransactionId,
+            membershipId: purchaseRes.membershipId || null,
+            accountNumber: purchaseRes.accountNumber || null,
             unitsAllocated: purchaseRes.unitsAllocated ?? null,
             message: purchaseRes.message || 'ARM subscription completed',
           },
@@ -190,6 +192,8 @@ export class ArmJobProcessorService {
           result: {
             withdrawalId: redeemRes.withdrawalId || null,
             transactionId: redeemRes.transactionId || job.armTransactionId,
+            membershipId: redeemRes.membershipId || null,
+            accountNumber: redeemRes.accountNumber || null,
             message: redeemRes.message || 'ARM redemption completed',
             reason: payload.reason || 'SETTLEMENT',
           },
@@ -357,11 +361,40 @@ export class ArmJobProcessorService {
         },
       })
 
+      const resolvedMembershipId =
+        typeof outcome.result.membershipId === 'string' && /^\d+$/.test(outcome.result.membershipId)
+          ? outcome.result.membershipId
+          : null
+      const resolvedAccountNumber =
+        typeof outcome.result.accountNumber === 'string' && outcome.result.accountNumber.trim()
+          ? outcome.result.accountNumber.trim()
+          : null
+
       if (job.jobType === 'SUBSCRIBE') {
         if (job.vaultId) {
+          const currentVault = await tx.upward_rent_vault
+            .findUnique({
+              where: { id: job.vaultId },
+              select: { providerMembershipId: true, providerAccountNumber: true },
+            })
+            .catch(() => null)
+          const needsMembershipBackfill =
+            resolvedMembershipId &&
+            (!currentVault?.providerMembershipId || !/^\d+$/.test(currentVault.providerMembershipId))
+
           await tx.upward_rent_vault.update({
             where: { id: job.vaultId },
-            data: { armPurchaseId: outcome.armInstructionId },
+            data: {
+              armPurchaseId: outcome.armInstructionId,
+              ...(needsMembershipBackfill
+                ? {
+                    providerMembershipId: resolvedMembershipId,
+                    providerAccountNumber:
+                      resolvedAccountNumber || `${resolvedMembershipId}-ARMMMF-01`,
+                    providerCrmStatus: 'Approved',
+                  }
+                : {}),
+            },
           })
         }
         if (job.transactionId) {
@@ -378,6 +411,8 @@ export class ArmJobProcessorService {
                 armSyncStatus: 'COMPLETED',
                 armPurchaseId: outcome.armInstructionId,
                 armTransactionId: outcome.armTransactionId,
+                ...(resolvedMembershipId ? { armMembershipId: resolvedMembershipId } : {}),
+                ...(resolvedAccountNumber ? { armAccountNumber: resolvedAccountNumber } : {}),
                 armCompletedAt: completedAt.toISOString(),
               } as any,
             },
@@ -385,9 +420,29 @@ export class ArmJobProcessorService {
         }
       } else if (job.jobType === 'REDEEM') {
         if (job.vaultId) {
+          const currentVault = await tx.upward_rent_vault
+            .findUnique({
+              where: { id: job.vaultId },
+              select: { providerMembershipId: true },
+            })
+            .catch(() => null)
+          const needsMembershipBackfill =
+            resolvedMembershipId &&
+            (!currentVault?.providerMembershipId || !/^\d+$/.test(currentVault.providerMembershipId))
+
           await tx.upward_rent_vault.update({
             where: { id: job.vaultId },
-            data: { armWithdrawalId: outcome.armInstructionId },
+            data: {
+              armWithdrawalId: outcome.armInstructionId,
+              ...(needsMembershipBackfill
+                ? {
+                    providerMembershipId: resolvedMembershipId,
+                    providerAccountNumber:
+                      resolvedAccountNumber || `${resolvedMembershipId}-ARMMMF-01`,
+                    providerCrmStatus: 'Approved',
+                  }
+                : {}),
+            },
           })
         }
         if (job.transactionId) {
@@ -404,6 +459,8 @@ export class ArmJobProcessorService {
                 armSyncStatus: 'COMPLETED',
                 armWithdrawalId: outcome.armInstructionId,
                 armTransactionId: outcome.armTransactionId,
+                ...(resolvedMembershipId ? { armMembershipId: resolvedMembershipId } : {}),
+                ...(resolvedAccountNumber ? { armAccountNumber: resolvedAccountNumber } : {}),
                 armCompletedAt: completedAt.toISOString(),
               } as any,
             },

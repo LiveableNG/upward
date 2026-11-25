@@ -127,6 +127,7 @@ import {
   GetArmTransactionsUseCase,
   GetArmJobsUseCase,
   RetryArmJobUseCase,
+  GetArmTransactionLiveStatusUseCase,
 } from './use-cases/admin/admin-arm.use-cases'
 
 import { JoinWaitlistUseCase } from './use-cases/waitlist/join-waitlist.use-case'
@@ -754,6 +755,7 @@ const UseCases: any[] = [
   GetArmTransactionsUseCase,
   GetArmJobsUseCase,
   RetryArmJobUseCase,
+  GetArmTransactionLiveStatusUseCase,
   SearchFeeTargetsUseCase,
   GetAreaPriceGuideUseCase,
   GetAreaPriceGuideStatesUseCase,

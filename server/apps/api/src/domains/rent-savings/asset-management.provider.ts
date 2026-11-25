@@ -151,6 +151,8 @@ export interface PurchaseSubscriptionResponse {
   success: boolean
   transactionId?: string
   purchaseId?: string
+  membershipId?: string
+  accountNumber?: string
   unitsAllocated?: number
   message?: string
 }
@@ -168,6 +170,8 @@ export interface RedemptionResponse {
   success: boolean
   transactionId?: string
   withdrawalId?: string
+  membershipId?: string
+  accountNumber?: string
   message?: string
 }
 

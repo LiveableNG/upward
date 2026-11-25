@@ -443,9 +443,25 @@ export class GetArmTransactionsUseCase {
             select: {
               uuid: true,
               providerMembershipId: true,
+              providerAccountNumber: true,
               dvaAccountNumber: true,
+              dvaBankName: true,
               armPurchaseId: true,
               armWithdrawalId: true,
+            },
+          },
+          armJobs: {
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+            select: {
+              uuid: true,
+              status: true,
+              jobType: true,
+              armInstructionId: true,
+              armTransactionId: true,
+              attempts: true,
+              maxAttempts: true,
+              lastError: true,
             },
           },
         },
@@ -496,10 +512,19 @@ export class GetArmTransactionsUseCase {
       const meta = (tx.metadata as Record<string, any>) || {}
       const senderName = `${this.encryption.decrypt(u.firstName)} ${this.encryption.decrypt(u.lastName)}`.trim()
       const senderEmail = this.encryption.decrypt(u.email)
+      const isNumeric = (v?: string | null) => Boolean(v && /^\d+$/.test(v.trim()))
       const membershipId =
-        u.kycVerifications?.[0]?.armCustomerMembershipId ||
-        tx.vault?.providerMembershipId ||
+        (isNumeric(meta.armMembershipId) ? String(meta.armMembershipId) : null) ||
+        (isNumeric(tx.vault?.providerMembershipId) ? tx.vault?.providerMembershipId : null) ||
+        (isNumeric(u.kycVerifications?.[0]?.armCustomerMembershipId)
+          ? u.kycVerifications?.[0]?.armCustomerMembershipId
+          : null) ||
         omnibusMembershipId
+      const armAccountNumber =
+        (typeof meta.armAccountNumber === 'string' ? meta.armAccountNumber : null) ||
+        tx.vault?.providerAccountNumber ||
+        `${membershipId}-ARMMMF-01`
+      const linkedJob = (tx as any).armJobs?.[0] || null
 
       let flowCategory = 'Deposit Inflow'
       if (tx.type === 'DEPOSIT') {
@@ -522,11 +547,13 @@ export class GetArmTransactionsUseCase {
           ? tx.vault?.armWithdrawalId
           : null) ||
         null
-      const armTransactionId = meta.armTransactionId || null
-      const armInstructionId = armPurchaseId || armWithdrawalId || null
+      const armTransactionId = meta.armTransactionId || linkedJob?.armTransactionId || null
+      const armInstructionId =
+        armPurchaseId || armWithdrawalId || linkedJob?.armInstructionId || null
       const armLiveStatus =
         (armPurchaseId && liveArmStatusMap.get(String(armPurchaseId))) ||
         (armTransactionId && liveArmStatusMap.get(String(armTransactionId))) ||
+        (meta.armSyncStatus ? String(meta.armSyncStatus) : null) ||
         (armInstructionId ? 'Submitted' : null)
 
       return {
@@ -544,12 +571,17 @@ export class GetArmTransactionsUseCase {
         customerName: senderName,
         customerEmail: senderEmail,
         armMembershipId: membershipId,
+        armAccountNumber,
         armPurchaseId,
         armWithdrawalId,
         armTransactionId,
         armInstructionId,
         armLiveStatus,
+        armSyncStatus: meta.armSyncStatus || linkedJob?.status || null,
+        linkedJob,
+        metadata: meta,
         vaultUuid: tx.vault?.uuid,
+        dvaBankName: tx.vault?.dvaBankName || null,
         dvaAccountNumber: tx.vault?.dvaAccountNumber,
         createdAt: tx.createdAt.toISOString(),
       }
@@ -619,7 +651,7 @@ export class GetArmJobsUseCase {
       where.jobType = filters.jobType
     }
 
-    const [totalCount, jobs, grouped] = await Promise.all([
+    const [totalCount, jobs, grouped, groupedTypes] = await Promise.all([
       this.prisma.upward_arm_job.count({ where }),
       this.prisma.upward_arm_job.findMany({
         where,
@@ -637,6 +669,8 @@ export class GetArmJobsUseCase {
             select: {
               uuid: true,
               dvaAccountNumber: true,
+              providerMembershipId: true,
+              providerAccountNumber: true,
             },
           },
         },
@@ -646,6 +680,10 @@ export class GetArmJobsUseCase {
       }),
       this.prisma.upward_arm_job.groupBy({
         by: ['status'],
+        _count: { id: true },
+      }),
+      this.prisma.upward_arm_job.groupBy({
+        by: ['jobType'],
         _count: { id: true },
       }),
     ])
@@ -658,11 +696,30 @@ export class GetArmJobsUseCase {
       if (row.status === 'FAILED') summary.failed = row._count.id
     }
 
+    const typeSummary = { subscribe: 0, redeem: 0, onboard: 0 }
+    for (const row of groupedTypes) {
+      if (row.jobType === 'SUBSCRIBE') typeSummary.subscribe = row._count.id
+      if (row.jobType === 'REDEEM') typeSummary.redeem = row._count.id
+      if (row.jobType === 'ONBOARD') typeSummary.onboard = row._count.id
+    }
+
     let items = jobs.map((job) => {
       const fullName = job.user
         ? `${this.safeDecrypt(job.user.firstName)} ${this.safeDecrypt(job.user.lastName)}`.trim()
         : 'System / Omnibus'
       const email = job.user ? this.safeDecrypt(job.user.email) : ''
+      const jobResult = (job.result as Record<string, any>) || null
+      const jobPayload = (job.payload as Record<string, any>) || null
+      const isNumeric = (v?: string | null) => Boolean(v && /^\d+$/.test(String(v).trim()))
+      const armMembershipId =
+        (isNumeric(jobResult?.membershipId) ? String(jobResult.membershipId) : null) ||
+        (isNumeric(job.vault?.providerMembershipId) ? job.vault?.providerMembershipId : null) ||
+        (isNumeric(jobPayload?.membershipId) ? String(jobPayload.membershipId) : null) ||
+        '3005679'
+      const armAccountNumber =
+        jobResult?.accountNumber ||
+        job.vault?.providerAccountNumber ||
+        `${armMembershipId}-ARMMMF-01`
 
       return {
         id: job.id,
@@ -672,14 +729,19 @@ export class GetArmJobsUseCase {
         status: job.status,
         reference: job.reference,
         amountNaira: job.amountKobo ? Number(job.amountKobo) / 100 : 0,
+        armMembershipId,
+        armAccountNumber,
         armTransactionId: job.armTransactionId,
         armInstructionId: job.armInstructionId,
         attempts: job.attempts,
         maxAttempts: job.maxAttempts,
         lastError: job.lastError,
+        payload: jobPayload,
+        result: jobResult,
         customerName: fullName,
         customerEmail: email,
         vaultUuid: job.vault?.uuid || null,
+        dvaAccountNumber: job.vault?.dvaAccountNumber || null,
         canRetry: job.status === 'FAILED' && !job.armInstructionId,
         notifiedUserAt: job.notifiedUserAt?.toISOString() || null,
         notifiedAdminAt: job.notifiedAdminAt?.toISOString() || null,
@@ -699,6 +761,7 @@ export class GetArmJobsUseCase {
           j.idempotencyKey.toLowerCase().includes(q) ||
           j.customerName.toLowerCase().includes(q) ||
           j.customerEmail.toLowerCase().includes(q) ||
+          j.armMembershipId.toLowerCase().includes(q) ||
           j.armTransactionId.toLowerCase().includes(q) ||
           (j.armInstructionId && j.armInstructionId.toLowerCase().includes(q)) ||
           (j.lastError && j.lastError.toLowerCase().includes(q)),
@@ -709,6 +772,7 @@ export class GetArmJobsUseCase {
       status: 'success',
       data: {
         summary,
+        typeSummary,
         items,
         pagination: {
           total: totalCount,
@@ -799,6 +863,68 @@ export class RetryArmJobUseCase {
         uuid: job.uuid,
         status: 'QUEUED',
         enqueued,
+      },
+    }
+  }
+}
+
+@Injectable()
+export class GetArmTransactionLiveStatusUseCase {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly providerRegistry: AssetManagementProviderRegistry,
+  ) {}
+
+  async execute(transactionUuid: string) {
+    const tx = await this.prisma.upward_rent_vault_transaction.findUnique({
+      where: { uuid: transactionUuid },
+      include: {
+        vault: {
+          select: {
+            armPurchaseId: true,
+            armWithdrawalId: true,
+            providerMembershipId: true,
+          },
+        },
+        armJobs: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: {
+            armTransactionId: true,
+            armInstructionId: true,
+            status: true,
+          },
+        },
+      },
+    })
+
+    if (!tx) {
+      throw new NotFoundException('Vault transaction not found.')
+    }
+
+    const meta = (tx.metadata as Record<string, any>) || {}
+    const purchaseId = meta.armPurchaseId ? String(meta.armPurchaseId) : undefined
+    const transactionId =
+      (meta.armTransactionId ? String(meta.armTransactionId) : undefined) ||
+      tx.armJobs?.[0]?.armTransactionId ||
+      undefined
+
+    const provider = this.providerRegistry.getProvider('ARM')
+    const liveItems =
+      provider.getTransactionStatus && (purchaseId || transactionId)
+        ? await provider.getTransactionStatus({ purchaseId, transactionId }).catch(() => [])
+        : []
+
+    return {
+      status: 'success',
+      data: {
+        transactionUuid: tx.uuid,
+        reference: tx.reference,
+        purchaseId: purchaseId || null,
+        withdrawalId: meta.armWithdrawalId ? String(meta.armWithdrawalId) : null,
+        armTransactionId: transactionId || null,
+        liveItems,
+        checkedAt: new Date().toISOString(),
       },
     }
   }

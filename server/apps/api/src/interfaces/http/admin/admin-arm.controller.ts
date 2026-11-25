@@ -16,6 +16,7 @@ import {
   GetArmTransactionsUseCase,
   GetArmJobsUseCase,
   RetryArmJobUseCase,
+  GetArmTransactionLiveStatusUseCase,
 } from '../../../application/use-cases/admin/admin-arm.use-cases'
 
 @Controller('admin/arm')
@@ -27,6 +28,7 @@ export class AdminArmController {
     private readonly getTransactionsUseCase: GetArmTransactionsUseCase,
     private readonly getJobsUseCase: GetArmJobsUseCase,
     private readonly retryJobUseCase: RetryArmJobUseCase,
+    private readonly getTxLiveStatusUseCase: GetArmTransactionLiveStatusUseCase,
   ) {}
 
   @Get('stats')
@@ -57,6 +59,12 @@ export class AdminArmController {
       page,
       limit,
     })
+  }
+
+  @Get('transactions/:uuid/arm-status')
+  @Roles(AdminRole.SUPERADMIN, AdminRole.CUSTOMER_SUPPORT, AdminRole.DEVELOPER)
+  async getTransactionLiveArmStatus(@Param('uuid') uuid: string) {
+    return this.getTxLiveStatusUseCase.execute(uuid)
   }
 
   @Get('jobs')

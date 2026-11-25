@@ -77,6 +77,9 @@ describe('ArmJobProcessorService', () => {
         update: jest.fn().mockResolvedValue({}),
       },
       upward_rent_vault: {
+        findUnique: jest
+          .fn()
+          .mockResolvedValue({ providerMembershipId: null, providerAccountNumber: null }),
         update: jest.fn().mockResolvedValue({}),
       },
       upward_rent_vault_transaction: {
