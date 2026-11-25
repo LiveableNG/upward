@@ -40,7 +40,7 @@ export class ControlBulkEmailCampaignUseCase {
         where: { id: campaignId },
         data: { status: 'SENDING' },
       })
-      this.bulkEmailWorker.kick()
+      this.bulkEmailWorker.kick(campaignId, true)
     } else if (action === 'CANCEL') {
       if (['COMPLETED', 'CANCELLED'].includes(campaign.status)) {
         throw new BadRequestException(`Campaign is already ${campaign.status}`)

@@ -224,8 +224,8 @@ export class SendBulkEmailUseCase {
       )
     }
 
-    // 4. Wake up the Postgres background worker immediately (non-blocking)
-    this.bulkEmailWorker.kick()
+    // 4. Enqueue recipients into BullMQ (non-blocking)
+    this.bulkEmailWorker.kick(campaign.id)
 
     return {
       campaignId: campaign.id,

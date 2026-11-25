@@ -58,7 +58,7 @@ export class RetryBulkEmailCampaignFailedUseCase {
       )
     }
 
-    this.bulkEmailWorker.kick()
+    this.bulkEmailWorker.kick(campaignId, true)
 
     return {
       success: true,
