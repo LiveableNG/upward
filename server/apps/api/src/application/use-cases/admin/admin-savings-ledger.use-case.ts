@@ -224,7 +224,7 @@ export class SimulateDailyNavAccrualUseCase {
       throw new ForbiddenException('Accrual simulation is disabled in production.')
     }
 
-    const days = Math.min(90, Math.max(1, Math.round(Number(params?.days || 1))))
+    const days = Math.min(365, Math.max(1, Math.round(Number(params?.days || 1))))
     const now = new Date()
     const rates = await this.platformRates.getRates()
 

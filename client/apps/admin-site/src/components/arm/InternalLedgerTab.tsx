@@ -184,22 +184,17 @@ export const InternalLedgerTab: React.FC<InternalLedgerTabProps> = ({ token }) =
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
           {isSandbox && (
             <>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                disabled={simulatingDays !== null}
-                onClick={() => handleSimulateAccrual(1)}
-              >
-                <Play size={13} /> {simulatingDays === 1 ? 'Running...' : 'Simulate +1d'}
-              </button>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                disabled={simulatingDays !== null}
-                onClick={() => handleSimulateAccrual(30)}
-              >
-                <Play size={13} /> {simulatingDays === 30 ? 'Running...' : 'Simulate +30d'}
-              </button>
+              {[1, 30, 90, 180].map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  className="btn btn-secondary"
+                  disabled={simulatingDays !== null}
+                  onClick={() => handleSimulateAccrual(d)}
+                >
+                  <Play size={13} /> {simulatingDays === d ? 'Running...' : `+${d}d`}
+                </button>
+              ))}
             </>
           )}
           <select

@@ -123,11 +123,13 @@ export class RentSavingsCalculatorEngine {
     // Exact monthly effective rate: r_m = (1 + r_a)^(1/12) - 1 (Section 3.4)
     const monthlyRate = Math.pow(1 + effectiveAnnualYield, 1 / 12) - 1
 
-    // Required initial deposit when starting mid-lease or choosing RENT_PROTEC
+    // Required initial deposit when choosing RENT_PROTEC (20% for 7+ mo, 25% for 6 mo)
+    const minRentProtecRatio =
+      this.getRentProtecActivationThresholdPct(rawDaysRemaining) / 100
     const missedMonths = Math.max(0, maxMonths - monthsRemaining)
     const forcedDepositRatio =
-      productOption === 'RENT_PROTEC' && missedMonths > 0
-        ? Math.min(0.45, Math.max(0.15, (missedMonths / maxMonths) * 0.5))
+      productOption === 'RENT_PROTEC'
+        ? Math.min(0.45, Math.max(minRentProtecRatio, (missedMonths / maxMonths) * 0.5))
         : 0
     const requiredInitialDepositNum = Math.round(targetAmount * forcedDepositRatio)
     const providedInitialDeposit = Number(input.initialDepositKobo || 0n)
