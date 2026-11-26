@@ -568,3 +568,76 @@
   color: var(--clay);
   flex-shrink: 0;
 }
+
+/* Saved Rental Address Quick-Picker (.saved-address-picker) */
+.saved-address-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-bottom: 8px;
+}
+
+.saved-address-picker__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.saved-address-picker__label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.saved-address-picker__clear {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--clay);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.saved-address-picker__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.saved-address-picker__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 7px 11px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border-solid, #e2ddd7);
+  background: var(--surface, #ffffff);
+  color: var(--text, #1a1714);
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+  text-align: left;
+  transition: transform 100ms ease-out, border-color 150ms ease, background 150ms ease;
+}
+
+.saved-address-picker__chip:active {
+  transform: scale(0.97);
+}
+
+.saved-address-picker__chip--selected {
+  border-color: var(--clay, #c2501f);
+  background: color-mix(in srgb, var(--clay, #c2501f) 10%, var(--surface, #ffffff));
+  color: var(--clay, #c2501f);
+}
+
+.saved-address-picker__chip-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 240px;
+}

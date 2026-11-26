@@ -21,6 +21,7 @@ import {
   Check,
   Search,
   Ticket,
+  Home,
 } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
@@ -215,6 +216,7 @@ export function CommerceCheckoutModal({
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
@@ -227,11 +229,45 @@ export function CommerceCheckoutModal({
     },
   })
 
-  // Synchronize initial recipient defaults
+  const currentStreetAddress = watch('streetAddress')
+
+  const savedRentalAddresses = useMemo(() => {
+    const seen = new Set<string>()
+    const list: Array<{ id: string; address: string }> = []
+    for (const prop of (user?.properties || []) as Array<any>) {
+      const loc = prop?.location
+      const baseAddr = (loc?.address || prop?.address || '').trim()
+      if (!baseAddr) continue
+      const areaPart = (loc?.subarea || loc?.area || '').trim()
+      const formatted =
+        areaPart && !baseAddr.toLowerCase().includes(areaPart.toLowerCase())
+          ? `${baseAddr}, ${areaPart}`
+          : baseAddr
+      const key = formatted.toLowerCase()
+      if (seen.has(key)) continue
+      seen.add(key)
+      list.push({
+        id: String(prop.id ?? prop.uuid ?? list.length),
+        address: formatted,
+      })
+    }
+    return list
+  }, [user?.properties])
+
+  // Synchronize initial recipient defaults & smart rental address prefill
   useEffect(() => {
+    if (!isOpen) return
     if (initialName) setValue('recipientName', initialName)
     if (initialPhone) setValue('recipientPhone', initialPhone)
-  }, [initialName, initialPhone, setValue])
+
+    // Auto-prefill only when user has exactly 1 saved rental address;
+    // when 2+ rentals exist, leave unselected so they explicitly pick the destination.
+    if (savedRentalAddresses.length === 1) {
+      setValue('streetAddress', savedRentalAddresses[0].address, { shouldValidate: false })
+    } else if (savedRentalAddresses.length >= 2) {
+      setValue('streetAddress', '', { shouldValidate: false })
+    }
+  }, [isOpen, initialName, initialPhone, savedRentalAddresses, setValue])
 
   const isMultiItem = Boolean(cartItems && cartItems.length > 0)
   const effectiveItems: CartItem[] = isMultiItem && cartItems
@@ -741,12 +777,63 @@ export function CommerceCheckoutModal({
             </div>
 
             <div className="checkout-sheet__field">
-              <label className="checkout-sheet__label" htmlFor="streetAddress">
-                {isService
-                  ? 'Service Address & House / Apartment Number'
-                  : 'Specific Street Address & House / Unit Number'}{' '}
-                <span style={{ color: 'var(--clay)' }}>*</span>
-              </label>
+              <div className="saved-address-picker__header">
+                <label className="checkout-sheet__label" htmlFor="streetAddress" style={{ marginBottom: 0 }}>
+                  {isService
+                    ? 'Service Address & House / Apartment Number'
+                    : 'Specific Street Address & House / Unit Number'}{' '}
+                  <span style={{ color: 'var(--clay)' }}>*</span>
+                </label>
+                {savedRentalAddresses.length === 1 &&
+                  currentStreetAddress?.trim() === savedRentalAddresses[0].address && (
+                    <button
+                      type="button"
+                      className="saved-address-picker__clear"
+                      onClick={() => setValue('streetAddress', '', { shouldValidate: false })}
+                      disabled={isProcessing}
+                    >
+                      Use different
+                    </button>
+                  )}
+              </div>
+
+              {savedRentalAddresses.length >= 2 && (
+                <div className="saved-address-picker">
+                  <span className="saved-address-picker__label">
+                    {isService
+                      ? 'Choose a saved rental for this service'
+                      : 'Choose a saved rental to deliver to'}
+                  </span>
+                  <div className="saved-address-picker__chips">
+                    {savedRentalAddresses.map((rental) => {
+                      const isSelected = currentStreetAddress?.trim() === rental.address
+                      return (
+                        <button
+                          key={rental.id}
+                          type="button"
+                          className={`saved-address-picker__chip ${
+                            isSelected ? 'saved-address-picker__chip--selected' : ''
+                          }`}
+                          onClick={() =>
+                            setValue('streetAddress', isSelected ? '' : rental.address, {
+                              shouldValidate: true,
+                            })
+                          }
+                          disabled={isProcessing}
+                          title={rental.address}
+                        >
+                          <Home size={13} style={{ flexShrink: 0 }} />
+                          <span className="saved-address-picker__chip-text">
+                            {rental.address}
+                          </span>
+                          {isSelected && <Check size={13} style={{ flexShrink: 0 }} />}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
               <div className="checkout-sheet__input-with-icon">
                 <MapPin size={16} className="checkout-sheet__input-icon" />
                 <input
