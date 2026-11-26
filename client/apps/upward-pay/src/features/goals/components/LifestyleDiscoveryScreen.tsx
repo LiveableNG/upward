@@ -43,7 +43,6 @@ import {
   Mic,
   Palette,
   Shield,
-  Ticket,
 } from 'lucide-react'
 import {
   useGoalCategories,
@@ -51,8 +50,7 @@ import {
   useUserGoals,
   useSetUserGoals,
 } from '../hooks/useGoals'
-import { useTenantOrders, useUserVoucher } from '../hooks/useCommerceOrders'
-import { VoucherWalletSheet } from './VoucherWalletSheet'
+import { useTenantOrders } from '../hooks/useCommerceOrders'
 import {
   getRecommendedOfferings,
   type RecommendedOfferingItem,
@@ -79,7 +77,6 @@ import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { useToast } from '@/components/common/Toast'
 import { useCart } from '../context/CartContext'
 import '../styles/goals.css'
-import '../styles/voucher.css'
 
 export function getGoalIconComponent(iconName?: string | null, slug?: string) {
   const name = `${iconName || ''} ${slug || ''}`.toLowerCase()
@@ -239,11 +236,6 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
   const { data: userGoals = EMPTY_USER_GOALS, isLoading: isUserGoalsLoading } = useUserGoals()
   const setGoalsMutation = useSetUserGoals()
   const { data: tenantOrdersData } = useTenantOrders({ take: 20 })
-  const { data: voucherSummary } = useUserVoucher()
-  const [isVoucherSheetOpen, setIsVoucherSheetOpen] = useState(false)
-  const voucherAvailableNaira = voucherSummary?.wallet?.availableBalanceNaira ?? 0
-  const voucherReservedNaira = voucherSummary?.wallet?.reservedBalanceNaira ?? 0
-  const showVoucherPill = voucherAvailableNaira > 0 || voucherReservedNaira > 0
 
   const activeOrdersCount = useMemo(() => {
     const orders = tenantOrdersData?.orders || []
@@ -598,21 +590,6 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
           </div>
 
           <div className="lifestyle-discovery__top-actions">
-            {showVoucherPill && (
-              <button
-                type="button"
-                className="voucher-pill"
-                onClick={() => setIsVoucherSheetOpen(true)}
-                aria-label="View your Upward voucher balance"
-                title="Upward Voucher Balance"
-              >
-                <Ticket size={14} />
-                <span>
-                  ₦{voucherAvailableNaira.toLocaleString('en-NG', { maximumFractionDigits: 0 })}
-                </span>
-              </button>
-            )}
-
             <button
               type="button"
               className={`lifestyle-discovery__goals-trigger ${
@@ -707,12 +684,6 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
           </div>
         </div>
       </header>
-
-      <VoucherWalletSheet
-        isOpen={isVoucherSheetOpen}
-        onClose={() => setIsVoucherSheetOpen(false)}
-        summary={voucherSummary}
-      />
 
       {/* Main Content */}
       <main className="lifestyle-discovery__container">

@@ -96,6 +96,8 @@ export const OfferingCard: React.FC<OfferingCardProps> = ({
   const title = offering.title || offering.name || 'Untitled Item'
   const vendor = offering.vendor
   const verified = isVendorVerified(vendor)
+  const isQuoteService =
+    offering.type === 'SERVICE' || offering.pricingModel === 'QUOTE_REQUIRED' || !offering.price
   const compareAtPrice = offering.compareAtPrice ?? (offering.pricingModel === 'FIXED' ? offering.maxPrice : null)
   const hasDiscount = compareAtPrice != null && offering.price != null && compareAtPrice > offering.price
   const discountPercent = hasDiscount ? Math.round(((compareAtPrice! - offering.price!) / compareAtPrice!) * 100) : 0
@@ -173,8 +175,8 @@ export const OfferingCard: React.FC<OfferingCardProps> = ({
           <p className="offering-card__subtitle">{offering.subtitle}</p>
         )}
 
-        <div className="offering-card__footer">
-          <div className="offering-card__price-group">
+        <div className={`offering-card__footer ${isQuoteService ? 'offering-card__footer--quote' : ''}`}>
+          <div className={`offering-card__price-group ${isQuoteService ? 'offering-card__price-group--stacked' : ''}`}>
             <span className="offering-card__price">
               {formatOfferingPrice(offering)}
             </span>
@@ -197,23 +199,14 @@ export const OfferingCard: React.FC<OfferingCardProps> = ({
             )}
           </div>
 
-          <div className="offering-card__actions-wrap" style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
+          <div className="offering-card__actions-wrap">
             <button
               type="button"
               className="offering-card__cart-btn"
-              style={{ whiteSpace: 'nowrap', flexShrink: 0 }}
-              title={
-                offering.type === 'SERVICE' || offering.pricingModel === 'QUOTE_REQUIRED'
-                  ? 'Request Price / Details'
-                  : 'Add to Cart'
-              }
+              title={isQuoteService ? 'Request Price / Details' : 'Add to Cart'}
               onClick={(e) => {
                 e.stopPropagation()
-                if (
-                  offering.type === 'SERVICE' ||
-                  offering.pricingModel === 'QUOTE_REQUIRED' ||
-                  !offering.price
-                ) {
+                if (isQuoteService) {
                   // Direct service booking / quotes to the detail page flow
                   onClick?.(offering)
                 } else {
@@ -222,21 +215,19 @@ export const OfferingCard: React.FC<OfferingCardProps> = ({
                 }
               }}
             >
-              {offering.type === 'SERVICE' || offering.pricingModel === 'QUOTE_REQUIRED' ? (
+              {isQuoteService ? (
                 <Wrench size={12} strokeWidth={2.4} />
               ) : (
                 <ShoppingCart size={12} strokeWidth={2.4} />
               )}
-              <span>
-                {offering.type === 'SERVICE' || offering.pricingModel === 'QUOTE_REQUIRED'
-                  ? 'Request Price'
-                  : 'Add'}
-              </span>
+              <span>{isQuoteService ? 'Request Price' : 'Add'}</span>
             </button>
-            <span className="offering-card__action-btn" aria-hidden="true">
-              <span>Details</span>
-              <ArrowUpRight size={14} />
-            </span>
+            {!isQuoteService && (
+              <span className="offering-card__action-btn" aria-hidden="true">
+                <span>Details</span>
+                <ArrowUpRight size={14} />
+              </span>
+            )}
           </div>
         </div>
       </div>

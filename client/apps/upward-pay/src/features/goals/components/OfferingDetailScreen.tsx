@@ -367,6 +367,8 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
     usePublicOfferings()
 
   const carouselRef = React.useRef<HTMLDivElement>(null)
+  const bundleHeroCtaRef = React.useRef<HTMLDivElement>(null)
+  const [showStickySummary, setShowStickySummary] = useState(false)
 
   const scrollCarousel = (direction: 'left' | 'right') => {
     if (carouselRef.current) {
@@ -386,6 +388,49 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
 
   const offering: GoalOffering | undefined = detailOffering || fallbackOffering
   const isLoading = isDetailLoading || (!offering && !isError)
+
+  useEffect(() => {
+    if (isLoading) {
+      setShowStickySummary(false)
+      return
+    }
+    const target = bundleHeroCtaRef.current
+    if (!target) {
+      setShowStickySummary(false)
+      return
+    }
+
+    const updateVisibility = () => {
+      const rect = target.getBoundingClientRect()
+      // Show sticky summary once the hero CTA buttons scroll above the top header
+      setShowStickySummary(rect.bottom < 56)
+    }
+
+    updateVisibility()
+
+    const observer =
+      typeof IntersectionObserver !== 'undefined'
+        ? new IntersectionObserver(
+            () => {
+              updateVisibility()
+            },
+            {
+              rootMargin: '-56px 0px 0px 0px',
+              threshold: [0, 1],
+            },
+          )
+        : null
+
+    observer?.observe(target)
+    window.addEventListener('scroll', updateVisibility, { passive: true })
+    document.addEventListener('scroll', updateVisibility, { passive: true, capture: true })
+
+    return () => {
+      observer?.disconnect()
+      window.removeEventListener('scroll', updateVisibility)
+      document.removeEventListener('scroll', updateVisibility, { capture: true })
+    }
+  }, [offering?.id, isLoading])
 
   const deliveryCheck = React.useMemo(() => {
     if (!offering) return { isDeliverable: true }
@@ -873,6 +918,59 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
           </div>
         </header>
 
+        {/* Sticky Top Summary CTA Bar — portaled to document.body so position:fixed isn't trapped by transformed ancestors */}
+        {mounted &&
+          typeof document !== 'undefined' &&
+          createPortal(
+            <div
+              className={`bundle-showcase__sticky-bar ${
+                showStickySummary ? 'bundle-showcase__sticky-bar--visible' : ''
+              }`}
+              aria-hidden={!showStickySummary}
+            >
+              <div className="bundle-showcase__sticky-inner">
+                <div className="bundle-showcase__sticky-left">
+                  <button
+                    type="button"
+                    className="bundle-showcase__sticky-back"
+                    onClick={handleBack}
+                    aria-label="Back to Lifestyle"
+                    tabIndex={showStickySummary ? 0 : -1}
+                  >
+                    <ArrowLeft size={16} />
+                  </button>
+                  <div className="bundle-showcase__sticky-meta">
+                    <span className="bundle-showcase__sticky-title">{title}</span>
+                    <span className="bundle-showcase__sticky-price">
+                      {formatNgn(customBundlePrice)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bundle-showcase__sticky-actions">
+                  <button
+                    type="button"
+                    className="bundle-showcase__sticky-add-btn"
+                    onClick={handleAddToCart}
+                    tabIndex={showStickySummary ? 0 : -1}
+                  >
+                    <ShoppingCart size={14} strokeWidth={2.3} />
+                    <span>Add</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="bundle-showcase__sticky-checkout-btn"
+                    onClick={() => setIsCheckoutOpen(true)}
+                    tabIndex={showStickySummary ? 0 : -1}
+                  >
+                    <span>Checkout</span>
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )}
+
         <main className="offering-detail__container bundle-showcase">
           {/* Clean Editorial Hero Banner */}
           <section className="bundle-showcase__hero">
@@ -926,7 +1024,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                 )}
               </div>
 
-              <div className="bundle-showcase__top-actions">
+              <div ref={bundleHeroCtaRef} className="bundle-showcase__top-actions">
                 <button
                   type="button"
                   className="bundle-showcase__top-add-btn"
