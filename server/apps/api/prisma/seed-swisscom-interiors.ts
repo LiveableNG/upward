@@ -43,7 +43,7 @@ const SWISSCOM_OFFERINGS: SwisscomOfferingSeed[] = [
     description:
       'Bespoke residential curtains custom-made by Swisscom Interiors to fit your exact window measurements. Choose from full-height floor-to-ceiling drapery, layered bedroom setups, tailored grey folds, and decorative living room treatments in sheer, decorative, dimout, or blackout fabrics. Includes on-site measurement, fabric & lining consultation, custom sewing, manual or motorised track options, and professional installation across Lagos. Pricing is provided via custom quotation after site measurement and fabric selection.',
     leadTimeDays: 7,
-    isFeatured: true,
+    isFeatured: false,
     media: [
       { filename: '01-full-height-curtain.jpg', isPrimary: true, sortOrder: 0 },
       { filename: '06-decorative-living-curtains.jpg', isPrimary: false, sortOrder: 1 },
@@ -70,7 +70,7 @@ const SWISSCOM_OFFERINGS: SwisscomOfferingSeed[] = [
     description:
       'Soft, translucent custom sheer curtains that gently diffuse natural daylight while elevating living rooms, lounges, and home offices. Available with manual or smooth motorised track operation, and can be paired with decorative or blackout drapery for day-to-night light and privacy control. Includes professional site measurement, fabric selection, custom fabrication, and installation across Lagos. Pricing is provided via custom quotation after site measurement and fabric selection.',
     leadTimeDays: 7,
-    isFeatured: true,
+    isFeatured: false,
     media: [
       { filename: '08-sheer-curtains-living-space.jpg', isPrimary: true, sortOrder: 0 },
       { filename: '04-motorised-sheer-curtains.jpg', isPrimary: false, sortOrder: 1 },
@@ -96,7 +96,7 @@ const SWISSCOM_OFFERINGS: SwisscomOfferingSeed[] = [
     description:
       'Custom-made double-layer roller blinds combining a daytime sunscreen fabric that filters harsh sunlight while preserving views, paired with an independent blackout layer for complete privacy and restful sleep. Ideal for bedrooms, living spaces, and remote-work setups. Professionally measured on site, custom-fabricated to your exact window dimensions, and installed across Lagos by Swisscom Interiors. Pricing is provided via custom quotation after site measurement and fabric selection.',
     leadTimeDays: 5,
-    isFeatured: true,
+    isFeatured: false,
     media: [
       { filename: '07-double-layer-roller-blind.jpg', isPrimary: true, sortOrder: 0 },
     ],
