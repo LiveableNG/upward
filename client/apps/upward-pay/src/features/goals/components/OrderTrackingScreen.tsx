@@ -148,6 +148,9 @@ export function OrderTrackingScreen({
   const [expandedChatSubOrders, setExpandedChatSubOrders] = useState<Record<string, boolean>>({})
   const [sendingSubOrderUuid, setSendingSubOrderUuid] = useState<string | null>(null)
   const [isDecliningQuote, setIsDecliningQuote] = useState(false)
+  const [isDeclineModalOpen, setIsDeclineModalOpen] = useState(false)
+  const [declineReasonPreset, setDeclineReasonPreset] = useState<string>('Price is too high')
+  const [declineReasonNote, setDeclineReasonNote] = useState<string>('')
   const [hoveredRating, setHoveredRating] = useState<number | null>(null)
   const [isDownloading, setIsDownloading] = useState(false)
   const [isPaying, setIsPaying] = useState(false)
@@ -289,10 +292,18 @@ export function OrderTrackingScreen({
 
   const handleDeclineQuote = async () => {
     if (!order) return
+    const combinedReason = [declineReasonPreset, declineReasonNote.trim()]
+      .filter(Boolean)
+      .join(' — ')
     try {
       setIsDecliningQuote(true)
-      await declineServiceQuote.mutateAsync({ orderUuid: order.uuid })
-      toast.info('Quote declined and service request cancelled.')
+      await declineServiceQuote.mutateAsync({
+        orderUuid: order.uuid,
+        reason: combinedReason || undefined,
+      })
+      setIsDeclineModalOpen(false)
+      setDeclineReasonNote('')
+      toast.info('Quote declined. No payment was charged.')
     } catch (err: any) {
       toast.error(err?.message || 'Could not decline quote.')
     } finally {
@@ -461,9 +472,60 @@ export function OrderTrackingScreen({
             </button>
           </div>
         </div>
+      ) : order.subOrders.some((s) => s.customerStatus === 'QUOTE_DECLINED') ? (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: 12,
+            padding: '16px',
+            borderRadius: '12px',
+            background: 'rgba(217, 119, 87, 0.08)',
+            border: '1px solid rgba(217, 119, 87, 0.28)',
+            marginBottom: '16px',
+          }}
+        >
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: '50%',
+              background: 'rgba(217, 119, 87, 0.14)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--clay, #C2501F)',
+              flexShrink: 0,
+            }}
+          >
+            <AlertCircle size={20} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <strong style={{ fontSize: '14px', color: '#1a1714', fontWeight: 700 }}>
+                Quote Declined
+              </strong>
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  padding: '2px 8px',
+                  borderRadius: '4px',
+                  background: 'rgba(217, 119, 87, 0.14)',
+                  color: 'var(--clay, #C2501F)',
+                }}
+              >
+                No Charge
+              </span>
+            </div>
+            <p style={{ fontSize: '13px', color: '#4a4238', margin: 0, lineHeight: 1.5 }}>
+              You declined this quote and no payment was taken. Our team has been notified—if you&apos;d like to adjust the scope or discuss a revised price, send a message below.
+            </p>
+          </div>
+        </div>
       ) : order.paymentStatus !== 'PAID' &&
         Number(order.totalAmountKobo) > 0 &&
-        !order.subOrders.some((s) => s.customerStatus === 'QUOTE_PROVIDED') && (
+        !order.subOrders.some((s) => s.customerStatus === 'QUOTE_PROVIDED' || s.customerStatus === 'QUOTE_DECLINED') && (
         <div className="order-tracking__unpaid-banner">
           <div className="order-tracking__unpaid-icon">
             <AlertTriangle size={20} color="#D97706" />
@@ -747,7 +809,7 @@ export function OrderTrackingScreen({
                       <button
                         type="button"
                         className="order-tracking__quote-decline-btn"
-                        onClick={handleDeclineQuote}
+                        onClick={() => setIsDeclineModalOpen(true)}
                         disabled={isPaying || isDecliningQuote}
                       >
                         {isDecliningQuote ? 'Declining…' : 'Decline Price'}
@@ -824,7 +886,7 @@ export function OrderTrackingScreen({
                 (() => {
                   const msgs = subOrder.messages || []
                   const isQuotePhase =
-                    ['QUOTE_REQUESTED', 'QUOTE_PROVIDED'].includes(subOrder.customerStatus) &&
+                    ['QUOTE_REQUESTED', 'QUOTE_PROVIDED', 'QUOTE_DECLINED'].includes(subOrder.customerStatus) &&
                     order.paymentStatus !== 'PAID' &&
                     order.status !== 'CANCELLED'
 
@@ -1386,6 +1448,96 @@ export function OrderTrackingScreen({
             </div>
           </div>
         )}
+      </BottomSheetModal>
+
+      {/* Decline Quote Reason Modal */}
+      <BottomSheetModal
+        isOpen={isDeclineModalOpen}
+        onClose={() => !isDecliningQuote && setIsDeclineModalOpen(false)}
+        title="Decline Quoted Price"
+        subtitle="Let us know why so our team can revise your quote or close the request"
+        maxWidth="460px"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {[
+              'Price is too high',
+              'Want to adjust scope',
+              "Timing doesn't work",
+              'No longer needed',
+            ].map((preset) => {
+              const active = declineReasonPreset === preset
+              return (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => setDeclineReasonPreset(preset)}
+                  style={{
+                    padding: '7px 12px',
+                    borderRadius: 999,
+                    fontSize: 12.5,
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    border: active ? '1.5px solid var(--clay, #C2501F)' : '1px solid var(--border, #e5e0d8)',
+                    background: active ? 'rgba(217, 119, 87, 0.12)' : 'var(--bg, #ffffff)',
+                    color: active ? 'var(--clay, #C2501F)' : 'var(--text, #1a1714)',
+                  }}
+                >
+                  {preset}
+                </button>
+              )
+            })}
+          </div>
+
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontSize: 12,
+                fontWeight: 600,
+                color: 'var(--text-muted, #6b6560)',
+                marginBottom: 6,
+              }}
+            >
+              Additional note (optional)
+            </label>
+            <textarea
+              className="order-tracking__rating-textarea"
+              rows={2}
+              value={declineReasonNote}
+              onChange={(e) => setDeclineReasonNote(e.target.value)}
+              placeholder="e.g. Looking for something closer to ₦45,000 or only the living room..."
+              maxLength={300}
+            />
+          </div>
+
+          <div className="order-tracking__modal-actions">
+            <button
+              type="button"
+              className="order-tracking__cancel-btn"
+              onClick={() => setIsDeclineModalOpen(false)}
+              disabled={isDecliningQuote}
+            >
+              Keep Quote
+            </button>
+            <button
+              type="button"
+              className="order-tracking__submit-btn"
+              onClick={handleDeclineQuote}
+              disabled={isDecliningQuote}
+              style={{ background: '#dc2626' }}
+            >
+              {isDecliningQuote ? (
+                <>
+                  <Loader2 size={15} className="animate-spin" />
+                  <span>Declining...</span>
+                </>
+              ) : (
+                <span>Confirm Decline</span>
+              )}
+            </button>
+          </div>
+        </div>
       </BottomSheetModal>
     </div>
   )

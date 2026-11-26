@@ -62,6 +62,13 @@ function getFulfilmentBadge(status: string) {
         color: '#4F46E5',
         border: 'rgba(99, 102, 241, 0.28)',
       }
+    case 'QUOTE_DECLINED':
+      return {
+        label: 'Quote Declined',
+        bg: 'rgba(220, 38, 38, 0.1)',
+        color: '#DC2626',
+        border: 'rgba(220, 38, 38, 0.28)',
+      }
     case 'ORDER_CONFIRMED':
       return {
         label: 'Awaiting Vendor',
@@ -250,6 +257,14 @@ export function CommerceOrdersTable({
                     (s.items || []).some((i) => i.offeringType === 'SERVICE'),
                   )
                   const isUnquotedService = isServiceOrder && Number(order.totalAmountKobo || 0) <= 0
+                  const isQuoteDeclinedOrder = primarySubOrder?.customerStatus === 'QUOTE_DECLINED'
+                  const declinedQuoteEvent = isQuoteDeclinedOrder
+                    ? (primarySubOrder?.fulfilmentEvents || []).find(
+                        (ev: any) =>
+                          ev.status === 'QUOTE_DECLINED' ||
+                          (ev.title || '').toLowerCase().includes('declined'),
+                      )
+                    : null
 
                   return (
                     <React.Fragment key={order.uuid}>
@@ -356,6 +371,30 @@ export function CommerceOrdersTable({
                                 </span>
                               </div>
                             )
+                          )}
+                          {isQuoteDeclinedOrder && (
+                            <div
+                              style={{
+                                marginTop: 6,
+                                fontSize: 12,
+                                color: '#991b1b',
+                                background: 'rgba(220, 38, 38, 0.06)',
+                                border: '1px solid rgba(220, 38, 38, 0.22)',
+                                borderRadius: 7,
+                                padding: '5px 9px',
+                                display: 'inline-flex',
+                                alignItems: 'flex-start',
+                                gap: 6,
+                                maxWidth: 360,
+                                lineHeight: 1.4,
+                              }}
+                            >
+                              <XCircle size={12} style={{ flexShrink: 0, marginTop: 2, color: '#dc2626' }} />
+                              <span>
+                                <strong>Declined Quote:</strong>{' '}
+                                {declinedQuoteEvent?.description || 'Customer declined the quoted price. Open Details to send a revised quote or close the request.'}
+                              </span>
+                            </div>
                           )}
                         </td>
 
@@ -495,10 +534,10 @@ export function CommerceOrdersTable({
                                   gap: 5,
                                   whiteSpace: 'nowrap',
                                 }}
-                                title="Cancel this order and notify customer"
+                                title={isQuoteDeclinedOrder ? 'Close this declined quote request' : 'Cancel this order and notify customer'}
                               >
                                 <XCircle size={13} />
-                                <span>Cancel</span>
+                                <span>{isQuoteDeclinedOrder ? 'Close Request' : 'Cancel'}</span>
                               </button>
                             )}
 
@@ -783,7 +822,8 @@ export function CommerceOrdersTable({
                                             <span>Update Milestone</span>
                                           </button>
                                         ) : subOrder.customerStatus === 'QUOTE_REQUESTED' ||
-                                          subOrder.customerStatus === 'QUOTE_PROVIDED' ? (
+                                          subOrder.customerStatus === 'QUOTE_PROVIDED' ||
+                                          subOrder.customerStatus === 'QUOTE_DECLINED' ? (
                                           <button
                                             type="button"
                                             onClick={() => setActiveSubOrderForEdit(subOrder)}
@@ -799,9 +839,11 @@ export function CommerceOrdersTable({
                                             }}
                                           >
                                             <span>
-                                              {subOrder.customerStatus === 'QUOTE_PROVIDED'
-                                                ? 'Edit Quote / Chat'
-                                                : 'Review & Quote'}
+                                              {subOrder.customerStatus === 'QUOTE_DECLINED'
+                                                ? 'Send Revised Quote / Chat'
+                                                : subOrder.customerStatus === 'QUOTE_PROVIDED'
+                                                  ? 'Edit Quote / Chat'
+                                                  : 'Review & Quote'}
                                             </span>
                                           </button>
                                         ) : (

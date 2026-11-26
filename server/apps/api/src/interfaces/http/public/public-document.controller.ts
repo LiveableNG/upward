@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Res } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Param, Res } from '@nestjs/common';
 import {
   GetDocumentPdfUseCase,
   GetSignatureImageUseCase,
@@ -60,5 +60,17 @@ export class PublicDocumentController {
   @Get('users/payment-proofs/:uuid/:filename')
   async getUserPaymentProof(@Param('uuid') uuid: string, @Param('filename') filename: string, @Res({ passthrough: true }) res: any) {
     return this.getPublicAssetUseCase.execute(`users/${uuid}/payment-proofs/${filename}`, res);
+  }
+
+  @Get('marketplace/:folder/:filename')
+  async getMarketplaceAsset(
+    @Param('folder') folder: string,
+    @Param('filename') filename: string,
+    @Res({ passthrough: true }) res: any,
+  ) {
+    if (!/^[a-zA-Z0-9_-]+$/.test(folder) || !/^[a-zA-Z0-9._-]+$/.test(filename) || filename.includes('..')) {
+      throw new BadRequestException('Invalid asset path');
+    }
+    return this.getPublicAssetUseCase.execute(`marketplace/${folder}/${filename}`, res);
   }
 }

@@ -7,11 +7,11 @@ export default function TermsPage() {
 
       <section className="legal-content">
         <p style={{ marginBottom: '32px', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>
-          UPWARD BY LIVEABLE SMARTCITY TECHNOLOGIES — TERMS OF USE
+          UPWARD BY GOODTENANTS LIMITED — TERMS OF USE
         </p>
 
         <p style={{ marginBottom: '32px' }}>
-          These Terms of Use (“Terms”) constitute a legally binding agreement between any person or entity accessing or using the Upward Platform (“User,” “Customer,” “you,” or “your”) and Liveable Smartcity Technologies Limited (“Liveable,” “we,” “us,” or “our”), which owns, operates, and manages the Platform. Please read these Terms of Service carefully as they affect Your rights and liabilities under the Applicable Laws. By accessing, subscribing to, or using the Platform, you acknowledge that you have read, understood, and agreed to be bound by these Terms.
+          These Terms of Use (“Terms”) constitute a legally binding agreement between any person or entity accessing or using the Upward Platform (“User,” “Customer,” “you,” or “your”) and Goodtenants Limited (“Goodtenants,” “we,” “us,” or “our”), which owns, operates, and manages the Platform. Please read these Terms of Service carefully as they affect Your rights and liabilities under the Applicable Laws. By accessing, subscribing to, or using the Platform, you acknowledge that you have read, understood, and agreed to be bound by these Terms.
         </p>
 
         <h2 className="legal-h2">1. DEFINITIONS AND INTERPRETATION</h2>

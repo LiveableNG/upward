@@ -165,6 +165,17 @@ const EMPTY_CATEGORIES: GoalCategory[] = []
 const EMPTY_OFFERINGS: GoalOffering[] = []
 const EMPTY_USER_GOALS: UserGoal[] = []
 
+const TYPE_FILTER_OPTIONS: Array<{
+  type: OfferingType
+  label: string
+  icon: React.ComponentType<{ size?: number }>
+}> = [
+  { type: 'PACKAGE', label: 'Packs & Sets', icon: Package },
+  { type: 'BUNDLE', label: 'Bundle Sets', icon: Layers },
+  { type: 'SERVICE', label: 'Services', icon: Wrench },
+  { type: 'PRODUCT', label: 'Single Items', icon: ShoppingBag },
+]
+
 export const LifestyleDiscoveryScreen: React.FC = () => {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -475,6 +486,28 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
     })
   }, [offerings, userGoals, categories, selectedCategorySlug, selectedType, searchQuery])
 
+  // Rank type filter chips dynamically by available offering count (highest first)
+  const sortedTypeFilters = useMemo(() => {
+    const typeCounts: Record<OfferingType, number> = {
+      PACKAGE: 0,
+      BUNDLE: 0,
+      SERVICE: 0,
+      PRODUCT: 0,
+    }
+    const scopedItems = getRecommendedOfferings(offerings, userGoals, categories, {
+      categorySlug: selectedCategorySlug,
+      typeFilter: 'ALL',
+      searchQuery,
+    })
+    for (const item of scopedItems) {
+      const t = item.offering.type
+      if (t in typeCounts) {
+        typeCounts[t] += 1
+      }
+    }
+    return [...TYPE_FILTER_OPTIONS].sort((a, b) => typeCounts[b.type] - typeCounts[a.type])
+  }, [offerings, userGoals, categories, selectedCategorySlug, searchQuery])
+
   // Promoted / Spotlight bundle (E-Commerce Featured Hero)
   const spotlightOffering = useMemo<GoalOffering | undefined>(() => {
     return offerings.find((o) => (o.status === 'PUBLISHED' || !o.status) && o.isPromoted)
@@ -632,54 +665,21 @@ export const LifestyleDiscoveryScreen: React.FC = () => {
               >
                 All
               </button>
-              <button
-                type="button"
-                className={`lifestyle-discovery__type-chip ${
-                  selectedType === 'PACKAGE'
-                    ? 'lifestyle-discovery__type-chip--active'
-                    : ''
-                }`}
-                onClick={() => setSelectedType('PACKAGE')}
-              >
-                <Package size={13} />
-                <span>Packs & Sets</span>
-              </button>
-              <button
-                type="button"
-                className={`lifestyle-discovery__type-chip ${
-                  selectedType === 'BUNDLE'
-                    ? 'lifestyle-discovery__type-chip--active'
-                    : ''
-                }`}
-                onClick={() => setSelectedType('BUNDLE')}
-              >
-                <Layers size={13} />
-                <span>Bundle Sets</span>
-              </button>
-              <button
-                type="button"
-                className={`lifestyle-discovery__type-chip ${
-                  selectedType === 'SERVICE'
-                    ? 'lifestyle-discovery__type-chip--active'
-                    : ''
-                }`}
-                onClick={() => setSelectedType('SERVICE')}
-              >
-                <Wrench size={13} />
-                <span>Services</span>
-              </button>
-              <button
-                type="button"
-                className={`lifestyle-discovery__type-chip ${
-                  selectedType === 'PRODUCT'
-                    ? 'lifestyle-discovery__type-chip--active'
-                    : ''
-                }`}
-                onClick={() => setSelectedType('PRODUCT')}
-              >
-                <ShoppingBag size={13} />
-                <span>Single Items</span>
-              </button>
+              {sortedTypeFilters.map(({ type, label, icon: Icon }) => (
+                <button
+                  key={type}
+                  type="button"
+                  className={`lifestyle-discovery__type-chip ${
+                    selectedType === type
+                      ? 'lifestyle-discovery__type-chip--active'
+                      : ''
+                  }`}
+                  onClick={() => setSelectedType(type)}
+                >
+                  <Icon size={13} />
+                  <span>{label}</span>
+                </button>
+              ))}
             </div>
           </div>
         </div>

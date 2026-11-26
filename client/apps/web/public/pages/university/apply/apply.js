@@ -15,7 +15,7 @@
     if (form) {
       let currentStage = 1;
 
-      // 48-Hour Webinar Cohort Deadline (Monday Nov 23, 2026 11:59:59 PM WAT)
+      // 48-Hour Webinar Cohort Deadline (Monday Nov 23, 2026 11:59:59 PM WAT) - Expired
       const WEBINAR_48HR_DEADLINE = new Date('2026-11-23T23:59:59+01:00');
 
       // Default selected offer per track: 'full' or 'deposit'
@@ -30,9 +30,8 @@
       let currentApplicantData = null;
 
       function getOfferAvailability(now = new Date()) {
-        const ts = now.getTime();
-        const isWithin48Hr = ts <= WEBINAR_48HR_DEADLINE.getTime();
-        return { isWithin48Hr };
+        // The 48-hour webinar promotional period expired on Tuesday, Nov 24, 2026
+        return { isWithin48Hr: false };
       }
 
       function renderTrackCOfferUI() {
@@ -49,15 +48,11 @@
 
         // Update Track C dropdown label and comparison popover
         if (optTrackC) {
-          optTrackC.textContent = isWithin48Hr
-            ? 'Track C · Practical Experience & Networking — ₦135,000 (48-Hr Offer · Save ₦65k)'
-            : 'Track C · Practical Experience & Networking — Learn It. Experience It. (From ₦160,000)';
+          optTrackC.textContent = 'Track C · Practical Experience & Networking — Learn It. Experience It. (₦160,000)';
         }
 
         if (compareTrackCPrice) {
-          compareTrackCPrice.innerHTML = isWithin48Hr
-            ? '₦135,000 <span class="old-price">₦200,000</span>'
-            : '₦160,000 <span class="old-price">₦200,000</span>';
+          compareTrackCPrice.innerHTML = '₦160,000 <span class="old-price">₦200,000</span>';
         }
 
         if (!offerBox || !offerGrid) return;
@@ -68,9 +63,7 @@
         }
 
         if (deadlineLabel) {
-          deadlineLabel.textContent = isWithin48Hr
-            ? '48-Hour Webinar Offers Active'
-            : 'Cohort Offers Active';
+          deadlineLabel.textContent = 'Tuition & Payment Options';
         }
 
         const credit5k = (currentApplicantState === 'PREVIOUS_5K_PAID') ? 5000 : 0;
@@ -103,7 +96,7 @@
 
         // TRACK A OFFERS
         if (trackVal === 'Track A - Foundation') {
-          const fullPrice = isWithin48Hr ? 50000 : 60000;
+          const fullPrice = 60000;
           const fullDue = Math.max(0, fullPrice - credit5k);
           const downDue = Math.max(0, 30000 - credit5k);
           const creditNotice = credit5k > 0 ? '<div class="track-offer-credit-tag">₦5,000 credit applied</div>' : '';
@@ -115,11 +108,11 @@
             <label class="track-offer-card ${isFullSel ? 'selected' : ''}" data-offer="full">
               <input type="radio" name="trackOption" value="full" ${isFullSel ? 'checked' : ''}>
               <div class="track-offer-top">
-                <span class="track-offer-badge">${isWithin48Hr ? 'Save ₦10,000 · 48-Hr Offer' : 'Full Payment'}</span>
+                <span class="track-offer-badge">Full Payment</span>
                 <span class="track-offer-check"><i class="fa-solid fa-circle-check"></i></span>
               </div>
               <div class="track-offer-name">Pay in Full</div>
-              <div class="track-offer-price">₦${fullDue.toLocaleString()} ${isWithin48Hr ? '<span class="old">₦60,000</span>' : ''}</div>
+              <div class="track-offer-price">₦${fullDue.toLocaleString()}</div>
               <div class="track-offer-sub">Pay once today. Zero outstanding balance.</div>
               ${creditNotice}
             </label>
@@ -133,7 +126,7 @@
               <div class="track-offer-name">Down Payment</div>
               <div class="track-offer-price">₦${downDue.toLocaleString()}</div>
               <div class="track-offer-plan-breakdown">
-                <div><strong>Total tuition:</strong> ₦60,000 (down payment due by Nov 28)</div>
+                <div><strong>Total tuition:</strong> ₦60,000</div>
                 <div><strong>Remaining balance:</strong> ₦30,000 due by Dec 24</div>
               </div>
               ${creditNotice}
@@ -143,11 +136,11 @@
 
         // TRACK B OFFERS
         else if (trackVal === 'Track B - Career Development') {
-          const fullPrice = isWithin48Hr ? 100000 : 120000;
+          const fullPrice = 120000;
           const fullDue = Math.max(0, fullPrice - credit5k);
           const depDue = Math.max(0, 50000 - credit5k);
-          const balanceDue = isWithin48Hr ? 60000 : 70000;
-          const totalPkg = isWithin48Hr ? 110000 : 120000;
+          const balanceDue = 70000;
+          const totalPkg = 120000;
           const creditNotice = credit5k > 0 ? '<div class="track-offer-credit-tag">₦5,000 credit applied</div>' : '';
 
           const isFullSel = activeChoice === 'full';
@@ -157,11 +150,11 @@
             <label class="track-offer-card ${isFullSel ? 'selected' : ''}" data-offer="full">
               <input type="radio" name="trackOption" value="full" ${isFullSel ? 'checked' : ''}>
               <div class="track-offer-top">
-                <span class="track-offer-badge">${isWithin48Hr ? 'Save ₦20,000 · 48-Hr Offer' : 'Full Payment'}</span>
+                <span class="track-offer-badge">Full Payment</span>
                 <span class="track-offer-check"><i class="fa-solid fa-circle-check"></i></span>
               </div>
               <div class="track-offer-name">Pay in Full</div>
-              <div class="track-offer-price">₦${fullDue.toLocaleString()} <span class="old">₦120,000</span></div>
+              <div class="track-offer-price">₦${fullDue.toLocaleString()}</div>
               <div class="track-offer-sub">Pay once today. Zero outstanding balance.</div>
               ${creditNotice}
             </label>
@@ -169,13 +162,13 @@
             <label class="track-offer-card ${isDepSel ? 'selected' : ''}" data-offer="deposit">
               <input type="radio" name="trackOption" value="deposit" ${isDepSel ? 'checked' : ''}>
               <div class="track-offer-top">
-                <span class="track-offer-badge subtle">${isWithin48Hr ? 'Guarantees ₦110k Offer' : 'Standard Deposit'}</span>
+                <span class="track-offer-badge subtle">Standard Deposit</span>
                 <span class="track-offer-check"><i class="fa-solid fa-circle-check"></i></span>
               </div>
               <div class="track-offer-name">Flexible Deposit</div>
               <div class="track-offer-price">₦${depDue.toLocaleString()}</div>
               <div class="track-offer-plan-breakdown">
-                <div><strong>Total package:</strong> ₦${totalPkg.toLocaleString()}${isWithin48Hr ? ' (guaranteed 48-hr offer)' : ''}</div>
+                <div><strong>Total package:</strong> ₦${totalPkg.toLocaleString()}</div>
                 <div><strong>Remaining balance:</strong> ₦${balanceDue.toLocaleString()} due by Dec 24</div>
               </div>
               ${creditNotice}
@@ -185,11 +178,11 @@
 
         // TRACK C OFFERS
         else if (trackVal === 'Track C - Practical Experience') {
-          const fullPrice = isWithin48Hr ? 135000 : 160000;
+          const fullPrice = 160000;
           const fullDue = Math.max(0, fullPrice - credit5k);
           const depDue = Math.max(0, 70000 - credit5k);
-          const balanceDue = isWithin48Hr ? 80000 : 90000;
-          const totalPkg = isWithin48Hr ? 150000 : 160000;
+          const balanceDue = 90000;
+          const totalPkg = 160000;
           const creditNotice = credit5k > 0 ? '<div class="track-offer-credit-tag">₦5,000 credit applied</div>' : '';
 
           const isFullSel = activeChoice === 'full';
@@ -199,7 +192,7 @@
             <label class="track-offer-card ${isFullSel ? 'selected' : ''}" data-offer="full">
               <input type="radio" name="trackOption" value="full" ${isFullSel ? 'checked' : ''}>
               <div class="track-offer-top">
-                <span class="track-offer-badge">${isWithin48Hr ? 'Save ₦65,000 · 48-Hr Offer' : 'Full Payment'}</span>
+                <span class="track-offer-badge">Save ₦40,000 · 20% Off</span>
                 <span class="track-offer-check"><i class="fa-solid fa-circle-check"></i></span>
               </div>
               <div class="track-offer-name">Pay in Full</div>
@@ -211,13 +204,13 @@
             <label class="track-offer-card ${isDepSel ? 'selected' : ''}" data-offer="deposit">
               <input type="radio" name="trackOption" value="deposit" ${isDepSel ? 'checked' : ''}>
               <div class="track-offer-top">
-                <span class="track-offer-badge subtle">${isWithin48Hr ? 'Guarantees ₦150k Offer' : 'Standard Deposit'}</span>
+                <span class="track-offer-badge subtle">Standard Deposit</span>
                 <span class="track-offer-check"><i class="fa-solid fa-circle-check"></i></span>
               </div>
               <div class="track-offer-name">Flexible Deposit</div>
               <div class="track-offer-price">₦${depDue.toLocaleString()}</div>
               <div class="track-offer-plan-breakdown">
-                <div><strong>Total package:</strong> ₦${totalPkg.toLocaleString()}${isWithin48Hr ? ' (guaranteed 48-hr offer)' : ''}</div>
+                <div><strong>Total package:</strong> ₦${totalPkg.toLocaleString()}</div>
                 <div><strong>Remaining balance:</strong> ₦${balanceDue.toLocaleString()} due by Dec 24</div>
               </div>
               ${creditNotice}
@@ -288,7 +281,7 @@
             }
             // Switched to Track A
             const depCred = currentApplicantData.depositAmount || 25000;
-            const fullTarget = isWithin48Hr ? 50000 : 60000;
+            const fullTarget = 60000;
             const due = Math.max(0, fullTarget - depCred);
             return {
               amountNaira: due,
@@ -312,13 +305,11 @@
             };
           }
 
-          const fullTarget = isWithin48Hr ? 50000 : 60000;
+          const fullTarget = 60000;
           const due = Math.max(0, fullTarget - credit5k);
           return {
             amountNaira: due,
-            planLabel: isWithin48Hr
-              ? (credit5k > 0 ? `Track A 48-Hour Full Offer (₦${due.toLocaleString()} after ₦5k credit)` : 'Track A 48-Hour Full Offer (₦50,000 — Save ₦10,000)')
-              : (credit5k > 0 ? `Track A Full Fee (₦${due.toLocaleString()} after ₦5k credit)` : 'Track A Full Fee (₦60,000)'),
+            planLabel: credit5k > 0 ? `Track A Full Fee (₦${due.toLocaleString()} after ₦5k credit)` : 'Track A Full Fee (₦60,000)',
             balanceNote: '',
             buttonLabel: `Pay ₦${due.toLocaleString()} in Full →`,
             appliedCredit: credit5k,
@@ -341,7 +332,7 @@
             }
             // Switched to Track B
             const depCred = currentApplicantData.depositAmount || 25000;
-            const fullTarget = isWithin48Hr ? 100000 : 120000;
+            const fullTarget = 120000;
             const due = Math.max(0, fullTarget - depCred);
             return {
               amountNaira: due,
@@ -354,26 +345,22 @@
 
           if (activeChoice === 'deposit') {
             const due = Math.max(0, 50000 - credit5k);
-            const balDue = isWithin48Hr ? 60000 : 70000;
-            const totalPkg = isWithin48Hr ? 110000 : 120000;
+            const balDue = 70000;
+            const totalPkg = 120000;
             return {
               amountNaira: due,
-              planLabel: isWithin48Hr
-                ? `Track B 48-Hour Deposit — ₦${due.toLocaleString()} now (₦${totalPkg.toLocaleString()} total package · ₦${balDue.toLocaleString()} balance by Dec 24)`
-                : `Track B Deposit — ₦${due.toLocaleString()} now (₦${totalPkg.toLocaleString()} total package · ₦${balDue.toLocaleString()} balance by Dec 24)`,
+              planLabel: `Track B Deposit — ₦${due.toLocaleString()} now (₦${totalPkg.toLocaleString()} total package · ₦${balDue.toLocaleString()} balance by Dec 24)`,
               balanceNote: `₦${balDue.toLocaleString()} completed by December 24, 2026 (Total ₦${totalPkg.toLocaleString()})`,
               buttonLabel: `Pay ₦${due.toLocaleString()} Deposit →`,
               appliedCredit: credit5k,
             };
           }
 
-          const fullTarget = isWithin48Hr ? 100000 : 120000;
+          const fullTarget = 120000;
           const due = Math.max(0, fullTarget - credit5k);
           return {
             amountNaira: due,
-            planLabel: isWithin48Hr
-              ? (credit5k > 0 ? `Track B 48-Hour Full Offer (₦${due.toLocaleString()} after ₦5k credit)` : 'Track B 48-Hour Full Offer (₦100,000 — Save ₦20,000)')
-              : (credit5k > 0 ? `Track B Full Fee (₦${due.toLocaleString()} after ₦5k credit)` : 'Track B Full Fee (₦120,000)'),
+            planLabel: credit5k > 0 ? `Track B Full Fee (₦${due.toLocaleString()} after ₦5k credit)` : 'Track B Full Fee (₦120,000)',
             balanceNote: '',
             buttonLabel: `Pay ₦${due.toLocaleString()} in Full →`,
             appliedCredit: credit5k,
@@ -396,7 +383,7 @@
             }
             // Switched to Track C from another track
             const depCred = currentApplicantData.depositAmount || 30000;
-            const fullTarget = isWithin48Hr ? 135000 : 160000;
+            const fullTarget = 160000;
             const due = Math.max(0, fullTarget - depCred);
             return {
               amountNaira: due,
@@ -409,26 +396,22 @@
 
           if (activeChoice === 'deposit') {
             const due = Math.max(0, 70000 - credit5k);
-            const balDue = isWithin48Hr ? 80000 : 90000;
-            const totalPkg = isWithin48Hr ? 150000 : 160000;
+            const balDue = 90000;
+            const totalPkg = 160000;
             return {
               amountNaira: due,
-              planLabel: isWithin48Hr
-                ? `Track C 48-Hour Deposit — ₦${due.toLocaleString()} now (₦${totalPkg.toLocaleString()} total package · ₦${balDue.toLocaleString()} balance by Dec 24)`
-                : `Track C Deposit — ₦${due.toLocaleString()} now (₦${totalPkg.toLocaleString()} total package · ₦${balDue.toLocaleString()} balance by Dec 24)`,
+              planLabel: `Track C Deposit — ₦${due.toLocaleString()} now (₦${totalPkg.toLocaleString()} total package · ₦${balDue.toLocaleString()} balance by Dec 24)`,
               balanceNote: `₦${balDue.toLocaleString()} completed by December 24, 2026 (Total ₦${totalPkg.toLocaleString()})`,
               buttonLabel: `Pay ₦${due.toLocaleString()} Deposit →`,
               appliedCredit: credit5k,
             };
           }
 
-          const fullTarget = isWithin48Hr ? 135000 : 160000;
+          const fullTarget = 160000;
           const due = Math.max(0, fullTarget - credit5k);
           return {
             amountNaira: due,
-            planLabel: isWithin48Hr
-              ? (credit5k > 0 ? `Track C 48-Hour Full Offer (₦${due.toLocaleString()} after ₦5k credit)` : 'Track C 48-Hour Full Offer (₦135,000 — Save ₦65,000)')
-              : (credit5k > 0 ? `Track C Full Fee (₦${due.toLocaleString()} after ₦5k credit)` : 'Track C Full Fee (₦160,000)'),
+            planLabel: credit5k > 0 ? `Track C Full Fee (₦${due.toLocaleString()} after ₦5k credit)` : 'Track C Full Fee (₦160,000)',
             balanceNote: '',
             buttonLabel: `Pay ₦${due.toLocaleString()} in Full →`,
             appliedCredit: credit5k,
