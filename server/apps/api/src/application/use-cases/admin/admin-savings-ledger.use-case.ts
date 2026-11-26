@@ -3,6 +3,7 @@ import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.serv
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 import { PlatformRatesService } from '../../../shared/infrastructure/common/platform-rates.service'
 import { AssetManagementProviderRegistry } from '../../../infrastructure/providers/asset-management/asset-management-provider.registry'
+import { RentSavingsCalculatorEngine } from '../../../domains/rent-savings/rent-savings-calculator.engine'
 import { isProductionRuntime } from '../../../shared/utils/runtime-env'
 
 export interface AdminSavingsLedgerFilter {
@@ -277,16 +278,35 @@ export class SimulateDailyNavAccrualUseCase {
       const effectiveGrossRatePct = Math.max(grossArmAnnualRatePct, customerAnnualRatePct)
       const effectiveGrossDailyRate = Math.max(grossArmDailyRate, customerDailyRate)
 
-      const defaultPremiumObligationKobo = isRentProtec
+      const vaultTermDays = Math.max(
+        1,
+        Math.ceil(
+          (vault.contractualDueDate.getTime() - vault.createdAt.getTime()) /
+            (1000 * 60 * 60 * 24),
+        ),
+      )
+      const activationThresholdKobo =
+        RentSavingsCalculatorEngine.getRentProtecActivationThresholdKobo(
+          vault.targetAmountKobo,
+          vaultTermDays,
+        )
+      const existingSummary = vault.treasurySummary
+      const isCoverageActivated =
+        isRentProtec &&
+        ((existingSummary && existingSummary.upfrontPremiumObligationKobo > 0n) ||
+          vault.currentPrincipalKobo >= activationThresholdKobo)
+
+      const defaultPremiumObligationKobo = isCoverageActivated
         ? BigInt(
             Math.round(Number(vault.targetAmountKobo) * (rates.insurancePremiumPct / 100)),
           )
         : 0n
 
-      const existingSummary = vault.treasurySummary
       let runningBalance = vault.currentPrincipalKobo + vault.accruedYieldKobo
       let unrecovered = existingSummary
-        ? existingSummary.unrecoveredPremiumKobo
+        ? existingSummary.upfrontPremiumObligationKobo > 0n
+          ? existingSummary.unrecoveredPremiumKobo
+          : defaultPremiumObligationKobo
         : defaultPremiumObligationKobo
 
       let custYieldAdded = 0n
@@ -343,9 +363,15 @@ export class SimulateDailyNavAccrualUseCase {
         })
 
         if (existingSummary) {
+          const needsActivationBackfill =
+            existingSummary.upfrontPremiumObligationKobo === 0n &&
+            defaultPremiumObligationKobo > 0n
           await tx.upward_vault_treasury_summary.update({
             where: { vaultId: vault.id },
             data: {
+              ...(needsActivationBackfill
+                ? { upfrontPremiumObligationKobo: defaultPremiumObligationKobo }
+                : {}),
               grossArmYieldAccruedKobo: { increment: grossArmYieldAdded },
               customerYieldAccruedKobo: { increment: custYieldAdded },
               platformSpreadAccruedKobo: { increment: spreadAdded },

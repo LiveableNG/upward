@@ -157,7 +157,26 @@ export class RentSavingsScheduler {
             const existingSummary = await this.prisma.upward_vault_treasury_summary.findUnique({
               where: { vaultId: vault.id },
             })
-            const defaultPremiumObligationKobo = isRentProtec
+            const vaultTermDays = vault.contractualDueDate && vault.createdAt
+              ? Math.max(
+                  1,
+                  Math.ceil(
+                    (vault.contractualDueDate.getTime() - vault.createdAt.getTime()) /
+                      (1000 * 60 * 60 * 24),
+                  ),
+                )
+              : 300
+            const activationThresholdKobo =
+              RentSavingsCalculatorEngine.getRentProtecActivationThresholdKobo(
+                vault.targetAmountKobo,
+                vaultTermDays,
+              )
+            const isCoverageActivated =
+              isRentProtec &&
+              ((existingSummary && existingSummary.upfrontPremiumObligationKobo > 0n) ||
+                vault.currentPrincipalKobo >= activationThresholdKobo)
+
+            const defaultPremiumObligationKobo = isCoverageActivated
               ? BigInt(
                   Math.round(
                     Number(vault.targetAmountKobo) * (platformRates.insurancePremiumPct / 100),
@@ -166,7 +185,9 @@ export class RentSavingsScheduler {
               : 0n
 
             const currentUnrecovered = existingSummary
-              ? existingSummary.unrecoveredPremiumKobo
+              ? existingSummary.upfrontPremiumObligationKobo > 0n
+                ? existingSummary.unrecoveredPremiumKobo
+                : defaultPremiumObligationKobo
               : defaultPremiumObligationKobo
             const premiumRecoveryAppliedKobo =
               currentUnrecovered > 0n
@@ -178,9 +199,15 @@ export class RentSavingsScheduler {
             const nextUnrecovered = currentUnrecovered - premiumRecoveryAppliedKobo
 
             if (existingSummary) {
+              const needsActivationBackfill =
+                existingSummary.upfrontPremiumObligationKobo === 0n &&
+                defaultPremiumObligationKobo > 0n
               await this.prisma.upward_vault_treasury_summary.update({
                 where: { vaultId: vault.id },
                 data: {
+                  ...(needsActivationBackfill
+                    ? { upfrontPremiumObligationKobo: defaultPremiumObligationKobo }
+                    : {}),
                   grossArmYieldAccruedKobo: { increment: grossArmYieldKobo },
                   customerYieldAccruedKobo: { increment: dailyYieldKobo },
                   platformSpreadAccruedKobo: { increment: yieldSpreadKobo },

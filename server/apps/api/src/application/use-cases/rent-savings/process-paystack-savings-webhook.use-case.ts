@@ -18,6 +18,7 @@ import {
   TransactionVerification,
 } from '../../../domains/payments/payment.repository'
 import { ARM_JOB_QUEUE, IArmJobQueue } from '../../../domains/rent-savings/arm-job.interface'
+import { RentSavingsCalculatorEngine } from '../../../domains/rent-savings/rent-savings-calculator.engine'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 import { EVENT_BUS, EventBus } from '../../events/domain-event'
@@ -434,6 +435,83 @@ export class ProcessPaystackSavingsWebhookUseCase {
             currentPrincipalKobo: { increment: amountKobo },
           },
         })
+
+        // 5b. Rent Protec 20%/25% Safe Activation Guardrail:
+        // Only activate coverage & book Upward's upfront 2% insurer premium obligation
+        // once cumulative funded principal reaches the safe threshold (20% for 7+ mo, 25% for 6 mo).
+        if (
+          freshVault.productOption === 'RENT_PROTEC' &&
+          tx.upward_vault_treasury_summary &&
+          tx.upward_savings_internal_ledger
+        ) {
+          const newPrincipalKobo = freshVault.currentPrincipalKobo + amountKobo
+          const termDays = Math.max(
+            1,
+            Math.ceil(
+              (freshVault.contractualDueDate.getTime() - freshVault.createdAt.getTime()) /
+                (1000 * 60 * 60 * 24),
+            ),
+          )
+          const thresholdPct =
+            RentSavingsCalculatorEngine.getRentProtecActivationThresholdPct(termDays)
+          const thresholdKobo =
+            RentSavingsCalculatorEngine.getRentProtecActivationThresholdKobo(
+              freshVault.targetAmountKobo,
+              termDays,
+            )
+
+          if (newPrincipalKobo >= thresholdKobo) {
+            const existingSummary = await tx.upward_vault_treasury_summary.findUnique({
+              where: { vaultId: freshVault.id },
+            })
+            if (!existingSummary || existingSummary.upfrontPremiumObligationKobo === 0n) {
+              const premPct =
+                freshVault.insurancePremiumPct > 0 ? freshVault.insurancePremiumPct : 2.0
+              const obligationKobo = BigInt(
+                Math.round(Number(freshVault.targetAmountKobo) * (premPct / 100)),
+              )
+              if (existingSummary) {
+                const alreadySpread = existingSummary.platformSpreadAccruedKobo
+                const initialRecovered =
+                  alreadySpread < obligationKobo ? alreadySpread : obligationKobo
+                const initialUnrecovered = obligationKobo - initialRecovered
+                const nextMargin =
+                  alreadySpread > obligationKobo ? alreadySpread - obligationKobo : 0n
+                await tx.upward_vault_treasury_summary.update({
+                  where: { vaultId: freshVault.id },
+                  data: {
+                    upfrontPremiumObligationKobo: obligationKobo,
+                    premiumRecoveredKobo: initialRecovered,
+                    unrecoveredPremiumKobo: initialUnrecovered,
+                    netPlatformMarginKobo: nextMargin,
+                  },
+                })
+              } else {
+                await tx.upward_vault_treasury_summary.create({
+                  data: {
+                    vaultId: freshVault.id,
+                    productOption: 'RENT_PROTEC',
+                    upfrontPremiumObligationKobo: obligationKobo,
+                    unrecoveredPremiumKobo: obligationKobo,
+                  },
+                })
+              }
+
+              await tx.upward_savings_internal_ledger.create({
+                data: {
+                  vaultId: freshVault.id,
+                  entryType: 'PREMIUM_OBLIGATION',
+                  productOption: 'RENT_PROTEC',
+                  principalBaseKobo: newPrincipalKobo,
+                  customerRatePct: freshVault.appliedAnnualRatePct,
+                  premiumObligationDeltaKobo: obligationKobo,
+                  reference: `PREM_ACT_${freshVault.id}_${reference}`,
+                  notes: `Rent Protec coverage activated upon reaching ${thresholdPct}% funding threshold (upfront ${premPct}% insurer premium booked internally)`,
+                },
+              })
+            }
+          }
+        }
 
         // 6. Atomically write durable ARM job into Postgres transactional outbox
         let armJob: {

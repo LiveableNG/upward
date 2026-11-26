@@ -38,6 +38,8 @@ interface InsurancePolicyRow {
   occupation: string | null
   employmentType: string | null
   coverageDate: string | null
+  fundingProgressPct?: number
+  activationThresholdPct?: number
   createdAt: string
 }
 
@@ -388,7 +390,8 @@ export default function InsuranceLedger({ token }: InsuranceLedgerProps) {
           }}
         >
           <option value="ALL">All Statuses</option>
-          <option value="ACTIVE">Active</option>
+          <option value="ACTIVE">Active (Coverage Bound)</option>
+          <option value="PENDING_ACTIVATION">Pending Activation (&lt;20% Funded)</option>
           <option value="PAID">Paid</option>
           <option value="PENDING">Pending</option>
           <option value="MATURED">Matured</option>
@@ -462,10 +465,22 @@ export default function InsuranceLedger({ token }: InsuranceLedgerProps) {
                       </span>
                     </td>
                     <td style={{ fontWeight: 600 }}>{fmtNgn(p.sumAssuredNgn)}</td>
-                    <td style={{ fontWeight: 700 }}>{fmtNgn(p.premiumAmountNgn)}</td>
+                    <td style={{ fontWeight: 700 }}>
+                      {p.status === 'PENDING_ACTIVATION' ? (
+                        <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>
+                          ₦0.00 (Unbound)
+                        </span>
+                      ) : (
+                        fmtNgn(p.premiumAmountNgn)
+                      )}
+                    </td>
                     <td>
                       {p.source === 'STANDALONE' ? (
                         <span style={{ color: '#047857' }}>Direct Paid</span>
+                      ) : p.status === 'PENDING_ACTIVATION' ? (
+                        <span style={{ fontSize: '11px', color: '#b45309', fontWeight: 600 }}>
+                          Funded {p.fundingProgressPct ?? 0}% / {p.activationThresholdPct ?? 20}% min
+                        </span>
                       ) : (
                         <>
                           <div>Rec: {fmtNgn(p.premiumRecoveredNgn)}</div>

@@ -43,6 +43,23 @@ export interface SimulationResult {
 }
 
 export class RentSavingsCalculatorEngine {
+  /**
+   * Safe Rent Protec coverage activation threshold (% of annual rent):
+   * - 20% for 7+ months (>= 210 days): holds 10x the 2% upfront premium and
+   *   earns 2.05%-3.55% spread at 6.55% spread rate (even on conservative deposit timing).
+   * - 25% for 6 months (< 210 days): ensures full breakeven (>= 2.02% spread) on the shortest term.
+   */
+  static getRentProtecActivationThresholdPct(daysRemaining: number): number {
+    return daysRemaining >= 210 ? 20 : 25
+  }
+
+  static getRentProtecActivationThresholdKobo(
+    targetAmountKobo: bigint,
+    daysRemaining: number,
+  ): bigint {
+    const pct = this.getRentProtecActivationThresholdPct(daysRemaining)
+    return BigInt(Math.round(Number(targetAmountKobo) * (pct / 100)))
+  }
   public static readonly ANNUAL_NET_YIELD = 0.16 // 16.0% p.a.
   public static readonly ANNUAL_BASE_EXIT_YIELD = 0.07 // 7.0% p.a. (Fair Exit)
   public static readonly DAYS_IN_YEAR = 365

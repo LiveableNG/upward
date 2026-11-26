@@ -841,7 +841,10 @@ export function RentCalculatorView({
             {/* Card 2: Rent Protec */}
             <button
               type="button"
-              onClick={() => setSelectedProductOption('RENT_PROTEC')}
+              onClick={() => {
+                setSelectedProductOption('RENT_PROTEC')
+                setPlanPattern('INITIAL_DEPOSIT')
+              }}
               disabled={!isRentProtecEligible}
               aria-pressed={chosenProductOption === 'RENT_PROTEC'}
               className={`plan-card ${
@@ -1514,6 +1517,7 @@ export function RentCalculatorView({
             {/* Plan 2: Equal Monthly */}
             <button
               type="button"
+              disabled={activeProductOption === 'RENT_PROTEC'}
               onClick={() => handleSelectPlan('EQUAL')}
               style={{
                 width: '100%',
@@ -1525,7 +1529,8 @@ export function RentCalculatorView({
                     ? '2px solid var(--clay)'
                     : '1.5px solid var(--shell-border, #e5dfd7)',
                 background: planPattern === 'EQUAL' ? '#fffaf7' : '#ffffff',
-                cursor: 'pointer',
+                cursor: activeProductOption === 'RENT_PROTEC' ? 'not-allowed' : 'pointer',
+                opacity: activeProductOption === 'RENT_PROTEC' ? 0.5 : 1,
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 6,
@@ -1545,11 +1550,18 @@ export function RentCalculatorView({
                 </strong>{' '}
                 · ₦0 upfront
               </div>
+              {activeProductOption === 'RENT_PROTEC' && (
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                  Available on Save &amp; Earn — Rent Protec activates at{' '}
+                  {rawDaysRemaining >= 210 ? '20%' : '25%'} initial deposit.
+                </div>
+              )}
             </button>
 
             {/* Plan 3: Start Small & Step Up */}
             <button
               type="button"
+              disabled={activeProductOption === 'RENT_PROTEC'}
               onClick={() => handleSelectPlan('STEP_UP')}
               style={{
                 width: '100%',
@@ -1561,7 +1573,8 @@ export function RentCalculatorView({
                     ? '2px solid var(--clay)'
                     : '1.5px solid var(--shell-border, #e5dfd7)',
                 background: planPattern === 'STEP_UP' ? '#fffaf7' : '#ffffff',
-                cursor: 'pointer',
+                cursor: activeProductOption === 'RENT_PROTEC' ? 'not-allowed' : 'pointer',
+                opacity: activeProductOption === 'RENT_PROTEC' ? 0.5 : 1,
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 6,
@@ -1582,6 +1595,12 @@ export function RentCalculatorView({
                 </strong>
                 )
               </div>
+              {activeProductOption === 'RENT_PROTEC' && (
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                  Available on Save &amp; Earn — Rent Protec activates at{' '}
+                  {rawDaysRemaining >= 210 ? '20%' : '25%'} initial deposit.
+                </div>
+              )}
             </button>
           </div>
         </BottomSheetModal>

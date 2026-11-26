@@ -115,6 +115,32 @@ export class ExecuteLandlordSettlementUseCase {
         totalAccumulatedBalance > totalOwed ? totalAccumulatedBalance - totalOwed : 0n
     }
 
+    // Under-funded Rent Protec Maturity Guardrail:
+    // If coverage was activated (>=20%/25%) and the user later stopped funding so spread
+    // did not fully cover Upward's upfront 2% premium by maturity, recover the remaining
+    // unrecovered premium at settlement so Upward never incurs a net premium loss.
+    let maturityPremiumRecoveryKobo = 0n
+    let treasurySummary: { unrecoveredPremiumKobo: bigint } | null = null
+    if (
+      vault.productOption === 'RENT_PROTEC' &&
+      this.prisma?.upward_vault_treasury_summary
+    ) {
+      treasurySummary = await this.prisma.upward_vault_treasury_summary.findUnique({
+        where: { vaultId: vault.id },
+        select: { unrecoveredPremiumKobo: true },
+      })
+      if (treasurySummary && treasurySummary.unrecoveredPremiumKobo > 0n) {
+        maturityPremiumRecoveryKobo =
+          amountToDisburse > treasurySummary.unrecoveredPremiumKobo
+            ? treasurySummary.unrecoveredPremiumKobo
+            : amountToDisburse
+        amountToDisburse = amountToDisburse - maturityPremiumRecoveryKobo
+        this.logger.log(
+          `Offsetting unrecovered Rent Protec premium of ₦${Number(maturityPremiumRecoveryKobo) / 100} on under-funded vault ${vault.uuid} maturity`,
+        )
+      }
+    }
+
     // Calculate gamified cashback
     const cashbackResult = RentSavingsCalculatorEngine.calculateCashback(
       vault.targetAmountKobo,
@@ -372,6 +398,41 @@ export class ExecuteLandlordSettlementUseCase {
         accruedYieldKobo: 0n,
         armWithdrawalId: armWithdrawalId || undefined,
       })
+    }
+
+    // Record internal treasury recovery if under-funded Rent Protec vault had unrecovered premium at maturity
+    if (
+      maturityPremiumRecoveryKobo > 0n &&
+      treasurySummary &&
+      this.prisma?.upward_vault_treasury_summary &&
+      this.prisma?.upward_savings_internal_ledger
+    ) {
+      const nextUnrecovered =
+        treasurySummary.unrecoveredPremiumKobo > maturityPremiumRecoveryKobo
+          ? treasurySummary.unrecoveredPremiumKobo - maturityPremiumRecoveryKobo
+          : 0n
+      await this.prisma.upward_vault_treasury_summary
+        .update({
+          where: { vaultId: vault.id },
+          data: {
+            premiumRecoveredKobo: { increment: maturityPremiumRecoveryKobo },
+            unrecoveredPremiumKobo: nextUnrecovered,
+          },
+        })
+        .catch(() => {})
+      await this.prisma.upward_savings_internal_ledger
+        .create({
+          data: {
+            vaultId: vault.id,
+            entryType: 'MATURITY_SETTLEMENT',
+            productOption: 'RENT_PROTEC',
+            principalBaseKobo: vault.currentPrincipalKobo,
+            premiumRecoveryAppliedKobo: maturityPremiumRecoveryKobo,
+            reference: `MAT_REC_${settlementReference}`,
+            notes: `Recovered unrecovered upfront 2% Rent Protec premium at under-funded maturity settlement`,
+          },
+        })
+        .catch(() => {})
     }
 
     // Award completion points to savings score (+15 points)

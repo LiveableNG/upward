@@ -363,10 +363,14 @@ export function calculatePayLessPlan(
   const isRentProtecEligible = rawDays >= (minRentProtecMonths - 1) * 28
 
   const annualRateDecimal = annualRatePct / 100
+  // Safe Rent Protec activation floor:
+  // 20% of annual rent for 7+ months (>= 210 days); 25% for 6 months (< 210 days)
+  // so Upward always holds >=10x the 2% upfront insurer cost and breaks even via yield spread.
+  const minRentProtecDepositRatio = rawDays >= 210 ? 0.2 : 0.25
   const missedMonths = Math.max(0, maxMonths - monthsRemaining)
   const forcedDepositRatio =
-    productOption === 'RENT_PROTEC' && missedMonths > 0
-      ? Math.min(0.45, Math.max(0.15, (missedMonths / maxMonths) * 0.5))
+    productOption === 'RENT_PROTEC'
+      ? Math.min(0.45, Math.max(minRentProtecDepositRatio, (missedMonths / maxMonths) * 0.5))
       : 0
   const requiredInitialDepositNaira = Math.round(targetRentNaira * forcedDepositRatio)
   const effectiveInitialNaira =

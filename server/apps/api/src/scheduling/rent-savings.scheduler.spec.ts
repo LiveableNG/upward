@@ -140,4 +140,27 @@ describe('RentSavingsScheduler — Dual Ledger Daily NAV Accrual', () => {
 
     expect(ledgerCreates).toHaveLength(2)
   })
+
+  it('does NOT book 2% upfront Rent Protec obligation while funded balance is below the 20% activation threshold', async () => {
+    const vaults = [
+      {
+        id: 3,
+        uuid: 'vault-rp-under-20',
+        userId: 30,
+        productOption: 'RENT_PROTEC',
+        appliedAnnualRatePct: 10.0,
+        targetAmountKobo: 200_000_000n, // NGN 2,000,000 -> 20% activation threshold = 40,000,000 kobo (NGN 400k)
+        currentPrincipalKobo: 10_000_000n, // NGN 100,000 (5% < 20%)
+        accruedYieldKobo: 0n,
+        lockStatus: 'LOCKED',
+      },
+    ]
+
+    const { scheduler, treasuryUpserts } = buildScheduler(vaults)
+    await scheduler.executeDailyNavAccrual()
+
+    expect(treasuryUpserts).toHaveLength(1)
+    expect(treasuryUpserts[0].upfrontPremiumObligationKobo).toBe(0n)
+    expect(treasuryUpserts[0].unrecoveredPremiumKobo).toBe(0n)
+  })
 })

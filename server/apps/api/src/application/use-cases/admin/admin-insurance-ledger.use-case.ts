@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
+import { RentSavingsCalculatorEngine } from '../../../domains/rent-savings/rent-savings-calculator.engine'
 import { isProductionRuntime } from '../../../shared/utils/runtime-env'
 
 export interface AdminInsuranceLedgerFilter {
@@ -85,6 +86,8 @@ export class GetAdminInsuranceLedgerUseCase {
         occupation: e.occupation || null,
         employmentType: e.employmentType || null,
         coverageDate: e.rentStartDate || null,
+        fundingProgressPct: 100,
+        activationThresholdPct: 100,
         createdAt: e.createdAt.toISOString(),
       }
     })
@@ -94,22 +97,50 @@ export class GetAdminInsuranceLedgerUseCase {
       const firstName = this.decryptSafe(v.user?.firstName)
       const lastName = this.decryptSafe(v.user?.lastName)
       const targetNgn = Number(v.targetAmountKobo) / 100
+      const principalNgn = Number(v.currentPrincipalKobo) / 100
+      const termDays = Math.max(
+        1,
+        Math.ceil(
+          (v.contractualDueDate.getTime() - v.createdAt.getTime()) / (1000 * 60 * 60 * 24),
+        ),
+      )
+      const activationThresholdPct =
+        RentSavingsCalculatorEngine.getRentProtecActivationThresholdPct(termDays)
+      const activationThresholdKobo =
+        RentSavingsCalculatorEngine.getRentProtecActivationThresholdKobo(
+          v.targetAmountKobo,
+          termDays,
+        )
+      const fundingProgressPct =
+        targetNgn > 0 ? Math.min(100, Number(((principalNgn / targetNgn) * 100).toFixed(1))) : 0
+
       const premiumRatePct = v.insurancePremiumPct > 0 ? v.insurancePremiumPct : 2.0
       const summary = v.treasurySummary
-      const upfrontPremiumNgn = summary
-        ? Number(summary.upfrontPremiumObligationKobo) / 100
-        : Number(((targetNgn * premiumRatePct) / 100).toFixed(2))
-      const recoveredNgn = summary ? Number(summary.premiumRecoveredKobo) / 100 : 0
-      const unrecoveredNgn = summary
-        ? Number(summary.unrecoveredPremiumKobo) / 100
-        : Math.max(0, upfrontPremiumNgn - recoveredNgn)
+      const isCoverageActivated =
+        (summary && summary.upfrontPremiumObligationKobo > 0n) ||
+        v.currentPrincipalKobo >= activationThresholdKobo
+
+      const upfrontPremiumNgn = isCoverageActivated
+        ? summary && summary.upfrontPremiumObligationKobo > 0n
+          ? Number(summary.upfrontPremiumObligationKobo) / 100
+          : Number(((targetNgn * premiumRatePct) / 100).toFixed(2))
+        : 0
+      const recoveredNgn =
+        isCoverageActivated && summary ? Number(summary.premiumRecoveredKobo) / 100 : 0
+      const unrecoveredNgn = isCoverageActivated
+        ? summary && summary.upfrontPremiumObligationKobo > 0n
+          ? Number(summary.unrecoveredPremiumKobo) / 100
+          : Math.max(0, upfrontPremiumNgn - recoveredNgn)
+        : 0
 
       const mappedStatus =
         v.lockStatus === 'BROKEN_OUT'
           ? 'CANCELLED_EARLY_EXIT'
           : v.lockStatus === 'SETTLED'
             ? 'MATURED'
-            : 'ACTIVE'
+            : isCoverageActivated
+              ? 'ACTIVE'
+              : 'PENDING_ACTIVATION'
 
       return {
         policyUuid: v.uuid,
@@ -124,6 +155,8 @@ export class GetAdminInsuranceLedgerUseCase {
         premiumRecoveredNgn: recoveredNgn,
         unrecoveredPremiumNgn: unrecoveredNgn,
         status: mappedStatus,
+        fundingProgressPct,
+        activationThresholdPct,
         paymentReference: v.providerMembershipId || null,
         landlordName: null,
         propertyAddress: null,
