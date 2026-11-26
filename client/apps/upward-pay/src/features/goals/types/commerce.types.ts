@@ -1,6 +1,7 @@
 export type CustomerFulfilmentStatus =
   | 'QUOTE_REQUESTED'
   | 'QUOTE_PROVIDED'
+  | 'QUOTE_DECLINED'
   | 'ORDER_CONFIRMED'
   | 'PROCESSING'
   | 'DISPATCHED'

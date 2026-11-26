@@ -599,6 +599,7 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
               <option value="ALL">All Fulfilment Stages</option>
               <option value="QUOTE_REQUESTED">Quote Requested</option>
               <option value="QUOTE_PROVIDED">Quote Provided (Awaiting Payment)</option>
+              <option value="QUOTE_DECLINED">Quote Declined (Needs Follow-Up)</option>
               <option value="ORDER_CONFIRMED">Awaiting Confirmation</option>
               <option value="PROCESSING">In Preparation</option>
               <option value="SERVICE_SCHEDULED">Service Scheduled</option>
@@ -608,6 +609,7 @@ export default function CommerceWorkspace({ token }: CommerceWorkspaceProps) {
               <option value="SERVICE_COMPLETED">Service Completed</option>
               <option value="RECEIVED_CONFIRMED">Received & Confirmed</option>
               <option value="DISPUTED">Disputed</option>
+              <option value="CANCELLED">Cancelled / Closed</option>
             </select>
           </div>
 

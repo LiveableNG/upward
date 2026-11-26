@@ -38,9 +38,18 @@ export function SubOrderFulfilmentModal({
   onPostMessage,
 }: SubOrderFulfilmentModalProps) {
   const isService = (subOrder.items || []).some((i) => i.offeringType === 'SERVICE')
+  const isQuoteDeclined = subOrder.customerStatus === 'QUOTE_DECLINED'
   const isQuotePhase =
     subOrder.customerStatus === 'QUOTE_REQUESTED' ||
-    subOrder.customerStatus === 'QUOTE_PROVIDED'
+    subOrder.customerStatus === 'QUOTE_PROVIDED' ||
+    isQuoteDeclined
+  const declinedEvent = isQuoteDeclined
+    ? (subOrder.fulfilmentEvents || []).find(
+        (ev: any) =>
+          ev.status === 'QUOTE_DECLINED' ||
+          (ev.title || '').toLowerCase().includes('declined'),
+      )
+    : null
 
   const [messages, setMessages] = useState(subOrder.messages || [])
   useEffect(() => {
@@ -314,6 +323,27 @@ export function SubOrderFulfilmentModal({
         {/* Quote Review, Interactive Messages & Custom Price Setup */}
         {isQuotePhase ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {isQuoteDeclined && (
+              <div
+                style={{
+                  border: '1px solid rgba(220, 38, 38, 0.28)',
+                  background: 'rgba(220, 38, 38, 0.06)',
+                  borderRadius: 10,
+                  padding: '12px 14px',
+                  fontSize: 12.5,
+                  color: '#991b1b',
+                  lineHeight: 1.5,
+                }}
+              >
+                <div style={{ fontWeight: 700, marginBottom: 4 }}>
+                  Customer Declined Previous Quote
+                </div>
+                <div>
+                  {declinedEvent?.description ||
+                    'The customer declined the previous quoted price. You can message them below to clarify scope/budget and send a revised quote, or close this request from the Orders table.'}
+                </div>
+              </div>
+            )}
             {/* Milestone Conversation Thread */}
             <div
               style={{
@@ -422,7 +452,11 @@ export function SubOrderFulfilmentModal({
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13.5, fontWeight: 700, color: 'var(--text)' }}>
                 <Tag size={15} />
-                <span>Set Final Service Quote (100% Upward Balance)</span>
+                <span>
+                  {isQuoteDeclined
+                    ? 'Send Revised Service Quote (Re-opens Quote for Customer)'
+                    : 'Set Final Service Quote (100% Upward Balance)'}
+                </span>
               </div>
 
               <div>

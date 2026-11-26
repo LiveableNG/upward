@@ -60,6 +60,12 @@ function getStatusBadge(status: CustomerFulfilmentStatus, isService: boolean, pa
       className: 'orders-hub__badge--confirmed',
     }
   }
+  if (status === 'QUOTE_DECLINED') {
+    return {
+      label: 'Quote Declined',
+      className: 'orders-hub__badge--cancelled',
+    }
+  }
   if (status === 'CANCELLED') {
     return {
       label: 'Cancelled',
