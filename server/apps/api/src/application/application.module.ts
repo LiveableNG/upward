@@ -133,7 +133,10 @@ import {
   GetArmTransactionLiveStatusUseCase,
   GetAdminArmCustomerDocumentUseCase,
 } from './use-cases/admin/admin-arm.use-cases'
-import { GetAdminSavingsLedgerUseCase } from './use-cases/admin/admin-savings-ledger.use-case'
+import {
+  GetAdminSavingsLedgerUseCase,
+  SimulateDailyNavAccrualUseCase,
+} from './use-cases/admin/admin-savings-ledger.use-case'
 import { GetAdminInsuranceLedgerUseCase } from './use-cases/admin/admin-insurance-ledger.use-case'
 import {
   GetSavingsCashbackOverviewUseCase,
@@ -792,6 +795,7 @@ const UseCases: any[] = [
   GetArmTransactionLiveStatusUseCase,
   GetAdminArmCustomerDocumentUseCase,
   GetAdminSavingsLedgerUseCase,
+  SimulateDailyNavAccrualUseCase,
   GetAdminInsuranceLedgerUseCase,
   GetSavingsCashbackOverviewUseCase,
   UpsertSavingsCashbackCampaignUseCase,

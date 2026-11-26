@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Download, RefreshCw, ShieldCheck, Wallet } from 'lucide-react'
+import { Download, Play, RefreshCw, ShieldCheck, Wallet } from 'lucide-react'
 import { apiService } from '../../services/api.service'
 
 interface InternalLedgerTabProps {
@@ -40,6 +40,23 @@ interface LedgerVaultRow {
   premiumRecoveryPct: number
 }
 
+interface JournalEntry {
+  uuid: string
+  vaultUuid: string
+  entryDate: string
+  entryType: string
+  productOption: string
+  principalBaseNgn: number
+  grossArmRatePct: number
+  customerRatePct: number
+  grossArmYieldNgn: number
+  customerNetYieldNgn: number
+  yieldSpreadNgn: number
+  premiumRecoveryAppliedNgn: number
+  netMarginDeltaNgn: number
+  notes: string | null
+}
+
 const fmtNgn = (n: number) =>
   `₦${Number(n || 0).toLocaleString('en-NG', {
     minimumFractionDigits: 2,
@@ -48,9 +65,13 @@ const fmtNgn = (n: number) =>
 
 export const InternalLedgerTab: React.FC<InternalLedgerTabProps> = ({ token }) => {
   const [loading, setLoading] = useState(true)
+  const [isSandbox, setIsSandbox] = useState(false)
+  const [simulatingDays, setSimulatingDays] = useState<number | null>(null)
+  const [simMessage, setSimMessage] = useState<string | null>(null)
   const [productFilter, setProductFilter] = useState<string>('ALL')
   const [summary, setSummary] = useState<LedgerSummary | null>(null)
   const [vaults, setVaults] = useState<LedgerVaultRow[]>([])
+  const [journal, setJournal] = useState<JournalEntry[]>([])
   const [error, setError] = useState<string | null>(null)
 
   const fetchLedger = async () => {
@@ -60,12 +81,29 @@ export const InternalLedgerTab: React.FC<InternalLedgerTabProps> = ({ token }) =
       const qs = productFilter !== 'ALL' ? `?productOption=${productFilter}` : ''
       const res = await apiService.get(`/admin/arm/internal-ledger${qs}`, token)
       const data = res?.data || res
+      setIsSandbox(Boolean(data?.isSandbox))
       setSummary(data?.summary || null)
       setVaults(data?.vaults || [])
+      setJournal(data?.recentJournal || [])
     } catch (err: any) {
       setError(err?.message || 'Failed to load internal savings ledger')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleSimulateAccrual = async (days: number) => {
+    try {
+      setSimulatingDays(days)
+      setError(null)
+      setSimMessage(null)
+      const res = await apiService.post('/admin/arm/simulate-accrual', { days }, token)
+      setSimMessage(res?.message || `Simulated ${days} day(s) of accrual.`)
+      await fetchLedger()
+    } catch (err: any) {
+      setError(err?.message || 'Failed to simulate daily accrual')
+    } finally {
+      setSimulatingDays(null)
     }
   }
 
@@ -143,7 +181,27 @@ export const InternalLedgerTab: React.FC<InternalLedgerTabProps> = ({ token }) =
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+          {isSandbox && (
+            <>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                disabled={simulatingDays !== null}
+                onClick={() => handleSimulateAccrual(1)}
+              >
+                <Play size={13} /> {simulatingDays === 1 ? 'Running...' : 'Simulate +1d'}
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                disabled={simulatingDays !== null}
+                onClick={() => handleSimulateAccrual(30)}
+              >
+                <Play size={13} /> {simulatingDays === 30 ? 'Running...' : 'Simulate +30d'}
+              </button>
+            </>
+          )}
           <select
             value={productFilter}
             onChange={(e) => setProductFilter(e.target.value)}
@@ -171,6 +229,21 @@ export const InternalLedgerTab: React.FC<InternalLedgerTabProps> = ({ token }) =
           </button>
         </div>
       </div>
+
+      {simMessage && (
+        <div
+          style={{
+            padding: '10px 14px',
+            borderRadius: '10px',
+            background: 'rgba(16, 185, 129, 0.1)',
+            color: '#047857',
+            fontSize: '13px',
+            fontWeight: 600,
+          }}
+        >
+          {simMessage}
+        </div>
+      )}
 
       {error && (
         <div
@@ -325,6 +398,48 @@ export const InternalLedgerTab: React.FC<InternalLedgerTabProps> = ({ token }) =
           </tbody>
         </table>
       </div>
+
+      {journal.length > 0 && (
+        <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: '13px' }}>
+            Daily Spread &amp; Premium Recovery Journal ({journal.length})
+          </div>
+          <table className="data-table" style={{ width: '100%', fontSize: '12px' }}>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Type</th>
+                <th>Plan</th>
+                <th>Rates (ARM / Cust)</th>
+                <th>Gross ARM Yield</th>
+                <th>Cust. Yield</th>
+                <th>Spread → Recovery</th>
+                <th>Net Margin</th>
+              </tr>
+            </thead>
+            <tbody>
+              {journal.map((j) => (
+                <tr key={j.uuid}>
+                  <td>{new Date(j.entryDate).toLocaleString()}</td>
+                  <td>{j.entryType}</td>
+                  <td>{j.productOption === 'RENT_PROTEC' ? 'Rent Protec' : 'Save & Earn'}</td>
+                  <td>
+                    {j.grossArmRatePct.toFixed(2)}% / {j.customerRatePct.toFixed(1)}%
+                  </td>
+                  <td>{fmtNgn(j.grossArmYieldNgn)}</td>
+                  <td>{fmtNgn(j.customerNetYieldNgn)}</td>
+                  <td style={{ color: '#c2501f', fontWeight: 700 }}>
+                    {fmtNgn(j.premiumRecoveryAppliedNgn)}
+                  </td>
+                  <td style={{ color: '#059669', fontWeight: 700 }}>
+                    {fmtNgn(j.netMarginDeltaNgn)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   )
 }

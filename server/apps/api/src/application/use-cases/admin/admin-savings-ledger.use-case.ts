@@ -1,6 +1,9 @@
-import { Injectable } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, Injectable, Optional } from '@nestjs/common'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
+import { PlatformRatesService } from '../../../shared/infrastructure/common/platform-rates.service'
+import { AssetManagementProviderRegistry } from '../../../infrastructure/providers/asset-management/asset-management-provider.registry'
+import { isProductionRuntime } from '../../../shared/utils/runtime-env'
 
 export interface AdminSavingsLedgerFilter {
   productOption?: string
@@ -165,6 +168,7 @@ export class GetAdminSavingsLedgerUseCase {
     return {
       success: true,
       data: {
+        isSandbox: !isProductionRuntime(process.env.PAYSTACK_SECRET_KEY),
         summary: {
           vaultCount: rows.length,
           rentProtecCount: rows.filter((r) => r.productOption === 'RENT_PROTEC').length,
@@ -200,6 +204,213 @@ export class GetAdminSavingsLedgerUseCase {
           reference: e.reference,
           notes: e.notes,
         })),
+      },
+    }
+  }
+}
+
+@Injectable()
+export class SimulateDailyNavAccrualUseCase {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly platformRates: PlatformRatesService,
+    @Optional()
+    private readonly providerRegistry?: AssetManagementProviderRegistry,
+  ) {}
+
+  async execute(params?: { days?: number; vaultUuid?: string }) {
+    if (isProductionRuntime(process.env.PAYSTACK_SECRET_KEY)) {
+      throw new ForbiddenException('Accrual simulation is disabled in production.')
+    }
+
+    const days = Math.min(90, Math.max(1, Math.round(Number(params?.days || 1))))
+    const now = new Date()
+    const rates = await this.platformRates.getRates()
+
+    let grossArmAnnualRatePct = Math.max(rates.savingsAnnualRatePct, 16.55)
+    try {
+      const armProvider = this.providerRegistry?.getProvider('ARM')
+      const metrics = armProvider ? await armProvider.getYieldMetrics('ARMMMF') : null
+      if (metrics?.annualNetYieldRate && metrics.annualNetYieldRate > 0) {
+        grossArmAnnualRatePct = Number((metrics.annualNetYieldRate * 100).toFixed(4))
+      }
+    } catch {
+      // keep fallback gross rate
+    }
+    const grossArmDailyRate = grossArmAnnualRatePct / 100 / 365
+
+    const whereVault: any = {
+      lockStatus: { in: ['LOCKED', 'SETTLEMENT_READY'] },
+      ...(params?.vaultUuid ? { uuid: params.vaultUuid } : {}),
+    }
+
+    const vaults = await this.prisma.upward_rent_vault.findMany({
+      where: whereVault,
+      include: { treasurySummary: true },
+    })
+
+    const fundedVaults = vaults.filter(
+      (v) => v.currentPrincipalKobo + v.accruedYieldKobo > 0n,
+    )
+
+    if (fundedVaults.length === 0) {
+      throw new BadRequestException(
+        'No funded active vaults found (principal + yield must be greater than ₦0). Fund a vault first to see yield spread and premium recovery.',
+      )
+    }
+
+    let totalCustomerYieldAddedKobo = 0n
+    let totalGrossArmYieldAddedKobo = 0n
+    let totalSpreadAddedKobo = 0n
+    let totalPremiumRecoveredAddedKobo = 0n
+    let totalNetMarginAddedKobo = 0n
+
+    for (const vault of fundedVaults) {
+      const isRentProtec = vault.productOption === 'RENT_PROTEC'
+      const customerAnnualRatePct =
+        vault.appliedAnnualRatePct && vault.appliedAnnualRatePct > 0
+          ? vault.appliedAnnualRatePct
+          : isRentProtec
+            ? rates.rentProtecRatePct
+            : rates.savingsAnnualRatePct
+      const customerDailyRate = customerAnnualRatePct / 100 / 365
+      const effectiveGrossRatePct = Math.max(grossArmAnnualRatePct, customerAnnualRatePct)
+      const effectiveGrossDailyRate = Math.max(grossArmDailyRate, customerDailyRate)
+
+      const defaultPremiumObligationKobo = isRentProtec
+        ? BigInt(
+            Math.round(Number(vault.targetAmountKobo) * (rates.insurancePremiumPct / 100)),
+          )
+        : 0n
+
+      const existingSummary = vault.treasurySummary
+      let runningBalance = vault.currentPrincipalKobo + vault.accruedYieldKobo
+      let unrecovered = existingSummary
+        ? existingSummary.unrecoveredPremiumKobo
+        : defaultPremiumObligationKobo
+
+      let custYieldAdded = 0n
+      let grossArmYieldAdded = 0n
+      let spreadAdded = 0n
+      let premRecoveredAdded = 0n
+      let netMarginAdded = 0n
+
+      for (let d = 0; d < days; d++) {
+        const dayCust = BigInt(Math.max(1, Math.round(Number(runningBalance) * customerDailyRate)))
+        const dayArm = BigInt(
+          Math.max(Number(dayCust), Math.round(Number(runningBalance) * effectiveGrossDailyRate)),
+        )
+        const daySpread = dayArm > dayCust ? dayArm - dayCust : 0n
+        const dayPremRec =
+          unrecovered > 0n ? (daySpread < unrecovered ? daySpread : unrecovered) : 0n
+        const dayMargin = daySpread - dayPremRec
+
+        runningBalance += dayCust
+        unrecovered -= dayPremRec
+
+        custYieldAdded += dayCust
+        grossArmYieldAdded += dayArm
+        spreadAdded += daySpread
+        premRecoveredAdded += dayPremRec
+        netMarginAdded += dayMargin
+      }
+
+      const ref = `SIM_YLD_${vault.id}_${days}D_${Date.now()}_${Math.floor(100 + Math.random() * 900)}`
+
+      await this.prisma.$transaction(async (tx) => {
+        await tx.upward_rent_vault_transaction.create({
+          data: {
+            vaultId: vault.id,
+            userId: vault.userId,
+            type: 'YIELD_ACCRUAL',
+            amountKobo: custYieldAdded,
+            principalDeltaKobo: 0n,
+            yieldDeltaKobo: custYieldAdded,
+            balanceAfterKobo: runningBalance,
+            reference: ref,
+            channel: 'SYSTEM_YIELD',
+            narration: `Simulated ${days}-day compound yield (${customerAnnualRatePct.toFixed(1)}% p.a.) credited to vault`,
+            metadata: { simulated: true, days } as any,
+          },
+        })
+
+        await tx.upward_rent_vault.update({
+          where: { id: vault.id },
+          data: {
+            accruedYieldKobo: { increment: custYieldAdded },
+            lastYieldSyncAt: now,
+          },
+        })
+
+        if (existingSummary) {
+          await tx.upward_vault_treasury_summary.update({
+            where: { vaultId: vault.id },
+            data: {
+              grossArmYieldAccruedKobo: { increment: grossArmYieldAdded },
+              customerYieldAccruedKobo: { increment: custYieldAdded },
+              platformSpreadAccruedKobo: { increment: spreadAdded },
+              premiumRecoveredKobo: { increment: premRecoveredAdded },
+              unrecoveredPremiumKobo: unrecovered,
+              netPlatformMarginKobo: { increment: netMarginAdded },
+              lastAccrualDate: now,
+            },
+          })
+        } else {
+          await tx.upward_vault_treasury_summary.create({
+            data: {
+              vaultId: vault.id,
+              productOption: vault.productOption || 'SAVE_AND_EARN',
+              grossArmYieldAccruedKobo: grossArmYieldAdded,
+              customerYieldAccruedKobo: custYieldAdded,
+              platformSpreadAccruedKobo: spreadAdded,
+              upfrontPremiumObligationKobo: defaultPremiumObligationKobo,
+              premiumRecoveredKobo: premRecoveredAdded,
+              unrecoveredPremiumKobo: unrecovered,
+              netPlatformMarginKobo: netMarginAdded,
+              lastAccrualDate: now,
+            },
+          })
+        }
+
+        await tx.upward_savings_internal_ledger.create({
+          data: {
+            vaultId: vault.id,
+            entryDate: now,
+            entryType: 'DAILY_ACCRUAL',
+            productOption: vault.productOption || 'SAVE_AND_EARN',
+            principalBaseKobo: vault.currentPrincipalKobo + vault.accruedYieldKobo,
+            grossArmRatePct: effectiveGrossRatePct,
+            customerRatePct: customerAnnualRatePct,
+            grossArmYieldKobo: grossArmYieldAdded,
+            customerNetYieldKobo: custYieldAdded,
+            yieldSpreadKobo: spreadAdded,
+            premiumObligationDeltaKobo: 0n,
+            premiumRecoveryAppliedKobo: premRecoveredAdded,
+            netMarginDeltaKobo: netMarginAdded,
+            reference: `TREAS_${ref}`,
+            notes: `Simulated ${days}d accrual: ARM ${effectiveGrossRatePct.toFixed(2)}% vs Customer ${customerAnnualRatePct.toFixed(1)}%${isRentProtec ? ' (spread applied to 2% Rent Protec premium recovery)' : ''}`,
+          },
+        })
+      })
+
+      totalCustomerYieldAddedKobo += custYieldAdded
+      totalGrossArmYieldAddedKobo += grossArmYieldAdded
+      totalSpreadAddedKobo += spreadAdded
+      totalPremiumRecoveredAddedKobo += premRecoveredAdded
+      totalNetMarginAddedKobo += netMarginAdded
+    }
+
+    return {
+      success: true,
+      message: `Simulated ${days} day(s) of accrual across ${fundedVaults.length} funded vault(s). Recovered ₦${(Number(totalPremiumRecoveredAddedKobo) / 100).toLocaleString('en-NG', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} toward Rent Protec premiums.`,
+      data: {
+        daysSimulated: days,
+        vaultsProcessed: fundedVaults.length,
+        customerYieldAddedNgn: Number(totalCustomerYieldAddedKobo) / 100,
+        grossArmYieldAddedNgn: Number(totalGrossArmYieldAddedKobo) / 100,
+        spreadAddedNgn: Number(totalSpreadAddedKobo) / 100,
+        premiumRecoveredAddedNgn: Number(totalPremiumRecoveredAddedKobo) / 100,
+        netMarginAddedNgn: Number(totalNetMarginAddedKobo) / 100,
       },
     }
   }

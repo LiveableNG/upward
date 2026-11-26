@@ -22,7 +22,10 @@ import {
   GetArmTransactionLiveStatusUseCase,
   GetAdminArmCustomerDocumentUseCase,
 } from '../../../application/use-cases/admin/admin-arm.use-cases'
-import { GetAdminSavingsLedgerUseCase } from '../../../application/use-cases/admin/admin-savings-ledger.use-case'
+import {
+  GetAdminSavingsLedgerUseCase,
+  SimulateDailyNavAccrualUseCase,
+} from '../../../application/use-cases/admin/admin-savings-ledger.use-case'
 import { GetAdminInsuranceLedgerUseCase } from '../../../application/use-cases/admin/admin-insurance-ledger.use-case'
 import {
   CreditSavingsCashbackDto,
@@ -44,6 +47,7 @@ export class AdminArmController {
     private readonly getTxLiveStatusUseCase: GetArmTransactionLiveStatusUseCase,
     private readonly getCustomerDocUseCase: GetAdminArmCustomerDocumentUseCase,
     private readonly getSavingsLedgerUseCase: GetAdminSavingsLedgerUseCase,
+    private readonly simulateDailyNavAccrualUseCase: SimulateDailyNavAccrualUseCase,
     private readonly getInsuranceLedgerUseCase: GetAdminInsuranceLedgerUseCase,
     private readonly getCashbackOverviewUseCase: GetSavingsCashbackOverviewUseCase,
     private readonly upsertCashbackCampaignUseCase: UpsertSavingsCashbackCampaignUseCase,
@@ -146,6 +150,12 @@ export class AdminArmController {
     @Query('search') search?: string,
   ) {
     return this.getInsuranceLedgerUseCase.execute({ source, status, search })
+  }
+
+  @Post('simulate-accrual')
+  @Roles(AdminRole.SUPERADMIN, AdminRole.DEVELOPER)
+  async simulateDailyAccrual(@Body() body: { days?: number; vaultUuid?: string }) {
+    return this.simulateDailyNavAccrualUseCase.execute(body)
   }
 
   @Get('cashback')

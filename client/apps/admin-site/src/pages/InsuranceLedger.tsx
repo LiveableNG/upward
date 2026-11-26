@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Download, RefreshCw, Search, ShieldCheck, Umbrella, Wallet } from 'lucide-react'
+import { Download, Play, RefreshCw, Search, ShieldCheck, Umbrella, Wallet } from 'lucide-react'
 import { apiService } from '../services/api.service'
 
 interface InsuranceLedgerProps {
@@ -41,6 +41,23 @@ interface InsurancePolicyRow {
   createdAt: string
 }
 
+interface RecoveryJournalEntry {
+  uuid: string
+  vaultUuid: string
+  policyholderName: string
+  entryDate: string
+  entryType: string
+  principalBaseNgn: number
+  grossArmRatePct: number
+  customerRatePct: number
+  grossArmYieldNgn: number
+  customerNetYieldNgn: number
+  yieldSpreadNgn: number
+  premiumRecoveryAppliedNgn: number
+  netMarginDeltaNgn: number
+  notes: string | null
+}
+
 const fmtNgn = (n: number) =>
   `₦${Number(n || 0).toLocaleString('en-NG', {
     minimumFractionDigits: 2,
@@ -49,11 +66,15 @@ const fmtNgn = (n: number) =>
 
 export default function InsuranceLedger({ token }: InsuranceLedgerProps) {
   const [loading, setLoading] = useState(true)
+  const [isSandbox, setIsSandbox] = useState(false)
+  const [simulatingDays, setSimulatingDays] = useState<number | null>(null)
+  const [simMessage, setSimMessage] = useState<string | null>(null)
   const [sourceFilter, setSourceFilter] = useState<string>('ALL')
   const [statusFilter, setStatusFilter] = useState<string>('ALL')
   const [search, setSearch] = useState('')
   const [summary, setSummary] = useState<InsuranceSummary | null>(null)
   const [policies, setPolicies] = useState<InsurancePolicyRow[]>([])
+  const [recoveryJournal, setRecoveryJournal] = useState<RecoveryJournalEntry[]>([])
   const [error, setError] = useState<string | null>(null)
 
   const fetchLedger = async () => {
@@ -67,12 +88,29 @@ export default function InsuranceLedger({ token }: InsuranceLedgerProps) {
       const qs = params.toString() ? `?${params.toString()}` : ''
       const res = await apiService.get(`/admin/arm/insurance-ledger${qs}`, token)
       const data = res?.data || res
+      setIsSandbox(Boolean(data?.isSandbox))
       setSummary(data?.summary || null)
       setPolicies(data?.policies || [])
+      setRecoveryJournal(data?.recentRecoveryJournal || [])
     } catch (err: any) {
       setError(err?.message || 'Failed to load insurance ledger')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleSimulateAccrual = async (days: number) => {
+    try {
+      setSimulatingDays(days)
+      setError(null)
+      setSimMessage(null)
+      const res = await apiService.post('/admin/arm/simulate-accrual', { days }, token)
+      setSimMessage(res?.message || `Simulated ${days} day(s) of accrual.`)
+      await fetchLedger()
+    } catch (err: any) {
+      setError(err?.message || 'Failed to simulate daily accrual')
+    } finally {
+      setSimulatingDays(null)
     }
   }
 
@@ -160,7 +198,27 @@ export default function InsuranceLedger({ token }: InsuranceLedgerProps) {
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+          {isSandbox && (
+            <>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                disabled={simulatingDays !== null}
+                onClick={() => handleSimulateAccrual(1)}
+              >
+                <Play size={13} /> {simulatingDays === 1 ? 'Running...' : 'Simulate +1d'}
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                disabled={simulatingDays !== null}
+                onClick={() => handleSimulateAccrual(30)}
+              >
+                <Play size={13} /> {simulatingDays === 30 ? 'Running...' : 'Simulate +30d'}
+              </button>
+            </>
+          )}
           <button type="button" className="btn btn-secondary" onClick={fetchLedger}>
             <RefreshCw size={14} /> Refresh
           </button>
@@ -174,6 +232,21 @@ export default function InsuranceLedger({ token }: InsuranceLedgerProps) {
           </button>
         </div>
       </div>
+
+      {simMessage && (
+        <div
+          style={{
+            padding: '10px 14px',
+            borderRadius: '10px',
+            background: 'rgba(16, 185, 129, 0.1)',
+            color: '#047857',
+            fontSize: '13px',
+            fontWeight: 600,
+          }}
+        >
+          {simMessage}
+        </div>
+      )}
 
       {error && (
         <div
@@ -427,6 +500,46 @@ export default function InsuranceLedger({ token }: InsuranceLedgerProps) {
           </tbody>
         </table>
       </div>
+
+      {recoveryJournal.length > 0 && (
+        <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
+          <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: '13px' }}>
+            Rent Protec Premium Recovery Journal ({recoveryJournal.length})
+          </div>
+          <table className="data-table" style={{ width: '100%', fontSize: '12px' }}>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Policyholder</th>
+                <th>Event</th>
+                <th>Balance Base</th>
+                <th>Gross ARM Yield</th>
+                <th>Customer 10% Yield</th>
+                <th>Recovered Toward 2%</th>
+                <th>Net Margin</th>
+              </tr>
+            </thead>
+            <tbody>
+              {recoveryJournal.map((j) => (
+                <tr key={j.uuid}>
+                  <td>{new Date(j.entryDate).toLocaleString()}</td>
+                  <td style={{ fontWeight: 600 }}>{j.policyholderName}</td>
+                  <td>{j.entryType}</td>
+                  <td>{fmtNgn(j.principalBaseNgn)}</td>
+                  <td>{fmtNgn(j.grossArmYieldNgn)}</td>
+                  <td>{fmtNgn(j.customerNetYieldNgn)}</td>
+                  <td style={{ color: '#047857', fontWeight: 700 }}>
+                    +{fmtNgn(j.premiumRecoveryAppliedNgn)}
+                  </td>
+                  <td style={{ color: '#059669', fontWeight: 600 }}>
+                    {fmtNgn(j.netMarginDeltaNgn)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
+import { isProductionRuntime } from '../../../shared/utils/runtime-env'
 
 export interface AdminInsuranceLedgerFilter {
   source?: string
@@ -25,7 +26,7 @@ export class GetAdminInsuranceLedgerUseCase {
   }
 
   async execute(filter?: AdminInsuranceLedgerFilter) {
-    const [enrolments, rentProtecVaults] = await Promise.all([
+    const [enrolments, rentProtecVaults, recoveryJournal] = await Promise.all([
       this.prisma.upward_insurance_enrolment.findMany({
         orderBy: { createdAt: 'desc' },
         include: {
@@ -42,6 +43,19 @@ export class GetAdminInsuranceLedgerUseCase {
             select: { uuid: true, firstName: true, lastName: true, email: true },
           },
           treasurySummary: true,
+        },
+      }),
+      this.prisma.upward_savings_internal_ledger.findMany({
+        where: { productOption: 'RENT_PROTEC' },
+        orderBy: { entryDate: 'desc' },
+        take: 40,
+        include: {
+          vault: {
+            select: {
+              uuid: true,
+              user: { select: { firstName: true, lastName: true, email: true } },
+            },
+          },
         },
       }),
     ])
@@ -169,6 +183,7 @@ export class GetAdminInsuranceLedgerUseCase {
     return {
       success: true,
       data: {
+        isSandbox: !isProductionRuntime(process.env.PAYSTACK_SECRET_KEY),
         summary: {
           totalPolicies: allRows.length,
           standaloneCount: standaloneRows.length,
@@ -184,6 +199,26 @@ export class GetAdminInsuranceLedgerUseCase {
           rentProtecUnrecoveredPremiumNgn: Number(rentProtecUnrecoveredPremiumNgn.toFixed(2)),
         },
         policies: filtered,
+        recentRecoveryJournal: recoveryJournal.map((j) => {
+          const fn = this.decryptSafe(j.vault?.user?.firstName)
+          const ln = this.decryptSafe(j.vault?.user?.lastName)
+          return {
+            uuid: j.uuid,
+            vaultUuid: j.vault?.uuid || '',
+            policyholderName: `${fn} ${ln}`.trim() || 'Tenant',
+            entryDate: j.entryDate.toISOString(),
+            entryType: j.entryType,
+            principalBaseNgn: Number(j.principalBaseKobo) / 100,
+            grossArmRatePct: j.grossArmRatePct,
+            customerRatePct: j.customerRatePct,
+            grossArmYieldNgn: Number(j.grossArmYieldKobo) / 100,
+            customerNetYieldNgn: Number(j.customerNetYieldKobo) / 100,
+            yieldSpreadNgn: Number(j.yieldSpreadKobo) / 100,
+            premiumRecoveryAppliedNgn: Number(j.premiumRecoveryAppliedKobo) / 100,
+            netMarginDeltaNgn: Number(j.netMarginDeltaKobo) / 100,
+            notes: j.notes,
+          }
+        }),
       },
     }
   }
