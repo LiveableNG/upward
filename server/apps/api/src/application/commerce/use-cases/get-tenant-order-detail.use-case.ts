@@ -109,6 +109,7 @@ export class GetTenantOrderDetailUseCase {
             imageUrl: finalImage,
             unitPriceKobo: it.unitPriceKobo.toString(),
             totalPriceKobo: it.totalPriceKobo.toString(),
+            voucherEligible: Boolean(off?.voucherEligible),
             snapshotData: it.snapshotData,
           }
         }),

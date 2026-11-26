@@ -20,6 +20,7 @@ import {
   ChevronRight,
   Check,
   Search,
+  Ticket,
 } from 'lucide-react'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
@@ -28,6 +29,8 @@ import {
   useCreateCommerceOrder,
   useInitializeCommercePayment,
   useVerifyCommercePayment,
+  usePreviewCommerceOrder,
+  useUserVoucher,
 } from '../hooks/useCommerceOrders'
 import type { GoalOffering } from '../types/goals.types'
 import type { CartItem } from '../context/CartContext'
@@ -45,6 +48,7 @@ import { BottomSheetModal } from '@/components/common/BottomSheetModal'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import '../styles/goals.css'
 import '../styles/checkout.css'
+import '../styles/voucher.css'
 
 interface CommerceCheckoutModalProps {
   offering?: GoalOffering
@@ -105,6 +109,13 @@ export function CommerceCheckoutModal({
   const createOrder = useCreateCommerceOrder()
   const initializePayment = useInitializeCommercePayment()
   const verifyPayment = useVerifyCommercePayment()
+  const previewOrder = usePreviewCommerceOrder()
+  const { data: voucherSummary } = useUserVoucher(isOpen)
+  const [applyVoucher, setApplyVoucher] = useState(false)
+  const [serverVoucherMeta, setServerVoucherMeta] = useState<{
+    availableNaira: number
+    eligibleSubtotalNaira: number
+  } | null>(null)
 
   useEffect(() => {
     setMounted(true)
@@ -243,19 +254,78 @@ export function CommerceCheckoutModal({
             vendorName: offering.vendor?.name || 'Upward Partner',
             vendorVerified: offering.vendor?.isVerified ?? false,
             type: (offering.type as CartItem['type']) || 'PRODUCT',
+            voucherEligible: Boolean(offering.voucherEligible),
           },
         ]
       : []
+
+  const itemsKey = effectiveItems
+    .map((it) => `${it.offeringUuid || it.offeringId}:${it.quantity}`)
+    .join('|')
+
+  // Reset voucher toggle when modal opens/closes
+  useEffect(() => {
+    if (!isOpen) {
+      setApplyVoucher(false)
+      setServerVoucherMeta(null)
+    }
+  }, [isOpen])
+
+  // Authoritative server-side preview for voucher eligibility & balance
+  useEffect(() => {
+    if (!isOpen || effectiveItems.length === 0) return
+    let cancelled = false
+    previewOrder
+      .mutateAsync({
+        items: effectiveItems.map((it) => ({
+          offeringUuid: it.offeringUuid,
+          offeringId: it.offeringId,
+          quantity: it.quantity,
+        })),
+        deliveryZoneTag: selectedLocation?.zoneTag,
+        applyVoucher,
+      })
+      .then((res) => {
+        if (cancelled) return
+        setServerVoucherMeta({
+          availableNaira: Number(res.availableVoucherKobo || 0) / 100,
+          eligibleSubtotalNaira: Number(res.voucherEligibleSubtotalKobo || 0) / 100,
+        })
+      })
+      .catch(() => {
+        // Fallback to local wallet & item flags
+      })
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, itemsKey, selectedLocation?.zoneTag])
 
   const itemsSubtotal = effectiveItems.reduce(
     (acc, it) => acc + it.price * it.quantity,
     0,
   )
+  const localEligibleSubtotal = effectiveItems.reduce(
+    (acc, it) => acc + (it.voucherEligible ? it.price * it.quantity : 0),
+    0,
+  )
+  const availableVoucherNaira =
+    serverVoucherMeta?.availableNaira ??
+    voucherSummary?.wallet?.availableBalanceNaira ??
+    0
+  const voucherEligibleSubtotal =
+    serverVoucherMeta?.eligibleSubtotalNaira ?? localEligibleSubtotal
+  const canApplyVoucher = availableVoucherNaira > 0 && voucherEligibleSubtotal > 0
+  const voucherDiscount =
+    canApplyVoucher && applyVoucher
+      ? Math.min(availableVoucherNaira, voucherEligibleSubtotal)
+      : 0
+
   const allServices = effectiveItems.length > 0 && effectiveItems.every((it) => it.type === 'SERVICE')
   const deliveryFee = allServices
     ? 0
     : parseKoboToNgn(selectedLocation?.deliveryFeeKobo)
-  const grandTotal = itemsSubtotal + deliveryFee
+  const grandTotal = Math.max(0, itemsSubtotal - voucherDiscount + deliveryFee)
 
   const offeringTitle = offering?.title || offering?.name || 'Commerce Offering'
   const vendorName = offering?.vendor?.name || 'Upward Partner'
@@ -312,7 +382,7 @@ export function CommerceCheckoutModal({
       return
     }
 
-    if (grandTotal <= 0) {
+    if (itemsSubtotal <= 0) {
       setErrorMessage(
         'Services requiring custom quotes cannot be checked out with ₦0. Please submit a Quote Request instead.',
       )
@@ -332,6 +402,7 @@ export function CommerceCheckoutModal({
         deliveryAddress: fullDeliveryAddress,
         deliveryZoneTag: selectedLocation.zoneTag,
         deliveryNotes: data.deliveryNotes ? data.deliveryNotes.trim() : undefined,
+        applyVoucher: canApplyVoucher && applyVoucher,
         items: effectiveItems.map((it) => ({
           offeringUuid: it.offeringUuid,
           offeringId: it.offeringId,
@@ -344,6 +415,15 @@ export function CommerceCheckoutModal({
 
       if (!createdOrder?.uuid) {
         throw new Error('Order could not be created. Please try again.')
+      }
+
+      // 1b. If 100% covered by Upward Voucher, order is already confirmed & PAID
+      if (orderResult.paymentRequired === false) {
+        toast.success('Order confirmed and paid with your Upward voucher!')
+        onSuccess?.()
+        onClose()
+        router.push(`/dashboard/lifestyle/orders?uuid=${createdOrder.uuid}`)
+        return
       }
 
       // 2. Initialize Paystack payment for this order
@@ -729,16 +809,64 @@ export function CommerceCheckoutModal({
             </div>
           </div>
 
+          {/* Opt-in Upward Voucher Card (only shown when user has balance & item is eligible) */}
+          {canApplyVoucher && (
+            <button
+              type="button"
+              className={`voucher-apply-card ${applyVoucher ? 'voucher-apply-card--active' : ''}`}
+              onClick={() => setApplyVoucher((prev) => !prev)}
+              disabled={isProcessing}
+              role="switch"
+              aria-checked={applyVoucher}
+            >
+              <div className="voucher-apply-card__left">
+                <span className="voucher-apply-card__icon" aria-hidden="true">
+                  <Ticket size={16} />
+                </span>
+                <div className="voucher-apply-card__copy">
+                  <span className="voucher-apply-card__title">Apply Upward Voucher</span>
+                  <span
+                    className={`voucher-apply-card__sub ${
+                      applyVoucher ? 'voucher-apply-card__sub--saving' : ''
+                    }`}
+                  >
+                    {applyVoucher
+                      ? `Saving ${formatNgn(voucherDiscount)} on this order`
+                      : `${formatNgn(availableVoucherNaira)} available`}
+                  </span>
+                </div>
+              </div>
+              <span
+                className={`voucher-apply-card__switch ${
+                  applyVoucher ? 'voucher-apply-card__switch--on' : ''
+                }`}
+                aria-hidden="true"
+              >
+                <span className="voucher-apply-card__knob" />
+              </span>
+            </button>
+          )}
+
           {/* Ledger Breakdown */}
           <div className="checkout-sheet__ledger">
             <div className="checkout-sheet__ledger-row">
               <span className="checkout-sheet__ledger-label">
-                Subtotal ({quantity} {quantity === 1 ? 'item' : 'items'})
+                Subtotal ({effectiveItems.reduce((sum, it) => sum + it.quantity, 0)}{' '}
+                {effectiveItems.reduce((sum, it) => sum + it.quantity, 0) === 1 ? 'item' : 'items'})
               </span>
               <span className="checkout-sheet__ledger-val">
                 {formatNgn(itemsSubtotal)}
               </span>
             </div>
+
+            {voucherDiscount > 0 && (
+              <div className="checkout-sheet__ledger-row">
+                <span className="checkout-sheet__ledger-label">Upward Voucher</span>
+                <span className="checkout-sheet__ledger-val voucher-ledger-discount">
+                  -{formatNgn(voucherDiscount)}
+                </span>
+              </div>
+            )}
 
             <div className="checkout-sheet__ledger-row">
               <span className="checkout-sheet__ledger-label">
@@ -783,7 +911,12 @@ export function CommerceCheckoutModal({
                 {isProcessing ? (
                   <>
                     <Loader2 size={18} className="animate-spin" />
-                    <span>Connecting to Paystack...</span>
+                    <span>{grandTotal === 0 ? 'Confirming Order...' : 'Connecting to Paystack...'}</span>
+                  </>
+                ) : grandTotal === 0 ? (
+                  <>
+                    <Ticket size={16} />
+                    <span>Confirm Order with Voucher (₦0)</span>
                   </>
                 ) : (
                   <>
@@ -796,7 +929,9 @@ export function CommerceCheckoutModal({
               </button>
             )}
             <p className="checkout-sheet__security-note">
-              Payments are processed securely via Paystack.
+              {grandTotal === 0
+                ? 'Fully covered by your Upward voucher balance.'
+                : 'Payments are processed securely via Paystack.'}
             </p>
           </div>
         </form>

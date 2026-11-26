@@ -32,6 +32,7 @@ import {
   CreditCard,
   Key,
   Send,
+  Ticket,
 } from 'lucide-react'
 import { useToast } from '@/components/common/Toast'
 import {
@@ -43,11 +44,13 @@ import {
   useVerifyCommercePayment,
   usePostCommerceOrderMessage,
   useDeclineServiceQuote,
+  useUserVoucher,
 } from '../hooks/useCommerceOrders'
 import { openPaystackInline } from '../utils/paystackInline'
 import { BottomSheetModal } from '@/components/common/BottomSheetModal'
 import { haptics } from '@/lib/haptics'
 import '../styles/goals.css'
+import '../styles/voucher.css'
 import type {
   CustomerFulfilmentStatus,
   TenantOrderDetailDto,
@@ -139,6 +142,8 @@ export function OrderTrackingScreen({
   const verifyPayment = useVerifyCommercePayment()
   const postOrderMessage = usePostCommerceOrderMessage()
   const declineServiceQuote = useDeclineServiceQuote()
+  const { data: voucherSummary } = useUserVoucher()
+  const [applyQuoteVoucher, setApplyQuoteVoucher] = useState(false)
 
   const [activeDisputeSubOrder, setActiveDisputeSubOrder] = useState<TenantSubOrderDetailDto | null>(null)
   const [subOrderToConfirm, setSubOrderToConfirm] = useState<TenantSubOrderDetailDto | null>(null)
@@ -311,14 +316,23 @@ export function OrderTrackingScreen({
     }
   }
 
-  const handlePayNow = async () => {
+  const handlePayNow = async (useVoucher = false) => {
     if (!order) return
     try {
       setIsPaying(true)
-      const paymentInit = await initializePayment.mutateAsync(order.uuid)
+      const paymentInit = await initializePayment.mutateAsync({
+        orderUuid: order.uuid,
+        applyVoucher: useVoucher ? true : undefined,
+      })
+
+      if (paymentInit.paidWithVoucher) {
+        toast.success('Order confirmed and paid in full with your Upward voucher!')
+        return
+      }
+
       if (paymentInit.accessCode) {
-        const grandTotal = Number(order.totalAmountKobo) / 100
-        const paidRef = await openPaystackInline(paymentInit.accessCode, grandTotal)
+        const payableNgn = Number(paymentInit.amountKobo || order.totalAmountKobo) / 100
+        const paidRef = await openPaystackInline(paymentInit.accessCode, payableNgn)
         try {
           await verifyPayment.mutateAsync({
             orderUuid: order.uuid,
@@ -543,7 +557,7 @@ export function OrderTrackingScreen({
             <button
               type="button"
               className="order-tracking__unpaid-pay-btn"
-              onClick={handlePayNow}
+              onClick={() => handlePayNow(false)}
               disabled={isPaying}
             >
               {isPaying ? (
@@ -773,50 +787,139 @@ export function OrderTrackingScreen({
               {isService &&
                 subOrder.customerStatus === 'QUOTE_PROVIDED' &&
                 order.paymentStatus !== 'PAID' &&
-                order.status !== 'CANCELLED' && (
-                  <div className="order-tracking__quote-card">
-                    <div className="order-tracking__quote-header">
-                      <span className="order-tracking__quote-badge">
-                        <ShieldCheck size={12} />
-                        <span>Your Price is Ready</span>
-                      </span>
-                      <span className="order-tracking__quote-subtitle">All-inclusive</span>
+                order.status !== 'CANCELLED' &&
+                (() => {
+                  const availableVoucherKobo = Number(
+                    voucherSummary?.wallet?.availableBalanceKobo || 0,
+                  )
+                  const existingDiscountKobo = Number(order.discountKobo || 0)
+                  const isQuoteVoucherEligible = subOrder.items.some(
+                    (it) => Boolean(it.voucherEligible),
+                  )
+                  const canToggleQuoteVoucher =
+                    isQuoteVoucherEligible &&
+                    availableVoucherKobo > 0 &&
+                    existingDiscountKobo === 0
+                  const quotedTotalKobo = Number(order.totalAmountKobo || 0)
+                  const previewDiscountKobo =
+                    canToggleQuoteVoucher && applyQuoteVoucher
+                      ? Math.min(availableVoucherKobo, quotedTotalKobo)
+                      : 0
+                  const netPayableKobo = Math.max(0, quotedTotalKobo - previewDiscountKobo)
+
+                  return (
+                    <div className="order-tracking__quote-card">
+                      <div className="order-tracking__quote-header">
+                        <span className="order-tracking__quote-badge">
+                          <ShieldCheck size={12} />
+                          <span>Your Price is Ready</span>
+                        </span>
+                        <span className="order-tracking__quote-subtitle">All-inclusive</span>
+                      </div>
+
+                      <div className="order-tracking__quote-amount-row">
+                        <span className="order-tracking__quote-amount">
+                          {formatKoboToNgn(String(netPayableKobo))}
+                        </span>
+                        {previewDiscountKobo > 0 && (
+                          <span
+                            style={{
+                              fontSize: '14px',
+                              textDecoration: 'line-through',
+                              color: 'var(--text-muted)',
+                              marginLeft: '8px',
+                            }}
+                          >
+                            {formatKoboToNgn(order.totalAmountKobo)}
+                          </span>
+                        )}
+                      </div>
+
+                      {subOrder.quoteNotes && (
+                        <p className="order-tracking__quote-note">
+                          {subOrder.quoteNotes}
+                        </p>
+                      )}
+
+                      {canToggleQuoteVoucher && (
+                        <button
+                          type="button"
+                          className={`voucher-apply-card ${
+                            applyQuoteVoucher ? 'voucher-apply-card--active' : ''
+                          }`}
+                          style={{ marginBottom: '12px' }}
+                          onClick={() => setApplyQuoteVoucher((prev) => !prev)}
+                          disabled={isPaying || isDecliningQuote}
+                          role="switch"
+                          aria-checked={applyQuoteVoucher}
+                        >
+                          <div className="voucher-apply-card__left">
+                            <span className="voucher-apply-card__icon" aria-hidden="true">
+                              <Ticket size={15} />
+                            </span>
+                            <div className="voucher-apply-card__copy">
+                              <span className="voucher-apply-card__title">
+                                Apply Upward Voucher
+                              </span>
+                              <span
+                                className={`voucher-apply-card__sub ${
+                                  applyQuoteVoucher ? 'voucher-apply-card__sub--saving' : ''
+                                }`}
+                              >
+                                {applyQuoteVoucher
+                                  ? `Saving ${formatKoboToNgn(String(previewDiscountKobo))} on this quote`
+                                  : `${formatKoboToNgn(String(availableVoucherKobo))} available`}
+                              </span>
+                            </div>
+                          </div>
+                          <span
+                            className={`voucher-apply-card__switch ${
+                              applyQuoteVoucher ? 'voucher-apply-card__switch--on' : ''
+                            }`}
+                            aria-hidden="true"
+                          >
+                            <span className="voucher-apply-card__knob" />
+                          </span>
+                        </button>
+                      )}
+
+                      <div className="order-tracking__quote-actions">
+                        <button
+                          type="button"
+                          className="order-tracking__quote-pay-btn"
+                          onClick={() => handlePayNow(canToggleQuoteVoucher && applyQuoteVoucher)}
+                          disabled={isPaying || isDecliningQuote}
+                        >
+                          {isPaying ? (
+                            <Loader2 size={15} className="animate-spin" />
+                          ) : netPayableKobo === 0 && previewDiscountKobo > 0 ? (
+                            <Ticket size={15} />
+                          ) : (
+                            <CreditCard size={15} />
+                          )}
+                          <span>
+                            {isPaying
+                              ? netPayableKobo === 0
+                                ? 'Confirming…'
+                                : 'Opening Paystack…'
+                              : netPayableKobo === 0 && previewDiscountKobo > 0
+                                ? 'Confirm with Voucher (₦0)'
+                                : `Pay ${formatKoboToNgn(String(netPayableKobo))}`}
+                          </span>
+                        </button>
+
+                        <button
+                          type="button"
+                          className="order-tracking__quote-decline-btn"
+                          onClick={() => setIsDeclineModalOpen(true)}
+                          disabled={isPaying || isDecliningQuote}
+                        >
+                          {isDecliningQuote ? 'Declining…' : 'Decline Price'}
+                        </button>
+                      </div>
                     </div>
-
-                    <div className="order-tracking__quote-amount-row">
-                      <span className="order-tracking__quote-amount">
-                        {formatKoboToNgn(order.totalAmountKobo)}
-                      </span>
-                    </div>
-
-                    {subOrder.quoteNotes && (
-                      <p className="order-tracking__quote-note">
-                        {subOrder.quoteNotes}
-                      </p>
-                    )}
-
-                    <div className="order-tracking__quote-actions">
-                      <button
-                        type="button"
-                        className="order-tracking__quote-pay-btn"
-                        onClick={handlePayNow}
-                        disabled={isPaying || isDecliningQuote}
-                      >
-                        {isPaying ? <Loader2 size={15} className="animate-spin" /> : <CreditCard size={15} />}
-                        <span>{isPaying ? 'Opening Paystack…' : `Pay ${formatKoboToNgn(order.totalAmountKobo)}`}</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        className="order-tracking__quote-decline-btn"
-                        onClick={() => setIsDeclineModalOpen(true)}
-                        disabled={isPaying || isDecliningQuote}
-                      >
-                        {isDecliningQuote ? 'Declining…' : 'Decline Price'}
-                      </button>
-                    </div>
-                  </div>
-                )}
+                  )
+                })()}
 
               {/* Redesigned Service Appointment & Assigned Crew Card */}
               {isService &&

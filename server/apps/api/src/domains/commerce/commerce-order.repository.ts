@@ -379,6 +379,12 @@ export interface CommerceOrderRepository {
     rating: number
     comment?: string
   }): Promise<CommerceVendorSuborder>
+  applyOrderVoucherDiscount(params: {
+    orderId: number
+    discountKobo: bigint
+    totalAmountKobo: bigint
+    subOrderAllocations: Array<{ subOrderId: number; allocatedDiscountKobo: bigint }>
+  }): Promise<CommerceOrder>
 }
 
 export const COMMERCE_ORDER_REPOSITORY = Symbol('COMMERCE_ORDER_REPOSITORY')

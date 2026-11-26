@@ -139,6 +139,10 @@ export class CreateOfferingDto {
   @IsOptional()
   isPromoted?: boolean
 
+  @IsBoolean()
+  @IsOptional()
+  voucherEligible?: boolean
+
   @IsString()
   @IsOptional()
   @MaxLength(50)
@@ -263,6 +267,10 @@ export class UpdateOfferingDto {
   @IsBoolean()
   @IsOptional()
   isPromoted?: boolean
+
+  @IsBoolean()
+  @IsOptional()
+  voucherEligible?: boolean
 
   @IsString()
   @IsOptional()

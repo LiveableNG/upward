@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
+  fetchUserVoucherSummary,
   fetchTenantOrders,
   fetchTenantOrderDetail,
   downloadCommerceReceiptPdf,
@@ -17,6 +18,16 @@ import {
   type CreateCommerceOrderInput,
   type CreateServiceQuoteOrderInput,
 } from '../services/commerceService'
+
+export function useUserVoucher(enabled = true) {
+  return useQuery({
+    queryKey: ['user-voucher-summary'],
+    queryFn: () => fetchUserVoucherSummary(),
+    enabled,
+    staleTime: 30 * 1000,
+    retry: false,
+  })
+}
 
 export function useTenantOrders(filter?: { status?: string; skip?: number; take?: number }) {
   return useQuery({
@@ -104,13 +115,26 @@ export function useCreateCommerceOrder() {
     mutationFn: (input: CreateCommerceOrderInput) => createCommerceOrder(input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tenant-commerce-orders'] })
+      queryClient.invalidateQueries({ queryKey: ['user-voucher-summary'] })
     },
   })
 }
 
 export function useInitializeCommercePayment() {
+  const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: (orderUuid: string) => initializeCommercePayment(orderUuid),
+    mutationFn: (input: string | { orderUuid: string; applyVoucher?: boolean }) => {
+      if (typeof input === 'string') {
+        return initializeCommercePayment(input)
+      }
+      return initializeCommercePayment(input.orderUuid, { applyVoucher: input.applyVoucher })
+    },
+    onSuccess: (_, input) => {
+      const orderUuid = typeof input === 'string' ? input : input.orderUuid
+      queryClient.invalidateQueries({ queryKey: ['tenant-commerce-orders'] })
+      queryClient.invalidateQueries({ queryKey: ['tenant-commerce-order', orderUuid] })
+      queryClient.invalidateQueries({ queryKey: ['user-voucher-summary'] })
+    },
   })
 }
 
@@ -122,6 +146,7 @@ export function useVerifyCommercePayment() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['tenant-commerce-orders'] })
       queryClient.invalidateQueries({ queryKey: ['tenant-commerce-order', variables.orderUuid] })
+      queryClient.invalidateQueries({ queryKey: ['user-voucher-summary'] })
     },
   })
 }
@@ -190,6 +215,7 @@ export function useDeclineServiceQuote() {
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['tenant-commerce-orders'] })
       queryClient.invalidateQueries({ queryKey: ['tenant-commerce-order', variables.orderUuid] })
+      queryClient.invalidateQueries({ queryKey: ['user-voucher-summary'] })
     },
   })
 }
