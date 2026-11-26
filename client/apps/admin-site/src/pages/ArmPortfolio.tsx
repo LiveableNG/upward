@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
+import { createPortal } from 'react-dom'
 import { InternalLedgerTab } from '../components/arm/InternalLedgerTab'
 import { ActivationCashbackTab } from '../components/arm/ActivationCashbackTab'
 import {
@@ -892,64 +893,69 @@ export default function ArmPortfolio({ token }: ArmPortfolioProps) {
       <div
         style={{
           display: 'flex',
-          gap: '8px',
+          gap: '4px',
           borderBottom: '1px solid var(--border)',
           marginBottom: '20px',
+          overflowX: 'auto',
+          whiteSpace: 'nowrap',
         }}
       >
         <button
           type="button"
           onClick={() => setActiveTab('CUSTOMERS')}
           style={{
-            padding: '10px 18px',
+            padding: '10px 14px',
             border: 'none',
             background: 'none',
-            fontSize: '14px',
+            fontSize: '13px',
             fontWeight: activeTab === 'CUSTOMERS' ? 700 : 500,
             color: activeTab === 'CUSTOMERS' ? 'var(--primary, #c2501f)' : 'var(--text-muted)',
-            borderBottom: activeTab === 'CUSTOMERS' ? '2.5px solid var(--primary, #c2501f)' : 'none',
+            borderBottom: activeTab === 'CUSTOMERS' ? '2.5px solid var(--primary, #c2501f)' : '2.5px solid transparent',
             cursor: 'pointer',
+            flexShrink: 0,
           }}
         >
-          ARM Customers & Subscribers ({customers.length})
+          Customers ({customers.length})
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('INFLOWS')}
           style={{
-            padding: '10px 18px',
+            padding: '10px 14px',
             border: 'none',
             background: 'none',
-            fontSize: '14px',
+            fontSize: '13px',
             fontWeight: activeTab === 'INFLOWS' ? 700 : 500,
             color: activeTab === 'INFLOWS' ? 'var(--primary, #c2501f)' : 'var(--text-muted)',
-            borderBottom: activeTab === 'INFLOWS' ? '2.5px solid var(--primary, #c2501f)' : 'none',
+            borderBottom: activeTab === 'INFLOWS' ? '2.5px solid var(--primary, #c2501f)' : '2.5px solid transparent',
             cursor: 'pointer',
+            flexShrink: 0,
           }}
         >
-          Inflow Statement & Units Schedule ({transactions.length})
+          Inflows &amp; Units ({transactions.length})
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('JOBS')}
           style={{
-            padding: '10px 18px',
+            padding: '10px 14px',
             border: 'none',
             background: 'none',
-            fontSize: '14px',
+            fontSize: '13px',
             fontWeight: activeTab === 'JOBS' ? 700 : 500,
             color: activeTab === 'JOBS' ? 'var(--primary, #c2501f)' : 'var(--text-muted)',
-            borderBottom: activeTab === 'JOBS' ? '2.5px solid var(--primary, #c2501f)' : 'none',
+            borderBottom: activeTab === 'JOBS' ? '2.5px solid var(--primary, #c2501f)' : '2.5px solid transparent',
             cursor: 'pointer',
             display: 'inline-flex',
             alignItems: 'center',
             gap: '6px',
+            flexShrink: 0,
           }}
         >
           <Activity size={14} />
-          <span>Background Jobs ({jobs.length})</span>
+          <span>Jobs ({jobs.length})</span>
           {jobsSummary.failed > 0 && (
             <span
               style={{
@@ -971,31 +977,33 @@ export default function ArmPortfolio({ token }: ArmPortfolioProps) {
           type="button"
           onClick={() => setActiveTab('CONSENT')}
           style={{
-            padding: '10px 18px',
+            padding: '10px 14px',
             border: 'none',
             background: 'none',
-            fontSize: '14px',
+            fontSize: '13px',
             fontWeight: activeTab === 'CONSENT' ? 700 : 500,
             color: activeTab === 'CONSENT' ? 'var(--primary, #c2501f)' : 'var(--text-muted)',
-            borderBottom: activeTab === 'CONSENT' ? '2.5px solid var(--primary, #c2501f)' : 'none',
+            borderBottom: activeTab === 'CONSENT' ? '2.5px solid var(--primary, #c2501f)' : '2.5px solid transparent',
             cursor: 'pointer',
+            flexShrink: 0,
           }}
         >
-          B2B2C Auto-Consent Verification Ledger
+          Consent Ledger
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('LEDGER')}
           style={{
-            padding: '10px 18px',
+            padding: '10px 14px',
             border: 'none',
             background: 'none',
-            fontSize: '14px',
+            fontSize: '13px',
             fontWeight: activeTab === 'LEDGER' ? 700 : 500,
             color: activeTab === 'LEDGER' ? 'var(--primary, #c2501f)' : 'var(--text-muted)',
-            borderBottom: activeTab === 'LEDGER' ? '2.5px solid var(--primary, #c2501f)' : 'none',
+            borderBottom: activeTab === 'LEDGER' ? '2.5px solid var(--primary, #c2501f)' : '2.5px solid transparent',
             cursor: 'pointer',
+            flexShrink: 0,
           }}
         >
           Internal Ledger &amp; Economics
@@ -1005,14 +1013,15 @@ export default function ArmPortfolio({ token }: ArmPortfolioProps) {
           type="button"
           onClick={() => setActiveTab('CASHBACK')}
           style={{
-            padding: '10px 18px',
+            padding: '10px 14px',
             border: 'none',
             background: 'none',
-            fontSize: '14px',
+            fontSize: '13px',
             fontWeight: activeTab === 'CASHBACK' ? 700 : 500,
             color: activeTab === 'CASHBACK' ? 'var(--primary, #c2501f)' : 'var(--text-muted)',
-            borderBottom: activeTab === 'CASHBACK' ? '2.5px solid var(--primary, #c2501f)' : 'none',
+            borderBottom: activeTab === 'CASHBACK' ? '2.5px solid var(--primary, #c2501f)' : '2.5px solid transparent',
             cursor: 'pointer',
+            flexShrink: 0,
           }}
         >
           Activation Cashback
@@ -1923,31 +1932,34 @@ export default function ArmPortfolio({ token }: ArmPortfolioProps) {
       {activeTab === 'CASHBACK' && <ActivationCashbackTab token={token} />}
 
       {/* ── SLIDE-OVER DETAIL DRAWER (CUSTOMER / TRANSACTION / JOB) ── */}
-      {detailDrawer && (
-        <div
-          onClick={() => setDetailDrawer(null)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(15, 23, 42, 0.45)',
-            zIndex: 1000,
-            display: 'flex',
-            justifyContent: 'flex-end',
-          }}
-        >
+      {detailDrawer &&
+        createPortal(
           <div
-            onClick={(e) => e.stopPropagation()}
+            onClick={() => setDetailDrawer(null)}
             style={{
-              width: '100%',
-              maxWidth: '580px',
-              height: '100%',
-              background: 'var(--surface, #ffffff)',
-              boxShadow: '-8px 0 30px rgba(0, 0, 0, 0.14)',
+              position: 'fixed',
+              inset: 0,
+              width: '100vw',
+              height: '100vh',
+              background: 'rgba(15, 23, 42, 0.48)',
+              zIndex: 9999,
               display: 'flex',
-              flexDirection: 'column',
-              overflow: 'hidden',
+              justifyContent: 'flex-end',
             }}
           >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width: '100%',
+                maxWidth: '580px',
+                height: '100vh',
+                background: 'var(--surface, #ffffff)',
+                boxShadow: '-8px 0 30px rgba(0, 0, 0, 0.16)',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+              }}
+            >
             {/* Drawer Header */}
             <div
               style={{
@@ -2509,8 +2521,9 @@ export default function ArmPortfolio({ token }: ArmPortfolioProps) {
               })()}
             </div>
           </div>
-        </div>
-      )}
+        </div>,
+          document.body,
+        )}
     </div>
   )
 }

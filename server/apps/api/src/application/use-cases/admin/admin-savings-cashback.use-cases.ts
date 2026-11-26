@@ -168,7 +168,8 @@ export class GetSavingsCashbackOverviewUseCase {
           uuid: g.uuid,
           userUuid: g.user?.uuid || '',
           customerName:
-            `${g.user?.firstName || ''} ${g.user?.lastName || ''}`.trim() || 'Tenant',
+            `${this.decryptSafe(g.user?.firstName)} ${this.decryptSafe(g.user?.lastName)}`.trim() ||
+            'Tenant',
           customerEmail: this.decryptSafe(g.user?.email),
           vaultUuid: g.vault?.uuid || '',
           productOption: g.vault?.productOption || 'SAVE_AND_EARN',
@@ -184,7 +185,8 @@ export class GetSavingsCashbackOverviewUseCase {
           userUuid: v.user?.uuid || '',
           vaultUuid: v.uuid,
           customerName:
-            `${v.user?.firstName || ''} ${v.user?.lastName || ''}`.trim() || 'Tenant',
+            `${this.decryptSafe(v.user?.firstName)} ${this.decryptSafe(v.user?.lastName)}`.trim() ||
+            'Tenant',
           customerEmail: this.decryptSafe(v.user?.email),
           productOption: v.productOption,
           currentPrincipalNgn: Number(v.currentPrincipalKobo) / 100,

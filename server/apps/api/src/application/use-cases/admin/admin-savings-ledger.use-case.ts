@@ -81,7 +81,9 @@ export class GetAdminSavingsLedgerUseCase {
 
     const rows = vaults
       .map((v) => {
-        const customerName = `${v.user?.firstName || ''} ${v.user?.lastName || ''}`.trim() || 'Tenant'
+        const firstName = this.decryptSafe(v.user?.firstName)
+        const lastName = this.decryptSafe(v.user?.lastName)
+        const customerName = `${firstName} ${lastName}`.trim() || 'Tenant'
         const customerEmail = this.decryptSafe(v.user?.email)
         const summary = v.treasurySummary
 

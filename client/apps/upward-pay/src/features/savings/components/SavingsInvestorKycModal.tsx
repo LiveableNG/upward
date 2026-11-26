@@ -355,7 +355,7 @@ export function SavingsInvestorKycModal({
       setStep3AcceptedTerms(true)
       setStep3AcceptedMandate(true)
       setStep(3)
-      toastSuccess('Investor KYC verified and dedicated Wema account ready!')
+      toastSuccess('Investor KYC verified and your dedicated savings account is ready!')
       refreshUser().catch(() => {})
     } catch (err: unknown) {
       const error = err as { message?: string }

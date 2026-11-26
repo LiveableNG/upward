@@ -1,14 +1,16 @@
 'use client'
 
-import React, { useEffect, useMemo } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import {
   AlertCircle,
+  ArrowLeft,
+  ArrowRight,
   CheckCircle2,
-  FileBadge2,
-  Home,
+  ChevronDown,
+  ChevronUp,
   Loader2,
   Lock,
   ShieldCheck,
@@ -89,8 +91,13 @@ export interface ArmInvestorKycSubmitData {
   consent_doc_version: string
 }
 
+export type KycFormStep = 1 | 2 | 3
+
+const KYC_DRAFT_STORAGE_KEY = 'upward_arm_kyc_draft_v1'
+
 interface ArmInvestorKycFormProps {
   formId?: string
+  nextTriggerId?: string
   prefill?: SavingsOnboardingPrefillData | null
   annualRatePct?: number
   fundName?: string
@@ -98,6 +105,9 @@ interface ArmInvestorKycFormProps {
   isSubmitting?: boolean
   hideSubmitButton?: boolean
   submitLabel?: string
+  step?: KycFormStep
+  onStepChange?: (step: KycFormStep) => void
+  onStepValidityChange?: (isStepValid: boolean) => void
   onValidityChange?: (isValid: boolean) => void
   onSubmit: (data: ArmInvestorKycSubmitData) => void | Promise<void>
 }
@@ -153,21 +163,46 @@ function buildSchema(hasVerifiedBvn: boolean, hasVerifiedNin: boolean) {
           message: 'NIN must be exactly 11 digits (compulsory alongside BVN).',
         })
       }
-      if (
-        vals.means_of_id_type !== 'NIN' &&
-        vals.means_of_id_number.trim().length < 5
-      ) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          path: ['means_of_id_number'],
-          message: 'Enter your valid ID number.',
-        })
+      if (vals.means_of_id_type !== 'NIN') {
+        if (vals.means_of_id_number.trim().length < 5) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['means_of_id_number'],
+            message: 'Enter your valid ID number.',
+          })
+        }
+        const expiry = vals.means_of_id_expiry_date.trim()
+        const todayIso = new Date().toISOString().slice(0, 10)
+        if (!expiry) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['means_of_id_expiry_date'],
+            message: 'Expiry date is required to confirm your ID is valid.',
+          })
+        } else if (expiry < todayIso) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['means_of_id_expiry_date'],
+            message: 'This ID is expired. Please use a valid, unexpired ID.',
+          })
+        }
       }
     })
 }
 
+function readKycDraft(): Partial<ArmInvestorKycFormValues> {
+  if (typeof window === 'undefined') return {}
+  try {
+    const raw = window.sessionStorage.getItem(KYC_DRAFT_STORAGE_KEY)
+    return raw ? (JSON.parse(raw) as Partial<ArmInvestorKycFormValues>) : {}
+  } catch {
+    return {}
+  }
+}
+
 export function ArmInvestorKycForm({
   formId = 'arm-investor-kyc-form',
+  nextTriggerId = 'arm-investor-kyc-next',
   prefill,
   annualRatePct = 16,
   fundName = SAVINGS_FUND_NAME,
@@ -175,11 +210,27 @@ export function ArmInvestorKycForm({
   isSubmitting = false,
   hideSubmitButton = false,
   submitLabel = 'Verify & Activate Rent Savings',
+  step: controlledStep,
+  onStepChange,
+  onStepValidityChange,
   onValidityChange,
   onSubmit,
 }: ArmInvestorKycFormProps) {
   const hasVerifiedBvn = Boolean(prefill?.has_verified_bvn)
   const hasVerifiedNin = Boolean(prefill?.has_verified_nin)
+
+  const [internalStep, setInternalStep] = useState<KycFormStep>(1)
+  const activeStep: KycFormStep = controlledStep ?? internalStep
+  const setStep = (next: KycFormStep) => {
+    if (controlledStep === undefined) {
+      setInternalStep(next)
+    }
+    onStepChange?.(next)
+  }
+
+  const [showIdDates, setShowIdDates] = useState(false)
+  const [showBillDate, setShowBillDate] = useState(false)
+  const [draft] = useState<Partial<ArmInvestorKycFormValues>>(() => readKycDraft())
 
   const schema = useMemo(
     () => buildSchema(hasVerifiedBvn, hasVerifiedNin),
@@ -192,6 +243,7 @@ export function ArmInvestorKycForm({
     setValue,
     control,
     reset,
+    trigger,
     formState: { errors, isValid },
   } = useForm<ArmInvestorKycFormValues>({
     resolver: zodResolver(schema),
@@ -199,28 +251,34 @@ export function ArmInvestorKycForm({
     defaultValues: {
       bvn: prefill?.bvn || '',
       nin: prefill?.nin || '',
-      means_of_id_type: prefill?.means_of_id_type || 'NIN',
-      means_of_id_number: '',
-      means_of_id_issue_date: prefill?.means_of_id_issue_date || '',
-      means_of_id_expiry_date: prefill?.means_of_id_expiry_date || '',
-      means_of_id_doc_key: prefill?.means_of_id_doc_key || '',
-      means_of_id_mime_type: prefill?.means_of_id_mime_type || 'image/jpeg',
-      means_of_id_file_name: prefill?.means_of_id_file_name || '',
-      residential_address_number: prefill?.residential_address_number || '',
-      residential_street: prefill?.residential_street || '',
-      residential_town: prefill?.residential_town || '',
-      residential_state: prefill?.residential_state || 'Lagos',
-      utility_bill_issue_date: prefill?.utility_bill_issue_date || '',
-      utility_bill_doc_key: prefill?.utility_bill_doc_key || '',
-      utility_bill_mime_type: prefill?.utility_bill_mime_type || 'image/jpeg',
-      utility_bill_file_name: prefill?.utility_bill_file_name || '',
-      mothers_maiden_name: prefill?.mothers_maiden_name || '',
-      occupation: prefill?.occupation || '',
-      source_of_funds: prefill?.source_of_funds || 'Salary',
-      income_range: prefill?.income_range || '1M-5M',
-      next_of_kin_name: prefill?.next_of_kin_name || '',
-      next_of_kin_relationship: prefill?.next_of_kin_relationship || 'Spouse',
-      next_of_kin_phone: prefill?.next_of_kin_phone || '',
+      means_of_id_type: draft.means_of_id_type || prefill?.means_of_id_type || 'NIN',
+      means_of_id_number: draft.means_of_id_number || '',
+      means_of_id_issue_date: draft.means_of_id_issue_date || prefill?.means_of_id_issue_date || '',
+      means_of_id_expiry_date:
+        draft.means_of_id_expiry_date || prefill?.means_of_id_expiry_date || '',
+      means_of_id_doc_key: draft.means_of_id_doc_key || prefill?.means_of_id_doc_key || '',
+      means_of_id_mime_type:
+        draft.means_of_id_mime_type || prefill?.means_of_id_mime_type || 'image/jpeg',
+      means_of_id_file_name: draft.means_of_id_file_name || prefill?.means_of_id_file_name || '',
+      residential_address_number:
+        draft.residential_address_number || prefill?.residential_address_number || '',
+      residential_street: draft.residential_street || prefill?.residential_street || '',
+      residential_town: draft.residential_town || prefill?.residential_town || '',
+      residential_state: draft.residential_state || prefill?.residential_state || 'Lagos',
+      utility_bill_issue_date:
+        draft.utility_bill_issue_date || prefill?.utility_bill_issue_date || '',
+      utility_bill_doc_key: draft.utility_bill_doc_key || prefill?.utility_bill_doc_key || '',
+      utility_bill_mime_type:
+        draft.utility_bill_mime_type || prefill?.utility_bill_mime_type || 'image/jpeg',
+      utility_bill_file_name: draft.utility_bill_file_name || prefill?.utility_bill_file_name || '',
+      mothers_maiden_name: draft.mothers_maiden_name || prefill?.mothers_maiden_name || '',
+      occupation: draft.occupation || prefill?.occupation || '',
+      source_of_funds: draft.source_of_funds || prefill?.source_of_funds || 'Salary',
+      income_range: draft.income_range || prefill?.income_range || '1M-5M',
+      next_of_kin_name: draft.next_of_kin_name || prefill?.next_of_kin_name || '',
+      next_of_kin_relationship:
+        draft.next_of_kin_relationship || prefill?.next_of_kin_relationship || 'Spouse',
+      next_of_kin_phone: draft.next_of_kin_phone || prefill?.next_of_kin_phone || '',
       accepted_terms: false,
       accepted_arm_mandate: false,
     },
@@ -262,17 +320,129 @@ export function ArmInvestorKycForm({
     onValidityChange?.(isValid)
   }, [isValid, onValidityChange])
 
-  const bvnVal = useWatch({ control, name: 'bvn' }) || ''
-  const ninVal = useWatch({ control, name: 'nin' }) || ''
-  const meansOfIdType = useWatch({ control, name: 'means_of_id_type' }) || 'NIN'
-  const idDocKey = useWatch({ control, name: 'means_of_id_doc_key' }) || ''
-  const idDocName = useWatch({ control, name: 'means_of_id_file_name' }) || ''
-  const idDocMime = useWatch({ control, name: 'means_of_id_mime_type' }) || 'image/jpeg'
-  const utilityDocKey = useWatch({ control, name: 'utility_bill_doc_key' }) || ''
-  const utilityDocName = useWatch({ control, name: 'utility_bill_file_name' }) || ''
-  const utilityDocMime = useWatch({ control, name: 'utility_bill_mime_type' }) || 'image/jpeg'
-  const acceptedTerms = useWatch({ control, name: 'accepted_terms' })
-  const acceptedArmMandate = useWatch({ control, name: 'accepted_arm_mandate' })
+  const allWatched = useWatch({ control })
+  const bvnVal = allWatched.bvn || ''
+  const ninVal = allWatched.nin || ''
+  const meansOfIdType = allWatched.means_of_id_type || 'NIN'
+  const meansOfIdNumber = allWatched.means_of_id_number || ''
+  const idDocKey = allWatched.means_of_id_doc_key || ''
+  const idDocName = allWatched.means_of_id_file_name || ''
+  const idDocMime = allWatched.means_of_id_mime_type || 'image/jpeg'
+  const utilityDocKey = allWatched.utility_bill_doc_key || ''
+  const utilityDocName = allWatched.utility_bill_file_name || ''
+  const utilityDocMime = allWatched.utility_bill_mime_type || 'image/jpeg'
+  const acceptedTerms = allWatched.accepted_terms
+  const acceptedArmMandate = allWatched.accepted_arm_mandate
+
+  // Persist non-sensitive form fields & uploaded document keys in sessionStorage
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    try {
+      const safeDraft: Partial<ArmInvestorKycFormValues> = {
+        means_of_id_type: allWatched.means_of_id_type,
+        means_of_id_number: allWatched.means_of_id_number,
+        means_of_id_issue_date: allWatched.means_of_id_issue_date,
+        means_of_id_expiry_date: allWatched.means_of_id_expiry_date,
+        means_of_id_doc_key: allWatched.means_of_id_doc_key,
+        means_of_id_mime_type: allWatched.means_of_id_mime_type,
+        means_of_id_file_name: allWatched.means_of_id_file_name,
+        residential_address_number: allWatched.residential_address_number,
+        residential_street: allWatched.residential_street,
+        residential_town: allWatched.residential_town,
+        residential_state: allWatched.residential_state,
+        utility_bill_issue_date: allWatched.utility_bill_issue_date,
+        utility_bill_doc_key: allWatched.utility_bill_doc_key,
+        utility_bill_mime_type: allWatched.utility_bill_mime_type,
+        utility_bill_file_name: allWatched.utility_bill_file_name,
+        mothers_maiden_name: allWatched.mothers_maiden_name,
+        occupation: allWatched.occupation,
+        source_of_funds: allWatched.source_of_funds,
+        income_range: allWatched.income_range,
+        next_of_kin_name: allWatched.next_of_kin_name,
+        next_of_kin_relationship: allWatched.next_of_kin_relationship,
+        next_of_kin_phone: allWatched.next_of_kin_phone,
+      }
+      window.sessionStorage.setItem(KYC_DRAFT_STORAGE_KEY, JSON.stringify(safeDraft))
+    } catch {
+      // ignore storage quota errors
+    }
+  }, [allWatched])
+
+  const todayIso = useMemo(() => new Date().toISOString().slice(0, 10), [])
+  const meansOfIdExpiryDate = (allWatched.means_of_id_expiry_date || '').trim()
+
+  const isStep1Valid = useMemo(() => {
+    const bvnOk = hasVerifiedBvn || /^\d{11}$/.test(bvnVal.trim())
+    const ninOk = hasVerifiedNin || /^\d{11}$/.test(ninVal.trim())
+    const idNumOk = meansOfIdType === 'NIN' || meansOfIdNumber.trim().length >= 5
+    const idExpiryOk =
+      meansOfIdType === 'NIN' ||
+      (meansOfIdExpiryDate.length > 0 && meansOfIdExpiryDate >= todayIso)
+    const idDocOk = idDocKey.trim().length > 0
+    return bvnOk && ninOk && idNumOk && idExpiryOk && idDocOk
+  }, [
+    hasVerifiedBvn,
+    hasVerifiedNin,
+    bvnVal,
+    ninVal,
+    meansOfIdType,
+    meansOfIdNumber,
+    meansOfIdExpiryDate,
+    todayIso,
+    idDocKey,
+  ])
+
+  const isStep2Valid = useMemo(() => {
+    return (
+      (allWatched.residential_address_number || '').trim().length >= 1 &&
+      (allWatched.residential_street || '').trim().length >= 3 &&
+      (allWatched.residential_town || '').trim().length >= 2 &&
+      (allWatched.residential_state || '').trim().length >= 2 &&
+      utilityDocKey.trim().length > 0 &&
+      (allWatched.mothers_maiden_name || '').trim().length >= 2 &&
+      (allWatched.occupation || '').trim().length >= 2 &&
+      (allWatched.next_of_kin_name || '').trim().length >= 2 &&
+      (allWatched.next_of_kin_phone || '').trim().length >= 10
+    )
+  }, [allWatched, utilityDocKey])
+
+  const isStep3Valid = Boolean(acceptedTerms) && Boolean(acceptedArmMandate) && isValid
+
+  const currentStepValid =
+    activeStep === 1 ? isStep1Valid : activeStep === 2 ? isStep2Valid : isStep3Valid
+
+  useEffect(() => {
+    onStepValidityChange?.(currentStepValid)
+  }, [currentStepValid, onStepValidityChange])
+
+  const handleAdvanceStep = async () => {
+    if (activeStep === 1) {
+      const ok = await trigger([
+        'bvn',
+        'nin',
+        'means_of_id_type',
+        'means_of_id_number',
+        'means_of_id_expiry_date',
+        'means_of_id_doc_key',
+      ])
+      if (ok && isStep1Valid) setStep(2)
+    } else if (activeStep === 2) {
+      const ok = await trigger([
+        'residential_address_number',
+        'residential_street',
+        'residential_town',
+        'residential_state',
+        'utility_bill_doc_key',
+        'mothers_maiden_name',
+        'occupation',
+        'source_of_funds',
+        'next_of_kin_name',
+        'next_of_kin_relationship',
+        'next_of_kin_phone',
+      ])
+      if (ok && isStep2Valid) setStep(3)
+    }
+  }
 
   const activeIdOption =
     MEANS_OF_ID_OPTIONS.find((opt) => opt.value === meansOfIdType) || MEANS_OF_ID_OPTIONS[0]
@@ -322,10 +492,53 @@ export function ArmInvestorKycForm({
       terms_version: SAVINGS_TERMS_VERSION,
       consent_doc_version: SAVINGS_CONSENT_DOC_VERSION,
     })
+    if (typeof window !== 'undefined') {
+      try {
+        window.sessionStorage.removeItem(KYC_DRAFT_STORAGE_KEY)
+      } catch {}
+    }
   })
+
+  const stepMeta: Record<
+    KycFormStep,
+    { label: string; pct: number; hint: string }
+  > = {
+    1: {
+      label: 'Identity',
+      pct: 33,
+      hint: 'Takes under a minute — verify once to unlock your dedicated rent account.',
+    },
+    2: {
+      label: 'Address & Profile',
+      pct: 67,
+      hint: 'Almost there — your entries save automatically if you switch apps for a utility bill.',
+    },
+    3: {
+      label: 'Review & Activate',
+      pct: 100,
+      hint: `Final step — confirm consent to start earning ${annualRatePct}% p.a. in ${fundName}.`,
+    },
+  }
 
   return (
     <form id={formId} onSubmit={handleInternalSubmit} className="arm-kyc-form" noValidate>
+      {/* COMPACT FRAMELESS PROGRESS BAR + SINGLE-LINE TEXT */}
+      <div className="arm-kyc-stepper" aria-label={`Step ${activeStep} of 3`}>
+        <div className="arm-kyc-stepper__top">
+          <span className="arm-kyc-stepper__count">
+            Step {activeStep} of 3 · {stepMeta[activeStep].label}
+          </span>
+          <span className="arm-kyc-stepper__pct">{stepMeta[activeStep].pct}%</span>
+        </div>
+        <div className="arm-kyc-stepper__bar">
+          <div
+            className="arm-kyc-stepper__fill"
+            style={{ width: `${stepMeta[activeStep].pct}%` }}
+          />
+        </div>
+        <p className="arm-kyc-stepper__hint">{stepMeta[activeStep].hint}</p>
+      </div>
+
       {serverError && (
         <div className="arm-kyc-form__alert" role="alert">
           <AlertCircle size={15} style={{ flexShrink: 0, marginTop: 1 }} />
@@ -333,17 +546,9 @@ export function ArmInvestorKycForm({
         </div>
       )}
 
-      {/* SECTION 1: IDENTITY VERIFICATION (BVN + NIN + MEANS OF ID UPLOAD) */}
+      {/* STEP 1: IDENTITY VERIFICATION (BVN + NIN + MEANS OF ID UPLOAD) */}
+      {activeStep === 1 && (
       <section className="arm-kyc-form__section">
-        <div className="arm-kyc-form__section-header">
-          <FileBadge2 size={17} className="arm-kyc-form__section-icon" />
-          <div>
-            <h4 className="arm-kyc-form__section-title">1. Identity Verification (BVN &amp; NIN)</h4>
-            <p className="arm-kyc-form__section-sub">
-              Required by CBN &amp; SEC for {fundName} (ARMMMF)
-            </p>
-          </div>
-        </div>
 
         {/* BVN */}
         {hasVerifiedBvn ? (
@@ -451,7 +656,36 @@ export function ArmInvestorKycForm({
               )}
             </div>
 
-            <div className="arm-kyc-form__grid-2">
+            <div className="rent-calculator__field">
+              <label className="rent-calculator__label">Expiry Date</label>
+              <input
+                type="date"
+                min={todayIso}
+                className="rent-calculator__input rent-calculator__input--no-prefix"
+                disabled={isSubmitting}
+                {...register('means_of_id_expiry_date')}
+              />
+              {errors.means_of_id_expiry_date ? (
+                <span className="arm-kyc-form__field-error">
+                  {errors.means_of_id_expiry_date.message}
+                </span>
+              ) : (
+                <span className="arm-kyc-form__field-hint">
+                  Required to confirm your ID has not expired
+                </span>
+              )}
+            </div>
+
+            <button
+              type="button"
+              className="arm-kyc-optional-toggle"
+              onClick={() => setShowIdDates((v) => !v)}
+            >
+              <span>{showIdDates ? 'Hide issue date' : 'Add issue date (optional)'}</span>
+              {showIdDates ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </button>
+
+            {showIdDates && (
               <div className="rent-calculator__field">
                 <label className="rent-calculator__label">Issue Date (Optional)</label>
                 <input
@@ -461,16 +695,7 @@ export function ArmInvestorKycForm({
                   {...register('means_of_id_issue_date')}
                 />
               </div>
-              <div className="rent-calculator__field">
-                <label className="rent-calculator__label">Expiry Date (Optional)</label>
-                <input
-                  type="date"
-                  className="rent-calculator__input rent-calculator__input--no-prefix"
-                  disabled={isSubmitting}
-                  {...register('means_of_id_expiry_date')}
-                />
-              </div>
-            </div>
+            )}
           </>
         )}
 
@@ -492,20 +717,12 @@ export function ArmInvestorKycForm({
           onUploaded={handleIdDocUploaded}
         />
       </section>
+      )}
 
-      {/* SECTION 2: RESIDENTIAL ADDRESS & PROOF OF ADDRESS (UTILITY BILL) */}
+      {/* STEP 2: RESIDENTIAL ADDRESS, UTILITY BILL & SEC INVESTOR PROFILE */}
+      {activeStep === 2 && (
+      <>
       <section className="arm-kyc-form__section">
-        <div className="arm-kyc-form__section-header">
-          <Home size={17} className="arm-kyc-form__section-icon" />
-          <div>
-            <h4 className="arm-kyc-form__section-title">
-              2. Residential Address &amp; Proof of Address
-            </h4>
-            <p className="arm-kyc-form__section-sub">
-              Your utility bill verifies that your residential address is valid
-            </p>
-          </div>
-        </div>
 
         <div className="arm-kyc-form__grid-2">
           <div className="rent-calculator__field">
@@ -553,20 +770,30 @@ export function ArmInvestorKycForm({
           )}
         </div>
 
-        <div className="arm-kyc-form__grid-2">
-          <div className="rent-calculator__field">
-            <label className="rent-calculator__label">City / Town</label>
-            <input
-              type="text"
-              placeholder="e.g. Lekki / Ikeja"
-              className="rent-calculator__input rent-calculator__input--no-prefix"
-              disabled={isSubmitting}
-              {...register('residential_town')}
-            />
-            {errors.residential_town && (
-              <span className="arm-kyc-form__field-error">{errors.residential_town.message}</span>
-            )}
-          </div>
+        <div className="rent-calculator__field">
+          <label className="rent-calculator__label">City / Town</label>
+          <input
+            type="text"
+            placeholder="e.g. Lekki / Ikeja"
+            className="rent-calculator__input rent-calculator__input--no-prefix"
+            disabled={isSubmitting}
+            {...register('residential_town')}
+          />
+          {errors.residential_town && (
+            <span className="arm-kyc-form__field-error">{errors.residential_town.message}</span>
+          )}
+        </div>
+
+        <button
+          type="button"
+          className="arm-kyc-optional-toggle"
+          onClick={() => setShowBillDate((v) => !v)}
+        >
+          <span>{showBillDate ? 'Hide utility bill date' : 'Add utility bill date (optional)'}</span>
+          {showBillDate ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+        </button>
+
+        {showBillDate && (
           <div className="rent-calculator__field">
             <label className="rent-calculator__label">Bill Date (Optional)</label>
             <input
@@ -576,7 +803,7 @@ export function ArmInvestorKycForm({
               {...register('utility_bill_issue_date')}
             />
           </div>
-        </div>
+        )}
 
         <KycDocumentUploadField
           kind="utility_bill"
@@ -694,8 +921,42 @@ export function ArmInvestorKycForm({
           )}
         </div>
       </section>
+      </>
+      )}
 
-      {/* SECTION 4: TERMS & CONDITIONS + ARM CONSENT MANDATE */}
+      {/* STEP 3: READY SUMMARY + TERMS & CONDITIONS + ARM CONSENT MANDATE */}
+      {activeStep === 3 && (
+      <>
+      <div className="arm-kyc-summary">
+        <div className="arm-kyc-summary__row">
+          <CheckCircle2 size={15} className="arm-kyc-summary__icon" />
+          <span>
+            <strong>Identity ready:</strong> BVN, NIN &amp; {activeIdOption.label} attached
+          </span>
+          <button
+            type="button"
+            className="arm-kyc-summary__edit"
+            onClick={() => setStep(1)}
+          >
+            Edit
+          </button>
+        </div>
+        <div className="arm-kyc-summary__row">
+          <CheckCircle2 size={15} className="arm-kyc-summary__icon" />
+          <span>
+            <strong>Address ready:</strong> {allWatched.residential_town || 'Verified'},{' '}
+            {allWatched.residential_state || 'Nigeria'} &amp; Proof of Address
+          </span>
+          <button
+            type="button"
+            className="arm-kyc-summary__edit"
+            onClick={() => setStep(2)}
+          >
+            Edit
+          </button>
+        </div>
+      </div>
+
       <SavingsConsentCard
         acceptedTerms={Boolean(acceptedTerms)}
         acceptedArmMandate={Boolean(acceptedArmMandate)}
@@ -729,26 +990,64 @@ export function ArmInvestorKycForm({
           ARM compliance.
         </span>
       </div>
+      </>
+      )}
+
+      {/* Hidden trigger for external pinned footer buttons (RentCalculatorView) */}
+      <button
+        id={nextTriggerId}
+        type="button"
+        onClick={handleAdvanceStep}
+        style={{ display: 'none' }}
+        aria-hidden
+      />
 
       {!hideSubmitButton && (
-        <button
-          type="submit"
-          className="vault-btn-primary"
-          disabled={!isValid || isSubmitting}
-          style={{ width: '100%' }}
-        >
-          {isSubmitting ? (
-            <>
-              <Loader2 size={16} className="animate-spin" />
-              <span>Verifying Identity &amp; Activating...</span>
-            </>
-          ) : (
-            <>
-              <ShieldCheck size={16} />
-              <span>{submitLabel}</span>
-            </>
+        <div className="arm-kyc-form__nav-actions">
+          {activeStep > 1 && (
+            <button
+              type="button"
+              className="vault-btn-secondary"
+              disabled={isSubmitting}
+              onClick={() => setStep((activeStep - 1) as KycFormStep)}
+            >
+              <ArrowLeft size={15} />
+              <span>Back</span>
+            </button>
           )}
-        </button>
+
+          {activeStep < 3 ? (
+            <button
+              type="button"
+              className="vault-btn-primary"
+              disabled={!currentStepValid || isSubmitting}
+              onClick={handleAdvanceStep}
+              style={{ flex: 1 }}
+            >
+              <span>{activeStep === 1 ? 'Continue to Address' : 'Review & Finalize'}</span>
+              <ArrowRight size={16} />
+            </button>
+          ) : (
+            <button
+              type="submit"
+              className="vault-btn-primary"
+              disabled={!isValid || isSubmitting}
+              style={{ flex: 1 }}
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  <span>Verifying Identity &amp; Activating...</span>
+                </>
+              ) : (
+                <>
+                  <ShieldCheck size={16} />
+                  <span>{submitLabel}</span>
+                </>
+              )}
+            </button>
+          )}
+        </div>
       )}
     </form>
   )

@@ -48,10 +48,14 @@ export class GetAdminInsuranceLedgerUseCase {
 
     const standaloneRows = enrolments.map((e) => {
       const email = this.decryptSafe(e.user?.email)
+      const decryptedFirst = this.decryptSafe(e.user?.firstName)
+      const decryptedLast = this.decryptSafe(e.user?.lastName)
+      const fallbackUserName = `${decryptedFirst} ${decryptedLast}`.trim()
+      const decryptedFullName = this.decryptSafe(e.fullName)
       return {
         policyUuid: e.uuid,
         source: 'STANDALONE' as const,
-        policyholderName: e.fullName || `${e.user?.firstName || ''} ${e.user?.lastName || ''}`.trim() || 'Tenant',
+        policyholderName: decryptedFullName || fallbackUserName || 'Tenant',
         policyholderEmail: email,
         userUuid: e.user?.uuid || '',
         annualRentNgn: Number(e.annualRent || 0),
@@ -73,6 +77,8 @@ export class GetAdminInsuranceLedgerUseCase {
 
     const rentProtecRows = rentProtecVaults.map((v) => {
       const email = this.decryptSafe(v.user?.email)
+      const firstName = this.decryptSafe(v.user?.firstName)
+      const lastName = this.decryptSafe(v.user?.lastName)
       const targetNgn = Number(v.targetAmountKobo) / 100
       const premiumRatePct = v.insurancePremiumPct > 0 ? v.insurancePremiumPct : 2.0
       const summary = v.treasurySummary
@@ -94,8 +100,7 @@ export class GetAdminInsuranceLedgerUseCase {
       return {
         policyUuid: v.uuid,
         source: 'RENT_PROTEC' as const,
-        policyholderName:
-          `${v.user?.firstName || ''} ${v.user?.lastName || ''}`.trim() || 'Tenant',
+        policyholderName: `${firstName} ${lastName}`.trim() || 'Tenant',
         policyholderEmail: email,
         userUuid: v.user?.uuid || '',
         annualRentNgn: targetNgn,

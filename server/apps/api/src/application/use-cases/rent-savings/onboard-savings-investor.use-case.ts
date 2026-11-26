@@ -604,6 +604,22 @@ export class OnboardSavingsInvestorUseCase {
       )
     }
 
+    if (meansOfIdType !== 'NIN') {
+      const expiryRaw = (dto.means_of_id_expiry_date || '').trim()
+      if (!expiryRaw) {
+        throw new BadRequestException(
+          `Expiry date is required for your ${meansOfIdType === 'INTERNATIONAL_PASSPORT' ? 'International Passport' : "Driver's License"} to confirm it is valid.`,
+        )
+      }
+      const parsedExpiry = new Date(expiryRaw)
+      const todayIso = new Date().toISOString().slice(0, 10)
+      if (Number.isNaN(parsedExpiry.getTime()) || expiryRaw.slice(0, 10) < todayIso) {
+        throw new BadRequestException(
+          'The provided identification document is expired. Please submit a valid, unexpired ID.',
+        )
+      }
+    }
+
     const idDocKey = this.assertOwnedKycDocKey(
       user.uuid,
       dto.means_of_id_doc_key,

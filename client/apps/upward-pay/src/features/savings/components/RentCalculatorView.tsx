@@ -35,7 +35,7 @@ import { BottomSheetModal } from '@/components/common/BottomSheetModal'
 import { PayPageShell, PayFlowPrimaryButton } from '@/features/dashboard/components/payment/PayPageShell'
 import { loadSetupDraft, patchSetupDraft } from '@/features/dashboard/setup/setupDraft'
 import { readSavingsRentPlan } from '../utils/savingsRentPlan'
-import { ArmInvestorKycForm, type ArmInvestorKycSubmitData } from './ArmInvestorKycForm'
+import { ArmInvestorKycForm, type ArmInvestorKycSubmitData, type KycFormStep } from './ArmInvestorKycForm'
 import { SAVINGS_FUND_CODE, SAVINGS_FUND_NAME } from '../constants/savingsLegal'
 
 type Stage = 'RENT_INPUT' | 'PROTECTION' | 'BENEFIT' | 'KYC' | 'SUCCESS'
@@ -153,10 +153,7 @@ export function RentCalculatorView({
 
   const selectedCadence: SavingsCadence = 'MONTHLY'
   const [selectedProductOption, setSelectedProductOption] =
-    useState<SavingsProductOption>(() => {
-      const saved = readSavingsRentPlan()
-      return saved?.productOption === 'SAVE_AND_EARN' ? 'SAVE_AND_EARN' : 'RENT_PROTEC'
-    })
+    useState<SavingsProductOption | null>(null)
   const [planPattern, setPlanPattern] = useState<SavingsPlanPattern>(() => {
     const saved = readSavingsRentPlan()
     if (saved?.planPattern === 'EQUAL' || saved?.planPattern === 'STEP_UP') {
@@ -178,10 +175,11 @@ export function RentCalculatorView({
       )
     : 330
   const isRentProtecEligible = rawDaysRemaining >= (platformRates.rentProtecMinMonths || 6) * 28
-  const activeProductOption: SavingsProductOption =
+  const chosenProductOption: SavingsProductOption | null =
     selectedProductOption === 'RENT_PROTEC' && !isRentProtecEligible
-      ? 'SAVE_AND_EARN'
+      ? null
       : selectedProductOption
+  const activeProductOption: SavingsProductOption = chosenProductOption ?? 'SAVE_AND_EARN'
 
   // KYC Prefill & Form State
   const { data: prefill } = useSavingsOnboardingPrefill(true)
@@ -189,6 +187,8 @@ export function RentCalculatorView({
   const verifyFundingMutation = useVerifyVaultFunding()
   const [successVerifyNotice, setSuccessVerifyNotice] = useState<string | null>(null)
   const [isArmKycFormValid, setIsArmKycFormValid] = useState(false)
+  const [kycStep, setKycStep] = useState<KycFormStep>(1)
+  const [isKycStepValid, setIsKycStepValid] = useState(false)
   const [kycError, setKycError] = useState<string | null>(null)
   const fundDisplayName = platformRates.fundName || SAVINGS_FUND_NAME
 
@@ -199,6 +199,7 @@ export function RentCalculatorView({
   } | null>(null)
   const [copiedAccount, setCopiedAccount] = useState(false)
   const [showComparePlans, setShowComparePlans] = useState(false)
+  const [showCompareBenefits, setShowCompareBenefits] = useState(false)
   const [customInitialDeposit, setCustomInitialDeposit] = useState<string | null>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -750,164 +751,193 @@ export function RentCalculatorView({
     )
   }
 
-  // STAGE 1.5: Side-by-Side Subscription-Style Plan Comparison (No bias / no "Recommended" badge)
+  // STAGE 1.5: Two Equal Neutral Cards + "Compare benefits & lock terms" Sheet (Option 1, Kunle spec)
+  // - Neither plan is preselected, no "Recommended" badge, no made-up Naira returns
+  // - Equal visual weight with clear benefit bullets and an explicit comparison modal
   if (stage === 'PROTECTION') {
-    const saveAndEarnEndValue = previewRentAmount > 0 ? previewRentAmount : 0
-    const effectiveMonths = Math.min(Math.max(1, rawDaysRemaining / 30), 11)
-    const rentProtecYieldPreview =
-      previewRentAmount > 0
-        ? Math.round(
-            previewRentAmount *
-              (((platformRates.rentProtecRatePct / 100) * effectiveMonths) / 12) *
-              0.55,
-          )
-        : 0
-    const saveAndEarnYieldPreview =
-      previewRentAmount > 0
-        ? Math.round(
-            previewRentAmount *
-              (((platformRates.savingsAnnualRatePct / 100) * effectiveMonths) / 12) *
-              0.55,
-          )
-        : 0
+    const compareRows = [
+      {
+        label: 'Yearly Interest',
+        saveAndEarn: `${platformRates.savingsAnnualRatePct}% p.a.`,
+        rentProtec: `${platformRates.rentProtecRatePct}% p.a.`,
+      },
+      {
+        label: 'Job Loss / Illness / Death',
+        saveAndEarn: 'Your savings only',
+        rentProtec: 'Up to 100% annual rent',
+      },
+      {
+        label: 'Lock & Early Exit',
+        saveAndEarn: 'T-30 lock (Fair Exit anytime)',
+        rentProtec: 'T-30 lock (Fair Exit anytime)',
+      },
+      {
+        label: 'Minimum Timeline',
+        saveAndEarn: 'No minimum',
+        rentProtec: `${platformRates.rentProtecMinMonths}+ months`,
+      },
+    ]
 
     return (
-      <PayPageShell
-        title="Compare Savings Tracks"
-        subtitle="Compare pure compound interest against rent protection side by side."
-        showBack
-        onBack={handleProtectionBack}
-        pinFooter
-        footer={
-          <PayFlowPrimaryButton
-            onClick={() => {
-              setProtectionFromBenefit(false)
-              setStage('BENEFIT')
-            }}
-          >
-            Continue with {activeProductOption === 'RENT_PROTEC' ? 'Rent Protec' : 'Save & Earn'}
-            <ArrowRight size={18} aria-hidden />
-          </PayFlowPrimaryButton>
-        }
-      >
-        <div className="plan-compare">
-          <div className="plan-compare__grid">
-            {/* Column 1: Save & Earn */}
+      <>
+        <PayPageShell
+          title="Choose Your Savings Plan"
+          subtitle="Pick how you want to save for your next rent."
+          showBack
+          onBack={handleProtectionBack}
+          pinFooter
+          footer={
+            <PayFlowPrimaryButton
+              disabled={!chosenProductOption}
+              onClick={() => {
+                if (!chosenProductOption) return
+                setProtectionFromBenefit(false)
+                setStage('BENEFIT')
+              }}
+            >
+              {chosenProductOption
+                ? `Continue with ${chosenProductOption === 'RENT_PROTEC' ? 'Rent Protec' : 'Save & Earn'}`
+                : 'Select a plan to continue'}
+              {chosenProductOption && <ArrowRight size={18} aria-hidden />}
+            </PayFlowPrimaryButton>
+          }
+        >
+          <div className="plan-cards">
+            {/* Card 1: Save & Earn */}
             <button
               type="button"
               onClick={() => setSelectedProductOption('SAVE_AND_EARN')}
-              className={`plan-compare__col ${
-                activeProductOption === 'SAVE_AND_EARN' ? 'plan-compare__col--active' : ''
+              aria-pressed={chosenProductOption === 'SAVE_AND_EARN'}
+              className={`plan-card ${
+                chosenProductOption === 'SAVE_AND_EARN' ? 'plan-card--active' : ''
               }`}
-              aria-pressed={activeProductOption === 'SAVE_AND_EARN'}
             >
-              <div className="plan-compare__col-header">
-                <div className="plan-compare__col-title-row">
-                  <TrendingUp size={16} color="var(--clay)" />
-                  <span className="plan-compare__col-name">Save &amp; Earn</span>
+              <div className="plan-card__top">
+                <div className="plan-card__title-group">
+                  <span className="plan-card__radio" aria-hidden />
+                  <TrendingUp size={18} className="plan-card__icon" aria-hidden />
+                  <span className="plan-card__name">Save &amp; Earn</span>
                 </div>
-                <span className="plan-compare__radio" aria-hidden />
+                <span className="plan-card__rate">{platformRates.savingsAnnualRatePct}% p.a.</span>
               </div>
 
-              <div className="plan-compare__rate">
-                <span className="plan-compare__rate-value">
-                  {platformRates.savingsAnnualRatePct}%
-                </span>
-                <span className="plan-compare__rate-unit">p.a.</span>
-              </div>
+              <p className="plan-card__desc">
+                Maximum pure returns on your rent savings. Best if you only want the highest
+                interest.
+              </p>
 
-              <div className="plan-compare__rows">
-                <div className="plan-compare__row">
-                  <span className="plan-compare__row-label">Est. Interest Earned</span>
-                  <span className="plan-compare__row-value plan-compare__row-value--accent">
-                    ~{formatCurrency(saveAndEarnYieldPreview, 'NGN')}
-                  </span>
-                </div>
-                <div className="plan-compare__row">
-                  <span className="plan-compare__row-label">End-of-Term Value</span>
-                  <span className="plan-compare__row-value">
-                    {saveAndEarnEndValue > 0 ? formatCurrency(saveAndEarnEndValue, 'NGN') : 'Full target'}
-                  </span>
-                </div>
-                <div className="plan-compare__row">
-                  <span className="plan-compare__row-label">Rent Protection</span>
-                  <span className="plan-compare__row-value plan-compare__row-value--muted">
-                    Not included
-                  </span>
-                </div>
-                <div className="plan-compare__row">
-                  <span className="plan-compare__row-label">Best For</span>
-                  <span className="plan-compare__row-value">Maximum pure returns</span>
-                </div>
-              </div>
+              <ul className="plan-card__bullets">
+                <li>
+                  <Check size={14} aria-hidden />
+                  <span>Daily compounding returns on 100% of your deposits</span>
+                </li>
+                <li>
+                  <Check size={14} aria-hidden />
+                  <span>No minimum months required before rent is due</span>
+                </li>
+              </ul>
             </button>
 
-            {/* Column 2: Rent Protec */}
+            {/* Card 2: Rent Protec */}
             <button
               type="button"
               onClick={() => setSelectedProductOption('RENT_PROTEC')}
               disabled={!isRentProtecEligible}
-              className={`plan-compare__col ${
-                activeProductOption === 'RENT_PROTEC' ? 'plan-compare__col--active' : ''
-              } ${!isRentProtecEligible ? 'plan-compare__col--disabled' : ''}`}
-              aria-pressed={activeProductOption === 'RENT_PROTEC'}
+              aria-pressed={chosenProductOption === 'RENT_PROTEC'}
+              className={`plan-card ${
+                chosenProductOption === 'RENT_PROTEC' ? 'plan-card--active' : ''
+              } ${!isRentProtecEligible ? 'plan-card--disabled' : ''}`}
             >
-              <div className="plan-compare__col-header">
-                <div className="plan-compare__col-title-row">
-                  <ShieldCheck size={16} color="var(--clay)" />
-                  <span className="plan-compare__col-name">Rent Protec</span>
+              <div className="plan-card__top">
+                <div className="plan-card__title-group">
+                  <span className="plan-card__radio" aria-hidden />
+                  <ShieldCheck size={18} className="plan-card__icon" aria-hidden />
+                  <span className="plan-card__name">Rent Protec</span>
                 </div>
-                <span className="plan-compare__radio" aria-hidden />
+                <span className="plan-card__rate">{platformRates.rentProtecRatePct}% p.a. + Cover</span>
               </div>
 
-              <div className="plan-compare__rate">
-                <span className="plan-compare__rate-value">
-                  {platformRates.rentProtecRatePct}%
-                </span>
-                <span className="plan-compare__rate-unit">p.a. + Cover</span>
-              </div>
+              <p className="plan-card__desc">
+                Earn daily compound interest plus rent protection. If life happens, Upward covers up
+                to 100% of your annual rent.
+              </p>
 
-              <div className="plan-compare__rows">
-                <div className="plan-compare__row">
-                  <span className="plan-compare__row-label">Est. Interest Earned</span>
-                  <span className="plan-compare__row-value plan-compare__row-value--accent">
-                    ~{formatCurrency(rentProtecYieldPreview, 'NGN')}
-                  </span>
-                </div>
-                <div className="plan-compare__row">
-                  <span className="plan-compare__row-label">Value Range</span>
-                  <span className="plan-compare__row-value">
-                    {platformRates.rentProtecRatePct}% yield up to{' '}
-                    {saveAndEarnEndValue > 0 ? formatCurrency(saveAndEarnEndValue, 'NGN') : '100% rent'}
-                  </span>
-                </div>
-                <div className="plan-compare__row">
-                  <span className="plan-compare__row-label">Rent Protection</span>
-                  <span className="plan-compare__row-value">
-                    Job loss, illness or breadwinner cover
-                  </span>
-                </div>
-                <div className="plan-compare__row">
-                  <span className="plan-compare__row-label">Coverage Limit</span>
-                  <span className="plan-compare__row-value plan-compare__row-value--accent">
-                    Up to 100% annual rent
-                  </span>
-                </div>
-              </div>
+              <ul className="plan-card__bullets">
+                <li>
+                  <Check size={14} aria-hidden />
+                  <span>Covers job loss, serious illness, or loss of breadwinner</span>
+                </li>
+                <li>
+                  <Check size={14} aria-hidden />
+                  <span>Daily compounding returns on 100% of your deposits</span>
+                </li>
+              </ul>
 
               {!isRentProtecEligible && (
-                <div className="plan-compare__ineligible">
-                  Requires {platformRates.rentProtecMinMonths}+ months before rent due date.
+                <div className="plan-card__ineligible">
+                  Requires at least {platformRates.rentProtecMinMonths} months before rent is due.
                 </div>
               )}
             </button>
+
+            {/* Compare Benefits & Lock Terms Trigger */}
+            <button
+              type="button"
+              className="plan-cards__compare-btn"
+              onClick={() => setShowCompareBenefits(true)}
+            >
+              <span>Compare benefits &amp; lock terms</span>
+              <ChevronRight size={16} aria-hidden />
+            </button>
+
+            <p className="plan-cards__footnote">
+              Your exact interest depends on how much you save and for how long — you&apos;ll set
+              that up on the next step.
+            </p>
+          </div>
+        </PayPageShell>
+
+        <BottomSheetModal
+          isOpen={showCompareBenefits}
+          onClose={() => setShowCompareBenefits(false)}
+          title="Compare Benefits & Lock Terms"
+          subtitle="Side-by-side breakdown of Save & Earn vs. Rent Protec"
+          maxWidth="480px"
+        >
+          <div className="plan-table" role="table" aria-label="Compare savings benefits">
+            <div className="plan-table__row plan-table__row--head" role="row">
+              <div className="plan-table__label plan-table__label--head" role="columnheader">
+                Feature
+              </div>
+              <div className="plan-table__modal-head" role="columnheader">
+                Save &amp; Earn
+              </div>
+              <div className="plan-table__modal-head" role="columnheader">
+                Rent Protec
+              </div>
+            </div>
+
+            {compareRows.map((row) => (
+              <div key={row.label} className="plan-table__row" role="row">
+                <div className="plan-table__label" role="rowheader">
+                  {row.label}
+                </div>
+                <div className="plan-table__cell" role="cell">
+                  {row.saveAndEarn}
+                </div>
+                <div className="plan-table__cell" role="cell">
+                  {row.rentProtec}
+                </div>
+              </div>
+            ))}
           </div>
 
-          <p className="plan-compare__footnote">
-            Both plans earn daily compounding returns on 100% of your deposits.
+          <p className="plan-table__note" style={{ marginTop: 12 }}>
+            Locked until 30 days before rent due date for full returns. Early withdrawal is
+            available anytime under Fair Exit terms (7.0% p.a. base yield + 1.5% admin fee).
           </p>
-        </div>
-      </PayPageShell>
+        </BottomSheetModal>
+      </>
     )
   }
 
@@ -1559,40 +1589,80 @@ export function RentCalculatorView({
     )
   }
 
-  // STAGE 3: KYC & Consent Step
+  // STAGE 3: KYC & Consent Step (3-Step Guided Onboarding)
   if (stage === 'KYC') {
+    const kycTitle =
+      kycStep === 1
+        ? 'Verify Your Identity'
+        : kycStep === 2
+          ? 'Address & Profile'
+          : 'Review & Activate'
+    const kycSubtitle =
+      kycStep === 1
+        ? `Required once by CBN & SEC for ${fundDisplayName} (${SAVINGS_FUND_CODE}).`
+        : kycStep === 2
+          ? 'Confirm your residential address and next of kin details.'
+          : 'Review your terms and activate your rent savings account.'
+    const kycCtaLabel =
+      kycStep === 1
+        ? 'Continue to Address'
+        : kycStep === 2
+          ? 'Review & Finalize'
+          : 'Verify & Activate Account'
+    const isFooterDisabled =
+      kycStep < 3
+        ? !isKycStepValid || onboardMutation.isPending
+        : !isArmKycFormValid || onboardMutation.isPending
+
     return (
       <PayPageShell
-        title="Verify Identity & Consent"
-        subtitle={`Complete BVN, NIN, valid ID, proof of address, and consent for ${fundDisplayName} (${SAVINGS_FUND_CODE}).`}
+        title={kycTitle}
+        subtitle={kycSubtitle}
         showBack
-        onBack={() => setStage('BENEFIT')}
+        onBack={() => {
+          if (kycStep > 1) {
+            setKycStep((kycStep - 1) as KycFormStep)
+          } else {
+            setStage('BENEFIT')
+          }
+        }}
         pinFooter
         footer={
           <PayFlowPrimaryButton
             type="button"
             onClick={() => {
-              const formEl = document.getElementById(
-                'rent-calc-arm-kyc-form',
-              ) as HTMLFormElement | null
-              formEl?.requestSubmit()
+              if (kycStep < 3) {
+                const nextBtn = document.getElementById(
+                  'rent-calc-arm-kyc-next',
+                ) as HTMLButtonElement | null
+                nextBtn?.click()
+              } else {
+                const formEl = document.getElementById(
+                  'rent-calc-arm-kyc-form',
+                ) as HTMLFormElement | null
+                formEl?.requestSubmit()
+              }
             }}
-            disabled={!isArmKycFormValid || onboardMutation.isPending}
+            disabled={isFooterDisabled}
             loading={onboardMutation.isPending}
           >
-            Verify &amp; Activate Account
+            {kycCtaLabel}
             <ArrowRight size={18} aria-hidden />
           </PayFlowPrimaryButton>
         }
       >
         <ArmInvestorKycForm
           formId="rent-calc-arm-kyc-form"
+          nextTriggerId="rent-calc-arm-kyc-next"
           prefill={prefill}
           annualRatePct={savingsAnnualRatePct}
           fundName={fundDisplayName}
           serverError={kycError}
           isSubmitting={onboardMutation.isPending}
           hideSubmitButton
+          step={kycStep}
+          onStepChange={setKycStep}
+          onStepValidityChange={setIsKycStepValid}
           onValidityChange={setIsArmKycFormValid}
           onSubmit={handleSubmitKyc}
         />
@@ -1817,7 +1887,7 @@ export function RentCalculatorView({
                 </>
               ) : (
                 <>
-                  Your dedicated Wema account is ready — you can deposit anytime.{' '}
+                  Your dedicated rent savings account is ready — you can deposit anytime.{' '}
                   <strong>
                     {platformRates.partnerShortName || 'ARM'}
                   </strong>{' '}
