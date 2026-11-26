@@ -59,6 +59,7 @@ export interface CreditVaultDepositParams {
   channel: string
   narration: string
   source: 'PAYSTACK_WEBHOOK' | 'DEV_SIMULATION'
+  depositKind?: 'MONTHLY' | 'EXTRA_TOPUP' | 'INITIAL_DEPOSIT' | null
   metadata?: Record<string, unknown>
 }
 
@@ -404,6 +405,73 @@ export class ProcessPaystackSavingsWebhookUseCase {
 
         const currentBalanceKobo = freshVault.currentPrincipalKobo + freshVault.accruedYieldKobo
         const newBalanceKobo = currentBalanceKobo + amountKobo
+        const now = new Date()
+        const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
+
+        // 3b. Deterministic Deposit Classification (handles direct bank transfers & dual flows):
+        //     - INITIAL_DEPOSIT when first deposit on an upfront-deposit vault
+        //     - MONTHLY_CONTRIBUTION / PARTIAL_MONTHLY until this calendar month's target is filled (keeps plannedMonthlyDepositKobo fixed)
+        //     - EXTRA_TOPUP once this month is already filled (or explicitly chosen) -> reduces future monthly payments
+        let currentMonthAppliedKobo = 0n
+        if (tx.upward_rent_vault_transaction?.findMany) {
+          const monthDeposits = await tx.upward_rent_vault_transaction.findMany({
+            where: {
+              vaultId: freshVault.id,
+              type: 'DEPOSIT',
+              createdAt: { gte: monthStart },
+            },
+            select: { amountKobo: true, metadata: true },
+          })
+          for (const dep of monthDeposits) {
+            const cls = (dep.metadata as any)?.depositClassification
+            if (cls === 'MONTHLY_CONTRIBUTION' || cls === 'PARTIAL_MONTHLY' || !cls) {
+              currentMonthAppliedKobo += dep.amountKobo
+            }
+          }
+        }
+
+        const existingPlannedMonthlyKobo = BigInt((freshVault as any).plannedMonthlyDepositKobo ?? 0n)
+        const classificationResult = RentSavingsCalculatorEngine.classifyDirectDeposit({
+          currentPrincipalKobo: freshVault.currentPrincipalKobo,
+          initialDepositKobo: freshVault.initialDepositKobo,
+          plannedMonthlyDepositKobo: existingPlannedMonthlyKobo,
+          currentMonthAppliedKobo,
+          depositAmountKobo: amountKobo,
+          explicitDepositKind: params.depositKind ?? null,
+        })
+
+        let nextPlannedMonthlyKobo: bigint | undefined
+        if (classificationResult.shouldRecalculateMonthlyTarget) {
+          const annualRateDecimal =
+            (freshVault.appliedAnnualRatePct && freshVault.appliedAnnualRatePct > 0
+              ? freshVault.appliedAnnualRatePct
+              : freshVault.productOption === 'RENT_PROTEC'
+                ? 10.0
+                : (freshVault as any).lockMode === 'FLEXIBLE'
+                  ? 12.0
+                  : 16.0) / 100
+          nextPlannedMonthlyKobo = RentSavingsCalculatorEngine.recalculateMonthlyTargetKobo({
+            targetAmountKobo: freshVault.targetAmountKobo,
+            currentBalanceKobo: newBalanceKobo,
+            contractualDueDate: freshVault.contractualDueDate,
+            annualNetYieldRate: annualRateDecimal,
+            currentPlannedMonthlyKobo: existingPlannedMonthlyKobo,
+            asOfDate: now,
+            currentMonthAlreadyFulfilled:
+              classificationResult.classification === 'EXTRA_TOPUP',
+          })
+        }
+
+        const classifiedNarration =
+          classificationResult.classification === 'INITIAL_DEPOSIT'
+            ? 'Initial rent savings deposit'
+            : classificationResult.classification === 'MONTHLY_CONTRIBUTION'
+              ? classificationResult.surplusForMonthKobo > 0n
+                ? `Monthly rent savings contribution (includes ₦${Math.round(Number(classificationResult.surplusForMonthKobo) / 100).toLocaleString()} extra)`
+                : 'Monthly rent savings contribution'
+              : classificationResult.classification === 'PARTIAL_MONTHLY'
+                ? 'Partial monthly rent savings contribution'
+                : 'Extra top-up (reduces remaining monthly contributions)'
 
         // 4. Create unique ledger transaction
         const createdTx = await tx.upward_rent_vault_transaction.create({
@@ -417,22 +485,30 @@ export class ProcessPaystackSavingsWebhookUseCase {
             balanceAfterKobo: newBalanceKobo,
             reference,
             channel,
-            narration,
+            narration: narration && !narration.startsWith('Rent savings deposit via') ? narration : classifiedNarration,
             metadata: {
               ...(metadata || {}),
               source,
+              depositClassification: classificationResult.classification,
+              surplusForMonthKobo: Number(classificationResult.surplusForMonthKobo),
+              ...(nextPlannedMonthlyKobo !== undefined
+                ? { updatedPlannedMonthlyDepositKobo: Number(nextPlannedMonthlyKobo) }
+                : {}),
               armSyncStatus: freshVault.investmentProvider ? 'QUEUED' : 'NOT_APPLICABLE',
               ...(freshVault.investmentProvider ? { armTransactionId } : {}),
-              receivedAt: new Date().toISOString(),
+              receivedAt: now.toISOString(),
             } as any,
           },
         })
 
-        // 5. Atomically increment vault principal balance
+        // 5. Atomically increment vault principal balance (and update plannedMonthlyDepositKobo ONLY on Extra Top-Up / initial seed)
         await tx.upward_rent_vault.update({
           where: { id: freshVault.id },
           data: {
             currentPrincipalKobo: { increment: amountKobo },
+            ...(nextPlannedMonthlyKobo !== undefined
+              ? { plannedMonthlyDepositKobo: nextPlannedMonthlyKobo }
+              : {}),
           },
         })
 

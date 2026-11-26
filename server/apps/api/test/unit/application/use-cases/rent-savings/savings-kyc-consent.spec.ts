@@ -236,5 +236,120 @@ describe('ARM KYC Document Upload, Consent Mandate & Provider Mapping', () => {
       expect(missingDocsRes.success).toBe(false)
       expect(missingDocsRes.failureReason).toMatch(/Utility Bill/i)
     })
+
+    it('rejects Prembly sandbox placeholder strings ("base64 image content") and falls back to valid PNG base64', async () => {
+      expect(ArmConnectInvestmentProvider.isValidBase64Content('base64 image content')).toBe(false)
+      expect(ArmConnectInvestmentProvider.isValidBase64Content('https://example.com/p.jpg')).toBe(false)
+      expect(
+        ArmConnectInvestmentProvider.isValidBase64Content(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+        ),
+      ).toBe(true)
+
+      const provider = new ArmConnectInvestmentProvider(new ConfigService({}))
+      ;(provider as any).getValidToken = jest.fn().mockResolvedValue('mock-jwt')
+      ;(provider as any).getMerchantOverview = jest.fn().mockResolvedValue({ customers: [] })
+      let capturedBody: any = null
+      ;(provider as any).fetchWithAuth = jest.fn().mockImplementation(async (_url, init) => {
+        capturedBody = JSON.parse(init.body)
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            status: true,
+            data: { customerId: 'cust-1', customerMembershipId: '3009999', status: 'Submitted' },
+          }),
+        }
+      })
+
+      const validImgBase64 = Buffer.from('mock-id-image-bytes').toString('base64')
+      const res = await provider.onboardInvestor({
+        customerEmail: 'victor@example.com',
+        personalDetails: {
+          surname: 'Awotidebe',
+          firstName: 'Victor',
+          dateOfBirth: '11-May-2004',
+          gender: 'Male',
+          mobilePhone: '08031112233',
+        },
+        address: {
+          addressNumber: '27',
+          streetName: 'Nathan street',
+          town: 'Surulere',
+          residentialStateCode: 'Lagos',
+        },
+        kycDetails: {
+          bvn: '22305055680',
+          nin: '22305055680',
+          meansOfIdentification: 'INTERNATIONAL_PASSPORT',
+          idNumber: 'B0123',
+        },
+        bankDetails: {
+          bankCode: '058',
+          bankName: 'Guaranty Trust Bank',
+          accountNumber: '0123456789',
+          accountName: 'Victor Awotidebe',
+        },
+        documents: {
+          passport: 'base64 image content',
+          bvn_passport: 'base64 image content',
+          id_card: { base64: validImgBase64, mimeType: 'image/png', fileName: 'id.png' },
+          utility_bill: { base64: validImgBase64, mimeType: 'image/png', fileName: 'bill.png' },
+        },
+      })
+
+      expect(res.success).toBe(true)
+      expect(capturedBody.documents[0].document).not.toBe('base64 image content')
+      expect(ArmConnectInvestmentProvider.isValidBase64Content(capturedBody.documents[0].document)).toBe(true)
+      expect(ArmConnectInvestmentProvider.isValidBase64Content(capturedBody.documents[1].document)).toBe(true)
+    })
+
+    it('rejects missing bankDetails instead of fabricating fake GTBank 0123456789 and does not reuse NotStarted drafts', async () => {
+      const provider = new ArmConnectInvestmentProvider(new ConfigService({}))
+      ;(provider as any).getValidToken = jest.fn().mockResolvedValue('mock-jwt')
+      ;(provider as any).getMerchantOverview = jest.fn().mockResolvedValue({
+        customers: [
+          {
+            customerId: 'draft-cust-1',
+            customerEmail: 'victor@example.com',
+            status: 'NotStarted',
+            customerMembershipId: null,
+          },
+        ],
+      })
+      const fetchSpy = jest.fn()
+      ;(provider as any).fetchWithAuth = fetchSpy
+
+      const validImgBase64 = Buffer.from('mock-id-image-bytes').toString('base64')
+      const res = await provider.onboardInvestor({
+        customerEmail: 'victor@example.com',
+        personalDetails: {
+          surname: 'Awotidebe',
+          firstName: 'Victor',
+          dateOfBirth: '11-May-2004',
+          gender: 'Male',
+          mobilePhone: '08031112233',
+        },
+        address: {
+          addressNumber: '27',
+          streetName: 'Nathan street',
+          town: 'Surulere',
+          residentialStateCode: 'Lagos',
+        },
+        kycDetails: {
+          bvn: '22305055680',
+          nin: '22305055680',
+          meansOfIdentification: 'NIN',
+        },
+        documents: {
+          id_card: { base64: validImgBase64, mimeType: 'image/png', fileName: 'id.png' },
+          utility_bill: { base64: validImgBase64, mimeType: 'image/png', fileName: 'bill.png' },
+        },
+      })
+
+      expect(res.success).toBe(false)
+      expect(res.failureReason).toMatch(/bank account linked to your BVN/i)
+      expect(fetchSpy).not.toHaveBeenCalled()
+    })
   })
 })

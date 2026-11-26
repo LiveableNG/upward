@@ -14,8 +14,8 @@ export const SAVINGS_LEGAL_DEFAULTS = {
   ANNUAL_YIELD_INDICATIVE: '16.0% p.a. (indicative, daily compounding)',
   MANDATE_CLAUSES: [
     'I authorize Liveable Smartcity Technologies Limited (Upward / GoodTenants) to collect and transmit my verified KYC details (BVN, NIN, Valid Means of Identification, Residential Address, and Proof of Address) to Asset & Resource Management Holding Company (ARM) for SEC-compliant B2B2C investor onboarding into the ARM Money Market Fund (ARMMMF).',
-    'I expressly authorize Upward / GoodTenants to invest my Rent Savings deposits into units of the ARM Money Market Fund (ARMMMF) and to execute redemptions on my behalf at lease maturity (T-30 days prior to rent due date) or upon an authorized early withdrawal request.',
-    'I acknowledge that returns on the ARM Money Market Fund (ARMMMF) are variable market yields (indicatively 16.0% p.a. for Save & Earn) subject to money market performance and applicable SEC regulations, and that savings remain locked until 30 days before my rent due date unless I initiate a Fair Exit breakout.',
+    'I expressly authorize Upward / GoodTenants to invest my Rent Savings deposits into units of the ARM Money Market Fund (ARMMMF) and to execute redemptions on my behalf 30 days before my rent due date. Full Lock savings cannot be withdrawn before that date. Flexible savings may be withdrawn earlier when I request it.',
+    'I acknowledge that returns on the ARM Money Market Fund (ARMMMF) are variable market yields (indicatively 16.0% p.a. for Save & Earn) subject to money market performance and applicable SEC regulations. Full Lock savings stay invested until 30 days before my rent due date.',
     'I confirm that all identification documents and proof of address uploaded by me are genuine, accurate, and belong to me, and I consent to NDPR-compliant data processing for KYC verification and investment administration.',
   ],
 } as const

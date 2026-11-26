@@ -268,12 +268,15 @@ export class SimulateDailyNavAccrualUseCase {
 
     for (const vault of fundedVaults) {
       const isRentProtec = vault.productOption === 'RENT_PROTEC'
+      const isFlexible = (vault as any).lockMode === 'FLEXIBLE' && !isRentProtec
       const customerAnnualRatePct =
         vault.appliedAnnualRatePct && vault.appliedAnnualRatePct > 0
           ? vault.appliedAnnualRatePct
           : isRentProtec
             ? rates.rentProtecRatePct
-            : rates.savingsAnnualRatePct
+            : isFlexible
+              ? rates.flexibleSavingsAnnualRatePct
+              : rates.savingsAnnualRatePct
       const customerDailyRate = customerAnnualRatePct / 100 / 365
       const effectiveGrossRatePct = Math.max(grossArmAnnualRatePct, customerAnnualRatePct)
       const effectiveGrossDailyRate = Math.max(grossArmDailyRate, customerDailyRate)

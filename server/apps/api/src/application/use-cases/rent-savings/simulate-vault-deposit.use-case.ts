@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { Type } from 'class-transformer'
-import { IsNumber, IsOptional, IsString, Min } from 'class-validator'
+import { IsIn, IsNumber, IsOptional, IsString, Min } from 'class-validator'
 import {
   IRentVaultRepository,
   RENT_VAULT_REPOSITORY,
@@ -25,6 +25,10 @@ export class SimulateVaultDepositDto {
   @IsOptional()
   @IsString()
   account_number?: string
+
+  @IsOptional()
+  @IsIn(['MONTHLY', 'EXTRA_TOPUP', 'INITIAL_DEPOSIT'])
+  deposit_kind?: 'MONTHLY' | 'EXTRA_TOPUP' | 'INITIAL_DEPOSIT'
 }
 
 /**
@@ -86,6 +90,7 @@ export class SimulateVaultDepositUseCase {
       channel: 'dedicated_nuban',
       narration: 'Rent savings deposit via simulated transfer (dev)',
       source: 'DEV_SIMULATION',
+      depositKind: dto.deposit_kind ?? null,
       metadata: {
         simulatedByUserId: userId,
         simulatedDvaAccount: vault.dvaAccountNumber || dto.account_number || null,

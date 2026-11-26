@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 import { AlertTriangle, CheckCircle2, X, Shield } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { useBreakoutRentVault } from '../hooks/useRentSavings'
-import type { BreakoutResultData } from '../services/savingsService'
+import type { BreakoutResultData, SavingsLockMode } from '../services/savingsService'
 import { useToast } from '@/components/common/Toast'
 import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
 
@@ -13,6 +13,8 @@ interface FairBreakoutModalProps {
   vaultId: string
   principalKobo: number
   accruedYieldKobo: number
+  lockMode?: SavingsLockMode
+  annualRatePct?: number
   onClose: () => void
 }
 
@@ -22,6 +24,8 @@ export function FairBreakoutModal({
   vaultId,
   principalKobo,
   accruedYieldKobo,
+  lockMode = 'LOCKED',
+  annualRatePct,
   onClose,
 }: FairBreakoutModalProps) {
   const [breakoutResult, setBreakoutResult] = useState<BreakoutResultData | null>(null)
@@ -35,7 +39,12 @@ export function FairBreakoutModal({
 
   const { error: toastError, success: toastSuccess } = useToast()
   const { rates: platformRates } = usePlatformRates()
-  const annualRate = platformRates?.savingsAnnualRatePct ?? 16
+  const isFlexible = lockMode === 'FLEXIBLE'
+  const annualRate =
+    annualRatePct ??
+    (isFlexible
+      ? (platformRates?.flexibleSavingsAnnualRatePct ?? 12)
+      : (platformRates?.savingsAnnualRatePct ?? 16))
   const breakoutMutation = useBreakoutRentVault()
 
   useEffect(() => {
@@ -49,8 +58,10 @@ export function FairBreakoutModal({
 
   const principalNaira = principalKobo / 100
   const accruedYieldNaira = accruedYieldKobo / 100
-  const estimatedAdminFeeNaira = principalNaira * 0.015
-  const estimatedRecalculatedYieldNaira = principalNaira * (0.07 / 365) * 30
+  const estimatedAdminFeeNaira = isFlexible ? 0 : principalNaira * 0.015
+  const estimatedRecalculatedYieldNaira = isFlexible
+    ? accruedYieldNaira
+    : principalNaira * (0.07 / 365) * 30
   const estimatedNetPayoutNaira = Math.max(
     0,
     principalNaira + estimatedRecalculatedYieldNaira - estimatedAdminFeeNaira,
@@ -145,80 +156,86 @@ export function FairBreakoutModal({
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
             <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-              Upward is built to protect your roof. If you need to withdraw your savings before rent
-              day, your money is completely safe, but the {annualRate}% annual bonus returns will be
-              adjusted to the 7% base rate.
+              {isFlexible
+                ? `Your Flexible Save & Earn plan lets you withdraw anytime with ₦0 exit fee and 100% of your accrued ${annualRate}% p.a. interest intact.`
+                : `Upward is built to protect your roof. If you need to withdraw your savings before rent day, your money is completely safe, but the ${annualRate}% annual bonus returns will be adjusted to the 7% base rate.`}
             </p>
 
             <div className="vault-fee-breakdown">
               <div className="vault-fee-breakdown__row">
-                <span>Your Total Savings</span>
+                <span>Amount Deposited</span>
                 <span style={{ fontWeight: 600 }}>{formatCurrency(principalNaira, 'NGN')}</span>
               </div>
+              {!isFlexible && (
+                <div className="vault-fee-breakdown__row">
+                  <span>Forfeited Bonus Interest ({annualRate}%)</span>
+                  <span style={{ color: 'var(--text-muted)', textDecoration: 'line-through' }}>
+                    {formatCurrency(accruedYieldNaira, 'NGN')}
+                  </span>
+                </div>
+              )}
               <div className="vault-fee-breakdown__row">
-                <span>Forfeited Bonus Interest ({annualRate}%)</span>
-                <span style={{ color: 'var(--text-muted)', textDecoration: 'line-through' }}>
-                  {formatCurrency(accruedYieldNaira, 'NGN')}
-                </span>
-              </div>
-              <div className="vault-fee-breakdown__row">
-                <span>Base Interest Kept (7.0%)</span>
+                <span>{isFlexible ? `Interest Earned (${annualRate}%)` : 'Base Interest Kept (7.0%)'}</span>
                 <span style={{ color: 'var(--success)' }}>
                   +{formatCurrency(estimatedRecalculatedYieldNaira, 'NGN')}
                 </span>
               </div>
               <div className="vault-fee-breakdown__row">
-                <span>Early Withdrawal Fee (1.5%)</span>
-                <span style={{ color: 'var(--error)' }}>
-                  -{formatCurrency(estimatedAdminFeeNaira, 'NGN')}
+                <span>{isFlexible ? 'Withdrawal Fee' : 'Early Withdrawal Fee (1.5%)'}</span>
+                <span style={{ color: isFlexible ? 'var(--success)' : 'var(--error)' }}>
+                  {isFlexible ? '₦0' : `-${formatCurrency(estimatedAdminFeeNaira, 'NGN')}`}
                 </span>
               </div>
               <div className="vault-fee-breakdown__row vault-fee-breakdown__row--total">
-                <span>Estimated Amount You Receive</span>
+                <span>Expected Amount You Receive</span>
                 <span>{formatCurrency(estimatedNetPayoutNaira, 'NGN')}</span>
               </div>
             </div>
 
-            <div
-              style={{
-                background: 'rgba(239, 68, 68, 0.08)',
-                border: '1px solid rgba(239, 68, 68, 0.2)',
-                borderRadius: 'var(--radius-md, 10px)',
-                padding: '12px 14px',
-                fontSize: '0.8125rem',
-                color: 'var(--error)',
-                lineHeight: 1.4,
-              }}
-            >
-              <strong>Discipline Impact:</strong> Early breakout deducts 30 points from your Upward
-              Savings Discipline Score and resets your streak.
-            </div>
+            {!isFlexible && (
+              <div
+                style={{
+                  background: 'rgba(239, 68, 68, 0.08)',
+                  border: '1px solid rgba(239, 68, 68, 0.2)',
+                  borderRadius: 'var(--radius-md, 10px)',
+                  padding: '12px 14px',
+                  fontSize: '0.8125rem',
+                  color: 'var(--error)',
+                  lineHeight: 1.4,
+                }}
+              >
+                <strong>Discipline Impact:</strong> Early breakout deducts 30 points from your Upward
+                Savings Discipline Score and resets your streak.
+              </div>
+            )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
               <button type="button" className="vault-btn-primary" onClick={onClose}>
                 <Shield size={18} />
-                <span>Keep My Rent Safe</span>
+                <span>Keep Saving</span>
               </button>
 
               {!confirmStep ? (
                 <button
                   type="button"
-                  className="vault-btn-destructive"
+                  className={isFlexible ? 'vault-btn-secondary' : 'vault-btn-destructive'}
                   onClick={() => setConfirmStep(true)}
                 >
-                  I Understand, Liquidate Early
+                  {isFlexible ? 'Withdraw Savings (₦0 Fee)' : 'I Understand, Liquidate Early'}
                 </button>
               ) : (
                 <button
                   type="button"
-                  className="vault-btn-destructive"
-                  style={{ background: 'var(--error)', color: '#ffffff' }}
+                  className={isFlexible ? 'vault-btn-primary' : 'vault-btn-destructive'}
+                  style={isFlexible ? undefined : { background: 'var(--error)', color: '#ffffff' }}
                   disabled={breakoutMutation.isPending}
                   onClick={handleExecuteBreakout}
                 >
                   {breakoutMutation.isPending
-                    ? 'Liquidating Vault...'
-                    : 'Confirm Breakout & Forfeit Yield'}
+                    ? 'Processing Withdrawal...'
+                    : isFlexible
+                      ? 'Confirm Withdrawal'
+                      : 'Confirm Breakout & Forfeit Yield'}
                 </button>
               )}
             </div>

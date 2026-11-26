@@ -11,8 +11,10 @@ export interface SavingsRentPlan {
   address?: string
   cadence?: string
   productOption?: string
+  lockMode?: 'LOCKED' | 'FLEXIBLE'
   planPattern?: string
   initialDeposit?: number
+  paydayDayOfMonth?: number
   stepStartNaira?: number
   stepIncrementNaira?: number
 }

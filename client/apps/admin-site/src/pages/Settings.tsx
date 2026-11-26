@@ -13,7 +13,8 @@ interface SettingsProps {
 }
 
 const DEFAULT_PLATFORM_RATES = {
-  savingsAnnualRatePct: 14,
+  savingsAnnualRatePct: 16,
+  flexibleSavingsAnnualRatePct: 12,
   rentProtecRatePct: 10,
   insurancePremiumPct: 2,
   rentProtecMinMonths: 6,
@@ -29,6 +30,7 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
   const [savingsMode, setSavingsMode] = useState<'COMING_SOON' | 'OPT_IN_ONLY' | 'LIVE'>('LIVE')
   const [togglingSavings, setTogglingSavings] = useState(false)
   const [savingsRatePct, setSavingsRatePct] = useState('16')
+  const [flexibleSavingsRatePct, setFlexibleSavingsRatePct] = useState('12')
   const [rentProtecRatePct, setRentProtecRatePct] = useState('10')
   const [insurancePremiumPct, setInsurancePremiumPct] = useState('2')
   const [rentProtecMinMonths, setRentProtecMinMonths] = useState('6')
@@ -74,6 +76,9 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
         if (data.savingsAnnualRatePct !== undefined) {
           setSavingsRatePct(String(data.savingsAnnualRatePct))
         }
+        if (data.flexibleSavingsAnnualRatePct !== undefined) {
+          setFlexibleSavingsRatePct(String(data.flexibleSavingsAnnualRatePct))
+        }
         if (data.rentProtecRatePct !== undefined) {
           setRentProtecRatePct(String(data.rentProtecRatePct))
         }
@@ -99,6 +104,7 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
     payload: {
       savingsEnabled: boolean
       savingsAnnualRatePct: number
+      flexibleSavingsAnnualRatePct: number
       rentProtecRatePct: number
       insurancePremiumPct: number
       rentProtecMinMonths: number
@@ -122,13 +128,22 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
   const handleSaveRates = async (e: React.FormEvent) => {
     e.preventDefault()
     const parsedSavings = parseFloat(savingsRatePct)
+    const parsedFlexibleSavings = parseFloat(flexibleSavingsRatePct)
     const parsedRentProtec = parseFloat(rentProtecRatePct)
     const parsedInsurance = parseFloat(insurancePremiumPct)
     const parsedMinMonths = parseInt(rentProtecMinMonths, 10)
     const parsedMaxMonths = parseInt(maxSavingsMonths, 10)
 
     if (!Number.isFinite(parsedSavings) || parsedSavings < 0 || parsedSavings > 100) {
-      showToast('Save & Earn annual rate must be between 0% and 100%', true)
+      showToast('Save & Earn Full Lock annual rate must be between 0% and 100%', true)
+      return
+    }
+    if (
+      !Number.isFinite(parsedFlexibleSavings) ||
+      parsedFlexibleSavings < 0 ||
+      parsedFlexibleSavings > 100
+    ) {
+      showToast('Save & Earn Flexible annual rate must be between 0% and 100%', true)
       return
     }
     if (!Number.isFinite(parsedRentProtec) || parsedRentProtec < 0 || parsedRentProtec > 100) {
@@ -152,6 +167,7 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
       {
         savingsEnabled,
         savingsAnnualRatePct: parsedSavings,
+        flexibleSavingsAnnualRatePct: parsedFlexibleSavings,
         rentProtecRatePct: parsedRentProtec,
         insurancePremiumPct: parsedInsurance,
         rentProtecMinMonths: parsedMinMonths,
@@ -163,6 +179,7 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
 
   const handleResetDefaultRates = async () => {
     setSavingsRatePct(String(DEFAULT_PLATFORM_RATES.savingsAnnualRatePct))
+    setFlexibleSavingsRatePct(String(DEFAULT_PLATFORM_RATES.flexibleSavingsAnnualRatePct))
     setRentProtecRatePct(String(DEFAULT_PLATFORM_RATES.rentProtecRatePct))
     setInsurancePremiumPct(String(DEFAULT_PLATFORM_RATES.insurancePremiumPct))
     setRentProtecMinMonths(String(DEFAULT_PLATFORM_RATES.rentProtecMinMonths))
@@ -173,7 +190,7 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
         savingsEnabled,
         ...DEFAULT_PLATFORM_RATES,
       },
-      'Platform rates reset to defaults (14% / 10% / 2%).',
+      'Platform rates reset to defaults (16% locked / 12% flexible / 10% Rent Protec / 2%).',
     )
   }
 
@@ -491,7 +508,7 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
                   marginBottom: '6px',
                 }}
               >
-                Save & Earn Rate (% p.a.)
+                Save &amp; Earn Full Lock (% p.a.)
               </label>
               <input
                 type="number"
@@ -500,6 +517,31 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
                 max="100"
                 value={savingsRatePct}
                 onChange={(e) => setSavingsRatePct(e.target.value)}
+                className="input"
+                disabled={ratesLoading || savingRates}
+                required
+              />
+            </div>
+
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  color: 'var(--text-secondary)',
+                  marginBottom: '6px',
+                }}
+              >
+                Save &amp; Earn Flexible (% p.a.)
+              </label>
+              <input
+                type="number"
+                step="0.1"
+                min="0"
+                max="100"
+                value={flexibleSavingsRatePct}
+                onChange={(e) => setFlexibleSavingsRatePct(e.target.value)}
                 className="input"
                 disabled={ratesLoading || savingRates}
                 required

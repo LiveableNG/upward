@@ -15,6 +15,7 @@ import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.serv
 import { UserRepository, USER_REPOSITORY } from '../../../domains/users/user.repository'
 import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service'
 import { PlatformRatesService } from '../../../shared/infrastructure/common/platform-rates.service'
+import { clampReminderDay } from '../../../domains/rent-savings/reminder-day'
 import {
   SAVINGS_LEGAL_DEFAULTS,
   SavingsConsentPdfService,
@@ -54,6 +55,10 @@ export class RecordSavingsConsentDto {
   product_option?: 'SAVE_AND_EARN' | 'RENT_PROTEC'
 
   @IsOptional()
+  @IsIn(['LOCKED', 'FLEXIBLE'])
+  lock_mode?: 'LOCKED' | 'FLEXIBLE'
+
+  @IsOptional()
   @IsIn(['EQUAL', 'INITIAL_DEPOSIT', 'STEP_UP', 'ACCELERATED'])
   plan_pattern?: 'EQUAL' | 'INITIAL_DEPOSIT' | 'STEP_UP' | 'ACCELERATED'
 
@@ -61,6 +66,11 @@ export class RecordSavingsConsentDto {
   @IsNumber()
   @Type(() => Number)
   initial_deposit_kobo?: number
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  payday_day_of_month?: number
 }
 
 export interface ConsentRequestMeta {
@@ -240,13 +250,25 @@ export class RecordSavingsConsentUseCase {
       const updateData: any = { cadence: dto.cadence, preferredFundingMethod: 'DVA' }
       if (dto.product_option) {
         const rates = this.platformRates ? await this.platformRates.getRates() : null
+        const resolvedLockMode =
+          dto.product_option === 'RENT_PROTEC'
+            ? 'LOCKED'
+            : dto.lock_mode === 'FLEXIBLE'
+              ? 'FLEXIBLE'
+              : 'LOCKED'
         updateData.productOption = dto.product_option
+        updateData.lockMode = resolvedLockMode
         updateData.appliedAnnualRatePct =
           dto.product_option === 'RENT_PROTEC'
             ? (rates?.rentProtecRatePct ?? 10.0)
-            : (rates?.savingsAnnualRatePct ?? 16.0)
+            : resolvedLockMode === 'FLEXIBLE'
+              ? (rates?.flexibleSavingsAnnualRatePct ?? 12.0)
+              : (rates?.savingsAnnualRatePct ?? 16.0)
         updateData.insurancePremiumPct =
           dto.product_option === 'RENT_PROTEC' ? (rates?.insurancePremiumPct ?? 2.0) : 0
+      }
+      if (dto.payday_day_of_month !== undefined) {
+        updateData.paydayDayOfMonth = clampReminderDay(dto.payday_day_of_month)
       }
       if (dto.plan_pattern) {
         updateData.planPattern = dto.plan_pattern

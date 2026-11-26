@@ -60,11 +60,29 @@ export class BreakoutRentVaultUseCase {
       Math.floor((now.getTime() - vault.createdAt.getTime()) / (1000 * 60 * 60 * 24)),
     )
 
-    // Fair exit recalculation
-    const breakout = RentSavingsCalculatorEngine.calculateFairBreakout(
-      vault.currentPrincipalKobo,
-      daysHeld,
-    )
+    const isFlexible =
+      (vault as any).lockMode === 'FLEXIBLE' && vault.productOption !== 'RENT_PROTEC'
+    const isFullLock = !isFlexible && vault.productOption !== 'RENT_PROTEC'
+
+    if (isFullLock) {
+      throw new BadRequestException(
+        'Full Lock savings stay in place until 30 days before your rent due date and cannot be withdrawn earlier.',
+      )
+    }
+
+    // Flexible Save & Earn: 100% principal + 100% accrued yield, ₦0 penalty & ₦0 admin fee.
+    // Rent Protec: Fair Exit recalculation (7.0% p.a. + 1.5% admin fee).
+    const breakout = isFlexible
+      ? {
+          principalKobo: vault.currentPrincipalKobo,
+          recalculatedYieldKobo: vault.accruedYieldKobo,
+          adminFeeKobo: 0n,
+          netPayoutKobo: vault.currentPrincipalKobo + vault.accruedYieldKobo,
+        }
+      : RentSavingsCalculatorEngine.calculateFairBreakout(
+          vault.currentPrincipalKobo,
+          daysHeld,
+        )
 
     // Check active loan deductions
     let netPayout = breakout.netPayoutKobo
@@ -89,6 +107,7 @@ export class BreakoutRentVaultUseCase {
     } | null = null
 
     if (
+      !isFlexible &&
       vault.productOption === 'RENT_PROTEC' &&
       this.prisma?.upward_vault_treasury_summary
     ) {
@@ -157,18 +176,20 @@ export class BreakoutRentVaultUseCase {
           {
             vaultId: freshVault.id,
             userId,
-            type: 'LIQUIDATION_PENALTY',
-            amountKobo: breakout.adminFeeKobo,
+            type: isFlexible ? 'BREAKOUT_PAYOUT' : 'LIQUIDATION_PENALTY',
+            amountKobo: isFlexible ? netPayout : breakout.adminFeeKobo,
             principalDeltaKobo: -freshVault.currentPrincipalKobo,
             yieldDeltaKobo: -freshVault.accruedYieldKobo,
             balanceAfterKobo: 0n,
             reference: breakoutReference,
             channel: 'SYSTEM_YIELD',
-            narration:
-              premiumRecoveryDeduction > 0n
+            narration: isFlexible
+              ? `Flexible savings withdrawal executed: 100% principal & accrued yield returned with ₦0 exit fee`
+              : premiumRecoveryDeduction > 0n
                 ? `Fair exit breakout executed: 7.0% base yield applied, 1.5% admin fee & unrecovered Rent Protec premium deducted`
                 : `Fair exit breakout executed: 7.0% base yield applied, 1.5% admin fee deducted`,
             metadata: {
+              lockMode: isFlexible ? 'FLEXIBLE' : 'LOCKED',
               recalculatedYieldKobo: Number(breakout.recalculatedYieldKobo),
               adminFeeKobo: Number(breakout.adminFeeKobo),
               advanceDeductionKobo: Number(advanceDeduction),
@@ -265,15 +286,18 @@ export class BreakoutRentVaultUseCase {
       await this.rentVaultRepo.createTransaction({
         vaultId: vault.id,
         userId,
-        type: 'LIQUIDATION_PENALTY',
-        amountKobo: breakout.adminFeeKobo,
+        type: isFlexible ? 'BREAKOUT_PAYOUT' : 'LIQUIDATION_PENALTY',
+        amountKobo: isFlexible ? netPayout : breakout.adminFeeKobo,
         principalDeltaKobo: -vault.currentPrincipalKobo,
         yieldDeltaKobo: -vault.accruedYieldKobo,
         balanceAfterKobo: 0n,
         reference: breakoutReference,
         channel: 'SYSTEM_YIELD',
-        narration: `Fair exit breakout executed: 7.0% base yield applied, 1.5% admin fee deducted`,
+        narration: isFlexible
+          ? `Flexible savings withdrawal executed: 100% principal & accrued yield returned with ₦0 exit fee`
+          : `Fair exit breakout executed: 7.0% base yield applied, 1.5% admin fee deducted`,
         metadata: {
+          lockMode: isFlexible ? 'FLEXIBLE' : 'LOCKED',
           recalculatedYieldKobo: Number(breakout.recalculatedYieldKobo),
           adminFeeKobo: Number(breakout.adminFeeKobo),
           advanceDeductionKobo: Number(advanceDeduction),
@@ -326,28 +350,31 @@ export class BreakoutRentVaultUseCase {
         .catch(() => {})
     }
 
-    // Update savings score discipline penalty (-30 points)
-    const currentScore = await this.rentVaultRepo.findSavingsScoreByVaultId(vault.id)
-    const newScore = Math.max(0, (currentScore?.totalScore || 20) - 30)
-    await this.rentVaultRepo.upsertSavingsScore(vault.id, userId, {
-      loanDisciplinePoints: 0,
-      totalScore: newScore,
-      historyLog: [
-        ...(currentScore?.historyLog || []),
-        {
-          reason: 'Fair exit breakout executed prior to maturity',
-          delta: -30,
-          timestamp: now.toISOString(),
-        },
-      ],
-    })
+    // Update savings score discipline penalty (-30 points) for LOCKED vaults only
+    if (!isFlexible) {
+      const currentScore = await this.rentVaultRepo.findSavingsScoreByVaultId(vault.id)
+      const newScore = Math.max(0, (currentScore?.totalScore || 20) - 30)
+      await this.rentVaultRepo.upsertSavingsScore(vault.id, userId, {
+        loanDisciplinePoints: 0,
+        totalScore: newScore,
+        historyLog: [
+          ...(currentScore?.historyLog || []),
+          {
+            reason: 'Fair exit breakout executed prior to maturity',
+            delta: -30,
+            timestamp: now.toISOString(),
+          },
+        ],
+      })
+    }
 
     return {
       status: 'success',
       data: {
         breakout_reference: breakoutReference,
+        lock_mode: isFlexible ? 'FLEXIBLE' : 'LOCKED',
         original_principal_kobo: Number(vault.currentPrincipalKobo),
-        forfeited_yield_kobo: Number(vault.accruedYieldKobo),
+        forfeited_yield_kobo: isFlexible ? 0 : Number(vault.accruedYieldKobo),
         recalculated_base_yield_kobo: Number(breakout.recalculatedYieldKobo),
         admin_fee_kobo: Number(breakout.adminFeeKobo),
         advance_deduction_kobo: Number(advanceDeduction),

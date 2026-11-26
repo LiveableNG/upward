@@ -26,7 +26,6 @@ import {
 } from '../services/savingsService'
 import {
   SAVINGS_CONSENT_DOC_VERSION,
-  SAVINGS_FUND_CODE,
   SAVINGS_FUND_NAME,
   SAVINGS_TERMS_VERSION,
 } from '../constants/savingsLegal'
@@ -324,10 +323,26 @@ export function SavingsInvestorKycModal({
         ...kycData,
         next_of_kin_email: prefill?.next_of_kin_email || undefined,
         next_of_kin_address: prefill?.next_of_kin_address || undefined,
-        settlement_bank_code: prefill?.settlement_bank_code || undefined,
-        settlement_account_number: prefill?.settlement_account_number || undefined,
-        settlement_account_name: prefill?.settlement_account_name || undefined,
-        settlement_bank_name: prefill?.settlement_bank_name || undefined,
+        settlement_bank_code:
+          kycData.settlement_bank_code ||
+          prefill?.settlement_bank?.bank_code ||
+          prefill?.settlement_bank_code ||
+          undefined,
+        settlement_account_number:
+          kycData.settlement_account_number ||
+          prefill?.settlement_bank?.account_number ||
+          prefill?.settlement_account_number ||
+          undefined,
+        settlement_account_name:
+          kycData.settlement_account_name ||
+          prefill?.settlement_bank?.account_name ||
+          prefill?.settlement_account_name ||
+          undefined,
+        settlement_bank_name:
+          kycData.settlement_bank_name ||
+          prefill?.settlement_bank?.bank_name ||
+          prefill?.settlement_bank_name ||
+          undefined,
         target_amount: targetRent || undefined,
         rent_due_date: targetDueDate || undefined,
         cadence: selectedCadence,
@@ -383,14 +398,14 @@ export function SavingsInvestorKycModal({
           ? 'Make a Deposit'
           : step === 3
             ? 'Pay Less for Your Next Rent'
-            : 'Identity & Address Verification'
+            : 'Identity'
       }
       subtitle={
         step === 4
           ? undefined
           : step === 3
-            ? `Earn ${savingsAnnualRatePct}% p.a. returns in ${fundDisplayName} (${SAVINGS_FUND_CODE})`
-            : `Required by CBN & SEC • ${fundDisplayName} (${SAVINGS_FUND_CODE})`
+            ? `${savingsAnnualRatePct}% p.a.`
+            : undefined
       }
       icon={
         step === 4 ? (
@@ -428,7 +443,7 @@ export function SavingsInvestorKycModal({
             fundName={fundDisplayName}
             serverError={formError}
             isSubmitting={isLoading}
-            submitLabel="Verify Identity & Continue"
+            submitLabel="Continue"
             onSubmit={handleArmKycSubmit}
           />
         )}
@@ -797,7 +812,7 @@ export function SavingsInvestorKycModal({
                 </div>
                 <div>
                   <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', display: 'block' }}>
-                    Est. Returns
+                    Expected Returns
                   </span>
                   <span style={{ fontSize: '0.9375rem', fontWeight: 800, color: '#059669' }}>
                     +{formatCurrency(estimatedYield, 'NGN')}
@@ -813,7 +828,7 @@ export function SavingsInvestorKycModal({
                   lineHeight: 1.45,
                 }}
               >
-                Save consistently for est. <strong>+{formatCurrency(estimatedYield, 'NGN')} in returns</strong> — earning {savingsAnnualRatePct}% p.a.{activeProductOption === 'RENT_PROTEC' ? ' + Rent Protec cover' : ''} towards your balance by {earlySettlementDateStr} (max {platformRates.maxSavingsMonths} months).
+                Save consistently for expected returns of <strong>+{formatCurrency(estimatedYield, 'NGN')}</strong> — earning {savingsAnnualRatePct}% p.a.{activeProductOption === 'RENT_PROTEC' ? ' + Rent Protec cover' : ''} towards your balance by {earlySettlementDateStr} (max {platformRates.maxSavingsMonths} months).
               </p>
             </div>
 
@@ -914,7 +929,7 @@ export function SavingsInvestorKycModal({
                   </strong>{' '}
                   monthly for the rest of the year{' '}
                   <span style={{ color: '#059669', fontWeight: 600 }}>
-                    (est. +{formatCurrency(interestStep4, 'NGN')} in returns)
+                    (expected +{formatCurrency(interestStep4, 'NGN')} in returns)
                   </span>.
                 </div>
               )}

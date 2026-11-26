@@ -408,10 +408,11 @@ model upward_savings_config {
 model upward_platform_rate_config {
   id                   Int      @id @default(autoincrement())
   key                  String   @unique @default("GLOBAL")
-  savingsEnabled       Boolean  @default(true)
-  savingsMode          String   @default("LIVE") // COMING_SOON, OPT_IN_ONLY, LIVE
-  savingsAnnualRatePct Float    @default(16.0)
-  rentProtecRatePct    Float    @default(10.0)
+  savingsEnabled               Boolean  @default(true)
+  savingsMode                  String   @default("LIVE") // COMING_SOON, OPT_IN_ONLY, LIVE
+  savingsAnnualRatePct         Float    @default(16.0)
+  flexibleSavingsAnnualRatePct Float    @default(12.0)
+  rentProtecRatePct            Float    @default(10.0)
   insurancePremiumPct  Float    @default(2.0)
   rentProtecMinMonths  Int      @default(6)
   maxSavingsMonths     Int      @default(11)

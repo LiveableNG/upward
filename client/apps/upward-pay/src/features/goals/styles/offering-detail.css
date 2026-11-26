@@ -31,10 +31,46 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
   max-width: 1080px;
   margin: 0 auto;
   width: 100%;
   box-sizing: border-box;
+}
+
+.offering-detail__sticky-context {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.offering-detail__sticky-context--visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.offering-detail__sticky-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text, #1a1714);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.offering-detail__sticky-price {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--clay, #c2501f);
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .offering-detail__back-btn {

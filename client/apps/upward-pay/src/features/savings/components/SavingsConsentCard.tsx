@@ -13,6 +13,8 @@ import {
   SAVINGS_TERMS_VERSION,
 } from '../constants/savingsLegal'
 
+import type { SavingsLockMode, SavingsProductOption } from '../services/savingsService'
+
 interface SavingsConsentCardProps {
   acceptedTerms: boolean
   acceptedArmMandate: boolean
@@ -20,6 +22,8 @@ interface SavingsConsentCardProps {
   onAcceptedArmMandateChange: (checked: boolean) => void
   annualRatePct?: number
   fundName?: string
+  lockMode?: SavingsLockMode
+  productOption?: SavingsProductOption
   disabled?: boolean
 }
 
@@ -30,9 +34,12 @@ export function SavingsConsentCard({
   onAcceptedArmMandateChange,
   annualRatePct = 16,
   fundName = SAVINGS_FUND_NAME,
+  lockMode = 'LOCKED',
+  productOption = 'SAVE_AND_EARN',
   disabled = false,
 }: SavingsConsentCardProps) {
   const [activeDoc, setActiveDoc] = useState<'TERMS' | 'CONSENT' | null>(null)
+  const isFlexible = lockMode === 'FLEXIBLE' && productOption !== 'RENT_PROTEC'
 
   return (
     <>
@@ -40,55 +47,20 @@ export function SavingsConsentCard({
         <div className="savings-consent__header">
           <ShieldCheck size={16} className="savings-consent__header-icon" />
           <div className="savings-consent__header-copy">
-            <span className="savings-consent__title">
-              Terms &amp; Conditions and ARM Investment Consent
-            </span>
+            <span className="savings-consent__title">Terms</span>
             <span className="savings-consent__subtitle">
-              Invested in <strong>{fundName} ({SAVINGS_FUND_CODE})</strong> · {annualRatePct}% p.a. indicative
+              {fundName} · {annualRatePct}% p.a.
             </span>
           </div>
         </div>
 
-        <div className="savings-consent__doc-links">
-          <button
-            type="button"
-            className="savings-consent__doc-btn"
-            onClick={() => setActiveDoc('TERMS')}
-          >
-            <FileText size={14} />
-            <span>Read Terms &amp; Conditions</span>
-          </button>
-          <button
-            type="button"
-            className="savings-consent__doc-btn"
-            onClick={() => setActiveDoc('CONSENT')}
-          >
-            <FileCheck2 size={14} />
-            <span>Read Consent Mandate Doc</span>
-          </button>
-        </div>
-
-        <div className="savings-lock-terms">
-          <div className="savings-lock-terms__row">
-            <span className="savings-lock-terms__badge savings-lock-terms__badge--full">
-              Full Term (T-30 Days)
-            </span>
-            <p className="savings-lock-terms__text">
-              Keep your savings locked until 30 days before rent day to earn the full{' '}
-              <strong>{annualRatePct}% p.a.</strong> compounding return.
-            </p>
-          </div>
-          <div className="savings-lock-terms__row">
-            <span className="savings-lock-terms__badge savings-lock-terms__badge--early">
-              Early Withdrawal Option
-            </span>
-            <p className="savings-lock-terms__text">
-              Need funds early? You can withdraw anytime before T-30 under Fair Exit terms (yield
-              recalculated at <strong>7.0% p.a.</strong> + <strong>1.5%</strong> admin fee, plus any
-              unrecovered Rent Protec coverage cost if applicable).
-            </p>
-          </div>
-        </div>
+        <p className="savings-consent__lock-summary">
+          {isFlexible
+            ? 'You can withdraw anytime, with no fee.'
+            : productOption === 'RENT_PROTEC'
+              ? 'Held until 30 days before rent day.'
+              : 'Held until 30 days before rent day. You cannot withdraw before then.'}
+        </p>
 
         <div className="savings-consent__checkboxes">
           <label className="savings-consent__checkbox-row">
@@ -100,7 +72,7 @@ export function SavingsConsentCard({
               className="savings-consent__checkbox"
             />
             <span>
-              I have read and agree to the{' '}
+              I agree to the{' '}
               <button
                 type="button"
                 className="savings-consent__inline-link"
@@ -109,9 +81,9 @@ export function SavingsConsentCard({
                   setActiveDoc('TERMS')
                 }}
               >
-                Rent Savings Terms &amp; Conditions
-              </button>{' '}
-              and the Lock &amp; Early Withdrawal Terms above.
+                Savings Terms
+              </button>
+              .
             </span>
           </label>
 
@@ -124,7 +96,7 @@ export function SavingsConsentCard({
               className="savings-consent__checkbox"
             />
             <span>
-              I review and execute the{' '}
+              I agree to the{' '}
               <button
                 type="button"
                 className="savings-consent__inline-link"
@@ -133,10 +105,9 @@ export function SavingsConsentCard({
                   setActiveDoc('CONSENT')
                 }}
               >
-                ARM B2B2C Consent Document
+                ARM Consent
               </button>
-              , authorizing Upward / GoodTenants to onboard me to ARM, invest my deposits into the{' '}
-              <strong>{fundName} ({SAVINGS_FUND_CODE})</strong>, and redeem units for rent settlement.
+              .
             </span>
           </label>
         </div>
@@ -203,7 +174,7 @@ export function SavingsConsentCard({
               setActiveDoc(null)
             }}
           >
-            {activeDoc === 'TERMS' ? 'I Have Read & Accept T&Cs' : 'I Have Read & Confirm Consent'}
+            Accept
           </button>
         </div>
       </BottomSheetModal>

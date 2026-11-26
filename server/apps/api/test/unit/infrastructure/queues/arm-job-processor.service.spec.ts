@@ -320,6 +320,14 @@ describe('ArmJobProcessorService', () => {
       },
     }
 
+    prisma.upward_user_bank_details = {
+      findUnique: jest.fn().mockResolvedValue({
+        bankCode: '058',
+        bankName: 'Guaranty Trust Bank',
+        accountNumber: '0123456789',
+        accountName: 'Chidi Eze',
+      }),
+    }
     prisma.upward_arm_job.findUnique.mockResolvedValueOnce(onboardJob)
     const processorWithS3 = new ArmJobProcessorService(
       prisma,
@@ -336,6 +344,12 @@ describe('ArmJobProcessorService', () => {
     expect(mockS3.getFileBuffer).toHaveBeenCalledWith('users/u-12/arm-kyc/utility_bill/nepa.pdf')
     expect(mockArmProvider.onboardInvestor).toHaveBeenCalledWith(
       expect.objectContaining({
+        bankDetails: expect.objectContaining({
+          bankCode: '058',
+          bankName: 'Guaranty Trust Bank',
+          accountNumber: '0123456789',
+          accountName: 'Chidi Eze',
+        }),
         documents: expect.objectContaining({
           id_card: expect.objectContaining({
             base64: Buffer.from('fake-id-image-bytes').toString('base64'),

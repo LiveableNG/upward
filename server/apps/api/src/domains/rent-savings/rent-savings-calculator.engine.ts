@@ -1,8 +1,30 @@
 import {
   CadenceType,
+  SavingsLockMode,
   SavingsPlanPattern,
   SavingsProductOption,
 } from './rent-vault.types'
+
+export type DepositClassification =
+  | 'INITIAL_DEPOSIT'
+  | 'MONTHLY_CONTRIBUTION'
+  | 'PARTIAL_MONTHLY'
+  | 'EXTRA_TOPUP'
+
+export interface ClassifyDepositInput {
+  currentPrincipalKobo: bigint
+  initialDepositKobo: bigint
+  plannedMonthlyDepositKobo: bigint
+  currentMonthAppliedKobo: bigint
+  depositAmountKobo: bigint
+  explicitDepositKind?: 'MONTHLY' | 'EXTRA_TOPUP' | 'INITIAL_DEPOSIT' | null
+}
+
+export interface ClassifyDepositResult {
+  classification: DepositClassification
+  shouldRecalculateMonthlyTarget: boolean
+  surplusForMonthKobo: bigint
+}
 
 export interface SimulationInput {
   targetAmountKobo: bigint
@@ -10,6 +32,7 @@ export interface SimulationInput {
   initialDepositKobo?: bigint
   cadence: CadenceType
   productOption?: SavingsProductOption
+  lockMode?: SavingsLockMode
   planPattern?: SavingsPlanPattern
   monthlyIncomeKobo?: bigint
   asOfDate?: Date
@@ -26,11 +49,14 @@ export interface SimulationResult {
   firstPeriodDepositKobo: bigint
   lastPeriodDepositKobo: bigint
   requiredInitialDepositKobo: bigint
+  minimumInitialDepositKobo: bigint
+  minimumInitialDepositPct: number
   numberOfPayments: number
   totalTenantContributionKobo: bigint
   projectedYieldKobo: bigint
   netAnnualYieldRate: number
   productOption: SavingsProductOption
+  lockMode: SavingsLockMode
   planPattern: SavingsPlanPattern
   isRentProtecEligible: boolean
   rentProtecIneligibilityReason?: string
@@ -43,24 +69,168 @@ export interface SimulationResult {
 }
 
 export class RentSavingsCalculatorEngine {
+  public static readonly DEFAULT_ARM_SPREAD_DECIMAL = 0.0655 // ~16.55% ARM gross - 10.0% Rent Protec
+  public static readonly RENT_PROTEC_TARGET_COST_DECIMAL = 0.0215 // 2.0% upfront premium + 0.15% safety buffer
+
   /**
-   * Safe Rent Protec coverage activation threshold (% of annual rent):
-   * - 20% for 7+ months (>= 210 days): holds 10x the 2% upfront premium and
-   *   earns 2.05%-3.55% spread at 6.55% spread rate (even on conservative deposit timing).
-   * - 25% for 6 months (< 210 days): ensures full breakeven (>= 2.02% spread) on the shortest term.
+   * Algebraic breakeven deposit ratio for Rent Protec coverage activation:
+   *   d_min(T) = clamp((2 * c_target) / (s * (T / 365)) - 1, 0.20, 0.45)
+   *
+   * - Guarantees zero loss / full spread recovery over term T at spread s.
+   * - Floor 20% ensures Upward always holds >= 10x the 2% upfront insurance premium.
+   * - Examples at s = 6.55%, c_target = 2.15%:
+   *   7-11 months (>= 210d) -> 20%
+   *   6 months (180d)       -> 33%
    */
-  static getRentProtecActivationThresholdPct(daysRemaining: number): number {
-    return daysRemaining >= 210 ? 20 : 25
+  static getRentProtecActivationThresholdPct(
+    daysRemaining: number,
+    spreadRateDecimal: number = RentSavingsCalculatorEngine.DEFAULT_ARM_SPREAD_DECIMAL,
+    targetCostDecimal: number = RentSavingsCalculatorEngine.RENT_PROTEC_TARGET_COST_DECIMAL,
+  ): number {
+    const safeDays = Math.max(1, daysRemaining)
+    const safeSpread = Math.max(0.01, spreadRateDecimal)
+    const rawRatio = (2 * targetCostDecimal) / (safeSpread * (safeDays / 365)) - 1
+    const clampedRatio = Math.min(0.45, Math.max(0.2, rawRatio))
+    return Math.round(clampedRatio * 100)
   }
 
   static getRentProtecActivationThresholdKobo(
     targetAmountKobo: bigint,
     daysRemaining: number,
+    spreadRateDecimal: number = RentSavingsCalculatorEngine.DEFAULT_ARM_SPREAD_DECIMAL,
+    targetCostDecimal: number = RentSavingsCalculatorEngine.RENT_PROTEC_TARGET_COST_DECIMAL,
   ): bigint {
-    const pct = this.getRentProtecActivationThresholdPct(daysRemaining)
+    const pct = this.getRentProtecActivationThresholdPct(
+      daysRemaining,
+      spreadRateDecimal,
+      targetCostDecimal,
+    )
     return BigInt(Math.round(Number(targetAmountKobo) * (pct / 100)))
   }
-  public static readonly ANNUAL_NET_YIELD = 0.16 // 16.0% p.a.
+
+  /**
+   * Deterministic classification for incoming DVA / Paystack deposits.
+   * - Keeps monthly installment predictable during normal monthly & split-monthly payments.
+   * - Only recalculates (reduces) future monthly installments on explicit or post-fulfillment Extra Top-Ups.
+   */
+  static classifyDirectDeposit(input: ClassifyDepositInput): ClassifyDepositResult {
+    const {
+      currentPrincipalKobo,
+      initialDepositKobo,
+      plannedMonthlyDepositKobo,
+      currentMonthAppliedKobo,
+      depositAmountKobo,
+      explicitDepositKind,
+    } = input
+
+    if (explicitDepositKind === 'EXTRA_TOPUP') {
+      return {
+        classification: 'EXTRA_TOPUP',
+        shouldRecalculateMonthlyTarget: true,
+        surplusForMonthKobo: 0n,
+      }
+    }
+
+    if (
+      explicitDepositKind === 'INITIAL_DEPOSIT' ||
+      (currentPrincipalKobo === 0n && initialDepositKobo > 0n)
+    ) {
+      return {
+        classification: 'INITIAL_DEPOSIT',
+        shouldRecalculateMonthlyTarget:
+          initialDepositKobo > 0n && depositAmountKobo > initialDepositKobo,
+        surplusForMonthKobo:
+          depositAmountKobo > initialDepositKobo ? depositAmountKobo - initialDepositKobo : 0n,
+      }
+    }
+
+    if (plannedMonthlyDepositKobo <= 0n) {
+      return {
+        classification: 'MONTHLY_CONTRIBUTION',
+        shouldRecalculateMonthlyTarget: false,
+        surplusForMonthKobo: 0n,
+      }
+    }
+
+    if (currentMonthAppliedKobo < plannedMonthlyDepositKobo) {
+      const remainingForMonth = plannedMonthlyDepositKobo - currentMonthAppliedKobo
+      if (depositAmountKobo >= remainingForMonth) {
+        return {
+          classification: 'MONTHLY_CONTRIBUTION',
+          shouldRecalculateMonthlyTarget: false,
+          surplusForMonthKobo: depositAmountKobo - remainingForMonth,
+        }
+      }
+      return {
+        classification: 'PARTIAL_MONTHLY',
+        shouldRecalculateMonthlyTarget: false,
+        surplusForMonthKobo: 0n,
+      }
+    }
+
+    return {
+      classification: 'EXTRA_TOPUP',
+      shouldRecalculateMonthlyTarget: true,
+      surplusForMonthKobo: 0n,
+    }
+  }
+
+  /**
+   * Recomputes the remaining fixed monthly contribution after an Extra Top-Up (or higher upfront deposit).
+   * Guarantees the recalculated target is capped at currentPlannedKobo (never increases due to date rounding).
+   */
+  static recalculateMonthlyTargetKobo(params: {
+    targetAmountKobo: bigint
+    currentBalanceKobo: bigint
+    contractualDueDate: Date
+    annualNetYieldRate: number
+    currentPlannedMonthlyKobo?: bigint
+    asOfDate?: Date
+    maxSavingsMonths?: number
+    currentMonthAlreadyFulfilled?: boolean
+  }): bigint {
+    const {
+      targetAmountKobo,
+      currentBalanceKobo,
+      contractualDueDate,
+      annualNetYieldRate,
+      currentPlannedMonthlyKobo = 0n,
+      asOfDate = new Date(),
+      maxSavingsMonths = 11,
+      currentMonthAlreadyFulfilled = false,
+    } = params
+
+    if (currentBalanceKobo >= targetAmountKobo) return 0n
+
+    const rawDays = this.calculateDaysRemaining(contractualDueDate, asOfDate)
+    const activeDays = Math.max(1, rawDays - 30)
+    const totalRemainingMonths = Math.min(
+      Math.min(11, Math.max(1, maxSavingsMonths)),
+      Math.max(1, Math.floor(activeDays / 30)),
+    )
+    const futurePayments = currentMonthAlreadyFulfilled
+      ? Math.max(1, totalRemainingMonths - 1)
+      : totalRemainingMonths
+
+    const monthlyRate = Math.pow(1 + Math.max(0, annualNetYieldRate), 1 / 12) - 1
+    const fvCurrent = Number(currentBalanceKobo) * Math.pow(1 + monthlyRate, totalRemainingMonths)
+    const deficit = Math.max(0, Number(targetAmountKobo) - fvCurrent)
+    if (deficit <= 0) return 0n
+
+    let discountSum = 0
+    for (let i = 1; i <= futurePayments; i++) {
+      discountSum += Math.pow(1 + monthlyRate, Math.max(0, futurePayments - i))
+    }
+
+    const recomputed = discountSum > 0 ? BigInt(Math.ceil(deficit / discountSum)) : 0n
+    if (currentPlannedMonthlyKobo > 0n && recomputed > currentPlannedMonthlyKobo) {
+      return currentPlannedMonthlyKobo
+    }
+    return recomputed
+  }
+
+  public static readonly ANNUAL_NET_YIELD = 0.16 // 16.0% p.a. (Full Lock Save & Earn)
+  public static readonly ANNUAL_FLEXIBLE_YIELD = 0.12 // 12.0% p.a. (Flexible Save & Earn)
   public static readonly ANNUAL_BASE_EXIT_YIELD = 0.07 // 7.0% p.a. (Fair Exit)
   public static readonly DAYS_IN_YEAR = 365
   public static readonly DAILY_RATE =
@@ -96,6 +266,12 @@ export class RentSavingsCalculatorEngine {
     const maxMonths = Math.min(11, Math.max(1, input.maxSavingsMonths ?? 11))
     const minRentProtecMonths = Math.max(1, input.rentProtecMinMonths ?? 6)
     const productOption: SavingsProductOption = input.productOption ?? 'SAVE_AND_EARN'
+    const lockMode: SavingsLockMode =
+      productOption === 'RENT_PROTEC'
+        ? 'LOCKED'
+        : input.lockMode === 'FLEXIBLE'
+          ? 'FLEXIBLE'
+          : 'LOCKED'
     const planPattern: SavingsPlanPattern = input.planPattern ?? 'INITIAL_DEPOSIT'
 
     // Rent is released strictly 30 days before contractual due date.
@@ -118,26 +294,28 @@ export class RentSavingsCalculatorEngine {
         ? input.annualNetYieldRate
         : productOption === 'RENT_PROTEC'
           ? 0.1
-          : 0.16
+          : lockMode === 'FLEXIBLE'
+            ? 0.12
+            : 0.16
 
     // Exact monthly effective rate: r_m = (1 + r_a)^(1/12) - 1 (Section 3.4)
     const monthlyRate = Math.pow(1 + effectiveAnnualYield, 1 / 12) - 1
 
-    // Required initial deposit when choosing RENT_PROTEC (20% for 7+ mo, 25% for 6 mo)
-    const minRentProtecRatio =
-      this.getRentProtecActivationThresholdPct(rawDaysRemaining) / 100
-    const missedMonths = Math.max(0, maxMonths - monthsRemaining)
-    const forcedDepositRatio =
+    // Formula-derived minimum upfront deposit for RENT_PROTEC (20% for 7-11mo, 33% for 6mo)
+    const minimumInitialDepositPct =
       productOption === 'RENT_PROTEC'
-        ? Math.min(0.45, Math.max(minRentProtecRatio, (missedMonths / maxMonths) * 0.5))
+        ? this.getRentProtecActivationThresholdPct(rawDaysRemaining)
         : 0
-    const requiredInitialDepositNum = Math.round(targetAmount * forcedDepositRatio)
+    const requiredInitialDepositNum =
+      productOption === 'RENT_PROTEC'
+        ? Math.round(targetAmount * (minimumInitialDepositPct / 100))
+        : 0
     const providedInitialDeposit = Number(input.initialDepositKobo || 0n)
     const effectiveInitialDeposit =
-      providedInitialDeposit > 0
-        ? providedInitialDeposit
-        : productOption === 'RENT_PROTEC'
-          ? requiredInitialDepositNum
+      productOption === 'RENT_PROTEC'
+        ? Math.max(providedInitialDeposit, requiredInitialDepositNum)
+        : providedInitialDeposit > 0
+          ? providedInitialDeposit
           : 0
 
     // Number of contribution periods based on cadence within <= 11-month window
@@ -236,11 +414,14 @@ export class RentSavingsCalculatorEngine {
       firstPeriodDepositKobo: BigInt(firstPeriodDepositNum),
       lastPeriodDepositKobo: BigInt(lastPeriodDepositNum),
       requiredInitialDepositKobo: BigInt(effectiveInitialDeposit),
+      minimumInitialDepositKobo: BigInt(requiredInitialDepositNum),
+      minimumInitialDepositPct,
       numberOfPayments,
       totalTenantContributionKobo,
       projectedYieldKobo,
       netAnnualYieldRate: effectiveAnnualYield,
       productOption,
+      lockMode,
       planPattern,
       isRentProtecEligible,
       rentProtecIneligibilityReason,

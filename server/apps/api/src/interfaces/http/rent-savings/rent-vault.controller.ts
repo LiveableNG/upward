@@ -7,6 +7,7 @@ import {
   HttpStatus,
   Inject,
   Param,
+  Patch,
   Post,
   Req,
   Res,
@@ -184,6 +185,17 @@ export class RentVaultController {
   async getMyVault(@Req() req: any) {
     const userId = await this.getNumericUserId(req)
     return this.getMyVaultUseCase.execute(userId)
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('me/schedule')
+  @HttpCode(HttpStatus.OK)
+  async updateMyVaultSchedule(
+    @Req() req: any,
+    @Body() body: { payday_day_of_month?: number },
+  ) {
+    const userId = await this.getNumericUserId(req)
+    return this.getMyVaultUseCase.updatePaydayDay(userId, Number(body?.payday_day_of_month ?? 28))
   }
 
   @UseGuards(JwtAuthGuard)

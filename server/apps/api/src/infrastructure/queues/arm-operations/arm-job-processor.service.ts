@@ -224,7 +224,8 @@ export class ArmJobProcessorService {
           throw new ArmOperationError('Missing onboardingRequest payload on ARM job', 400, false)
         }
 
-        const hydratedPayload = await this.hydrateOnboardingDocuments(onboardingPayload)
+        let hydratedPayload = await this.hydrateOnboardingDocuments(onboardingPayload)
+        hydratedPayload = await this.hydrateOnboardingBankDetails(job.userId, hydratedPayload)
         const onboardRes = await provider.onboardInvestor(hydratedPayload)
         if (!onboardRes.success) {
           const reason = onboardRes.failureReason || 'ARM onboarding rejected'
@@ -340,6 +341,29 @@ export class ArmJobProcessorService {
         bvn_passport,
         id_card,
         utility_bill,
+      },
+    }
+  }
+
+  private async hydrateOnboardingBankDetails(
+    userId: number | null | undefined,
+    request: InvestorOnboardingRequest,
+  ): Promise<InvestorOnboardingRequest> {
+    if (!userId || !this.prisma?.upward_user_bank_details?.findUnique) return request
+    const savedBank = await this.prisma.upward_user_bank_details.findUnique({
+      where: { userId },
+    })
+    if (!savedBank?.bankCode || !savedBank?.accountNumber) return request
+    return {
+      ...request,
+      bankDetails: {
+        bankCode: savedBank.bankCode,
+        bankName: savedBank.bankName || 'Commercial Bank',
+        accountNumber: savedBank.accountNumber,
+        accountName:
+          savedBank.accountName ||
+          `${request.personalDetails?.firstName || ''} ${request.personalDetails?.surname || ''}`.trim() ||
+          'Account Holder',
       },
     }
   }

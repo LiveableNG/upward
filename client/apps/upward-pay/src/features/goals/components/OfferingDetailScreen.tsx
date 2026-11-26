@@ -367,6 +367,8 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
     usePublicOfferings()
 
   const carouselRef = React.useRef<HTMLDivElement>(null)
+  const heroSummaryRef = React.useRef<HTMLDivElement>(null)
+  const [showStickyContext, setShowStickyContext] = useState(false)
 
   const scrollCarousel = (direction: 'left' | 'right') => {
     if (carouselRef.current) {
@@ -539,6 +541,29 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
     offering && (offering.type === 'BUNDLE' || offering.type === 'PACKAGE'),
   )
   const isLockedPackage = Boolean(offering && offering.type === 'PACKAGE')
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof IntersectionObserver === 'undefined') return
+    const target = heroSummaryRef.current
+    if (!target) {
+      setShowStickyContext(false)
+      return
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0]
+        if (!entry) return
+        setShowStickyContext(!entry.isIntersecting && entry.boundingClientRect.top < 64)
+      },
+      {
+        root: null,
+        rootMargin: '-60px 0px 0px 0px',
+        threshold: 0,
+      },
+    )
+    observer.observe(target)
+    return () => observer.disconnect()
+  }, [offering?.id, isBundle])
 
   const effectivePackageItems = useMemo(() => {
     if (!offering || !isBundle) return []
@@ -832,9 +857,16 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
     : 0
 
   if (isBundle) {
+    const bundleHeroImage =
+      offering.imageUrl ||
+      offering.promoCoverImage ||
+      images[0] ||
+      (packageItems[0]?.component || packageItems[0]?.itemOffering)?.imageUrl ||
+      null
+
     return (
       <div className="offering-detail" data-hide-bottom-nav="true">
-        {/* Navigation Bar */}
+        {/* Navigation Bar with Sticky Compact Bundle Context on Scroll */}
         <header className="offering-detail__header">
           <div className="offering-detail__header-inner">
             <button
@@ -846,7 +878,19 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
               <ArrowLeft size={18} />
             </button>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div
+              className={`offering-detail__sticky-context ${
+                showStickyContext ? 'offering-detail__sticky-context--visible' : ''
+              }`}
+              aria-hidden={!showStickyContext}
+            >
+              <span className="offering-detail__sticky-title">{title}</span>
+              <span className="offering-detail__sticky-price">
+                {formatNgn(customBundlePrice)}
+              </span>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
               <button
                 type="button"
                 className="bundle-showcase__cart-trigger"
@@ -876,15 +920,15 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
         <main className="offering-detail__container bundle-showcase">
           {/* Clean Editorial Hero Banner */}
           <section className="bundle-showcase__hero">
-            {offering.imageUrl && (
+            {bundleHeroImage && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={offering.imageUrl}
+                src={bundleHeroImage}
                 alt={title}
                 className="bundle-showcase__hero-img"
               />
             )}
-            <div className="bundle-showcase__hero-info">
+            <div className="bundle-showcase__hero-info" ref={heroSummaryRef}>
               <h1 className="bundle-showcase__title">{title}</h1>
               {offering.subtitle && (
                 <p className="bundle-showcase__subtitle">{offering.subtitle}</p>
@@ -1150,7 +1194,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
 
   return (
     <div className="offering-detail" data-hide-bottom-nav="true">
-      {/* Sticky Navigation Bar */}
+      {/* Sticky Navigation Bar with Compact Context on Scroll */}
       <header className="offering-detail__header">
         <div className="offering-detail__header-inner">
           <button
@@ -1162,7 +1206,19 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
             <ArrowLeft size={18} />
           </button>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div
+            className={`offering-detail__sticky-context ${
+              showStickyContext ? 'offering-detail__sticky-context--visible' : ''
+            }`}
+            aria-hidden={!showStickyContext}
+          >
+            <span className="offering-detail__sticky-title">{title}</span>
+            <span className="offering-detail__sticky-price">
+              {formatOfferingPrice(offering)}
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
             <button
               type="button"
               className="bundle-showcase__cart-trigger"
@@ -1194,7 +1250,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
           {/* Left / Main Column */}
           <div className="offering-detail__main">
             {/* Media Gallery */}
-            <div className="offering-detail__gallery">
+            <div className="offering-detail__gallery" ref={heroSummaryRef}>
               <div
                 className={`offering-detail__hero-media ${showActiveImage ? 'offering-detail__hero-media--clickable' : ''}`}
                 onClick={() => {

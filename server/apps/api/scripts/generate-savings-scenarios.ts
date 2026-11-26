@@ -37,8 +37,15 @@ interface ScenarioConfig {
   earlyExitDay?: number
 }
 
-function getActivationThresholdPct(totalDays: number): number {
-  return totalDays >= 210 ? 20 : 25
+function getActivationThresholdPct(
+  totalDays: number,
+  spreadRateDecimal = 0.0655,
+  targetCostDecimal = 0.0215,
+): number {
+  const safeDays = Math.max(1, totalDays)
+  const rawRatio = (2 * targetCostDecimal) / (spreadRateDecimal * (safeDays / 365)) - 1
+  const clamped = Math.min(0.45, Math.max(0.2, rawRatio))
+  return Math.round(clamped * 100)
 }
 
 function simulateScenario(cfg: ScenarioConfig) {
@@ -174,10 +181,10 @@ async function main() {
     ...Array.from({ length: 9 }, (_, i) => ({ day: (i + 1) * 30 + 1, amountNgn: 166_000 })),
   ]
 
-  // 6-month Rent Protec: 25% Day 1 (₦500k) + 5 monthly deposits of ₦285,000
+  // 6-month Rent Protec: 33% Day 1 (₦660k, formula breakeven) + 5 monthly deposits of ₦253,000
   const rentProtec6Mo: DepositEvent[] = [
-    { day: 1, amountNgn: 500_000 },
-    ...Array.from({ length: 5 }, (_, i) => ({ day: (i + 1) * 30 + 1, amountNgn: 285_000 })),
+    { day: 1, amountNgn: 660_000 },
+    ...Array.from({ length: 5 }, (_, i) => ({ day: (i + 1) * 30 + 1, amountNgn: 253_000 })),
   ]
 
   // Save & Earn 10-month equal monthly
@@ -210,8 +217,8 @@ async function main() {
       deposits: rentProtec10Mo,
     },
     {
-      name: '3. Rent Protec 6Mo (25% Day 1 Activation, Maturity)',
-      sheetName: 'S3_RentProtec_6Mo_25pct',
+      name: '3. Rent Protec 6Mo (33% Formula Day 1 Activation, Maturity)',
+      sheetName: 'S3_RentProtec_6Mo_33pct',
       productOption: 'RENT_PROTEC',
       targetRentNgn: targetRent,
       totalDays: 180,

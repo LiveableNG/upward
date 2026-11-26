@@ -36,6 +36,7 @@ export class AdminFeesController {
       savingsEnabled?: boolean
       savingsMode?: 'COMING_SOON' | 'OPT_IN_ONLY' | 'LIVE'
       savingsAnnualRatePct?: number
+      flexibleSavingsAnnualRatePct?: number
       rentProtecRatePct?: number
       insurancePremiumPct?: number
       rentProtecMinMonths?: number
@@ -49,6 +50,7 @@ export class AdminFeesController {
       savingsEnabled: body.savingsEnabled,
       savingsMode: body.savingsMode,
       savingsAnnualRatePct: body.savingsAnnualRatePct,
+      flexibleSavingsAnnualRatePct: body.flexibleSavingsAnnualRatePct,
       rentProtecRatePct: body.rentProtecRatePct,
       insurancePremiumPct: body.insurancePremiumPct,
       rentProtecMinMonths: body.rentProtecMinMonths,

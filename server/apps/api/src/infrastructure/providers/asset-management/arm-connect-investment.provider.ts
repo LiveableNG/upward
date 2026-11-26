@@ -178,6 +178,17 @@ export class ArmConnectInvestmentProvider implements IAssetManagementProvider {
     return { idType: '5', meansOfIdentification: 'NIN' }
   }
 
+  public static isValidBase64Content(raw?: string | null): boolean {
+    if (!raw || typeof raw !== 'string') return false
+    const stripped = raw.replace(/^data:[^;]+;base64,/, '').trim()
+    // Reject spaces, URLs, or placeholder strings (e.g. Prembly sandbox "base64 image content")
+    if (!stripped || /[^A-Za-z0-9+/=\r\n]/.test(stripped)) return false
+    const compact = stripped.replace(/[\r\n]+/g, '')
+    if (compact.length < 4 || compact.length % 4 !== 0) return false
+    if (!/^[A-Za-z0-9+/]+={0,2}$/.test(compact)) return false
+    return Buffer.from(compact, 'base64').length > 0
+  }
+
   public static normalizeStateCode(state?: string): string {
     const clean = (state || 'LAGOS')
       .trim()
@@ -355,12 +366,13 @@ export class ArmConnectInvestmentProvider implements IAssetManagementProvider {
       }
 
       const rawStatus = String(data.status || 'Submitted')
+      const normalizedRaw = rawStatus.trim().toLowerCase()
       const normalizedStatus: InvestorOnboardingResponse['status'] =
-        rawStatus === 'Approved'
+        normalizedRaw === 'approved'
           ? 'Approved'
-          : rawStatus === 'Failed' || rawStatus === 'Rejected'
+          : normalizedRaw === 'failed' || normalizedRaw === 'rejected'
             ? 'Failed'
-            : rawStatus === 'InProgress'
+            : normalizedRaw === 'inprogress' || normalizedRaw === 'notstarted'
               ? 'InProgress'
               : 'Submitted'
 
@@ -493,18 +505,33 @@ export class ArmConnectInvestmentProvider implements IAssetManagementProvider {
     await this.getValidToken()
     this.logger.log(`Submitting B2B2C customer onboarding to ARM for ${customer.customerEmail}...`)
 
-    // Idempotent check: reuse existing ARM customer record if already submitted/approved under this merchant
+    // Idempotent check: reuse existing ARM customer record ONLY if already submitted/approved
+    // (never reuse Failed, Rejected, NotStarted, or InProgress draft records with 0 completed sections)
     try {
       const overview = await this.getMerchantOverview(true)
-      const existing = overview.customers.find(
-        (c) =>
-          c.customerEmail.toLowerCase() === customer.customerEmail.trim().toLowerCase() &&
-          c.status !== 'Failed',
-      )
+      const existing = overview.customers.find((c) => {
+        if (c.customerEmail.toLowerCase() !== customer.customerEmail.trim().toLowerCase()) {
+          return false
+        }
+        const st = String(c.status || '').trim().toLowerCase()
+        return (
+          st === 'approved' ||
+          st === 'submitted' ||
+          st === 'submitted for approval' ||
+          st === 'pendingapproval' ||
+          st === 'completed' ||
+          Boolean(c.customerMembershipId)
+        )
+      })
       if (existing) {
         if (!existing.customerMembershipId && existing.customerId) {
           const tracked = await this.getOnboardingStatus(existing.customerId)
-          if (tracked.success) return tracked
+          if (
+            tracked.success &&
+            (tracked.status === 'Approved' || tracked.status === 'Submitted')
+          ) {
+            return tracked
+          }
         }
         return {
           success: true,
@@ -560,12 +587,15 @@ export class ArmConnectInvestmentProvider implements IAssetManagementProvider {
       defaultName: string,
     ): { name: string; type: string; size: number; folder: string; document: string } | null => {
       if (!raw) return null
-      const strip = (s?: string) => (s ? s.replace(/^data:[^;]+;base64,/, '').trim() : '')
+      const cleanBase64 = (s?: string): string | null => {
+        if (!s || !ArmConnectInvestmentProvider.isValidBase64Content(s)) return null
+        return s.replace(/^data:[^;]+;base64,/, '').replace(/[\r\n]+/g, '').trim()
+      }
       if (typeof raw === 'string') {
         const mimeMatch = raw.match(/^data:([^;]+);base64,/)
         const detectedMime = mimeMatch?.[1]?.toLowerCase() || defaultMime
         const safeMime = ARM_ALLOWED_DOCUMENT_MIMES.has(detectedMime) ? detectedMime : defaultMime
-        const b64 = strip(raw)
+        const b64 = cleanBase64(raw)
         if (!b64) return null
         return {
           name: defaultName,
@@ -575,7 +605,7 @@ export class ArmConnectInvestmentProvider implements IAssetManagementProvider {
           document: b64,
         }
       }
-      const b64 = strip(raw.base64)
+      const b64 = cleanBase64(raw.base64)
       if (!b64) return null
       const normalizedMime = (raw.mimeType || defaultMime).toLowerCase()
       const safeMime = ARM_ALLOWED_DOCUMENT_MIMES.has(normalizedMime)
@@ -679,10 +709,19 @@ export class ArmConnectInvestmentProvider implements IAssetManagementProvider {
 
     const fullCustomerName =
       `${customer.personalDetails.firstName} ${customer.personalDetails.surname}`.trim()
-    const bankCode = customer.bankDetails?.bankCode || '058'
-    const bankAccountNumber = customer.bankDetails?.accountNumber || '0123456789'
-    const bankAccountName = customer.bankDetails?.accountName || fullCustomerName || 'GoodTenant'
-    const bankName = customer.bankDetails?.bankName || 'Guaranty Trust Bank'
+    const bankCode = (customer.bankDetails?.bankCode || '').trim()
+    const bankAccountNumber = (customer.bankDetails?.accountNumber || '').replace(/\D/g, '')
+    const bankAccountName = (customer.bankDetails?.accountName || fullCustomerName || 'GoodTenant').trim()
+    const bankName = (customer.bankDetails?.bankName || '').trim() || 'Commercial Bank'
+
+    if (!bankCode || bankAccountNumber.length !== 10) {
+      return {
+        success: false,
+        status: 'Failed',
+        failureReason:
+          'A valid 10-digit Nigerian bank account linked to your BVN is required for ARM investor onboarding.',
+      }
+    }
 
     const payload = {
       customerEmail: customer.customerEmail.trim(),
@@ -777,8 +816,26 @@ export class ArmConnectInvestmentProvider implements IAssetManagementProvider {
       const resJson = await response.json().catch(() => ({}))
       const data = resJson.data ?? resJson.Data
       if (!response.ok || (resJson.status ?? resJson.Status) === false) {
-        const reason =
+        const baseMsg =
           resJson.message || resJson.Message || 'Customer onboarding rejected by ARM Connect'
+        let fieldDetails = ''
+        if (Array.isArray(data)) {
+          fieldDetails = data
+            .map((item: any) => {
+              const field = item?.field || item?.Field || ''
+              const msgs = Array.isArray(item?.messages || item?.Messages)
+                ? (item.messages || item.Messages).join(', ')
+                : String(item?.message || item?.Message || '')
+              return field ? `${field}: ${msgs}` : msgs
+            })
+            .filter(Boolean)
+            .join('; ')
+        } else if (resJson.errors && typeof resJson.errors === 'object') {
+          fieldDetails = Object.entries(resJson.errors)
+            .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(', ') : String(v)}`)
+            .join('; ')
+        }
+        const reason = fieldDetails ? `${baseMsg} (${fieldDetails})` : baseMsg
         this.logger.warn(`ARM customer onboarding rejected (${response.status}): ${reason}`)
         return {
           success: false,

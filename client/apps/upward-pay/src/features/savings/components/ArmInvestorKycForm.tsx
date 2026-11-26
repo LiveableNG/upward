@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -11,14 +11,16 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  Landmark,
   Loader2,
-  Lock,
   ShieldCheck,
-  UserCheck,
 } from 'lucide-react'
+import { api } from '@/lib/api'
 import type {
   MeansOfIdentificationType,
+  SavingsLockMode,
   SavingsOnboardingPrefillData,
+  SavingsProductOption,
   UploadedKycDocument,
 } from '../services/savingsService'
 import {
@@ -57,6 +59,10 @@ export interface ArmInvestorKycFormValues {
   next_of_kin_name: string
   next_of_kin_relationship: string
   next_of_kin_phone: string
+  settlement_bank_code: string
+  settlement_bank_name: string
+  settlement_account_number: string
+  settlement_account_name: string
   accepted_terms: boolean
   accepted_arm_mandate: boolean
 }
@@ -86,6 +92,10 @@ export interface ArmInvestorKycSubmitData {
   next_of_kin_name: string
   next_of_kin_relationship: string
   next_of_kin_phone: string
+  settlement_bank_code: string
+  settlement_bank_name: string
+  settlement_account_number: string
+  settlement_account_name: string
   consent_accepted: true
   terms_version: string
   consent_doc_version: string
@@ -101,6 +111,8 @@ interface ArmInvestorKycFormProps {
   prefill?: SavingsOnboardingPrefillData | null
   annualRatePct?: number
   fundName?: string
+  lockMode?: SavingsLockMode
+  productOption?: SavingsProductOption
   serverError?: string | null
   isSubmitting?: boolean
   hideSubmitButton?: boolean
@@ -141,6 +153,16 @@ function buildSchema(hasVerifiedBvn: boolean, hasVerifiedNin: boolean) {
       next_of_kin_name: z.string().trim().min(2, 'Next of kin full name is required.'),
       next_of_kin_relationship: z.string().min(1),
       next_of_kin_phone: z.string().trim().min(10, 'Valid Next of Kin phone number is required.'),
+      settlement_bank_code: z.string().trim().min(1, 'Please select your bank.'),
+      settlement_bank_name: z.string(),
+      settlement_account_number: z
+        .string()
+        .trim()
+        .regex(/^\d{10}$/, 'Enter your 10-digit BVN-linked bank account number.'),
+      settlement_account_name: z
+        .string()
+        .trim()
+        .min(2, 'Account name must be verified before continuing.'),
       accepted_terms: z.boolean().refine((v) => v === true, {
         message: 'Please accept the Rent Savings Terms & Conditions.',
       }),
@@ -160,7 +182,7 @@ function buildSchema(hasVerifiedBvn: boolean, hasVerifiedNin: boolean) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['nin'],
-          message: 'NIN must be exactly 11 digits (compulsory alongside BVN).',
+          message: 'NIN must be 11 digits.',
         })
       }
       if (vals.means_of_id_type !== 'NIN') {
@@ -206,10 +228,12 @@ export function ArmInvestorKycForm({
   prefill,
   annualRatePct = 16,
   fundName = SAVINGS_FUND_NAME,
+  lockMode = 'LOCKED',
+  productOption = 'SAVE_AND_EARN',
   serverError,
   isSubmitting = false,
   hideSubmitButton = false,
-  submitLabel = 'Verify & Activate Rent Savings',
+  submitLabel = 'Activate',
   step: controlledStep,
   onStepChange,
   onStepValidityChange,
@@ -231,6 +255,18 @@ export function ArmInvestorKycForm({
   const [showIdDates, setShowIdDates] = useState(false)
   const [showBillDate, setShowBillDate] = useState(false)
   const [draft] = useState<Partial<ArmInvestorKycFormValues>>(() => readKycDraft())
+  const [banks, setBanks] = useState<Array<{ code: string; name: string }>>([])
+  const [loadingBanks, setLoadingBanks] = useState(false)
+  const [resolvingBank, setResolvingBank] = useState(false)
+  const [bankResolveError, setBankResolveError] = useState<string | null>(null)
+  const resolveReqRef = useRef(0)
+
+  const prefillBankCode = prefill?.settlement_bank?.bank_code || prefill?.settlement_bank_code || ''
+  const prefillBankName = prefill?.settlement_bank?.bank_name || prefill?.settlement_bank_name || ''
+  const prefillAccountNumber =
+    prefill?.settlement_bank?.account_number || prefill?.settlement_account_number || ''
+  const prefillAccountName =
+    prefill?.settlement_bank?.account_name || prefill?.settlement_account_name || ''
 
   const schema = useMemo(
     () => buildSchema(hasVerifiedBvn, hasVerifiedNin),
@@ -279,14 +315,66 @@ export function ArmInvestorKycForm({
       next_of_kin_relationship:
         draft.next_of_kin_relationship || prefill?.next_of_kin_relationship || 'Spouse',
       next_of_kin_phone: draft.next_of_kin_phone || prefill?.next_of_kin_phone || '',
+      settlement_bank_code: draft.settlement_bank_code || prefillBankCode,
+      settlement_bank_name: draft.settlement_bank_name || prefillBankName,
+      settlement_account_number: draft.settlement_account_number || prefillAccountNumber,
+      settlement_account_name: draft.settlement_account_name || prefillAccountName,
       accepted_terms: false,
       accepted_arm_mandate: false,
     },
   })
 
+  // Load Nigerian bank list once for payout bank verification
+  useEffect(() => {
+    let active = true
+    setLoadingBanks(true)
+    api
+      .getBanks()
+      .then((list) => {
+        if (active && Array.isArray(list)) setBanks(list)
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setLoadingBanks(false)
+      })
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const resolveBankAccount = async (accountNumber: string, bankCode: string) => {
+    if (accountNumber.length !== 10 || !bankCode) return
+    const reqId = ++resolveReqRef.current
+    setResolvingBank(true)
+    setBankResolveError(null)
+    try {
+      const res = await api.resolveAccount(accountNumber, bankCode)
+      if (reqId !== resolveReqRef.current) return
+      if (res?.accountName) {
+        setValue('settlement_account_name', res.accountName, { shouldValidate: true })
+        setBankResolveError(null)
+      } else {
+        setValue('settlement_account_name', '', { shouldValidate: true })
+        setBankResolveError('Could not verify this account number. Please double-check your bank and account.')
+      }
+    } catch {
+      if (reqId !== resolveReqRef.current) return
+      setValue('settlement_account_name', '', { shouldValidate: true })
+      setBankResolveError('Could not verify this account number. Please double-check your bank and account.')
+    } finally {
+      if (reqId === resolveReqRef.current) setResolvingBank(false)
+    }
+  }
+
   // Hydrate prefill asynchronously when loaded
   useEffect(() => {
     if (!prefill) return
+    const nextBankCode = prefill.settlement_bank?.bank_code || prefill.settlement_bank_code || ''
+    const nextBankName = prefill.settlement_bank?.bank_name || prefill.settlement_bank_name || ''
+    const nextAccountNumber =
+      prefill.settlement_bank?.account_number || prefill.settlement_account_number || ''
+    const nextAccountName =
+      prefill.settlement_bank?.account_name || prefill.settlement_account_name || ''
     reset((curr) => ({
       ...curr,
       bvn: curr.bvn || prefill.bvn || '',
@@ -313,6 +401,10 @@ export function ArmInvestorKycForm({
       next_of_kin_relationship:
         curr.next_of_kin_relationship || prefill.next_of_kin_relationship || 'Spouse',
       next_of_kin_phone: curr.next_of_kin_phone || prefill.next_of_kin_phone || '',
+      settlement_bank_code: curr.settlement_bank_code || nextBankCode,
+      settlement_bank_name: curr.settlement_bank_name || nextBankName,
+      settlement_account_number: curr.settlement_account_number || nextAccountNumber,
+      settlement_account_name: curr.settlement_account_name || nextAccountName,
     }))
   }, [prefill, reset])
 
@@ -331,6 +423,10 @@ export function ArmInvestorKycForm({
   const utilityDocKey = allWatched.utility_bill_doc_key || ''
   const utilityDocName = allWatched.utility_bill_file_name || ''
   const utilityDocMime = allWatched.utility_bill_mime_type || 'image/jpeg'
+  const bankCodeVal = allWatched.settlement_bank_code || ''
+  const bankNameVal = allWatched.settlement_bank_name || ''
+  const accountNumberVal = allWatched.settlement_account_number || ''
+  const accountNameVal = allWatched.settlement_account_name || ''
   const acceptedTerms = allWatched.accepted_terms
   const acceptedArmMandate = allWatched.accepted_arm_mandate
 
@@ -361,6 +457,10 @@ export function ArmInvestorKycForm({
         next_of_kin_name: allWatched.next_of_kin_name,
         next_of_kin_relationship: allWatched.next_of_kin_relationship,
         next_of_kin_phone: allWatched.next_of_kin_phone,
+        settlement_bank_code: allWatched.settlement_bank_code,
+        settlement_bank_name: allWatched.settlement_bank_name,
+        settlement_account_number: allWatched.settlement_account_number,
+        settlement_account_name: allWatched.settlement_account_name,
       }
       window.sessionStorage.setItem(KYC_DRAFT_STORAGE_KEY, JSON.stringify(safeDraft))
     } catch {
@@ -402,9 +502,13 @@ export function ArmInvestorKycForm({
       (allWatched.mothers_maiden_name || '').trim().length >= 2 &&
       (allWatched.occupation || '').trim().length >= 2 &&
       (allWatched.next_of_kin_name || '').trim().length >= 2 &&
-      (allWatched.next_of_kin_phone || '').trim().length >= 10
+      (allWatched.next_of_kin_phone || '').trim().length >= 10 &&
+      bankCodeVal.trim().length >= 1 &&
+      /^\d{10}$/.test(accountNumberVal.trim()) &&
+      accountNameVal.trim().length >= 2 &&
+      !resolvingBank
     )
-  }, [allWatched, utilityDocKey])
+  }, [allWatched, utilityDocKey, bankCodeVal, accountNumberVal, accountNameVal, resolvingBank])
 
   const isStep3Valid = Boolean(acceptedTerms) && Boolean(acceptedArmMandate) && isValid
 
@@ -439,6 +543,9 @@ export function ArmInvestorKycForm({
         'next_of_kin_name',
         'next_of_kin_relationship',
         'next_of_kin_phone',
+        'settlement_bank_code',
+        'settlement_account_number',
+        'settlement_account_name',
       ])
       if (ok && isStep2Valid) setStep(3)
     }
@@ -488,6 +595,10 @@ export function ArmInvestorKycForm({
       next_of_kin_name: vals.next_of_kin_name.trim(),
       next_of_kin_relationship: vals.next_of_kin_relationship || 'Spouse',
       next_of_kin_phone: vals.next_of_kin_phone.trim(),
+      settlement_bank_code: vals.settlement_bank_code.trim(),
+      settlement_bank_name: vals.settlement_bank_name.trim() || 'Commercial Bank',
+      settlement_account_number: vals.settlement_account_number.trim(),
+      settlement_account_name: vals.settlement_account_name.trim(),
       consent_accepted: true,
       terms_version: SAVINGS_TERMS_VERSION,
       consent_doc_version: SAVINGS_CONSENT_DOC_VERSION,
@@ -499,44 +610,23 @@ export function ArmInvestorKycForm({
     }
   })
 
-  const stepMeta: Record<
-    KycFormStep,
-    { label: string; pct: number; hint: string }
-  > = {
-    1: {
-      label: 'Identity',
-      pct: 33,
-      hint: 'Takes under a minute — verify once to unlock your dedicated rent account.',
-    },
-    2: {
-      label: 'Address & Profile',
-      pct: 67,
-      hint: 'Almost there — your entries save automatically if you switch apps for a utility bill.',
-    },
-    3: {
-      label: 'Review & Activate',
-      pct: 100,
-      hint: `Final step — confirm consent to start earning ${annualRatePct}% p.a. in ${fundName}.`,
-    },
-  }
+  const stepProgress: Record<KycFormStep, number> = { 1: 33, 2: 67, 3: 100 }
 
   return (
     <form id={formId} onSubmit={handleInternalSubmit} className="arm-kyc-form" noValidate>
-      {/* COMPACT FRAMELESS PROGRESS BAR + SINGLE-LINE TEXT */}
+      {activeStep === 1 && (
+        <p className="arm-kyc-intro">
+          Invested with ARM, an SEC-regulated fund, so we have to verify you.
+        </p>
+      )}
       <div className="arm-kyc-stepper" aria-label={`Step ${activeStep} of 3`}>
-        <div className="arm-kyc-stepper__top">
-          <span className="arm-kyc-stepper__count">
-            Step {activeStep} of 3 · {stepMeta[activeStep].label}
-          </span>
-          <span className="arm-kyc-stepper__pct">{stepMeta[activeStep].pct}%</span>
-        </div>
+        <span className="arm-kyc-stepper__count">Step {activeStep} of 3</span>
         <div className="arm-kyc-stepper__bar">
           <div
             className="arm-kyc-stepper__fill"
-            style={{ width: `${stepMeta[activeStep].pct}%` }}
+            style={{ width: `${stepProgress[activeStep]}%` }}
           />
         </div>
-        <p className="arm-kyc-stepper__hint">{stepMeta[activeStep].hint}</p>
       </div>
 
       {serverError && (
@@ -558,7 +648,7 @@ export function ArmInvestorKycForm({
           </div>
         ) : (
           <div className="rent-calculator__field">
-            <label className="rent-calculator__label">Bank Verification Number (BVN)</label>
+            <label className="rent-calculator__label">BVN</label>
             <input
               type="text"
               inputMode="numeric"
@@ -589,7 +679,7 @@ export function ArmInvestorKycForm({
           </div>
         ) : (
           <div className="rent-calculator__field">
-            <label className="rent-calculator__label">National Identity Number (NIN)</label>
+            <label className="rent-calculator__label">NIN</label>
             <input
               type="text"
               inputMode="numeric"
@@ -607,16 +697,14 @@ export function ArmInvestorKycForm({
             {errors.nin ? (
               <span className="arm-kyc-form__field-error">{errors.nin.message}</span>
             ) : (
-              <span className="arm-kyc-form__field-hint">
-                Compulsory alongside BVN ({ninVal.length}/11 digits)
-              </span>
+              <span className="arm-kyc-form__field-hint">{ninVal.length}/11 digits</span>
             )}
           </div>
         )}
 
         {/* Valid Means of Identification */}
         <div className="rent-calculator__field">
-          <label className="rent-calculator__label">Valid Means of Identification</label>
+          <label className="rent-calculator__label">ID</label>
           <select
             className="rent-calculator__input rent-calculator__input--no-prefix"
             disabled={isSubmitting}
@@ -634,9 +722,7 @@ export function ArmInvestorKycForm({
           <>
             <div className="rent-calculator__field">
               <label className="rent-calculator__label">
-                {meansOfIdType === 'INTERNATIONAL_PASSPORT'
-                  ? 'International Passport Number'
-                  : "Driver's License Number"}
+                {meansOfIdType === 'INTERNATIONAL_PASSPORT' ? 'Passport number' : 'Licence number'}
               </label>
               <input
                 type="text"
@@ -665,13 +751,9 @@ export function ArmInvestorKycForm({
                 disabled={isSubmitting}
                 {...register('means_of_id_expiry_date')}
               />
-              {errors.means_of_id_expiry_date ? (
+              {errors.means_of_id_expiry_date && (
                 <span className="arm-kyc-form__field-error">
                   {errors.means_of_id_expiry_date.message}
-                </span>
-              ) : (
-                <span className="arm-kyc-form__field-hint">
-                  Required to confirm your ID has not expired
                 </span>
               )}
             </div>
@@ -681,7 +763,7 @@ export function ArmInvestorKycForm({
               className="arm-kyc-optional-toggle"
               onClick={() => setShowIdDates((v) => !v)}
             >
-              <span>{showIdDates ? 'Hide issue date' : 'Add issue date (optional)'}</span>
+              <span>{showIdDates ? 'Hide issue date' : 'Issue date (optional)'}</span>
               {showIdDates ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
             </button>
 
@@ -789,7 +871,7 @@ export function ArmInvestorKycForm({
           className="arm-kyc-optional-toggle"
           onClick={() => setShowBillDate((v) => !v)}
         >
-          <span>{showBillDate ? 'Hide utility bill date' : 'Add utility bill date (optional)'}</span>
+          <span>{showBillDate ? 'Hide bill date' : 'Bill date (optional)'}</span>
           {showBillDate ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
         </button>
 
@@ -807,7 +889,7 @@ export function ArmInvestorKycForm({
 
         <KycDocumentUploadField
           kind="utility_bill"
-          label="Upload Proof of Address (Utility Bill)"
+          label="Proof of address"
           hint={UTILITY_BILL_GUIDANCE}
           value={
             utilityDocKey
@@ -826,14 +908,6 @@ export function ArmInvestorKycForm({
 
       {/* SECTION 3: INVESTOR PROFILE & NEXT OF KIN */}
       <section className="arm-kyc-form__section">
-        <div className="arm-kyc-form__section-header">
-          <UserCheck size={17} className="arm-kyc-form__section-icon" />
-          <div>
-            <h4 className="arm-kyc-form__section-title">3. Investor Profile &amp; Next of Kin</h4>
-            <p className="arm-kyc-form__section-sub">Required SEC suitability details</p>
-          </div>
-        </div>
-
         <div className="rent-calculator__field">
           <label className="rent-calculator__label">Mother&apos;s Maiden Name</label>
           <input
@@ -908,7 +982,7 @@ export function ArmInvestorKycForm({
         </div>
 
         <div className="rent-calculator__field">
-          <label className="rent-calculator__label">Next of Kin Phone Number</label>
+          <label className="rent-calculator__label">Phone</label>
           <input
             type="tel"
             placeholder="e.g. 0801 234 5678"
@@ -921,6 +995,103 @@ export function ArmInvestorKycForm({
           )}
         </div>
       </section>
+
+      {/* SECTION 4: BVN-LINKED PAYOUT BANK ACCOUNT (REQUIRED BY ARM) */}
+      <section className="arm-kyc-form__section">
+        <div className="arm-kyc-form__section-header">
+          <Landmark size={16} className="arm-kyc-form__section-icon" />
+          <div>
+            <h4 className="arm-kyc-form__section-title">Payout Bank Account</h4>
+            <p className="arm-kyc-form__section-sub">
+              Must be a personal Nigerian bank account linked to your BVN (required by ARM).
+            </p>
+          </div>
+        </div>
+
+        <div className="rent-calculator__field">
+          <label className="rent-calculator__label">Bank</label>
+          <select
+            className="rent-calculator__input rent-calculator__input--no-prefix"
+            disabled={isSubmitting || loadingBanks}
+            value={bankCodeVal}
+            onChange={(e) => {
+              const code = e.target.value
+              const matched = banks.find((b) => b.code === code)
+              setValue('settlement_bank_code', code, { shouldValidate: true })
+              setValue('settlement_bank_name', matched?.name || '', { shouldValidate: true })
+              setValue('settlement_account_name', '', { shouldValidate: true })
+              setBankResolveError(null)
+              if (code && accountNumberVal.length === 10) {
+                void resolveBankAccount(accountNumberVal, code)
+              }
+            }}
+          >
+            <option value="">
+              {loadingBanks ? 'Loading Nigerian banks...' : 'Select your bank...'}
+            </option>
+            {bankCodeVal && !banks.some((b) => b.code === bankCodeVal) && (
+              <option value={bankCodeVal}>{bankNameVal || bankCodeVal}</option>
+            )}
+            {banks.map((bank) => (
+              <option key={bank.code} value={bank.code}>
+                {bank.name}
+              </option>
+            ))}
+          </select>
+          {errors.settlement_bank_code && (
+            <span className="arm-kyc-form__field-error">
+              {errors.settlement_bank_code.message}
+            </span>
+          )}
+        </div>
+
+        <div className="rent-calculator__field">
+          <label className="rent-calculator__label">10-Digit Account Number</label>
+          <input
+            type="text"
+            inputMode="numeric"
+            maxLength={10}
+            placeholder="e.g. 0123456789"
+            className="rent-calculator__input rent-calculator__input--no-prefix"
+            disabled={isSubmitting}
+            value={accountNumberVal}
+            onChange={(e) => {
+              const clean = e.target.value.replace(/\D/g, '').slice(0, 10)
+              setValue('settlement_account_number', clean, { shouldValidate: true })
+              setValue('settlement_account_name', '', { shouldValidate: true })
+              setBankResolveError(null)
+              if (clean.length === 10 && bankCodeVal) {
+                void resolveBankAccount(clean, bankCodeVal)
+              }
+            }}
+          />
+          {errors.settlement_account_number ? (
+            <span className="arm-kyc-form__field-error">
+              {errors.settlement_account_number.message}
+            </span>
+          ) : (
+            <span className="arm-kyc-form__field-hint">{accountNumberVal.length}/10 digits</span>
+          )}
+        </div>
+
+        {resolvingBank ? (
+          <div className="arm-kyc-form__field-hint" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <Loader2 size={14} className="animate-spin" />
+            <span>Verifying account name with your bank...</span>
+          </div>
+        ) : accountNameVal ? (
+          <div className="arm-kyc-form__verified-pill">
+            <CheckCircle2 size={15} style={{ flexShrink: 0 }} />
+            <span>{accountNameVal}</span>
+          </div>
+        ) : bankResolveError ? (
+          <span className="arm-kyc-form__field-error">{bankResolveError}</span>
+        ) : errors.settlement_account_name && accountNumberVal.length === 10 ? (
+          <span className="arm-kyc-form__field-error">
+            {errors.settlement_account_name.message}
+          </span>
+        ) : null}
+      </section>
       </>
       )}
 
@@ -930,9 +1101,7 @@ export function ArmInvestorKycForm({
       <div className="arm-kyc-summary">
         <div className="arm-kyc-summary__row">
           <CheckCircle2 size={15} className="arm-kyc-summary__icon" />
-          <span>
-            <strong>Identity ready:</strong> BVN, NIN &amp; {activeIdOption.label} attached
-          </span>
+          <span>BVN, NIN, and {activeIdOption.label}</span>
           <button
             type="button"
             className="arm-kyc-summary__edit"
@@ -944,8 +1113,7 @@ export function ArmInvestorKycForm({
         <div className="arm-kyc-summary__row">
           <CheckCircle2 size={15} className="arm-kyc-summary__icon" />
           <span>
-            <strong>Address ready:</strong> {allWatched.residential_town || 'Verified'},{' '}
-            {allWatched.residential_state || 'Nigeria'} &amp; Proof of Address
+            {allWatched.residential_town || 'Address'}, {allWatched.residential_state || 'Nigeria'}
           </span>
           <button
             type="button"
@@ -955,6 +1123,21 @@ export function ArmInvestorKycForm({
             Edit
           </button>
         </div>
+        {accountNameVal && (
+          <div className="arm-kyc-summary__row">
+            <CheckCircle2 size={15} className="arm-kyc-summary__icon" />
+            <span>
+              {bankNameVal || 'Bank'} • •••• {accountNumberVal.slice(-4)} ({accountNameVal})
+            </span>
+            <button
+              type="button"
+              className="arm-kyc-summary__edit"
+              onClick={() => setStep(2)}
+            >
+              Edit
+            </button>
+          </div>
+        )}
       </div>
 
       <SavingsConsentCard
@@ -968,28 +1151,11 @@ export function ArmInvestorKycForm({
         }
         annualRatePct={annualRatePct}
         fundName={fundName}
+        lockMode={lockMode}
+        productOption={productOption}
         disabled={isSubmitting}
       />
 
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          padding: '10px 12px',
-          borderRadius: 10,
-          background: 'var(--surface)',
-          border: '1px solid var(--border)',
-          fontSize: '0.73rem',
-          color: 'var(--text-muted)',
-        }}
-      >
-        <Lock size={13} color="var(--clay)" style={{ flexShrink: 0 }} />
-        <span>
-          Your BVN, NIN, and uploaded documents are encrypted and verified via Prembly for SEC /
-          ARM compliance.
-        </span>
-      </div>
       </>
       )}
 
@@ -1024,7 +1190,7 @@ export function ArmInvestorKycForm({
               onClick={handleAdvanceStep}
               style={{ flex: 1 }}
             >
-              <span>{activeStep === 1 ? 'Continue to Address' : 'Review & Finalize'}</span>
+              <span>Continue</span>
               <ArrowRight size={16} />
             </button>
           ) : (
@@ -1037,7 +1203,7 @@ export function ArmInvestorKycForm({
               {isSubmitting ? (
                 <>
                   <Loader2 size={16} className="animate-spin" />
-                  <span>Verifying Identity &amp; Activating...</span>
+                  <span>Activating...</span>
                 </>
               ) : (
                 <>

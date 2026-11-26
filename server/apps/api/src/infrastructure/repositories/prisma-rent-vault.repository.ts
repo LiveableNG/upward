@@ -32,13 +32,20 @@ export class PrismaRentVaultRepository implements IRentVaultRepository {
         lockStatus: data.lockStatus ?? 'LOCKED',
         preferredFundingMethod: data.preferredFundingMethod,
         productOption: data.productOption ?? 'SAVE_AND_EARN',
+        lockMode: data.lockMode ?? 'LOCKED',
         planPattern: data.planPattern ?? 'INITIAL_DEPOSIT',
         initialDepositKobo: data.initialDepositKobo ?? 0n,
+        plannedMonthlyDepositKobo: data.plannedMonthlyDepositKobo ?? 0n,
         appliedAnnualRatePct:
-          data.appliedAnnualRatePct ?? (data.productOption === 'RENT_PROTEC' ? 10.0 : 16.0),
+          data.appliedAnnualRatePct ??
+          (data.productOption === 'RENT_PROTEC'
+            ? 10.0
+            : data.lockMode === 'FLEXIBLE'
+              ? 12.0
+              : 16.0),
         insurancePremiumPct:
           data.insurancePremiumPct ?? (data.productOption === 'RENT_PROTEC' ? 2.0 : 0.0),
-        paydayDayOfMonth: data.paydayDayOfMonth ?? null,
+        paydayDayOfMonth: data.paydayDayOfMonth ?? 28,
         cardAuthorizationCode: data.cardAuthorizationCode ?? null,
         dvaBankName: data.dvaBankName ?? null,
         dvaAccountNumber: data.dvaAccountNumber ?? null,
@@ -159,9 +166,12 @@ export class PrismaRentVaultRepository implements IRentVaultRepository {
     if (data.accruedYieldKobo !== undefined) updatePayload.accruedYieldKobo = data.accruedYieldKobo
     if (data.cadence !== undefined) updatePayload.cadence = data.cadence
     if (data.productOption !== undefined) updatePayload.productOption = data.productOption
+    if (data.lockMode !== undefined) updatePayload.lockMode = data.lockMode
     if (data.planPattern !== undefined) updatePayload.planPattern = data.planPattern
     if (data.initialDepositKobo !== undefined)
       updatePayload.initialDepositKobo = data.initialDepositKobo
+    if (data.plannedMonthlyDepositKobo !== undefined)
+      updatePayload.plannedMonthlyDepositKobo = data.plannedMonthlyDepositKobo
     if (data.appliedAnnualRatePct !== undefined)
       updatePayload.appliedAnnualRatePct = data.appliedAnnualRatePct
     if (data.insurancePremiumPct !== undefined)
@@ -391,8 +401,10 @@ export class PrismaRentVaultRepository implements IRentVaultRepository {
       accruedYieldKobo: record.accruedYieldKobo,
       cadence: record.cadence as RentVault['cadence'],
       productOption: record.productOption as RentVault['productOption'],
+      lockMode: (record.lockMode || 'LOCKED') as RentVault['lockMode'],
       planPattern: record.planPattern as RentVault['planPattern'],
       initialDepositKobo: record.initialDepositKobo,
+      plannedMonthlyDepositKobo: record.plannedMonthlyDepositKobo ?? 0n,
       appliedAnnualRatePct: record.appliedAnnualRatePct,
       insurancePremiumPct: record.insurancePremiumPct,
       contractualDueDate: record.contractualDueDate,

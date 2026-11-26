@@ -103,14 +103,17 @@ export class RentSavingsScheduler {
           continue
         }
 
-        // Determine per-vault customer annual rate (10% for RENT_PROTEC, 16% for SAVE_AND_EARN)
+        // Determine per-vault customer annual rate (10% Rent Protec, 12% Flexible Save & Earn, 16% Full Lock Save & Earn)
         const isRentProtec = vault.productOption === 'RENT_PROTEC'
+        const isFlexible = (vault as any).lockMode === 'FLEXIBLE' && !isRentProtec
         const customerAnnualRatePct =
           vault.appliedAnnualRatePct && vault.appliedAnnualRatePct > 0
             ? vault.appliedAnnualRatePct
             : isRentProtec
               ? platformRates.rentProtecRatePct
-              : platformRates.savingsAnnualRatePct
+              : isFlexible
+                ? platformRates.flexibleSavingsAnnualRatePct
+                : platformRates.savingsAnnualRatePct
         const customerDailyRate = customerAnnualRatePct / 100 / 365
 
         // Customer Liability Ledger: strictly accrues at customer's plan rate (0% visible insurance deduction)

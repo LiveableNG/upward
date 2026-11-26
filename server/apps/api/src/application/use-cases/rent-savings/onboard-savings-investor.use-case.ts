@@ -16,6 +16,8 @@ import {
   OnboardingDocumentAsset,
 } from '../../../domains/rent-savings/asset-management.provider'
 import { ARM_JOB_QUEUE, IArmJobQueue } from '../../../domains/rent-savings/arm-job.interface'
+import { RentSavingsCalculatorEngine } from '../../../domains/rent-savings/rent-savings-calculator.engine'
+import { clampReminderDay } from '../../../domains/rent-savings/reminder-day'
 import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 import { PlatformRatesService } from '../../../shared/infrastructure/common/platform-rates.service'
 import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service'
@@ -174,6 +176,10 @@ export class OnboardSavingsInvestorDto {
   product_option?: 'SAVE_AND_EARN' | 'RENT_PROTEC'
 
   @IsOptional()
+  @IsIn(['LOCKED', 'FLEXIBLE'])
+  lock_mode?: 'LOCKED' | 'FLEXIBLE'
+
+  @IsOptional()
   @IsIn(['EQUAL', 'INITIAL_DEPOSIT', 'STEP_UP', 'ACCELERATED'])
   plan_pattern?: 'EQUAL' | 'INITIAL_DEPOSIT' | 'STEP_UP' | 'ACCELERATED'
 
@@ -181,6 +187,16 @@ export class OnboardSavingsInvestorDto {
   @IsNumber()
   @Type(() => Number)
   initial_deposit_kobo?: number
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  planned_monthly_deposit_kobo?: number
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  payday_day_of_month?: number
 }
 
 function cleanName(name: string): string {
@@ -492,6 +508,10 @@ export class OnboardSavingsInvestorUseCase {
               account_name: bankDetails.accountName,
             }
           : null,
+        settlement_bank_code: bankDetails?.bankCode || null,
+        settlement_bank_name: bankDetails?.bankName || null,
+        settlement_account_number: bankDetails?.accountNumber || null,
+        settlement_account_name: bankDetails?.accountName || null,
         property: activeProp
           ? {
               uuid: activeProp.uuid,
@@ -766,22 +786,29 @@ export class OnboardSavingsInvestorUseCase {
     }
 
     // Extract biometric portrait photo from BVN or NIN provider response (Prembly / Monnify)
-    let photoBase64: string | undefined = undefined
+    // Only keep strictly valid base64 content (Prembly sandbox often returns literal text like "base64 image content").
+    const extractValidBase64Photo = (val: unknown): string | undefined => {
+      if (typeof val !== 'string') return undefined
+      const stripped = val.replace(/^data:image\/[^;]+;base64,/, '').trim()
+      if (!stripped || /[^A-Za-z0-9+/=\r\n]/.test(stripped)) return undefined
+      const compact = stripped.replace(/[\r\n]+/g, '')
+      if (compact.length < 32 || compact.length % 4 !== 0) return undefined
+      if (!/^[A-Za-z0-9+/]+={0,2}$/.test(compact)) return undefined
+      return compact
+    }
+
     const rawRes = verificationResult.rawResponse || {}
     const rawNinRes = ninVerificationResult.rawResponse || {}
-    if (verificationResult.photo && typeof verificationResult.photo === 'string') {
-      photoBase64 = verificationResult.photo.replace(/^data:image\/\w+;base64,/, '')
-    } else if (ninVerificationResult.photo && typeof ninVerificationResult.photo === 'string') {
-      photoBase64 = ninVerificationResult.photo.replace(/^data:image\/\w+;base64,/, '')
-    } else if (rawRes.image && typeof rawRes.image === 'string') {
-      photoBase64 = rawRes.image.replace(/^data:image\/\w+;base64,/, '')
-    } else if (rawRes.data?.image && typeof rawRes.data?.image === 'string') {
-      photoBase64 = rawRes.data.image.replace(/^data:image\/\w+;base64,/, '')
-    } else if (rawRes.photo && typeof rawRes.photo === 'string') {
-      photoBase64 = rawRes.photo.replace(/^data:image\/\w+;base64,/, '')
-    } else if (rawNinRes.data?.photo && typeof rawNinRes.data?.photo === 'string') {
-      photoBase64 = rawNinRes.data.photo.replace(/^data:image\/\w+;base64,/, '')
-    }
+    const photoCandidates: unknown[] = [
+      verificationResult.photo,
+      ninVerificationResult.photo,
+      rawRes.image,
+      rawRes.data?.image,
+      rawRes.photo,
+      rawNinRes.data?.photo,
+      rawNinRes.photo,
+    ]
+    const photoBase64 = photoCandidates.map(extractValidBase64Photo).find(Boolean)
 
     // Reversible AES-256 encryption for secure transmission
     const idNumberEncrypted = this.encryption.encrypt(cleanBvn)
@@ -807,25 +834,51 @@ export class OnboardSavingsInvestorUseCase {
       ...(user.gender ? {} : normalizedGender ? { gender: normalizedGender } : {}),
     })
 
-    // Upsert linked payout settlement bank details if provided
+    // Upsert linked payout settlement bank details if provided, or reuse user's saved bank account
+    let resolvedBankDetails:
+      | {
+          bankCode: string
+          bankName: string
+          accountNumber: string
+          accountName: string
+        }
+      | undefined
     if (dto.settlement_bank_code && dto.settlement_account_number) {
+      const bankCode = dto.settlement_bank_code.trim()
+      const bankName = dto.settlement_bank_name?.trim() || 'Commercial Bank'
+      const accountNumber = dto.settlement_account_number.replace(/\D/g, '')
+      const accountName =
+        dto.settlement_account_name?.trim() || `${user.firstName} ${user.lastName}`.trim()
       await this.prisma.upward_user_bank_details.upsert({
         where: { userId },
         create: {
           uuid: crypto.randomUUID(),
           userId,
-          bankCode: dto.settlement_bank_code,
-          bankName: dto.settlement_bank_name || 'Commercial Bank',
-          accountNumber: dto.settlement_account_number,
-          accountName: dto.settlement_account_name || `${user.firstName} ${user.lastName}`,
+          bankCode,
+          bankName,
+          accountNumber,
+          accountName,
         },
         update: {
-          bankCode: dto.settlement_bank_code,
-          bankName: dto.settlement_bank_name || 'Commercial Bank',
-          accountNumber: dto.settlement_account_number,
-          accountName: dto.settlement_account_name || `${user.firstName} ${user.lastName}`,
+          bankCode,
+          bankName,
+          accountNumber,
+          accountName,
         },
       })
+      resolvedBankDetails = { bankCode, bankName, accountNumber, accountName }
+    } else if (this.prisma?.upward_user_bank_details?.findUnique) {
+      const savedBank = await this.prisma.upward_user_bank_details.findUnique({
+        where: { userId },
+      })
+      if (savedBank?.bankCode && savedBank?.accountNumber) {
+        resolvedBankDetails = {
+          bankCode: savedBank.bankCode,
+          bankName: savedBank.bankName || 'Commercial Bank',
+          accountNumber: savedBank.accountNumber,
+          accountName: savedBank.accountName || `${user.firstName} ${user.lastName}`.trim(),
+        }
+      }
     }
 
     // Record verified investor KYC audit record (BVN + NIN + Means of ID + Residential Address + Utility Bill)
@@ -1015,15 +1068,74 @@ export class OnboardSavingsInvestorUseCase {
       }
       const platformRates = this.platformRates ? await this.platformRates.getRates() : null
       const chosenOption = dto.product_option || 'SAVE_AND_EARN'
-      updateData.productOption = chosenOption
-      updateData.planPattern = dto.plan_pattern || 'INITIAL_DEPOSIT'
-      if (dto.initial_deposit_kobo !== undefined) {
-        updateData.initialDepositKobo = BigInt(Math.max(0, Math.round(dto.initial_deposit_kobo)))
-      }
-      updateData.appliedAnnualRatePct =
+      const resolvedLockMode: 'LOCKED' | 'FLEXIBLE' =
+        chosenOption === 'RENT_PROTEC'
+          ? 'LOCKED'
+          : dto.lock_mode === 'FLEXIBLE'
+            ? 'FLEXIBLE'
+            : 'LOCKED'
+      const resolvedAnnualRatePct =
         chosenOption === 'RENT_PROTEC'
           ? (platformRates?.rentProtecRatePct ?? 10.0)
-          : (platformRates?.savingsAnnualRatePct ?? 16.0)
+          : resolvedLockMode === 'FLEXIBLE'
+            ? (platformRates?.flexibleSavingsAnnualRatePct ?? 12.0)
+            : (platformRates?.savingsAnnualRatePct ?? 16.0)
+      const effectiveTargetKobo: bigint =
+        updateData.targetAmountKobo ?? activeVault.targetAmountKobo
+      const effectiveDueDate: Date =
+        updateData.contractualDueDate ?? activeVault.contractualDueDate
+      const rawDaysRem = RentSavingsCalculatorEngine.calculateDaysRemaining(effectiveDueDate)
+      const minRpInitKobo =
+        chosenOption === 'RENT_PROTEC'
+          ? RentSavingsCalculatorEngine.getRentProtecActivationThresholdKobo(
+              effectiveTargetKobo,
+              rawDaysRem,
+            )
+          : 0n
+      const providedInitKobo =
+        dto.initial_deposit_kobo !== undefined
+          ? BigInt(Math.max(0, Math.round(dto.initial_deposit_kobo)))
+          : activeVault.initialDepositKobo
+      const resolvedInitKobo =
+        chosenOption === 'RENT_PROTEC' && providedInitKobo < minRpInitKobo
+          ? minRpInitKobo
+          : providedInitKobo
+
+      let plannedMonthlyKobo =
+        dto.planned_monthly_deposit_kobo && dto.planned_monthly_deposit_kobo > 0
+          ? BigInt(Math.round(dto.planned_monthly_deposit_kobo))
+          : 0n
+      if (plannedMonthlyKobo === 0n) {
+        try {
+          const sim = RentSavingsCalculatorEngine.simulate({
+            targetAmountKobo: effectiveTargetKobo,
+            contractualDueDate: effectiveDueDate,
+            initialDepositKobo: resolvedInitKobo,
+            cadence: 'MONTHLY',
+            productOption: chosenOption,
+            lockMode: resolvedLockMode,
+            planPattern: dto.plan_pattern || 'INITIAL_DEPOSIT',
+            annualNetYieldRate: resolvedAnnualRatePct / 100,
+            maxSavingsMonths: platformRates?.maxSavingsMonths ?? 11,
+            rentProtecMinMonths: platformRates?.rentProtecMinMonths ?? 6,
+            insurancePremiumPct:
+              chosenOption === 'RENT_PROTEC' ? (platformRates?.insurancePremiumPct ?? 2.0) : 0,
+          })
+          plannedMonthlyKobo = sim.periodicDepositKobo
+        } catch {
+          plannedMonthlyKobo = activeVault.plannedMonthlyDepositKobo ?? 0n
+        }
+      }
+
+      updateData.productOption = chosenOption
+      updateData.lockMode = resolvedLockMode
+      updateData.planPattern = chosenOption === 'RENT_PROTEC' ? 'INITIAL_DEPOSIT' : (dto.plan_pattern || 'INITIAL_DEPOSIT')
+      updateData.initialDepositKobo = resolvedInitKobo
+      updateData.plannedMonthlyDepositKobo = plannedMonthlyKobo
+      updateData.paydayDayOfMonth = clampReminderDay(
+        dto.payday_day_of_month ?? activeVault.paydayDayOfMonth,
+      )
+      updateData.appliedAnnualRatePct = resolvedAnnualRatePct
       updateData.insurancePremiumPct =
         chosenOption === 'RENT_PROTEC' ? (platformRates?.insurancePremiumPct ?? 2.0) : 0
 
@@ -1032,13 +1144,66 @@ export class OnboardSavingsInvestorUseCase {
         data: updateData,
       })
       this.logger.log(
-        `Assigned Wema DVA ${dvaAccountNumber} and synced rental details to active vault ID ${activeVault.id}`,
+        `Assigned DVA ${dvaAccountNumber} and synced rental details to active vault ID ${activeVault.id}`,
       )
     } else {
       // Auto-provision rent vault for the verified investor
       const targetAmountKobo = BigInt(Math.round(resolvedRent * 100))
       const platformRates = this.platformRates ? await this.platformRates.getRates() : null
       const chosenOption = dto.product_option || 'SAVE_AND_EARN'
+      const resolvedLockMode: 'LOCKED' | 'FLEXIBLE' =
+        chosenOption === 'RENT_PROTEC'
+          ? 'LOCKED'
+          : dto.lock_mode === 'FLEXIBLE'
+            ? 'FLEXIBLE'
+            : 'LOCKED'
+      const resolvedAnnualRatePct =
+        chosenOption === 'RENT_PROTEC'
+          ? (platformRates?.rentProtecRatePct ?? 10.0)
+          : resolvedLockMode === 'FLEXIBLE'
+            ? (platformRates?.flexibleSavingsAnnualRatePct ?? 12.0)
+            : (platformRates?.savingsAnnualRatePct ?? 16.0)
+      const rawDaysRem = RentSavingsCalculatorEngine.calculateDaysRemaining(resolvedDueDate)
+      const minRpInitKobo =
+        chosenOption === 'RENT_PROTEC'
+          ? RentSavingsCalculatorEngine.getRentProtecActivationThresholdKobo(
+              targetAmountKobo,
+              rawDaysRem,
+            )
+          : 0n
+      const providedInitKobo = dto.initial_deposit_kobo
+        ? BigInt(Math.max(0, Math.round(dto.initial_deposit_kobo)))
+        : 0n
+      const resolvedInitKobo =
+        chosenOption === 'RENT_PROTEC' && providedInitKobo < minRpInitKobo
+          ? minRpInitKobo
+          : providedInitKobo
+
+      let plannedMonthlyKobo =
+        dto.planned_monthly_deposit_kobo && dto.planned_monthly_deposit_kobo > 0
+          ? BigInt(Math.round(dto.planned_monthly_deposit_kobo))
+          : 0n
+      if (plannedMonthlyKobo === 0n) {
+        try {
+          const sim = RentSavingsCalculatorEngine.simulate({
+            targetAmountKobo,
+            contractualDueDate: resolvedDueDate,
+            initialDepositKobo: resolvedInitKobo,
+            cadence: 'MONTHLY',
+            productOption: chosenOption,
+            lockMode: resolvedLockMode,
+            planPattern: chosenOption === 'RENT_PROTEC' ? 'INITIAL_DEPOSIT' : (dto.plan_pattern || 'INITIAL_DEPOSIT'),
+            annualNetYieldRate: resolvedAnnualRatePct / 100,
+            maxSavingsMonths: platformRates?.maxSavingsMonths ?? 11,
+            rentProtecMinMonths: platformRates?.rentProtecMinMonths ?? 6,
+            insurancePremiumPct:
+              chosenOption === 'RENT_PROTEC' ? (platformRates?.insurancePremiumPct ?? 2.0) : 0,
+          })
+          plannedMonthlyKobo = sim.periodicDepositKobo
+        } catch {
+          plannedMonthlyKobo = 0n
+        }
+      }
 
       const newVault = await this.prisma.upward_rent_vault.create({
         data: {
@@ -1048,14 +1213,12 @@ export class OnboardSavingsInvestorUseCase {
           accruedYieldKobo: 0n,
           cadence: dto.cadence || 'MONTHLY',
           productOption: chosenOption,
-          planPattern: dto.plan_pattern || 'INITIAL_DEPOSIT',
-          initialDepositKobo: dto.initial_deposit_kobo
-            ? BigInt(Math.max(0, Math.round(dto.initial_deposit_kobo)))
-            : 0n,
-          appliedAnnualRatePct:
-            chosenOption === 'RENT_PROTEC'
-              ? (platformRates?.rentProtecRatePct ?? 10.0)
-              : (platformRates?.savingsAnnualRatePct ?? 16.0),
+          lockMode: resolvedLockMode,
+          planPattern: chosenOption === 'RENT_PROTEC' ? 'INITIAL_DEPOSIT' : (dto.plan_pattern || 'INITIAL_DEPOSIT'),
+          initialDepositKobo: resolvedInitKobo,
+          plannedMonthlyDepositKobo: plannedMonthlyKobo,
+          paydayDayOfMonth: clampReminderDay(dto.payday_day_of_month),
+          appliedAnnualRatePct: resolvedAnnualRatePct,
           insurancePremiumPct:
             chosenOption === 'RENT_PROTEC' ? (platformRates?.insurancePremiumPct ?? 2.0) : 0,
           contractualDueDate: resolvedDueDate,
@@ -1171,15 +1334,14 @@ export class OnboardSavingsInvestorUseCase {
           idExpiryDate: dto.means_of_id_expiry_date,
           utilityBillIssueDate: dto.utility_bill_issue_date,
         },
-        bankDetails:
-          dto.settlement_bank_code && dto.settlement_account_number
-            ? {
-                bankName: dto.settlement_bank_name || 'Commercial Bank',
-                accountName: dto.settlement_account_name || `${user.firstName} ${user.lastName}`,
-                accountNumber: dto.settlement_account_number,
-                bankCode: dto.settlement_bank_code,
-              }
-            : undefined,
+        bankDetails: resolvedBankDetails
+          ? {
+              bankName: resolvedBankDetails.bankName,
+              accountName: resolvedBankDetails.accountName,
+              accountNumber: resolvedBankDetails.accountNumber,
+              bankCode: resolvedBankDetails.bankCode,
+            }
+          : undefined,
         nextOfKin: {
           name: dto.next_of_kin_name,
           gender: 'Male' as const,

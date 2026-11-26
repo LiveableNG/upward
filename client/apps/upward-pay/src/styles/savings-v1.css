@@ -455,8 +455,15 @@ select.rent-calculator__input:focus {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
   gap: 8px;
+}
+
+.vault-dashboard__plan-pills {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
 }
 
 .vault-dashboard__countdown-pill {
@@ -531,6 +538,7 @@ select.rent-calculator__input:focus {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 
 .vault-dashboard__balance-caption {
@@ -546,6 +554,27 @@ select.rent-calculator__input:focus {
   font-weight: 800;
   letter-spacing: -0.5px;
   color: var(--text);
+}
+
+.vault-dashboard__status-line {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 0.4em;
+  row-gap: 2px;
+  min-width: 0;
+  margin: 2px 0 4px;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.vault-dashboard__status-part {
+  white-space: nowrap;
+}
+
+.vault-dashboard__status-gain {
+  color: #059669;
+  font-weight: 700;
 }
 
 .vault-dashboard__target-row {
@@ -641,13 +670,64 @@ select.rent-calculator__input:focus {
   flex-direction: column;
 }
 
+.vault-dashboard__text-action {
+  align-self: center;
+  width: auto;
+  height: auto;
+  margin-top: -2px;
+  padding: 2px 8px;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.vault-dashboard__text-action:hover {
+  color: var(--clay);
+}
+
+.vault-dashboard__footer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 2px 4px 8px;
+}
+
+.vault-dashboard__fund-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+.vault-dashboard__fund-note svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
 @media (min-width: 480px) {
   .vault-dashboard__actions {
     flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
   }
 
-  .vault-dashboard__actions button {
+  .vault-dashboard__actions .vault-btn-primary,
+  .vault-dashboard__actions .vault-btn-secondary {
     flex: 1;
+  }
+
+  .vault-dashboard__actions .vault-dashboard__text-action {
+    flex: 1 0 100%;
   }
 }
 
@@ -2538,13 +2618,16 @@ select.rent-calculator__input:focus {
 }
 
 .savings-consent__title {
-  font-size: 0.84rem;
+  font-size: 15px;
   font-weight: 700;
+  letter-spacing: -0.01em;
   color: var(--text);
 }
 
 .savings-consent__subtitle {
-  font-size: 0.74rem;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.45;
   color: var(--text-muted);
 }
 
@@ -2570,7 +2653,8 @@ select.rent-calculator__input:focus {
   border: 1px solid var(--border);
   background: var(--surface, #ffffff);
   color: var(--clay);
-  font-size: 0.75rem;
+  font-family: inherit;
+  font-size: 14px;
   font-weight: 700;
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease;
@@ -2591,8 +2675,9 @@ select.rent-calculator__input:focus {
   display: flex;
   align-items: flex-start;
   gap: 9px;
-  font-size: 0.78rem;
-  line-height: 1.45;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
   color: var(--text-secondary);
   cursor: pointer;
 }
@@ -2631,14 +2716,15 @@ select.rent-calculator__input:focus {
 }
 
 .savings-consent__modal-heading {
-  font-size: 0.85rem;
+  font-size: 15px;
   font-weight: 700;
   color: var(--text);
   margin: 0;
 }
 
 .savings-consent__modal-text {
-  font-size: 0.8rem;
+  font-size: 14px;
+  font-weight: 400;
   line-height: 1.5;
   color: var(--text-secondary);
   margin: 0;
@@ -2653,7 +2739,8 @@ select.rent-calculator__input:focus {
   background: var(--clay-faint);
   border: 1px solid rgba(217, 119, 87, 0.25);
   color: var(--clay);
-  font-size: 0.78rem;
+  font-size: 14px;
+  line-height: 1.45;
 }
 
 .savings-consent__legal-banner strong {
@@ -2767,9 +2854,9 @@ select.rent-calculator__input:focus {
   display: flex;
   align-items: center;
   padding: 11px 10px 11px 12px;
-  font-size: 0.75rem;
+  font-size: 13px;
   font-weight: 600;
-  line-height: 1.3;
+  line-height: 1.35;
   color: var(--text-secondary);
 }
 
@@ -2846,9 +2933,9 @@ select.rent-calculator__input:focus {
   justify-content: center;
   padding: 11px 6px;
   border-left: 1px solid var(--shell-border, #f0e9df);
-  font-size: 0.75rem;
-  font-weight: 700;
-  line-height: 1.3;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
   color: var(--text);
   text-align: center;
 }
@@ -2878,8 +2965,9 @@ select.rent-calculator__input:focus {
 
 .plan-table__note {
   margin: 12px 2px 0;
-  font-size: 0.75rem;
-  line-height: 1.45;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
   color: var(--text-muted);
   text-align: center;
 }
@@ -2957,6 +3045,8 @@ select.rent-calculator__input:focus {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  font-family: inherit;
+  color: inherit;
   transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -3005,14 +3095,15 @@ select.rent-calculator__input:focus {
 }
 
 .plan-card__name {
-  font-size: 1rem;
-  font-weight: 800;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
   color: var(--text);
 }
 
 .plan-card__rate {
-  font-size: 0.875rem;
-  font-weight: 800;
+  font-size: 14px;
+  font-weight: 700;
   color: #059669;
   white-space: nowrap;
 }
@@ -3020,8 +3111,9 @@ select.rent-calculator__input:focus {
 .plan-card__desc {
   margin: 0;
   padding-left: 25px;
-  font-size: 0.8125rem;
-  line-height: 1.45;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
   color: var(--text-secondary);
 }
 
@@ -3038,10 +3130,10 @@ select.rent-calculator__input:focus {
   display: flex;
   align-items: flex-start;
   gap: 6px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  line-height: 1.35;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  line-height: 1.45;
 }
 
 .plan-card__bullets li svg {
@@ -3068,15 +3160,17 @@ select.rent-calculator__input:focus {
   border: 1px dashed var(--shell-border, #d8cfc3);
   background: var(--bg, #faf7f2);
   color: var(--clay);
-  font-size: 0.8125rem;
+  font-family: inherit;
+  font-size: 14px;
   font-weight: 700;
   cursor: pointer;
 }
 
 .plan-cards__footnote {
   margin: 0;
-  font-size: 0.75rem;
-  line-height: 1.45;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
   color: var(--text-muted);
   text-align: center;
 }
@@ -3087,8 +3181,8 @@ select.rent-calculator__input:focus {
   justify-content: center;
   padding: 11px 6px;
   border-left: 1px solid var(--shell-border, #f0e9df);
-  font-size: 0.8125rem;
-  font-weight: 800;
+  font-size: 13px;
+  font-weight: 700;
   color: var(--text);
   text-align: center;
 }
@@ -3096,6 +3190,14 @@ select.rent-calculator__input:focus {
 /* ============================================================================
    3-Step Encouraging KYC Stepper & Summary (Compact, Frameless)
    ============================================================================ */
+.arm-kyc-intro {
+  margin: 0 0 14px;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
 .arm-kyc-stepper {
   display: flex;
   flex-direction: column;
@@ -3198,4 +3300,418 @@ select.rent-calculator__input:focus {
   align-items: center;
   gap: 10px;
   margin-top: 4px;
+}
+
+/* ============================================================================
+   Nov 26 Feedback: Expandable Save & Earn Sub-Options, Rent Protec Boost,
+   Simplified Consent, 3-Metric Balance Strip, Monthly Plan & Dual Funding Tabs
+   ============================================================================ */
+
+.plan-card--expandable {
+  padding: 0;
+  cursor: default;
+  overflow: hidden;
+}
+
+.plan-card__trigger {
+  width: 100%;
+  text-align: left;
+  padding: 16px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-family: inherit;
+  color: inherit;
+}
+
+.plan-card__chevron {
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.plan-card__chevron--open {
+  transform: rotate(180deg);
+  color: var(--clay);
+}
+
+.plan-card__suboptions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 14px 14px;
+  border-top: 1px solid var(--shell-border, #f0e9df);
+  padding-top: 12px;
+  background: rgba(250, 249, 245, 0.7);
+}
+
+.plan-suboption {
+  width: 100%;
+  text-align: left;
+  padding: 12px 13px;
+  border-radius: 12px;
+  border: 1.5px solid var(--shell-border, #e5ded4);
+  background: var(--surface, #ffffff);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-family: inherit;
+  color: inherit;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.plan-suboption--active {
+  border-color: var(--clay);
+  background: #fff9f5;
+  box-shadow: 0 3px 10px rgba(194, 80, 31, 0.08);
+}
+
+.plan-suboption__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.plan-suboption__title-group {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.plan-suboption__radio {
+  width: 15px;
+  height: 15px;
+  border-radius: 999px;
+  border: 2px solid var(--border, #cfc7bc);
+  background: #ffffff;
+  flex-shrink: 0;
+}
+
+.plan-suboption--active .plan-suboption__radio {
+  border-color: var(--clay);
+  background: var(--clay);
+  box-shadow: inset 0 0 0 2.5px #ffffff;
+}
+
+.plan-suboption__icon {
+  color: var(--clay);
+  flex-shrink: 0;
+}
+
+.plan-suboption__name {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.plan-suboption__rate {
+  font-size: 14px;
+  font-weight: 700;
+  color: #059669;
+  white-space: nowrap;
+}
+
+.plan-suboption__desc {
+  margin: 0;
+  padding-left: 22px;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.35;
+  color: var(--text-muted);
+}
+
+.plan-table__row--4col {
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr) minmax(0, 0.95fr) minmax(0, 0.95fr);
+}
+
+.rent-protec-boost {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.rent-protec-boost__label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.rent-protec-boost__pills {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.rent-protec-boost__pill {
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--shell-border, #e5dfd7);
+  background: var(--surface, #ffffff);
+  color: var(--clay);
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.rent-protec-boost__pill:hover {
+  background: var(--clay-faint);
+  border-color: var(--clay);
+}
+
+.rent-protec-boost__reset {
+  padding: 5px 9px;
+  border-radius: 999px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.rent-protec-boost__error {
+  margin-top: 6px;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--error, #dc2626);
+}
+
+.rent-protec-payday {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--shell-border, #ebe3d8);
+}
+
+.rent-protec-payday__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.rent-protec-payday__hint {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.35;
+  color: var(--text-muted);
+}
+
+.rent-protec-payday__label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.rent-protec-payday__select {
+  border: 1px solid var(--shell-border, #e0d8ce);
+  border-radius: 8px;
+  background: var(--bg, #faf9f5);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.savings-consent__lock-summary {
+  margin: 0;
+  padding: 9px 11px;
+  border-radius: 10px;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--shell-border, #ebe3d8);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.vault-monthly-strip {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 11px 14px;
+  border-radius: 12px;
+  background: var(--bg, #faf9f5);
+  border: 1px solid var(--shell-border, #eee7df);
+}
+
+.vault-monthly-strip__left {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.vault-monthly-strip__title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.vault-monthly-strip__label {
+  min-width: 0;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vault-monthly-strip__label strong {
+  color: var(--text);
+  font-weight: 800;
+}
+
+.vault-monthly-strip__sub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.vault-monthly-strip__edit-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--clay);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.vault-monthly-strip__pill {
+  margin-left: auto;
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.vault-monthly-strip__pill--paid {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.vault-monthly-strip__pill--due {
+  background: var(--clay-faint);
+  color: var(--clay);
+}
+
+.vault-monthly-strip__picker {
+  width: 100%;
+  padding-top: 8px;
+  border-top: 1px solid var(--shell-border, #eee7df);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.vault-monthly-strip__picker-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.vault-monthly-strip__days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.vault-monthly-strip__day-btn {
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--shell-border, #e5dfd7);
+  background: var(--surface, #ffffff);
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.vault-monthly-strip__day-btn--active {
+  border-color: var(--clay);
+  background: var(--clay-faint);
+  color: var(--clay);
+}
+
+.vault-hero-docs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.vault-hero-docs__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.vault-hero-docs__link:hover {
+  color: var(--clay);
+}
+
+.fund-mode-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--surface2, #f5f1ec);
+  border: 1px solid var(--border-solid, #eee7df);
+}
+
+.fund-mode-tabs__btn {
+  padding: 8px 10px;
+  border-radius: 9px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.fund-mode-tabs__btn--active {
+  background: var(--surface, #ffffff);
+  color: var(--clay);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 }

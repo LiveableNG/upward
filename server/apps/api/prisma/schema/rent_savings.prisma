@@ -6,16 +6,18 @@ model upward_rent_vault {
   currentPrincipalKobo    BigInt                           @default(0)
   accruedYieldKobo        BigInt                           @default(0)
   cadence                 String                           @default("MONTHLY") // WEEKLY, MONTHLY, QUARTERLY
-  productOption           String                           @default("SAVE_AND_EARN") // SAVE_AND_EARN, RENT_PROTEC
-  planPattern             String                           @default("INITIAL_DEPOSIT") // EQUAL, INITIAL_DEPOSIT, STEP_UP, ACCELERATED
-  initialDepositKobo      BigInt                           @default(0)
-  appliedAnnualRatePct    Float                            @default(16.0)
-  insurancePremiumPct     Float                            @default(0)
-  contractualDueDate      DateTime
-  unlockDate              DateTime                         // Strictly contractualDueDate - 30 days
-  lockStatus              String                           @default("LOCKED")  // LOCKED, SETTLEMENT_READY, SETTLED, BROKEN_OUT
-  preferredFundingMethod  String                           @default("DVA")     // DVA, CARD_TOKEN
-  paydayDayOfMonth        Int?
+  productOption             String                           @default("SAVE_AND_EARN") // SAVE_AND_EARN, RENT_PROTEC
+  lockMode                  String                           @default("LOCKED") // LOCKED, FLEXIBLE
+  planPattern               String                           @default("INITIAL_DEPOSIT") // EQUAL, INITIAL_DEPOSIT, STEP_UP, ACCELERATED
+  initialDepositKobo        BigInt                           @default(0)
+  plannedMonthlyDepositKobo BigInt                           @default(0)
+  appliedAnnualRatePct      Float                            @default(16.0)
+  insurancePremiumPct       Float                            @default(0)
+  contractualDueDate        DateTime
+  unlockDate                DateTime                         // Strictly contractualDueDate - 30 days
+  lockStatus                String                           @default("LOCKED")  // LOCKED, SETTLEMENT_READY, SETTLED, BROKEN_OUT
+  preferredFundingMethod    String                           @default("DVA")     // DVA, CARD_TOKEN
+  paydayDayOfMonth          Int?                             @default(28)
   cardAuthorizationCode   String?
   
   // Paystack Dedicated Virtual Account (DVA) Details

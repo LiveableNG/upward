@@ -3,19 +3,17 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import {
-  TrendingUp,
   PlusCircle,
   ShieldCheck,
-  ChevronRight,
   ArrowRight,
   ArrowDownToLine,
   ArrowUpRight,
-  Copy,
-  Check,
   FileText,
   FileCheck2,
   Receipt,
   Loader2,
+  Calendar,
+  Unlock,
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { API_BASE } from '@/lib/api-client'
@@ -24,10 +22,13 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
 import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
 import { getRentDepositReceipt } from '@/features/payments/services/paymentService'
-import { FundVaultModal } from './FundVaultModal'
+import { useUpdateVaultSchedule } from '../hooks/useRentSavings'
+import { FundVaultModal, type VaultFundingMode } from './FundVaultModal'
 import { readSavingsRentPlan } from '../utils/savingsRentPlan'
+import { ordinalDay, REMINDER_DAYS } from '../utils/reminderDay'
 import {
   type SavingsCadence,
+  type SavingsLockMode,
   type SavingsPlanPattern,
   type SavingsProductOption,
   type VaultTransactionItem,
@@ -40,8 +41,16 @@ interface VaultDashboardViewProps {
     lock_status: string
     cadence?: SavingsCadence
     product_option?: SavingsProductOption
+    lock_mode?: SavingsLockMode
     plan_pattern?: SavingsPlanPattern
     initial_deposit_kobo?: number
+    minimum_initial_deposit_kobo?: number
+    minimum_initial_deposit_pct?: number
+    planned_monthly_deposit_kobo?: number
+    current_month_paid_kobo?: number
+    current_month_remaining_kobo?: number
+    current_month_fulfilled?: boolean
+    preferred_payday_day?: number
     is_rent_protec?: boolean
     insurance_premium_pct?: number
     has_completed_arm_kyc?: boolean
@@ -102,6 +111,9 @@ interface VaultDashboardViewProps {
 
 export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboardViewProps) {
   const isInitialPrompt = vault.current_balance_kobo === 0
+  const [fundModalMode, setFundModalMode] = useState<VaultFundingMode>(() =>
+    isInitialPrompt ? 'INITIAL_DEPOSIT' : vault.current_month_fulfilled ? 'EXTRA_TOPUP' : 'MONTHLY',
+  )
   const [showFundModal, setShowFundModal] = useState(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -111,11 +123,12 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
     }
     return isInitialPrompt
   })
-  const [copiedAccount, setCopiedAccount] = useState(false)
+  const [editingPayday, setEditingPayday] = useState(false)
   const [downloadingReceiptId, setDownloadingReceiptId] = useState<string | null>(null)
   const [downloadingConsent, setDownloadingConsent] = useState(false)
   const { user } = useAuth()
   const { success: toastSuccess, error: toastError } = useToast()
+  const updateScheduleMutation = useUpdateVaultSchedule()
   const [nowTimestamp] = useState(() => Date.now())
   const activeProperty = (user?.properties || []).find(
     (p: { isPastTenancy?: boolean; rentAmount?: number; rentEndDate?: string }) =>
@@ -123,6 +136,33 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
   )
 
   const currentBalanceNaira = vault.current_balance_kobo / 100
+  const depositedPrincipalNaira = (vault.principal_kobo ?? vault.current_balance_kobo) / 100
+  const interestEarnedNaira = (vault.accrued_yield_kobo ?? 0) / 100
+  const expectedReturnsNaira = (vault.pay_less_projection?.projected_yield_kobo ?? 0) / 100
+  const showDeposited =
+    interestEarnedNaira > 0 &&
+    Math.round(depositedPrincipalNaira) !== Math.round(currentBalanceNaira)
+  const balanceStatus: { key: string; text: string; gain?: boolean }[] = []
+  if (showDeposited) {
+    balanceStatus.push({
+      key: 'deposited',
+      text: `Deposited ${formatCurrency(depositedPrincipalNaira, 'NGN')}`,
+    })
+  }
+  if (interestEarnedNaira > 0) {
+    balanceStatus.push({
+      key: 'interest',
+      text: `Interest earned +${formatCurrency(interestEarnedNaira, 'NGN')}`,
+      gain: true,
+    })
+  }
+  if (expectedReturnsNaira > 0) {
+    balanceStatus.push({
+      key: 'expected',
+      text: `Expected by rent day +${formatCurrency(expectedReturnsNaira, 'NGN')}`,
+      gain: true,
+    })
+  }
   const targetAmountNaira = activeProperty?.rentAmount || vault.target_amount_kobo / 100
   const targetDueDate = activeProperty?.rentEndDate || vault.contractual_due_date
   const daysRemaining = targetDueDate
@@ -133,9 +173,42 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
     : vault.days_remaining
 
   const { rates: platformRates } = usePlatformRates()
+  const isFlexiblePlan = vault.lock_mode === 'FLEXIBLE' && !vault.is_rent_protec
   const savingsAnnualRatePct =
     vault.annual_yield_rate_pct ??
-    (vault.is_rent_protec ? platformRates.rentProtecRatePct : platformRates.savingsAnnualRatePct)
+    (vault.is_rent_protec
+      ? platformRates.rentProtecRatePct
+      : isFlexiblePlan
+        ? platformRates.flexibleSavingsAnnualRatePct
+        : platformRates.savingsAnnualRatePct)
+
+  const plannedMonthlyNaira = Math.round(
+    (vault.planned_monthly_deposit_kobo && vault.planned_monthly_deposit_kobo > 0
+      ? vault.planned_monthly_deposit_kobo
+      : vault.pay_less_projection?.periodic_deposit_kobo ?? 0) / 100,
+  )
+  const currentMonthRemainingNaira = Math.round(
+    (vault.current_month_remaining_kobo ??
+      Math.max(
+        0,
+        (vault.planned_monthly_deposit_kobo ?? 0) - (vault.current_month_paid_kobo ?? 0),
+      )) / 100,
+  )
+  const currentMonthFulfilled = Boolean(vault.current_month_fulfilled)
+  const monthTargetMet =
+    currentBalanceNaira > 0 &&
+    plannedMonthlyNaira > 0 &&
+    (currentMonthFulfilled || currentMonthRemainingNaira <= 0)
+  const monthlyButtonLabel =
+    currentBalanceNaira === 0
+      ? 'Pay Initial Deposit'
+      : currentMonthRemainingNaira > 0 && currentMonthRemainingNaira < plannedMonthlyNaira
+        ? `Pay ${formatCurrency(currentMonthRemainingNaira, 'NGN')} left`
+        : plannedMonthlyNaira > 0
+          ? `Pay ${formatCurrency(plannedMonthlyNaira, 'NGN')}`
+          : 'Pay Monthly'
+  const preferredPaydayDay = vault.preferred_payday_day ?? 28
+  const currentMonthShort = new Date(nowTimestamp).toLocaleDateString('en-GB', { month: 'short' })
 
   const targetCompletionPercentage =
     targetAmountNaira > 0
@@ -143,27 +216,21 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
       : vault.target_completion_percentage
 
   const canSettleLandlord = Boolean(onGoToSettlementHub && daysRemaining <= 30)
-
-  const consistencyPoints =
-    vault.savings_score.consistency_points ??
-    Math.min(
-      50,
-      Math.round(((vault.savings_score.cadence_points ?? 0) / 40) * 50) ||
-        (currentBalanceNaira > 0 ? 15 : 10),
-    )
-  const goalPoints =
-    vault.savings_score.goal_points ??
-    Math.min(50, Math.round((targetCompletionPercentage / 100) * 50))
-  const totalScore = Math.min(100, consistencyPoints + goalPoints)
-
   const transactions = vault.transactions || []
 
-  const handleCopyAccount = () => {
-    if (!vault.dedicated_account?.account_number) return
-    navigator.clipboard.writeText(vault.dedicated_account.account_number)
-    setCopiedAccount(true)
-    toastSuccess('Rent savings account number copied!')
-    setTimeout(() => setCopiedAccount(false), 2000)
+  const openFundingModal = (mode: VaultFundingMode) => {
+    setFundModalMode(mode)
+    setShowFundModal(true)
+  }
+
+  const handlePaydayChange = async (nextDay: number) => {
+    try {
+      await updateScheduleMutation.mutateAsync(nextDay)
+      toastSuccess(`Reminder set to the ${ordinalDay(nextDay)}. You can still save any day.`)
+      setEditingPayday(false)
+    } catch {
+      toastError('Could not update monthly savings day.')
+    }
   }
 
   const handleOpenReceipt = async (tx: VaultTransactionItem) => {
@@ -287,20 +354,8 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
 
       <div className="vault-dashboard__hero">
         <div className="vault-dashboard__top-row">
-          <div className="vault-arm-badge">
-            <ShieldCheck size={14} className="vault-arm-badge__icon" />
-            <span>
-              <strong>
-                {fundDisplayName} ({SAVINGS_FUND_CODE})
-              </strong>{' '}
-              managed by{' '}
-              <strong>
-                {platformRates.partnerName || 'Asset & Resource Management Holding Company (ARM)'}
-              </strong>
-            </span>
-          </div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            {vault.is_rent_protec && (
+          <div className="vault-dashboard__plan-pills">
+            {vault.is_rent_protec ? (
               <span
                 style={{
                   padding: '3px 8px',
@@ -311,7 +366,37 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
                   fontWeight: 700,
                 }}
               >
-                Rent Protec • Protected
+                Rent Protec • {savingsAnnualRatePct}% p.a.
+              </span>
+            ) : isFlexiblePlan ? (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  padding: '3px 8px',
+                  borderRadius: 999,
+                  background: '#ECFDF5',
+                  color: '#047857',
+                  fontSize: '0.6875rem',
+                  fontWeight: 700,
+                }}
+              >
+                <Unlock size={11} />
+                Flexible • {savingsAnnualRatePct}% p.a.
+              </span>
+            ) : (
+              <span
+                style={{
+                  padding: '3px 8px',
+                  borderRadius: 999,
+                  background: 'var(--clay-faint)',
+                  color: 'var(--clay)',
+                  fontSize: '0.6875rem',
+                  fontWeight: 700,
+                }}
+              >
+                Full Lock • {savingsAnnualRatePct}% p.a.
               </span>
             )}
             <span className="vault-dashboard__countdown-pill">{daysRemaining} Days Left</span>
@@ -319,10 +404,23 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
         </div>
 
         <div className="vault-dashboard__amounts">
-          <span className="vault-dashboard__balance-caption">Total Savings</span>
+          <span className="vault-dashboard__balance-caption">Total Balance</span>
           <span className="vault-dashboard__current-balance">
             {formatCurrency(currentBalanceNaira, 'NGN')}
           </span>
+
+          {balanceStatus.length > 0 && (
+            <p className="vault-dashboard__status-line">
+              {balanceStatus.map((part) => (
+                <span key={part.key} className="vault-dashboard__status-part">
+                  <span className={part.gain ? 'vault-dashboard__status-gain' : undefined}>
+                    {part.text}
+                  </span>
+                </span>
+              ))}
+            </p>
+          )}
+
           <div className="vault-dashboard__target-row">
             <span className="vault-dashboard__target-label">
               Target: {formatCurrency(targetAmountNaira, 'NGN')} due on{' '}
@@ -344,15 +442,84 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
           </div>
         </div>
 
+        {/* Monthly amount, with a reminder day the user can move to any date */}
+        {plannedMonthlyNaira > 0 && (
+          <div className="vault-monthly-strip">
+            <div className="vault-monthly-strip__title-row">
+              <Calendar size={14} color="var(--clay)" />
+              <span className="vault-monthly-strip__label">
+                Monthly <strong>{formatCurrency(plannedMonthlyNaira, 'NGN')}</strong>
+              </span>
+              <span
+                className={`vault-monthly-strip__pill ${
+                  currentMonthFulfilled
+                    ? 'vault-monthly-strip__pill--paid'
+                    : 'vault-monthly-strip__pill--due'
+                }`}
+              >
+                {currentMonthFulfilled
+                  ? `Paid for ${currentMonthShort}`
+                  : currentMonthRemainingNaira > 0 &&
+                      currentMonthRemainingNaira < plannedMonthlyNaira
+                    ? `${formatCurrency(currentMonthRemainingNaira, 'NGN')} left`
+                    : 'This month'}
+              </span>
+            </div>
+            <div className="vault-monthly-strip__sub">
+              <span>Reminder on the {ordinalDay(preferredPaydayDay)}</span>
+              <button
+                type="button"
+                className="vault-monthly-strip__edit-btn"
+                onClick={() => setEditingPayday((v) => !v)}
+              >
+                {editingPayday ? 'Close' : 'Change day'}
+              </button>
+            </div>
+
+            {editingPayday && (
+              <div className="vault-monthly-strip__picker">
+                <label className="vault-monthly-strip__picker-label" htmlFor="vault-reminder-day">
+                  Reminder day
+                </label>
+                <select
+                  id="vault-reminder-day"
+                  className="rent-protec-payday__select"
+                  disabled={updateScheduleMutation.isPending}
+                  value={preferredPaydayDay}
+                  onChange={(e) => handlePaydayChange(Number(e.target.value))}
+                >
+                  {REMINDER_DAYS.map((day) => (
+                    <option key={day} value={day}>
+                      {ordinalDay(day)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="vault-dashboard__actions">
-          {!isOptInOnly && (
+          {!isOptInOnly && !monthTargetMet && (
             <button
               type="button"
               className="vault-btn-primary"
-              onClick={() => setShowFundModal(true)}
+              onClick={() =>
+                openFundingModal(currentBalanceNaira === 0 ? 'INITIAL_DEPOSIT' : 'MONTHLY')
+              }
             >
-              <PlusCircle size={18} />
-              <span>Add Funds</span>
+              <PlusCircle size={17} />
+              <span>{monthlyButtonLabel}</span>
+            </button>
+          )}
+
+          {!isOptInOnly && monthTargetMet && (
+            <button
+              type="button"
+              className="vault-btn-primary"
+              onClick={() => openFundingModal('EXTRA_TOPUP')}
+            >
+              <span>Add extra top-up</span>
             </button>
           )}
 
@@ -366,46 +533,18 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
               <ArrowRight size={16} />
             </button>
           )}
-        </div>
-      </div>
 
-      {vault.dedicated_account?.account_number && (
-        <div className="vault-dva-card">
-          <div className="vault-dva-card__header">
-            <span className="vault-dva-card__title">Personal Rent Account</span>
-            <span className="vault-dva-card__badge">
-              {vault.dedicated_account.bank_name || 'Wema Bank'}
-            </span>
-          </div>
-          <div className="vault-dva-card__number-row">
-            <div className="vault-dva-card__number-block">
-              <span className="vault-dva-card__number">
-                {vault.dedicated_account.account_number}
-              </span>
-              <span className="vault-dva-card__sub-label">
-                {vault.dedicated_account.account_name}
-              </span>
-            </div>
+          {!isOptInOnly && currentBalanceNaira > 0 && !monthTargetMet && (
             <button
               type="button"
-              className={`vault-dva-card__copy-btn ${
-                copiedAccount ? 'vault-dva-card__copy-btn--copied' : ''
-              }`}
-              onClick={handleCopyAccount}
+              className="vault-dashboard__text-action"
+              onClick={() => openFundingModal('EXTRA_TOPUP')}
             >
-              {copiedAccount ? (
-                <>
-                  <Check size={14} /> Copied!
-                </>
-              ) : (
-                <>
-                  <Copy size={14} /> Copy
-                </>
-              )}
+              Add extra top-up
             </button>
-          </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Savings Score Card (Commented out)
       <div className="vault-score-card">
@@ -525,44 +664,32 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
         )}
       </div>
 
-      <div className="vault-consent-bar">
-        <div className="vault-consent-bar__info">
-          <FileCheck2 size={15} color="var(--clay)" style={{ flexShrink: 0 }} />
+      <div className="vault-dashboard__footer">
+        <p className="vault-dashboard__fund-note">
+          <ShieldCheck size={13} aria-hidden />
           <span>
-            {vault.consent?.accepted_at ? (
-              <>
-                <strong>ARM B2B2C Consent Mandate</strong> signed on{' '}
-                {new Date(vault.consent.accepted_at).toLocaleDateString('en-GB', {
-                  day: 'numeric',
-                  month: 'short',
-                  year: 'numeric',
-                })}
-              </>
-            ) : (
-              <>
-                <strong>{fundDisplayName} ({SAVINGS_FUND_CODE})</strong> Terms &amp; Mandate
-              </>
-            )}
+            {fundDisplayName} ({SAVINGS_FUND_CODE}), managed by{' '}
+            {platformRates.partnerName || 'Asset & Resource Management Holding Company (ARM)'}
           </span>
-        </div>
-        <div className="vault-consent-bar__actions">
-          <Link href="/dashboard/legal/savings-terms" className="vault-consent-bar__link">
-            <FileText size={13} />
-            <span>T&amp;Cs</span>
+        </p>
+        <div className="vault-hero-docs">
+          <Link href="/dashboard/legal/savings-terms" className="vault-hero-docs__link">
+            <FileText size={12} />
+            <span>Savings Terms</span>
           </Link>
           {vault.consent?.has_document && (
             <button
               type="button"
-              className="vault-consent-bar__link"
+              className="vault-hero-docs__link"
               onClick={handleOpenConsentPdf}
               disabled={downloadingConsent}
             >
               {downloadingConsent ? (
-                <Loader2 size={13} className="animate-spin" />
+                <Loader2 size={12} className="animate-spin" />
               ) : (
-                <FileCheck2 size={13} />
+                <FileCheck2 size={12} />
               )}
-              <span>Consent Doc (PDF)</span>
+              <span>Signed Mandate</span>
             </button>
           )}
         </div>
@@ -571,14 +698,17 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
       <FundVaultModal
         isOpen={showFundModal}
         onClose={() => setShowFundModal(false)}
+        initialFundingMode={fundModalMode}
+        plannedMonthlyNaira={plannedMonthlyNaira}
+        currentMonthRemainingNaira={currentMonthRemainingNaira}
+        currentMonthFulfilled={currentMonthFulfilled}
         recommendedAmountNaira={(() => {
-          const periodicNaira = Math.round(
-            (vault.pay_less_projection?.periodic_deposit_kobo ?? 0) / 100,
-          )
+          const periodicNaira = plannedMonthlyNaira
 
-          // Once the user has already started saving, recommend their next periodic deposit
-          // capped at the remaining rent target (never repeat the upfront initial deposit).
           if (vault.current_balance_kobo > 0) {
+            if (currentMonthRemainingNaira > 0) {
+              return currentMonthRemainingNaira
+            }
             const remainingToTarget = Math.max(
               0,
               Math.round(targetAmountNaira - currentBalanceNaira),
@@ -591,7 +721,6 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
             return periodicNaira > 0 ? periodicNaira : 50_000
           }
 
-          // First deposit (balance === 0): clamp any stale >50% initial deposit to 25% of target rent
           const maxSensibleInitial =
             targetAmountNaira > 0 ? Math.round(targetAmountNaira * 0.5) : Infinity
           const savedPlan = readSavingsRentPlan(user?.id)
@@ -616,7 +745,7 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
             return periodicNaira || (targetAmountNaira > 0 ? Math.round(targetAmountNaira / 10) : 100_000)
           }
 
-          return targetAmountNaira > 0 ? Math.round(targetAmountNaira * 0.25) : 100_000
+          return targetAmountNaira > 0 ? Math.round(targetAmountNaira * 0.2) : 100_000
         })()}
         cadence="MONTHLY"
         dedicatedAccount={vault.dedicated_account}

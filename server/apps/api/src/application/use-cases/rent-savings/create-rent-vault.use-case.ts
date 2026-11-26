@@ -15,7 +15,13 @@ import {
   IRentVaultRepository,
   RENT_VAULT_REPOSITORY,
 } from '../../../domains/rent-savings/rent-vault.repository'
-import { CadenceType, FundingMethodType } from '../../../domains/rent-savings/rent-vault.types'
+import {
+  CadenceType,
+  FundingMethodType,
+  SavingsLockMode,
+} from '../../../domains/rent-savings/rent-vault.types'
+import { RentSavingsCalculatorEngine } from '../../../domains/rent-savings/rent-savings-calculator.engine'
+import { clampReminderDay } from '../../../domains/rent-savings/reminder-day'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { PlatformRatesService } from '../../../shared/infrastructure/common/platform-rates.service'
@@ -45,9 +51,18 @@ export class CreateRentVaultDto {
   product_option?: 'SAVE_AND_EARN' | 'RENT_PROTEC'
 
   @IsOptional()
+  @IsIn(['LOCKED', 'FLEXIBLE'])
+  lock_mode?: SavingsLockMode
+
+  @IsOptional()
   @IsNumber()
   @Type(() => Number)
   initial_deposit_kobo?: number
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  planned_monthly_deposit_kobo?: number
 
   @IsOptional()
   @IsNumber()
@@ -164,23 +179,76 @@ export class CreateRentVaultUseCase {
 
     const rates = this.platformRates ? await this.platformRates.getRates() : null
     const chosenOption = dto.product_option || 'SAVE_AND_EARN'
+    const resolvedLockMode: SavingsLockMode =
+      chosenOption === 'RENT_PROTEC'
+        ? 'LOCKED'
+        : dto.lock_mode === 'FLEXIBLE'
+          ? 'FLEXIBLE'
+          : 'LOCKED'
     const appliedAnnualRatePct =
       chosenOption === 'RENT_PROTEC'
         ? (rates?.rentProtecRatePct ?? 10.0)
-        : (rates?.savingsAnnualRatePct ?? 16.0)
+        : resolvedLockMode === 'FLEXIBLE'
+          ? (rates?.flexibleSavingsAnnualRatePct ?? 12.0)
+          : (rates?.savingsAnnualRatePct ?? 16.0)
+
+    const rawDaysRemaining = RentSavingsCalculatorEngine.calculateDaysRemaining(dueDate, now)
+    const minRentProtecInitialKobo =
+      chosenOption === 'RENT_PROTEC'
+        ? RentSavingsCalculatorEngine.getRentProtecActivationThresholdKobo(
+            targetAmountKobo,
+            rawDaysRemaining,
+          )
+        : 0n
+    const providedInitialKobo = dto.initial_deposit_kobo
+      ? BigInt(Math.max(0, Math.round(dto.initial_deposit_kobo)))
+      : 0n
+    const effectiveInitialDepositKobo =
+      chosenOption === 'RENT_PROTEC' && providedInitialKobo < minRentProtecInitialKobo
+        ? minRentProtecInitialKobo
+        : providedInitialKobo
+
+    let plannedMonthlyDepositKobo =
+      dto.planned_monthly_deposit_kobo && dto.planned_monthly_deposit_kobo > 0
+        ? BigInt(Math.round(dto.planned_monthly_deposit_kobo))
+        : 0n
+    if (plannedMonthlyDepositKobo === 0n) {
+      try {
+        const sim = RentSavingsCalculatorEngine.simulate({
+          targetAmountKobo,
+          contractualDueDate: dueDate,
+          initialDepositKobo: effectiveInitialDepositKobo,
+          cadence: 'MONTHLY',
+          productOption: chosenOption,
+          lockMode: resolvedLockMode,
+          planPattern: effectiveInitialDepositKobo > 0n ? 'INITIAL_DEPOSIT' : 'EQUAL',
+          asOfDate: now,
+          annualNetYieldRate: appliedAnnualRatePct / 100,
+          maxSavingsMonths: rates?.maxSavingsMonths ?? 11,
+          rentProtecMinMonths: rates?.rentProtecMinMonths ?? 6,
+          insurancePremiumPct:
+            chosenOption === 'RENT_PROTEC' ? (rates?.insurancePremiumPct ?? 2.0) : 0,
+        })
+        plannedMonthlyDepositKobo = sim.periodicDepositKobo
+      } catch {
+        plannedMonthlyDepositKobo = 0n
+      }
+    }
 
     const vault = await this.rentVaultRepo.create({
       userId,
       targetAmountKobo,
       cadence: dto.cadence,
       productOption: chosenOption,
+      lockMode: resolvedLockMode,
       appliedAnnualRatePct,
-      initialDepositKobo: dto.initial_deposit_kobo ? BigInt(Math.round(dto.initial_deposit_kobo)) : 0n,
+      initialDepositKobo: effectiveInitialDepositKobo,
+      plannedMonthlyDepositKobo,
       contractualDueDate: dueDate,
       unlockDate,
       lockStatus: 'LOCKED',
       preferredFundingMethod: dto.preferred_funding_method,
-      paydayDayOfMonth: dto.payday_day_of_month || null,
+      paydayDayOfMonth: clampReminderDay(dto.payday_day_of_month),
       cardAuthorizationCode: dto.card_authorization_code || null,
       dvaBankName,
       dvaAccountNumber,

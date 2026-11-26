@@ -2,6 +2,7 @@ import { request } from '@/lib/api-client'
 
 export type SavingsCadence = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY'
 export type SavingsProductOption = 'SAVE_AND_EARN' | 'RENT_PROTEC'
+export type SavingsLockMode = 'LOCKED' | 'FLEXIBLE'
 export type SavingsPlanPattern = 'EQUAL' | 'INITIAL_DEPOSIT' | 'STEP_UP' | 'ACCELERATED'
 export type MeansOfIdentificationType = 'NIN' | 'INTERNATIONAL_PASSPORT' | 'DRIVERS_LICENSE'
 export type SavingsKycDocumentKind = 'id_card' | 'utility_bill'
@@ -20,6 +21,7 @@ export interface SimulateRentSavingsPayload {
   initial_deposit_kobo?: number
   cadence: SavingsCadence
   product_option?: SavingsProductOption
+  lock_mode?: SavingsLockMode
   plan_pattern?: SavingsPlanPattern
   monthly_income_kobo?: number
 }
@@ -30,7 +32,9 @@ export interface CreateVaultPayload {
   cadence: SavingsCadence
   preferred_funding_method: 'DVA' | 'CARD_TOKEN' | 'DIRECT_DEBIT'
   product_option?: SavingsProductOption
+  lock_mode?: SavingsLockMode
   initial_deposit_kobo?: number
+  planned_monthly_deposit_kobo?: number
   payday_day_of_month?: number
   card_authorization_code?: string
   consent_accepted?: boolean
@@ -60,11 +64,14 @@ export interface SimulateRentSavingsData {
   first_period_deposit_kobo?: number
   last_period_deposit_kobo?: number
   required_initial_deposit_kobo?: number
+  minimum_initial_deposit_kobo?: number
+  minimum_initial_deposit_pct?: number
   number_of_payments: number
   total_tenant_contribution_kobo: number
   projected_yield_kobo: number
   net_annual_yield_rate: number
   product_option?: SavingsProductOption
+  lock_mode?: SavingsLockMode
   plan_pattern?: SavingsPlanPattern
   is_rent_protec_eligible?: boolean
   rent_protec_ineligibility_reason?: string | null
@@ -115,6 +122,7 @@ export interface VaultTransactionItem {
   id: string
   uuid?: string
   type: string
+  deposit_classification?: string | null
   direction: 'CREDIT' | 'DEBIT'
   amount_kobo: number
   source_label: string
@@ -129,8 +137,16 @@ export interface RentVaultData {
   lock_status: string
   cadence?: SavingsCadence
   product_option?: SavingsProductOption
+  lock_mode?: SavingsLockMode
   plan_pattern?: SavingsPlanPattern
   initial_deposit_kobo?: number
+  minimum_initial_deposit_kobo?: number
+  minimum_initial_deposit_pct?: number
+  planned_monthly_deposit_kobo?: number
+  current_month_paid_kobo?: number
+  current_month_remaining_kobo?: number
+  current_month_fulfilled?: boolean
+  preferred_payday_day?: number
   is_rent_protec?: boolean
   insurance_premium_pct?: number
   has_completed_arm_kyc?: boolean
@@ -228,10 +244,16 @@ export interface SavingsOnboardingPrefillData {
   next_of_kin_phone: string | null
   next_of_kin_email: string | null
   next_of_kin_address: string | null
-  settlement_bank_code?: string
-  settlement_account_number?: string
-  settlement_account_name?: string
-  settlement_bank_name?: string
+  settlement_bank?: {
+    bank_code: string
+    bank_name: string
+    account_number: string
+    account_name: string
+  } | null
+  settlement_bank_code?: string | null
+  settlement_account_number?: string | null
+  settlement_account_name?: string | null
+  settlement_bank_name?: string | null
   kyc_address?: string | null
   target_rent?: number | null
   rent_due_date?: string | null
@@ -292,6 +314,20 @@ export async function getMyRentVault(): Promise<RentVaultData> {
   return res.data
 }
 
+export async function updateVaultSchedule(paydayDayOfMonth: number): Promise<{
+  vault_id: string
+  preferred_payday_day: number
+}> {
+  const res = await request<{
+    status: string
+    data: { vault_id: string; preferred_payday_day: number }
+  }>('/rent-vaults/me/schedule', {
+    method: 'PATCH',
+    body: JSON.stringify({ payday_day_of_month: paydayDayOfMonth }),
+  })
+  return res.data
+}
+
 export async function consentToSavings(
   cadence?: SavingsCadence,
   extra?: {
@@ -302,8 +338,10 @@ export async function consentToSavings(
     terms_version?: string
     consent_doc_version?: string
     product_option?: SavingsProductOption
+    lock_mode?: SavingsLockMode
     plan_pattern?: SavingsPlanPattern
     initial_deposit_kobo?: number
+    payday_day_of_month?: number
   },
 ) {
   const payload = {
@@ -332,6 +370,75 @@ export async function consentToSavings(
 }
 
 /**
+ * Algebraic breakeven deposit percentage for Rent Protec coverage activation:
+ *   d_min(T) = clamp((2 * c_target) / (s * (T / 365)) - 1, 0.20, 0.45)
+ * At s = 6.55% spread and c_target = 2.15%:
+ *   7-11 months (>= 210 days) -> 20%
+ *   6 months (180 days)       -> 33%
+ */
+export function getRentProtecMinimumDepositPct(
+  daysToDueDate: number,
+  spreadRateDecimal = 0.0655,
+  targetCostDecimal = 0.0215,
+): number {
+  const safeDays = Math.max(1, daysToDueDate)
+  const safeSpread = Math.max(0.01, spreadRateDecimal)
+  const rawRatio = (2 * targetCostDecimal) / (safeSpread * (safeDays / 365)) - 1
+  const clampedRatio = Math.min(0.45, Math.max(0.2, rawRatio))
+  return Math.round(clampedRatio * 100)
+}
+
+/**
+ * Recomputes the remaining monthly contribution after an Extra Top-Up.
+ * Never increases above currentPlannedMonthlyNaira due to calendar rounding.
+ */
+export function recalculateReducedMonthlyNaira(params: {
+  targetRentNaira: number
+  newBalanceNaira: number
+  activeDaysRemaining: number
+  annualRatePct: number
+  currentPlannedMonthlyNaira?: number
+  maxMonths?: number
+  currentMonthAlreadyFulfilled?: boolean
+}): number {
+  const {
+    targetRentNaira,
+    newBalanceNaira,
+    activeDaysRemaining,
+    annualRatePct,
+    currentPlannedMonthlyNaira = 0,
+    maxMonths = 11,
+    currentMonthAlreadyFulfilled = false,
+  } = params
+
+  if (newBalanceNaira >= targetRentNaira) return 0
+
+  const totalRemainingMonths = Math.min(
+    Math.min(11, Math.max(1, maxMonths)),
+    Math.max(1, Math.floor(Math.max(1, activeDaysRemaining) / 30)),
+  )
+  const futurePayments = currentMonthAlreadyFulfilled
+    ? Math.max(1, totalRemainingMonths - 1)
+    : totalRemainingMonths
+
+  const monthlyRate = Math.pow(1 + Math.max(0, annualRatePct) / 100, 1 / 12) - 1
+  const fvCurrent = newBalanceNaira * Math.pow(1 + monthlyRate, totalRemainingMonths)
+  const deficit = Math.max(0, targetRentNaira - fvCurrent)
+  if (deficit <= 0) return 0
+
+  let discountSum = 0
+  for (let i = 1; i <= futurePayments; i++) {
+    discountSum += Math.pow(1 + monthlyRate, Math.max(0, futurePayments - i))
+  }
+
+  const recomputed = discountSum > 0 ? Math.ceil(deficit / discountSum) : 0
+  if (currentPlannedMonthlyNaira > 0 && recomputed > currentPlannedMonthlyNaira) {
+    return currentPlannedMonthlyNaira
+  }
+  return recomputed
+}
+
+/**
  * Rent Protec / Save & Earn compound yield calculator
  * Uses effective monthly rate r_m = (1 + r_a)^(1/12) - 1 and caps horizon at <= 11 months.
  */
@@ -347,6 +454,7 @@ export function calculatePayLessPlan(
     maxMonths?: number
     minRentProtecMonths?: number
     insurancePremiumPct?: number
+    rawDaysToDueDate?: number
     customStepStartNaira?: number
     customStepIncrementNaira?: number
   },
@@ -360,25 +468,22 @@ export function calculatePayLessPlan(
   const rawDays = Math.max(1, Math.round(runwayDays))
   const monthsRemaining = Math.min(maxMonths, Math.max(1, Math.floor(rawDays / 30)))
   const days = Math.min(rawDays, maxMonths * 30)
-  const isRentProtecEligible = rawDays >= (minRentProtecMonths - 1) * 28
+  const daysUntilDueDate = options?.rawDaysToDueDate ?? rawDays + 30
+  const isRentProtecEligible = daysUntilDueDate >= minRentProtecMonths * 28
 
   const annualRateDecimal = annualRatePct / 100
-  // Safe Rent Protec activation floor:
-  // 20% of annual rent for 7+ months (>= 210 days); 25% for 6 months (< 210 days)
-  // so Upward always holds >=10x the 2% upfront insurer cost and breaks even via yield spread.
-  const minRentProtecDepositRatio = rawDays >= 210 ? 0.2 : 0.25
-  const missedMonths = Math.max(0, maxMonths - monthsRemaining)
-  const forcedDepositRatio =
+  const minimumInitialDepositPct =
+    productOption === 'RENT_PROTEC' ? getRentProtecMinimumDepositPct(daysUntilDueDate) : 0
+  const requiredInitialDepositNaira =
     productOption === 'RENT_PROTEC'
-      ? Math.min(0.45, Math.max(minRentProtecDepositRatio, (missedMonths / maxMonths) * 0.5))
+      ? Math.round(targetRentNaira * (minimumInitialDepositPct / 100))
       : 0
-  const requiredInitialDepositNaira = Math.round(targetRentNaira * forcedDepositRatio)
   const effectiveInitialNaira =
     planPattern === 'INITIAL_DEPOSIT'
-      ? initialSavedNaira > 0
-        ? initialSavedNaira
-        : productOption === 'RENT_PROTEC'
-          ? requiredInitialDepositNaira
+      ? productOption === 'RENT_PROTEC'
+        ? Math.max(initialSavedNaira, requiredInitialDepositNaira)
+        : initialSavedNaira > 0
+          ? initialSavedNaira
           : 0
       : initialSavedNaira > 0
         ? initialSavedNaira
@@ -478,6 +583,8 @@ export function calculatePayLessPlan(
     monthsRemaining,
     isRentProtecEligible,
     requiredInitialDepositNaira: effectiveInitialNaira,
+    minimumInitialDepositNaira: requiredInitialDepositNaira,
+    minimumInitialDepositPct,
     periodicDepositNaira,
     firstPeriodDepositNaira: periodicDepositNaira,
     lastPeriodDepositNaira,
@@ -527,7 +634,11 @@ export async function breakoutRentVault(vaultId: string): Promise<BreakoutResult
   return res.data
 }
 
-export async function simulateVaultDeposit(accountNumber: string, amountKobo: number) {
+export async function simulateVaultDeposit(
+  accountNumber: string,
+  amountKobo: number,
+  depositKind?: 'MONTHLY' | 'EXTRA_TOPUP' | 'INITIAL_DEPOSIT',
+) {
   if (process.env.NODE_ENV === 'production') {
     throw new Error('Simulated deposits are only available in non-production environments.')
   }
@@ -541,6 +652,7 @@ export async function simulateVaultDeposit(accountNumber: string, amountKobo: nu
     body: JSON.stringify({
       account_number: accountNumber,
       amount_kobo: amountKobo,
+      ...(depositKind ? { deposit_kind: depositKind } : {}),
     }),
   })
   return res
@@ -584,8 +696,11 @@ export interface OnboardInvestorPayload {
   rent_due_date?: string
   cadence?: SavingsCadence
   product_option?: SavingsProductOption
+  lock_mode?: SavingsLockMode
   plan_pattern?: SavingsPlanPattern
   initial_deposit_kobo?: number
+  planned_monthly_deposit_kobo?: number
+  payday_day_of_month?: number
 }
 
 export async function uploadSavingsKycDocument(

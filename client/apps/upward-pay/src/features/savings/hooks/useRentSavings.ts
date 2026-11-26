@@ -144,8 +144,10 @@ export function useConsentToSavings() {
             consent_doc_version?: string
             cadence?: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY'
             product_option?: 'SAVE_AND_EARN' | 'RENT_PROTEC'
+            lock_mode?: 'LOCKED' | 'FLEXIBLE'
             plan_pattern?: 'EQUAL' | 'INITIAL_DEPOSIT' | 'STEP_UP' | 'ACCELERATED'
             initial_deposit_kobo?: number
+            payday_day_of_month?: number
           },
     ) => {
       if (typeof input === 'string') {
@@ -161,11 +163,29 @@ export function useConsentToSavings() {
   })
 }
 
+export function useUpdateVaultSchedule() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (paydayDayOfMonth: number) =>
+      savingsService.updateVaultSchedule(paydayDayOfMonth),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: RENT_VAULT_QUERY_KEY })
+    },
+  })
+}
+
 export function useSimulateVaultDeposit() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ accountNumber, amountKobo }: { accountNumber: string; amountKobo: number }) =>
-      savingsService.simulateVaultDeposit(accountNumber, amountKobo),
+    mutationFn: ({
+      accountNumber,
+      amountKobo,
+      depositKind,
+    }: {
+      accountNumber: string
+      amountKobo: number
+      depositKind?: 'MONTHLY' | 'EXTRA_TOPUP' | 'INITIAL_DEPOSIT'
+    }) => savingsService.simulateVaultDeposit(accountNumber, amountKobo, depositKind),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: RENT_VAULT_QUERY_KEY })
     },

@@ -36,6 +36,9 @@ describe('OnboardSavingsInvestorUseCase', () => {
     updatedAt: new Date(),
   }
 
+  const MOCK_PORTRAIT_BASE64 =
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+
   beforeEach(() => {
     userRepo = {
       findById: jest.fn().mockResolvedValue(mockUser),
@@ -50,13 +53,13 @@ describe('OnboardSavingsInvestorUseCase', () => {
         lastName: 'Okonkwo',
         dateOfBirth: '1992-04-18',
         gender: 'Male',
-        photo: 'data:image/jpeg;base64,/9j/4AAQSkZJRg...',
+        photo: `data:image/png;base64,${MOCK_PORTRAIT_BASE64}`,
         data: {
           firstName: 'Chinedu',
           lastName: 'Okonkwo',
           dateOfBirth: '1992-04-18',
           gender: 'Male',
-          image: 'data:image/jpeg;base64,/9j/4AAQSkZJRg...',
+          image: `data:image/png;base64,${MOCK_PORTRAIT_BASE64}`,
         },
       }),
     } as any
@@ -236,8 +239,8 @@ describe('OnboardSavingsInvestorUseCase', () => {
           residentialStateCode: 'Lagos',
         }),
         documents: expect.objectContaining({
-          passport: '/9j/4AAQSkZJRg...',
-          bvn_passport: '/9j/4AAQSkZJRg...',
+          passport: MOCK_PORTRAIT_BASE64,
+          bvn_passport: MOCK_PORTRAIT_BASE64,
           id_card: expect.objectContaining({
             s3Key: 'users/user-uuid-42/arm-kyc/id_card/nin-slip.jpg',
             mimeType: 'image/jpeg',
@@ -285,5 +288,25 @@ describe('OnboardSavingsInvestorUseCase', () => {
         settlement_account_name: 'Chinedu Okonkwo',
       }),
     ).rejects.toThrow(BadRequestException)
+  })
+
+  it('should omit Prembly sandbox placeholder photo ("base64 image content") from ARM onboarding payload', async () => {
+    kycProvider.verify.mockResolvedValue({
+      success: true,
+      provider: 'PREMBLY',
+      firstName: 'Chinedu',
+      lastName: 'Okonkwo',
+      dateOfBirth: '1992-04-18',
+      gender: 'Male',
+      photo: 'base64 image content',
+      rawResponse: { image: 'base64 image content' },
+    } as any)
+
+    const result = await useCase.execute(42, { ...validBaseDto })
+    expect(result.status).toBe('success')
+
+    const callArg = (armProvider.onboardInvestor as jest.Mock).mock.calls[0]?.[0]
+    expect(callArg?.documents?.passport).toBeUndefined()
+    expect(callArg?.documents?.bvn_passport).toBeUndefined()
   })
 })
