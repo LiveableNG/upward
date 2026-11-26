@@ -39,6 +39,7 @@ export function useTenantOrderDetail(uuid: string, enabled = true) {
         [
           'QUOTE_REQUESTED',
           'QUOTE_PROVIDED',
+          'QUOTE_DECLINED',
           'ORDER_CONFIRMED',
           'PROCESSING',
           'DISPATCHED',
