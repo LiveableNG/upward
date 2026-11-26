@@ -55,6 +55,7 @@ import { fetchDeliveryZones } from '../services/goalsService'
 import { DeliveryLocationBar } from './DeliveryLocationBar'
 import { CommerceCheckoutModal } from './CommerceCheckoutModal'
 import { ServiceQuoteModal } from './ServiceQuoteModal'
+import { ProductImageLightbox } from './ProductImageLightbox'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { getPublicWebUrl, copyTextToClipboard } from '@/lib/utils'
 import '../styles/goals.css'
@@ -1668,6 +1669,76 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
           </aside>
         </div>
 
+        {/* Sticky Mobile Bottom Action Dock (visible < 860px, hidden when modals are open) */}
+        {mounted &&
+          typeof document !== 'undefined' &&
+          !(isCheckoutOpen || isQuoteModalOpen || isLocationPickerOpen || isInquiryOpen || isLightboxOpen) &&
+          (() => {
+            const isQuoteFlow =
+              offering.type === 'SERVICE' ||
+              offering.pricingModel === 'QUOTE_REQUIRED' ||
+              !offering.price
+            return createPortal(
+              <div className="offering-detail__mobile-dock">
+                <div className="offering-detail__mobile-dock-inner">
+                  <div className="offering-detail__mobile-dock-price-col">
+                    <span className="offering-detail__mobile-dock-price">
+                      {isQuoteFlow ? 'Price on Request' : formatOfferingPrice(offering)}
+                    </span>
+                    <span className="offering-detail__mobile-dock-sub">
+                      {!deliveryCheck.isDeliverable
+                        ? 'Outside delivery area'
+                        : isQuoteFlow
+                          ? 'Quote before you pay'
+                          : 'Verified partner'}
+                    </span>
+                  </div>
+
+                  <div className="offering-detail__mobile-dock-actions">
+                    {!deliveryCheck.isDeliverable ? (
+                      <button
+                        type="button"
+                        className="offering-detail__mobile-dock-primary"
+                        onClick={() => setIsLocationPickerOpen(true)}
+                      >
+                        <MapPin size={15} />
+                        <span>Select Zone</span>
+                      </button>
+                    ) : isQuoteFlow ? (
+                      <button
+                        type="button"
+                        className="offering-detail__mobile-dock-primary"
+                        onClick={() => setIsQuoteModalOpen(true)}
+                      >
+                        <Wrench size={15} />
+                        <span>Request Price</span>
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          className="offering-detail__mobile-dock-secondary"
+                          onClick={handleAddToCart}
+                        >
+                          <ShoppingCart size={15} />
+                          <span>Add</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="offering-detail__mobile-dock-primary"
+                          onClick={() => setIsCheckoutOpen(true)}
+                        >
+                          <span>Order Now</span>
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>,
+              document.body,
+            )
+          })()}
+
         {/* Similar / Recommended Packages & Products — Horizontal Carousel */}
         {(similarItems.length > 0 || isOfferingsLoading) && (
           <section className="offering-detail__similar-section">
@@ -1733,101 +1804,15 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
         )}
       </main>
 
-      {/* Fullscreen Fluid Image Lightbox */}
-      {mounted &&
-        isLightboxOpen &&
-        showActiveImage &&
-        createPortal(
-          <div
-            className="offering-lightbox"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Full-size image view"
-            onClick={() => setIsLightboxOpen(false)}
-          >
-            <div className="offering-lightbox__backdrop" />
-
-            <header
-              className="offering-lightbox__header"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="offering-lightbox__info">
-                <span className="offering-lightbox__title">{title}</span>
-                {images.length > 1 && (
-                  <span className="offering-lightbox__counter">
-                    {selectedImageIndex + 1} of {images.length}
-                  </span>
-                )}
-              </div>
-
-              <button
-                type="button"
-                className="offering-lightbox__close-btn"
-                onClick={() => setIsLightboxOpen(false)}
-                aria-label="Close photo view"
-              >
-                <X size={20} />
-              </button>
-            </header>
-
-            <div
-              className="offering-lightbox__body"
-              onClick={() => setIsLightboxOpen(false)}
-            >
-              {images.length > 1 && (
-                <button
-                  type="button"
-                  className="offering-lightbox__arrow offering-lightbox__arrow--prev"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setSelectedImageIndex((prev) =>
-                      prev > 0 ? prev - 1 : images.length - 1,
-                    )
-                  }}
-                  aria-label="Previous image"
-                >
-                  <ChevronLeft size={24} />
-                </button>
-              )}
-
-              <div
-                className="offering-lightbox__content"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="offering-lightbox__scrollable">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={activeImage!}
-                    alt={title}
-                    className="offering-lightbox__full-img"
-                  />
-                </div>
-                <div className="offering-lightbox__hint">
-                  <span>Pan or scroll to view whole photo</span>
-                  <span className="offering-lightbox__hint-dot">•</span>
-                  <span>Tap outside to close</span>
-                </div>
-              </div>
-
-              {images.length > 1 && (
-                <button
-                  type="button"
-                  className="offering-lightbox__arrow offering-lightbox__arrow--next"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setSelectedImageIndex((prev) =>
-                      prev < images.length - 1 ? prev + 1 : 0,
-                    )
-                  }}
-                  aria-label="Next image"
-                >
-                  <ChevronRight size={24} />
-                </button>
-              )}
-            </div>
-          </div>,
-          document.body,
-        )}
+      {/* Studio Interactive Image Lightbox (pinch-to-zoom, double-tap, drag-to-pan) */}
+      <ProductImageLightbox
+        isOpen={isLightboxOpen && Boolean(showActiveImage)}
+        images={images}
+        activeIndex={selectedImageIndex}
+        title={title}
+        onSelectIndex={setSelectedImageIndex}
+        onClose={() => setIsLightboxOpen(false)}
+      />
 
       {/* Upward Support & Quote Inquiry Modal */}
       <BottomSheetModal
