@@ -457,33 +457,12 @@ export function OrderTrackingScreen({
                 Closed
               </span>
             </div>
-            <p style={{ fontSize: '13px', color: '#4a4238', margin: '0 0 10px 0', lineHeight: 1.5 }}>
+            <p style={{ fontSize: '13px', color: '#4a4238', margin: 0, lineHeight: 1.5 }}>
               This order has been cancelled by Upward Operations.
               {order.paymentStatus === 'PAID'
                 ? ' A full refund has been initiated to your original payment method.'
                 : ' No payment was captured for this order.'}
             </p>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              style={{
-                height: 32,
-                padding: '0 12px',
-                fontSize: '12px',
-                fontWeight: 600,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                backgroundColor: 'var(--surface)',
-                border: '1px solid var(--border)',
-                borderRadius: '6px',
-                cursor: 'pointer',
-              }}
-              onClick={() => setActiveDisputeSubOrder(order.subOrders[0] || null)}
-            >
-              <MessageSquare size={13} />
-              <span>Contact Support Regarding Cancellation</span>
-            </button>
           </div>
         </div>
       ) : order.subOrders.some((s) => s.customerStatus === 'QUOTE_DECLINED') ? (
@@ -612,27 +591,44 @@ export function OrderTrackingScreen({
 
           const steps = isService ? serviceSteps : productSteps
 
+          // Resolve effective milestone status so a DISPUTED / support inquiry never regresses
+          // the progress bar back to Step 1 (Reviewing)
+          const effectiveStatus = (() => {
+            if (subOrder.customerStatus !== 'DISPUTED') return subOrder.customerStatus
+            if (subOrder.tenantConfirmedAt || subOrder.deliveredAt) {
+              return isService ? 'SERVICE_COMPLETED' : 'DELIVERED'
+            }
+            const lastNonDisputeEvent = [...(subOrder.fulfilmentEvents || [])]
+              .reverse()
+              .find((ev) => ev.status && ev.status !== 'DISPUTED')
+            if (lastNonDisputeEvent) return lastNonDisputeEvent.status
+            if (order.paymentStatus === 'PAID') {
+              return isService ? 'SERVICE_SCHEDULED' : 'ORDER_CONFIRMED'
+            }
+            return subOrder.customerStatus
+          })()
+
           let activeStepIndex = 0
           if (isService) {
-            if (['SERVICE_COMPLETED', 'RECEIVED_CONFIRMED'].includes(subOrder.customerStatus)) {
+            if (['SERVICE_COMPLETED', 'RECEIVED_CONFIRMED'].includes(effectiveStatus)) {
               activeStepIndex = 4
-            } else if (subOrder.customerStatus === 'TECHNICIAN_EN_ROUTE') {
+            } else if (effectiveStatus === 'TECHNICIAN_EN_ROUTE') {
               activeStepIndex = 3
             } else if (
-              subOrder.customerStatus === 'SERVICE_SCHEDULED' ||
-              subOrder.customerStatus === 'PROCESSING' ||
-              subOrder.customerStatus === 'ORDER_CONFIRMED'
+              effectiveStatus === 'SERVICE_SCHEDULED' ||
+              effectiveStatus === 'PROCESSING' ||
+              effectiveStatus === 'ORDER_CONFIRMED'
             ) {
               activeStepIndex = 2
-            } else if (subOrder.customerStatus === 'QUOTE_PROVIDED') {
+            } else if (effectiveStatus === 'QUOTE_PROVIDED') {
               activeStepIndex = 1
             } else {
               activeStepIndex = 0
             }
           } else {
-            if (['DELIVERED', 'RECEIVED_CONFIRMED'].includes(subOrder.customerStatus)) {
+            if (['DELIVERED', 'RECEIVED_CONFIRMED'].includes(effectiveStatus)) {
               activeStepIndex = 2
-            } else if (['DISPATCHED', 'OUT_FOR_DELIVERY'].includes(subOrder.customerStatus)) {
+            } else if (['DISPATCHED', 'OUT_FOR_DELIVERY'].includes(effectiveStatus)) {
               activeStepIndex = 1
             } else {
               activeStepIndex = 0

@@ -198,6 +198,7 @@ export class InitializeCommercePaymentUseCase {
         email,
         amount: Number(order.totalAmountKobo) / 100, // Gateway converts Naira amount to kobo internally
         reference: paymentReference,
+        channels: ['bank_transfer'],
         metadata: {
           paymentKind: 'COMMERCE_ORDER',
           orderUuid: order.uuid,
