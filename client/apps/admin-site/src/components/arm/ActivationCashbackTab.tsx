@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
-import { CheckCircle2, Gift, RefreshCw } from 'lucide-react'
+import { AlertCircle, CheckCircle2, Gift, RefreshCw } from 'lucide-react'
 import { apiService } from '../../services/api.service'
+import '../../styles/finance-console.css'
 
 interface ActivationCashbackTabProps {
   token: string
@@ -43,13 +44,14 @@ interface CashbackGrant {
 }
 
 const fmtNgn = (n: number) =>
-  `₦${Number(n || 0).toLocaleString('en-NG', {
+  `₦${Number(n || 0).toLocaleString('en-US', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   })}`
 
 export const ActivationCashbackTab: React.FC<ActivationCashbackTabProps> = ({ token }) => {
   const [loading, setLoading] = useState(true)
+  const [subTab, setSubTab] = useState<'ELIGIBLE' | 'LOG'>('ELIGIBLE')
   const [campaign, setCampaign] = useState<CashbackCampaign | null>(null)
   const [eligible, setEligible] = useState<EligibleSaver[]>([])
   const [grants, setGrants] = useState<CashbackGrant[]>([])
@@ -111,206 +113,228 @@ export const ActivationCashbackTab: React.FC<ActivationCashbackTabProps> = ({ to
       : 0
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '12px',
-        }}
-      >
+    <div className="fin-stack">
+      <div className="fin-subhead">
         <div>
-          <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700 }}>
-            Activation Cashback Rewards ({campaign?.code || 'ACTIVATION_DEC_2026'})
+          <h3 className="fin-subhead__title">
+            Activation Cashback · <span className="fin-mono">{campaign?.code || 'ACTIVATION_DEC_2026'}</span>
           </h3>
-          <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
-            Credit real-money activation cashback (backed by Paystack balance) directly into
-            verified savers&apos; Rent Vaults with strict budget cap and 1-per-user enforcement.
+          <p className="fin-subhead__desc">
+            Paystack-backed cashback credited directly to verified savers&apos; Rent Vaults
+            (1-per-user cap).
           </p>
         </div>
-        <button type="button" className="btn btn-secondary" onClick={fetchOverview}>
-          <RefreshCw size={14} /> Refresh
+
+        <button type="button" className="fin-btn fin-btn--ghost" onClick={fetchOverview}>
+          <RefreshCw size={14} />
+          <span>Refresh</span>
         </button>
       </div>
 
       {message && (
-        <div
-          style={{
-            padding: '10px 14px',
-            borderRadius: '10px',
-            fontSize: '13px',
-            background: message.isError
-              ? 'rgba(239, 68, 68, 0.08)'
-              : 'rgba(16, 185, 129, 0.1)',
-            color: message.isError ? '#b91c1c' : '#047857',
-          }}
-        >
-          {message.text}
+        <div className={`fin-alert ${message.isError ? 'fin-alert--error' : 'fin-alert--success'}`}>
+          {message.isError ? <AlertCircle size={15} /> : <CheckCircle2 size={15} />}
+          <span>{message.text}</span>
         </div>
       )}
 
       {campaign && (
-        <div className="card" style={{ padding: '16px' }}>
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              gap: '10px',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Gift size={18} color="#c2501f" />
-              <strong style={{ fontSize: '14px' }}>{campaign.name}</strong>
+        <div className="fin-campaign">
+          <div className="fin-campaign__top">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+              <span className="fin-header__icon" style={{ width: 32, height: 32 }}>
+                <Gift size={16} />
+              </span>
+              <div>
+                <div className="fin-cell-primary" style={{ fontSize: '14px' }}>
+                  {campaign.name}
+                </div>
+                <div className="fin-cell-sub">
+                  {fmtNgn(campaign.rewardAmountNgn)} per saver · {campaign.slotsRemaining} of{' '}
+                  {campaign.slotsTotal} slots remaining
+                </div>
+              </div>
             </div>
-            <span style={{ fontSize: '13px', fontWeight: 700, color: '#047857' }}>
-              {fmtNgn(campaign.rewardAmountNgn)} / saver · {campaign.slotsRemaining} of{' '}
-              {campaign.slotsTotal} slots left
+
+            <span className="fin-pill fin-pill--green">
+              <span className="fin-pill__dot" />
+              {usedPct}% budget used
             </span>
           </div>
 
-          <div
-            style={{
-              height: '8px',
-              background: '#e5e7eb',
-              borderRadius: '999px',
-              overflow: 'hidden',
-              marginTop: '12px',
-            }}
-          >
+          <div className="fin-progress fin-progress--lg">
             <div
-              style={{
-                width: `${usedPct}%`,
-                height: '100%',
-                background: '#c2501f',
-                transition: 'width 0.25s ease',
-              }}
+              className="fin-progress__fill fin-progress__fill--clay"
+              style={{ width: `${usedPct}%` }}
             />
           </div>
 
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              marginTop: '8px',
-              fontSize: '12px',
-              color: 'var(--text-muted)',
-            }}
-          >
+          <div className="fin-campaign__meta">
             <span>Disbursed: {fmtNgn(campaign.totalDisbursedNgn)}</span>
             <span>
-              Remaining: <strong>{fmtNgn(campaign.remainingBudgetNgn)}</strong> /{' '}
-              {fmtNgn(campaign.budgetCapNgn)}
+              Remaining: <strong style={{ color: '#0f172a' }}>{fmtNgn(campaign.remainingBudgetNgn)}</strong>{' '}
+              of {fmtNgn(campaign.budgetCapNgn)}
             </span>
           </div>
         </div>
       )}
 
-      <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
-        <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: '13px' }}>
-          Eligible Opted-In Savers ({eligible.length})
-        </div>
-        <table className="data-table" style={{ width: '100%', fontSize: '12px' }}>
-          <thead>
-            <tr>
-              <th>Saver</th>
-              <th>Plan</th>
-              <th>Vault Balance</th>
-              <th>Status</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={5} style={{ textAlign: 'center', padding: '20px' }}>
-                  Loading savers...
-                </td>
-              </tr>
-            ) : eligible.length === 0 ? (
-              <tr>
-                <td colSpan={5} style={{ textAlign: 'center', padding: '20px', color: 'var(--text-muted)' }}>
-                  No opted-in savers yet.
-                </td>
-              </tr>
-            ) : (
-              eligible.map((s) => (
-                <tr key={s.vaultUuid}>
-                  <td>
-                    <div style={{ fontWeight: 700 }}>{s.customerName}</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{s.customerEmail}</div>
-                  </td>
-                  <td>{s.productOption === 'RENT_PROTEC' ? 'Rent Protec' : 'Save & Earn'}</td>
-                  <td>{fmtNgn(s.currentPrincipalNgn)}</td>
-                  <td>
-                    {s.alreadyCredited ? (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: '#047857', fontWeight: 700 }}>
-                        <CheckCircle2 size={14} /> Credited
-                      </span>
-                    ) : (
-                      <span style={{ color: 'var(--text-muted)' }}>Eligible</span>
-                    )}
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      className="btn btn-primary"
-                      style={{ fontSize: '11px', padding: '5px 10px' }}
-                      disabled={
-                        s.alreadyCredited ||
-                        creditingUuid === s.userUuid ||
-                        !campaign ||
-                        campaign.remainingBudgetNgn < campaign.rewardAmountNgn
-                      }
-                      onClick={() => handleCredit(s)}
-                    >
-                      {s.alreadyCredited
-                        ? 'Already Credited'
-                        : creditingUuid === s.userUuid
-                          ? 'Crediting...'
-                          : `Credit ${fmtNgn(campaign?.rewardAmountNgn || 3000)}`}
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      <div className="fin-tabs">
+        <button
+          type="button"
+          className={`fin-tab ${subTab === 'ELIGIBLE' ? 'fin-tab--active' : ''}`}
+          onClick={() => setSubTab('ELIGIBLE')}
+        >
+          <span>Eligible Savers</span>
+          <span className="fin-tab__count">{eligible.length}</span>
+        </button>
+        <button
+          type="button"
+          className={`fin-tab ${subTab === 'LOG' ? 'fin-tab--active' : ''}`}
+          onClick={() => setSubTab('LOG')}
+        >
+          <span>Audit Log</span>
+          <span className="fin-tab__count">{grants.length}</span>
+        </button>
       </div>
 
-      {grants.length > 0 && (
-        <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: '13px' }}>
-            Credited Cashback Audit Log ({grants.length})
-          </div>
-          <table className="data-table" style={{ width: '100%', fontSize: '12px' }}>
-            <thead>
-              <tr>
-                <th>Customer</th>
-                <th>Amount</th>
-                <th>Reference</th>
-                <th>Funding Source</th>
-                <th>Credited At</th>
-              </tr>
-            </thead>
-            <tbody>
-              {grants.map((g) => (
-                <tr key={g.uuid}>
-                  <td>
-                    <div style={{ fontWeight: 600 }}>{g.customerName}</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{g.customerEmail}</div>
-                  </td>
-                  <td style={{ fontWeight: 700, color: '#047857' }}>{fmtNgn(g.amountNgn)}</td>
-                  <td style={{ fontFamily: 'monospace', fontSize: '11px' }}>{g.reference}</td>
-                  <td>{g.fundingSource}</td>
-                  <td>{new Date(g.createdAt).toLocaleString()}</td>
+      {subTab === 'ELIGIBLE' && (
+        <div className="fin-panel">
+          <div className="fin-table-wrap">
+            <table className="fin-table">
+              <thead>
+                <tr>
+                  <th>Saver</th>
+                  <th>Plan</th>
+                  <th className="fin-num">Vault Balance</th>
+                  <th>Status</th>
+                  <th className="fin-num">Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {loading ? (
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <tr key={i}>
+                      <td colSpan={5}>
+                        <div className="fin-skeleton" style={{ width: `${65 + i * 10}%` }} />
+                      </td>
+                    </tr>
+                  ))
+                ) : eligible.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="fin-empty">
+                      No opted-in savers yet.
+                    </td>
+                  </tr>
+                ) : (
+                  eligible.map((s) => (
+                    <tr key={s.vaultUuid}>
+                      <td>
+                        <div className="fin-cell-primary">{s.customerName}</div>
+                        <div className="fin-cell-sub">{s.customerEmail}</div>
+                      </td>
+                      <td>
+                        <span
+                          className={`fin-pill ${
+                            s.productOption === 'RENT_PROTEC'
+                              ? 'fin-pill--clay'
+                              : 'fin-pill--green'
+                          }`}
+                        >
+                          {s.productOption === 'RENT_PROTEC' ? 'Rent Protec' : 'Save & Earn'}
+                        </span>
+                      </td>
+                      <td className="fin-num fin-cell-primary">
+                        {fmtNgn(s.currentPrincipalNgn)}
+                      </td>
+                      <td>
+                        {s.alreadyCredited ? (
+                          <span className="fin-pill fin-pill--green">
+                            <span className="fin-pill__dot" /> Credited
+                          </span>
+                        ) : (
+                          <span className="fin-pill fin-pill--neutral">
+                            <span className="fin-pill__dot" /> Eligible
+                          </span>
+                        )}
+                      </td>
+                      <td className="fin-num">
+                        <button
+                          type="button"
+                          className={`fin-btn fin-btn--sm ${
+                            s.alreadyCredited ? 'fin-btn--ghost' : 'fin-btn--brand'
+                          }`}
+                          disabled={
+                            s.alreadyCredited ||
+                            creditingUuid === s.userUuid ||
+                            !campaign ||
+                            campaign.remainingBudgetNgn < campaign.rewardAmountNgn
+                          }
+                          onClick={() => handleCredit(s)}
+                        >
+                          {s.alreadyCredited
+                            ? 'Credited'
+                            : creditingUuid === s.userUuid
+                              ? 'Crediting…'
+                              : `Credit ${fmtNgn(campaign?.rewardAmountNgn || 3000)}`}
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {subTab === 'LOG' && (
+        <div className="fin-panel">
+          <div className="fin-table-wrap">
+            <table className="fin-table">
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th className="fin-num">Amount</th>
+                  <th>Reference</th>
+                  <th>Funding Source</th>
+                  <th>Credited At</th>
+                </tr>
+              </thead>
+              <tbody>
+                {grants.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="fin-empty">
+                      No cashback grants disbursed yet.
+                    </td>
+                  </tr>
+                ) : (
+                  grants.map((g) => (
+                    <tr key={g.uuid}>
+                      <td>
+                        <div className="fin-cell-primary">{g.customerName}</div>
+                        <div className="fin-cell-sub">{g.customerEmail}</div>
+                      </td>
+                      <td className="fin-num fin-text-green">+{fmtNgn(g.amountNgn)}</td>
+                      <td className="fin-mono">{g.reference}</td>
+                      <td>
+                        <span className="fin-pill fin-pill--neutral">{g.fundingSource}</span>
+                      </td>
+                      <td className="fin-text-muted">
+                        {new Date(g.createdAt).toLocaleString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

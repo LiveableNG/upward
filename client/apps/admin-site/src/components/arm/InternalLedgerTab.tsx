@@ -1,6 +1,16 @@
 import React, { useEffect, useState } from 'react'
-import { Download, Play, RefreshCw, ShieldCheck, Wallet } from 'lucide-react'
+import {
+  AlertCircle,
+  CheckCircle2,
+  Download,
+  Play,
+  RefreshCw,
+  ShieldCheck,
+  TrendingUp,
+  Wallet,
+} from 'lucide-react'
 import { apiService } from '../../services/api.service'
+import '../../styles/finance-console.css'
 
 interface InternalLedgerTabProps {
   token: string
@@ -58,10 +68,17 @@ interface JournalEntry {
 }
 
 const fmtNgn = (n: number) =>
-  `₦${Number(n || 0).toLocaleString('en-NG', {
+  `₦${Number(n || 0).toLocaleString('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`
+
+function formatEventLabel(value: string): string {
+  return value
+    .replace(/_/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+}
 
 export const InternalLedgerTab: React.FC<InternalLedgerTabProps> = ({ token }) => {
   const [loading, setLoading] = useState(true)
@@ -69,6 +86,7 @@ export const InternalLedgerTab: React.FC<InternalLedgerTabProps> = ({ token }) =
   const [simulatingDays, setSimulatingDays] = useState<number | null>(null)
   const [simMessage, setSimMessage] = useState<string | null>(null)
   const [productFilter, setProductFilter] = useState<string>('ALL')
+  const [subTab, setSubTab] = useState<'VAULTS' | 'JOURNAL'>('VAULTS')
   const [summary, setSummary] = useState<LedgerSummary | null>(null)
   const [vaults, setVaults] = useState<LedgerVaultRow[]>([])
   const [journal, setJournal] = useState<JournalEntry[]>([])
@@ -160,279 +178,321 @@ export const InternalLedgerTab: React.FC<InternalLedgerTabProps> = ({ token }) =
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          gap: '12px',
-        }}
-      >
+    <div className="fin-stack">
+      {/* Sub-header & Controls */}
+      <div className="fin-subhead">
         <div>
-          <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700 }}>
-            Dual Ledger: Customer Liability vs. Upward Treasury &amp; Premium Recovery
-          </h3>
-          <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
-            Customers earn 100% of their advertised rate (10% Rent Protec / 16% Save &amp; Earn)
-            with zero visible premium deductions. Upward recovers upfront 2% Rent Protec premiums
-            strictly from the internal ARM yield spread.
+          <h3 className="fin-subhead__title">Dual Savings Ledger &amp; Unit Economics</h3>
+          <p className="fin-subhead__desc">
+            Customer liability (100% of advertised yield) vs. internal ARM spread &amp; 2% Rent
+            Protec recovery.
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div className="fin-header__actions">
           {isSandbox && (
-            <>
+            <div className="fin-sim-group" title="Simulate daily ARM yield accrual">
+              <span className="fin-sim-group__label">
+                <Play size={11} /> Accrue
+              </span>
               {[1, 30, 90, 180].map((d) => (
                 <button
                   key={d}
                   type="button"
-                  className="btn btn-secondary"
+                  className="fin-sim-group__btn"
                   disabled={simulatingDays !== null}
                   onClick={() => handleSimulateAccrual(d)}
                 >
-                  <Play size={13} /> {simulatingDays === d ? 'Running...' : `+${d}d`}
+                  {simulatingDays === d ? '…' : `+${d}d`}
                 </button>
               ))}
-            </>
+            </div>
           )}
+
           <select
+            className="fin-select"
             value={productFilter}
             onChange={(e) => setProductFilter(e.target.value)}
-            style={{
-              padding: '7px 12px',
-              borderRadius: '8px',
-              border: '1px solid var(--border)',
-              fontSize: '12px',
-            }}
           >
             <option value="ALL">All Plans</option>
             <option value="RENT_PROTEC">Rent Protec (10%)</option>
-            <option value="SAVE_AND_EARN">Save &amp; Earn (16%)</option>
+            <option value="SAVE_AND_EARN">Save &amp; Earn (12–16%)</option>
           </select>
-          <button type="button" className="btn btn-secondary" onClick={fetchLedger}>
-            <RefreshCw size={14} /> Refresh
+
+          <button type="button" className="fin-btn fin-btn--ghost" onClick={fetchLedger}>
+            <RefreshCw size={14} />
+            <span>Refresh</span>
           </button>
+
           <button
             type="button"
-            className="btn btn-primary"
+            className="fin-btn fin-btn--primary"
             onClick={exportCsv}
             disabled={!vaults.length}
           >
-            <Download size={14} /> Export CSV
+            <Download size={14} />
+            <span>Export CSV</span>
           </button>
         </div>
       </div>
 
       {simMessage && (
-        <div
-          style={{
-            padding: '10px 14px',
-            borderRadius: '10px',
-            background: 'rgba(16, 185, 129, 0.1)',
-            color: '#047857',
-            fontSize: '13px',
-            fontWeight: 600,
-          }}
-        >
-          {simMessage}
+        <div className="fin-alert fin-alert--success">
+          <CheckCircle2 size={15} />
+          <span>{simMessage}</span>
         </div>
       )}
 
       {error && (
-        <div
-          style={{
-            padding: '12px 14px',
-            borderRadius: '10px',
-            background: 'rgba(239, 68, 68, 0.08)',
-            color: '#b91c1c',
-            fontSize: '13px',
-          }}
-        >
-          {error}
+        <div className="fin-alert fin-alert--error">
+          <AlertCircle size={15} />
+          <span>{error}</span>
         </div>
       )}
 
+      {/* KPI Strip */}
       {summary && (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
-            gap: '12px',
-          }}
-        >
-          <div className="card" style={{ padding: '14px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-              <Wallet size={14} /> Ledger 1: Customer Liability
+        <div className="fin-kpi-grid">
+          <div className="fin-kpi fin-kpi--dark">
+            <div className="fin-kpi__top">
+              <span className="fin-kpi__label">Ledger 1 · Customer Liability</span>
+              <Wallet size={15} className="fin-kpi__icon" />
             </div>
-            <div style={{ fontSize: '20px', fontWeight: 800, marginTop: '6px' }}>
-              {fmtNgn(summary.totalCustomerLiabilityNgn)}
-            </div>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+            <div className="fin-kpi__value">{fmtNgn(summary.totalCustomerLiabilityNgn)}</div>
+            <div className="fin-kpi__sub">
               Principal {fmtNgn(summary.totalCustomerPrincipalNgn)} + Yield{' '}
               {fmtNgn(summary.totalCustomerYieldNgn)}
             </div>
           </div>
 
-          <div className="card" style={{ padding: '14px' }}>
-            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-              Ledger 2: Gross ARM Yield
+          <div className="fin-kpi">
+            <div className="fin-kpi__top">
+              <span className="fin-kpi__label">Ledger 2 · Gross ARM Yield</span>
+              <TrendingUp size={15} color="#10b981" />
             </div>
-            <div style={{ fontSize: '20px', fontWeight: 800, marginTop: '6px', color: '#047857' }}>
+            <div className="fin-kpi__value fin-kpi__value--green">
               {fmtNgn(summary.totalGrossArmYieldNgn)}
             </div>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Yield Spread: {fmtNgn(summary.totalPlatformSpreadNgn)}
+            <div className="fin-kpi__sub">
+              Platform Spread: {fmtNgn(summary.totalPlatformSpreadNgn)}
             </div>
           </div>
 
-          <div className="card" style={{ padding: '14px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-              <ShieldCheck size={14} /> Upfront 2% Premiums
+          <div className="fin-kpi">
+            <div className="fin-kpi__top">
+              <span className="fin-kpi__label">Upfront 2% Premiums</span>
+              <ShieldCheck size={15} className="fin-kpi__icon" />
             </div>
-            <div style={{ fontSize: '20px', fontWeight: 800, marginTop: '6px' }}>
-              {fmtNgn(summary.totalUpfrontPremiumObligationNgn)}
-            </div>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-              Recovered {fmtNgn(summary.totalPremiumRecoveredNgn)} · Unrecovered{' '}
+            <div className="fin-kpi__value">{fmtNgn(summary.totalUpfrontPremiumObligationNgn)}</div>
+            <div className="fin-kpi__sub">
+              Recovered {fmtNgn(summary.totalPremiumRecoveredNgn)} · Left{' '}
               <strong style={{ color: '#c2501f' }}>
                 {fmtNgn(summary.totalUnrecoveredPremiumNgn)}
               </strong>
             </div>
           </div>
 
-          <div className="card" style={{ padding: '14px' }}>
-            <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-              Net Upward Margin
+          <div className="fin-kpi">
+            <div className="fin-kpi__top">
+              <span className="fin-kpi__label">Net Upward Margin</span>
+              <TrendingUp size={15} color="#059669" />
             </div>
-            <div style={{ fontSize: '20px', fontWeight: 800, marginTop: '6px', color: '#059669' }}>
+            <div className="fin-kpi__value fin-kpi__value--green">
               {fmtNgn(summary.totalNetPlatformMarginNgn)}
             </div>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+            <div className="fin-kpi__sub">
               {summary.rentProtecCount} Rent Protec · {summary.saveAndEarnCount} Save &amp; Earn
             </div>
           </div>
         </div>
       )}
 
-      <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
-        <table className="data-table" style={{ width: '100%', fontSize: '12px' }}>
-          <thead>
-            <tr>
-              <th>Customer</th>
-              <th>Plan</th>
-              <th>Cust. Principal</th>
-              <th>Cust. Yield</th>
-              <th>Gross ARM Yield</th>
-              <th>Yield Spread</th>
-              <th>2% Premium Oblig.</th>
-              <th>Recovered / Unrec.</th>
-              <th>Net Margin</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={9} style={{ textAlign: 'center', padding: '24px' }}>
-                  Loading dual ledger...
-                </td>
-              </tr>
-            ) : vaults.length === 0 ? (
-              <tr>
-                <td colSpan={9} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
-                  No savings vaults found for this filter.
-                </td>
-              </tr>
-            ) : (
-              vaults.map((v) => (
-                <tr key={v.vaultUuid}>
-                  <td>
-                    <div style={{ fontWeight: 700 }}>{v.customerName}</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{v.customerEmail}</div>
-                  </td>
-                  <td>
-                    <span
-                      style={{
-                        padding: '2px 7px',
-                        borderRadius: '999px',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        background:
-                          v.productOption === 'RENT_PROTEC'
-                            ? 'rgba(194, 80, 31, 0.12)'
-                            : 'rgba(5, 150, 105, 0.12)',
-                        color: v.productOption === 'RENT_PROTEC' ? '#c2501f' : '#047857',
-                      }}
-                    >
-                      {v.productOption === 'RENT_PROTEC' ? 'Rent Protec' : 'Save & Earn'} (
-                      {v.appliedAnnualRatePct}%)
-                    </span>
-                  </td>
-                  <td>{fmtNgn(v.customerPrincipalNgn)}</td>
-                  <td style={{ color: '#047857', fontWeight: 600 }}>
-                    {fmtNgn(v.customerAccruedYieldNgn)}
-                  </td>
-                  <td>{fmtNgn(v.grossArmYieldNgn)}</td>
-                  <td style={{ fontWeight: 600 }}>{fmtNgn(v.platformSpreadNgn)}</td>
-                  <td>{fmtNgn(v.upfrontPremiumObligationNgn)}</td>
-                  <td>
-                    <div>{fmtNgn(v.premiumRecoveredNgn)} ({v.premiumRecoveryPct}%)</div>
-                    {v.unrecoveredPremiumNgn > 0 && (
-                      <div style={{ fontSize: '11px', color: '#c2501f' }}>
-                        Rem: {fmtNgn(v.unrecoveredPremiumNgn)}
-                      </div>
-                    )}
-                  </td>
-                  <td style={{ fontWeight: 700, color: '#059669' }}>
-                    {fmtNgn(v.netPlatformMarginNgn)}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+      {/* Sub-view switcher (Vaults vs Daily Journal) */}
+      <div className="fin-tabs">
+        <button
+          type="button"
+          className={`fin-tab ${subTab === 'VAULTS' ? 'fin-tab--active' : ''}`}
+          onClick={() => setSubTab('VAULTS')}
+        >
+          <span>Vault Balances</span>
+          <span className="fin-tab__count">{vaults.length}</span>
+        </button>
+        <button
+          type="button"
+          className={`fin-tab ${subTab === 'JOURNAL' ? 'fin-tab--active' : ''}`}
+          onClick={() => setSubTab('JOURNAL')}
+        >
+          <span>Daily Spread Journal</span>
+          <span className="fin-tab__count">{journal.length}</span>
+        </button>
       </div>
 
-      {journal.length > 0 && (
-        <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: '13px' }}>
-            Daily Spread &amp; Premium Recovery Journal ({journal.length})
-          </div>
-          <table className="data-table" style={{ width: '100%', fontSize: '12px' }}>
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Type</th>
-                <th>Plan</th>
-                <th>Rates (ARM / Cust)</th>
-                <th>Gross ARM Yield</th>
-                <th>Cust. Yield</th>
-                <th>Spread → Recovery</th>
-                <th>Net Margin</th>
-              </tr>
-            </thead>
-            <tbody>
-              {journal.map((j) => (
-                <tr key={j.uuid}>
-                  <td>{new Date(j.entryDate).toLocaleString()}</td>
-                  <td>{j.entryType}</td>
-                  <td>{j.productOption === 'RENT_PROTEC' ? 'Rent Protec' : 'Save & Earn'}</td>
-                  <td>
-                    {j.grossArmRatePct.toFixed(2)}% / {j.customerRatePct.toFixed(1)}%
-                  </td>
-                  <td>{fmtNgn(j.grossArmYieldNgn)}</td>
-                  <td>{fmtNgn(j.customerNetYieldNgn)}</td>
-                  <td style={{ color: '#c2501f', fontWeight: 700 }}>
-                    {fmtNgn(j.premiumRecoveryAppliedNgn)}
-                  </td>
-                  <td style={{ color: '#059669', fontWeight: 700 }}>
-                    {fmtNgn(j.netMarginDeltaNgn)}
-                  </td>
+      {subTab === 'VAULTS' && (
+        <div className="fin-panel">
+          <div className="fin-table-wrap">
+            <table className="fin-table">
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th>Plan</th>
+                  <th className="fin-num">Principal</th>
+                  <th className="fin-num">Cust. Yield</th>
+                  <th className="fin-num">Gross ARM</th>
+                  <th className="fin-num">Spread</th>
+                  <th className="fin-num">2% Premium</th>
+                  <th>Recovery</th>
+                  <th className="fin-num">Net Margin</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {loading ? (
+                  Array.from({ length: 4 }).map((_, i) => (
+                    <tr key={i}>
+                      <td colSpan={9}>
+                        <div className="fin-skeleton" style={{ width: `${65 + (i % 3) * 10}%` }} />
+                      </td>
+                    </tr>
+                  ))
+                ) : vaults.length === 0 ? (
+                  <tr>
+                    <td colSpan={9} className="fin-empty">
+                      No savings vaults match this filter.
+                    </td>
+                  </tr>
+                ) : (
+                  vaults.map((v) => (
+                    <tr key={v.vaultUuid}>
+                      <td>
+                        <div className="fin-cell-primary">{v.customerName}</div>
+                        <div className="fin-cell-sub">{v.customerEmail}</div>
+                      </td>
+                      <td>
+                        <span
+                          className={`fin-pill ${
+                            v.productOption === 'RENT_PROTEC'
+                              ? 'fin-pill--clay'
+                              : 'fin-pill--green'
+                          }`}
+                        >
+                          {v.productOption === 'RENT_PROTEC' ? 'Rent Protec' : 'Save & Earn'} ·{' '}
+                          {v.appliedAnnualRatePct}%
+                        </span>
+                      </td>
+                      <td className="fin-num">{fmtNgn(v.customerPrincipalNgn)}</td>
+                      <td className="fin-num fin-text-green">
+                        +{fmtNgn(v.customerAccruedYieldNgn)}
+                      </td>
+                      <td className="fin-num">{fmtNgn(v.grossArmYieldNgn)}</td>
+                      <td className="fin-num fin-cell-primary">{fmtNgn(v.platformSpreadNgn)}</td>
+                      <td className="fin-num">
+                        {v.upfrontPremiumObligationNgn > 0
+                          ? fmtNgn(v.upfrontPremiumObligationNgn)
+                          : '—'}
+                      </td>
+                      <td style={{ minWidth: '155px' }}>
+                        {v.upfrontPremiumObligationNgn > 0 ? (
+                          <div>
+                            <div
+                              style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                fontSize: '11.5px',
+                                gap: '6px',
+                              }}
+                            >
+                              <span className="fin-text-green">{v.premiumRecoveryPct}%</span>
+                              <span className="fin-text-muted">
+                                {v.unrecoveredPremiumNgn > 0
+                                  ? `${fmtNgn(v.unrecoveredPremiumNgn)} left`
+                                  : 'Recovered'}
+                              </span>
+                            </div>
+                            <div className="fin-progress">
+                              <div
+                                className="fin-progress__fill"
+                                style={{ width: `${Math.min(100, v.premiumRecoveryPct)}%` }}
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="fin-text-muted">N/A</span>
+                        )}
+                      </td>
+                      <td className="fin-num fin-text-green">{fmtNgn(v.netPlatformMarginNgn)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {subTab === 'JOURNAL' && (
+        <div className="fin-panel">
+          <div className="fin-table-wrap">
+            <table className="fin-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Event</th>
+                  <th>Plan</th>
+                  <th>Rates (ARM / Cust)</th>
+                  <th className="fin-num">Gross ARM</th>
+                  <th className="fin-num">Cust. Yield</th>
+                  <th className="fin-num">To Recovery</th>
+                  <th className="fin-num">Net Margin</th>
+                </tr>
+              </thead>
+              <tbody>
+                {journal.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="fin-empty">
+                      No daily spread journal entries yet.
+                    </td>
+                  </tr>
+                ) : (
+                  journal.map((j) => (
+                    <tr key={j.uuid}>
+                      <td className="fin-text-muted">
+                        {new Date(j.entryDate).toLocaleString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
+                      </td>
+                      <td>
+                        <span className="fin-pill fin-pill--neutral">
+                          {formatEventLabel(j.entryType)}
+                        </span>
+                      </td>
+                      <td>
+                        <span
+                          className={`fin-pill ${
+                            j.productOption === 'RENT_PROTEC'
+                              ? 'fin-pill--clay'
+                              : 'fin-pill--green'
+                          }`}
+                        >
+                          {j.productOption === 'RENT_PROTEC' ? 'Rent Protec' : 'Save & Earn'}
+                        </span>
+                      </td>
+                      <td className="fin-text-muted">
+                        {j.grossArmRatePct.toFixed(2)}% / {j.customerRatePct.toFixed(1)}%
+                      </td>
+                      <td className="fin-num">{fmtNgn(j.grossArmYieldNgn)}</td>
+                      <td className="fin-num">{fmtNgn(j.customerNetYieldNgn)}</td>
+                      <td className="fin-num fin-text-clay">
+                        {fmtNgn(j.premiumRecoveryAppliedNgn)}
+                      </td>
+                      <td className="fin-num fin-text-green">{fmtNgn(j.netMarginDeltaNgn)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>

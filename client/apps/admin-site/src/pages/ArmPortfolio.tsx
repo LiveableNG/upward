@@ -7,8 +7,6 @@ import {
   Search,
   RefreshCw,
   FileSpreadsheet,
-  CheckCircle2,
-  Clock,
   TrendingUp,
   ShieldCheck,
   Building2,
@@ -28,6 +26,7 @@ import {
   Home,
 } from 'lucide-react'
 import { apiService } from '../services/api.service'
+import '../styles/finance-console.css'
 
 const ADMIN_API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000/api/v1'
 
@@ -518,219 +517,107 @@ export default function ArmPortfolio({ token }: ArmPortfolioProps) {
     switch (status) {
       case 'SETTLEMENT_READY':
         return (
-          <span
-            style={{
-              padding: '3px 8px',
-              borderRadius: '6px',
-              fontSize: '11px',
-              fontWeight: 700,
-              background: '#ecfdf5',
-              color: '#059669',
-              border: '1px solid #a7f3d0',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 4,
-            }}
-          >
-            <Clock size={11} /> Settlement Ready
+          <span className="fin-pill fin-pill--green">
+            <span className="fin-pill__dot" /> Settlement Ready
           </span>
         )
       case 'LOCKED':
         return (
-          <span
-            style={{
-              padding: '3px 8px',
-              borderRadius: '6px',
-              fontSize: '11px',
-              fontWeight: 700,
-              background: '#eff6ff',
-              color: '#2563eb',
-              border: '1px solid #bfdbfe',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 4,
-            }}
-          >
-            <ShieldCheck size={11} /> Locked & Earning 16%
+          <span className="fin-pill fin-pill--blue">
+            <span className="fin-pill__dot" /> Locked &amp; Earning
           </span>
         )
       case 'SETTLED':
         return (
-          <span
-            style={{
-              padding: '3px 8px',
-              borderRadius: '6px',
-              fontSize: '11px',
-              fontWeight: 700,
-              background: '#f8fafc',
-              color: '#475569',
-              border: '1px solid #e2e8f0',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 4,
-            }}
-          >
-            <CheckCircle2 size={11} /> Settled / Redeemed
+          <span className="fin-pill fin-pill--neutral">
+            <span className="fin-pill__dot" /> Settled
           </span>
         )
       default:
         return (
-          <span
-            style={{
-              padding: '3px 8px',
-              borderRadius: '6px',
-              fontSize: '11px',
-              fontWeight: 600,
-              background: '#f1f5f9',
-              color: '#64748b',
-            }}
-          >
-            {status}
+          <span className="fin-pill fin-pill--neutral">
+            <span className="fin-pill__dot" /> {status}
           </span>
         )
     }
   }
 
   return (
-    <div className="container" style={{ padding: '24px', maxWidth: '1440px', margin: '0 auto' }}>
+    <div className="fin-page">
       {/* ── Page Header ────────────────────────────────────────── */}
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          marginBottom: '24px',
-          flexWrap: 'wrap',
-          gap: '16px',
-        }}
-      >
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-            <div
-              style={{
-                width: '36px',
-                height: '36px',
-                borderRadius: '8px',
-                background: 'var(--primary-faint, rgba(194, 80, 31, 0.1))',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'var(--primary, #c2501f)',
-              }}
-            >
-              <Landmark size={20} />
-            </div>
-            <h1 style={{ fontSize: '22px', fontWeight: 700, margin: 0, color: 'var(--text)' }}>
-              ARM Subscriptions & Redemption Portfolio
-            </h1>
-            <span
-              style={{
-                padding: '3px 10px',
-                borderRadius: '20px',
-                background: '#ecfdf5',
-                color: '#059669',
-                fontSize: '12px',
-                fontWeight: 700,
-                border: '1px solid #a7f3d0',
-              }}
-            >
-              B2B2C Live MMF Position
+      <div className="fin-header">
+        <div className="fin-header__left">
+          <div className="fin-header__title-row">
+            <span className="fin-header__icon">
+              <Landmark size={19} />
+            </span>
+            <h1 className="fin-header__title">Rent Savings &amp; ARM Portfolio</h1>
+            <span className="fin-pill fin-pill--green">
+              <span className="fin-pill__dot" />
+              {stats?.productCode || 'ARMMMF'}
+              {stats?.liveFundYieldRatePct
+                ? ` · ${stats.liveFundYieldRatePct.toFixed(2)}% Live NAV`
+                : ' · Live MMF'}
             </span>
           </div>
-          <p style={{ margin: 0, fontSize: '13.5px', color: 'var(--text-muted)' }}>
-            Asset & Resource Management Holding Company (ARM) • Product:{' '}
-            <strong>
-              {stats?.productCode || 'ARMMMF'} (
-              {stats?.liveFundYieldRatePct
-                ? `${stats.liveFundYieldRatePct.toFixed(2)}% Live NAV / `
-                : ''}
-              16.0% p.a. Daily Compounding)
-            </strong>{' '}
-            • Inflow access statement
+          <p className="fin-header__subtitle">
+            Pooled ARM Money Market Fund positions, subscriber vaults, inflow statements, background
+            jobs, and dual-ledger economics.
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div className="fin-header__actions">
           <button
             type="button"
-            className="btn btn-secondary"
-            onClick={exportInflowStatementCsv}
-            disabled={filteredTransactions.length === 0}
-            style={{
-              height: '38px',
-              gap: '6px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              cursor: 'pointer',
-            }}
-          >
-            <FileSpreadsheet size={15} />
-            <span>Export Inflow Statement (CSV)</span>
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary"
+            className="fin-btn fin-btn--ghost"
             onClick={() => fetchData(true)}
             disabled={loading}
-            style={{
-              height: '38px',
-              gap: '6px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              cursor: 'pointer',
-            }}
           >
             <RefreshCw size={14} className={loading ? 'loader' : ''} />
             <span>Sync Live ARM</span>
           </button>
+          <button
+            type="button"
+            className="fin-btn fin-btn--primary"
+            onClick={exportInflowStatementCsv}
+            disabled={filteredTransactions.length === 0}
+          >
+            <FileSpreadsheet size={14} />
+            <span>Export Inflows CSV</span>
+          </button>
         </div>
       </div>
 
+      {/* ── Compact ARM Connection Strip ───────────────────────── */}
       {stats?.armSandbox && (
-        <div
-          className="card"
-          style={{
-            padding: '14px 18px',
-            marginBottom: '20px',
-            display: 'flex',
-            flexWrap: 'wrap',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '12px',
-            background: stats.armSandbox.connected ? '#f0fdf4' : 'var(--surface)',
-            borderColor: stats.armSandbox.connected ? '#bbf7d0' : 'var(--border)',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+        <div className={`fin-banner ${stats.armSandbox.connected ? 'fin-banner--live' : ''}`}>
+          <div className="fin-banner__group">
             <span
-              style={{
-                padding: '3px 9px',
-                borderRadius: '12px',
-                fontSize: '11.5px',
-                fontWeight: 700,
-                background: stats.armSandbox.connected ? '#059669' : '#64748b',
-                color: '#ffffff',
-              }}
+              className={`fin-pill ${
+                stats.armSandbox.connected ? 'fin-pill--green' : 'fin-pill--neutral'
+              }`}
             >
-              {stats.armSandbox.connected ? 'ARM API LIVE' : 'LOCAL LEDGER'}
+              <span className="fin-pill__dot" />
+              {stats.armSandbox.connected ? 'ARM API Live' : 'Local Ledger'}
             </span>
-            <span style={{ fontSize: '13px', color: 'var(--text)' }}>
-              Merchant: <strong>{stats.armSandbox.businessName || 'GoodTenant'}</strong> (
-              <code>{stats.armSandbox.merchantId || 'ESTHER'}</code> • Membership{' '}
-              <code>{stats.armSandbox.merchantMembershipId || '3005679'}</code> •{' '}
-              {stats.armSandbox.merchantType || 'B2B2C'})
+            <span className="fin-banner__item">
+              Merchant: <strong>{stats.armSandbox.businessName || 'GoodTenant'}</strong>
+              <span className="fin-banner__code">{stats.armSandbox.merchantId || 'ESTHER'}</span>
+              <span className="fin-banner__code">
+                #{stats.armSandbox.merchantMembershipId || '3005679'}
+              </span>
             </span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', fontSize: '12.5px' }}>
+          <div className="fin-banner__group">
             {stats.armSandbox.virtualAccounts.map((va) => (
-              <span key={va.accountNumber} style={{ color: 'var(--text-muted)' }}>
-                {va.bankName}: <strong style={{ color: 'var(--text)' }}>{va.accountNumber}</strong>
+              <span key={va.accountNumber} className="fin-banner__item">
+                {va.bankName}: <strong className="fin-mono">{va.accountNumber}</strong>
               </span>
             ))}
             {stats.netAssetValue && (
-              <span style={{ color: 'var(--text-muted)' }}>
-                Fund NAV: <strong style={{ color: '#059669' }}>₦{stats.netAssetValue}</strong>
+              <span className="fin-banner__item">
+                NAV: <strong className="fin-text-green">₦{stats.netAssetValue}</strong>
               </span>
             )}
           </div>
@@ -738,472 +625,244 @@ export default function ArmPortfolio({ token }: ArmPortfolioProps) {
       )}
 
       {error && (
-        <div
-          className="card"
-          style={{
-            padding: '16px',
-            marginBottom: '20px',
-            borderColor: 'var(--danger, #ef4444)',
-            color: 'var(--danger, #ef4444)',
-            fontSize: '13.5px',
-          }}
-        >
-          {error}
+        <div className="fin-alert fin-alert--error">
+          <AlertTriangle size={15} />
+          <span>{error}</span>
         </div>
       )}
 
-      {/* ── Summary KPI Cards ───────────────────────────────────── */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-          gap: '16px',
-          marginBottom: '24px',
-        }}
-      >
-        <div className="card" style={{ padding: '20px' }}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '10px',
-            }}
-          >
-            <span
-              style={{
-                fontSize: '12px',
-                fontWeight: 600,
-                color: 'var(--text-muted)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.04em',
-              }}
-            >
-              Total Pooled Principal (MMF)
-            </span>
-            <Building2 size={18} color="var(--primary, #c2501f)" />
+      {/* ── Summary KPI Strip ──────────────────────────────────── */}
+      <div className="fin-kpi-grid">
+        <div className="fin-kpi fin-kpi--dark">
+          <div className="fin-kpi__top">
+            <span className="fin-kpi__label">Pooled Principal (MMF)</span>
+            <Building2 size={16} className="fin-kpi__icon" />
           </div>
-          <div style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text)', marginBottom: '4px' }}>
+          <div className="fin-kpi__value">
             {formatNaira(stats?.totalPooledPrincipalNaira || 0)}
           </div>
-          <div style={{ fontSize: '12px', color: '#059669', display: 'flex', alignItems: 'center', gap: 4 }}>
-            <TrendingUp size={13} />
+          <div className="fin-kpi__sub">
+            <TrendingUp size={13} color="#4ade80" />
             <span>Active Master Fund Position</span>
           </div>
         </div>
 
-        <div className="card" style={{ padding: '20px' }}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '10px',
-            }}
-          >
-            <span
-              style={{
-                fontSize: '12px',
-                fontWeight: 600,
-                color: 'var(--text-muted)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.04em',
-              }}
-            >
-              Compounding Yield Accrued
-            </span>
-            <TrendingUp size={18} color="#059669" />
+        <div className="fin-kpi">
+          <div className="fin-kpi__top">
+            <span className="fin-kpi__label">Compounding Yield Accrued</span>
+            <TrendingUp size={16} color="#10b981" />
           </div>
-          <div style={{ fontSize: '22px', fontWeight: 800, color: '#059669', marginBottom: '4px' }}>
+          <div className="fin-kpi__value fin-kpi__value--green">
             +{formatNaira(stats?.totalAccruedYieldNaira || 0)}
           </div>
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-            16.0% p.a. daily compounding return
-          </div>
+          <div className="fin-kpi__sub">Daily compounding across active vaults</div>
         </div>
 
-        <div className="card" style={{ padding: '20px' }}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '10px',
-            }}
-          >
-            <span
-              style={{
-                fontSize: '12px',
-                fontWeight: 600,
-                color: 'var(--text-muted)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.04em',
-              }}
-            >
-              Redemptions Disbursed
-            </span>
-            <CreditCard size={18} color="#3b82f6" />
+        <div className="fin-kpi">
+          <div className="fin-kpi__top">
+            <span className="fin-kpi__label">Redemptions Disbursed</span>
+            <CreditCard size={16} className="fin-kpi__icon" />
           </div>
-          <div style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text)', marginBottom: '4px' }}>
-            {formatNaira(stats?.totalRedeemedNaira || 0)}
-          </div>
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-            Paid to registered bank accounts at maturity
-          </div>
+          <div className="fin-kpi__value">{formatNaira(stats?.totalRedeemedNaira || 0)}</div>
+          <div className="fin-kpi__sub">Settled to registered bank accounts</div>
         </div>
 
-        <div className="card" style={{ padding: '20px' }}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: '10px',
-            }}
-          >
-            <span
-              style={{
-                fontSize: '12px',
-                fontWeight: 600,
-                color: 'var(--text-muted)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.04em',
-              }}
-            >
-              Enrolled ARM Savers
-            </span>
-            <UserCheck size={18} color="#8b5cf6" />
+        <div className="fin-kpi">
+          <div className="fin-kpi__top">
+            <span className="fin-kpi__label">Enrolled Savers</span>
+            <UserCheck size={16} className="fin-kpi__icon" />
           </div>
-          <div style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text)', marginBottom: '4px' }}>
-            {stats?.activeSaversCount || 0} active{' '}
-            <span style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-muted)' }}>
-              ({stats?.totalEnrolledCustomersCount || 0} registered)
+          <div className="fin-kpi__value">
+            {stats?.activeSaversCount || 0}{' '}
+            <span style={{ fontSize: '13.5px', fontWeight: 500, color: '#64748b' }}>
+              / {stats?.totalEnrolledCustomersCount || 0} registered
             </span>
           </div>
-          <div style={{ fontSize: '12px', color: '#059669', display: 'flex', alignItems: 'center', gap: 4 }}>
-            <ShieldCheck size={13} />
+          <div className="fin-kpi__sub">
+            <ShieldCheck size={13} color="#059669" />
             <span>
-              {customers.filter((c) => c.b2b2cConsentOnRecord).length}/{customers.length} Signed Consent on Record
+              {customers.filter((c) => c.b2b2cConsentOnRecord).length}/{customers.length} consent
+              signed
             </span>
           </div>
         </div>
       </div>
 
-      {/* ── Navigation Tabs ─────────────────────────────────────── */}
-      <div
-        style={{
-          display: 'flex',
-          gap: '4px',
-          borderBottom: '1px solid var(--border)',
-          marginBottom: '20px',
-          overflowX: 'auto',
-          whiteSpace: 'nowrap',
-        }}
-      >
+      {/* ── Segmented Tab Navigation ───────────────────────────── */}
+      <div className="fin-tabs">
         <button
           type="button"
           onClick={() => setActiveTab('CUSTOMERS')}
-          style={{
-            padding: '10px 14px',
-            border: 'none',
-            background: 'none',
-            fontSize: '13px',
-            fontWeight: activeTab === 'CUSTOMERS' ? 700 : 500,
-            color: activeTab === 'CUSTOMERS' ? 'var(--primary, #c2501f)' : 'var(--text-muted)',
-            borderBottom: activeTab === 'CUSTOMERS' ? '2.5px solid var(--primary, #c2501f)' : '2.5px solid transparent',
-            cursor: 'pointer',
-            flexShrink: 0,
-          }}
+          className={`fin-tab ${activeTab === 'CUSTOMERS' ? 'fin-tab--active' : ''}`}
         >
-          Customers ({customers.length})
+          <span>Savers</span>
+          <span className="fin-tab__count">{customers.length}</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('INFLOWS')}
-          style={{
-            padding: '10px 14px',
-            border: 'none',
-            background: 'none',
-            fontSize: '13px',
-            fontWeight: activeTab === 'INFLOWS' ? 700 : 500,
-            color: activeTab === 'INFLOWS' ? 'var(--primary, #c2501f)' : 'var(--text-muted)',
-            borderBottom: activeTab === 'INFLOWS' ? '2.5px solid var(--primary, #c2501f)' : '2.5px solid transparent',
-            cursor: 'pointer',
-            flexShrink: 0,
-          }}
+          className={`fin-tab ${activeTab === 'INFLOWS' ? 'fin-tab--active' : ''}`}
         >
-          Inflows &amp; Units ({transactions.length})
+          <span>Inflows &amp; Units</span>
+          <span className="fin-tab__count">{transactions.length}</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('JOBS')}
-          style={{
-            padding: '10px 14px',
-            border: 'none',
-            background: 'none',
-            fontSize: '13px',
-            fontWeight: activeTab === 'JOBS' ? 700 : 500,
-            color: activeTab === 'JOBS' ? 'var(--primary, #c2501f)' : 'var(--text-muted)',
-            borderBottom: activeTab === 'JOBS' ? '2.5px solid var(--primary, #c2501f)' : '2.5px solid transparent',
-            cursor: 'pointer',
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '6px',
-            flexShrink: 0,
-          }}
+          className={`fin-tab ${activeTab === 'JOBS' ? 'fin-tab--active' : ''}`}
         >
           <Activity size={14} />
-          <span>Jobs ({jobs.length})</span>
+          <span>Jobs</span>
+          <span className="fin-tab__count">{jobs.length}</span>
           {jobsSummary.failed > 0 && (
-            <span
-              style={{
-                padding: '1px 7px',
-                borderRadius: '10px',
-                fontSize: '11px',
-                fontWeight: 700,
-                background: '#fef2f2',
-                color: '#dc2626',
-                border: '1px solid #fecaca',
-              }}
-            >
-              {jobsSummary.failed} failed
-            </span>
+            <span className="fin-tab__alert">{jobsSummary.failed} failed</span>
           )}
         </button>
 
         <button
           type="button"
-          onClick={() => setActiveTab('CONSENT')}
-          style={{
-            padding: '10px 14px',
-            border: 'none',
-            background: 'none',
-            fontSize: '13px',
-            fontWeight: activeTab === 'CONSENT' ? 700 : 500,
-            color: activeTab === 'CONSENT' ? 'var(--primary, #c2501f)' : 'var(--text-muted)',
-            borderBottom: activeTab === 'CONSENT' ? '2.5px solid var(--primary, #c2501f)' : '2.5px solid transparent',
-            cursor: 'pointer',
-            flexShrink: 0,
-          }}
+          onClick={() => setActiveTab('LEDGER')}
+          className={`fin-tab ${activeTab === 'LEDGER' ? 'fin-tab--active' : ''}`}
         >
-          Consent Ledger
+          <span>Dual Ledger</span>
         </button>
 
         <button
           type="button"
-          onClick={() => setActiveTab('LEDGER')}
-          style={{
-            padding: '10px 14px',
-            border: 'none',
-            background: 'none',
-            fontSize: '13px',
-            fontWeight: activeTab === 'LEDGER' ? 700 : 500,
-            color: activeTab === 'LEDGER' ? 'var(--primary, #c2501f)' : 'var(--text-muted)',
-            borderBottom: activeTab === 'LEDGER' ? '2.5px solid var(--primary, #c2501f)' : '2.5px solid transparent',
-            cursor: 'pointer',
-            flexShrink: 0,
-          }}
+          onClick={() => setActiveTab('CONSENT')}
+          className={`fin-tab ${activeTab === 'CONSENT' ? 'fin-tab--active' : ''}`}
         >
-          Internal Ledger &amp; Economics
+          <span>Consent</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('CASHBACK')}
-          style={{
-            padding: '10px 14px',
-            border: 'none',
-            background: 'none',
-            fontSize: '13px',
-            fontWeight: activeTab === 'CASHBACK' ? 700 : 500,
-            color: activeTab === 'CASHBACK' ? 'var(--primary, #c2501f)' : 'var(--text-muted)',
-            borderBottom: activeTab === 'CASHBACK' ? '2.5px solid var(--primary, #c2501f)' : '2.5px solid transparent',
-            cursor: 'pointer',
-            flexShrink: 0,
-          }}
+          className={`fin-tab ${activeTab === 'CASHBACK' ? 'fin-tab--active' : ''}`}
         >
-          Activation Cashback
+          <span>Cashback</span>
         </button>
       </div>
 
       {/* ── TAB 1: CUSTOMERS / SUBSCRIBERS ──────────────────────── */}
       {activeTab === 'CUSTOMERS' && (
-        <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
-          <div
-            style={{
-              padding: '16px 20px',
-              borderBottom: '1px solid var(--border)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              gap: '12px',
-              flexWrap: 'wrap',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: '260px' }}>
-              <div style={{ position: 'relative', width: '100%', maxWidth: '380px' }}>
-                <Search
-                  size={15}
-                  style={{
-                    position: 'absolute',
-                    left: '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: 'var(--text-muted)',
-                  }}
-                />
+        <div className="fin-panel">
+          <div className="fin-panel__head">
+            <div className="fin-toolbar">
+              <div className="fin-search">
+                <Search size={14} className="fin-search__icon" />
                 <input
                   type="text"
-                  placeholder="Search customer name, email, or ARM ID..."
+                  className="fin-input"
+                  placeholder="Search saver name, email, or ARM ID…"
                   value={customerSearch}
                   onChange={(e) => setCustomerSearch(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px 8px 34px',
-                    borderRadius: '6px',
-                    border: '1px solid var(--border)',
-                    fontSize: '13px',
-                    background: 'var(--surface)',
-                  }}
                 />
               </div>
 
               <select
+                className="fin-select"
                 value={customerStatusFilter}
                 onChange={(e) => setCustomerStatusFilter(e.target.value)}
-                style={{
-                  padding: '8px 12px',
-                  borderRadius: '6px',
-                  border: '1px solid var(--border)',
-                  fontSize: '13px',
-                  background: 'var(--surface)',
-                }}
               >
                 <option value="ALL">All Statuses</option>
-                <option value="LOCKED">Locked & Accumulating</option>
+                <option value="LOCKED">Locked &amp; Accumulating</option>
                 <option value="SETTLEMENT_READY">Settlement Ready</option>
                 <option value="SETTLED">Settled</option>
               </select>
             </div>
 
-            <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-              Showing {filteredCustomers.length} of {customers.length} subscribers
-            </div>
+            <span className="fin-panel__meta">
+              {filteredCustomers.length} of {customers.length} savers
+            </span>
           </div>
 
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+          <div className="fin-table-wrap">
+            <table className="fin-table">
               <thead>
-                <tr style={{ background: 'var(--surface-sunken, #f8f6f3)', borderBottom: '1px solid var(--border)' }}>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>Subscriber / Tenant</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>ARM Membership / CRM</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>Target Rent</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>Principal Saved</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>Accrued Yield (16%)</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>Total Balance</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>Dedicated Inflow DVA</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>Lock Status</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>Inflows</th>
+                <tr>
+                  <th>Subscriber</th>
+                  <th>ARM Account</th>
+                  <th className="fin-num">Target Rent</th>
+                  <th className="fin-num">Principal</th>
+                  <th className="fin-num">Accrued Yield</th>
+                  <th className="fin-num">Total Balance</th>
+                  <th>Inflow DVA</th>
+                  <th>Status</th>
+                  <th className="fin-num">Inflows</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredCustomers.length === 0 ? (
                   <tr>
-                    <td colSpan={9} style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                      No customers match your search criteria.
+                    <td colSpan={9} className="fin-empty">
+                      No savers match your search criteria.
                     </td>
                   </tr>
                 ) : (
                   filteredCustomers.map((c) => (
                     <tr
                       key={c.vaultUuid}
+                      className="fin-table__row--clickable"
                       onClick={() => setDetailDrawer({ kind: 'CUSTOMER', item: c })}
-                      style={{
-                        borderBottom: '1px solid var(--border)',
-                        transition: 'background 0.15s ease',
-                        cursor: 'pointer',
-                      }}
                       title="Click to inspect full customer & ARM details"
                     >
-                      <td style={{ padding: '12px 16px' }}>
-                        <div style={{ fontWeight: 600, color: 'var(--text)' }}>{c.fullName}</div>
-                        <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>{c.email}</div>
+                      <td>
+                        <div className="fin-cell-primary">{c.fullName}</div>
+                        <div className="fin-cell-sub">{c.email}</div>
                         {c.email.includes('arm-') && (
                           <span
-                            style={{
-                              marginTop: 3,
-                              display: 'inline-block',
-                              padding: '1px 6px',
-                              borderRadius: '4px',
-                              background: '#fef3c7',
-                              color: '#92400e',
-                              fontSize: '10px',
-                              fontWeight: 700,
-                            }}
+                            className="fin-pill fin-pill--amber"
+                            style={{ marginTop: 4, fontSize: '10px', padding: '1px 6px' }}
                           >
-                            DEMO ACCOUNT
+                            Demo Account
                           </span>
                         )}
                       </td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <div style={{ fontWeight: 600, color: 'var(--primary, #c2501f)' }}>
+                      <td>
+                        <div className="fin-cell-primary fin-text-clay">
                           {c.armCustomerMembershipId || omnibusMembershipId}
                         </div>
-                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                          {c.armCrmAccountNumber || `${c.armCustomerMembershipId || omnibusMembershipId}-ARMMMF-01`} • {c.armSyncStatus} • Sec:{' '}
-                          {c.armCompletedSections}/63
+                        <div className="fin-cell-sub">
+                          {c.armSyncStatus} · KYC {c.armCompletedSections}/63
                         </div>
                         {(c.armPurchaseId || c.armWithdrawalId) && (
-                          <div style={{ fontSize: '10.5px', fontFamily: 'monospace', color: '#059669', marginTop: 2 }}>
+                          <div className="fin-cell-sub fin-mono fin-text-green">
                             {c.armWithdrawalId
                               ? `WDL: ${c.armWithdrawalId.slice(0, 14)}…`
                               : `PUR: ${c.armPurchaseId!.slice(0, 14)}…`}
                           </div>
                         )}
                       </td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <div style={{ fontWeight: 600 }}>{formatNaira(c.targetAmountNaira)}</div>
-                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{c.cadence}</div>
+                      <td className="fin-num">
+                        <div className="fin-cell-primary">{formatNaira(c.targetAmountNaira)}</div>
+                        <div className="fin-cell-sub">{c.cadence}</div>
                       </td>
-                      <td style={{ padding: '12px 16px', fontWeight: 600 }}>
-                        {formatNaira(c.currentPrincipalNaira)}
-                      </td>
-                      <td style={{ padding: '12px 16px', fontWeight: 600, color: '#059669' }}>
-                        +{formatNaira(c.accruedYieldNaira)}
-                      </td>
-                      <td style={{ padding: '12px 16px', fontWeight: 700, color: 'var(--text)' }}>
+                      <td className="fin-num">{formatNaira(c.currentPrincipalNaira)}</td>
+                      <td className="fin-num fin-text-green">+{formatNaira(c.accruedYieldNaira)}</td>
+                      <td className="fin-num fin-cell-primary">
                         {formatNaira(c.currentBalanceNaira)}
                       </td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <div style={{ fontWeight: 600 }}>{c.dvaAccountNumber || 'Pending'}</div>
-                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{c.dvaBankName}</div>
+                      <td>
+                        <div className="fin-cell-primary fin-mono">
+                          {c.dvaAccountNumber || 'Pending'}
+                        </div>
+                        <div className="fin-cell-sub">{c.dvaBankName}</div>
                       </td>
-                      <td style={{ padding: '12px 16px' }}>{getStatusBadge(c.lockStatus)}</td>
-                      <td style={{ padding: '12px 16px' }}>
+                      <td>{getStatusBadge(c.lockStatus)}</td>
+                      <td className="fin-num">
                         <button
                           type="button"
+                          className="fin-btn fin-btn--ghost fin-btn--sm"
                           onClick={(e) => {
                             e.stopPropagation()
                             setSelectedCustomerEmail(c.email)
                             setActiveTab('INFLOWS')
                           }}
-                          style={{
-                            padding: '4px 10px',
-                            borderRadius: '6px',
-                            border: '1px solid var(--border)',
-                            background: 'var(--surface)',
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            color: 'var(--primary, #c2501f)',
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                          }}
                         >
-                          <span>{c.transactionsCount} Inflows</span>
+                          <span>{c.transactionsCount}</span>
                           <ChevronRight size={12} />
                         </button>
                       </td>
@@ -1218,56 +877,24 @@ export default function ArmPortfolio({ token }: ArmPortfolioProps) {
 
       {/* ── TAB 2: INFLOW STATEMENT & UNITS SCHEDULE ────────────── */}
       {activeTab === 'INFLOWS' && (
-        <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
-          <div
-            style={{
-              padding: '16px 20px',
-              borderBottom: '1px solid var(--border)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              gap: '12px',
-              flexWrap: 'wrap',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: '260px' }}>
-              <div style={{ position: 'relative', width: '100%', maxWidth: '360px' }}>
-                <Search
-                  size={15}
-                  style={{
-                    position: 'absolute',
-                    left: '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: 'var(--text-muted)',
-                  }}
-                />
+        <div className="fin-panel">
+          <div className="fin-panel__head">
+            <div className="fin-toolbar">
+              <div className="fin-search">
+                <Search size={14} className="fin-search__icon" />
                 <input
                   type="text"
-                  placeholder="Search sender, reference, or narration..."
+                  className="fin-input"
+                  placeholder="Search sender, reference, or narration…"
                   value={txSearch}
                   onChange={(e) => setTxSearch(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8px 12px 8px 34px',
-                    borderRadius: '6px',
-                    border: '1px solid var(--border)',
-                    fontSize: '13px',
-                    background: 'var(--surface)',
-                  }}
                 />
               </div>
 
               <select
+                className="fin-select"
                 value={txTypeFilter}
                 onChange={(e) => setTxTypeFilter(e.target.value)}
-                style={{
-                  padding: '8px 12px',
-                  borderRadius: '6px',
-                  border: '1px solid var(--border)',
-                  fontSize: '13px',
-                  background: 'var(--surface)',
-                }}
               >
                 <option value="ALL">All Flow Categories</option>
                 <option value="DEPOSIT">Subscription Inflows (Deposits)</option>
@@ -1277,138 +904,103 @@ export default function ArmPortfolio({ token }: ArmPortfolioProps) {
               </select>
 
               {selectedCustomerEmail && (
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: '4px 10px',
-                    borderRadius: 20,
-                    background: 'var(--primary-faint, rgba(194, 80, 31, 0.1))',
-                    color: 'var(--primary, #c2501f)',
-                    fontSize: '12px',
-                    fontWeight: 600,
-                  }}
-                >
-                  <span>Filtering: {selectedCustomerEmail}</span>
+                <span className="fin-filter-tag">
+                  <span>{selectedCustomerEmail}</span>
                   <button
                     type="button"
+                    className="fin-filter-tag__x"
                     onClick={() => setSelectedCustomerEmail(null)}
-                    style={{
-                      border: 'none',
-                      background: 'none',
-                      cursor: 'pointer',
-                      fontWeight: 700,
-                      color: 'var(--primary, #c2501f)',
-                    }}
+                    aria-label="Clear customer filter"
                   >
                     ×
                   </button>
-                </div>
+                </span>
               )}
             </div>
 
-            <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-              Showing {filteredTransactions.length} transaction records
-            </div>
+            <span className="fin-panel__meta">{filteredTransactions.length} transactions</span>
           </div>
 
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+          <div className="fin-table-wrap">
+            <table className="fin-table">
               <thead>
-                <tr style={{ background: 'var(--surface-sunken, #f8f6f3)', borderBottom: '1px solid var(--border)' }}>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>Reference</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>Sender / Customer</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>ARM Membership</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>Flow Category</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>Channel</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>Amount (NGN)</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>Balance After</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>Date & Time</th>
+                <tr>
+                  <th>Reference</th>
+                  <th>Customer</th>
+                  <th>ARM ID</th>
+                  <th>Category</th>
+                  <th>Channel</th>
+                  <th className="fin-num">Amount</th>
+                  <th className="fin-num">Balance After</th>
+                  <th>Date</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredTransactions.length === 0 ? (
                   <tr>
-                    <td colSpan={8} style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                      No transaction records match the criteria.
+                    <td colSpan={8} className="fin-empty">
+                      No transaction records match the selected filters.
                     </td>
                   </tr>
                 ) : (
                   filteredTransactions.map((tx) => (
                     <tr
                       key={tx.uuid}
+                      className="fin-table__row--clickable"
                       onClick={() => openTransactionDetail(tx)}
-                      style={{
-                        borderBottom: '1px solid var(--border)',
-                        transition: 'background 0.15s ease',
-                        cursor: 'pointer',
-                      }}
                       title="Click to inspect full transaction & live ARM details"
                     >
-                      <td style={{ padding: '12px 16px', fontFamily: 'monospace', fontSize: '12px' }}>
-                        <div>{tx.reference}</div>
+                      <td>
+                        <div className="fin-mono fin-cell-primary">{tx.reference}</div>
                         {tx.armInstructionId && (
-                          <div style={{ fontSize: '10.5px', color: '#059669', marginTop: 2 }}>
+                          <div className="fin-cell-sub fin-mono fin-text-green">
                             ARM: {tx.armInstructionId.slice(0, 18)}
                             {tx.armInstructionId.length > 18 ? '…' : ''}
                             {tx.armLiveStatus ? ` (${tx.armLiveStatus})` : ''}
                           </div>
                         )}
                       </td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <div style={{ fontWeight: 600 }}>{tx.customerName}</div>
-                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{tx.customerEmail}</div>
+                      <td>
+                        <div className="fin-cell-primary">{tx.customerName}</div>
+                        <div className="fin-cell-sub">{tx.customerEmail}</div>
                       </td>
-                      <td style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--primary, #c2501f)' }}>
-                        {tx.armMembershipId}
-                      </td>
-                      <td style={{ padding: '12px 16px' }}>
+                      <td className="fin-text-clay fin-mono">{tx.armMembershipId}</td>
+                      <td>
                         <span
-                          style={{
-                            padding: '3px 8px',
-                            borderRadius: '4px',
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            background:
-                              tx.type === 'DEPOSIT'
-                                ? '#ecfdf5'
-                                : tx.type === 'YIELD_ACCRUAL'
-                                  ? '#eff6ff'
-                                  : tx.type === 'SETTLEMENT_DISBURSEMENT'
-                                    ? '#fef2f2'
-                                    : '#fdf4ff',
-                            color:
-                              tx.type === 'DEPOSIT'
-                                ? '#059669'
-                                : tx.type === 'YIELD_ACCRUAL'
-                                  ? '#2563eb'
-                                  : tx.type === 'SETTLEMENT_DISBURSEMENT'
-                                    ? '#dc2626'
-                                    : '#9333ea',
-                          }}
+                          className={`fin-pill ${
+                            tx.type === 'DEPOSIT'
+                              ? 'fin-pill--green'
+                              : tx.type === 'YIELD_ACCRUAL'
+                                ? 'fin-pill--blue'
+                                : tx.type === 'SETTLEMENT_DISBURSEMENT'
+                                  ? 'fin-pill--red'
+                                  : 'fin-pill--purple'
+                          }`}
                         >
                           {tx.flowCategory}
                         </span>
                       </td>
-                      <td style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-muted)' }}>
-                        {tx.channel}
-                      </td>
+                      <td className="fin-text-muted">{tx.channel}</td>
                       <td
-                        style={{
-                          padding: '12px 16px',
-                          fontWeight: 700,
-                          color: tx.type === 'SETTLEMENT_DISBURSEMENT' ? '#dc2626' : '#059669',
-                        }}
+                        className={`fin-num ${
+                          tx.type === 'SETTLEMENT_DISBURSEMENT'
+                            ? 'fin-text-red'
+                            : 'fin-text-green'
+                        }`}
                       >
-                        {tx.type === 'SETTLEMENT_DISBURSEMENT' ? '-' : '+'}
+                        {tx.type === 'SETTLEMENT_DISBURSEMENT' ? '−' : '+'}
                         {formatNaira(tx.amountNaira)}
                       </td>
-                      <td style={{ padding: '12px 16px', fontWeight: 600 }}>
+                      <td className="fin-num fin-cell-primary">
                         {formatNaira(tx.balanceAfterNaira)}
                       </td>
-                      <td style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-muted)' }}>
-                        {new Date(tx.createdAt).toLocaleString('en-NG')}
+                      <td className="fin-text-muted">
+                        {new Date(tx.createdAt).toLocaleString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                        })}
                       </td>
                     </tr>
                   ))
@@ -1421,187 +1013,137 @@ export default function ArmPortfolio({ token }: ArmPortfolioProps) {
 
       {/* ── TAB 3: BULLMQ BACKGROUND JOBS QUEUE ────────────────── */}
       {activeTab === 'JOBS' && (
-        <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
-          <div
-            style={{
-              padding: '16px 20px',
-              borderBottom: '1px solid var(--border)',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              gap: '12px',
-              flexWrap: 'wrap',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <span
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  background: '#ecfdf5',
-                  color: '#059669',
-                }}
-              >
-                Subscriptions: {jobTypeSummary.subscribe}
-              </span>
-              <span
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  background: '#fff7ed',
-                  color: '#c2501f',
-                }}
-              >
-                Redemptions: {jobTypeSummary.redeem}
-              </span>
-              <span
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  background: '#eef2ff',
-                  color: '#4338ca',
-                }}
-              >
-                Onboarding: {jobTypeSummary.onboard}
-              </span>
-              <span style={{ color: 'var(--border)' }}>|</span>
-              <span
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  background: '#eff6ff',
-                  color: '#2563eb',
-                }}
-              >
-                Queued: {jobsSummary.queued}
-              </span>
-              <span
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  background: '#fef3c7',
-                  color: '#b45309',
-                }}
-              >
-                Processing: {jobsSummary.processing}
-              </span>
-              <span
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: 600,
-                  background: '#ecfdf5',
-                  color: '#059669',
-                }}
-              >
-                Completed: {jobsSummary.completed}
-              </span>
-              <span
-                style={{
-                  padding: '4px 10px',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                  fontWeight: 700,
-                  background: jobsSummary.failed > 0 ? '#fef2f2' : '#f1f5f9',
-                  color: jobsSummary.failed > 0 ? '#dc2626' : '#64748b',
-                }}
-              >
-                Failed: {jobsSummary.failed}
-              </span>
-            </div>
+        <div className="fin-panel">
+          {/* Interactive Quick-Filter Bar (replaces passive noisy badge soup) */}
+          <div className="fin-chip-bar">
+            <button
+              type="button"
+              className={`fin-chip ${jobStatusFilter === 'ALL' ? 'fin-chip--active' : ''}`}
+              onClick={() => setJobStatusFilter('ALL')}
+            >
+              All ({jobs.length})
+            </button>
+            <button
+              type="button"
+              className={`fin-chip ${jobStatusFilter === 'QUEUED' ? 'fin-chip--active' : ''}`}
+              onClick={() =>
+                setJobStatusFilter(jobStatusFilter === 'QUEUED' ? 'ALL' : 'QUEUED')
+              }
+            >
+              Queued ({jobsSummary.queued})
+            </button>
+            <button
+              type="button"
+              className={`fin-chip ${jobStatusFilter === 'PROCESSING' ? 'fin-chip--active' : ''}`}
+              onClick={() =>
+                setJobStatusFilter(jobStatusFilter === 'PROCESSING' ? 'ALL' : 'PROCESSING')
+              }
+            >
+              Processing ({jobsSummary.processing})
+            </button>
+            <button
+              type="button"
+              className={`fin-chip ${jobStatusFilter === 'COMPLETED' ? 'fin-chip--active' : ''}`}
+              onClick={() =>
+                setJobStatusFilter(jobStatusFilter === 'COMPLETED' ? 'ALL' : 'COMPLETED')
+              }
+            >
+              Completed ({jobsSummary.completed})
+            </button>
+            <button
+              type="button"
+              className={`fin-chip ${jobsSummary.failed > 0 ? 'fin-chip--danger' : ''} ${
+                jobStatusFilter === 'FAILED' ? 'fin-chip--active' : ''
+              }`}
+              onClick={() =>
+                setJobStatusFilter(jobStatusFilter === 'FAILED' ? 'ALL' : 'FAILED')
+              }
+            >
+              Failed ({jobsSummary.failed})
+            </button>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-              <div style={{ position: 'relative', minWidth: '200px' }}>
-                <Search
-                  size={14}
-                  style={{
-                    position: 'absolute',
-                    left: '10px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: 'var(--text-muted)',
-                  }}
-                />
+            <span className="fin-chip-sep" />
+
+            <button
+              type="button"
+              className={`fin-chip ${jobTypeFilter === 'SUBSCRIBE' ? 'fin-chip--active' : ''}`}
+              onClick={() =>
+                setJobTypeFilter(jobTypeFilter === 'SUBSCRIBE' ? 'ALL' : 'SUBSCRIBE')
+              }
+            >
+              Subscriptions ({jobTypeSummary.subscribe})
+            </button>
+            <button
+              type="button"
+              className={`fin-chip ${jobTypeFilter === 'REDEEM' ? 'fin-chip--active' : ''}`}
+              onClick={() =>
+                setJobTypeFilter(jobTypeFilter === 'REDEEM' ? 'ALL' : 'REDEEM')
+              }
+            >
+              Redemptions ({jobTypeSummary.redeem})
+            </button>
+            <button
+              type="button"
+              className={`fin-chip ${jobTypeFilter === 'ONBOARD' ? 'fin-chip--active' : ''}`}
+              onClick={() =>
+                setJobTypeFilter(jobTypeFilter === 'ONBOARD' ? 'ALL' : 'ONBOARD')
+              }
+            >
+              Onboarding ({jobTypeSummary.onboard})
+            </button>
+          </div>
+
+          <div className="fin-panel__head">
+            <div className="fin-toolbar">
+              <div className="fin-search">
+                <Search size={14} className="fin-search__icon" />
                 <input
                   type="text"
-                  placeholder="Search ref, customer, ARM ID..."
+                  className="fin-input"
+                  placeholder="Search reference, customer, or ARM ID…"
                   value={jobSearch}
                   onChange={(e) => setJobSearch(e.target.value)}
-                  style={{
-                    padding: '7px 10px 7px 30px',
-                    borderRadius: '6px',
-                    border: '1px solid var(--border)',
-                    fontSize: '13px',
-                    background: 'var(--surface)',
-                  }}
                 />
               </div>
 
-              <select
-                value={jobTypeFilter}
-                onChange={(e) => setJobTypeFilter(e.target.value)}
-                style={{
-                  padding: '8px 12px',
-                  borderRadius: '6px',
-                  border: '1px solid var(--border)',
-                  fontSize: '13px',
-                  background: 'var(--surface)',
-                }}
-              >
-                <option value="ALL">All Job Types</option>
-                <option value="SUBSCRIBE">Subscriptions (SUBSCRIBE)</option>
-                <option value="REDEEM">Redemptions (REDEEM)</option>
-                <option value="ONBOARD">Onboarding (ONBOARD)</option>
-              </select>
-
-              <select
-                value={jobStatusFilter}
-                onChange={(e) => setJobStatusFilter(e.target.value)}
-                style={{
-                  padding: '8px 12px',
-                  borderRadius: '6px',
-                  border: '1px solid var(--border)',
-                  fontSize: '13px',
-                  background: 'var(--surface)',
-                }}
-              >
-                <option value="ALL">All Job Statuses</option>
-                <option value="QUEUED">Queued</option>
-                <option value="PROCESSING">Processing</option>
-                <option value="COMPLETED">Completed</option>
-                <option value="FAILED">Failed (Action Required)</option>
-              </select>
+              {(jobTypeFilter !== 'ALL' || jobStatusFilter !== 'ALL' || jobSearch.trim()) && (
+                <button
+                  type="button"
+                  className="fin-btn fin-btn--ghost fin-btn--sm"
+                  onClick={() => {
+                    setJobTypeFilter('ALL')
+                    setJobStatusFilter('ALL')
+                    setJobSearch('')
+                  }}
+                >
+                  Clear filters
+                </button>
+              )}
             </div>
+
+            <span className="fin-panel__meta">
+              {filteredJobs.length} of {jobs.length} jobs
+            </span>
           </div>
 
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+          <div className="fin-table-wrap">
+            <table className="fin-table">
               <thead>
-                <tr style={{ background: 'var(--surface-sunken, #f8f6f3)', borderBottom: '1px solid var(--border)' }}>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>Job / Reference</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>Customer & ARM ID</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>Type & Amount</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>Status & Attempts</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>ARM Instruction / Error</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>Alerts Sent</th>
-                  <th style={{ padding: '12px 16px', fontWeight: 600 }}>Action</th>
+                <tr>
+                  <th>Job / Reference</th>
+                  <th>Customer</th>
+                  <th>Type</th>
+                  <th className="fin-num">Amount</th>
+                  <th>Status</th>
+                  <th>ARM Result / Error</th>
+                  <th>Alerts</th>
+                  <th className="fin-num">Action</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredJobs.length === 0 ? (
                   <tr>
-                    <td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                    <td colSpan={8} className="fin-empty">
                       No ARM background jobs match the selected filters.
                     </td>
                   </tr>
@@ -1609,173 +1151,130 @@ export default function ArmPortfolio({ token }: ArmPortfolioProps) {
                   filteredJobs.map((job) => (
                     <tr
                       key={job.uuid}
+                      className="fin-table__row--clickable"
                       onClick={() => setDetailDrawer({ kind: 'JOB', item: job })}
-                      style={{
-                        borderBottom: '1px solid var(--border)',
-                        cursor: 'pointer',
-                        transition: 'background 0.15s ease',
-                      }}
                       title="Click to inspect full job payload, ARM result, and audit timestamps"
                     >
-                      <td style={{ padding: '12px 16px', fontFamily: 'monospace', fontSize: '12px' }}>
-                        <div style={{ fontWeight: 600, color: 'var(--text)' }}>{job.reference}</div>
-                        <div style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>
-                          Tx: {job.armTransactionId.slice(0, 18)}…
-                        </div>
-                        <div style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>
-                          {new Date(job.createdAt).toLocaleString('en-NG')}
-                        </div>
-                      </td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <div style={{ fontWeight: 600 }}>{job.customerName}</div>
-                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                          {job.customerEmail || '—'}
-                        </div>
-                        <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--primary, #c2501f)', marginTop: 2 }}>
-                          ARM ID: {job.armMembershipId || omnibusMembershipId}
+                      <td>
+                        <div className="fin-mono fin-cell-primary">{job.reference}</div>
+                        <div className="fin-cell-sub fin-mono">
+                          Tx: {job.armTransactionId.slice(0, 16)}… ·{' '}
+                          {new Date(job.createdAt).toLocaleString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
                         </div>
                       </td>
-                      <td style={{ padding: '12px 16px' }}>
+                      <td>
+                        <div className="fin-cell-primary">{job.customerName}</div>
+                        <div className="fin-cell-sub">
+                          {job.customerEmail || '—'} ·{' '}
+                          <span className="fin-text-clay">
+                            {job.armMembershipId || omnibusMembershipId}
+                          </span>
+                        </div>
+                      </td>
+                      <td>
                         <span
-                          style={{
-                            display: 'inline-block',
-                            padding: '2px 7px',
-                            borderRadius: '4px',
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            background:
-                              job.jobType === 'REDEEM'
-                                ? '#fff7ed'
-                                : job.jobType === 'ONBOARD'
-                                  ? '#eef2ff'
-                                  : '#ecfdf5',
-                            color:
-                              job.jobType === 'REDEEM'
-                                ? '#c2501f'
-                                : job.jobType === 'ONBOARD'
-                                  ? '#4338ca'
-                                  : '#059669',
-                          }}
+                          className={`fin-pill ${
+                            job.jobType === 'REDEEM'
+                              ? 'fin-pill--clay'
+                              : job.jobType === 'ONBOARD'
+                                ? 'fin-pill--purple'
+                                : 'fin-pill--green'
+                          }`}
                         >
                           {job.jobType}
                         </span>
-                        <div
-                          style={{
-                            fontSize: '12.5px',
-                            color: job.jobType === 'REDEEM' ? '#dc2626' : '#059669',
-                            fontWeight: 700,
-                            marginTop: 4,
-                          }}
-                        >
-                          {job.amountNaira > 0
-                            ? `${job.jobType === 'REDEEM' ? '-' : '+'}${formatNaira(job.amountNaira)}`
-                            : '—'}
-                        </div>
                       </td>
-                      <td style={{ padding: '12px 16px' }}>
+                      <td
+                        className={`fin-num ${
+                          job.amountNaira > 0
+                            ? job.jobType === 'REDEEM'
+                              ? 'fin-text-red'
+                              : 'fin-text-green'
+                            : 'fin-text-muted'
+                        }`}
+                      >
+                        {job.amountNaira > 0
+                          ? `${job.jobType === 'REDEEM' ? '−' : '+'}${formatNaira(job.amountNaira)}`
+                          : '—'}
+                      </td>
+                      <td>
                         <span
-                          style={{
-                            padding: '3px 8px',
-                            borderRadius: '6px',
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            background:
-                              job.status === 'COMPLETED'
-                                ? '#ecfdf5'
-                                : job.status === 'FAILED'
-                                  ? '#fef2f2'
-                                  : job.status === 'PROCESSING'
-                                    ? '#fef3c7'
-                                    : '#eff6ff',
-                            color:
-                              job.status === 'COMPLETED'
-                                ? '#059669'
-                                : job.status === 'FAILED'
-                                  ? '#dc2626'
-                                  : job.status === 'PROCESSING'
-                                    ? '#b45309'
-                                    : '#2563eb',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 4,
-                          }}
+                          className={`fin-pill ${
+                            job.status === 'COMPLETED'
+                              ? 'fin-pill--green'
+                              : job.status === 'FAILED'
+                                ? 'fin-pill--red'
+                                : job.status === 'PROCESSING'
+                                  ? 'fin-pill--amber'
+                                  : 'fin-pill--blue'
+                          }`}
                         >
-                          {job.status === 'FAILED' && <AlertTriangle size={11} />}
-                          {job.status === 'COMPLETED' && <CheckCircle2 size={11} />}
+                          <span className="fin-pill__dot" />
                           {job.status}
                         </span>
-                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: 3 }}>
-                          Attempts: {job.attempts}/{job.maxAttempts}
+                        <div className="fin-cell-sub">
+                          Try {job.attempts}/{job.maxAttempts}
                         </div>
                       </td>
-                      <td style={{ padding: '12px 16px', maxWidth: '300px' }}>
+                      <td style={{ maxWidth: '280px' }}>
                         {job.armInstructionId ? (
-                          <div style={{ fontFamily: 'monospace', fontSize: '11.5px', color: '#059669' }}>
-                            {job.armInstructionId}
-                          </div>
+                          <div className="fin-mono fin-text-green">{job.armInstructionId}</div>
                         ) : job.lastError ? (
                           <div
-                            style={{
-                              fontSize: '11.5px',
-                              color: '#dc2626',
-                              wordBreak: 'break-word',
-                            }}
+                            className="fin-text-red"
+                            style={{ fontSize: '11.5px', wordBreak: 'break-word' }}
                           >
                             {job.lastError}
                           </div>
                         ) : (
-                          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                            Awaiting ARM execution…
-                          </span>
+                          <span className="fin-text-muted">Awaiting ARM…</span>
                         )}
                       </td>
-                      <td style={{ padding: '12px 16px', fontSize: '11.5px' }}>
-                        <div style={{ color: job.notifiedUserAt ? '#059669' : 'var(--text-muted)' }}>
-                          User: {job.notifiedUserAt ? 'Sent' : '—'}
+                      <td>
+                        <div className="fin-cell-sub" style={{ marginTop: 0 }}>
+                          User:{' '}
+                          <strong style={{ color: job.notifiedUserAt ? '#047857' : '#94a3b8' }}>
+                            {job.notifiedUserAt ? 'Sent' : '—'}
+                          </strong>
                         </div>
-                        <div style={{ color: job.notifiedAdminAt ? '#059669' : 'var(--text-muted)' }}>
-                          Admin: {job.notifiedAdminAt ? 'Sent' : '—'}
+                        <div className="fin-cell-sub">
+                          Admin:{' '}
+                          <strong style={{ color: job.notifiedAdminAt ? '#047857' : '#94a3b8' }}>
+                            {job.notifiedAdminAt ? 'Sent' : '—'}
+                          </strong>
                         </div>
                       </td>
-                      <td style={{ padding: '12px 16px' }}>
+                      <td className="fin-num">
                         {job.canRetry ? (
                           <button
                             type="button"
+                            className="fin-btn fin-btn--danger-soft fin-btn--sm"
                             onClick={(e) => {
                               e.stopPropagation()
                               handleRetryJob(job.uuid)
                             }}
                             disabled={retryingJobUuid === job.uuid}
-                            style={{
-                              padding: '5px 10px',
-                              borderRadius: '6px',
-                              border: '1px solid #fecaca',
-                              background: '#fef2f2',
-                              color: '#dc2626',
-                              fontSize: '12px',
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                            }}
                           >
                             <RotateCcw size={12} />
                             <span>{retryingJobUuid === job.uuid ? 'Retrying…' : 'Retry'}</span>
                           </button>
                         ) : (
-                          <span
-                            style={{
-                              fontSize: '11.5px',
-                              color: 'var(--primary, #c2501f)',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 4,
-                              fontWeight: 600,
+                          <button
+                            type="button"
+                            className="fin-btn fin-btn--ghost fin-btn--sm"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setDetailDrawer({ kind: 'JOB', item: job })
                             }}
                           >
-                            <Eye size={12} /> Details
-                          </span>
+                            <Eye size={12} />
+                            <span>Inspect</span>
+                          </button>
                         )}
                       </td>
                     </tr>
@@ -1789,141 +1288,123 @@ export default function ArmPortfolio({ token }: ArmPortfolioProps) {
 
       {/* ── TAB 4: B2B2C CONSENT & COMPLIANCE LEDGER ────────────── */}
       {activeTab === 'CONSENT' && (
-        <div className="card" style={{ padding: '24px' }}>
-          <div style={{ maxWidth: '800px', marginBottom: '20px' }}>
-            <h3 style={{ fontSize: '16px', fontWeight: 700, margin: '0 0 6px', color: 'var(--text)' }}>
-              B2B2C Customer Transact Consent Ledger (ARM Acceptance Criteria #2)
-            </h3>
-            <p style={{ fontSize: '13.5px', color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
-              Under the B2B2C partnership scope with Asset & Resource Management Holding Company (ARM),
-              GoodTenant holds express auto-signed customer consent granting authority to transact (subscribe
-              pooled funds into ARMMMF and execute redemptions to registered commercial bank accounts) on their behalf.
-            </p>
+        <div className="fin-panel">
+          <div className="fin-panel__head">
+            <div>
+              <div className="fin-panel__title">B2B2C Customer Transact Consent Ledger</div>
+              <div className="fin-cell-sub">
+                Express auto-signed customer mandate authorizing ARMMMF subscriptions and
+                redemptions.
+              </div>
+            </div>
+            <span className="fin-panel__meta">
+              {customers.filter((c) => c.b2b2cConsentOnRecord).length}/{customers.length} signed
+            </span>
           </div>
 
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
-            <thead>
-              <tr style={{ background: 'var(--surface-sunken, #f8f6f3)', borderBottom: '1px solid var(--border)' }}>
-                <th style={{ padding: '12px 16px', fontWeight: 600 }}>Customer Name</th>
-                <th style={{ padding: '12px 16px', fontWeight: 600 }}>ARM Membership ID</th>
-                <th style={{ padding: '12px 16px', fontWeight: 600 }}>Terms / Mandate Version</th>
-                <th style={{ padding: '12px 16px', fontWeight: 600 }}>Signed At</th>
-                <th style={{ padding: '12px 16px', fontWeight: 600 }}>KYC &amp; Proof of Address</th>
-                <th style={{ padding: '12px 16px', fontWeight: 600 }}>Status</th>
-                <th style={{ padding: '12px 16px', fontWeight: 600 }}>Consent Doc</th>
-              </tr>
-            </thead>
-            <tbody>
-              {customers.map((c) => (
-                <tr
-                  key={c.userUuid}
-                  onClick={() => setDetailDrawer({ kind: 'CUSTOMER', item: c })}
-                  style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
-                  title="Click to inspect full customer, KYC documents & consent details"
-                >
-                  <td style={{ padding: '12px 16px' }}>
-                    <div style={{ fontWeight: 600 }}>{c.fullName}</div>
-                    <div style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>{c.email}</div>
-                  </td>
-                  <td style={{ padding: '12px 16px', fontWeight: 600, color: 'var(--primary, #c2501f)' }}>
-                    {c.armCustomerMembershipId || omnibusMembershipId}
-                  </td>
-                  <td style={{ padding: '12px 16px', fontSize: '12px' }}>
-                    {c.b2b2cConsentOnRecord ? (
-                      <>
-                        <div style={{ fontWeight: 600 }}>{c.consentDocVersion || 'ARM-B2B2C-2026-v1'}</div>
-                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                          T&amp;C: {c.consentTermsVersion || '2026-11-v1'}
-                        </div>
-                      </>
-                    ) : (
-                      <span style={{ color: 'var(--text-muted)' }}>Not signed yet</span>
-                    )}
-                  </td>
-                  <td style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-muted)' }}>
-                    {c.consentAcceptedAt
-                      ? new Date(c.consentAcceptedAt).toLocaleString('en-NG')
-                      : '—'}
-                  </td>
-                  <td style={{ padding: '12px 16px' }}>
-                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                      <span
-                        style={{
-                          padding: '2px 7px',
-                          borderRadius: '4px',
-                          fontSize: '10.5px',
-                          fontWeight: 700,
-                          background: c.maskedNin ? '#ecfdf5' : '#fef3c7',
-                          color: c.maskedNin ? '#059669' : '#b45309',
-                        }}
-                      >
-                        {c.maskedNin ? 'BVN+NIN' : 'BVN Only'}
-                      </span>
-                      <span
-                        style={{
-                          padding: '2px 7px',
-                          borderRadius: '4px',
-                          fontSize: '10.5px',
-                          fontWeight: 700,
-                          background: c.hasUtilityBillDocument ? '#eff6ff' : '#fef2f2',
-                          color: c.hasUtilityBillDocument ? '#2563eb' : '#b91c1c',
-                        }}
-                      >
-                        {c.hasUtilityBillDocument ? 'Utility Bill' : 'No Utility Bill'}
-                      </span>
-                    </div>
-                  </td>
-                  <td style={{ padding: '12px 16px' }}>
-                    <span
-                      style={{
-                        padding: '3px 8px',
-                        borderRadius: '6px',
-                        fontSize: '11px',
-                        fontWeight: 700,
-                        background: c.b2b2cConsentOnRecord ? '#ecfdf5' : '#fef3c7',
-                        color: c.b2b2cConsentOnRecord ? '#059669' : '#b45309',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 4,
-                      }}
-                    >
-                      <ShieldCheck size={12} />{' '}
-                      {c.b2b2cConsentOnRecord ? 'Consent Signed' : 'Pending Consent'}
-                    </span>
-                  </td>
-                  <td style={{ padding: '12px 16px' }}>
-                    {c.hasConsentDocument ? (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          openCustomerDocument(c.userUuid, 'consent')
-                        }}
-                        style={{
-                          padding: '5px 10px',
-                          borderRadius: '6px',
-                          border: '1px solid var(--border)',
-                          background: 'var(--surface, #ffffff)',
-                          color: 'var(--primary, #c2501f)',
-                          fontSize: '11.5px',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 5,
-                        }}
-                      >
-                        <FileCheck2 size={13} />
-                        <span>View PDF</span>
-                      </button>
-                    ) : (
-                      <span style={{ fontSize: '11.5px', color: 'var(--text-muted)' }}>—</span>
-                    )}
-                  </td>
+          <div className="fin-table-wrap">
+            <table className="fin-table">
+              <thead>
+                <tr>
+                  <th>Customer</th>
+                  <th>ARM ID</th>
+                  <th>Mandate Version</th>
+                  <th>Signed At</th>
+                  <th>KYC Documents</th>
+                  <th>Status</th>
+                  <th className="fin-num">Document</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {customers.map((c) => (
+                  <tr
+                    key={c.userUuid}
+                    className="fin-table__row--clickable"
+                    onClick={() => setDetailDrawer({ kind: 'CUSTOMER', item: c })}
+                    title="Click to inspect full customer, KYC documents & consent details"
+                  >
+                    <td>
+                      <div className="fin-cell-primary">{c.fullName}</div>
+                      <div className="fin-cell-sub">{c.email}</div>
+                    </td>
+                    <td className="fin-mono fin-text-clay">
+                      {c.armCustomerMembershipId || omnibusMembershipId}
+                    </td>
+                    <td>
+                      {c.b2b2cConsentOnRecord ? (
+                        <>
+                          <div className="fin-cell-primary">
+                            {c.consentDocVersion || 'ARM-B2B2C-2026-v1'}
+                          </div>
+                          <div className="fin-cell-sub">
+                            T&amp;C {c.consentTermsVersion || '2026-11-v1'}
+                          </div>
+                        </>
+                      ) : (
+                        <span className="fin-text-muted">Not signed</span>
+                      )}
+                    </td>
+                    <td className="fin-text-muted">
+                      {c.consentAcceptedAt
+                        ? new Date(c.consentAcceptedAt).toLocaleString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })
+                        : '—'}
+                    </td>
+                    <td>
+                      <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap' }}>
+                        <span
+                          className={`fin-pill ${
+                            c.maskedNin ? 'fin-pill--green' : 'fin-pill--amber'
+                          }`}
+                        >
+                          {c.maskedNin ? 'BVN+NIN' : 'BVN Only'}
+                        </span>
+                        <span
+                          className={`fin-pill ${
+                            c.hasUtilityBillDocument ? 'fin-pill--blue' : 'fin-pill--red'
+                          }`}
+                        >
+                          {c.hasUtilityBillDocument ? 'Utility Bill' : 'No Bill'}
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      <span
+                        className={`fin-pill ${
+                          c.b2b2cConsentOnRecord ? 'fin-pill--green' : 'fin-pill--amber'
+                        }`}
+                      >
+                        <span className="fin-pill__dot" />
+                        {c.b2b2cConsentOnRecord ? 'Signed' : 'Pending'}
+                      </span>
+                    </td>
+                    <td className="fin-num">
+                      {c.hasConsentDocument ? (
+                        <button
+                          type="button"
+                          className="fin-btn fin-btn--ghost fin-btn--sm"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            openCustomerDocument(c.userUuid, 'consent')
+                          }}
+                        >
+                          <FileCheck2 size={13} />
+                          <span>PDF</span>
+                        </button>
+                      ) : (
+                        <span className="fin-text-muted">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
