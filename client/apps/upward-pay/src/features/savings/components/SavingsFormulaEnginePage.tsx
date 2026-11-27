@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   ArrowRight,
   Calculator,
+  Calendar,
   ChevronDown,
   ChevronUp,
   GitCompare,
@@ -20,6 +21,7 @@ import {
 import { UpwardLogo } from '@/components/PoweredByUpward'
 import {
   ENGINE_PLANS,
+  MONTH_LABELS,
   computeSavingsEngine,
   formatNaira,
   type EnginePlanId,
@@ -29,14 +31,26 @@ import '../styles/savings-engine.css'
 const engineFormSchema = z.object({
   targetRentNaira: z.number().min(100_000, 'Min ₦100,000').max(50_000_000, 'Max ₦50,000,000'),
   planId: z.enum(['FULL_LOCK', 'FLEXIBLE', 'RENT_PROTEC']),
-  months: z.number().min(1).max(11),
+  months: z.number().min(1, 'Min 1 month').max(12, 'Max 12 months'),
   upfrontDepositNaira: z.number().min(0),
   enableExtraTopUp: z.boolean(),
-  extraTopUpMonth: z.number().min(1).max(10),
+  extraTopUpMonth: z.number().min(1).max(11),
   extraTopUpAmountNaira: z.number().min(0).max(50_000_000),
+  startMonth: z.number().min(0).max(11),
+  startDay: z.number().min(1).max(28),
+  depositDay: z.number().min(1).max(28),
+  payFirstMonthOnStartDay: z.boolean(),
 })
 
 type EngineFormValues = z.infer<typeof engineFormSchema>
+
+const CALENDAR_SCENARIOS = [
+  { id: '1st-1st', label: 'Start 1st · Pay 1st', startDay: 1, depositDay: 1, payDay0: false },
+  { id: '17th-17th', label: 'Start 17th · Pay 17th', startDay: 17, depositDay: 17, payDay0: false },
+  { id: '17th-28th', label: 'Start 17th · Pay 28th', startDay: 17, depositDay: 28, payDay0: false },
+  { id: '17th-1st', label: 'Start 17th · Pay 1st', startDay: 17, depositDay: 1, payDay0: false },
+  { id: 'day0-chatgpt', label: 'Pay Mo 1 on Day 0 (ChatGPT)', startDay: 1, depositDay: 1, payDay0: true },
+] as const
 
 const PRESETS: Array<{ id: string; label: string; values: EngineFormValues }> = [
   {
@@ -50,6 +64,10 @@ const PRESETS: Array<{ id: string; label: string; values: EngineFormValues }> = 
       enableExtraTopUp: false,
       extraTopUpMonth: 4,
       extraTopUpAmountNaira: 200_000,
+      startMonth: 0,
+      startDay: 17,
+      depositDay: 28,
+      payFirstMonthOnStartDay: false,
     },
   },
   {
@@ -63,6 +81,10 @@ const PRESETS: Array<{ id: string; label: string; values: EngineFormValues }> = 
       enableExtraTopUp: false,
       extraTopUpMonth: 4,
       extraTopUpAmountNaira: 150_000,
+      startMonth: 0,
+      startDay: 1,
+      depositDay: 1,
+      payFirstMonthOnStartDay: false,
     },
   },
   {
@@ -76,6 +98,10 @@ const PRESETS: Array<{ id: string; label: string; values: EngineFormValues }> = 
       enableExtraTopUp: false,
       extraTopUpMonth: 4,
       extraTopUpAmountNaira: 150_000,
+      startMonth: 0,
+      startDay: 17,
+      depositDay: 28,
+      payFirstMonthOnStartDay: false,
     },
   },
 ]
@@ -119,8 +145,21 @@ export function SavingsFormulaEnginePage() {
       enableExtraTopUp: Boolean(watched.enableExtraTopUp),
       extraTopUpMonth: Number(watched.extraTopUpMonth) || 4,
       extraTopUpAmountNaira: Number(watched.extraTopUpAmountNaira) || 0,
+      startMonth: Number(watched.startMonth ?? 0),
+      startDay: Number(watched.startDay ?? 17),
+      depositDay: Number(watched.depositDay ?? 28),
+      payFirstMonthOnStartDay: Boolean(watched.payFirstMonthOnStartDay),
     })
   }, [watched])
+
+  const setMonthsClamped = (raw: number) => {
+    const next = Math.min(12, Math.max(1, Math.round(raw || 1)))
+    setActivePreset('')
+    setValue('months', next, { shouldValidate: true })
+    if ((Number(watched.extraTopUpMonth) || 1) >= next) {
+      setValue('extraTopUpMonth', Math.max(1, next - 1))
+    }
+  }
 
   const applyPreset = (preset: (typeof PRESETS)[number]) => {
     setActivePreset(preset.id)
@@ -275,31 +314,67 @@ export function SavingsFormulaEnginePage() {
               {/* 3. Months */}
               <div className="savings-engine__field">
                 <div className="savings-engine__field-top">
-                  <label className="savings-engine__label" htmlFor="months-slider">
-                    Saving Months
+                  <label className="savings-engine__label" htmlFor="months-input">
+                    Saving Months (n)
                   </label>
                   <span className="savings-engine__meta">
-                    {calc.months} {calc.months === 1 ? 'month' : 'months'} (unlocks 30d early)
+                    {calc.months === 12 ? 'Full 12 mo comparison' : 'Unlocks 30d early'}
                   </span>
+                </div>
+                <div className="savings-engine__input-wrap">
+                  <input
+                    id="months-input"
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={12}
+                    className={`savings-engine__input savings-engine__input--months ${
+                      errors.months ? 'savings-engine__input--error' : ''
+                    }`}
+                    value={watched.months ?? 10}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10)
+                      if (Number.isNaN(val)) return
+                      setMonthsClamped(val)
+                    }}
+                  />
+                  <span className="savings-engine__unit-suffix">
+                    {calc.months === 1 ? 'month' : 'months'}
+                  </span>
+                </div>
+                <div className="savings-engine__chips savings-engine__chips--five">
+                  {[6, 9, 10, 11, 12].map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      className={`savings-engine__chip ${
+                        calc.months === m ? 'savings-engine__chip--active' : ''
+                      }`}
+                      onClick={() => setMonthsClamped(m)}
+                    >
+                      {m} mo
+                    </button>
+                  ))}
                 </div>
                 <input
                   id="months-slider"
                   type="range"
                   className="savings-engine__slider"
-                  style={{ marginTop: 2 }}
                   min={1}
-                  max={11}
+                  max={12}
                   step={1}
                   value={calc.months}
-                  onChange={(e) => {
-                    setActivePreset('')
-                    const next = Number(e.target.value)
-                    setValue('months', next, { shouldValidate: true })
-                    if ((Number(watched.extraTopUpMonth) || 1) >= next) {
-                      setValue('extraTopUpMonth', Math.max(1, next - 1))
-                    }
-                  }}
+                  onChange={(e) => setMonthsClamped(Number(e.target.value))}
                 />
+                {calc.months > 11 && (
+                  <div className="savings-engine__note">
+                    <Calendar size={14} />
+                    <span>
+                      Live Upward vaults cap at 11 active months (unlocking 30d before rent). 12 mo
+                      is enabled here for formula comparison.
+                    </span>
+                  </div>
+                )}
                 {watched.planId === 'RENT_PROTEC' && !calc.isRentProtecEligible && (
                   <div className="savings-engine__note savings-engine__note--warn">
                     <AlertTriangle size={14} />
@@ -932,87 +1007,292 @@ export function SavingsFormulaEnginePage() {
                 </div>
               )}
 
-              {/* TAB 3: Timing Model Comparison */}
+              {/* TAB 3: Timing Model Comparison + Start Day / Deposit Day Simulator */}
               {activeTab === 'compare' && (
                 <div>
+                  {/* Interactive Calendar Controls */}
+                  <div className="savings-engine__calendar-box">
+                    <div className="savings-engine__calendar-head">
+                      <span className="savings-engine__calendar-title">
+                        <Calendar size={14} />
+                        <span>Test Start Day vs. Monthly Deposit Day</span>
+                      </span>
+                      <span className="savings-engine__meta">
+                        {calc.calendarSchedule.startDateLabel} &rarr;{' '}
+                        {calc.calendarSchedule.unlockDateLabel} ({calc.calendarSchedule.totalDays}d)
+                      </span>
+                    </div>
+
+                    <div className="savings-engine__scenario-chips">
+                      {CALENDAR_SCENARIOS.map((sc) => {
+                        const isActive =
+                          calc.calendarSchedule.startDay === sc.startDay &&
+                          calc.calendarSchedule.payFirstMonthOnStartDay === sc.payDay0 &&
+                          (sc.payDay0 || calc.calendarSchedule.depositDay === sc.depositDay)
+                        return (
+                          <button
+                            key={sc.id}
+                            type="button"
+                            className={`savings-engine__preset ${
+                              isActive ? 'savings-engine__preset--active' : ''
+                            }`}
+                            onClick={() => {
+                              setValue('startDay', sc.startDay)
+                              setValue('depositDay', sc.depositDay)
+                              setValue('payFirstMonthOnStartDay', sc.payDay0)
+                            }}
+                          >
+                            {sc.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    <div className="savings-engine__calendar-inputs">
+                      <div>
+                        <label className="savings-engine__mini-label" htmlFor="cal-start-month">
+                          Start Month
+                        </label>
+                        <select
+                          id="cal-start-month"
+                          className="savings-engine__mini-input"
+                          value={calc.calendarSchedule.startMonth}
+                          onChange={(e) => setValue('startMonth', Number(e.target.value))}
+                        >
+                          {MONTH_LABELS.map((m, idx) => (
+                            <option key={m} value={idx}>
+                              {m}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="savings-engine__mini-label" htmlFor="cal-start-day">
+                          Start Day (1–28)
+                        </label>
+                        <input
+                          id="cal-start-day"
+                          type="number"
+                          min={1}
+                          max={28}
+                          className="savings-engine__mini-input"
+                          value={calc.calendarSchedule.startDay}
+                          onChange={(e) => {
+                            const v = parseInt(e.target.value, 10)
+                            if (Number.isNaN(v)) return
+                            setValue('startDay', Math.min(28, Math.max(1, v)))
+                          }}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="savings-engine__mini-label" htmlFor="cal-deposit-day">
+                          Monthly Deposit Day
+                        </label>
+                        <input
+                          id="cal-deposit-day"
+                          type="number"
+                          min={1}
+                          max={28}
+                          disabled={calc.calendarSchedule.payFirstMonthOnStartDay}
+                          className="savings-engine__mini-input"
+                          value={calc.calendarSchedule.depositDay}
+                          onChange={(e) => {
+                            const v = parseInt(e.target.value, 10)
+                            if (Number.isNaN(v)) return
+                            setValue('depositDay', Math.min(28, Math.max(1, v)))
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Live Timeline Strip */}
+                    <div className="savings-engine__timeline">
+                      <div className="savings-engine__timeline-node">
+                        <span>Start (Upfront)</span>
+                        <strong>{calc.calendarSchedule.startDateLabel}</strong>
+                      </div>
+                      <ArrowRight size={13} className="savings-engine__timeline-arrow" />
+                      <div className="savings-engine__timeline-node">
+                        <span>Deposit #1</span>
+                        <strong>{calc.calendarSchedule.firstDepositDateLabel}</strong>
+                      </div>
+                      <ArrowRight size={13} className="savings-engine__timeline-arrow" />
+                      <div className="savings-engine__timeline-node savings-engine__timeline-node--focus">
+                        <span>Deposit #{calc.months} (Final)</span>
+                        <strong>{calc.calendarSchedule.lastDepositDateLabel}</strong>
+                      </div>
+                      <ArrowRight size={13} className="savings-engine__timeline-arrow" />
+                      <div className="savings-engine__timeline-node">
+                        <span>Unlock (T&minus;30)</span>
+                        <strong>{calc.calendarSchedule.unlockDateLabel}</strong>
+                      </div>
+                      <ArrowRight size={13} className="savings-engine__timeline-arrow" />
+                      <div className="savings-engine__timeline-node">
+                        <span>Rent Due</span>
+                        <strong>{calc.calendarSchedule.rentDueDateLabel}</strong>
+                      </div>
+                    </div>
+
+                    {/* Clear Answer to the Month-n Interest Dispute */}
+                    <div
+                      className={`savings-engine__verdict ${
+                        calc.calendarSchedule.lastDepositEarnsInterest
+                          ? 'savings-engine__verdict--info'
+                          : 'savings-engine__verdict--neutral'
+                      }`}
+                    >
+                      {!calc.calendarSchedule.lastDepositEarnsInterest ? (
+                        <>
+                          <strong>
+                            Does Month {calc.months}&rsquo;s deposit earn interest? No (0 days
+                            left).
+                          </strong>{' '}
+                          Deposit #{calc.months} lands on{' '}
+                          <strong>{calc.calendarSchedule.lastDepositDateLabel}</strong> — the exact
+                          unlock day — so it unlocks immediately. Upward&rsquo;s formula plans for
+                          this and hits your rent; ChatGPT&rsquo;s +1 idle month formula assumes 30
+                          extra days and falls short by{' '}
+                          <strong>
+                            {formatNaira(Math.abs(calc.calendarSchedule.delayedVariance))}
+                          </strong>
+                          .
+                        </>
+                      ) : calc.calendarSchedule.payFirstMonthOnStartDay ? (
+                        <>
+                          <strong>
+                            Month {calc.months}&rsquo;s deposit earns{' '}
+                            {calc.calendarSchedule.lastDepositDaysToCompound} days of interest (+
+                            {formatNaira(calc.calendarSchedule.lastDepositUpwardInterest)}) — ONLY
+                            because Month 1 was paid on Day 0.
+                          </strong>{' '}
+                          Paying Upfront + Month 1 together on{' '}
+                          <strong>{calc.calendarSchedule.startDateLabel}</strong> shifts Deposit #
+                          {calc.months} to{' '}
+                          <strong>{calc.calendarSchedule.lastDepositDateLabel}</strong> (a full
+                          month before {calc.calendarSchedule.unlockDateLabel} unlock). This is the
+                          only case where ChatGPT&rsquo;s formula avoids a shortfall.
+                        </>
+                      ) : (
+                        <>
+                          <strong>
+                            Yes — Deposit #{calc.months} earns{' '}
+                            {calc.calendarSchedule.lastDepositDaysToCompound} days of daily interest
+                            (+{formatNaira(calc.calendarSchedule.lastDepositUpwardInterest)}).
+                          </strong>{' '}
+                          Because you start on day {calc.calendarSchedule.startDay} and deposit on
+                          day {calc.calendarSchedule.depositDay}, Deposit #{calc.months} lands on{' '}
+                          <strong>{calc.calendarSchedule.lastDepositDateLabel}</strong> —{' '}
+                          {calc.calendarSchedule.lastDepositDaysToCompound} days before your{' '}
+                          {calc.calendarSchedule.unlockDateLabel} unlock. Upward guarantees full
+                          rent with a{' '}
+                          <strong>
+                            {formatNaira(calc.calendarSchedule.upwardVariance, true)}
+                          </strong>{' '}
+                          surplus
+                          {calc.calendarSchedule.delayedVariance < -500 ? (
+                            <>
+                              , while ChatGPT&rsquo;s +1 idle month formula still falls short by{' '}
+                              <strong>
+                                {formatNaira(Math.abs(calc.calendarSchedule.delayedVariance))}
+                              </strong>{' '}
+                              because it assumed a full 30 days.
+                            </>
+                          ) : (
+                            '.'
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Side-by-Side Live Comparison for Selected Dates */}
                   <div className="savings-engine__compare-cards">
                     <div className="savings-engine__model savings-engine__model--ok">
                       <div className="savings-engine__model-head">
-                        <span>Upward (Unlock at Month {calc.months})</span>
+                        <span>Upward Formula</span>
                         <span className="savings-engine__tag savings-engine__tag--ok">
-                          Hits Target
+                          {calc.calendarSchedule.upwardVariance >= 500
+                            ? `Surplus ${formatNaira(calc.calendarSchedule.upwardVariance, true)}`
+                            : 'Hits Target'}
                         </span>
                       </div>
                       <div className="savings-engine__model-num">
                         {formatNaira(calc.comparison.upwardMonthly)} / mo
                       </div>
                       <div className="savings-engine__model-sub">
-                        Balance at unlock:{' '}
-                        <strong>{formatNaira(calc.comparison.upwardBalanceAtUnlock)}</strong>
+                        Balance on {calc.calendarSchedule.unlockDateLabel}:{' '}
+                        <strong>{formatNaira(calc.calendarSchedule.upwardTotalAtUnlock)}</strong>
                       </div>
                     </div>
 
-                    <div className="savings-engine__model savings-engine__model--bad">
+                    <div
+                      className={`savings-engine__model ${
+                        calc.calendarSchedule.delayedVariance < -500
+                          ? 'savings-engine__model--bad'
+                          : 'savings-engine__model--ok'
+                      }`}
+                    >
                       <div className="savings-engine__model-head">
-                        <span>+1 Idle Month Model</span>
-                        <span className="savings-engine__tag savings-engine__tag--bad">
-                          Short at Unlock
+                        <span>ChatGPT (+1 Idle Month)</span>
+                        <span
+                          className={`savings-engine__tag ${
+                            calc.calendarSchedule.delayedVariance < -500
+                              ? 'savings-engine__tag--bad'
+                              : 'savings-engine__tag--ok'
+                          }`}
+                        >
+                          {calc.calendarSchedule.delayedVariance < -500
+                            ? `Short ${formatNaira(calc.calendarSchedule.delayedVariance, true)}`
+                            : 'Hits Only w/ Day 0'}
                         </span>
                       </div>
                       <div className="savings-engine__model-num">
                         {formatNaira(calc.comparison.delayedMonthly)} / mo
                       </div>
                       <div className="savings-engine__model-sub">
-                        Balance at Month {calc.months}:{' '}
-                        <strong style={{ color: '#b91c1c' }}>
-                          {formatNaira(calc.comparison.delayedBalanceAtUnlock)}
+                        Balance on {calc.calendarSchedule.unlockDateLabel}:{' '}
+                        <strong
+                          style={{
+                            color:
+                              calc.calendarSchedule.delayedVariance < -500 ? '#b91c1c' : 'inherit',
+                          }}
+                        >
+                          {formatNaira(calc.calendarSchedule.delayedTotalAtUnlock)}
                         </strong>
-                        {calc.comparison.delayedShortfallAtUnlock > 0 && (
-                          <> (&minus;{formatNaira(calc.comparison.delayedShortfallAtUnlock)})</>
-                        )}
                       </div>
                     </div>
                   </div>
 
+                  {/* Exact Deposit-by-Deposit Calendar Proof Table */}
                   <div className="savings-engine__table-wrap">
                     <table className="savings-engine__table">
                       <thead>
                         <tr>
-                          <th>Payday (Daily {calc.annualRatePct}% / 365)</th>
-                          <th className="savings-engine__num">Upward</th>
-                          <th className="savings-engine__num">+1 Idle Month</th>
+                          <th>Deposit</th>
+                          <th>Date</th>
+                          <th className="savings-engine__num">Days to Grow</th>
+                          <th className="savings-engine__num">Upward Interest</th>
+                          <th className="savings-engine__num">Upward Value</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {calc.comparison.paydayTests.map((row) => (
-                          <tr key={row.label}>
-                            <td>
-                              <strong>{row.label}</strong>{' '}
-                              <span style={{ color: 'var(--shell-ink-muted)', fontSize: 12 }}>
-                                ({row.dayNote})
-                              </span>
+                        {calc.calendarSchedule.rows.map((row) => (
+                          <tr
+                            key={row.step}
+                            className={row.isFinalDeposit ? 'savings-engine__row--unlock' : undefined}
+                          >
+                            <td>{row.label}</td>
+                            <td>{row.dateLabel}</td>
+                            <td className="savings-engine__num">{row.daysToCompound}d</td>
+                            <td className="savings-engine__num" style={{ color: '#15803d' }}>
+                              {row.daysToCompound === 0
+                                ? '₦0'
+                                : `+${formatNaira(row.upwardInterest)}`}
                             </td>
                             <td className="savings-engine__num">
-                              <span
-                                className={`savings-engine__tag ${
-                                  row.upwardVariance >= 0
-                                    ? 'savings-engine__tag--ok'
-                                    : 'savings-engine__tag--bad'
-                                }`}
-                              >
-                                {formatNaira(row.upwardVariance, true)}
-                              </span>
-                            </td>
-                            <td className="savings-engine__num">
-                              <span
-                                className={`savings-engine__tag ${
-                                  row.delayedModelVariance >= 0
-                                    ? 'savings-engine__tag--ok'
-                                    : 'savings-engine__tag--bad'
-                                }`}
-                              >
-                                {formatNaira(row.delayedModelVariance, true)}
-                              </span>
+                              <strong>{formatNaira(row.upwardFutureValue)}</strong>
                             </td>
                           </tr>
                         ))}

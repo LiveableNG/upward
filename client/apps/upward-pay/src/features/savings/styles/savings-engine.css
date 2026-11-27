@@ -1014,3 +1014,168 @@
   color: var(--text-secondary);
   margin-top: 4px;
 }
+
+/* Direct Month Input */
+.savings-engine__input--months {
+  padding-left: 12px;
+  padding-right: 74px;
+}
+
+.savings-engine__unit-suffix {
+  position: absolute;
+  right: 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--shell-ink-muted, #7a7268);
+  pointer-events: none;
+}
+
+.savings-engine__chips--five {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+/* Calendar Day-of-Month Simulator */
+.savings-engine__calendar-box {
+  background: var(--oat);
+  border: 1px solid var(--shell-border, #f0e9df);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  margin-bottom: 14px;
+  display: grid;
+  gap: 11px;
+}
+
+.savings-engine__calendar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.savings-engine__calendar-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--dark);
+}
+
+.savings-engine__scenario-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.savings-engine__calendar-inputs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+@media (max-width: 520px) {
+  .savings-engine__calendar-inputs {
+    grid-template-columns: 1fr;
+  }
+}
+
+.savings-engine__mini-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--shell-ink-muted, #7a7268);
+  margin-bottom: 4px;
+}
+
+.savings-engine__mini-input {
+  width: 100%;
+  padding: 7px 9px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-solid);
+  background: var(--bg);
+  color: var(--dark);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+}
+
+.savings-engine__mini-input:focus {
+  border-color: var(--clay);
+}
+
+.savings-engine__mini-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Visual Timeline Strip */
+.savings-engine__timeline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  border: 1px solid var(--shell-border, #f0e9df);
+  overflow-x: auto;
+}
+
+.savings-engine__timeline-node {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  white-space: nowrap;
+}
+
+.savings-engine__timeline-node span {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--shell-ink-muted, #7a7268);
+}
+
+.savings-engine__timeline-node strong {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--dark);
+  font-variant-numeric: tabular-nums;
+}
+
+.savings-engine__timeline-node--focus {
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--shell-tint, #fbede5);
+}
+
+.savings-engine__timeline-node--focus strong {
+  color: var(--skin-primary, #c2501f);
+}
+
+.savings-engine__timeline-arrow {
+  color: var(--shell-ink-muted, #7a7268);
+  flex-shrink: 0;
+}
+
+/* Dynamic Month-n Dispute Verdict */
+.savings-engine__verdict {
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  line-height: 1.5;
+  border: 1px solid var(--shell-border, #f0e9df);
+}
+
+.savings-engine__verdict--info {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #14532d;
+}
+
+.savings-engine__verdict--neutral {
+  background: var(--bg);
+  border-left: 3px solid var(--clay);
+  color: var(--text-secondary);
+}

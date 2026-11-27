@@ -38,14 +38,69 @@ export const ENGINE_PLANS: Record<EnginePlanId, EnginePlanConfig> = {
   },
 }
 
+export const MONTH_LABELS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+] as const
+
 export interface EngineInputs {
   targetRentNaira: number
   planId: EnginePlanId
-  months: number // active payment months n (1..11)
+  months: number // active payment months n (1..12; Upward plans cap at 11 before T-30 unlock)
   upfrontDepositNaira: number
   enableExtraTopUp: boolean
   extraTopUpMonth: number // 1..n-1
   extraTopUpAmountNaira: number
+  // Calendar timing comparison inputs
+  startMonth?: number // 0..11 (default 0 = Jan)
+  startDay?: number // 1..28 (default 17)
+  depositDay?: number // 1..28 (default 28)
+  payFirstMonthOnStartDay?: boolean // default false; true = annuity-due (ChatGPT assumption)
+}
+
+export interface CalendarDepositRow {
+  step: number // 0 = Day 0 Upfront, 1..n = Monthly Deposits
+  label: string
+  dateLabel: string
+  daysToCompound: number
+  upwardDeposit: number
+  upwardInterest: number
+  upwardFutureValue: number
+  delayedDeposit: number
+  delayedInterest: number
+  delayedFutureValue: number
+  isFinalDeposit: boolean
+}
+
+export interface CalendarScheduleResult {
+  startMonth: number
+  startDay: number
+  depositDay: number
+  payFirstMonthOnStartDay: boolean
+  startDateLabel: string
+  firstDepositDateLabel: string
+  lastDepositDateLabel: string
+  unlockDateLabel: string
+  rentDueDateLabel: string
+  totalDays: number
+  lastDepositDaysToCompound: number
+  lastDepositEarnsInterest: boolean
+  lastDepositUpwardInterest: number
+  upwardTotalAtUnlock: number
+  upwardVariance: number
+  delayedTotalAtUnlock: number
+  delayedVariance: number
+  rows: CalendarDepositRow[]
 }
 
 export interface LedgerRow {
@@ -128,6 +183,7 @@ export interface EngineCalculationResult {
   ledger: LedgerRow[]
   growthFactorBreakdown: GrowthFactorRow[]
   comparison: TimingModelComparison
+  calendarSchedule: CalendarScheduleResult
 }
 
 export function formatNaira(value: number, showSign = false): string {
@@ -140,12 +196,17 @@ export function formatNaira(value: number, showSign = false): string {
   return rounded < 0 ? `−₦${absFormatted}` : `₦${absFormatted}`
 }
 
+function formatUtcDate(ms: number): string {
+  const d = new Date(ms)
+  return `${MONTH_LABELS[d.getUTCMonth()]} ${d.getUTCDate()}`
+}
+
 export function computeSavingsEngine(inputs: EngineInputs): EngineCalculationResult {
   const targetRent = Math.max(0, Math.round(inputs.targetRentNaira || 0))
   const plan = ENGINE_PLANS[inputs.planId] ?? ENGINE_PLANS.FULL_LOCK
   const annualRatePct = plan.annualRatePct
   const annualRateDecimal = annualRatePct / 100
-  const months = Math.min(11, Math.max(1, Math.round(inputs.months || 1)))
+  const months = Math.min(12, Math.max(1, Math.round(inputs.months || 1)))
 
   // T-30 horizon: active saving days = n * 30, days until rent due = n * 30 + 30
   const savingDays = months * 30
@@ -288,22 +349,23 @@ export function computeSavingsEngine(inputs: EngineInputs): EngineCalculationRes
   const delayedShortfallAtUnlock = Math.max(0, targetRent - delayedBalanceAtUnlock)
   const delayedExtraMonthInterest = delayedBalanceAtUnlock * monthlyRate
 
-  // Real-world daily ARM compounding test (r_a / 365 over savingDays)
-  const dailyRate = annualRateDecimal / 365
+  // Exact effective daily rate consistent with effective monthly rate I = (1 + r_a)^(1/12) - 1
+  const dailyRate = Math.pow(1 + annualRateDecimal, 1 / 365) - 1
   const calcDailyOutcome = (pmt: number, dayOffsetWithinMonth: number) => {
-    let bal = effectiveUpfront * Math.pow(1 + dailyRate, savingDays)
+    const horizonDays = months * (365 / 12)
+    let bal = effectiveUpfront * Math.pow(1 + dailyRate, horizonDays)
     for (let k = 1; k <= months; k++) {
-      const depositDay = 30 * k - dayOffsetWithinMonth
-      const daysToCompound = Math.max(0, savingDays - depositDay)
+      const depositDayInPlan = (365 / 12) * k - dayOffsetWithinMonth
+      const daysToCompound = Math.max(0, horizonDays - depositDayInPlan)
       bal += pmt * Math.pow(1 + dailyRate, daysToCompound)
     }
     return bal
   }
 
   const paydaySpecs = [
-    { label: 'End of Month', dayNote: '28th (Default payday)', offset: 0 },
-    { label: 'Mid-Month', dayNote: '15th of each month', offset: 15 },
-    { label: 'Start of Month', dayNote: '1st of each month', offset: 30 },
+    { label: 'Same Day / End of Month', dayNote: '0 days left on final deposit', offset: 0 },
+    { label: 'Mid-Cycle (15 days early)', dayNote: '15 days left on final deposit', offset: 15 },
+    { label: 'Pay Month 1 on Day 0', dayNote: '30 days left (ChatGPT assumption)', offset: 365 / 12 },
   ]
 
   const paydayTests: PaydayDailyTestRow[] = paydaySpecs.map((spec) => {
@@ -318,6 +380,107 @@ export function computeSavingsEngine(inputs: EngineInputs): EngineCalculationRes
       delayedModelVariance: delayedModelBalance - targetRent,
     }
   })
+
+  // Exact calendar-date simulator (Start Month + Start Day vs Monthly Deposit Day)
+  const startMonth = Math.min(11, Math.max(0, Math.round(inputs.startMonth ?? 0)))
+  const startDay = Math.min(28, Math.max(1, Math.round(inputs.startDay ?? 17)))
+  const depositDay = Math.min(28, Math.max(1, Math.round(inputs.depositDay ?? 28)))
+  const payFirstMonthOnStartDay = Boolean(inputs.payFirstMonthOnStartDay)
+
+  const refYear = 2026
+  const startMs = Date.UTC(refYear, startMonth, startDay)
+  const unlockMs = Date.UTC(refYear, startMonth + months, startDay)
+  const rentDueMs = Date.UTC(refYear, startMonth + months + 1, startDay)
+  const totalDays = Math.max(1, Math.round((unlockMs - startMs) / 86_400_000))
+
+  const upfrontFactor = Math.pow(1 + dailyRate, totalDays)
+  const upfrontFv = effectiveUpfront * upfrontFactor
+  const calendarRows: CalendarDepositRow[] = [
+    {
+      step: 0,
+      label: 'Upfront (Day 0)',
+      dateLabel: formatUtcDate(startMs),
+      daysToCompound: totalDays,
+      upwardDeposit: effectiveUpfront,
+      upwardInterest: upfrontFv - effectiveUpfront,
+      upwardFutureValue: upfrontFv,
+      delayedDeposit: effectiveUpfront,
+      delayedInterest: upfrontFv - effectiveUpfront,
+      delayedFutureValue: upfrontFv,
+      isFinalDeposit: false,
+    },
+  ]
+
+  let calUpwardTotal = upfrontFv
+  let calDelayedTotal = upfrontFv
+  let firstDepositDateLabel = formatUtcDate(startMs)
+  let lastDepositDateLabel = formatUtcDate(unlockMs)
+  let lastDepositDaysToCompound = 0
+  let lastDepositUpwardInterest = 0
+
+  // Determine the month offset for Deposit #1:
+  // - If paying Month 1 on Day 0 (annuity-due): Deposit #k lands at startMonth + (k - 1), on startDay.
+  // - Otherwise, Deposit #1 is the first occurrence of depositDay strictly AFTER startMs:
+  //   - If depositDay > startDay (e.g. start Jan 17, pay 28th) -> Deposit #1 is Jan 28 (monthOffset = 0), Deposit #10 is Oct 28 (20d before Nov 17 unlock).
+  //   - If depositDay <= startDay (e.g. start Jan 1 & pay 1st, OR start Jan 17 & pay 17th, OR start Jan 17 & pay 1st) -> Deposit #1 is next month (monthOffset = 1).
+  const firstMonthOffset = payFirstMonthOnStartDay ? 0 : depositDay > startDay ? 0 : 1
+  const effectivePayDay = payFirstMonthOnStartDay ? startDay : depositDay
+
+  for (let k = 1; k <= months; k++) {
+    const depMs = Date.UTC(refYear, startMonth + firstMonthOffset + (k - 1), effectivePayDay)
+    const daysToCompound = Math.max(0, Math.round((unlockMs - depMs) / 86_400_000))
+    const factor = Math.pow(1 + dailyRate, daysToCompound)
+    const upFv = monthlyDeposit * factor
+    const delFv = delayedMonthly * factor
+    const upInt = upFv - monthlyDeposit
+    const delInt = delFv - delayedMonthly
+    const dateLabel = formatUtcDate(depMs)
+
+    calUpwardTotal += upFv
+    calDelayedTotal += delFv
+
+    if (k === 1) firstDepositDateLabel = dateLabel
+    if (k === months) {
+      lastDepositDateLabel = dateLabel
+      lastDepositDaysToCompound = daysToCompound
+      lastDepositUpwardInterest = upInt
+    }
+
+    calendarRows.push({
+      step: k,
+      label: k === months ? `Deposit #${k} (Final)` : `Deposit #${k}`,
+      dateLabel,
+      daysToCompound,
+      upwardDeposit: monthlyDeposit,
+      upwardInterest: upInt,
+      upwardFutureValue: upFv,
+      delayedDeposit: delayedMonthly,
+      delayedInterest: delInt,
+      delayedFutureValue: delFv,
+      isFinalDeposit: k === months,
+    })
+  }
+
+  const calendarSchedule: CalendarScheduleResult = {
+    startMonth,
+    startDay,
+    depositDay: effectivePayDay,
+    payFirstMonthOnStartDay,
+    startDateLabel: formatUtcDate(startMs),
+    firstDepositDateLabel,
+    lastDepositDateLabel,
+    unlockDateLabel: formatUtcDate(unlockMs),
+    rentDueDateLabel: formatUtcDate(rentDueMs),
+    totalDays,
+    lastDepositDaysToCompound,
+    lastDepositEarnsInterest: lastDepositDaysToCompound > 0,
+    lastDepositUpwardInterest,
+    upwardTotalAtUnlock: calUpwardTotal,
+    upwardVariance: calUpwardTotal - targetRent,
+    delayedTotalAtUnlock: calDelayedTotal,
+    delayedVariance: calDelayedTotal - targetRent,
+    rows: calendarRows,
+  }
 
   return {
     targetRent,
@@ -365,5 +528,6 @@ export function computeSavingsEngine(inputs: EngineInputs): EngineCalculationRes
       delayedGrowthFactor,
       paydayTests,
     },
+    calendarSchedule,
   }
 }
