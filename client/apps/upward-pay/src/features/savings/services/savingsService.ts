@@ -216,6 +216,10 @@ export interface SavingsOnboardingPrefillData {
   has_completed_arm_kyc?: boolean
   has_signed_consent?: boolean
   consent_accepted_at?: string | null
+  account_holder_first_name?: string | null
+  account_holder_last_name?: string | null
+  account_holder_full_name?: string | null
+  strict_bank_name_match?: boolean
   bvn: string | null
   masked_bvn: string | null
   nin?: string | null

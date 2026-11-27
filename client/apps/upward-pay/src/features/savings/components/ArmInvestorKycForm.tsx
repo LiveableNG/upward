@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import {
   AlertCircle,
+  AlertTriangle,
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
@@ -16,6 +17,7 @@ import {
   ShieldCheck,
 } from 'lucide-react'
 import { api } from '@/lib/api'
+import { useAuth } from '@/features/auth/AuthContext'
 import type {
   MeansOfIdentificationType,
   SavingsLockMode,
@@ -104,6 +106,34 @@ export interface ArmInvestorKycSubmitData {
 export type KycFormStep = 1 | 2 | 3
 
 const KYC_DRAFT_STORAGE_KEY = 'upward_arm_kyc_draft_v1'
+
+function doesAccountNameMatchLegalName(
+  accountName: string,
+  firstName?: string | null,
+  lastName?: string | null,
+): boolean {
+  const cleanWord = (s: string) => s.replace(/[^a-zA-Z]/g, '').toLowerCase()
+  const f = cleanWord(firstName || '')
+  const l = cleanWord(lastName || '')
+  if (!f || !l) return true
+
+  const tokens = (accountName || '')
+    .replace(/\(verified\)/gi, ' ')
+    .replace(/[^a-zA-Z\s]/g, ' ')
+    .toLowerCase()
+    .trim()
+    .split(/\s+/)
+    .filter((t) => t.length >= 2)
+  const compact = tokens.join(' ')
+  if (!tokens.length) return false
+
+  const hasToken = (needle: string) =>
+    tokens.includes(needle) ||
+    tokens.some((t) => t.length >= 3 && needle.length >= 3 && (t.startsWith(needle) || needle.startsWith(t))) ||
+    compact.includes(needle)
+
+  return hasToken(f) && hasToken(l)
+}
 
 interface ArmInvestorKycFormProps {
   formId?: string
@@ -252,14 +282,22 @@ export function ArmInvestorKycForm({
     onStepChange?.(next)
   }
 
+  const { user } = useAuth()
   const [showIdDates, setShowIdDates] = useState(false)
   const [showBillDate, setShowBillDate] = useState(false)
   const [draft] = useState<Partial<ArmInvestorKycFormValues>>(() => readKycDraft())
   const [banks, setBanks] = useState<Array<{ code: string; name: string }>>([])
-  const [loadingBanks, setLoadingBanks] = useState(false)
+  const [loadingBanks, setLoadingBanks] = useState(true)
   const [resolvingBank, setResolvingBank] = useState(false)
   const [bankResolveError, setBankResolveError] = useState<string | null>(null)
   const resolveReqRef = useRef(0)
+
+  const expectedFirstName = prefill?.account_holder_first_name || user?.firstName || ''
+  const expectedLastName = prefill?.account_holder_last_name || user?.lastName || ''
+  const expectedFullName =
+    prefill?.account_holder_full_name ||
+    `${expectedFirstName} ${expectedLastName}`.trim()
+  const strictBankNameMatch = prefill?.strict_bank_name_match !== false
 
   const prefillBankCode = prefill?.settlement_bank?.bank_code || prefill?.settlement_bank_code || ''
   const prefillBankName = prefill?.settlement_bank?.bank_name || prefill?.settlement_bank_name || ''
@@ -327,7 +365,6 @@ export function ArmInvestorKycForm({
   // Load Nigerian bank list once for payout bank verification
   useEffect(() => {
     let active = true
-    setLoadingBanks(true)
     api
       .getBanks()
       .then((list) => {
@@ -492,6 +529,15 @@ export function ArmInvestorKycForm({
     idDocKey,
   ])
 
+  const bankNameMatchesLegalName = useMemo(() => {
+    if (!accountNameVal.trim()) return true
+    return doesAccountNameMatchLegalName(accountNameVal, expectedFirstName, expectedLastName)
+  }, [accountNameVal, expectedFirstName, expectedLastName])
+
+  const bankNameMismatchBlocks = Boolean(
+    accountNameVal.trim() && !bankNameMatchesLegalName && strictBankNameMatch,
+  )
+
   const isStep2Valid = useMemo(() => {
     return (
       (allWatched.residential_address_number || '').trim().length >= 1 &&
@@ -506,11 +552,21 @@ export function ArmInvestorKycForm({
       bankCodeVal.trim().length >= 1 &&
       /^\d{10}$/.test(accountNumberVal.trim()) &&
       accountNameVal.trim().length >= 2 &&
-      !resolvingBank
+      !resolvingBank &&
+      !bankNameMismatchBlocks
     )
-  }, [allWatched, utilityDocKey, bankCodeVal, accountNumberVal, accountNameVal, resolvingBank])
+  }, [
+    allWatched,
+    utilityDocKey,
+    bankCodeVal,
+    accountNumberVal,
+    accountNameVal,
+    resolvingBank,
+    bankNameMismatchBlocks,
+  ])
 
-  const isStep3Valid = Boolean(acceptedTerms) && Boolean(acceptedArmMandate) && isValid
+  const isStep3Valid =
+    Boolean(acceptedTerms) && Boolean(acceptedArmMandate) && isValid && !bankNameMismatchBlocks
 
   const currentStepValid =
     activeStep === 1 ? isStep1Valid : activeStep === 2 ? isStep2Valid : isStep3Valid
@@ -1003,9 +1059,24 @@ export function ArmInvestorKycForm({
           <div>
             <h4 className="arm-kyc-form__section-title">Payout Bank Account</h4>
             <p className="arm-kyc-form__section-sub">
-              Must be a personal Nigerian bank account linked to your BVN (required by ARM).
+              Your bank account name must match your BVN legal name, or KYC will fail.
             </p>
           </div>
+        </div>
+
+        <div className="arm-kyc-form__alert arm-kyc-form__alert--warning">
+          <AlertTriangle size={15} style={{ flexShrink: 0, marginTop: 1 }} />
+          <span>
+            Enter a personal Nigerian bank account registered in your BVN name
+            {expectedFullName ? (
+              <>
+                {' '}
+                (<strong>{expectedFullName}</strong>)
+              </>
+            ) : null}
+            . If the account name does not match your BVN, your KYC verification and ARM onboarding
+            will fail.
+          </span>
         </div>
 
         <div className="rent-calculator__field">
@@ -1078,6 +1149,24 @@ export function ArmInvestorKycForm({
           <div className="arm-kyc-form__field-hint" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <Loader2 size={14} className="animate-spin" />
             <span>Verifying account name with your bank...</span>
+          </div>
+        ) : accountNameVal && !bankNameMatchesLegalName && strictBankNameMatch ? (
+          <div className="arm-kyc-form__alert" role="alert">
+            <AlertCircle size={15} style={{ flexShrink: 0, marginTop: 1 }} />
+            <span>
+              Resolved account name (<strong>{accountNameVal}</strong>) does not match your BVN
+              legal name{expectedFullName ? ` (${expectedFullName})` : ''}. Please use an account in
+              your own BVN name or KYC will fail.
+            </span>
+          </div>
+        ) : accountNameVal && !bankNameMatchesLegalName && !strictBankNameMatch ? (
+          <div className="arm-kyc-form__alert arm-kyc-form__alert--warning">
+            <AlertTriangle size={15} style={{ flexShrink: 0, marginTop: 1 }} />
+            <span>
+              Resolved as <strong>{accountNameVal}</strong> (does not match{' '}
+              {expectedFullName || 'your legal name'}). Allowed in sandbox/staging, but will fail
+              KYC in production.
+            </span>
           </div>
         ) : accountNameVal ? (
           <div className="arm-kyc-form__verified-pill">

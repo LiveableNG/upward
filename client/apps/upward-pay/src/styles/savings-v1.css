@@ -2444,6 +2444,12 @@ select.rent-calculator__input:focus {
   line-height: 1.4;
 }
 
+.arm-kyc-form__alert--warning {
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #b45309;
+}
+
 .savings-kyc-upload {
   display: flex;
   flex-direction: column;

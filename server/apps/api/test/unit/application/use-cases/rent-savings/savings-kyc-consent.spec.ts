@@ -4,6 +4,10 @@ import { UploadSavingsKycDocumentUseCase } from '@application/use-cases/rent-sav
 import { RecordSavingsConsentUseCase } from '@application/use-cases/rent-savings/record-savings-consent.use-case'
 import { SavingsConsentPdfService } from '../../../../../src/shared/infrastructure/common/rent-savings/savings-consent-pdf.service'
 import { ArmConnectInvestmentProvider } from '../../../../../src/infrastructure/providers/asset-management/arm-connect-investment.provider'
+import {
+  OnboardSavingsInvestorUseCase,
+  checkBankAccountNameMatchesBvn,
+} from '@application/use-cases/rent-savings/onboard-savings-investor.use-case'
 
 describe('ARM KYC Document Upload, Consent Mandate & Provider Mapping', () => {
   describe('UploadSavingsKycDocumentUseCase', () => {
@@ -350,6 +354,244 @@ describe('ARM KYC Document Upload, Consent Mandate & Provider Mapping', () => {
       expect(res.success).toBe(false)
       expect(res.failureReason).toMatch(/bank account linked to your BVN/i)
       expect(fetchSpy).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('OnboardSavingsInvestorUseCase — Bank Account Resolution & BVN Name Match', () => {
+    it('matches valid reordered bank account names and strictly rejects mismatches in production', () => {
+      // Matches LAST FIRST MIDDLE in production
+      expect(
+        checkBankAccountNameMatchesBvn({
+          accountName: 'ADEBAYO TUNDE JAMES',
+          bvnFirst: 'Tunde',
+          bvnLast: 'Adebayo',
+          userFirst: 'Tunde',
+          userLast: 'Adebayo',
+          isProduction: true,
+        }),
+      ).toBe(true)
+
+      // Strictly rejects different name in production — even sandbox persona names
+      expect(
+        checkBankAccountNameMatchesBvn({
+          accountName: 'RONALD EKOM (VERIFIED)',
+          bvnFirst: 'Tunde',
+          bvnLast: 'Adebayo',
+          userFirst: 'Tunde',
+          userLast: 'Adebayo',
+          isProduction: true,
+        }),
+      ).toBe(false)
+
+      // Allows dev/staging sandbox workaround when isProduction is false
+      expect(
+        checkBankAccountNameMatchesBvn({
+          accountName: 'RONALD EKOM (VERIFIED)',
+          bvnFirst: 'Tunde',
+          bvnLast: 'Adebayo',
+          userFirst: 'Tunde',
+          userLast: 'Adebayo',
+          isProduction: false,
+        }),
+      ).toBe(true)
+    })
+
+    const buildBaseOnboardingDeps = (verifyAccountImpl: jest.Mock) => {
+      const user = {
+        id: 42,
+        uuid: 'user-uuid-42',
+        firstName: 'Tunde',
+        lastName: 'Adebayo',
+        email: 'tunde@example.com',
+        phone: '08031234567',
+        dateOfBirth: '1994-06-15',
+        gender: 'Male',
+      }
+      const prisma = {
+        upward_kyc_verification: {
+          findFirst: jest.fn().mockResolvedValue(null),
+          create: jest.fn().mockResolvedValue({ id: 1, uuid: 'kyc-1' }),
+          update: jest.fn().mockResolvedValue({}),
+        },
+        upward_user_bank_details: {
+          findUnique: jest.fn().mockResolvedValue(null),
+          upsert: jest.fn().mockResolvedValue({}),
+        },
+        upward_rent_vault: {
+          findFirst: jest.fn().mockResolvedValue(null),
+          update: jest.fn().mockResolvedValue({}),
+          create: jest.fn().mockResolvedValue({ id: 10, uuid: 'vault-10' }),
+        },
+        upward_user_property: {
+          findFirst: jest.fn().mockResolvedValue(null),
+        },
+        upward_rent_savings_score: {
+          upsert: jest.fn().mockResolvedValue({}),
+        },
+      } as any
+      const encryption = {
+        hash: jest.fn((v: string) => `hash_${v}`),
+        encrypt: jest.fn((v: string) => `enc_${v}`),
+        decrypt: jest.fn((v: string) => v.replace(/^enc_/, '')),
+      } as any
+      const userRepo = {
+        findById: jest.fn().mockResolvedValue(user),
+        update: jest.fn().mockResolvedValue(user),
+      } as any
+      const kycProvider = {
+        verify: jest.fn().mockResolvedValue({
+          success: true,
+          firstName: 'Tunde',
+          lastName: 'Adebayo',
+          dateOfBirth: '1994-06-15',
+          provider: 'PREMBLY',
+          rawResponse: {},
+        }),
+      } as any
+      const kycRepo = {
+        findVerifiedByHash: jest.fn().mockResolvedValue(null),
+      } as any
+      const paymentGateway = {
+        verifyAccountNumber: verifyAccountImpl,
+        createCustomer: jest.fn().mockResolvedValue('CUS_42'),
+        validateCustomerIdentification: jest.fn().mockResolvedValue(undefined),
+        createDedicatedVirtualAccount: jest.fn().mockResolvedValue({
+          bankName: 'Wema Bank',
+          accountNumber: '0123456789',
+        }),
+      } as any
+      const assetManagementProvider = {
+        onboardInvestor: jest.fn().mockResolvedValue({
+          success: true,
+          membershipId: 'ARM-42',
+          completedSections: 63,
+          syncStatus: 'ACTIVE',
+        }),
+      } as any
+
+      const uc = new OnboardSavingsInvestorUseCase(
+        prisma,
+        encryption,
+        userRepo,
+        kycProvider,
+        kycRepo,
+        paymentGateway,
+        assetManagementProvider,
+      )
+
+      const validDto = {
+        bvn: '22233344455',
+        nin: '11122233344',
+        means_of_id_type: 'NIN' as const,
+        means_of_id_doc_key: 'users/user-uuid-42/arm-kyc/id_card/id.jpg',
+        residential_address_number: '12',
+        residential_street: 'Admiralty Way',
+        residential_town: 'Lekki',
+        residential_state: 'Lagos',
+        utility_bill_doc_key: 'users/user-uuid-42/arm-kyc/utility_bill/bill.jpg',
+        consent_accepted: true,
+        mothers_maiden_name: 'Okafor',
+        occupation: 'Engineer',
+        source_of_funds: 'Salary' as const,
+        next_of_kin_name: 'Bola Adebayo',
+        next_of_kin_relationship: 'Spouse',
+        next_of_kin_phone: '08039998888',
+        settlement_bank_code: '058',
+        settlement_bank_name: 'GTBank',
+        settlement_account_number: '0123456789',
+        settlement_account_name: 'SPOOFED NAME',
+        target_amount: 2500000,
+        rent_due_date: '2027-10-15',
+      }
+
+      return { uc, prisma, userRepo, paymentGateway, validDto }
+    }
+
+    it('fails KYC in production when resolved bank account name does not match BVN legal name', async () => {
+      const prevPaystackKey = process.env.PAYSTACK_SECRET_KEY
+      process.env.PAYSTACK_SECRET_KEY = 'sk_live_prod_test_key'
+
+      try {
+        const verifyMock = jest.fn().mockResolvedValue({
+          accountNumber: '0123456789',
+          accountName: 'CHUKWUMA EMEKA',
+          bankCode: '058',
+        })
+        const { uc, prisma, userRepo, validDto } = buildBaseOnboardingDeps(verifyMock)
+
+        await expect(uc.execute(42, validDto)).rejects.toThrow(
+          /does not match your BVN legal name/i,
+        )
+        // Must NOT mark user verified or persist KYC / bank details on mismatch
+        expect(userRepo.update).not.toHaveBeenCalled()
+        expect(prisma.upward_kyc_verification.create).not.toHaveBeenCalled()
+        expect(prisma.upward_user_bank_details.upsert).not.toHaveBeenCalled()
+      } finally {
+        if (prevPaystackKey === undefined) delete process.env.PAYSTACK_SECRET_KEY
+        else process.env.PAYSTACK_SECRET_KEY = prevPaystackKey
+      }
+    })
+
+    it('fails KYC in production when bank account cannot be resolved', async () => {
+      const prevPaystackKey = process.env.PAYSTACK_SECRET_KEY
+      process.env.PAYSTACK_SECRET_KEY = 'sk_live_prod_test_key'
+
+      try {
+        const verifyMock = jest.fn().mockRejectedValue(new Error('Could not resolve account'))
+        const { uc, userRepo, validDto } = buildBaseOnboardingDeps(verifyMock)
+
+        await expect(uc.execute(42, validDto)).rejects.toThrow(/could not verify this bank account/i)
+        expect(userRepo.update).not.toHaveBeenCalled()
+      } finally {
+        if (prevPaystackKey === undefined) delete process.env.PAYSTACK_SECRET_KEY
+        else process.env.PAYSTACK_SECRET_KEY = prevPaystackKey
+      }
+    })
+
+    it('succeeds in production when resolved bank account matches BVN legal name and persists server-resolved name', async () => {
+      const prevPaystackKey = process.env.PAYSTACK_SECRET_KEY
+      process.env.PAYSTACK_SECRET_KEY = 'sk_live_prod_test_key'
+
+      try {
+        const verifyMock = jest.fn().mockResolvedValue({
+          accountNumber: '0123456789',
+          accountName: 'ADEBAYO TUNDE OLUWASEUN',
+          bankCode: '058',
+        })
+        const { uc, prisma, userRepo, validDto } = buildBaseOnboardingDeps(verifyMock)
+
+        const result = await uc.execute(42, validDto)
+        expect(result.status).toBe('success')
+        expect(userRepo.update).toHaveBeenCalled()
+        expect(prisma.upward_user_bank_details.upsert).toHaveBeenCalledWith(
+          expect.objectContaining({
+            create: expect.objectContaining({ accountName: 'ADEBAYO TUNDE OLUWASEUN' }),
+          }),
+        )
+      } finally {
+        if (prevPaystackKey === undefined) delete process.env.PAYSTACK_SECRET_KEY
+        else process.env.PAYSTACK_SECRET_KEY = prevPaystackKey
+      }
+    })
+
+    it('allows dev/staging sandbox workaround when PAYSTACK_SECRET_KEY is sk_test_', async () => {
+      const prevPaystackKey = process.env.PAYSTACK_SECRET_KEY
+      process.env.PAYSTACK_SECRET_KEY = 'sk_test_sandbox_key'
+
+      try {
+        const verifyMock = jest.fn().mockResolvedValue({
+          accountNumber: '0123456789',
+          accountName: 'RONALD EKOM (VERIFIED)',
+          bankCode: '058',
+        })
+        const { uc, validDto } = buildBaseOnboardingDeps(verifyMock)
+
+        const result = await uc.execute(42, validDto)
+        expect(result.status).toBe('success')
+      } finally {
+        if (prevPaystackKey === undefined) delete process.env.PAYSTACK_SECRET_KEY
+        else process.env.PAYSTACK_SECRET_KEY = prevPaystackKey
+      }
     })
   })
 })

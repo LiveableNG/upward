@@ -74,7 +74,11 @@ describe('OnboardSavingsInvestorUseCase', () => {
 
     paymentGateway = {
       getBanks: jest.fn(),
-      verifyAccountNumber: jest.fn(),
+      verifyAccountNumber: jest.fn().mockResolvedValue({
+        accountNumber: '0123456789',
+        accountName: 'OKONKWO CHINEDU',
+        bankCode: '058',
+      }),
       createDedicatedVirtualAccount: jest.fn(),
       chargeAuthorization: jest.fn(),
       checkTransactionStatus: jest.fn(),
@@ -106,6 +110,7 @@ describe('OnboardSavingsInvestorUseCase', () => {
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
       upward_user_bank_details: {
+        findUnique: jest.fn().mockResolvedValue(null),
         upsert: jest.fn().mockResolvedValue({}),
       },
       upward_user_property: {
@@ -256,20 +261,15 @@ describe('OnboardSavingsInvestorUseCase', () => {
     )
   })
 
-  it('should successfully verify without settlement bank details', async () => {
-    const result = await useCase.execute(42, {
-      ...validBaseDto,
-    })
-
-    expect(result.status).toBe('success')
-    expect(result.data.is_verified).toBe(true)
-    expect(prisma.upward_user_bank_details.upsert).not.toHaveBeenCalled()
-    expect(armProvider.onboardInvestor).toHaveBeenCalledWith(
-      expect.objectContaining({
-        customerEmail: 'chinedu@example.com',
-        bankDetails: undefined,
+  it('should reject KYC when settlement bank details are missing', async () => {
+    await expect(
+      useCase.execute(42, {
+        ...validBaseDto,
       }),
-    )
+    ).rejects.toThrow(BadRequestException)
+
+    expect(userRepo.update).not.toHaveBeenCalled()
+    expect(prisma.upward_user_bank_details.upsert).not.toHaveBeenCalled()
   })
 
   it('should reject if BVN has already been registered and verified by another user', async () => {
@@ -302,7 +302,13 @@ describe('OnboardSavingsInvestorUseCase', () => {
       rawResponse: { image: 'base64 image content' },
     } as any)
 
-    const result = await useCase.execute(42, { ...validBaseDto })
+    const result = await useCase.execute(42, {
+      ...validBaseDto,
+      settlement_bank_code: '058',
+      settlement_bank_name: 'Guaranty Trust Bank',
+      settlement_account_number: '0123456789',
+      settlement_account_name: 'Chinedu Okonkwo',
+    })
     expect(result.status).toBe('success')
 
     const callArg = (armProvider.onboardInvestor as jest.Mock).mock.calls[0]?.[0]

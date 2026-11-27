@@ -247,6 +247,74 @@ function checkNameMatch(
   return false
 }
 
+export function checkBankAccountNameMatchesBvn(params: {
+  accountName: string
+  bvnFirst: string
+  bvnLast: string
+  userFirst: string
+  userLast: string
+  isProduction: boolean
+  bvnRawResponse?: any
+}): boolean {
+  const { accountName, bvnFirst, bvnLast, userFirst, userLast, isProduction, bvnRawResponse } =
+    params
+
+  const stripDecorators = (raw: string) =>
+    raw
+      .replace(/\(verified\)/gi, ' ')
+      .replace(/[^a-zA-Z\s]/g, ' ')
+      .toLowerCase()
+      .trim()
+
+  const toTokens = (raw: string) =>
+    stripDecorators(raw)
+      .split(/\s+/)
+      .filter((t) => t.length >= 2)
+
+  const accTokens = toTokens(accountName || '')
+  const accCompact = accTokens.join(' ')
+  if (!accTokens.length) return false
+
+  const hasToken = (needle: string) => {
+    const clean = cleanName(needle)
+    if (!clean || clean.length < 2) return false
+    return (
+      accTokens.includes(clean) ||
+      accTokens.some((t) => t.length >= 3 && clean.length >= 3 && (t.startsWith(clean) || clean.startsWith(t))) ||
+      accCompact.includes(clean)
+    )
+  }
+
+  // Primary check: Bank account name must contain BOTH the BVN legal first and last name
+  const bvnF = cleanName(bvnFirst)
+  const bvnL = cleanName(bvnLast)
+  if (bvnF && bvnL && hasToken(bvnF) && hasToken(bvnL)) {
+    return true
+  }
+
+  // Secondary check: if BVN already matched Upward account name, also accept exact user first + last
+  const usrF = cleanName(userFirst)
+  const usrL = cleanName(userLast)
+  if (usrF && usrL && hasToken(usrF) && hasToken(usrL)) {
+    return true
+  }
+
+  // Dev / staging workaround ONLY — NEVER active in production
+  if (!isProduction && process.env.STRICT_BANK_NAME_MATCH !== 'true') {
+    const isKnownSandbox =
+      (accCompact.includes('ronald') && accCompact.includes('ekom')) ||
+      (accCompact.includes('chidera') && accCompact.includes('johnson')) ||
+      accountName.toUpperCase().includes('(VERIFIED)') ||
+      bvnRawResponse?.is_sandbox === true ||
+      bvnRawResponse?.verification_status === 'sandbox'
+    if (isKnownSandbox || process.env.NODE_ENV !== 'production') {
+      return true
+    }
+  }
+
+  return false
+}
+
 function maskId(idNumber: string): string {
   const clean = idNumber.trim()
   if (clean.length < 4) return '****'
@@ -438,6 +506,10 @@ export class OnboardSavingsInvestorUseCase {
         latestKyc?.residentialStreet,
     )
 
+    const strictBankNameMatch =
+      isProductionRuntime(process.env.PAYSTACK_SECRET_KEY) ||
+      process.env.STRICT_BANK_NAME_MATCH === 'true'
+
     return {
       status: 'success',
       data: {
@@ -447,6 +519,10 @@ export class OnboardSavingsInvestorUseCase {
         has_completed_arm_kyc: hasCompletedArmKyc,
         has_signed_consent: Boolean(latestConsent),
         consent_accepted_at: latestConsent?.acceptedAt?.toISOString() || null,
+        account_holder_first_name: user.firstName || null,
+        account_holder_last_name: user.lastName || null,
+        account_holder_full_name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || null,
+        strict_bank_name_match: strictBankNameMatch,
         masked_bvn:
           latestKyc?.idType === 'BVN'
             ? latestKyc.idNumberMasked
@@ -785,6 +861,109 @@ export class OnboardSavingsInvestorUseCase {
       }
     }
 
+    // 5b. Resolve & verify BVN-linked payout bank account BEFORE marking KYC verified or calling ARM
+    const isProd = isProductionRuntime(process.env.PAYSTACK_SECRET_KEY)
+    const enforceStrictBankMatch = isProd || process.env.STRICT_BANK_NAME_MATCH === 'true'
+
+    let candidateBankCode = dto.settlement_bank_code?.trim() || ''
+    let candidateBankName = dto.settlement_bank_name?.trim() || ''
+    let candidateAccountNumber = dto.settlement_account_number
+      ? dto.settlement_account_number.replace(/\D/g, '')
+      : ''
+    let candidateClientAccountName = dto.settlement_account_name?.trim() || ''
+
+    if ((!candidateBankCode || candidateAccountNumber.length !== 10) && this.prisma?.upward_user_bank_details?.findUnique) {
+      const savedBank = await this.prisma.upward_user_bank_details.findUnique({
+        where: { userId },
+      })
+      if (savedBank?.bankCode && savedBank?.accountNumber) {
+        candidateBankCode = candidateBankCode || savedBank.bankCode.trim()
+        candidateBankName = candidateBankName || savedBank.bankName || 'Commercial Bank'
+        candidateAccountNumber =
+          candidateAccountNumber.length === 10
+            ? candidateAccountNumber
+            : savedBank.accountNumber.replace(/\D/g, '')
+        candidateClientAccountName = candidateClientAccountName || savedBank.accountName || ''
+      }
+    }
+
+    if (!candidateBankCode || candidateAccountNumber.length !== 10) {
+      throw new BadRequestException(
+        'A valid 10-digit Nigerian bank account linked to your BVN is required to complete KYC.',
+      )
+    }
+
+    let serverVerifiedAccountName = ''
+    if (this.paymentGateway?.verifyAccountNumber) {
+      try {
+        const resolved = await this.paymentGateway.verifyAccountNumber(
+          candidateAccountNumber,
+          candidateBankCode,
+        )
+        serverVerifiedAccountName = (resolved?.accountName || '').trim()
+      } catch (bankErr: any) {
+        if (enforceStrictBankMatch) {
+          this.logger.warn(
+            `Bank account resolution failed in strict/prod mode for user ID ${user.id}: ${bankErr?.message}`,
+          )
+          throw new BadRequestException(
+            'We could not verify this bank account number with your bank. Please double-check your bank and 10-digit account number.',
+          )
+        }
+        this.logger.warn(
+          `[Dev/Staging Workaround] Bank resolution failed for user ID ${user.id} (${bankErr?.message}); falling back to submitted/user account name.`,
+        )
+      }
+    }
+
+    if (!serverVerifiedAccountName) {
+      if (enforceStrictBankMatch) {
+        throw new BadRequestException(
+          'We could not resolve a valid account name for this bank account. Please check your bank and 10-digit account number.',
+        )
+      }
+      serverVerifiedAccountName =
+        candidateClientAccountName || `${user.firstName} ${user.lastName}`.trim()
+    }
+
+    const bankNameMatched = checkBankAccountNameMatchesBvn({
+      accountName: serverVerifiedAccountName,
+      bvnFirst: returnedFirst,
+      bvnLast: returnedLast,
+      userFirst: user.firstName,
+      userLast: user.lastName,
+      isProduction: isProd,
+      bvnRawResponse: verificationResult.rawResponse,
+    })
+
+    if (!bankNameMatched) {
+      const bvnFullDisplay =
+        `${returnedFirst} ${returnedLast}`.trim() || `${user.firstName} ${user.lastName}`.trim()
+      this.logger.warn(
+        `KYC failed: bank account name ("${serverVerifiedAccountName}") does not match BVN legal name ("${bvnFullDisplay}") for user ID ${user.id}`,
+      )
+      throw new BadRequestException(
+        `Your bank account name (${serverVerifiedAccountName}) does not match your BVN legal name (${bvnFullDisplay}). Please use a personal bank account registered in your BVN name or KYC will fail.`,
+      )
+    }
+
+    if (!isProd) {
+      const strictCheckInNonProd = checkBankAccountNameMatchesBvn({
+        accountName: serverVerifiedAccountName,
+        bvnFirst: returnedFirst,
+        bvnLast: returnedLast,
+        userFirst: user.firstName,
+        userLast: user.lastName,
+        isProduction: true,
+        bvnRawResponse: verificationResult.rawResponse,
+      })
+      if (!strictCheckInNonProd) {
+        this.logger.warn(
+          `[Dev/Staging Workaround] Allowing non-matching sandbox bank account name ("${serverVerifiedAccountName}") for user ID ${user.id} (BVN: "${returnedFirst} ${returnedLast}"). In production this fails KYC.`,
+        )
+      }
+    }
+
     // Extract biometric portrait photo from BVN or NIN provider response (Prembly / Monnify)
     // Only keep strictly valid base64 content (Prembly sandbox often returns literal text like "base64 image content").
     const extractValidBase64Photo = (val: unknown): string | undefined => {
@@ -834,51 +1013,37 @@ export class OnboardSavingsInvestorUseCase {
       ...(user.gender ? {} : normalizedGender ? { gender: normalizedGender } : {}),
     })
 
-    // Upsert linked payout settlement bank details if provided, or reuse user's saved bank account
-    let resolvedBankDetails:
-      | {
-          bankCode: string
-          bankName: string
-          accountNumber: string
-          accountName: string
-        }
-      | undefined
-    if (dto.settlement_bank_code && dto.settlement_account_number) {
-      const bankCode = dto.settlement_bank_code.trim()
-      const bankName = dto.settlement_bank_name?.trim() || 'Commercial Bank'
-      const accountNumber = dto.settlement_account_number.replace(/\D/g, '')
-      const accountName =
-        dto.settlement_account_name?.trim() || `${user.firstName} ${user.lastName}`.trim()
+    // Upsert verified payout settlement bank details (always persisting server-resolved accountName)
+    const resolvedBankDetails: {
+      bankCode: string
+      bankName: string
+      accountNumber: string
+      accountName: string
+    } = {
+      bankCode: candidateBankCode,
+      bankName: candidateBankName || 'Commercial Bank',
+      accountNumber: candidateAccountNumber,
+      accountName: serverVerifiedAccountName,
+    }
+
+    if (this.prisma?.upward_user_bank_details?.upsert) {
       await this.prisma.upward_user_bank_details.upsert({
         where: { userId },
         create: {
           uuid: crypto.randomUUID(),
           userId,
-          bankCode,
-          bankName,
-          accountNumber,
-          accountName,
+          bankCode: resolvedBankDetails.bankCode,
+          bankName: resolvedBankDetails.bankName,
+          accountNumber: resolvedBankDetails.accountNumber,
+          accountName: resolvedBankDetails.accountName,
         },
         update: {
-          bankCode,
-          bankName,
-          accountNumber,
-          accountName,
+          bankCode: resolvedBankDetails.bankCode,
+          bankName: resolvedBankDetails.bankName,
+          accountNumber: resolvedBankDetails.accountNumber,
+          accountName: resolvedBankDetails.accountName,
         },
       })
-      resolvedBankDetails = { bankCode, bankName, accountNumber, accountName }
-    } else if (this.prisma?.upward_user_bank_details?.findUnique) {
-      const savedBank = await this.prisma.upward_user_bank_details.findUnique({
-        where: { userId },
-      })
-      if (savedBank?.bankCode && savedBank?.accountNumber) {
-        resolvedBankDetails = {
-          bankCode: savedBank.bankCode,
-          bankName: savedBank.bankName || 'Commercial Bank',
-          accountNumber: savedBank.accountNumber,
-          accountName: savedBank.accountName || `${user.firstName} ${user.lastName}`.trim(),
-        }
-      }
     }
 
     // Record verified investor KYC audit record (BVN + NIN + Means of ID + Residential Address + Utility Bill)
