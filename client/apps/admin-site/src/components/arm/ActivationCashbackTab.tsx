@@ -266,6 +266,10 @@ export const ActivationCashbackTab: React.FC<ActivationCashbackTabProps> = ({ to
                           <span className="fin-pill fin-pill--green">
                             <span className="fin-pill__dot" /> Credited
                           </span>
+                        ) : s.hasReservedGrant ? (
+                          <span className="fin-pill fin-pill--clay">
+                            <span className="fin-pill__dot" /> Reserved
+                          </span>
                         ) : (
                           <span className="fin-pill fin-pill--neutral">
                             <span className="fin-pill__dot" /> Eligible
@@ -282,7 +286,8 @@ export const ActivationCashbackTab: React.FC<ActivationCashbackTabProps> = ({ to
                             s.alreadyCredited ||
                             creditingUuid === s.userUuid ||
                             !campaign ||
-                            campaign.remainingBudgetNgn < campaign.rewardAmountNgn
+                            (!s.hasReservedGrant &&
+                              campaign.remainingBudgetNgn < campaign.rewardAmountNgn)
                           }
                           onClick={() => handleCredit(s)}
                         >
@@ -290,7 +295,9 @@ export const ActivationCashbackTab: React.FC<ActivationCashbackTabProps> = ({ to
                             ? 'Credited'
                             : creditingUuid === s.userUuid
                               ? 'Crediting…'
-                              : `Credit ${fmtNgn(campaign?.rewardAmountNgn || 3000)}`}
+                              : s.hasReservedGrant
+                                ? `Apply Reserved ${fmtNgn(campaign?.rewardAmountNgn || 3000)}`
+                                : `Credit ${fmtNgn(campaign?.rewardAmountNgn || 3000)}`}
                         </button>
                       </td>
                     </tr>
