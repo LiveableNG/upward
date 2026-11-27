@@ -7,3 +7,6 @@ cd android
 ./gradlew assembleRelease
 ./gradlew installRelease
 ./gradlew bundleRelease
+
+
+sudo service redis-server start

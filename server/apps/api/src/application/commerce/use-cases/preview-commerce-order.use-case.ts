@@ -23,6 +23,9 @@ export interface PreviewCommerceOrderResponse {
   taxKobo: string
   discountKobo: string
   totalAmountKobo: string
+  availableVoucherKobo: string
+  voucherEligibleSubtotalKobo: string
+  appliedVoucherKobo: string
   deliveryEligible?: boolean
   deliveryMessage?: string
   subOrders: Array<{
@@ -135,19 +138,21 @@ export class PreviewCommerceOrderUseCase {
       }
     }
 
-    // Compute authoritative server-side voucher discount (never trust client-supplied discountKobo)
-    let discountKobo = 0n
-    if (voucherEligibleSubtotalKobo > 0n && userUuid && this.voucherRepo && this.userRepo) {
+    // Compute authoritative server-side voucher balance & opt-in discount (never trust client-supplied discountKobo)
+    let availableVoucherKobo = 0n
+    if (userUuid && this.voucherRepo && this.userRepo) {
       const user = await this.userRepo.findByUuid(userUuid)
       if (user?.id) {
-        const availableVoucherKobo = await this.voucherRepo.getAvailableBalanceKobo(user.id)
-        if (availableVoucherKobo > 0n) {
-          discountKobo =
-            availableVoucherKobo >= voucherEligibleSubtotalKobo
-              ? voucherEligibleSubtotalKobo
-              : availableVoucherKobo
-        }
+        availableVoucherKobo = await this.voucherRepo.getAvailableBalanceKobo(user.id)
       }
+    }
+
+    let discountKobo = 0n
+    if (dto.applyVoucher === true && voucherEligibleSubtotalKobo > 0n && availableVoucherKobo > 0n) {
+      discountKobo =
+        availableVoucherKobo >= voucherEligibleSubtotalKobo
+          ? voucherEligibleSubtotalKobo
+          : availableVoucherKobo
     }
 
     // Calculate using the shared deterministic pricing engine
@@ -163,6 +168,9 @@ export class PreviewCommerceOrderUseCase {
       taxKobo: pricing.taxKobo.toString(),
       discountKobo: pricing.discountKobo.toString(),
       totalAmountKobo: pricing.totalAmountKobo.toString(),
+      availableVoucherKobo: availableVoucherKobo.toString(),
+      voucherEligibleSubtotalKobo: voucherEligibleSubtotalKobo.toString(),
+      appliedVoucherKobo: pricing.discountKobo.toString(),
       deliveryEligible,
       deliveryMessage,
       subOrders: pricing.subOrders.map((sub) => ({

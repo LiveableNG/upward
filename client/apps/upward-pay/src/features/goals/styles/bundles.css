@@ -248,12 +248,197 @@
   transform: scale(0.97);
 }
 
-@media (max-width: 380px) {
+@media (max-width: 420px) {
   .bundle-showcase__top-actions {
     flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
   }
-  .bundle-showcase__top-checkout-btn {
+
+  .bundle-showcase__top-add-btn {
+    flex: none;
     width: 100%;
+    height: 46px;
+    border-radius: 14px;
+    font-size: 14px;
+  }
+
+  .bundle-showcase__top-checkout-btn {
+    flex: none;
+    width: 100%;
+    height: 46px;
+    border-radius: 14px;
+    font-size: 14px;
+  }
+}
+
+/* Sticky Top Summary CTA Bar (appears when scrolling past hero CTA) */
+.bundle-showcase__sticky-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 90;
+  padding: calc(var(--safe-top, env(safe-area-inset-top, 0px)) + 8px) var(--shell-px, 16px) 10px;
+  background: color-mix(in srgb, var(--shell-page-bg, #faf9f5) 88%, transparent);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border-bottom: 1px solid var(--shell-border, #ebe4da);
+  box-shadow: 0 6px 24px rgba(26, 23, 20, 0.08);
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
+  will-change: transform, opacity;
+  transition:
+    transform 280ms cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 220ms ease-out;
+}
+
+.bundle-showcase__sticky-bar--visible {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.bundle-showcase__sticky-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.bundle-showcase__sticky-left {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.bundle-showcase__sticky-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--surface, #ffffff);
+  border: 1.5px solid var(--border-solid, #ece4d9);
+  color: #5c544b;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+  transition: transform 100ms ease-out, background 150ms ease;
+}
+
+.bundle-showcase__sticky-back:active {
+  transform: scale(0.94);
+}
+
+.bundle-showcase__sticky-meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 1px;
+}
+
+.bundle-showcase__sticky-title {
+  font-size: 13px;
+  font-weight: 750;
+  color: var(--text, #1a1714);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bundle-showcase__sticky-price {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--clay, #c2501f);
+  line-height: 1.15;
+}
+
+.bundle-showcase__sticky-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.bundle-showcase__sticky-add-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--clay, #c2501f);
+  color: #ffffff;
+  border: none;
+  font-size: 12.5px;
+  font-weight: 750;
+  cursor: pointer;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(194, 80, 31, 0.24);
+  transition: transform 100ms ease-out;
+}
+
+.bundle-showcase__sticky-add-btn:active {
+  transform: scale(0.96);
+}
+
+.bundle-showcase__sticky-checkout-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: var(--surface, #ffffff);
+  color: var(--text, #1a1714);
+  border: 1.5px solid var(--border-solid, #e6ded3);
+  font-size: 12.5px;
+  font-weight: 750;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: transform 100ms ease-out, background 150ms ease;
+}
+
+.bundle-showcase__sticky-checkout-btn:active {
+  transform: scale(0.96);
+}
+
+@media (max-width: 380px) {
+  .bundle-showcase__sticky-bar {
+    padding: calc(var(--safe-top, env(safe-area-inset-top, 0px)) + 8px) 12px 9px;
+  }
+
+  .bundle-showcase__sticky-inner {
+    gap: 8px;
+  }
+
+  .bundle-showcase__sticky-back {
+    width: 32px;
+    height: 32px;
+  }
+
+  .bundle-showcase__sticky-title {
+    font-size: 12px;
+  }
+
+  .bundle-showcase__sticky-price {
+    font-size: 12.5px;
+  }
+
+  .bundle-showcase__sticky-add-btn,
+  .bundle-showcase__sticky-checkout-btn {
+    height: 33px;
+    padding: 0 10px;
+    font-size: 11.5px;
   }
 }
 

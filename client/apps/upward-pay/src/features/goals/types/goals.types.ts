@@ -115,6 +115,7 @@ export interface GoalOffering {
   leadTimeDays?: number | null
   isFeatured?: boolean
   isPromoted?: boolean
+  voucherEligible?: boolean
   promoBadge?: string | null
   promoTitle?: string | null
   promoSubtitle?: string | null

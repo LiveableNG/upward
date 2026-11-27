@@ -38,6 +38,7 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
   const [isPublished, setIsPublished] = useState(true)
   const [isFeatured, setIsFeatured] = useState(false)
   const [isPromoted, setIsPromoted] = useState(false)
+  const [voucherEligible, setVoucherEligible] = useState(false)
   const [promoBadge, setPromoBadge] = useState('')
   const [promoTitle, setPromoTitle] = useState('')
   const [promoSubtitle, setPromoSubtitle] = useState('')
@@ -66,6 +67,7 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
       setIsPublished(offering.isPublished ?? (offering as any).status === 'PUBLISHED')
       setIsFeatured(offering.isFeatured ?? false)
       setIsPromoted(offering.isPromoted ?? false)
+      setVoucherEligible(offering.voucherEligible ?? false)
       setPromoBadge(offering.promoBadge ?? '')
       setPromoTitle(offering.promoTitle ?? '')
       setPromoSubtitle(offering.promoSubtitle ?? '')
@@ -90,6 +92,7 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
       setIsPublished(true)
       setIsFeatured(false)
       setIsPromoted(false)
+      setVoucherEligible(false)
       setPromoBadge('')
       setPromoTitle('')
       setPromoSubtitle('')
@@ -106,9 +109,11 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
     }
   }
 
+  const isServiceType = type === 'SERVICE' || type === 'SERVICE_INDIVIDUAL'
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!title.trim() || !slug.trim() || price === '') return
+    if (!title.trim() || !slug.trim() || (!isServiceType && price === '')) return
 
     setSubmitting(true)
     try {
@@ -116,15 +121,18 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
         ? [{ url: mediaUrl.trim(), altText: title.trim(), sortOrder: 0, isCover: true }]
         : undefined
 
+      const isQuoteService = isServiceType && price === ''
+
       await onSubmit(
         {
           type,
+          pricingModel: isQuoteService ? 'QUOTE_REQUIRED' : 'FIXED',
           vendorId: vendorId === '' ? undefined : Number(vendorId),
           title: title.trim(),
           slug: slug.trim(),
           subtitle: subtitle.trim() || undefined,
           description: description.trim() || undefined,
-          price: Number(price),
+          price: price === '' ? null : Number(price),
           currency,
           compareAtPrice: compareAtPrice === '' ? undefined : Number(compareAtPrice),
           stockCount: stockCount === '' ? undefined : Number(stockCount),
@@ -134,6 +142,7 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
           isPublished,
           isFeatured,
           isPromoted,
+          voucherEligible,
           promoBadge: promoBadge.trim() || undefined,
           promoTitle: promoTitle.trim() || undefined,
           promoSubtitle: promoSubtitle.trim() || undefined,
@@ -241,15 +250,15 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
           <div>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 600, marginBottom: '6px' }}>
-              Price (₦ NGN) *
+              {isServiceType ? 'Price (₦ NGN) — optional' : 'Price (₦ NGN) *'}
             </label>
             <input
               type="number"
               className="input"
-              placeholder="e.g. 185000"
+              placeholder={isServiceType ? 'Leave blank for Price on Request' : 'e.g. 185000'}
               value={price}
               onChange={(e) => setPrice(e.target.value === '' ? '' : Number(e.target.value))}
-              required
+              required={!isServiceType}
             />
           </div>
 
@@ -420,6 +429,23 @@ export const OfferingModal: React.FC<OfferingModalProps> = ({
             />
             <label htmlFor="offering-featured" style={{ fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>
               Featured
+            </label>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <input
+              type="checkbox"
+              id="offering-voucher-eligible"
+              checked={voucherEligible}
+              onChange={(e) => setVoucherEligible(e.target.checked)}
+              style={{ width: '16px', height: '16px', accentColor: 'var(--accent)' }}
+            />
+            <label
+              htmlFor="offering-voucher-eligible"
+              style={{ fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
+              title="Tenants with an Upward voucher balance can choose to apply it when paying for this offering or service quote."
+            >
+              Voucher Eligible
             </label>
           </div>
         </div>

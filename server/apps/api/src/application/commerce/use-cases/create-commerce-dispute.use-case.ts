@@ -56,7 +56,7 @@ export class CreateCommerceDisputeUseCase {
       throw new NotFoundException('Sub-order not found')
     }
 
-    if (subOrder.customerStatus === 'DISPUTED') {
+    if (subOrder.customerStatus === 'DISPUTED' || subOrder.operationalStatus === 'DISPUTE_LOGGED') {
       throw new BadRequestException('A dispute is already open for this sub-order')
     }
 

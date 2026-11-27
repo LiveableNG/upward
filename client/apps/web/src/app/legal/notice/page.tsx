@@ -31,7 +31,7 @@ export default function LegalNoticePage() {
         <p>
           This page serves as a central hub for all legal documentation governing the use of Upward
           and our relationship with you. By engaging with our services, you enter into a binding
-          legal contract with Liveable Smartcity Technologies. We urge you to review each document
+          legal contract with Goodtenants Limited. We urge you to review each document
           carefully.
         </p>
 
@@ -62,7 +62,7 @@ export default function LegalNoticePage() {
 
         <h2 className="legal-h2">Corporate Information</h2>
         <p>
-          Upward is a platform operated by <strong>Liveable Smartcity Technologies Limited</strong>.
+          Upward is a platform operated by <strong>Goodtenants Limited</strong>.
         </p>
         <ul className="legal-list">
           <li>

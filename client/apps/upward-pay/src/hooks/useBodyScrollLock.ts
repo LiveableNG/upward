@@ -52,6 +52,9 @@ export function unlockBodyScroll() {
 
   lockCount = Math.max(0, lockCount - 1)
   if (lockCount === 0) {
+    const prevScrollBehavior = document.documentElement.style.scrollBehavior
+    document.documentElement.style.scrollBehavior = 'auto'
+
     document.documentElement.style.overflow = originalHtmlOverflow
     document.body.style.overflow = originalBodyOverflow
     document.body.style.position = originalBodyPosition
@@ -60,7 +63,8 @@ export function unlockBodyScroll() {
     document.body.style.right = originalBodyRight
     document.body.style.width = originalBodyWidth
 
-    window.scrollTo(0, savedScrollY)
+    window.scrollTo({ top: savedScrollY, left: 0, behavior: 'instant' as ScrollBehavior })
+    document.documentElement.style.scrollBehavior = prevScrollBehavior
   }
 }
 

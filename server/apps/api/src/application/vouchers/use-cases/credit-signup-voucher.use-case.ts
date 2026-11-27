@@ -1,9 +1,10 @@
-import { Inject, Injectable, Logger } from '@nestjs/common'
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common'
 import {
   VOUCHER_REPOSITORY,
   VoucherRepository,
 } from '../../../domains/vouchers/voucher.repository'
 import { EmailService } from '../../../shared/infrastructure/email/email.service'
+import { NotificationService } from '../../../shared/infrastructure/common/notification.service'
 
 export interface CreditSignupVoucherInput {
   userId: number
@@ -30,6 +31,8 @@ export class CreditSignupVoucherUseCase {
     @Inject(VOUCHER_REPOSITORY)
     private readonly voucherRepo: VoucherRepository,
     private readonly emailService: EmailService,
+    @Optional()
+    private readonly notificationService?: NotificationService,
   ) {}
 
   async execute(input: CreditSignupVoucherInput): Promise<CreditSignupVoucherResult> {
@@ -96,6 +99,29 @@ export class CreditSignupVoucherUseCase {
             .catch((err) =>
               this.logger.error(
                 `Failed to send signup voucher email for userId=${input.userId}`,
+                err,
+              ),
+            )
+        }
+
+        if (this.notificationService) {
+          const amountNairaVal = Number(campaign.defaultAmountKobo) / 100
+          const formattedAmount = amountNairaVal.toLocaleString('en-NG')
+          this.notificationService
+            .notifyUser(input.userId, {
+              title: `₦${formattedAmount} Upward Voucher Unlocked!`,
+              message: `Your ₦${formattedAmount} voucher is ready. Apply it at checkout on any eligible Lifestyle package or service quote.`,
+              type: 'VOUCHER',
+              url: '/dashboard/lifestyle',
+              data: {
+                kind: 'VOUCHER_SIGNUP_CREDIT',
+                campaignCode: campaign.code,
+                amountNaira: String(amountNairaVal),
+              },
+            })
+            .catch((err) =>
+              this.logger.error(
+                `Failed to send signup voucher notification for userId=${input.userId}`,
                 err,
               ),
             )

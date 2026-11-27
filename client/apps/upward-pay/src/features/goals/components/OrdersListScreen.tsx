@@ -47,7 +47,24 @@ function formatDate(dateStr: string): string {
   }
 }
 
-function getStatusBadge(status: CustomerFulfilmentStatus, isService: boolean, paymentStatus?: string) {
+function getStatusBadge(
+  status: CustomerFulfilmentStatus,
+  isService: boolean,
+  paymentStatus?: string,
+  orderStatus?: string,
+) {
+  if (orderStatus === 'CANCELLED' || status === 'CANCELLED') {
+    return {
+      label: 'Cancelled',
+      className: 'orders-hub__badge--cancelled',
+    }
+  }
+  if (orderStatus === 'REFUNDED') {
+    return {
+      label: 'Refunded',
+      className: 'orders-hub__badge--cancelled',
+    }
+  }
   if (status === 'QUOTE_REQUESTED') {
     return {
       label: 'Under Review',
@@ -60,9 +77,9 @@ function getStatusBadge(status: CustomerFulfilmentStatus, isService: boolean, pa
       className: 'orders-hub__badge--confirmed',
     }
   }
-  if (status === 'CANCELLED') {
+  if (status === 'QUOTE_DECLINED') {
     return {
-      label: 'Cancelled',
+      label: 'Quote Declined',
       className: 'orders-hub__badge--cancelled',
     }
   }
@@ -274,9 +291,18 @@ export function OrdersListScreen() {
             {displayedOrders.map((order) => {
               const itemsList = order.itemsPreview || []
               const isService = itemsList.some((i) => i.offeringType === 'SERVICE')
-              const badge = getStatusBadge(order.primaryStatus, isService, order.paymentStatus)
+              const isCancelled =
+                order.status === 'CANCELLED' ||
+                order.status === 'REFUNDED' ||
+                order.primaryStatus === 'CANCELLED'
+              const badge = getStatusBadge(
+                order.primaryStatus,
+                isService,
+                order.paymentStatus,
+                order.status,
+              )
               const isDownloading = downloadingUuid === order.uuid
-              const isUnpaid = order.paymentStatus !== 'PAID'
+              const isUnpaid = !isCancelled && order.paymentStatus !== 'PAID'
 
               return (
                 <div key={order.uuid} className="orders-hub__card">
@@ -341,13 +367,15 @@ export function OrdersListScreen() {
                       <div className="orders-hub__card-footer">
                         <div className="orders-hub__total-wrap">
                           <span className="orders-hub__total-label">
-                            {isQuotePending
-                              ? 'Pricing'
-                              : isQuoteReady
-                                ? 'Service Price'
-                                : isUnpaid
-                                  ? 'Total Due'
-                                  : 'Total Paid'}
+                            {isCancelled
+                              ? 'Order Total'
+                              : isQuotePending
+                                ? 'Pricing'
+                                : isQuoteReady
+                                  ? 'Service Price'
+                                  : isUnpaid
+                                    ? 'Total Due'
+                                    : 'Total Paid'}
                           </span>
                           <span className="orders-hub__total-value">
                             {isQuotePending

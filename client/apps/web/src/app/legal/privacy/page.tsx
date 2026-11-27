@@ -7,17 +7,17 @@ export default function PrivacyPage() {
 
       <section className="legal-content">
         <p style={{ marginBottom: '16px', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>
-          UPWARD BY LIVEABLE SMARTCITY TECHNOLOGIES LIMITED — PRIVACY POLICY
+          UPWARD BY GOODTENANTS LIMITED — PRIVACY POLICY
         </p>
 
         <p style={{ marginBottom: '32px' }}>
-          Upward by Liveable Smartcity Technologies Limited (hereinafter referred to as &ldquo;Upward&rdquo; or &ldquo;Company&rdquo;) is committed to safeguarding your privacy and protecting your Personal Data. This Privacy Policy outlines how we collect, use, store, and disclose Personal Data in the course of operating our platform (collectively, our Services).
+          Upward by Goodtenants Limited (hereinafter referred to as &ldquo;Upward&rdquo; or &ldquo;Company&rdquo;) is committed to safeguarding your privacy and protecting your Personal Data. This Privacy Policy outlines how we collect, use, store, and disclose Personal Data in the course of operating our platform (collectively, our Services).
         </p>
         <p style={{ marginBottom: '32px' }}>
           This Privacy Policy applies to information collected through our website, subdomains, platforms, and other channels related to our Services. By accessing or using our Services, you confirm that you have read, understood, and agree to the collection, use, Processing, and disclosure of your Personal Data as described in this Privacy Policy and in accordance with our Terms of Service.
         </p>
         <p style={{ marginBottom: '48px' }}>
-          This Privacy Policy explains how Upward by Liveable Smartcity Technologies collects and Processes your Personal Data that we collect and the measures we have in place to ensure the confidentiality of your Personal Data.
+          This Privacy Policy explains how Upward by Goodtenants Limited collects and Processes your Personal Data that we collect and the measures we have in place to ensure the confidentiality of your Personal Data.
         </p>
 
         <h2 className="legal-h2">1. Definitions and key terms</h2>
@@ -29,7 +29,7 @@ export default function PrivacyPage() {
             <strong>Cookie:</strong> A small piece of data stored on your web browser by a website. Cookies help us recognize your browser, collect analytics, and remember preferences (like language or login information) to enhance your experience on our website.
           </li>
           <li>
-            <strong>Company:</strong> When this Privacy Policy mentions &ldquo;Company&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo; or &ldquo;our&rdquo; it refers to Upward by Liveable Smartcity Technologies, which is responsible for your Personal Data under this Privacy Policy.
+            <strong>Company:</strong> When this Privacy Policy mentions &ldquo;Company&rdquo;, &ldquo;we&rdquo;, &ldquo;us&rdquo; or &ldquo;our&rdquo; it refers to Upward by Goodtenants Limited, which is responsible for your Personal Data under this Privacy Policy.
           </li>
           <li>
             <strong>Contact Data:</strong> Includes information such as your address (billing and operational), email address, and telephone numbers provided to us when engaging our Services or making inquiries.
@@ -38,7 +38,7 @@ export default function PrivacyPage() {
             <strong>Country:</strong> Refers to the Federal Republic of Nigeria, being the domicile of Data Subjects, whose Personal Data is processed.
           </li>
           <li>
-            <strong>Customer:</strong> Refers to any company, organization, or individual who engages Upward by Liveable Smartcity Technologies for its Services.
+            <strong>Customer:</strong> Refers to any company, organization, or individual who engages Upward by Goodtenants Limited for its Services.
           </li>
           <li>
             <strong>Data Protection Laws:</strong> Means the Nigeria Data Protection Act, 2023, the Nigeria Data Protection Act General Application and Implementation Directive, 2025, and any other ancillary laws regulating the use of Data in the Country.
@@ -59,7 +59,7 @@ export default function PrivacyPage() {
             <strong>NDPC:</strong> Refers to the Nigeria Data Protection Commission, the regulatory body overseeing data protection and privacy compliance in the Country.
           </li>
           <li>
-            <strong>Personnel:</strong> Refers to individuals employed by Upward by Liveable Smartcity Technologies or contracted to provide services on Upward by Liveable Smartcity Technologies&rsquo;s behalf, including software engineers, consultants, or support staff.
+            <strong>Personnel:</strong> Refers to individuals employed by Upward by Goodtenants Limited or contracted to provide services on Upward by Goodtenants Limited&rsquo;s behalf, including software engineers, consultants, or support staff.
           </li>
           <li>
             <strong>Personal Data:</strong> Any information relating to an identified or identifiable natural person.
@@ -74,7 +74,7 @@ export default function PrivacyPage() {
             <strong>Technical Data:</strong> Includes information such as your IP address, login data, browser type and version, time zone setting, device model, platform, and technology used to access our website or systems.
           </li>
           <li>
-            <strong>Website:</strong> Liveable Smartcity Technologies&rsquo;s website
+            <strong>Website:</strong> Goodtenants Limited&rsquo;s website
           </li>
           <li>
             <strong>You:</strong> Refers to the individual or entity (e.g., client, visitor) who interacts with Us or uses our Services and whose Personal Data may be collected or processed by us.
@@ -84,7 +84,7 @@ export default function PrivacyPage() {
         <h2 className="legal-h2">2. Our Objectives</h2>
         <ul className="legal-list" style={{ marginBottom: '32px' }}>
           <li>
-            <strong>To empower the individual:</strong> Upward by Liveable Smartcity Technologies wants you to be in charge of your Personal Data and to make your own voluntary choices about how your information is used.
+            <strong>To empower the individual:</strong> Upward by Goodtenants Limited wants you to be in charge of your Personal Data and to make your own voluntary choices about how your information is used.
           </li>
           <li>
             <strong>To keep and secure Personal Data:</strong> We do not take your trust in us for granted. We take full responsibility for ensuring that strong security measures are in place to keep your Personal Data safe across all our technology.
@@ -105,10 +105,10 @@ export default function PrivacyPage() {
 
         <h2 className="legal-h2">3. Who We Are and How to Contact Us</h2>
         <p style={{ marginBottom: '24px' }}>
-          Upward by Liveable Smartcity Technologies, with its business address at NITDA Hub, 6 Commercial Rd, University of Lagos, Lagos State, is committed to protecting your privacy. This Privacy Policy is issued by Upward by Liveable Smartcity Technologies in its individual capacity. If, in the future, operate through subsidiaries, affiliates, or other related entities, references to &ldquo;we&rdquo;, &ldquo;us&rdquo; or &ldquo;our&rdquo; in this Privacy Policy will be deemed to include such entities where applicable.
+          Upward by Goodtenants Limited, with its business address at NITDA Hub, 6 Commercial Rd, University of Lagos, Lagos State, is committed to protecting your privacy. This Privacy Policy is issued by Upward by Goodtenants Limited in its individual capacity. If, in the future, operate through subsidiaries, affiliates, or other related entities, references to &ldquo;we&rdquo;, &ldquo;us&rdquo; or &ldquo;our&rdquo; in this Privacy Policy will be deemed to include such entities where applicable.
         </p>
         <p style={{ marginBottom: '24px' }}>
-          Upward by Liveable Smartcity Technologies is the controller and processor and is responsible for your Personal Data.
+          Upward by Goodtenants Limited is the controller and processor and is responsible for your Personal Data.
         </p>
         <p style={{ marginBottom: '24px' }}>
           We have appointed a data protection officer (DPO) who is responsible for overseeing questions in relation to this Privacy Policy. If you have any questions about this Privacy Policy, including any requests to exercise your legal rights, please contact the DPO using the information set out below:
@@ -193,11 +193,11 @@ export default function PrivacyPage() {
         <ul className="legal-list" style={{ marginBottom: '24px' }}>
           <li>Comply with applicable laws, regulations, or legal processes (such as court orders or subpoenas).</li>
           <li>Respond to lawful requests from government or law enforcement agencies.</li>
-          <li>Protect the rights, property, or safety of Upward by Liveable Smartcity Technologies, our users, our Personnel, or others.</li>
+          <li>Protect the rights, property, or safety of Upward by Goodtenants Limited, our users, our Personnel, or others.</li>
           <li>Detect, investigate, and help prevent fraud or other illegal activity.</li>
         </ul>
         <p style={{ marginBottom: '24px' }}>
-          We require all third parties with whom we share your Personal Data to respect its confidentiality and to process it in accordance with applicable Data Protection Laws. They are not permitted to use your Personal Data for their own purposes and are only authorized to process it as instructed by Upward by Liveable Smartcity Technologies and solely for specified and legitimate purposes.
+          We require all third parties with whom we share your Personal Data to respect its confidentiality and to process it in accordance with applicable Data Protection Laws. They are not permitted to use your Personal Data for their own purposes and are only authorized to process it as instructed by Upward by Goodtenants Limited and solely for specified and legitimate purposes.
         </p>
         <p style={{ marginBottom: '48px' }}>
           If Upward becomes involved in a merger, acquisition, or any form of sale of some or all of its assets, we may share your Personal Data with parties involved in the transaction and any entity that acquires our business will continue to process your Personal Data in line with this Privacy policy, or a revised version that we will communicate to you.

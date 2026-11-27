@@ -14,6 +14,10 @@ import {
   USER_REPOSITORY,
   UserRepository,
 } from '../../../domains/users/user.repository'
+import {
+  VOUCHER_REPOSITORY,
+  VoucherRepository,
+} from '../../../domains/vouchers/voucher.repository'
 import { NotificationService } from '../../../shared/infrastructure/common/notification.service'
 import { EmailService } from '../../../shared/infrastructure/email/email.service'
 import { SmsService } from '../../../shared/infrastructure/sms/sms.service'
@@ -35,6 +39,9 @@ export class DeclineServiceQuoteUseCase {
     private readonly emailService?: EmailService,
     @Optional()
     private readonly smsService?: SmsService,
+    @Optional()
+    @Inject(VOUCHER_REPOSITORY)
+    private readonly voucherRepo?: VoucherRepository,
   ) {}
 
   async execute(params: {
@@ -74,6 +81,14 @@ export class DeclineServiceQuoteUseCase {
       throw new BadRequestException('Only pending quote requests can be declined')
     }
 
+    // Release any reserved voucher credit back to user's wallet if one was held on this quote
+    if (this.voucherRepo && order.discountKobo > 0n) {
+      await this.voucherRepo.releaseReservedVoucherForOrder(
+        order.id,
+        'Released because customer declined service quote',
+      )
+    }
+
     await this.orderRepo.declineQuoteOrder({
       orderId: order.id,
       subOrderId: subOrder.id,
@@ -91,14 +106,16 @@ export class DeclineServiceQuoteUseCase {
       userId: user.id,
       userEmail: user.email,
       userPhone: user.phone || order.recipientPhone,
-      title: 'Quote Request Cancelled',
-      message: `You declined the quote for "${serviceTitle}" (${order.orderNumber}). No payment was charged.`,
-      emailSubject: `Quote Request Cancelled — ${serviceTitle} (${order.orderNumber})`,
+      title: 'Quote Declined',
+      message: `You declined the quote for "${serviceTitle}" (${order.orderNumber}). No payment was charged. Our team may reach out if we can offer a revised option.`,
+      emailSubject: `Quote Declined — ${serviceTitle} (${order.orderNumber})`,
       emailLines: [
         `Hi ${order.recipientName},`,
-        `Your quote request for <strong>${serviceTitle}</strong> (Order <strong>${order.orderNumber}</strong>) has been cancelled as requested. No charges were made.`,
-      ],
-      smsText: `Upward: Your quote request for ${serviceTitle} (${order.orderNumber}) has been cancelled. No charge was made.`,
+        `You declined the quote for <strong>${serviceTitle}</strong> (Order <strong>${order.orderNumber}</strong>). No charges were made.`,
+        params.reason ? `<strong>Your feedback:</strong> ${params.reason}` : '',
+        `If you'd like to discuss a different scope or budget, you can still message our team on your order.`,
+      ].filter(Boolean),
+      smsText: `Upward: You declined the quote for ${serviceTitle} (${order.orderNumber}). No charge was made.`,
       url: `/dashboard/lifestyle/orders?uuid=${order.uuid}`,
       data: { orderUuid: order.uuid },
     })
@@ -111,12 +128,13 @@ export class DeclineServiceQuoteUseCase {
         `<strong>Customer:</strong> ${order.recipientName}`,
         `<strong>Service:</strong> ${serviceTitle}`,
         params.reason ? `<strong>Reason:</strong> ${params.reason}` : '<strong>Reason:</strong> Not specified',
+        `Open the Admin Commerce Orders tab to message the customer, send a revised quote, or close the request.`,
       ],
     })
 
     return {
       success: true,
-      message: 'Quote declined and request cancelled.',
+      message: 'Quote declined. No payment was charged.',
     }
   }
 }

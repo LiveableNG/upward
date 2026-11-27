@@ -31,6 +31,7 @@ export interface CartItem {
   deliveryZones?: string[]
   vendorDefaultCoverage?: string
   vendorDefaultZones?: string[]
+  voucherEligible?: boolean
 }
 
 interface CartContextValue {
@@ -172,6 +173,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
           deliveryZones: offering.deliveryZones,
           vendorDefaultCoverage: offering.vendor?.defaultDeliveryCoverage,
           vendorDefaultZones: offering.vendor?.defaultDeliveryZones,
+          voucherEligible: Boolean(offering.voucherEligible),
         }
         return [...prev, newItem]
       })
@@ -243,6 +245,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({
               deliveryZones: offering.deliveryZones,
               vendorDefaultCoverage: offering.vendor?.defaultDeliveryCoverage,
               vendorDefaultZones: offering.vendor?.defaultDeliveryZones,
+              voucherEligible: Boolean(offering.voucherEligible),
             })
           }
         }

@@ -10,6 +10,7 @@ import {
   XCircle,
   Truck,
   Star,
+  Ticket,
 } from 'lucide-react'
 import { DataTable, type ColumnDef, type ActionItem } from '../../../components/common/table/DataTable'
 import type { Offering, CommerceVendor, OfferingType } from '../types'
@@ -118,6 +119,26 @@ export const OfferingsTab: React.FC<OfferingsTabProps> = ({
                     title={`Spotlight Ad (${offering.promoBadge || 'Promoted'})`}
                   >
                     {offering.promoBadge || 'SPOTLIGHT'}
+                  </span>
+                )}
+                {offering.voucherEligible && (
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '3px',
+                      fontSize: '10px',
+                      fontWeight: 700,
+                      padding: '1px 6px',
+                      borderRadius: '4px',
+                      background: 'rgba(16, 185, 129, 0.12)',
+                      color: '#059669',
+                      border: '1px solid rgba(16, 185, 129, 0.28)',
+                    }}
+                    title="Tenants can apply Upward vouchers when paying for this offering"
+                  >
+                    <Ticket size={10} />
+                    Voucher
                   </span>
                 )}
               </div>

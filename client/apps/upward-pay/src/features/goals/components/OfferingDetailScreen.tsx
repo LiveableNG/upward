@@ -55,6 +55,7 @@ import { fetchDeliveryZones } from '../services/goalsService'
 import { DeliveryLocationBar } from './DeliveryLocationBar'
 import { CommerceCheckoutModal } from './CommerceCheckoutModal'
 import { ServiceQuoteModal } from './ServiceQuoteModal'
+import { ProductImageLightbox } from './ProductImageLightbox'
 import { useBodyScrollLock } from '@/hooks/useBodyScrollLock'
 import { getPublicWebUrl, copyTextToClipboard } from '@/lib/utils'
 import '../styles/goals.css'
@@ -367,8 +368,8 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
     usePublicOfferings()
 
   const carouselRef = React.useRef<HTMLDivElement>(null)
-  const heroSummaryRef = React.useRef<HTMLDivElement>(null)
-  const [showStickyContext, setShowStickyContext] = useState(false)
+  const bundleHeroCtaRef = React.useRef<HTMLDivElement>(null)
+  const [showStickySummary, setShowStickySummary] = useState(false)
 
   const scrollCarousel = (direction: 'left' | 'right') => {
     if (carouselRef.current) {
@@ -388,6 +389,49 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
 
   const offering: GoalOffering | undefined = detailOffering || fallbackOffering
   const isLoading = isDetailLoading || (!offering && !isError)
+
+  useEffect(() => {
+    if (isLoading) {
+      setShowStickySummary(false)
+      return
+    }
+    const target = bundleHeroCtaRef.current
+    if (!target) {
+      setShowStickySummary(false)
+      return
+    }
+
+    const updateVisibility = () => {
+      const rect = target.getBoundingClientRect()
+      // Show sticky summary once the hero CTA buttons scroll above the top header
+      setShowStickySummary(rect.bottom < 56)
+    }
+
+    updateVisibility()
+
+    const observer =
+      typeof IntersectionObserver !== 'undefined'
+        ? new IntersectionObserver(
+            () => {
+              updateVisibility()
+            },
+            {
+              rootMargin: '-56px 0px 0px 0px',
+              threshold: [0, 1],
+            },
+          )
+        : null
+
+    observer?.observe(target)
+    window.addEventListener('scroll', updateVisibility, { passive: true })
+    document.addEventListener('scroll', updateVisibility, { passive: true, capture: true })
+
+    return () => {
+      observer?.disconnect()
+      window.removeEventListener('scroll', updateVisibility)
+      document.removeEventListener('scroll', updateVisibility, { capture: true })
+    }
+  }, [offering?.id, isLoading])
 
   const deliveryCheck = React.useMemo(() => {
     if (!offering) return { isDeliverable: true }
@@ -541,29 +585,6 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
     offering && (offering.type === 'BUNDLE' || offering.type === 'PACKAGE'),
   )
   const isLockedPackage = Boolean(offering && offering.type === 'PACKAGE')
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || typeof IntersectionObserver === 'undefined') return
-    const target = heroSummaryRef.current
-    if (!target) {
-      setShowStickyContext(false)
-      return
-    }
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[0]
-        if (!entry) return
-        setShowStickyContext(!entry.isIntersecting && entry.boundingClientRect.top < 64)
-      },
-      {
-        root: null,
-        rootMargin: '-60px 0px 0px 0px',
-        threshold: 0,
-      },
-    )
-    observer.observe(target)
-    return () => observer.disconnect()
-  }, [offering?.id, isBundle])
 
   const effectivePackageItems = useMemo(() => {
     if (!offering || !isBundle) return []
@@ -857,16 +878,9 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
     : 0
 
   if (isBundle) {
-    const bundleHeroImage =
-      offering.imageUrl ||
-      offering.promoCoverImage ||
-      images[0] ||
-      (packageItems[0]?.component || packageItems[0]?.itemOffering)?.imageUrl ||
-      null
-
     return (
       <div className="offering-detail" data-hide-bottom-nav="true">
-        {/* Navigation Bar with Sticky Compact Bundle Context on Scroll */}
+        {/* Navigation Bar */}
         <header className="offering-detail__header">
           <div className="offering-detail__header-inner">
             <button
@@ -878,19 +892,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
               <ArrowLeft size={18} />
             </button>
 
-            <div
-              className={`offering-detail__sticky-context ${
-                showStickyContext ? 'offering-detail__sticky-context--visible' : ''
-              }`}
-              aria-hidden={!showStickyContext}
-            >
-              <span className="offering-detail__sticky-title">{title}</span>
-              <span className="offering-detail__sticky-price">
-                {formatNgn(customBundlePrice)}
-              </span>
-            </div>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <button
                 type="button"
                 className="bundle-showcase__cart-trigger"
@@ -917,18 +919,71 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
           </div>
         </header>
 
+        {/* Sticky Top Summary CTA Bar — portaled to document.body so position:fixed isn't trapped by transformed ancestors */}
+        {mounted &&
+          typeof document !== 'undefined' &&
+          createPortal(
+            <div
+              className={`bundle-showcase__sticky-bar ${
+                showStickySummary ? 'bundle-showcase__sticky-bar--visible' : ''
+              }`}
+              aria-hidden={!showStickySummary}
+            >
+              <div className="bundle-showcase__sticky-inner">
+                <div className="bundle-showcase__sticky-left">
+                  <button
+                    type="button"
+                    className="bundle-showcase__sticky-back"
+                    onClick={handleBack}
+                    aria-label="Back to Lifestyle"
+                    tabIndex={showStickySummary ? 0 : -1}
+                  >
+                    <ArrowLeft size={16} />
+                  </button>
+                  <div className="bundle-showcase__sticky-meta">
+                    <span className="bundle-showcase__sticky-title">{title}</span>
+                    <span className="bundle-showcase__sticky-price">
+                      {formatNgn(customBundlePrice)}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bundle-showcase__sticky-actions">
+                  <button
+                    type="button"
+                    className="bundle-showcase__sticky-add-btn"
+                    onClick={handleAddToCart}
+                    tabIndex={showStickySummary ? 0 : -1}
+                  >
+                    <ShoppingCart size={14} strokeWidth={2.3} />
+                    <span>Add</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="bundle-showcase__sticky-checkout-btn"
+                    onClick={() => setIsCheckoutOpen(true)}
+                    tabIndex={showStickySummary ? 0 : -1}
+                  >
+                    <span>Checkout</span>
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )}
+
         <main className="offering-detail__container bundle-showcase">
           {/* Clean Editorial Hero Banner */}
           <section className="bundle-showcase__hero">
-            {bundleHeroImage && (
+            {offering.imageUrl && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={bundleHeroImage}
+                src={offering.imageUrl}
                 alt={title}
                 className="bundle-showcase__hero-img"
               />
             )}
-            <div className="bundle-showcase__hero-info" ref={heroSummaryRef}>
+            <div className="bundle-showcase__hero-info">
               <h1 className="bundle-showcase__title">{title}</h1>
               {offering.subtitle && (
                 <p className="bundle-showcase__subtitle">{offering.subtitle}</p>
@@ -970,7 +1025,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
                 )}
               </div>
 
-              <div className="bundle-showcase__top-actions">
+              <div ref={bundleHeroCtaRef} className="bundle-showcase__top-actions">
                 <button
                   type="button"
                   className="bundle-showcase__top-add-btn"
@@ -1194,7 +1249,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
 
   return (
     <div className="offering-detail" data-hide-bottom-nav="true">
-      {/* Sticky Navigation Bar with Compact Context on Scroll */}
+      {/* Sticky Navigation Bar */}
       <header className="offering-detail__header">
         <div className="offering-detail__header-inner">
           <button
@@ -1206,19 +1261,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
             <ArrowLeft size={18} />
           </button>
 
-          <div
-            className={`offering-detail__sticky-context ${
-              showStickyContext ? 'offering-detail__sticky-context--visible' : ''
-            }`}
-            aria-hidden={!showStickyContext}
-          >
-            <span className="offering-detail__sticky-title">{title}</span>
-            <span className="offering-detail__sticky-price">
-              {formatOfferingPrice(offering)}
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <button
               type="button"
               className="bundle-showcase__cart-trigger"
@@ -1250,7 +1293,7 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
           {/* Left / Main Column */}
           <div className="offering-detail__main">
             {/* Media Gallery */}
-            <div className="offering-detail__gallery" ref={heroSummaryRef}>
+            <div className="offering-detail__gallery">
               <div
                 className={`offering-detail__hero-media ${showActiveImage ? 'offering-detail__hero-media--clickable' : ''}`}
                 onClick={() => {
@@ -1626,6 +1669,76 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
           </aside>
         </div>
 
+        {/* Sticky Mobile Bottom Action Dock (visible < 860px, hidden when modals are open) */}
+        {mounted &&
+          typeof document !== 'undefined' &&
+          !(isCheckoutOpen || isQuoteModalOpen || isLocationPickerOpen || isInquiryOpen || isLightboxOpen) &&
+          (() => {
+            const isQuoteFlow =
+              offering.type === 'SERVICE' ||
+              offering.pricingModel === 'QUOTE_REQUIRED' ||
+              !offering.price
+            return createPortal(
+              <div className="offering-detail__mobile-dock">
+                <div className="offering-detail__mobile-dock-inner">
+                  <div className="offering-detail__mobile-dock-price-col">
+                    <span className="offering-detail__mobile-dock-price">
+                      {isQuoteFlow ? 'Price on Request' : formatOfferingPrice(offering)}
+                    </span>
+                    <span className="offering-detail__mobile-dock-sub">
+                      {!deliveryCheck.isDeliverable
+                        ? 'Outside delivery area'
+                        : isQuoteFlow
+                          ? 'Quote before you pay'
+                          : 'Verified partner'}
+                    </span>
+                  </div>
+
+                  <div className="offering-detail__mobile-dock-actions">
+                    {!deliveryCheck.isDeliverable ? (
+                      <button
+                        type="button"
+                        className="offering-detail__mobile-dock-primary"
+                        onClick={() => setIsLocationPickerOpen(true)}
+                      >
+                        <MapPin size={15} />
+                        <span>Select Zone</span>
+                      </button>
+                    ) : isQuoteFlow ? (
+                      <button
+                        type="button"
+                        className="offering-detail__mobile-dock-primary"
+                        onClick={() => setIsQuoteModalOpen(true)}
+                      >
+                        <Wrench size={15} />
+                        <span>Request Price</span>
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          className="offering-detail__mobile-dock-secondary"
+                          onClick={handleAddToCart}
+                        >
+                          <ShoppingCart size={15} />
+                          <span>Add</span>
+                        </button>
+                        <button
+                          type="button"
+                          className="offering-detail__mobile-dock-primary"
+                          onClick={() => setIsCheckoutOpen(true)}
+                        >
+                          <span>Order Now</span>
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>,
+              document.body,
+            )
+          })()}
+
         {/* Similar / Recommended Packages & Products — Horizontal Carousel */}
         {(similarItems.length > 0 || isOfferingsLoading) && (
           <section className="offering-detail__similar-section">
@@ -1691,101 +1804,15 @@ export const OfferingDetailScreen: React.FC<OfferingDetailScreenProps> = ({
         )}
       </main>
 
-      {/* Fullscreen Fluid Image Lightbox */}
-      {mounted &&
-        isLightboxOpen &&
-        showActiveImage &&
-        createPortal(
-          <div
-            className="offering-lightbox"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Full-size image view"
-            onClick={() => setIsLightboxOpen(false)}
-          >
-            <div className="offering-lightbox__backdrop" />
-
-            <header
-              className="offering-lightbox__header"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="offering-lightbox__info">
-                <span className="offering-lightbox__title">{title}</span>
-                {images.length > 1 && (
-                  <span className="offering-lightbox__counter">
-                    {selectedImageIndex + 1} of {images.length}
-                  </span>
-                )}
-              </div>
-
-              <button
-                type="button"
-                className="offering-lightbox__close-btn"
-                onClick={() => setIsLightboxOpen(false)}
-                aria-label="Close photo view"
-              >
-                <X size={20} />
-              </button>
-            </header>
-
-            <div
-              className="offering-lightbox__body"
-              onClick={() => setIsLightboxOpen(false)}
-            >
-              {images.length > 1 && (
-                <button
-                  type="button"
-                  className="offering-lightbox__arrow offering-lightbox__arrow--prev"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setSelectedImageIndex((prev) =>
-                      prev > 0 ? prev - 1 : images.length - 1,
-                    )
-                  }}
-                  aria-label="Previous image"
-                >
-                  <ChevronLeft size={24} />
-                </button>
-              )}
-
-              <div
-                className="offering-lightbox__content"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="offering-lightbox__scrollable">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={activeImage!}
-                    alt={title}
-                    className="offering-lightbox__full-img"
-                  />
-                </div>
-                <div className="offering-lightbox__hint">
-                  <span>Pan or scroll to view whole photo</span>
-                  <span className="offering-lightbox__hint-dot">•</span>
-                  <span>Tap outside to close</span>
-                </div>
-              </div>
-
-              {images.length > 1 && (
-                <button
-                  type="button"
-                  className="offering-lightbox__arrow offering-lightbox__arrow--next"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setSelectedImageIndex((prev) =>
-                      prev < images.length - 1 ? prev + 1 : 0,
-                    )
-                  }}
-                  aria-label="Next image"
-                >
-                  <ChevronRight size={24} />
-                </button>
-              )}
-            </div>
-          </div>,
-          document.body,
-        )}
+      {/* Studio Interactive Image Lightbox (pinch-to-zoom, double-tap, drag-to-pan) */}
+      <ProductImageLightbox
+        isOpen={isLightboxOpen && Boolean(showActiveImage)}
+        images={images}
+        activeIndex={selectedImageIndex}
+        title={title}
+        onSelectIndex={setSelectedImageIndex}
+        onClose={() => setIsLightboxOpen(false)}
+      />
 
       {/* Upward Support & Quote Inquiry Modal */}
       <BottomSheetModal
