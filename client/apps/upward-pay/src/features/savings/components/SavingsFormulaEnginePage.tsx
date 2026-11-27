@@ -95,6 +95,7 @@ export function SavingsFormulaEnginePage() {
   const [activeTab, setActiveTab] = useState<'formula' | 'ledger' | 'compare'>('formula')
   const [showNumbersInFormula, setShowNumbersInFormula] = useState<boolean>(false)
   const [showLegend, setShowLegend] = useState<boolean>(false)
+  const [openExplainer, setOpenExplainer] = useState<'rate' | 'factor' | null>(null)
 
   const {
     control,
@@ -634,21 +635,74 @@ export function SavingsFormulaEnginePage() {
                     </div>
                   </div>
 
-                  {/* 4 Clean One-Line Steps */}
+                  {/* 4 Clean One-Line Steps (with collapsible Why? explainers on I & F) */}
                   <div className="savings-engine__steps">
-                    <div className="savings-engine__step-row">
-                      <div className="savings-engine__step-left">
-                        <span className="savings-engine__step-idx">1</span>
-                        <div>
-                          <div className="savings-engine__step-name">Monthly interest rate (I)</div>
-                          <div className="savings-engine__step-eq">
-                            (1 + {calc.annualRatePct}%)^(1/12) &minus; 1
+                    <div className="savings-engine__step-group">
+                      <div className="savings-engine__step-row">
+                        <div className="savings-engine__step-left">
+                          <span className="savings-engine__step-idx">1</span>
+                          <div>
+                            <div className="savings-engine__step-name">
+                              Monthly interest rate (I)
+                            </div>
+                            <div className="savings-engine__step-eq">
+                              (1 + {calc.annualRatePct}%)^(1/12) &minus; 1
+                            </div>
                           </div>
                         </div>
+                        <div className="savings-engine__step-right">
+                          <div className="savings-engine__step-val">
+                            {(calc.monthlyRate * 100).toFixed(4)}%
+                          </div>
+                          <button
+                            type="button"
+                            aria-expanded={openExplainer === 'rate'}
+                            className={`savings-engine__why-btn ${
+                              openExplainer === 'rate' ? 'savings-engine__why-btn--open' : ''
+                            }`}
+                            onClick={() =>
+                              setOpenExplainer((prev) => (prev === 'rate' ? null : 'rate'))
+                            }
+                          >
+                            <span>Why?</span>
+                            {openExplainer === 'rate' ? (
+                              <ChevronUp size={12} />
+                            ) : (
+                              <ChevronDown size={12} />
+                            )}
+                          </button>
+                        </div>
                       </div>
-                      <div className="savings-engine__step-val">
-                        {(calc.monthlyRate * 100).toFixed(4)}%
-                      </div>
+
+                      {openExplainer === 'rate' && (
+                        <div className="savings-engine__explainer">
+                          <div>
+                            <div className="savings-engine__explainer-block-title">
+                              Why {(calc.monthlyRate * 100).toFixed(4)}% instead of{' '}
+                              {calc.annualRatePct}% &divide; 12?
+                            </div>
+                            Your interest earns interest every month — like a snowball. If we simply
+                            divided {calc.annualRatePct}% by 12 (
+                            <strong>{(calc.annualRatePct / 12).toFixed(2)}%/mo</strong>), that
+                            snowball would actually grow to{' '}
+                            <strong>
+                              {((Math.pow(1 + calc.annualRateDecimal / 12, 12) - 1) * 100).toFixed(
+                                2,
+                              )}
+                              %
+                            </strong>{' '}
+                            in a year — more than the {calc.annualRatePct}% plan rate.{' '}
+                            <strong>{(calc.monthlyRate * 100).toFixed(4)}%</strong> is the exact
+                            monthly rate that snowballs to <strong>exactly {calc.annualRatePct}%</strong>{' '}
+                            over 12 months.
+                          </div>
+                          <div className="savings-engine__explainer-benefit">
+                            <strong>How this protects you:</strong> You get a realistic monthly
+                            target — no inflated interest promises that leave you short when it is
+                            time to pay your landlord.
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     <div className="savings-engine__step-row">
@@ -681,23 +735,105 @@ export function SavingsFormulaEnginePage() {
                       </div>
                     </div>
 
-                    <div className="savings-engine__step-row savings-engine__step-row--result">
-                      <div className="savings-engine__step-left">
-                        <span className="savings-engine__step-idx">4</span>
-                        <div>
-                          <div className="savings-engine__step-name">
-                            Divide by growth factor (F = {calc.growthFactor.toFixed(3)})
-                          </div>
-                          <div className="savings-engine__step-eq">
-                            &lceil; {formatNaira(calc.fundingGap)} &divide;{' '}
-                            {calc.growthFactor.toFixed(3)} &rceil; ({calc.months} pmts +{' '}
-                            {(calc.growthFactor - calc.months).toFixed(3)} interest)
+                    <div className="savings-engine__step-group">
+                      <div className="savings-engine__step-row savings-engine__step-row--result">
+                        <div className="savings-engine__step-left">
+                          <span className="savings-engine__step-idx">4</span>
+                          <div>
+                            <div className="savings-engine__step-name">
+                              Divide by growth factor (F = {calc.growthFactor.toFixed(3)})
+                            </div>
+                            <div className="savings-engine__step-eq">
+                              &lceil; {formatNaira(calc.fundingGap)} &divide;{' '}
+                              {calc.growthFactor.toFixed(3)} &rceil; ({calc.months} pmts +{' '}
+                              {(calc.growthFactor - calc.months).toFixed(3)} interest)
+                            </div>
                           </div>
                         </div>
+                        <div className="savings-engine__step-right">
+                          <div className="savings-engine__step-val">
+                            {formatNaira(calc.monthlyDeposit)} / mo
+                          </div>
+                          <button
+                            type="button"
+                            aria-expanded={openExplainer === 'factor'}
+                            className={`savings-engine__why-btn ${
+                              openExplainer === 'factor' ? 'savings-engine__why-btn--open' : ''
+                            }`}
+                            onClick={() =>
+                              setOpenExplainer((prev) => (prev === 'factor' ? null : 'factor'))
+                            }
+                          >
+                            <span>Why?</span>
+                            {openExplainer === 'factor' ? (
+                              <ChevronUp size={12} />
+                            ) : (
+                              <ChevronDown size={12} />
+                            )}
+                          </button>
+                        </div>
                       </div>
-                      <div className="savings-engine__step-val">
-                        {formatNaira(calc.monthlyDeposit)} / mo
-                      </div>
+
+                      {openExplainer === 'factor' && (
+                        <div className="savings-engine__explainer">
+                          <div>
+                            <div className="savings-engine__explainer-block-title">
+                              Where {calc.growthFactor.toFixed(2)} comes from
+                            </div>
+                            Your earlier monthly payments sit in your vault longer, so they earn
+                            interest too — not just your upfront deposit. Over{' '}
+                            <strong>{calc.months} months</strong>, your money works like{' '}
+                            <strong>{calc.growthFactor.toFixed(2)} payments</strong> instead of{' '}
+                            {calc.months}: <strong>{calc.months} from your pocket</strong> +{' '}
+                            <strong>{(calc.growthFactor - calc.months).toFixed(2)} free from interest</strong>.
+                          </div>
+
+                          <div className="savings-engine__mini-table-wrap">
+                            <table className="savings-engine__mini-table">
+                              <thead>
+                                <tr>
+                                  <th>Payment</th>
+                                  <th className="savings-engine__num">Time to Grow</th>
+                                  <th className="savings-engine__num">Every ₦1 Grows To</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {calc.growthFactorBreakdown.map((item) => (
+                                  <tr key={item.paymentNumber}>
+                                    <td>Month {item.paymentNumber}</td>
+                                    <td className="savings-engine__num">
+                                      {item.monthsToGrow === 0
+                                        ? 'Unlocks right away'
+                                        : `${item.monthsToGrow} mo`}
+                                    </td>
+                                    <td className="savings-engine__num">
+                                      ₦{item.oneNairaBecomes.toFixed(3)}
+                                    </td>
+                                  </tr>
+                                ))}
+                                <tr className="savings-engine__row--unlock">
+                                  <td>Total</td>
+                                  <td className="savings-engine__num">{calc.months} payments</td>
+                                  <td className="savings-engine__num">
+                                    {calc.growthFactor.toFixed(3)}
+                                  </td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+
+                          <div className="savings-engine__explainer-benefit">
+                            <strong>How this helps you:</strong> Without interest on your monthly
+                            deposits, splitting {formatNaira(calc.fundingGap)} across {calc.months}{' '}
+                            months would cost <strong>{formatNaira(calc.plainSplitMonthly)}/mo</strong>.
+                            Because interest carries that extra{' '}
+                            {(calc.growthFactor - calc.months).toFixed(2)} share for you, you pay{' '}
+                            <strong>{formatNaira(calc.monthlySavingsFromInterest)} less every month</strong>{' '}
+                            (<strong>{formatNaira(calc.monthlyDeposit)}/mo</strong>) — and still hit
+                            your full rent even if you pay at the end of the month.
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -725,7 +861,8 @@ export function SavingsFormulaEnginePage() {
                       </div>
                       <div className="savings-engine__legend-card">
                         <span className="savings-engine__legend-sym">I</span>
-                        <strong>Monthly Rate:</strong> (1 + {calc.annualRatePct}%)^(1/12) &minus; 1.
+                        <strong>Monthly Rate:</strong> (1 + {calc.annualRatePct}%)^(1/12) &minus; 1
+                        = {(calc.monthlyRate * 100).toFixed(4)}%.
                       </div>
                       <div className="savings-engine__legend-card">
                         <span className="savings-engine__legend-sym">n</span>

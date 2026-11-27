@@ -737,6 +737,113 @@
   color: var(--skin-primary, #c2501f);
 }
 
+.savings-engine__step-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.savings-engine__step-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.savings-engine__why-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-solid);
+  background: var(--bg);
+  color: var(--skin-primary, #c2501f);
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.savings-engine__why-btn:hover {
+  border-color: var(--clay);
+  background: var(--shell-tint, #fbede5);
+}
+
+.savings-engine__why-btn--open {
+  background: var(--dark);
+  border-color: var(--dark);
+  color: #ffffff;
+}
+
+.savings-engine__explainer {
+  margin-top: 6px;
+  padding: 13px 14px;
+  border-radius: var(--radius-md);
+  background: var(--bg);
+  border: 1px solid var(--shell-border, #f0e9df);
+  border-left: 3px solid var(--clay);
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  display: grid;
+  gap: 9px;
+}
+
+.savings-engine__explainer-block-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--dark);
+  margin-bottom: 2px;
+}
+
+.savings-engine__explainer-benefit {
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #166534;
+  font-size: 12px;
+}
+
+.savings-engine__mini-table-wrap {
+  max-height: 190px;
+  overflow-y: auto;
+  border: 1px solid var(--shell-border, #f0e9df);
+  border-radius: var(--radius-sm);
+}
+
+.savings-engine__mini-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.savings-engine__mini-table th {
+  position: sticky;
+  top: 0;
+  background: var(--oat);
+  color: var(--shell-ink-muted, #7a7268);
+  text-align: left;
+  padding: 6px 9px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--shell-border, #f0e9df);
+}
+
+.savings-engine__mini-table td {
+  padding: 5px 9px;
+  border-bottom: 1px solid var(--shell-border, #f0e9df);
+}
+
+.savings-engine__mini-table tr:last-child td {
+  border-bottom: none;
+}
+
 /* Collapsible Symbol Legend */
 .savings-engine__legend-toggle {
   margin-top: 12px;
