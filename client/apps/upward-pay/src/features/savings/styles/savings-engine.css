@@ -1015,23 +1015,64 @@
   margin-top: 4px;
 }
 
-/* Direct Month Input */
-.savings-engine__input--months {
-  padding-left: 12px;
-  padding-right: 74px;
+/* Direct Date Timeline Controls */
+.savings-engine__date-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
 }
 
-.savings-engine__unit-suffix {
-  position: absolute;
-  right: 12px;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--shell-ink-muted, #7a7268);
-  pointer-events: none;
+.savings-engine__date-input {
+  width: 100%;
+  padding: 9px 10px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border-solid);
+  background: var(--oat);
+  color: var(--dark);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
 }
 
-.savings-engine__chips--five {
-  grid-template-columns: repeat(5, 1fr);
+.savings-engine__date-input:focus {
+  border-color: var(--clay);
+  background: var(--bg);
+}
+
+.savings-engine__duration-pill {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--oat);
+  border: 1px solid var(--shell-border, #f0e9df);
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-variant-numeric: tabular-nums;
+}
+
+.savings-engine__calendar-inputs--two {
+  grid-template-columns: minmax(140px, 190px) minmax(0, 1fr);
+  align-items: end;
+}
+
+@media (max-width: 520px) {
+  .savings-engine__calendar-inputs--two {
+    grid-template-columns: 1fr;
+  }
+}
+
+.savings-engine__day0-toggle {
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  border: 1px solid var(--border-solid);
 }
 
 /* Calendar Day-of-Month Simulator */

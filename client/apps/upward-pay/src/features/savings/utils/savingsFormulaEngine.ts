@@ -56,14 +56,13 @@ export const MONTH_LABELS = [
 export interface EngineInputs {
   targetRentNaira: number
   planId: EnginePlanId
-  months: number // active payment months n (1..12; Upward plans cap at 11 before T-30 unlock)
+  startDateIso: string // YYYY-MM-DD (e.g. '2026-01-17')
+  rentDueDateIso: string // YYYY-MM-DD (e.g. '2027-01-01')
   upfrontDepositNaira: number
   enableExtraTopUp: boolean
   extraTopUpMonth: number // 1..n-1
   extraTopUpAmountNaira: number
   // Calendar timing comparison inputs
-  startMonth?: number // 0..11 (default 0 = Jan)
-  startDay?: number // 1..28 (default 17)
   depositDay?: number // 1..28 (default 28)
   payFirstMonthOnStartDay?: boolean // default false; true = annuity-due (ChatGPT assumption)
 }
@@ -80,10 +79,13 @@ export interface CalendarDepositRow {
   delayedInterest: number
   delayedFutureValue: number
   isFinalDeposit: boolean
+  clampedToUnlock?: boolean
 }
 
 export interface CalendarScheduleResult {
-  startMonth: number
+  startDateIso: string
+  rentDueDateIso: string
+  unlockDateIso: string
   startDay: number
   depositDay: number
   payFirstMonthOnStartDay: boolean
@@ -92,7 +94,10 @@ export interface CalendarScheduleResult {
   lastDepositDateLabel: string
   unlockDateLabel: string
   rentDueDateLabel: string
-  totalDays: number
+  daysUntilRent: number
+  activeSavingDays: number
+  extraBufferDays: number
+  cappedAtMaxMonths: boolean
   lastDepositDaysToCompound: number
   lastDepositEarnsInterest: boolean
   lastDepositUpwardInterest: number
@@ -196,9 +201,46 @@ export function formatNaira(value: number, showSign = false): string {
   return rounded < 0 ? `−₦${absFormatted}` : `₦${absFormatted}`
 }
 
-function formatUtcDate(ms: number): string {
+const DAY_MS = 86_400_000
+
+export function parseIsoDateUtc(iso: string, fallbackMs: number): number {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec((iso || '').trim())
+  if (!m) return fallbackMs
+  const year = Number(m[1])
+  const month = Number(m[2]) - 1
+  const day = Number(m[3])
+  const ms = Date.UTC(year, month, day)
+  return Number.isFinite(ms) ? ms : fallbackMs
+}
+
+export function toIsoDateUtc(ms: number): string {
   const d = new Date(ms)
-  return `${MONTH_LABELS[d.getUTCMonth()]} ${d.getUTCDate()}`
+  const y = d.getUTCFullYear()
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(d.getUTCDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+export function addDaysToIso(iso: string, days: number): string {
+  const base = parseIsoDateUtc(iso, Date.UTC(2026, 0, 17))
+  return toIsoDateUtc(base + days * DAY_MS)
+}
+
+export function addMonthsToIso(iso: string, deltaMonths: number): string {
+  const base = parseIsoDateUtc(iso, Date.UTC(2026, 0, 17))
+  const d = new Date(base)
+  const targetYear = d.getUTCFullYear()
+  const targetMonth = d.getUTCMonth() + deltaMonths
+  const origDay = d.getUTCDate()
+  // Clamp to last day of target month (e.g., Jan 31 + 1m -> Feb 28)
+  const lastDayOfTarget = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate()
+  return toIsoDateUtc(Date.UTC(targetYear, targetMonth, Math.min(origDay, lastDayOfTarget)))
+}
+
+function formatUtcDate(ms: number, includeYear = false): string {
+  const d = new Date(ms)
+  const base = `${MONTH_LABELS[d.getUTCMonth()]} ${d.getUTCDate()}`
+  return includeYear ? `${base}, ${d.getUTCFullYear()}` : base
 }
 
 export function computeSavingsEngine(inputs: EngineInputs): EngineCalculationResult {
@@ -206,11 +248,24 @@ export function computeSavingsEngine(inputs: EngineInputs): EngineCalculationRes
   const plan = ENGINE_PLANS[inputs.planId] ?? ENGINE_PLANS.FULL_LOCK
   const annualRatePct = plan.annualRatePct
   const annualRateDecimal = annualRatePct / 100
-  const months = Math.min(12, Math.max(1, Math.round(inputs.months || 1)))
 
-  // T-30 horizon: active saving days = n * 30, days until rent due = n * 30 + 30
-  const savingDays = months * 30
-  const daysUntilRent = savingDays + 30
+  // Exact date-driven duration matching RentSavingsCalculatorEngine.simulate():
+  // unlockDate = rentDueDate - 30 days
+  // activeSavingDays = max(1, daysUntilRent - 30)
+  // n = clamp(floor(activeSavingDays / 30), 1, 11)
+  const defaultStartMs = Date.UTC(2026, 0, 17)
+  const defaultRentMs = Date.UTC(2027, 0, 1)
+  const startMs = parseIsoDateUtc(inputs.startDateIso, defaultStartMs)
+  const rawRentMs = parseIsoDateUtc(inputs.rentDueDateIso, defaultRentMs)
+  const rentDueMs = rawRentMs > startMs + 30 * DAY_MS ? rawRentMs : startMs + 60 * DAY_MS
+  const unlockMs = rentDueMs - 30 * DAY_MS
+
+  const daysUntilRent = Math.max(1, Math.round((rentDueMs - startMs) / DAY_MS))
+  const savingDays = Math.max(1, daysUntilRent - 30)
+  const rawMonths = Math.max(1, Math.floor(savingDays / 30))
+  const cappedAtMaxMonths = rawMonths > 11
+  const months = Math.min(11, rawMonths)
+  const extraBufferDays = Math.max(0, savingDays - months * 30)
   const isRentProtecEligible = daysUntilRent >= 6 * 28 // matches RentSavingsCalculatorEngine
 
   // Effective monthly compound rate: I = (1 + r_a)^(1/12) - 1
@@ -381,26 +436,30 @@ export function computeSavingsEngine(inputs: EngineInputs): EngineCalculationRes
     }
   })
 
-  // Exact calendar-date simulator (Start Month + Start Day vs Monthly Deposit Day)
-  const startMonth = Math.min(11, Math.max(0, Math.round(inputs.startMonth ?? 0)))
-  const startDay = Math.min(28, Math.max(1, Math.round(inputs.startDay ?? 17)))
+  // Exact calendar-date simulator using Start Date, Rent Due Date, Unlock Date (T-30), and Monthly Deposit Day
+  const startDateObj = new Date(startMs)
+  const startYear = startDateObj.getUTCFullYear()
+  const startMonth = startDateObj.getUTCMonth()
+  const startDay = startDateObj.getUTCDate()
   const depositDay = Math.min(28, Math.max(1, Math.round(inputs.depositDay ?? 28)))
   const payFirstMonthOnStartDay = Boolean(inputs.payFirstMonthOnStartDay)
 
-  const refYear = 2026
-  const startMs = Date.UTC(refYear, startMonth, startDay)
-  const unlockMs = Date.UTC(refYear, startMonth + months, startDay)
-  const rentDueMs = Date.UTC(refYear, startMonth + months + 1, startDay)
-  const totalDays = Math.max(1, Math.round((unlockMs - startMs) / 86_400_000))
+  const effectiveCompoundingHorizonMs = cappedAtMaxMonths
+    ? startMs + months * 30 * DAY_MS
+    : unlockMs
+  const effectiveHorizonDays = Math.max(
+    1,
+    Math.round((effectiveCompoundingHorizonMs - startMs) / DAY_MS),
+  )
 
-  const upfrontFactor = Math.pow(1 + dailyRate, totalDays)
+  const upfrontFactor = Math.pow(1 + dailyRate, effectiveHorizonDays)
   const upfrontFv = effectiveUpfront * upfrontFactor
   const calendarRows: CalendarDepositRow[] = [
     {
       step: 0,
       label: 'Upfront (Day 0)',
-      dateLabel: formatUtcDate(startMs),
-      daysToCompound: totalDays,
+      dateLabel: formatUtcDate(startMs, true),
+      daysToCompound: effectiveHorizonDays,
       upwardDeposit: effectiveUpfront,
       upwardInterest: upfrontFv - effectiveUpfront,
       upwardFutureValue: upfrontFv,
@@ -414,21 +473,26 @@ export function computeSavingsEngine(inputs: EngineInputs): EngineCalculationRes
   let calUpwardTotal = upfrontFv
   let calDelayedTotal = upfrontFv
   let firstDepositDateLabel = formatUtcDate(startMs)
-  let lastDepositDateLabel = formatUtcDate(unlockMs)
+  let lastDepositDateLabel = formatUtcDate(effectiveCompoundingHorizonMs)
   let lastDepositDaysToCompound = 0
   let lastDepositUpwardInterest = 0
 
   // Determine the month offset for Deposit #1:
-  // - If paying Month 1 on Day 0 (annuity-due): Deposit #k lands at startMonth + (k - 1), on startDay.
+  // - If paying Month 1 on Day 0 (annuity-due / ChatGPT assumption): Deposit #k lands on startMonth + (k - 1), same day as start.
   // - Otherwise, Deposit #1 is the first occurrence of depositDay strictly AFTER startMs:
-  //   - If depositDay > startDay (e.g. start Jan 17, pay 28th) -> Deposit #1 is Jan 28 (monthOffset = 0), Deposit #10 is Oct 28 (20d before Nov 17 unlock).
-  //   - If depositDay <= startDay (e.g. start Jan 1 & pay 1st, OR start Jan 17 & pay 17th, OR start Jan 17 & pay 1st) -> Deposit #1 is next month (monthOffset = 1).
+  //   - If depositDay > startDay (e.g. start Jan 17, pay 28th) -> Deposit #1 is Jan 28 (monthOffset = 0).
+  //   - If depositDay <= startDay (e.g. start Jan 1 & pay 1st, OR start Jan 17 & pay 17th/1st) -> Deposit #1 is next month (monthOffset = 1).
   const firstMonthOffset = payFirstMonthOnStartDay ? 0 : depositDay > startDay ? 0 : 1
-  const effectivePayDay = payFirstMonthOnStartDay ? startDay : depositDay
+  const effectivePayDay = payFirstMonthOnStartDay ? Math.min(28, startDay) : depositDay
 
   for (let k = 1; k <= months; k++) {
-    const depMs = Date.UTC(refYear, startMonth + firstMonthOffset + (k - 1), effectivePayDay)
-    const daysToCompound = Math.max(0, Math.round((unlockMs - depMs) / 86_400_000))
+    const rawDepMs = Date.UTC(startYear, startMonth + firstMonthOffset + (k - 1), effectivePayDay)
+    const clampedToUnlock = rawDepMs > effectiveCompoundingHorizonMs
+    const depMs = clampedToUnlock ? effectiveCompoundingHorizonMs : rawDepMs
+    const daysToCompound = Math.max(
+      0,
+      Math.round((effectiveCompoundingHorizonMs - depMs) / DAY_MS),
+    )
     const factor = Math.pow(1 + dailyRate, daysToCompound)
     const upFv = monthlyDeposit * factor
     const delFv = delayedMonthly * factor
@@ -449,7 +513,7 @@ export function computeSavingsEngine(inputs: EngineInputs): EngineCalculationRes
     calendarRows.push({
       step: k,
       label: k === months ? `Deposit #${k} (Final)` : `Deposit #${k}`,
-      dateLabel,
+      dateLabel: clampedToUnlock ? `${dateLabel} (by unlock)` : dateLabel,
       daysToCompound,
       upwardDeposit: monthlyDeposit,
       upwardInterest: upInt,
@@ -458,20 +522,26 @@ export function computeSavingsEngine(inputs: EngineInputs): EngineCalculationRes
       delayedInterest: delInt,
       delayedFutureValue: delFv,
       isFinalDeposit: k === months,
+      clampedToUnlock,
     })
   }
 
   const calendarSchedule: CalendarScheduleResult = {
-    startMonth,
+    startDateIso: toIsoDateUtc(startMs),
+    rentDueDateIso: toIsoDateUtc(rentDueMs),
+    unlockDateIso: toIsoDateUtc(unlockMs),
     startDay,
     depositDay: effectivePayDay,
     payFirstMonthOnStartDay,
-    startDateLabel: formatUtcDate(startMs),
+    startDateLabel: formatUtcDate(startMs, true),
     firstDepositDateLabel,
     lastDepositDateLabel,
-    unlockDateLabel: formatUtcDate(unlockMs),
-    rentDueDateLabel: formatUtcDate(rentDueMs),
-    totalDays,
+    unlockDateLabel: formatUtcDate(unlockMs, true),
+    rentDueDateLabel: formatUtcDate(rentDueMs, true),
+    daysUntilRent,
+    activeSavingDays: savingDays,
+    extraBufferDays,
+    cappedAtMaxMonths,
     lastDepositDaysToCompound,
     lastDepositEarnsInterest: lastDepositDaysToCompound > 0,
     lastDepositUpwardInterest,

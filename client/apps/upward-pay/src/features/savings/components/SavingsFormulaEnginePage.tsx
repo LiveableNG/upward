@@ -21,9 +21,12 @@ import {
 import { UpwardLogo } from '@/components/PoweredByUpward'
 import {
   ENGINE_PLANS,
-  MONTH_LABELS,
+  addDaysToIso,
+  addMonthsToIso,
   computeSavingsEngine,
   formatNaira,
+  parseIsoDateUtc,
+  toIsoDateUtc,
   type EnginePlanId,
 } from '../utils/savingsFormulaEngine'
 import '../styles/savings-engine.css'
@@ -31,13 +34,12 @@ import '../styles/savings-engine.css'
 const engineFormSchema = z.object({
   targetRentNaira: z.number().min(100_000, 'Min ₦100,000').max(50_000_000, 'Max ₦50,000,000'),
   planId: z.enum(['FULL_LOCK', 'FLEXIBLE', 'RENT_PROTEC']),
-  months: z.number().min(1, 'Min 1 month').max(12, 'Max 12 months'),
+  startDateIso: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Pick a valid start date'),
+  rentDueDateIso: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Pick a valid rent due date'),
   upfrontDepositNaira: z.number().min(0),
   enableExtraTopUp: z.boolean(),
-  extraTopUpMonth: z.number().min(1).max(11),
+  extraTopUpMonth: z.number().min(1).max(10),
   extraTopUpAmountNaira: z.number().min(0).max(50_000_000),
-  startMonth: z.number().min(0).max(11),
-  startDay: z.number().min(1).max(28),
   depositDay: z.number().min(1).max(28),
   payFirstMonthOnStartDay: z.boolean(),
 })
@@ -45,11 +47,46 @@ const engineFormSchema = z.object({
 type EngineFormValues = z.infer<typeof engineFormSchema>
 
 const CALENDAR_SCENARIOS = [
-  { id: '1st-1st', label: 'Start 1st · Pay 1st', startDay: 1, depositDay: 1, payDay0: false },
-  { id: '17th-17th', label: 'Start 17th · Pay 17th', startDay: 17, depositDay: 17, payDay0: false },
-  { id: '17th-28th', label: 'Start 17th · Pay 28th', startDay: 17, depositDay: 28, payDay0: false },
-  { id: '17th-1st', label: 'Start 17th · Pay 1st', startDay: 17, depositDay: 1, payDay0: false },
-  { id: 'day0-chatgpt', label: 'Pay Mo 1 on Day 0 (ChatGPT)', startDay: 1, depositDay: 1, payDay0: true },
+  {
+    id: '1st-1st',
+    label: 'Start Jan 1 · Rent Dec 1 · Pay 1st',
+    startDateIso: '2026-01-01',
+    rentDueDateIso: '2026-12-01',
+    depositDay: 1,
+    payDay0: false,
+  },
+  {
+    id: '17th-17th',
+    label: 'Start Jan 17 · Rent Dec 17 · Pay 17th',
+    startDateIso: '2026-01-17',
+    rentDueDateIso: '2026-12-17',
+    depositDay: 17,
+    payDay0: false,
+  },
+  {
+    id: '17th-28th',
+    label: 'Start Jan 17 · Rent Dec 17 · Pay 28th',
+    startDateIso: '2026-01-17',
+    rentDueDateIso: '2026-12-17',
+    depositDay: 28,
+    payDay0: false,
+  },
+  {
+    id: '17th-jan1',
+    label: 'Start Jan 17 · Rent Jan 1 · Pay 28th',
+    startDateIso: '2026-01-17',
+    rentDueDateIso: '2027-01-01',
+    depositDay: 28,
+    payDay0: false,
+  },
+  {
+    id: 'day0-chatgpt',
+    label: 'Pay Mo 1 on Day 0 (ChatGPT)',
+    startDateIso: '2026-01-01',
+    rentDueDateIso: '2026-12-01',
+    depositDay: 1,
+    payDay0: true,
+  },
 ] as const
 
 const PRESETS: Array<{ id: string; label: string; values: EngineFormValues }> = [
@@ -59,13 +96,12 @@ const PRESETS: Array<{ id: string; label: string; values: EngineFormValues }> = 
     values: {
       targetRentNaira: 4_000_000,
       planId: 'FULL_LOCK',
-      months: 10,
+      startDateIso: '2026-01-17',
+      rentDueDateIso: '2026-12-17',
       upfrontDepositNaira: 1_200_000,
       enableExtraTopUp: false,
       extraTopUpMonth: 4,
       extraTopUpAmountNaira: 200_000,
-      startMonth: 0,
-      startDay: 17,
       depositDay: 28,
       payFirstMonthOnStartDay: false,
     },
@@ -76,13 +112,12 @@ const PRESETS: Array<{ id: string; label: string; values: EngineFormValues }> = 
     values: {
       targetRentNaira: 2_000_000,
       planId: 'FULL_LOCK',
-      months: 10,
+      startDateIso: '2026-01-01',
+      rentDueDateIso: '2026-12-01',
       upfrontDepositNaira: 0,
       enableExtraTopUp: false,
       extraTopUpMonth: 4,
       extraTopUpAmountNaira: 150_000,
-      startMonth: 0,
-      startDay: 1,
       depositDay: 1,
       payFirstMonthOnStartDay: false,
     },
@@ -93,13 +128,12 @@ const PRESETS: Array<{ id: string; label: string; values: EngineFormValues }> = 
     values: {
       targetRentNaira: 2_000_000,
       planId: 'RENT_PROTEC',
-      months: 10,
+      startDateIso: '2026-01-17',
+      rentDueDateIso: '2026-12-17',
       upfrontDepositNaira: 400_000,
       enableExtraTopUp: false,
       extraTopUpMonth: 4,
       extraTopUpAmountNaira: 150_000,
-      startMonth: 0,
-      startDay: 17,
       depositDay: 28,
       payFirstMonthOnStartDay: false,
     },
@@ -140,26 +174,41 @@ export function SavingsFormulaEnginePage() {
     return computeSavingsEngine({
       targetRentNaira: Number(watched.targetRentNaira) || 0,
       planId: (watched.planId as EnginePlanId) || 'FULL_LOCK',
-      months: Number(watched.months) || 10,
+      startDateIso: watched.startDateIso || '2026-01-17',
+      rentDueDateIso: watched.rentDueDateIso || '2026-12-17',
       upfrontDepositNaira: Number(watched.upfrontDepositNaira) || 0,
       enableExtraTopUp: Boolean(watched.enableExtraTopUp),
       extraTopUpMonth: Number(watched.extraTopUpMonth) || 4,
       extraTopUpAmountNaira: Number(watched.extraTopUpAmountNaira) || 0,
-      startMonth: Number(watched.startMonth ?? 0),
-      startDay: Number(watched.startDay ?? 17),
       depositDay: Number(watched.depositDay ?? 28),
       payFirstMonthOnStartDay: Boolean(watched.payFirstMonthOnStartDay),
     })
   }, [watched])
 
-  const setMonthsClamped = (raw: number) => {
-    const next = Math.min(12, Math.max(1, Math.round(raw || 1)))
+  const setRentDueByActiveMonths = (activeMonths: number) => {
+    const startIso = watched.startDateIso || '2026-01-17'
+    // n active saving months + 30d T-30 unlock = startDate + (n + 1) calendar months
+    const nextRentDue = addMonthsToIso(startIso, activeMonths + 1)
     setActivePreset('')
-    setValue('months', next, { shouldValidate: true })
-    if ((Number(watched.extraTopUpMonth) || 1) >= next) {
-      setValue('extraTopUpMonth', Math.max(1, next - 1))
+    setValue('rentDueDateIso', nextRentDue, { shouldValidate: true })
+    if ((Number(watched.extraTopUpMonth) || 1) >= activeMonths) {
+      setValue('extraTopUpMonth', Math.max(1, activeMonths - 1))
     }
   }
+
+  const handleStartDateChange = (nextStartIso: string) => {
+    setActivePreset('')
+    setValue('startDateIso', nextStartIso, { shouldValidate: true })
+    const startMs = parseIsoDateUtc(nextStartIso, 0)
+    const rentMs = parseIsoDateUtc(watched.rentDueDateIso || '', 0)
+    if (startMs > 0 && rentMs <= startMs + 60 * 86_400_000) {
+      setValue('rentDueDateIso', addDaysToIso(nextStartIso, 330), { shouldValidate: true })
+    }
+  }
+
+  const minRentDueDateIso = toIsoDateUtc(
+    parseIsoDateUtc(watched.startDateIso || '2026-01-17', Date.UTC(2026, 0, 17)) + 60 * 86_400_000,
+  )
 
   const applyPreset = (preset: (typeof PRESETS)[number]) => {
     setActivePreset(preset.id)
@@ -311,70 +360,79 @@ export function SavingsFormulaEnginePage() {
                 </div>
               </div>
 
-              {/* 3. Months */}
+              {/* 3. Start Date & Rent Due Date */}
               <div className="savings-engine__field">
                 <div className="savings-engine__field-top">
-                  <label className="savings-engine__label" htmlFor="months-input">
-                    Saving Months (n)
-                  </label>
+                  <span className="savings-engine__label">Saving Timeline</span>
                   <span className="savings-engine__meta">
-                    {calc.months === 12 ? 'Full 12 mo comparison' : 'Unlocks 30d early'}
+                    {calc.months} active {calc.months === 1 ? 'month' : 'months'}
                   </span>
                 </div>
-                <div className="savings-engine__input-wrap">
-                  <input
-                    id="months-input"
-                    type="number"
-                    inputMode="numeric"
-                    min={1}
-                    max={12}
-                    className={`savings-engine__input savings-engine__input--months ${
-                      errors.months ? 'savings-engine__input--error' : ''
-                    }`}
-                    value={watched.months ?? 10}
-                    onChange={(e) => {
-                      const val = parseInt(e.target.value, 10)
-                      if (Number.isNaN(val)) return
-                      setMonthsClamped(val)
-                    }}
-                  />
-                  <span className="savings-engine__unit-suffix">
-                    {calc.months === 1 ? 'month' : 'months'}
-                  </span>
+
+                <div className="savings-engine__date-grid">
+                  <div>
+                    <label className="savings-engine__mini-label" htmlFor="start-date-input">
+                      Start Date
+                    </label>
+                    <input
+                      id="start-date-input"
+                      type="date"
+                      className="savings-engine__date-input"
+                      value={watched.startDateIso || '2026-01-17'}
+                      onChange={(e) => {
+                        if (e.target.value) handleStartDateChange(e.target.value)
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <label className="savings-engine__mini-label" htmlFor="rent-due-date-input">
+                      Rent Due Date
+                    </label>
+                    <input
+                      id="rent-due-date-input"
+                      type="date"
+                      min={minRentDueDateIso}
+                      className="savings-engine__date-input"
+                      value={watched.rentDueDateIso || '2026-12-17'}
+                      onChange={(e) => {
+                        if (!e.target.value) return
+                        setActivePreset('')
+                        setValue('rentDueDateIso', e.target.value, { shouldValidate: true })
+                      }}
+                    />
+                  </div>
                 </div>
-                <div className="savings-engine__chips savings-engine__chips--five">
-                  {[6, 9, 10, 11, 12].map((m) => (
+
+                <div className="savings-engine__chips">
+                  {[6, 9, 10, 11].map((m) => (
                     <button
                       key={m}
                       type="button"
                       className={`savings-engine__chip ${
                         calc.months === m ? 'savings-engine__chip--active' : ''
                       }`}
-                      onClick={() => setMonthsClamped(m)}
+                      onClick={() => setRentDueByActiveMonths(m)}
                     >
                       {m} mo
                     </button>
                   ))}
                 </div>
-                <input
-                  id="months-slider"
-                  type="range"
-                  className="savings-engine__slider"
-                  min={1}
-                  max={12}
-                  step={1}
-                  value={calc.months}
-                  onChange={(e) => setMonthsClamped(Number(e.target.value))}
-                />
-                {calc.months > 11 && (
-                  <div className="savings-engine__note">
-                    <Calendar size={14} />
-                    <span>
-                      Live Upward vaults cap at 11 active months (unlocking 30d before rent). 12 mo
-                      is enabled here for formula comparison.
-                    </span>
-                  </div>
-                )}
+
+                <div className="savings-engine__duration-pill">
+                  <Calendar size={14} style={{ flexShrink: 0, color: 'var(--skin-primary)' }} />
+                  <span>
+                    <strong>{calc.daysUntilRent}d</strong> to rent &minus; 30d unlock ={' '}
+                    <strong>{calc.savingDays}d</strong> active &rarr;{' '}
+                    <strong>n = {calc.months} mo</strong>
+                    {calc.calendarSchedule.extraBufferDays > 0 &&
+                      !calc.calendarSchedule.cappedAtMaxMonths && (
+                        <> (+{calc.calendarSchedule.extraBufferDays}d buffer)</>
+                      )}
+                    {calc.calendarSchedule.cappedAtMaxMonths && <> (11 mo max)</>} · Unlocks{' '}
+                    <strong>{calc.calendarSchedule.unlockDateLabel}</strong>
+                  </span>
+                </div>
+
                 {watched.planId === 'RENT_PROTEC' && !calc.isRentProtecEligible && (
                   <div className="savings-engine__note savings-engine__note--warn">
                     <AlertTriangle size={14} />
@@ -1015,18 +1073,18 @@ export function SavingsFormulaEnginePage() {
                     <div className="savings-engine__calendar-head">
                       <span className="savings-engine__calendar-title">
                         <Calendar size={14} />
-                        <span>Test Start Day vs. Monthly Deposit Day</span>
+                        <span>Real-Calendar Proof (Start Date &rarr; Rent Due Date)</span>
                       </span>
                       <span className="savings-engine__meta">
-                        {calc.calendarSchedule.startDateLabel} &rarr;{' '}
-                        {calc.calendarSchedule.unlockDateLabel} ({calc.calendarSchedule.totalDays}d)
+                        {calc.calendarSchedule.activeSavingDays} active days (n = {calc.months})
                       </span>
                     </div>
 
                     <div className="savings-engine__scenario-chips">
                       {CALENDAR_SCENARIOS.map((sc) => {
                         const isActive =
-                          calc.calendarSchedule.startDay === sc.startDay &&
+                          calc.calendarSchedule.startDateIso === sc.startDateIso &&
+                          calc.calendarSchedule.rentDueDateIso === sc.rentDueDateIso &&
                           calc.calendarSchedule.payFirstMonthOnStartDay === sc.payDay0 &&
                           (sc.payDay0 || calc.calendarSchedule.depositDay === sc.depositDay)
                         return (
@@ -1037,7 +1095,9 @@ export function SavingsFormulaEnginePage() {
                               isActive ? 'savings-engine__preset--active' : ''
                             }`}
                             onClick={() => {
-                              setValue('startDay', sc.startDay)
+                              setActivePreset('')
+                              setValue('startDateIso', sc.startDateIso)
+                              setValue('rentDueDateIso', sc.rentDueDateIso)
                               setValue('depositDay', sc.depositDay)
                               setValue('payFirstMonthOnStartDay', sc.payDay0)
                             }}
@@ -1048,47 +1108,10 @@ export function SavingsFormulaEnginePage() {
                       })}
                     </div>
 
-                    <div className="savings-engine__calendar-inputs">
-                      <div>
-                        <label className="savings-engine__mini-label" htmlFor="cal-start-month">
-                          Start Month
-                        </label>
-                        <select
-                          id="cal-start-month"
-                          className="savings-engine__mini-input"
-                          value={calc.calendarSchedule.startMonth}
-                          onChange={(e) => setValue('startMonth', Number(e.target.value))}
-                        >
-                          {MONTH_LABELS.map((m, idx) => (
-                            <option key={m} value={idx}>
-                              {m}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="savings-engine__mini-label" htmlFor="cal-start-day">
-                          Start Day (1–28)
-                        </label>
-                        <input
-                          id="cal-start-day"
-                          type="number"
-                          min={1}
-                          max={28}
-                          className="savings-engine__mini-input"
-                          value={calc.calendarSchedule.startDay}
-                          onChange={(e) => {
-                            const v = parseInt(e.target.value, 10)
-                            if (Number.isNaN(v)) return
-                            setValue('startDay', Math.min(28, Math.max(1, v)))
-                          }}
-                        />
-                      </div>
-
+                    <div className="savings-engine__calendar-inputs savings-engine__calendar-inputs--two">
                       <div>
                         <label className="savings-engine__mini-label" htmlFor="cal-deposit-day">
-                          Monthly Deposit Day
+                          Monthly Deposit Day (1–28)
                         </label>
                         <input
                           id="cal-deposit-day"
@@ -1104,6 +1127,30 @@ export function SavingsFormulaEnginePage() {
                             setValue('depositDay', Math.min(28, Math.max(1, v)))
                           }}
                         />
+                      </div>
+
+                      <div className="savings-engine__day0-toggle">
+                        <button
+                          type="button"
+                          className="savings-engine__topup-trigger"
+                          onClick={() =>
+                            setValue(
+                              'payFirstMonthOnStartDay',
+                              !calc.calendarSchedule.payFirstMonthOnStartDay,
+                            )
+                          }
+                        >
+                          <span style={{ fontSize: 12 }}>Pay Month 1 on Start Day (Day 0)</span>
+                          <span
+                            className={`savings-engine__switch ${
+                              calc.calendarSchedule.payFirstMonthOnStartDay
+                                ? 'savings-engine__switch--on'
+                                : ''
+                            }`}
+                          >
+                            <span className="savings-engine__switch-knob" />
+                          </span>
+                        </button>
                       </div>
                     </div>
 
