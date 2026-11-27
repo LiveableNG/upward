@@ -22,6 +22,7 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
 import { PlatformRatesService } from '../../../shared/infrastructure/common/platform-rates.service'
 import { S3Service } from '../../../shared/infrastructure/common/s3/s3.service'
 import { RecordSavingsConsentUseCase } from './record-savings-consent.use-case'
+import { ApplyReservedSavingsCashbackUseCase } from './apply-reserved-savings-cashback.use-case'
 import { isProductionRuntime } from '../../../shared/utils/runtime-env'
 
 export class OnboardSavingsInvestorDto {
@@ -340,6 +341,8 @@ export class OnboardSavingsInvestorUseCase {
     private readonly armJobQueue?: IArmJobQueue,
     @Optional() private readonly recordSavingsConsentUseCase?: RecordSavingsConsentUseCase,
     @Optional() private readonly s3Service?: S3Service,
+    @Optional()
+    private readonly applyReservedSavingsCashbackUseCase?: ApplyReservedSavingsCashbackUseCase,
   ) {}
 
   private assertOwnedKycDocKey(userUuid: string, docKey: string, label: string): string {
@@ -626,8 +629,10 @@ export class OnboardSavingsInvestorUseCase {
   ) {
     if (this.platformRates) {
       const rates = await this.platformRates.getRates()
-      if (rates?.savingsEnabled === false) {
-        throw new ForbiddenException('Savings is coming soon.')
+      if (rates?.savingsEnabled === false || rates?.savingsMode === 'COMING_SOON') {
+        throw new ForbiddenException(
+          'Rent Savings is not open yet. Indicate your interest in the app to reserve your early-access cashback.',
+        )
       }
     }
 
@@ -1423,6 +1428,12 @@ export class OnboardSavingsInvestorUseCase {
       this.logger.log(
         `Auto-provisioned rent vault ID ${newVault.id} with DVA ${dvaAccountNumber} for verified investor user ID ${userId}`,
       )
+
+      if (this.applyReservedSavingsCashbackUseCase) {
+        await this.applyReservedSavingsCashbackUseCase
+          .execute(userId, newVault.id)
+          .catch(() => {})
+      }
     }
 
     // Persist versioned Rent Savings T&C + ARM B2B2C Consent Mandate & generate signed PDF

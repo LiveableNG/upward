@@ -89,7 +89,7 @@ describe('CreditSavingsCashbackUseCase', () => {
   })
 
   it('blocks duplicate cashback grants for the same user in the same campaign', async () => {
-    const { useCase } = makeUseCase({ existingGrant: { id: 1 } })
+    const { useCase } = makeUseCase({ existingGrant: { id: 1, status: 'CREDITED' } })
     await expect(useCase.execute({ userUuid: 'user-7' }, 'admin-1')).rejects.toThrow(
       ConflictException,
     )

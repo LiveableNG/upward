@@ -135,7 +135,17 @@ export class GetSavingsCashbackOverviewUseCase {
       }),
     ])
 
-    const grantedUserIds = new Set(grants.map((g) => g.userId))
+    const creditedOrReservedUserIds = new Set(
+      grants
+        .filter((g) => g.status === 'CREDITED' || g.status === 'RESERVED')
+        .map((g) => g.userId),
+    )
+    const creditedUserIds = new Set(
+      grants.filter((g) => g.status === 'CREDITED').map((g) => g.userId),
+    )
+    const reservedUserIds = new Set(
+      grants.filter((g) => g.status === 'RESERVED').map((g) => g.userId),
+    )
     const remainingBudgetKobo =
       campaign.budgetCapKobo > campaign.totalDisbursedKobo
         ? campaign.budgetCapKobo - campaign.totalDisbursedKobo
@@ -144,7 +154,12 @@ export class GetSavingsCashbackOverviewUseCase {
       campaign.rewardAmountKobo > 0n
         ? Number(campaign.budgetCapKobo / campaign.rewardAmountKobo)
         : 0
-    const slotsUsed = grants.length
+    const slotsUsed = grants.filter(
+      (g) => (g.status === 'CREDITED' || g.status === 'RESERVED') && g.amountKobo > 0n,
+    ).length
+    const reservedCount = grants.filter((g) => g.status === 'RESERVED').length
+    const creditedCount = grants.filter((g) => g.status === 'CREDITED').length
+    const waitlistedCount = grants.filter((g) => g.status === 'WAITLISTED').length
 
     return {
       success: true,
@@ -161,6 +176,9 @@ export class GetSavingsCashbackOverviewUseCase {
           slotsTotal,
           slotsUsed,
           slotsRemaining: Math.max(0, slotsTotal - slotsUsed),
+          reservedCount,
+          creditedCount,
+          waitlistedCount,
           isActive: campaign.isActive,
           updatedAt: campaign.updatedAt.toISOString(),
         },
@@ -172,7 +190,8 @@ export class GetSavingsCashbackOverviewUseCase {
             'Tenant',
           customerEmail: this.decryptSafe(g.user?.email),
           vaultUuid: g.vault?.uuid || '',
-          productOption: g.vault?.productOption || 'SAVE_AND_EARN',
+          hasVault: Boolean(g.vaultId),
+          productOption: g.vault?.productOption || 'PENDING_LAUNCH',
           amountNgn: Number(g.amountKobo) / 100,
           status: g.status,
           fundingSource: g.fundingSource,
@@ -190,7 +209,9 @@ export class GetSavingsCashbackOverviewUseCase {
           customerEmail: this.decryptSafe(v.user?.email),
           productOption: v.productOption,
           currentPrincipalNgn: Number(v.currentPrincipalKobo) / 100,
-          alreadyCredited: grantedUserIds.has(v.userId),
+          alreadyCredited: creditedUserIds.has(v.userId),
+          hasReservedGrant: reservedUserIds.has(v.userId),
+          alreadyAllocated: creditedOrReservedUserIds.has(v.userId),
           createdAt: v.createdAt.toISOString(),
         })),
       },
@@ -314,14 +335,18 @@ export class CreditSavingsCashbackUseCase {
           },
         },
       })
-      if (existingGrant) {
+      if (existingGrant && existingGrant.status === 'CREDITED') {
         throw new ConflictException(
           'This user has already received an activation cashback grant for this campaign.',
         )
       }
 
-      const amountKobo =
-        dto.amountNgn !== undefined
+      const isPromotingReserved =
+        Boolean(existingGrant && existingGrant.status === 'RESERVED' && existingGrant.amountKobo > 0n)
+
+      const amountKobo = isPromotingReserved
+        ? existingGrant!.amountKobo
+        : dto.amountNgn !== undefined
           ? BigInt(Math.round(dto.amountNgn * 100))
           : campaign.rewardAmountKobo
 
@@ -329,7 +354,7 @@ export class CreditSavingsCashbackUseCase {
         throw new BadRequestException('Cashback amount must be greater than zero.')
       }
 
-      if (campaign.totalDisbursedKobo + amountKobo > campaign.budgetCapKobo) {
+      if (!isPromotingReserved && campaign.totalDisbursedKobo + amountKobo > campaign.budgetCapKobo) {
         const remainingNgn = Number(campaign.budgetCapKobo - campaign.totalDisbursedKobo) / 100
         throw new BadRequestException(
           `Campaign budget cap exceeded. Only NGN ${remainingNgn.toLocaleString()} remains in ${campaign.code}.`,
@@ -342,7 +367,10 @@ export class CreditSavingsCashbackUseCase {
       const currentBalanceKobo =
         freshVault.currentPrincipalKobo + freshVault.accruedYieldKobo
       const newBalanceKobo = currentBalanceKobo + amountKobo
-      const reference = `CBK_${campaign.code}_${user.id}_${Date.now()}`
+      const reference =
+        isPromotingReserved && existingGrant?.reference
+          ? existingGrant.reference
+          : `CBK_${campaign.code}_${user.id}_${Date.now()}`
 
       const vaultTx = await tx.upward_rent_vault_transaction.create({
         data: {
@@ -353,7 +381,7 @@ export class CreditSavingsCashbackUseCase {
           principalDeltaKobo: amountKobo,
           yieldDeltaKobo: 0n,
           balanceAfterKobo: newBalanceKobo,
-          reference,
+          reference: isPromotingReserved ? `CBK_APPLY_${reference}` : reference,
           channel: 'ADMIN_CASHBACK',
           narration: `Activation Cashback Reward (${campaign.name})`,
           metadata: {
@@ -372,27 +400,42 @@ export class CreditSavingsCashbackUseCase {
         },
       })
 
-      await tx.upward_savings_cashback_campaign.update({
-        where: { id: campaign.id },
-        data: {
-          totalDisbursedKobo: { increment: amountKobo },
-        },
-      })
+      if (!isPromotingReserved) {
+        await tx.upward_savings_cashback_campaign.update({
+          where: { id: campaign.id },
+          data: {
+            totalDisbursedKobo: { increment: amountKobo },
+          },
+        })
+      }
 
-      const grant = await tx.upward_savings_cashback_grant.create({
-        data: {
-          campaignId: campaign.id,
-          userId: user.id,
-          vaultId: freshVault.id,
-          transactionId: vaultTx.id,
-          amountKobo,
-          status: 'CREDITED',
-          fundingSource: dto.fundingSource || 'PAYSTACK_BALANCE',
-          reference,
-          grantedByAdminId: adminId || null,
-          notes: dto.notes || null,
-        },
-      })
+      const grant = existingGrant
+        ? await tx.upward_savings_cashback_grant.update({
+            where: { id: existingGrant.id },
+            data: {
+              vaultId: freshVault.id,
+              transactionId: vaultTx.id,
+              amountKobo,
+              status: 'CREDITED',
+              fundingSource: dto.fundingSource || existingGrant.fundingSource || 'PAYSTACK_BALANCE',
+              grantedByAdminId: adminId || existingGrant.grantedByAdminId || null,
+              notes: dto.notes || existingGrant.notes || null,
+            },
+          })
+        : await tx.upward_savings_cashback_grant.create({
+            data: {
+              campaignId: campaign.id,
+              userId: user.id,
+              vaultId: freshVault.id,
+              transactionId: vaultTx.id,
+              amountKobo,
+              status: 'CREDITED',
+              fundingSource: dto.fundingSource || 'PAYSTACK_BALANCE',
+              reference,
+              grantedByAdminId: adminId || null,
+              notes: dto.notes || null,
+            },
+          })
 
       return { grant, vaultTx, newBalanceKobo }
     })

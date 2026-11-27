@@ -32,7 +32,7 @@ import { useRentalExperiment } from '../setup/hooks/useRentalExperiment'
 import { useRentalGate } from '../setup/hooks/useRentalGate'
 import { useUserGoals, useGoalCategories } from '@/features/goals/hooks/useGoals'
 import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
-import { useToast } from '@/components/common/Toast'
+import { useSavingsInterest } from '@/features/savings/context/SavingsInterestContext'
 
 interface ProfileSetupBlockerProps {
   user: UserProfile
@@ -62,11 +62,11 @@ interface QuickAction {
 
 export function ProfileSetupBlocker({ user, score, maxScore, onSkip }: ProfileSetupBlockerProps) {
   const router = useRouter()
-  const toast = useToast()
   const { logout } = useAuth()
   const { trackExposure, trackDeferral } = useRentalExperiment()
   const { isGated, guard, notifyGated } = useRentalGate()
   const { rates: platformRates, isLoading: ratesLoading } = usePlatformRates()
+  const { openSavingsInterestModal } = useSavingsInterest()
 
   useEffect(() => {
     trackExposure('ProfileSetupBlocker')
@@ -247,8 +247,11 @@ export function ProfileSetupBlocker({ user, score, maxScore, onSkip }: ProfileSe
                     onClick={() => {
                       if (action.href === '/dashboard/savings') {
                         if (ratesLoading) return
-                        if (platformRates.savingsEnabled === false) {
-                          toast.info('Savings is coming soon.')
+                        if (
+                          platformRates.savingsMode === 'COMING_SOON' ||
+                          platformRates.savingsEnabled === false
+                        ) {
+                          openSavingsInterestModal('profile_setup_quick_action')
                           return
                         }
                       }

@@ -44,6 +44,7 @@ import { PageTransition } from '@/components/common/PageTransition'
 import { DashboardSkeleton } from '@/features/dashboard/components/DashboardSkeleton'
 import { CartProvider } from '@/features/goals/context/CartContext'
 import { CartDrawer } from '@/features/goals/components/CartDrawer'
+import { SavingsInterestProvider } from '@/features/savings/context/SavingsInterestContext'
 import { api } from '@/lib/api'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -221,27 +222,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <CartProvider>
-      <div className={`dashboard-layout${showProfileBlocker || showTermsGate ? ' dashboard-layout--blocker' : ''}${hideBottomNav ? ' dashboard-layout--no-bottom-nav' : ''}`}>
-        {showTermsGate && (
-          <TermsAcceptanceModal onAccepted={() => window.location.reload()} />
-        )}
-        {/* Desktop Global Header */}
-        {!showProfileBlocker && (
-          <div className="desktop-only">
-            <DashboardHeader />
-          </div>
-        )}
+      <SavingsInterestProvider>
+        <div className={`dashboard-layout${showProfileBlocker || showTermsGate ? ' dashboard-layout--blocker' : ''}${hideBottomNav ? ' dashboard-layout--no-bottom-nav' : ''}`}>
+          {showTermsGate && (
+            <TermsAcceptanceModal onAccepted={() => window.location.reload()} />
+          )}
+          {/* Desktop Global Header */}
+          {!showProfileBlocker && (
+            <div className="desktop-only">
+              <DashboardHeader />
+            </div>
+          )}
 
-        <AnnouncementManager />
-        <RentReminderManager />
-        <main className="dashboard-layout__content">
-          <Suspense fallback={<DashboardSkeleton />}>
-            <PageTransition>{children}</PageTransition>
-          </Suspense>
-        </main>
-        {!hideBottomNav && <BottomNav />}
-        <CartDrawer />
-      </div>
+          <AnnouncementManager />
+          <RentReminderManager />
+          <main className="dashboard-layout__content">
+            <Suspense fallback={<DashboardSkeleton />}>
+              <PageTransition>{children}</PageTransition>
+            </Suspense>
+          </main>
+          {!hideBottomNav && <BottomNav />}
+          <CartDrawer />
+        </div>
+      </SavingsInterestProvider>
     </CartProvider>
   )
 }

@@ -462,7 +462,7 @@ const Settings: React.FC<SettingsProps> = ({ token, currentAdminId }) => {
                     ? 'Users can onboard, open a vault, and make live ARM deposits.'
                     : savingsMode === 'OPT_IN_ONLY'
                       ? 'Activation mode: users can pick a plan, complete ARM KYC & consent, and receive cashback while deposits remain paused.'
-                      : 'Paused: users see the Coming Soon screen.'}
+                      : 'Paused for live savings: users cannot open vaults or deposit, and clicking Savings opens the Interest & Cashback Allocation popup.'}
                 </p>
               </div>
             </div>
