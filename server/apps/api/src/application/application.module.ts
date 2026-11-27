@@ -124,6 +124,25 @@ import {
   GetSettlementTransactionsUseCase,
   ResolveFlaggedSettlementUseCase,
 } from './use-cases/admin/admin-settlements.use-cases'
+import {
+  GetArmPortfolioStatsUseCase,
+  GetArmCustomersUseCase,
+  GetArmTransactionsUseCase,
+  GetArmJobsUseCase,
+  RetryArmJobUseCase,
+  GetArmTransactionLiveStatusUseCase,
+  GetAdminArmCustomerDocumentUseCase,
+} from './use-cases/admin/admin-arm.use-cases'
+import {
+  GetAdminSavingsLedgerUseCase,
+  SimulateDailyNavAccrualUseCase,
+} from './use-cases/admin/admin-savings-ledger.use-case'
+import { GetAdminInsuranceLedgerUseCase } from './use-cases/admin/admin-insurance-ledger.use-case'
+import {
+  GetSavingsCashbackOverviewUseCase,
+  UpsertSavingsCashbackCampaignUseCase,
+  CreditSavingsCashbackUseCase,
+} from './use-cases/admin/admin-savings-cashback.use-cases'
 
 import { JoinWaitlistUseCase } from './use-cases/waitlist/join-waitlist.use-case'
 import { GetInviteDataUseCase } from './use-cases/invite/get-invite-data.use-case'
@@ -610,11 +629,20 @@ import { SimulateRentSavingsUseCase } from './use-cases/rent-savings/simulate-re
 import { CreateRentVaultUseCase } from './use-cases/rent-savings/create-rent-vault.use-case'
 import { GetMyRentVaultUseCase } from './use-cases/rent-savings/get-my-rent-vault.use-case'
 import { ProcessPaystackSavingsWebhookUseCase } from './use-cases/rent-savings/process-paystack-savings-webhook.use-case'
+import { ProcessArmWebhookUseCase } from './use-cases/rent-savings/process-arm-webhook.use-case'
+import { SimulateVaultDepositUseCase } from './use-cases/rent-savings/simulate-vault-deposit.use-case'
 import { DisburseEmergencyAdvanceUseCase } from './use-cases/rent-savings/disburse-emergency-advance.use-case'
 import { ExecuteLandlordSettlementUseCase } from './use-cases/rent-savings/execute-landlord-settlement.use-case'
 import { BreakoutRentVaultUseCase } from './use-cases/rent-savings/breakout-rent-vault.use-case'
 import { OnboardSavingsInvestorUseCase } from './use-cases/rent-savings/onboard-savings-investor.use-case'
 import { VerifyRentVaultFundingUseCase } from './use-cases/rent-savings/verify-rent-vault-funding.use-case'
+import { UploadSavingsKycDocumentUseCase } from './use-cases/rent-savings/upload-savings-kyc-document.use-case'
+import { RecordSavingsConsentUseCase } from './use-cases/rent-savings/record-savings-consent.use-case'
+import {
+  GetSavingsConsentDocumentUseCase,
+  GetSavingsKycDocumentUseCase,
+} from './use-cases/rent-savings/get-savings-consent-document.use-case'
+import { SavingsConsentPdfService } from '../shared/infrastructure/common/rent-savings/savings-consent-pdf.service'
 
 import { TogglePmAllianceEnablementUseCase } from './alliance/use-cases/toggle-pm-alliance-enablement.use-case'
 import { CreateAllianceQualificationUseCase } from './alliance/use-cases/create-alliance-qualification.use-case'
@@ -666,11 +694,17 @@ const UseCases: any[] = [
   CreateRentVaultUseCase,
   GetMyRentVaultUseCase,
   ProcessPaystackSavingsWebhookUseCase,
+  ProcessArmWebhookUseCase,
+  SimulateVaultDepositUseCase,
   DisburseEmergencyAdvanceUseCase,
   ExecuteLandlordSettlementUseCase,
   BreakoutRentVaultUseCase,
   OnboardSavingsInvestorUseCase,
   VerifyRentVaultFundingUseCase,
+  UploadSavingsKycDocumentUseCase,
+  RecordSavingsConsentUseCase,
+  GetSavingsConsentDocumentUseCase,
+  GetSavingsKycDocumentUseCase,
 
   TogglePmAllianceEnablementUseCase,
   CreateAllianceQualificationUseCase,
@@ -753,6 +787,19 @@ const UseCases: any[] = [
   GetFlaggedSettlementsUseCase,
   GetSettlementTransactionsUseCase,
   ResolveFlaggedSettlementUseCase,
+  GetArmPortfolioStatsUseCase,
+  GetArmCustomersUseCase,
+  GetArmTransactionsUseCase,
+  GetArmJobsUseCase,
+  RetryArmJobUseCase,
+  GetArmTransactionLiveStatusUseCase,
+  GetAdminArmCustomerDocumentUseCase,
+  GetAdminSavingsLedgerUseCase,
+  SimulateDailyNavAccrualUseCase,
+  GetAdminInsuranceLedgerUseCase,
+  GetSavingsCashbackOverviewUseCase,
+  UpsertSavingsCashbackCampaignUseCase,
+  CreditSavingsCashbackUseCase,
   SearchFeeTargetsUseCase,
   GetAreaPriceGuideUseCase,
   GetAreaPriceGuideStatesUseCase,
@@ -1300,6 +1347,7 @@ import { PrismaModule } from '../shared/infrastructure/prisma/prisma.module'
     UnifiedReminderService,
     PaymentConfigurationService,
     PlatformRatesService,
+    SavingsConsentPdfService,
     RentalPeriodService,
     QueueDailySequencesUseCase,
     GetQueuedSequencesUseCase,
@@ -1337,6 +1385,7 @@ import { PrismaModule } from '../shared/infrastructure/prisma/prisma.module'
     UnifiedReminderService,
     PaymentConfigurationService,
     PlatformRatesService,
+    SavingsConsentPdfService,
     RentalPeriodService,
     QueueDailySequencesUseCase,
     GetQueuedSequencesUseCase,

@@ -71,28 +71,64 @@ export function getOfferingTypeIcon(type: string) {
   return getOfferingTypeDisplay(type).icon
 }
 
+function normalizeImageUrl(raw?: string | null): string | null {
+  if (!raw || typeof raw !== 'string') return null
+  const trimmed = raw.trim()
+  if (!trimmed) return null
+  return trimmed.replace(/ /g, '%20')
+}
+
 export const OfferingCard: React.FC<OfferingCardProps> = ({
   item,
   userLocation,
   onClick,
 }) => {
   const cart = useCart()
-  const [imgError, setImgError] = useState(false)
   const offering = item.offering
   const isGoalMatch = item.isGoalMatch
   const laymanType = getOfferingTypeDisplay(offering.type)
   const TypeIcon = laymanType.icon
 
+  const candidateImages = React.useMemo(() => {
+    const rawList: Array<string | null | undefined> = [
+      offering.media?.find((m) => m.isPrimary)?.mediaUrl,
+      offering.imageUrl,
+      offering.promoCoverImage,
+      ...(offering.media || []).map((m) => m.mediaUrl),
+      ...(offering.packageItems || []).flatMap((pkg) => {
+        const comp = pkg.component || pkg.itemOffering
+        return [
+          comp?.imageUrl,
+          comp?.media?.find((m) => m.isPrimary)?.mediaUrl,
+          comp?.media?.[0]?.mediaUrl,
+        ]
+      }),
+    ]
+    const seen = new Set<string>()
+    const resolved: string[] = []
+    for (const raw of rawList) {
+      const normalized = normalizeImageUrl(raw)
+      if (normalized && !seen.has(normalized)) {
+        seen.add(normalized)
+        resolved.push(normalized)
+      }
+    }
+    return resolved
+  }, [offering])
+
+  const [imgIndexState, setImgIndexState] = useState<{ key: string; idx: number }>({
+    key: String(offering.uuid || offering.id || ''),
+    idx: 0,
+  })
+  const offeringKey = String(offering.uuid || offering.id || '')
+  const activeImgIdx = imgIndexState.key === offeringKey ? imgIndexState.idx : 0
+  const primaryImage = candidateImages[activeImgIdx] || null
+
   const deliveryCheck = userLocation
     ? isOfferingDeliverableToLocation(offering, userLocation)
     : { isDeliverable: true }
 
-  const primaryImage =
-    offering.media?.find((m) => m.isPrimary)?.mediaUrl ||
-    offering.media?.[0]?.mediaUrl ||
-    offering.imageUrl
-
-  const showImage = Boolean(primaryImage) && !imgError
+  const showImage = Boolean(primaryImage)
   const title = offering.title || offering.name || 'Untitled Item'
   const vendor = offering.vendor
   const verified = isVendorVerified(vendor)
@@ -124,7 +160,12 @@ export const OfferingCard: React.FC<OfferingCardProps> = ({
             alt={title}
             className="offering-card__image"
             loading="lazy"
-            onError={() => setImgError(true)}
+            onError={() =>
+              setImgIndexState({
+                key: offeringKey,
+                idx: activeImgIdx + 1,
+              })
+            }
           />
         ) : (
           <div className="offering-card__placeholder">

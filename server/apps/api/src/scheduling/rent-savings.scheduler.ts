@@ -1,4 +1,4 @@
-import { Injectable, Logger, Inject } from '@nestjs/common'
+import { Injectable, Logger, Inject, Optional } from '@nestjs/common'
 import { Cron } from '@nestjs/schedule'
 import { PrismaService } from '../shared/infrastructure/prisma/prisma.service'
 import {
@@ -9,6 +9,7 @@ import {
   IRentAdvanceRepository,
   RENT_ADVANCE_REPOSITORY,
 } from '../domains/rent-savings/rent-advance.repository'
+import { ARM_JOB_QUEUE, IArmJobQueue } from '../domains/rent-savings/arm-job.interface'
 import { RentSavingsCalculatorEngine } from '../domains/rent-savings/rent-savings-calculator.engine'
 import { AssetManagementProviderRegistry } from '../infrastructure/providers/asset-management/asset-management-provider.registry'
 import { PlatformRatesService } from '../shared/infrastructure/common/platform-rates.service'
@@ -25,6 +26,9 @@ export class RentSavingsScheduler {
     private readonly rentAdvanceRepo: IRentAdvanceRepository,
     private readonly providerRegistry: AssetManagementProviderRegistry,
     private readonly platformRates: PlatformRatesService,
+    @Optional()
+    @Inject(ARM_JOB_QUEUE)
+    private readonly armJobQueue?: IArmJobQueue,
   ) {}
 
   /**
@@ -47,17 +51,21 @@ export class RentSavingsScheduler {
 
       const armProvider = this.providerRegistry.getProvider('ARM')
       const platformRates = await this.platformRates.getRates()
-      let dailyYieldRate = platformRates.savingsDailyRate
-      let annualRatePct = `${platformRates.savingsAnnualRatePct}%`
+
+      // Gross ARM MMF annual rate (live ARM metrics, fallback to max(savingsAnnualRatePct, 16.55%))
+      let grossArmAnnualRatePct = Math.max(platformRates.savingsAnnualRatePct, 16.55)
       try {
         const metrics = await armProvider.getYieldMetrics('ARMMMF')
-        if (metrics?.dailyYieldRate > 0 && platformRates.savingsAnnualRatePct === 14.5) {
-          dailyYieldRate = metrics.dailyYieldRate
-          annualRatePct = `${(metrics.annualNetYieldRate * 100).toFixed(1)}%`
+        if (metrics?.annualNetYieldRate > 0) {
+          grossArmAnnualRatePct = Number((metrics.annualNetYieldRate * 100).toFixed(4))
+        } else if (metrics?.dailyYieldRate > 0) {
+          grossArmAnnualRatePct = Number((metrics.dailyYieldRate * 365 * 100).toFixed(4))
         }
       } catch (rateErr: any) {
         this.logger.warn(`Could not fetch live ARM yield rate, using platform rate: ${rateErr?.message}`)
       }
+      const grossArmDailyRate = grossArmAnnualRatePct / 100 / 365
+      const dateStamp = now.toISOString().split('T')[0]
 
       for (const vault of activeVaults) {
         const totalBalance = vault.currentPrincipalKobo + vault.accruedYieldKobo
@@ -95,34 +103,38 @@ export class RentSavingsScheduler {
           continue
         }
 
-        // Check ARM portfolio for official accrued interest reconciliation if member has ARM account
-        let dailyYieldKobo = 0n
-        if (vault.providerAccountNumber || vault.providerMembershipId) {
-          try {
-            const portfolio = await armProvider.getPortfolio(
-              vault.providerAccountNumber || vault.providerMembershipId!,
-            )
-            if (portfolio && portfolio.accruedInterestKobo > vault.accruedYieldKobo) {
-              dailyYieldKobo = portfolio.accruedInterestKobo - vault.accruedYieldKobo
-            }
-          } catch (portErr: any) {
-            this.logger.debug(
-              `Live ARM portfolio poll skipped for vault ${vault.uuid}: ${portErr?.message}`,
-            )
-          }
-        }
+        // Determine per-vault customer annual rate (10% Rent Protec, 12% Flexible Save & Earn, 16% Full Lock Save & Earn)
+        const isRentProtec = vault.productOption === 'RENT_PROTEC'
+        const isFlexible = (vault as any).lockMode === 'FLEXIBLE' && !isRentProtec
+        const customerAnnualRatePct =
+          vault.appliedAnnualRatePct && vault.appliedAnnualRatePct > 0
+            ? vault.appliedAnnualRatePct
+            : isRentProtec
+              ? platformRates.rentProtecRatePct
+              : isFlexible
+                ? platformRates.flexibleSavingsAnnualRatePct
+                : platformRates.savingsAnnualRatePct
+        const customerDailyRate = customerAnnualRatePct / 100 / 365
 
-        // Fallback to calculated daily compound rate if no live portfolio delta returned
-        if (dailyYieldKobo <= 0n) {
-          dailyYieldKobo = BigInt(Math.max(1, Math.round(Number(totalBalance) * dailyYieldRate)))
-        }
-
+        // Customer Liability Ledger: strictly accrues at customer's plan rate (0% visible insurance deduction)
+        const dailyYieldKobo = BigInt(
+          Math.max(1, Math.round(Number(totalBalance) * customerDailyRate)),
+        )
         if (dailyYieldKobo <= 0n) continue
+
+        // Internal Treasury Ledger: gross ARM yield earned on deployed funds vs customer net yield
+        const effectiveGrossRatePct = Math.max(grossArmAnnualRatePct, customerAnnualRatePct)
+        const effectiveGrossDailyRate = Math.max(grossArmDailyRate, customerDailyRate)
+        const grossArmYieldKobo = BigInt(
+          Math.max(Number(dailyYieldKobo), Math.round(Number(totalBalance) * effectiveGrossDailyRate)),
+        )
+        const yieldSpreadKobo =
+          grossArmYieldKobo > dailyYieldKobo ? grossArmYieldKobo - dailyYieldKobo : 0n
 
         const newBalance = totalBalance + dailyYieldKobo
 
-        // Record daily yield accrual transaction
-        const ref = `YLD_${vault.id}_${now.toISOString().split('T')[0]}_${Math.floor(100 + Math.random() * 900)}`
+        // 1. Customer Liability Ledger: Record daily yield accrual transaction
+        const ref = `YLD_${vault.id}_${dateStamp}_${Math.floor(100 + Math.random() * 900)}`
         await this.rentVaultRepo.createTransaction({
           vaultId: vault.id,
           userId: vault.userId,
@@ -133,7 +145,7 @@ export class RentSavingsScheduler {
           balanceAfterKobo: newBalance,
           reference: ref,
           channel: 'SYSTEM_YIELD',
-          narration: `Daily compound yield (${annualRatePct} p.a.) credited to vault`,
+          narration: `Daily compound yield (${customerAnnualRatePct.toFixed(1)}% p.a.) credited to vault`,
         })
 
         // Increment accrued yield and update lastYieldSyncAt
@@ -141,6 +153,117 @@ export class RentSavingsScheduler {
         await this.rentVaultRepo.update(vault.id, {
           lastYieldSyncAt: now,
         })
+
+        // 2. Internal Treasury & Premium Recovery Ledger (separate from customer balance)
+        if (this.prisma.upward_vault_treasury_summary && this.prisma.upward_savings_internal_ledger) {
+          try {
+            const existingSummary = await this.prisma.upward_vault_treasury_summary.findUnique({
+              where: { vaultId: vault.id },
+            })
+            const vaultTermDays = vault.contractualDueDate && vault.createdAt
+              ? Math.max(
+                  1,
+                  Math.ceil(
+                    (vault.contractualDueDate.getTime() - vault.createdAt.getTime()) /
+                      (1000 * 60 * 60 * 24),
+                  ),
+                )
+              : 300
+            const activationThresholdKobo =
+              RentSavingsCalculatorEngine.getRentProtecActivationThresholdKobo(
+                vault.targetAmountKobo,
+                vaultTermDays,
+              )
+            const isCoverageActivated =
+              isRentProtec &&
+              ((existingSummary && existingSummary.upfrontPremiumObligationKobo > 0n) ||
+                vault.currentPrincipalKobo >= activationThresholdKobo)
+
+            const defaultPremiumObligationKobo = isCoverageActivated
+              ? BigInt(
+                  Math.round(
+                    Number(vault.targetAmountKobo) * (platformRates.insurancePremiumPct / 100),
+                  ),
+                )
+              : 0n
+
+            const currentUnrecovered = existingSummary
+              ? existingSummary.upfrontPremiumObligationKobo > 0n
+                ? existingSummary.unrecoveredPremiumKobo
+                : defaultPremiumObligationKobo
+              : defaultPremiumObligationKobo
+            const premiumRecoveryAppliedKobo =
+              currentUnrecovered > 0n
+                ? yieldSpreadKobo < currentUnrecovered
+                  ? yieldSpreadKobo
+                  : currentUnrecovered
+                : 0n
+            const netMarginDeltaKobo = yieldSpreadKobo - premiumRecoveryAppliedKobo
+            const nextUnrecovered = currentUnrecovered - premiumRecoveryAppliedKobo
+
+            if (existingSummary) {
+              const needsActivationBackfill =
+                existingSummary.upfrontPremiumObligationKobo === 0n &&
+                defaultPremiumObligationKobo > 0n
+              await this.prisma.upward_vault_treasury_summary.update({
+                where: { vaultId: vault.id },
+                data: {
+                  ...(needsActivationBackfill
+                    ? { upfrontPremiumObligationKobo: defaultPremiumObligationKobo }
+                    : {}),
+                  grossArmYieldAccruedKobo: { increment: grossArmYieldKobo },
+                  customerYieldAccruedKobo: { increment: dailyYieldKobo },
+                  platformSpreadAccruedKobo: { increment: yieldSpreadKobo },
+                  premiumRecoveredKobo: { increment: premiumRecoveryAppliedKobo },
+                  unrecoveredPremiumKobo: nextUnrecovered,
+                  netPlatformMarginKobo: { increment: netMarginDeltaKobo },
+                  lastAccrualDate: now,
+                },
+              })
+            } else {
+              await this.prisma.upward_vault_treasury_summary.create({
+                data: {
+                  vaultId: vault.id,
+                  productOption: vault.productOption || 'SAVE_AND_EARN',
+                  grossArmYieldAccruedKobo: grossArmYieldKobo,
+                  customerYieldAccruedKobo: dailyYieldKobo,
+                  platformSpreadAccruedKobo: yieldSpreadKobo,
+                  upfrontPremiumObligationKobo: defaultPremiumObligationKobo,
+                  premiumRecoveredKobo: premiumRecoveryAppliedKobo,
+                  unrecoveredPremiumKobo: nextUnrecovered,
+                  netPlatformMarginKobo: netMarginDeltaKobo,
+                  lastAccrualDate: now,
+                },
+              })
+            }
+
+            await this.prisma.upward_savings_internal_ledger.create({
+              data: {
+                vaultId: vault.id,
+                entryDate: now,
+                entryType: 'DAILY_ACCRUAL',
+                productOption: vault.productOption || 'SAVE_AND_EARN',
+                principalBaseKobo: totalBalance,
+                grossArmRatePct: effectiveGrossRatePct,
+                customerRatePct: customerAnnualRatePct,
+                grossArmYieldKobo,
+                customerNetYieldKobo: dailyYieldKobo,
+                yieldSpreadKobo,
+                premiumObligationDeltaKobo: 0n,
+                premiumRecoveryAppliedKobo,
+                netMarginDeltaKobo,
+                reference: `TREAS_${ref}`,
+                notes: isRentProtec
+                  ? `Daily accrual: ARM ${effectiveGrossRatePct.toFixed(2)}% vs Customer ${customerAnnualRatePct.toFixed(1)}% (spread allocated to 2% premium recovery)`
+                  : `Daily accrual: ARM ${effectiveGrossRatePct.toFixed(2)}% vs Customer ${customerAnnualRatePct.toFixed(1)}%`,
+              },
+            })
+          } catch (treasuryErr: any) {
+            this.logger.warn(
+              `Internal treasury ledger sync failed for vault ${vault.uuid}: ${treasuryErr?.message}`,
+            )
+          }
+        }
       }
 
       this.logger.log('Daily NAV Accrual routine completed successfully.')
@@ -150,46 +273,28 @@ export class RentSavingsScheduler {
   }
 
   /**
-   * Cron 2: Omnibus Bulk Sweep Routine (03:30 PM WAT / 14:30 UTC)
-   * Aggregates collections from past 24h and subscribes to master MMF pool via active provider.
+   * Cron 2: Durable ARM Outbox Safety-Net Reconciler (Every 2 minutes)
+   * Re-enqueues any `upward_arm_job` stuck in QUEUED (e.g. brief Redis blip during commit)
+   * and recovers stale PROCESSING locks (>10m). Never double-subscribes already processed deposits.
+   */
+  @Cron('*/2 * * * *')
+  async reconcileArmBackgroundJobs() {
+    if (!this.armJobQueue) return
+    try {
+      await this.armJobQueue.reconcilePendingJobs()
+    } catch (err) {
+      this.logger.error('Failed to reconcile pending ARM background jobs', err)
+    }
+  }
+
+  /**
+   * Retained for backward compatibility with external schedulers.
+   * Delegates strictly to the idempotent outbox reconciler so deposits are NEVER double-invested.
    */
   @Cron('30 14 * * *')
   async executeOmnibusSweep() {
-    this.logger.log('Starting Omnibus Sweep routine to fund manager pool...')
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
-
-    try {
-      const recentDeposits = await this.prisma.upward_rent_vault_transaction.findMany({
-        where: {
-          type: 'DEPOSIT',
-          createdAt: { gte: twentyFourHoursAgo },
-        },
-      })
-
-      if (recentDeposits.length === 0) {
-        this.logger.log('No new deposits to sweep in the past 24 hours.')
-        return
-      }
-
-      const totalKobo = recentDeposits.reduce((sum, tx) => sum + tx.amountKobo, 0n)
-      this.logger.log(
-        `Sweeping ₦${Number(totalKobo) / 100} across ${recentDeposits.length} deposits to ARM pool...`,
-      )
-
-      const provider = this.providerRegistry.getProvider('ARM')
-      const sweepRef = `SWEEP_${Date.now()}`
-
-      await provider.subscribe({
-        membershipId: 'OMNIBUS_MASTER',
-        productCode: 'ARMMMF',
-        amountKobo: totalKobo,
-        reference: sweepRef,
-      })
-
-      this.logger.log(`Omnibus sweep completed successfully. Reference: ${sweepRef}`)
-    } catch (err) {
-      this.logger.error('Failed to execute Omnibus Sweep routine', err)
-    }
+    this.logger.log('Running daily ARM outbox reconciliation check...')
+    await this.reconcileArmBackgroundJobs()
   }
 
   /**

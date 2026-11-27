@@ -90,17 +90,14 @@ export class VerifyRentVaultFundingUseCase {
             )
             if (existing) continue
 
-            const webhookRes = await this.processSavingsWebhook.execute({
-              event: 'charge.success',
-              data: {
-                ...tx,
-                dedicated_account: {
-                  account_number: vault.dvaAccountNumber || txAccNum,
-                },
-                metadata: {
-                  ...(typeof tx.metadata === 'object' && tx.metadata ? tx.metadata : {}),
-                  vault_id: vault.uuid,
-                },
+            const webhookRes = await this.processSavingsWebhook.verifyAndProcessPaystackDeposit({
+              ...tx,
+              dedicated_account: {
+                account_number: vault.dvaAccountNumber || txAccNum,
+              },
+              metadata: {
+                ...(typeof tx.metadata === 'object' && tx.metadata ? tx.metadata : {}),
+                vault_id: vault.uuid,
               },
             })
 

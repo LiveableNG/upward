@@ -73,8 +73,17 @@ export interface AccountVerification {
 export interface TransactionVerification {
   status: boolean
   amount?: number
+  amountKobo?: bigint
   currency?: string
   fees?: number
+  channel?: string
+  reference?: string
+  gatewayStatus?: string
+  customerCode?: string
+  customerEmail?: string
+  receiverAccountNumber?: string
+  metadata?: Record<string, unknown>
+  paidAt?: string
 }
 
 export interface IPaymentGateway {

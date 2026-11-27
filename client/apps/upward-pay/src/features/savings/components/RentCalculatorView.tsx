@@ -12,7 +12,11 @@ import {
   Loader2,
   ArrowRight,
   ChevronRight,
+  ChevronDown,
   Pencil,
+  Unlock,
+  Lock,
+  Calendar,
 } from 'lucide-react'
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from '@/lib/utils'
 import {
@@ -24,8 +28,10 @@ import {
 import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
 import {
   calculatePayLessPlan,
+  getRentProtecMinimumDepositPct,
   verifyRentVaultFunding,
   type SavingsCadence,
+  type SavingsLockMode,
   type SavingsPlanPattern,
   type SavingsProductOption,
 } from '../services/savingsService'
@@ -35,6 +41,9 @@ import { BottomSheetModal } from '@/components/common/BottomSheetModal'
 import { PayPageShell, PayFlowPrimaryButton } from '@/features/dashboard/components/payment/PayPageShell'
 import { loadSetupDraft, patchSetupDraft } from '@/features/dashboard/setup/setupDraft'
 import { readSavingsRentPlan } from '../utils/savingsRentPlan'
+import { ordinalDay, REMINDER_DAYS } from '../utils/reminderDay'
+import { ArmInvestorKycForm, type ArmInvestorKycSubmitData, type KycFormStep } from './ArmInvestorKycForm'
+import { SAVINGS_FUND_CODE, SAVINGS_FUND_NAME } from '../constants/savingsLegal'
 
 type Stage = 'RENT_INPUT' | 'PROTECTION' | 'BENEFIT' | 'KYC' | 'SUCCESS'
 
@@ -151,10 +160,15 @@ export function RentCalculatorView({
 
   const selectedCadence: SavingsCadence = 'MONTHLY'
   const [selectedProductOption, setSelectedProductOption] =
-    useState<SavingsProductOption>(() => {
-      const saved = readSavingsRentPlan()
-      return saved?.productOption === 'SAVE_AND_EARN' ? 'SAVE_AND_EARN' : 'RENT_PROTEC'
-    })
+    useState<SavingsProductOption | null>(null)
+  const [selectedLockMode, setSelectedLockMode] = useState<SavingsLockMode | null>(null)
+  const [preferredPaydayDay, setPreferredPaydayDay] = useState<number>(() => {
+    const saved = readSavingsRentPlan()
+    if (saved?.paydayDayOfMonth && saved.paydayDayOfMonth >= 1 && saved.paydayDayOfMonth <= 31) {
+      return saved.paydayDayOfMonth
+    }
+    return 28
+  })
   const [planPattern, setPlanPattern] = useState<SavingsPlanPattern>(() => {
     const saved = readSavingsRentPlan()
     if (saved?.planPattern === 'EQUAL' || saved?.planPattern === 'STEP_UP') {
@@ -176,49 +190,30 @@ export function RentCalculatorView({
       )
     : 330
   const isRentProtecEligible = rawDaysRemaining >= (platformRates.rentProtecMinMonths || 6) * 28
-  const activeProductOption: SavingsProductOption =
+  const chosenProductOption: SavingsProductOption | null =
     selectedProductOption === 'RENT_PROTEC' && !isRentProtecEligible
-      ? 'SAVE_AND_EARN'
+      ? null
       : selectedProductOption
+  const activeProductOption: SavingsProductOption = chosenProductOption ?? 'SAVE_AND_EARN'
+  const effectiveLockMode: SavingsLockMode =
+    activeProductOption === 'RENT_PROTEC'
+      ? 'LOCKED'
+      : selectedLockMode === 'FLEXIBLE'
+        ? 'FLEXIBLE'
+        : 'LOCKED'
+  const effectivePlanPattern: SavingsPlanPattern =
+    activeProductOption === 'RENT_PROTEC' ? 'INITIAL_DEPOSIT' : planPattern
 
   // KYC Prefill & Form State
   const { data: prefill } = useSavingsOnboardingPrefill(true)
   const onboardMutation = useOnboardSavingsInvestor()
   const verifyFundingMutation = useVerifyVaultFunding()
   const [successVerifyNotice, setSuccessVerifyNotice] = useState<string | null>(null)
-
-  const hasVerifiedBvnOnFile = Boolean(prefill?.has_verified_bvn || user?.isIdentityVerified)
-  const [bvn, setBvn] = useState(() => prefill?.bvn || '')
-  const [mothersMaidenName, setMothersMaidenName] = useState(() => prefill?.mothers_maiden_name || '')
-  const [occupation, setOccupation] = useState(() => prefill?.occupation || '')
-  const [sourceOfFunds, setSourceOfFunds] = useState<'Salary' | 'Business' | 'Savings' | 'Investment'>(
-    () => prefill?.source_of_funds || 'Salary',
-  )
-  const [nextOfKinName, setNextOfKinName] = useState(() => prefill?.next_of_kin_name || '')
-  const [nextOfKinRelationship, setNextOfKinRelationship] = useState(
-    () => prefill?.next_of_kin_relationship || 'Spouse',
-  )
-  const [nextOfKinPhone, setNextOfKinPhone] = useState(() => prefill?.next_of_kin_phone || '')
-  const [agreeToLock, setAgreeToLock] = useState(false)
+  const [isArmKycFormValid, setIsArmKycFormValid] = useState(false)
+  const [kycStep, setKycStep] = useState<KycFormStep>(1)
+  const [isKycStepValid, setIsKycStepValid] = useState(false)
   const [kycError, setKycError] = useState<string | null>(null)
-
-  const [prevPrefill, setPrevPrefill] = useState<typeof prefill | null>(null)
-  if (prefill && prefill !== prevPrefill) {
-    setPrevPrefill(prefill)
-    if (prefill.bvn && !bvn) setBvn(prefill.bvn)
-    if (prefill.mothers_maiden_name && !mothersMaidenName) {
-      setMothersMaidenName(prefill.mothers_maiden_name)
-    }
-    if (prefill.occupation && !occupation) setOccupation(prefill.occupation)
-    if (prefill.source_of_funds && (!sourceOfFunds || sourceOfFunds === 'Salary')) {
-      setSourceOfFunds(prefill.source_of_funds)
-    }
-    if (prefill.next_of_kin_name && !nextOfKinName) setNextOfKinName(prefill.next_of_kin_name)
-    if (prefill.next_of_kin_relationship && (!nextOfKinRelationship || nextOfKinRelationship === 'Spouse')) {
-      setNextOfKinRelationship(prefill.next_of_kin_relationship)
-    }
-    if (prefill.next_of_kin_phone && !nextOfKinPhone) setNextOfKinPhone(prefill.next_of_kin_phone)
-  }
+  const fundDisplayName = platformRates.fundName || SAVINGS_FUND_NAME
 
   const [createdDva, setCreatedDva] = useState<{
     bank_name: string
@@ -227,6 +222,7 @@ export function RentCalculatorView({
   } | null>(null)
   const [copiedAccount, setCopiedAccount] = useState(false)
   const [showComparePlans, setShowComparePlans] = useState(false)
+  const [showCompareBenefits, setShowCompareBenefits] = useState(false)
   const [customInitialDeposit, setCustomInitialDeposit] = useState<string | null>(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -263,27 +259,52 @@ export function RentCalculatorView({
   const defaultRatePct =
     activeProductOption === 'RENT_PROTEC'
       ? platformRates.rentProtecRatePct
-      : platformRates.savingsAnnualRatePct
-  const savingsAnnualRatePct = simData?.net_annual_yield_rate
-    ? Math.round(simData.net_annual_yield_rate * 1000) / 10
-    : defaultRatePct
+      : effectiveLockMode === 'FLEXIBLE'
+        ? platformRates.flexibleSavingsAnnualRatePct
+        : platformRates.savingsAnnualRatePct
+  const savingsAnnualRatePct =
+    simData?.product_option === activeProductOption &&
+    (simData?.lock_mode ?? 'LOCKED') === effectiveLockMode &&
+    simData?.net_annual_yield_rate
+      ? Math.round(simData.net_annual_yield_rate * 1000) / 10
+      : defaultRatePct
   const daysRemaining = simData ? simData.days_remaining : Math.max(1, rawDaysRemaining - 30)
 
   const previewRentAmount = targetAmountNaira || 2_500_000
 
-  // Pre-calculate metrics for all 3 savings plans (Kunle specification)
-  const currentDepositNairaForCalc =
-    planPattern === 'INITIAL_DEPOSIT'
-      ? (customInitialDeposit !== null
-          ? (parseCurrencyInput(customInitialDeposit) || 0)
-          : Math.round(previewRentAmount * 0.25))
+  // Formula-derived minimum upfront deposit for Rent Protec (20% for 7-11mo, 33% for 6mo)
+  const minRentProtecDepositPct = getRentProtecMinimumDepositPct(rawDaysRemaining)
+  const minRentProtecDepositNaira =
+    activeProductOption === 'RENT_PROTEC'
+      ? Math.round(previewRentAmount * (minRentProtecDepositPct / 100))
       : 0
+
+  const defaultUpfrontForInitialPattern =
+    activeProductOption === 'RENT_PROTEC'
+      ? minRentProtecDepositNaira
+      : Math.round(previewRentAmount * 0.25)
+
+  const rawTypedDepositNaira =
+    effectivePlanPattern === 'INITIAL_DEPOSIT'
+      ? customInitialDeposit !== null
+        ? (parseCurrencyInput(customInitialDeposit) || 0)
+        : defaultUpfrontForInitialPattern
+      : 0
+
+  const isRentProtecDepositBelowFloor =
+    activeProductOption === 'RENT_PROTEC' &&
+    rawTypedDepositNaira < minRentProtecDepositNaira
+
+  const currentDepositNairaForCalc =
+    activeProductOption === 'RENT_PROTEC'
+      ? Math.max(rawTypedDepositNaira, minRentProtecDepositNaira)
+      : rawTypedDepositNaira
 
   const planDepositMetrics = useMemo(() => {
     const initialNaira =
       customInitialDeposit !== null
         ? (parseCurrencyInput(customInitialDeposit) || 0)
-        : Math.round(previewRentAmount * 0.25)
+        : defaultUpfrontForInitialPattern
     return calculatePayLessPlan(
       previewRentAmount,
       daysRemaining,
@@ -296,9 +317,20 @@ export function RentCalculatorView({
         maxMonths: platformRates.maxSavingsMonths,
         minRentProtecMonths: platformRates.rentProtecMinMonths,
         insurancePremiumPct: platformRates.insurancePremiumPct,
+        rawDaysToDueDate: rawDaysRemaining,
       },
     )
-  }, [previewRentAmount, customInitialDeposit, daysRemaining, selectedCadence, savingsAnnualRatePct, activeProductOption, platformRates])
+  }, [
+    previewRentAmount,
+    customInitialDeposit,
+    defaultUpfrontForInitialPattern,
+    daysRemaining,
+    rawDaysRemaining,
+    selectedCadence,
+    savingsAnnualRatePct,
+    activeProductOption,
+    platformRates,
+  ])
 
   const planEqualMetrics = useMemo(() => {
     return calculatePayLessPlan(
@@ -313,9 +345,10 @@ export function RentCalculatorView({
         maxMonths: platformRates.maxSavingsMonths,
         minRentProtecMonths: platformRates.rentProtecMinMonths,
         insurancePremiumPct: platformRates.insurancePremiumPct,
+        rawDaysToDueDate: rawDaysRemaining,
       },
     )
-  }, [previewRentAmount, daysRemaining, selectedCadence, savingsAnnualRatePct, activeProductOption, platformRates])
+  }, [previewRentAmount, daysRemaining, rawDaysRemaining, selectedCadence, savingsAnnualRatePct, activeProductOption, platformRates])
 
   const planStepUpMetrics = useMemo(() => {
     return calculatePayLessPlan(
@@ -330,6 +363,7 @@ export function RentCalculatorView({
         maxMonths: platformRates.maxSavingsMonths,
         minRentProtecMonths: platformRates.rentProtecMinMonths,
         insurancePremiumPct: platformRates.insurancePremiumPct,
+        rawDaysToDueDate: rawDaysRemaining,
         customStepStartNaira:
           stepInputMode === 'START' && customStepStart !== null
             ? (parseCurrencyInput(customStepStart) || 0)
@@ -343,6 +377,7 @@ export function RentCalculatorView({
   }, [
     previewRentAmount,
     daysRemaining,
+    rawDaysRemaining,
     selectedCadence,
     savingsAnnualRatePct,
     activeProductOption,
@@ -367,17 +402,19 @@ export function RentCalculatorView({
         : '0'
 
   const localPlan =
-    planPattern === 'EQUAL'
+    effectivePlanPattern === 'EQUAL'
       ? planEqualMetrics
-      : planPattern === 'STEP_UP'
+      : effectivePlanPattern === 'STEP_UP'
         ? planStepUpMetrics
         : planDepositMetrics
 
   const isSimDataCurrent =
     simData &&
-    simData.plan_pattern === planPattern &&
-    planPattern !== 'STEP_UP' &&
-    (planPattern !== 'INITIAL_DEPOSIT' ||
+    simData.product_option === activeProductOption &&
+    (simData.lock_mode ?? 'LOCKED') === effectiveLockMode &&
+    simData.plan_pattern === effectivePlanPattern &&
+    effectivePlanPattern !== 'STEP_UP' &&
+    (effectivePlanPattern !== 'INITIAL_DEPOSIT' ||
       Math.abs((simData.required_initial_deposit_kobo ?? 0) - Math.round(currentDepositNairaForCalc * 100)) < 200)
 
   const totalTenantContributionNaira = isSimDataCurrent
@@ -393,10 +430,8 @@ export function RentCalculatorView({
     if (!hasRentDetails) return
 
     const currentDepositNaira =
-      planPattern === 'INITIAL_DEPOSIT'
-        ? (customInitialDeposit !== null
-            ? (parseCurrencyInput(customInitialDeposit) || 0)
-            : Math.round(targetAmountNaira * 0.25))
+      effectivePlanPattern === 'INITIAL_DEPOSIT'
+        ? currentDepositNairaForCalc
         : 0
     const initialDepositKobo = Math.round(currentDepositNaira * 100)
 
@@ -406,13 +441,14 @@ export function RentCalculatorView({
       initial_deposit_kobo: initialDepositKobo,
       cadence: selectedCadence,
       product_option: activeProductOption,
-      plan_pattern: planPattern,
+      lock_mode: effectiveLockMode,
+      plan_pattern: effectivePlanPattern,
     })
 
     const persistedDepositNaira =
-      planPattern === 'INITIAL_DEPOSIT'
+      effectivePlanPattern === 'INITIAL_DEPOSIT'
         ? currentDepositNaira
-        : planPattern === 'EQUAL'
+        : effectivePlanPattern === 'EQUAL'
           ? planEqualMetrics.periodicDepositNaira
           : planStepUpMetrics.periodicDepositNaira
 
@@ -427,8 +463,10 @@ export function RentCalculatorView({
             dueDate: contractualDueDate,
             cadence: selectedCadence,
             productOption: activeProductOption,
-            planPattern: planPattern,
+            lockMode: effectiveLockMode,
+            planPattern: effectivePlanPattern,
             initialDeposit: persistedDepositNaira,
+            paydayDayOfMonth: preferredPaydayDay,
             stepStartNaira: planStepUpMetrics.periodicDepositNaira,
             stepIncrementNaira: planStepUpMetrics.stepIncrementNaira,
           }),
@@ -453,8 +491,10 @@ export function RentCalculatorView({
     targetAmountNaira,
     contractualDueDate,
     activeProductOption,
-    planPattern,
-    customInitialDeposit,
+    effectiveLockMode,
+    effectivePlanPattern,
+    currentDepositNairaForCalc,
+    preferredPaydayDay,
     planEqualMetrics.periodicDepositNaira,
     planStepUpMetrics.periodicDepositNaira,
     planStepUpMetrics.stepIncrementNaira,
@@ -465,16 +505,16 @@ export function RentCalculatorView({
   ])
 
   const defaultInitialDepositNaira = useMemo(() => {
-    if (planPattern === 'INITIAL_DEPOSIT') {
-      return Math.round(previewRentAmount * 0.25)
+    if (effectivePlanPattern === 'INITIAL_DEPOSIT') {
+      return defaultUpfrontForInitialPattern
     }
-    if (planPattern === 'EQUAL') {
+    if (effectivePlanPattern === 'EQUAL') {
       return planEqualMetrics.periodicDepositNaira
     }
     return planStepUpMetrics.periodicDepositNaira
   }, [
-    planPattern,
-    previewRentAmount,
+    effectivePlanPattern,
+    defaultUpfrontForInitialPattern,
     planEqualMetrics.periodicDepositNaira,
     planStepUpMetrics.periodicDepositNaira,
   ])
@@ -545,39 +585,46 @@ export function RentCalculatorView({
     } catch {}
   }
 
-  const isBvnValid = hasVerifiedBvnOnFile || bvn.trim().length === 11
-  const isMaidenNameValid = mothersMaidenName.trim().length > 0
-  const isOccupationValid = occupation.trim().length > 0
-  const isNextOfKinValid = nextOfKinName.trim().length > 0 && nextOfKinPhone.trim().length >= 10
-  const isKycValid =
-    isBvnValid && isMaidenNameValid && isOccupationValid && isNextOfKinValid && agreeToLock
-
-  const handleSubmitKyc = async () => {
-    if (!isKycValid) return
+  const handleSubmitKyc = async (kycData: ArmInvestorKycSubmitData) => {
     setKycError(null)
 
     try {
       const res = await onboardMutation.mutateAsync({
-        bvn: bvn.length === 11 ? bvn : undefined,
-        mothers_maiden_name: mothersMaidenName.trim(),
-        occupation: occupation.trim(),
-        source_of_funds: sourceOfFunds,
-        next_of_kin_name: nextOfKinName.trim(),
-        next_of_kin_relationship: nextOfKinRelationship || 'Spouse',
-        next_of_kin_phone: nextOfKinPhone.trim(),
+        ...kycData,
+        next_of_kin_email: prefill?.next_of_kin_email || undefined,
+        next_of_kin_address: prefill?.next_of_kin_address || undefined,
+        settlement_bank_code:
+          kycData.settlement_bank_code ||
+          prefill?.settlement_bank?.bank_code ||
+          prefill?.settlement_bank_code ||
+          undefined,
+        settlement_account_number:
+          kycData.settlement_account_number ||
+          prefill?.settlement_bank?.account_number ||
+          prefill?.settlement_account_number ||
+          undefined,
+        settlement_account_name:
+          kycData.settlement_account_name ||
+          prefill?.settlement_bank?.account_name ||
+          prefill?.settlement_account_name ||
+          undefined,
+        settlement_bank_name:
+          kycData.settlement_bank_name ||
+          prefill?.settlement_bank?.bank_name ||
+          prefill?.settlement_bank_name ||
+          undefined,
         target_amount: targetAmountNaira,
         rent_due_date: contractualDueDate,
         cadence: 'MONTHLY',
         product_option: activeProductOption,
-        plan_pattern: planPattern,
+        lock_mode: effectiveLockMode,
+        plan_pattern: effectivePlanPattern,
         initial_deposit_kobo:
-          planPattern === 'INITIAL_DEPOSIT'
-            ? Math.round(
-                (customInitialDeposit !== null
-                  ? (parseCurrencyInput(customInitialDeposit) || 0)
-                  : Math.round(targetAmountNaira * 0.25)) * 100,
-              )
+          effectivePlanPattern === 'INITIAL_DEPOSIT'
+            ? Math.round(currentDepositNairaForCalc * 100)
             : 0,
+        planned_monthly_deposit_kobo: Math.round(localPlan.periodicDepositNaira * 100),
+        payday_day_of_month: preferredPaydayDay,
       })
 
       const dva = res?.dedicated_account
@@ -786,164 +833,282 @@ export function RentCalculatorView({
     )
   }
 
-  // STAGE 1.5: Savings Track / Protection Plan Selection (Nov 16 Spec: before schedule breakdown)
+  // STAGE 1.5: Expandable 2-Card / 3-Option Selector (Nov 26 Kunle Spec)
+  // - Neither plan is preselected, no "Recommended" badge, no made-up Naira returns
+  // - Tapping Save & Earn expands in-place to reveal Flexible (12%, ₦0 exit fee) vs Full Lock (16%, locked until 30 days before rent day)
+  // - Eliminates late-stage lock/penalty surprises by showing access rules upfront on Page 1
   if (stage === 'PROTECTION') {
+    const isSaveAndEarnExpanded = chosenProductOption === 'SAVE_AND_EARN'
+    const canContinuePlan =
+      chosenProductOption === 'RENT_PROTEC' ||
+      (chosenProductOption === 'SAVE_AND_EARN' && selectedLockMode !== null)
+
+    const continuePlanLabel = canContinuePlan ? 'Continue' : 'Choose a plan'
+
+    const compareRows = [
+      {
+        label: 'Yearly Interest',
+        flexible: `${platformRates.flexibleSavingsAnnualRatePct}% p.a.`,
+        locked: `${platformRates.savingsAnnualRatePct}% p.a.`,
+        rentProtec: `${platformRates.rentProtecRatePct}% p.a.`,
+      },
+      {
+        label: 'Early Withdrawal',
+        flexible: 'Anytime · ₦0 fee',
+        locked: 'Not available',
+        rentProtec: '30 days before rent day',
+      },
+      {
+        label: 'Rent Protection',
+        flexible: 'Savings only',
+        locked: 'Savings only',
+        rentProtec: 'Up to 100% rent cover',
+      },
+      {
+        label: 'Min. Timeline',
+        flexible: 'No minimum',
+        locked: 'No minimum',
+        rentProtec: `${platformRates.rentProtecMinMonths}+ months`,
+      },
+    ]
+
     return (
-      <PayPageShell
-        title="Choose Your Plan Track"
-        subtitle="Include rent protection or earn higher pure interest towards your rent."
-        showBack
-        onBack={handleProtectionBack}
-        pinFooter
-        footer={
-          <PayFlowPrimaryButton
-            onClick={() => {
-              setProtectionFromBenefit(false)
-              setStage('BENEFIT')
-            }}
-          >
-            Continue
-            <ArrowRight size={18} aria-hidden />
-          </PayFlowPrimaryButton>
-        }
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingTop: 4 }}>
-          {/* Option 1: Rent Protec (Recommended) */}
-          <button
-            type="button"
-            onClick={() => setSelectedProductOption('RENT_PROTEC')}
-            disabled={!isRentProtecEligible}
-            style={{
-              width: '100%',
-              textAlign: 'left',
-              padding: '18px',
-              borderRadius: '16px',
-              border:
-                activeProductOption === 'RENT_PROTEC'
-                  ? '2px solid var(--clay)'
-                  : '1.5px solid var(--shell-border, #f0e9df)',
-              background:
-                activeProductOption === 'RENT_PROTEC'
-                  ? '#fffaf7'
-                  : 'var(--surface, #ffffff)',
-              cursor: isRentProtecEligible ? 'pointer' : 'not-allowed',
-              opacity: isRentProtecEligible ? 1 : 0.45,
-              transition: 'all 0.15s ease',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 8,
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <ShieldCheck size={18} color="var(--clay)" style={{ flexShrink: 0 }} />
-                <span style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text)' }}>
-                  Rent Protec
-                </span>
-                <span
-                  style={{
-                    fontSize: '0.625rem',
-                    fontWeight: 800,
-                    letterSpacing: '0.04em',
-                    textTransform: 'uppercase',
-                    padding: '2px 7px',
-                    borderRadius: '999px',
-                    background: 'var(--shell-tint, #fbede5)',
-                    color: 'var(--clay)',
-                  }}
-                >
-                  Recommended
-                </span>
+      <>
+        <PayPageShell
+          title="Choose Your Savings Plan"
+          showBack
+          onBack={handleProtectionBack}
+          pinFooter
+          footer={
+            <PayFlowPrimaryButton
+              disabled={!canContinuePlan}
+              onClick={() => {
+                if (!canContinuePlan) return
+                setProtectionFromBenefit(false)
+                setCustomInitialDeposit(null)
+                setStage('BENEFIT')
+              }}
+            >
+              {continuePlanLabel}
+              {canContinuePlan && <ArrowRight size={18} aria-hidden />}
+            </PayFlowPrimaryButton>
+          }
+        >
+          <div className="plan-cards">
+            {/* Card 1: Save & Earn — Expands in-place to reveal Flexible vs Full Lock */}
+            <div
+              className={`plan-card plan-card--expandable ${
+                isSaveAndEarnExpanded ? 'plan-card--active' : ''
+              }`}
+            >
+              <button
+                type="button"
+                className="plan-card__trigger"
+                onClick={() => {
+                  setSelectedProductOption('SAVE_AND_EARN')
+                }}
+                aria-expanded={isSaveAndEarnExpanded}
+                aria-pressed={isSaveAndEarnExpanded}
+              >
+                <div className="plan-card__top">
+                  <div className="plan-card__title-group">
+                    <span className="plan-card__radio" aria-hidden />
+                    <TrendingUp size={18} className="plan-card__icon" aria-hidden />
+                    <span className="plan-card__name">Save &amp; Earn</span>
+                  </div>
+                  <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <span className="plan-card__rate">
+                      {platformRates.flexibleSavingsAnnualRatePct}%–{platformRates.savingsAnnualRatePct}% p.a.
+                    </span>
+                    <ChevronDown
+                      size={16}
+                      className={`plan-card__chevron ${
+                        isSaveAndEarnExpanded ? 'plan-card__chevron--open' : ''
+                      }`}
+                      aria-hidden
+                    />
+                  </div>
+                </div>
+
+                {!isSaveAndEarnExpanded && (
+                  <p className="plan-card__desc">
+                    Withdraw anytime, or lock in a higher rate.
+                  </p>
+                )}
+              </button>
+
+              {isSaveAndEarnExpanded && (
+                <div className="plan-card__suboptions" role="radiogroup" aria-label="Save and Earn access options">
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={selectedLockMode === 'FLEXIBLE'}
+                    onClick={() => setSelectedLockMode('FLEXIBLE')}
+                    className={`plan-suboption ${
+                      selectedLockMode === 'FLEXIBLE' ? 'plan-suboption--active' : ''
+                    }`}
+                  >
+                    <div className="plan-suboption__top">
+                      <div className="plan-suboption__title-group">
+                        <span className="plan-suboption__radio" aria-hidden />
+                        <Unlock size={15} className="plan-suboption__icon" aria-hidden />
+                        <span className="plan-suboption__name">Flexible Access</span>
+                      </div>
+                      <span className="plan-suboption__rate">
+                        {platformRates.flexibleSavingsAnnualRatePct}% p.a.
+                      </span>
+                    </div>
+                    <p className="plan-suboption__desc">Withdraw anytime. No fee.</p>
+                  </button>
+
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={selectedLockMode === 'LOCKED'}
+                    onClick={() => setSelectedLockMode('LOCKED')}
+                    className={`plan-suboption ${
+                      selectedLockMode === 'LOCKED' ? 'plan-suboption--active' : ''
+                    }`}
+                  >
+                    <div className="plan-suboption__top">
+                      <div className="plan-suboption__title-group">
+                        <span className="plan-suboption__radio" aria-hidden />
+                        <Lock size={15} className="plan-suboption__icon" aria-hidden />
+                        <span className="plan-suboption__name">Full Lock</span>
+                      </div>
+                      <span className="plan-suboption__rate">
+                        {platformRates.savingsAnnualRatePct}% p.a.
+                      </span>
+                    </div>
+                    <p className="plan-suboption__desc">
+                      Held until 30 days before rent day.
+                    </p>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Card 2: Rent Protec */}
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedProductOption('RENT_PROTEC')
+                setSelectedLockMode('LOCKED')
+                setPlanPattern('INITIAL_DEPOSIT')
+                setCustomInitialDeposit(null)
+              }}
+              disabled={!isRentProtecEligible}
+              aria-pressed={chosenProductOption === 'RENT_PROTEC'}
+              className={`plan-card ${
+                chosenProductOption === 'RENT_PROTEC' ? 'plan-card--active' : ''
+              } ${!isRentProtecEligible ? 'plan-card--disabled' : ''}`}
+            >
+              <div className="plan-card__top">
+                <div className="plan-card__title-group">
+                  <span className="plan-card__radio" aria-hidden />
+                  <ShieldCheck size={18} className="plan-card__icon" aria-hidden />
+                  <span className="plan-card__name">Rent Protec</span>
+                </div>
+                <span className="plan-card__rate">{platformRates.rentProtecRatePct}% p.a. + Cover</span>
               </div>
 
-              <span style={{ fontSize: '0.875rem', fontWeight: 800, color: '#059669' }}>
-                {platformRates.rentProtecRatePct}% p.a.
-              </span>
-            </div>
+              <p className="plan-card__desc">
+                Rent cover up to your full annual rent.
+              </p>
 
-            <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.45, paddingLeft: '26px' }}>
-              Earn compound returns plus Upward rent coverage in case of job loss or illness.
-            </div>
+              <ul className="plan-card__bullets">
+                <li>
+                  <Check size={14} aria-hidden />
+                  <span>Job loss, serious illness, or loss of a breadwinner</span>
+                </li>
+                <li>
+                  <Check size={14} aria-hidden />
+                  <span>Held until 30 days before rent day</span>
+                </li>
+              </ul>
 
-            {!isRentProtecEligible && (
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', paddingLeft: '26px' }}>
-                Requires at least {platformRates.rentProtecMinMonths} months before rent is due.
+              {!isRentProtecEligible && (
+                <div className="plan-card__ineligible">
+                  Requires at least {platformRates.rentProtecMinMonths} months before rent is due.
+                </div>
+              )}
+            </button>
+
+            {/* Compare Benefits & Lock Terms Trigger */}
+            <button
+              type="button"
+              className="plan-cards__compare-btn"
+              onClick={() => setShowCompareBenefits(true)}
+            >
+              <span>Compare the 3 options</span>
+              <ChevronRight size={16} aria-hidden />
+            </button>
+          </div>
+        </PayPageShell>
+
+        <BottomSheetModal
+          isOpen={showCompareBenefits}
+          onClose={() => setShowCompareBenefits(false)}
+          title="Compare Savings Options"
+          subtitle="Flexible vs. Full Lock vs. Rent Protec"
+          maxWidth="520px"
+        >
+          <div className="plan-table plan-table--4col" role="table" aria-label="Compare savings options">
+            <div className="plan-table__row plan-table__row--4col plan-table__row--head" role="row">
+              <div className="plan-table__label plan-table__label--head" role="columnheader">
+                Feature
               </div>
-            )}
-          </button>
-
-          {/* Option 2: Save & Earn (Basic Savings Only) */}
-          <button
-            type="button"
-            onClick={() => setSelectedProductOption('SAVE_AND_EARN')}
-            style={{
-              width: '100%',
-              textAlign: 'left',
-              padding: '18px',
-              borderRadius: '16px',
-              border:
-                activeProductOption === 'SAVE_AND_EARN'
-                  ? '2px solid var(--clay)'
-                  : '1.5px solid var(--shell-border, #f0e9df)',
-              background:
-                activeProductOption === 'SAVE_AND_EARN'
-                  ? '#fffaf7'
-                  : 'var(--surface, #ffffff)',
-              cursor: 'pointer',
-              transition: 'all 0.15s ease',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 8,
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <TrendingUp size={18} color="var(--text-muted)" style={{ flexShrink: 0 }} />
-                <span
-                  style={{
-                    fontSize: '1rem',
-                    fontWeight: 700,
-                    color: activeProductOption === 'SAVE_AND_EARN' ? 'var(--clay)' : 'var(--text)',
-                  }}
-                >
-                  Save &amp; Earn
-                </span>
-                <span
-                  style={{
-                    fontSize: '0.625rem',
-                    fontWeight: 600,
-                    color: 'var(--text-muted)',
-                    background: 'var(--surface2, #efefef)',
-                    padding: '2px 7px',
-                    borderRadius: '999px',
-                  }}
-                >
-                  Savings only
-                </span>
+              <div className="plan-table__modal-head" role="columnheader">
+                Flexible
               </div>
-
-              <span style={{ fontSize: '0.875rem', fontWeight: 800, color: '#059669' }}>
-                {platformRates.savingsAnnualRatePct}% p.a.
-              </span>
+              <div className="plan-table__modal-head" role="columnheader">
+                Full Lock
+              </div>
+              <div className="plan-table__modal-head" role="columnheader">
+                Rent Protec
+              </div>
             </div>
 
-            <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', lineHeight: 1.45, paddingLeft: '26px' }}>
-              Earn maximum compound returns towards your rent without insurance coverage.
-            </div>
-          </button>
-        </div>
-      </PayPageShell>
+            {compareRows.map((row) => (
+              <div key={row.label} className="plan-table__row plan-table__row--4col" role="row">
+                <div className="plan-table__label" role="rowheader">
+                  {row.label}
+                </div>
+                <div className="plan-table__cell" role="cell">
+                  {row.flexible}
+                </div>
+                <div className="plan-table__cell" role="cell">
+                  {row.locked}
+                </div>
+                <div className="plan-table__cell" role="cell">
+                  {row.rentProtec}
+                </div>
+              </div>
+            ))}
+          </div>
+
+        </BottomSheetModal>
+      </>
     )
   }
 
-  // STAGE 2: Clear Benefit Showcase (Kunle Specification: Spacious, One Plan Per Screen + Compare Plans)
+  // STAGE 2: Clear Benefit Showcase
   if (stage === 'BENEFIT') {
     const activePlanTitle =
-      planPattern === 'INITIAL_DEPOSIT'
-        ? 'Deposit now, save monthly'
-        : planPattern === 'EQUAL'
+      effectivePlanPattern === 'INITIAL_DEPOSIT'
+        ? activeProductOption === 'RENT_PROTEC'
+          ? 'Upfront deposit + fixed monthly plan'
+          : 'Deposit now, save monthly'
+        : effectivePlanPattern === 'EQUAL'
           ? 'Equal monthly'
           : 'Start small & step up'
+
+    const activeTrackLabel =
+      activeProductOption === 'RENT_PROTEC'
+        ? 'Rent Protec'
+        : effectiveLockMode === 'FLEXIBLE'
+          ? 'Save & Earn · Flexible'
+          : 'Save & Earn · Full Lock'
 
     return (
       <>
@@ -954,8 +1119,14 @@ export function RentCalculatorView({
           onBack={handleBenefitBack}
           pinFooter
           footer={
-            <PayFlowPrimaryButton onClick={() => setStage('KYC')}>
-              Continue to Activate Account
+            <PayFlowPrimaryButton
+              disabled={isRentProtecDepositBelowFloor}
+              onClick={() => {
+                if (isRentProtecDepositBelowFloor) return
+                setStage('KYC')
+              }}
+            >
+              Continue
               <ArrowRight size={18} aria-hidden />
             </PayFlowPrimaryButton>
           }
@@ -1011,13 +1182,13 @@ export function RentCalculatorView({
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 5 }}>
                   {activeProductOption === 'RENT_PROTEC' ? (
                     <ShieldCheck size={14} color="var(--clay)" />
+                  ) : effectiveLockMode === 'FLEXIBLE' ? (
+                    <Unlock size={14} color="#059669" />
                   ) : (
                     <TrendingUp size={14} color="#059669" />
                   )}
                   <span>
-                    <strong style={{ color: 'var(--text)' }}>
-                      {activeProductOption === 'RENT_PROTEC' ? 'Rent Protec' : 'Save & Earn'}
-                    </strong>{' '}
+                    <strong style={{ color: 'var(--text)' }}>{activeTrackLabel}</strong>{' '}
                     ({savingsAnnualRatePct}% p.a.)
                   </span>
                 </div>
@@ -1042,7 +1213,7 @@ export function RentCalculatorView({
               </div>
             </div>
 
-            {/* Single Airy Plan Card (Uncrowded per Kunle Spec) */}
+            {/* Single Airy Plan Card */}
             <div
               style={{
                 padding: '20px 18px',
@@ -1055,7 +1226,7 @@ export function RentCalculatorView({
                 boxShadow: '0 2px 10px rgba(0, 0, 0, 0.03)',
               }}
             >
-              {/* Plan Header + Compare Button */}
+              {/* Plan Header — Hide "Change savings plan" completely on RENT_PROTEC */}
               <div
                 style={{
                   display: 'flex',
@@ -1068,31 +1239,33 @@ export function RentCalculatorView({
                   {activePlanTitle}
                 </span>
 
-                <button
-                  type="button"
-                  onClick={() => setShowComparePlans(true)}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 2,
-                    background: '#ffffff',
-                    border: '1px solid var(--shell-border, #e5dfd7)',
-                    borderRadius: '999px',
-                    padding: '5px 10px',
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    color: 'var(--clay)',
-                    cursor: 'pointer',
-                    flexShrink: 0,
-                  }}
-                >
-                  Compare plans
-                  <ChevronRight size={14} />
-                </button>
+                {activeProductOption !== 'RENT_PROTEC' && (
+                  <button
+                    type="button"
+                    onClick={() => setShowComparePlans(true)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 2,
+                      background: '#ffffff',
+                      border: '1px solid var(--shell-border, #e5dfd7)',
+                      borderRadius: '999px',
+                      padding: '5px 10px',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      color: 'var(--clay)',
+                      cursor: 'pointer',
+                      flexShrink: 0,
+                    }}
+                  >
+                    Change plan
+                    <ChevronRight size={14} />
+                  </button>
+                )}
               </div>
 
               {/* Exact Contributions Section — Clear Input Textboxes vs Read-Only Output */}
-              {planPattern === 'INITIAL_DEPOSIT' && (
+              {effectivePlanPattern === 'INITIAL_DEPOSIT' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                   <div>
                     <label
@@ -1105,7 +1278,7 @@ export function RentCalculatorView({
                         marginBottom: 6,
                       }}
                     >
-                      Today&apos;s upfront deposit
+                      Upfront deposit
                     </label>
                     <div
                       style={{
@@ -1113,7 +1286,9 @@ export function RentCalculatorView({
                         alignItems: 'center',
                         gap: 6,
                         background: '#ffffff',
-                        border: '1.5px solid #cbc2b7',
+                        border: isRentProtecDepositBelowFloor
+                          ? '1.5px solid var(--error, #dc2626)'
+                          : '1.5px solid #cbc2b7',
                         borderRadius: '12px',
                         height: 48,
                         padding: '0 14px',
@@ -1147,6 +1322,47 @@ export function RentCalculatorView({
                       />
                       <Pencil size={14} color="var(--clay)" style={{ flexShrink: 0, opacity: 0.75 }} aria-hidden />
                     </div>
+
+                    {isRentProtecDepositBelowFloor && (
+                      <div className="rent-protec-boost__error" role="alert">
+                        <AlertCircle size={13} style={{ flexShrink: 0 }} />
+                        <span>
+                          Minimum is <strong>{formatCurrency(minRentProtecDepositNaira, 'NGN')}</strong>.
+                        </span>
+                      </div>
+                    )}
+
+                    {activeProductOption === 'RENT_PROTEC' && (
+                      <div className="rent-protec-boost">
+                        <div className="rent-protec-boost__pills">
+                          {[50_000, 100_000, 250_000].map((inc) => (
+                            <button
+                              key={inc}
+                              type="button"
+                              className="rent-protec-boost__pill"
+                              onClick={() => {
+                                const base = Math.max(rawTypedDepositNaira, minRentProtecDepositNaira)
+                                const next = Math.min(previewRentAmount, base + inc)
+                                setCustomInitialDeposit(formatCurrencyInput(next))
+                              }}
+                            >
+                              +₦{(inc / 1000).toLocaleString()}k
+                            </button>
+                          ))}
+                          {rawTypedDepositNaira !== minRentProtecDepositNaira && (
+                            <button
+                              type="button"
+                              className="rent-protec-boost__reset"
+                              onClick={() =>
+                                setCustomInitialDeposit(formatCurrencyInput(minRentProtecDepositNaira))
+                              }
+                            >
+                              Min ({formatCurrency(minRentProtecDepositNaira, 'NGN')})
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Read-Only Calculated Monthly Output */}
@@ -1162,7 +1378,7 @@ export function RentCalculatorView({
                   >
                     <div>
                       <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text)' }}>
-                        Then save monthly
+                        Fixed monthly deposit
                       </div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: 2 }}>
                         For {planDepositMetrics.numberOfPayments} months
@@ -1176,7 +1392,7 @@ export function RentCalculatorView({
                 </div>
               )}
 
-              {planPattern === 'EQUAL' && (
+              {effectivePlanPattern === 'EQUAL' && (
                 <div
                   style={{
                     background: 'rgba(194, 80, 31, 0.06)',
@@ -1211,7 +1427,7 @@ export function RentCalculatorView({
                 </div>
               )}
 
-              {planPattern === 'STEP_UP' && (
+              {effectivePlanPattern === 'STEP_UP' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                     <div>
@@ -1347,7 +1563,31 @@ export function RentCalculatorView({
                 </div>
               )}
 
-              {/* Total Contributions vs Estimated Returns Summary */}
+              <div className="rent-protec-payday">
+                <div className="rent-protec-payday__row">
+                  <span className="rent-protec-payday__label">
+                    <Calendar size={13} color="var(--clay)" />
+                    <span>Remind me on</span>
+                  </span>
+                  <select
+                    aria-label="Preferred monthly savings day"
+                    className="rent-protec-payday__select"
+                    value={preferredPaydayDay}
+                    onChange={(e) => setPreferredPaydayDay(Number(e.target.value))}
+                  >
+                    {REMINDER_DAYS.map((day) => (
+                      <option key={day} value={day}>
+                        {ordinalDay(day)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <p className="rent-protec-payday__hint">
+                  You can save any day. This only sets the reminder.
+                </p>
+              </div>
+
+              {/* Total Contributions vs Expected Returns Summary */}
               <div
                 style={{
                   display: 'grid',
@@ -1397,7 +1637,7 @@ export function RentCalculatorView({
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    Est. returns
+                    Expected returns
                   </span>
                   <div
                     style={{
@@ -1447,11 +1687,11 @@ export function RentCalculatorView({
           </div>
         </PayPageShell>
 
-        {/* Compare Other Savings Plans Modal (Kunle Spec) */}
+        {/* Change Savings Plan Modal */}
         <BottomSheetModal
           isOpen={showComparePlans}
           onClose={() => setShowComparePlans(false)}
-          title="Compare Savings Plans"
+          title="Choose Your Savings Plan"
           maxWidth="480px"
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingBottom: 8 }}>
@@ -1495,7 +1735,7 @@ export function RentCalculatorView({
                   </span>
                 </div>
                 <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 800, whiteSpace: 'nowrap' }}>
-                  Est. +{formatCurrency(planDepositMetrics.projectedYieldNaira)}
+                  Expected +{formatCurrency(planDepositMetrics.projectedYieldNaira)}
                 </span>
               </div>
               <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
@@ -1509,6 +1749,7 @@ export function RentCalculatorView({
             {/* Plan 2: Equal Monthly */}
             <button
               type="button"
+              disabled={activeProductOption === 'RENT_PROTEC'}
               onClick={() => handleSelectPlan('EQUAL')}
               style={{
                 width: '100%',
@@ -1520,7 +1761,8 @@ export function RentCalculatorView({
                     ? '2px solid var(--clay)'
                     : '1.5px solid var(--shell-border, #e5dfd7)',
                 background: planPattern === 'EQUAL' ? '#fffaf7' : '#ffffff',
-                cursor: 'pointer',
+                cursor: activeProductOption === 'RENT_PROTEC' ? 'not-allowed' : 'pointer',
+                opacity: activeProductOption === 'RENT_PROTEC' ? 0.5 : 1,
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 6,
@@ -1531,7 +1773,7 @@ export function RentCalculatorView({
                   Equal monthly
                 </span>
                 <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 800, whiteSpace: 'nowrap' }}>
-                  Est. +{formatCurrency(planEqualMetrics.projectedYieldNaira)}
+                  Expected +{formatCurrency(planEqualMetrics.projectedYieldNaira)}
                 </span>
               </div>
               <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
@@ -1540,11 +1782,18 @@ export function RentCalculatorView({
                 </strong>{' '}
                 · ₦0 upfront
               </div>
+              {activeProductOption === 'RENT_PROTEC' && (
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                  Available on Save &amp; Earn — Rent Protec activates at{' '}
+                  {rawDaysRemaining >= 210 ? '20%' : '25%'} initial deposit.
+                </div>
+              )}
             </button>
 
             {/* Plan 3: Start Small & Step Up */}
             <button
               type="button"
+              disabled={activeProductOption === 'RENT_PROTEC'}
               onClick={() => handleSelectPlan('STEP_UP')}
               style={{
                 width: '100%',
@@ -1556,7 +1805,8 @@ export function RentCalculatorView({
                     ? '2px solid var(--clay)'
                     : '1.5px solid var(--shell-border, #e5dfd7)',
                 background: planPattern === 'STEP_UP' ? '#fffaf7' : '#ffffff',
-                cursor: 'pointer',
+                cursor: activeProductOption === 'RENT_PROTEC' ? 'not-allowed' : 'pointer',
+                opacity: activeProductOption === 'RENT_PROTEC' ? 0.5 : 1,
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 6,
@@ -1567,7 +1817,7 @@ export function RentCalculatorView({
                   Start small &amp; step up
                 </span>
                 <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 800, whiteSpace: 'nowrap' }}>
-                  Est. +{formatCurrency(planStepUpMetrics.projectedYieldNaira)}
+                  Expected +{formatCurrency(planStepUpMetrics.projectedYieldNaira)}
                 </span>
               </div>
               <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
@@ -1577,6 +1827,12 @@ export function RentCalculatorView({
                 </strong>
                 )
               </div>
+              {activeProductOption === 'RENT_PROTEC' && (
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                  Available on Save &amp; Earn — Rent Protec activates at{' '}
+                  {rawDaysRemaining >= 210 ? '20%' : '25%'} initial deposit.
+                </div>
+              )}
             </button>
           </div>
         </BottomSheetModal>
@@ -1584,176 +1840,68 @@ export function RentCalculatorView({
     )
   }
 
-  // STAGE 3: KYC Step
+  // STAGE 3: KYC & Consent Step (3-Step Guided Onboarding)
   if (stage === 'KYC') {
+    const kycTitle = kycStep === 1 ? 'Identity' : kycStep === 2 ? 'Address' : 'Review'
+    const kycCtaLabel = kycStep < 3 ? 'Continue' : 'Activate'
+    const isFooterDisabled =
+      kycStep < 3
+        ? !isKycStepValid || onboardMutation.isPending
+        : !isArmKycFormValid || onboardMutation.isPending
+
     return (
       <PayPageShell
-        title="Activate Rent Account"
-        subtitle="Link your BVN to generate your personal rent account."
+        title={kycTitle}
         showBack
-        onBack={() => setStage('BENEFIT')}
+        onBack={() => {
+          if (kycStep > 1) {
+            setKycStep((kycStep - 1) as KycFormStep)
+          } else {
+            setStage('BENEFIT')
+          }
+        }}
         pinFooter
         footer={
           <PayFlowPrimaryButton
-            disabled={!isKycValid || onboardMutation.isPending}
+            type="button"
+            onClick={() => {
+              if (kycStep < 3) {
+                const nextBtn = document.getElementById(
+                  'rent-calc-arm-kyc-next',
+                ) as HTMLButtonElement | null
+                nextBtn?.click()
+              } else {
+                const formEl = document.getElementById(
+                  'rent-calc-arm-kyc-form',
+                ) as HTMLFormElement | null
+                formEl?.requestSubmit()
+              }
+            }}
+            disabled={isFooterDisabled}
             loading={onboardMutation.isPending}
-            onClick={handleSubmitKyc}
           >
-            Activate Account
+            {kycCtaLabel}
             <ArrowRight size={18} aria-hidden />
           </PayFlowPrimaryButton>
         }
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {kycError && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '8px 12px',
-                borderRadius: '8px',
-                background: 'rgba(239, 68, 68, 0.08)',
-                border: '1px solid rgba(239, 68, 68, 0.25)',
-                fontSize: '0.75rem',
-                color: 'var(--error)',
-              }}
-            >
-              <AlertCircle size={14} style={{ flexShrink: 0 }} />
-              <span>{kycError}</span>
-            </div>
-          )}
-
-          {/* BVN */}
-          {hasVerifiedBvnOnFile ? (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '12px 14px',
-                borderRadius: '10px',
-                background: 'rgba(16, 185, 129, 0.08)',
-                border: '1px solid rgba(16, 185, 129, 0.25)',
-                color: '#10b981',
-                fontSize: '0.8125rem',
-                fontWeight: 600,
-              }}
-            >
-              <CheckCircle2 size={16} style={{ flexShrink: 0 }} />
-              <span>
-                Identity Verified · BVN ({prefill?.masked_bvn || '••••' + (user?.phone?.slice(-4) || '1234')}) on file
-              </span>
-            </div>
-          ) : (
-            <div className="rent-calculator__field">
-              <label className="rent-calculator__label">Bank Verification Number (BVN)</label>
-              <div className="rent-calculator__input-wrapper">
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  placeholder="Enter 11-digit BVN"
-                  className="rent-calculator__input rent-calculator__input--no-prefix"
-                  value={bvn}
-                  onChange={(e) => setBvn(e.target.value.replace(/\D/g, '').slice(0, 11))}
-                  maxLength={11}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Mother's Maiden Name */}
-          <div className="rent-calculator__field">
-            <label className="rent-calculator__label">Mother&apos;s Maiden Name</label>
-            <div className="rent-calculator__input-wrapper">
-              <input
-                type="text"
-                placeholder="Mother's birth family name"
-                className="rent-calculator__input rent-calculator__input--no-prefix"
-                value={mothersMaidenName}
-                onChange={(e) => setMothersMaidenName(e.target.value)}
-              />
-            </div>
-          </div>
-
-          {/* Occupation & Source of Funds */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <div className="rent-calculator__field">
-              <label className="rent-calculator__label">Occupation</label>
-              <input
-                type="text"
-                placeholder="e.g. Consultant"
-                className="rent-calculator__input rent-calculator__input--no-prefix"
-                value={occupation}
-                onChange={(e) => setOccupation(e.target.value)}
-              />
-            </div>
-            <div className="rent-calculator__field">
-              <label className="rent-calculator__label">Source of Funds</label>
-              <select
-                className="rent-calculator__input rent-calculator__input--no-prefix"
-                value={sourceOfFunds}
-                onChange={(e) =>
-                  setSourceOfFunds(
-                    e.target.value as 'Salary' | 'Business' | 'Savings' | 'Investment',
-                  )
-                }
-              >
-                <option value="Salary">Salary</option>
-                <option value="Business">Business</option>
-                <option value="Savings">Savings</option>
-                <option value="Investment">Investment</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Next of Kin */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <div className="rent-calculator__field">
-              <label className="rent-calculator__label">Next of Kin Name</label>
-              <input
-                type="text"
-                placeholder="Full name"
-                className="rent-calculator__input rent-calculator__input--no-prefix"
-                value={nextOfKinName}
-                onChange={(e) => setNextOfKinName(e.target.value)}
-              />
-            </div>
-            <div className="rent-calculator__field">
-              <label className="rent-calculator__label">Next of Kin Phone</label>
-              <input
-                type="tel"
-                placeholder="e.g. 0801 234 5678"
-                className="rent-calculator__input rent-calculator__input--no-prefix"
-                value={nextOfKinPhone}
-                onChange={(e) =>
-                  setNextOfKinPhone(e.target.value.replace(/[^\d+]/g, '').slice(0, 14))
-                }
-              />
-            </div>
-          </div>
-
-          {/* Lock Agreement */}
-          <label
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              marginTop: 6,
-              fontSize: '0.8125rem',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer',
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={agreeToLock}
-              onChange={(e) => setAgreeToLock(e.target.checked)}
-              style={{ width: 18, height: 18, accentColor: 'var(--clay)', cursor: 'pointer' }}
-            />
-            <span>I agree to lock my rent savings until 30 days before rent day.</span>
-          </label>
-        </div>
+        <ArmInvestorKycForm
+          formId="rent-calc-arm-kyc-form"
+          nextTriggerId="rent-calc-arm-kyc-next"
+          prefill={prefill}
+          annualRatePct={savingsAnnualRatePct}
+          fundName={fundDisplayName}
+          lockMode={effectiveLockMode}
+          productOption={activeProductOption}
+          serverError={kycError}
+          isSubmitting={onboardMutation.isPending}
+          hideSubmitButton
+          step={kycStep}
+          onStepChange={setKycStep}
+          onStepValidityChange={setIsKycStepValid}
+          onValidityChange={setIsArmKycFormValid}
+          onSubmit={handleSubmitKyc}
+        />
       </PayPageShell>
     )
   }
@@ -1872,7 +2020,7 @@ export function RentCalculatorView({
                     monthly for {successDynamicPlan.numberOfPayments} months{' '}
                   </>
                 )}
-                {planPattern === 'STEP_UP' && (
+                {effectivePlanPattern === 'STEP_UP' && (
                   <>
                     Start Month 1 with{' '}
                     <strong style={{ color: 'var(--clay)' }}>
@@ -1882,7 +2030,7 @@ export function RentCalculatorView({
                   </>
                 )}
                 <span style={{ color: '#059669', fontWeight: 600 }}>
-                  (est. +{formatCurrency(successProjectedYieldNaira, 'NGN')} returns)
+                  (expected +{formatCurrency(successProjectedYieldNaira, 'NGN')} in returns)
                 </span>
                 .
               </div>
@@ -1947,11 +2095,11 @@ export function RentCalculatorView({
             </div>
           )}
 
-          {/* Partner Info Badge */}
+          {/* Partner Info & Zero-Delay Verification Badge */}
           <div
             style={{
               display: 'flex',
-              alignItems: 'center',
+              alignItems: 'flex-start',
               gap: 8,
               padding: '10px 14px',
               borderRadius: '12px',
@@ -1959,12 +2107,34 @@ export function RentCalculatorView({
               border: '1px solid rgba(217, 119, 87, 0.12)',
               fontSize: '0.75rem',
               color: 'var(--text-secondary)',
+              lineHeight: 1.45,
             }}
           >
-            <ShieldCheck size={16} color="var(--clay)" style={{ flexShrink: 0 }} />
+            <ShieldCheck size={16} color="var(--clay)" style={{ flexShrink: 0, marginTop: 2 }} />
             <span>
-              Funds are invested in a <strong>Money Market Fund (MMF)</strong> managed by{' '}
-              <strong>{platformRates.partnerName || 'Asset & Resource Management Holding Company (ARM)'}</strong>.
+              {platformRates.savingsMode === 'OPT_IN_ONLY' ? (
+                <>
+                  <strong>Activation Opt-In Complete!</strong> Your investor profile for{' '}
+                  <strong>
+                    {fundDisplayName} ({SAVINGS_FUND_CODE})
+                  </strong>{' '}
+                  is submitted. Live deposits open shortly — you will be notified as soon as funding
+                  is enabled.
+                </>
+              ) : (
+                <>
+                  Your dedicated rent savings account is ready — you can deposit anytime.{' '}
+                  <strong>
+                    {platformRates.partnerShortName || 'ARM'}
+                  </strong>{' '}
+                  verification completes within <strong>24 hours to 3 business days</strong>, after
+                  which your funds earn daily compounding returns in{' '}
+                  <strong>
+                    {fundDisplayName} ({SAVINGS_FUND_CODE})
+                  </strong>
+                  .
+                </>
+              )}
             </span>
           </div>
 

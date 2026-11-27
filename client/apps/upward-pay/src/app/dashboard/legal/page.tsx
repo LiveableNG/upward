@@ -21,6 +21,12 @@ export default function LegalHubPage() {
       path: '/dashboard/legal/terms',
     },
     {
+      title: 'Rent Savings Terms & ARM Consent',
+      subtitle: 'ARM Money Market Fund (ARMMMF) T&Cs and mandate',
+      icon: FileText,
+      path: '/dashboard/legal/savings-terms',
+    },
+    {
       title: 'Cookies Policy',
       subtitle: 'About how we use cookies',
       icon: FileText,

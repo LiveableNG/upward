@@ -14,6 +14,7 @@ If you are new to the project, please review the developer onboarding documents 
 4.  **[4. Git Workflow & Deployment](./onboarding/4-git-workflow.md)**: Branch naming conventions, Conventional Commit standards, and Vercel preview environments.
 5.  **[5. Payment Infrastructure](./onboarding/5-payment-infrastructure.md)**: Technical breakdown of our Paystack integration, split payouts, Dedicated Virtual Accounts, and webhook log retries.
 6.  **[6. Database Maintenance & Scripts](./onboarding/6-database-maintenance-scripts.md)**: Guide on using and writing local operational scripts for database management.
+7.  **[7. ARM Connect Asset Management Integration](./docs/arm_connect_integration.md)**: End-to-end B2B2C integration guide for ARM Money Market Fund (`ARMMMF`), covering all 10 outbound ARM endpoints, inbound webhooks, use-case touchpoints, and sandbox validation rules.
 
 ---
 

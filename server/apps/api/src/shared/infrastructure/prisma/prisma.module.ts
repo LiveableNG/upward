@@ -445,7 +445,9 @@ import { EncryptionService } from '../../../shared/infrastructure/common/encrypt
     {
       provide: KYC_PROVIDER,
       useFactory: (configService: ConfigService) => {
-        const provider = (configService.get<string>('KYC_PROVIDER') || 'monnify').toLowerCase()
+        const configured = (configService.get<string>('KYC_PROVIDER') || '').toLowerCase()
+        const hasPrembly = Boolean(configService.get<string>('PREMBLY_API_KEY'))
+        const provider = configured || (hasPrembly ? 'prembly' : 'monnify')
         if (provider === 'prembly') {
           return new PremblyKycProvider(configService)
         }

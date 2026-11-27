@@ -140,4 +140,38 @@ describe('PremblyKycProvider', () => {
     expect(result.lastName).toBe('Fallback')
     expect(global.fetch).toHaveBeenCalledTimes(2)
   })
+
+  it('should fall back to /identitypass/verification route on transient 503 upstream error', async () => {
+    const mockSuccessResponse = {
+      status: true,
+      response_code: '00',
+      data: {
+        firstName: 'RONALD',
+        lastName: 'EKOM',
+      },
+    }
+
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+        text: async () => 'no healthy upstream',
+      } as any)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        text: async () => JSON.stringify(mockSuccessResponse),
+      } as any)
+
+    const result = await provider.verify('BVN', '22222222222')
+    expect(result.success).toBe(true)
+    expect(result.firstName).toBe('RONALD')
+    expect(result.lastName).toBe('EKOM')
+    expect(global.fetch).toHaveBeenNthCalledWith(
+      2,
+      'https://api.prembly.com/identitypass/verification/bvn',
+      expect.any(Object),
+    )
+  })
 })

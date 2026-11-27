@@ -8,6 +8,13 @@
   flex-direction: column;
 }
 
+.pay-flow button,
+.pay-flow input,
+.pay-flow select,
+.pay-flow textarea {
+  font-family: inherit;
+}
+
 .pay-flow__shell {
   display: flex;
   flex-direction: column;

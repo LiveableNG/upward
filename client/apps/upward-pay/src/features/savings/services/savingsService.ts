@@ -2,7 +2,18 @@ import { request } from '@/lib/api-client'
 
 export type SavingsCadence = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY'
 export type SavingsProductOption = 'SAVE_AND_EARN' | 'RENT_PROTEC'
+export type SavingsLockMode = 'LOCKED' | 'FLEXIBLE'
 export type SavingsPlanPattern = 'EQUAL' | 'INITIAL_DEPOSIT' | 'STEP_UP' | 'ACCELERATED'
+export type MeansOfIdentificationType = 'NIN' | 'INTERNATIONAL_PASSPORT' | 'DRIVERS_LICENSE'
+export type SavingsKycDocumentKind = 'id_card' | 'utility_bill'
+
+export interface UploadedKycDocument {
+  doc_key: string
+  file_name: string
+  mime_type: string
+  size_bytes: number
+  kind: SavingsKycDocumentKind
+}
 
 export interface SimulateRentSavingsPayload {
   target_amount_kobo: number
@@ -10,6 +21,7 @@ export interface SimulateRentSavingsPayload {
   initial_deposit_kobo?: number
   cadence: SavingsCadence
   product_option?: SavingsProductOption
+  lock_mode?: SavingsLockMode
   plan_pattern?: SavingsPlanPattern
   monthly_income_kobo?: number
 }
@@ -20,9 +32,14 @@ export interface CreateVaultPayload {
   cadence: SavingsCadence
   preferred_funding_method: 'DVA' | 'CARD_TOKEN' | 'DIRECT_DEBIT'
   product_option?: SavingsProductOption
+  lock_mode?: SavingsLockMode
   initial_deposit_kobo?: number
+  planned_monthly_deposit_kobo?: number
   payday_day_of_month?: number
   card_authorization_code?: string
+  consent_accepted?: boolean
+  terms_version?: string
+  consent_doc_version?: string
 }
 
 export interface DisburseAdvancePayload {
@@ -47,11 +64,14 @@ export interface SimulateRentSavingsData {
   first_period_deposit_kobo?: number
   last_period_deposit_kobo?: number
   required_initial_deposit_kobo?: number
+  minimum_initial_deposit_kobo?: number
+  minimum_initial_deposit_pct?: number
   number_of_payments: number
   total_tenant_contribution_kobo: number
   projected_yield_kobo: number
   net_annual_yield_rate: number
   product_option?: SavingsProductOption
+  lock_mode?: SavingsLockMode
   plan_pattern?: SavingsPlanPattern
   is_rent_protec_eligible?: boolean
   rent_protec_ineligibility_reason?: string | null
@@ -102,6 +122,7 @@ export interface VaultTransactionItem {
   id: string
   uuid?: string
   type: string
+  deposit_classification?: string | null
   direction: 'CREDIT' | 'DEBIT'
   amount_kobo: number
   source_label: string
@@ -116,10 +137,29 @@ export interface RentVaultData {
   lock_status: string
   cadence?: SavingsCadence
   product_option?: SavingsProductOption
+  lock_mode?: SavingsLockMode
   plan_pattern?: SavingsPlanPattern
   initial_deposit_kobo?: number
+  minimum_initial_deposit_kobo?: number
+  minimum_initial_deposit_pct?: number
+  planned_monthly_deposit_kobo?: number
+  current_month_paid_kobo?: number
+  current_month_remaining_kobo?: number
+  current_month_fulfilled?: boolean
+  preferred_payday_day?: number
   is_rent_protec?: boolean
   insurance_premium_pct?: number
+  has_completed_arm_kyc?: boolean
+  address_verification_status?: string | null
+  consent?: {
+    consent_uuid: string
+    terms_version: string
+    consent_doc_version: string
+    fund_code: string
+    fund_name: string
+    accepted_at: string
+    has_document: boolean
+  } | null
   current_balance_kobo: number
   principal_kobo: number
   vault_principal_kobo?: number
@@ -172,47 +212,82 @@ export interface RentVaultData {
 export interface SavingsOnboardingPrefillData {
   is_verified: boolean
   has_verified_bvn: boolean
-  bvn: string
+  has_verified_nin?: boolean
+  has_completed_arm_kyc?: boolean
+  has_signed_consent?: boolean
+  consent_accepted_at?: string | null
+  account_holder_first_name?: string | null
+  account_holder_last_name?: string | null
+  account_holder_full_name?: string | null
+  strict_bank_name_match?: boolean
+  bvn: string | null
   masked_bvn: string | null
-  mothers_maiden_name: string
-  occupation: string
-  source_of_funds: 'Salary' | 'Business' | 'Savings' | 'Investment'
-  income_range: string
-  next_of_kin_name: string
-  next_of_kin_relationship: string
-  next_of_kin_phone: string
-  next_of_kin_email: string
-  next_of_kin_address: string
-  settlement_bank_code: string
-  settlement_account_number: string
-  settlement_account_name: string
-  settlement_bank_name: string
+  nin?: string | null
+  masked_nin?: string | null
+  means_of_id_type?: MeansOfIdentificationType
+  means_of_id_number_masked?: string | null
+  means_of_id_issue_date?: string | null
+  means_of_id_expiry_date?: string | null
+  means_of_id_doc_key?: string | null
+  means_of_id_file_name?: string | null
+  means_of_id_mime_type?: string | null
+  residential_address_number?: string | null
+  residential_street?: string | null
+  residential_town?: string | null
+  residential_state?: string | null
+  utility_bill_issue_date?: string | null
+  utility_bill_doc_key?: string | null
+  utility_bill_file_name?: string | null
+  utility_bill_mime_type?: string | null
+  mothers_maiden_name: string | null
+  occupation: string | null
+  source_of_funds: 'Salary' | 'Business' | 'Savings' | 'Investment' | null
+  income_range: string | null
+  next_of_kin_name: string | null
+  next_of_kin_relationship: string | null
+  next_of_kin_phone: string | null
+  next_of_kin_email: string | null
+  next_of_kin_address: string | null
+  settlement_bank?: {
+    bank_code: string
+    bank_name: string
+    account_number: string
+    account_name: string
+  } | null
+  settlement_bank_code?: string | null
+  settlement_account_number?: string | null
+  settlement_account_name?: string | null
+  settlement_bank_name?: string | null
   kyc_address?: string | null
   target_rent?: number | null
   rent_due_date?: string | null
   property: {
     uuid: string
-    name: string
-    address: string
+    name?: string
+    address: string | null
     rent_amount: number | null
     rent_end_date: string | null
-    landlord_name: string
-    landlord_bank_code: string
-    landlord_bank_name: string
-    landlord_account_number: string
+    landlord_name: string | null
+    landlord_bank_code: string | null
+    landlord_bank_name: string | null
+    landlord_account_number: string | null
   } | null
 }
 
 export interface OnboardInvestorData {
   is_verified: boolean
+  has_completed_arm_kyc?: boolean
   masked_bvn: string
+  masked_nin?: string
   provider: string
+  consent_uuid?: string | null
+  consent_accepted_at?: string | null
   dedicated_account: {
     bank_name: string
     account_number: string
     account_name: string
     assignment_status?: string
-  }
+  } | null
 }
 
 export async function simulateRentSavings(
@@ -243,23 +318,128 @@ export async function getMyRentVault(): Promise<RentVaultData> {
   return res.data
 }
 
+export async function updateVaultSchedule(paydayDayOfMonth: number): Promise<{
+  vault_id: string
+  preferred_payday_day: number
+}> {
+  const res = await request<{
+    status: string
+    data: { vault_id: string; preferred_payday_day: number }
+  }>('/rent-vaults/me/schedule', {
+    method: 'PATCH',
+    body: JSON.stringify({ payday_day_of_month: paydayDayOfMonth }),
+  })
+  return res.data
+}
+
 export async function consentToSavings(
   cadence?: SavingsCadence,
   extra?: {
+    consent_accepted?: boolean
+    accepted_terms?: boolean
+    accepted_arm_mandate?: boolean
+    accepted_lock_policy?: boolean
+    terms_version?: string
+    consent_doc_version?: string
     product_option?: SavingsProductOption
+    lock_mode?: SavingsLockMode
     plan_pattern?: SavingsPlanPattern
     initial_deposit_kobo?: number
+    payday_day_of_month?: number
   },
 ) {
   const payload = {
+    consent_accepted: extra?.consent_accepted ?? true,
+    accepted_terms: extra?.accepted_terms ?? true,
+    accepted_arm_mandate: extra?.accepted_arm_mandate ?? true,
+    accepted_lock_policy: extra?.accepted_lock_policy ?? true,
     ...(cadence ? { cadence } : {}),
     ...(extra || {}),
   }
-  const res = await request<{ status: string; message: string }>('/rent-vaults/consent', {
+  const res = await request<{
+    status: string
+    message: string
+    data?: {
+      consent_uuid: string
+      terms_version: string
+      consent_doc_version: string
+      accepted_at: string
+      has_document: boolean
+    }
+  }>('/rent-vaults/consent', {
     method: 'POST',
     body: JSON.stringify(payload),
   })
   return res
+}
+
+/**
+ * Algebraic breakeven deposit percentage for Rent Protec coverage activation:
+ *   d_min(T) = clamp((2 * c_target) / (s * (T / 365)) - 1, 0.20, 0.45)
+ * At s = 6.55% spread and c_target = 2.15%:
+ *   7-11 months (>= 210 days) -> 20%
+ *   6 months (180 days)       -> 33%
+ */
+export function getRentProtecMinimumDepositPct(
+  daysToDueDate: number,
+  spreadRateDecimal = 0.0655,
+  targetCostDecimal = 0.0215,
+): number {
+  const safeDays = Math.max(1, daysToDueDate)
+  const safeSpread = Math.max(0.01, spreadRateDecimal)
+  const rawRatio = (2 * targetCostDecimal) / (safeSpread * (safeDays / 365)) - 1
+  const clampedRatio = Math.min(0.45, Math.max(0.2, rawRatio))
+  return Math.round(clampedRatio * 100)
+}
+
+/**
+ * Recomputes the remaining monthly contribution after an Extra Top-Up.
+ * Never increases above currentPlannedMonthlyNaira due to calendar rounding.
+ */
+export function recalculateReducedMonthlyNaira(params: {
+  targetRentNaira: number
+  newBalanceNaira: number
+  activeDaysRemaining: number
+  annualRatePct: number
+  currentPlannedMonthlyNaira?: number
+  maxMonths?: number
+  currentMonthAlreadyFulfilled?: boolean
+}): number {
+  const {
+    targetRentNaira,
+    newBalanceNaira,
+    activeDaysRemaining,
+    annualRatePct,
+    currentPlannedMonthlyNaira = 0,
+    maxMonths = 11,
+    currentMonthAlreadyFulfilled = false,
+  } = params
+
+  if (newBalanceNaira >= targetRentNaira) return 0
+
+  const totalRemainingMonths = Math.min(
+    Math.min(11, Math.max(1, maxMonths)),
+    Math.max(1, Math.floor(Math.max(1, activeDaysRemaining) / 30)),
+  )
+  const futurePayments = currentMonthAlreadyFulfilled
+    ? Math.max(1, totalRemainingMonths - 1)
+    : totalRemainingMonths
+
+  const monthlyRate = Math.pow(1 + Math.max(0, annualRatePct) / 100, 1 / 12) - 1
+  const fvCurrent = newBalanceNaira * Math.pow(1 + monthlyRate, totalRemainingMonths)
+  const deficit = Math.max(0, targetRentNaira - fvCurrent)
+  if (deficit <= 0) return 0
+
+  let discountSum = 0
+  for (let i = 1; i <= futurePayments; i++) {
+    discountSum += Math.pow(1 + monthlyRate, Math.max(0, futurePayments - i))
+  }
+
+  const recomputed = discountSum > 0 ? Math.ceil(deficit / discountSum) : 0
+  if (currentPlannedMonthlyNaira > 0 && recomputed > currentPlannedMonthlyNaira) {
+    return currentPlannedMonthlyNaira
+  }
+  return recomputed
 }
 
 /**
@@ -271,13 +451,14 @@ export function calculatePayLessPlan(
   runwayDays: number,
   cadence: SavingsCadence = 'MONTHLY',
   initialSavedNaira = 0,
-  annualRatePct = 14.0,
+  annualRatePct = 16.0,
   options?: {
     productOption?: SavingsProductOption
     planPattern?: SavingsPlanPattern
     maxMonths?: number
     minRentProtecMonths?: number
     insurancePremiumPct?: number
+    rawDaysToDueDate?: number
     customStepStartNaira?: number
     customStepIncrementNaira?: number
   },
@@ -291,21 +472,22 @@ export function calculatePayLessPlan(
   const rawDays = Math.max(1, Math.round(runwayDays))
   const monthsRemaining = Math.min(maxMonths, Math.max(1, Math.floor(rawDays / 30)))
   const days = Math.min(rawDays, maxMonths * 30)
-  const isRentProtecEligible = rawDays >= (minRentProtecMonths - 1) * 28
+  const daysUntilDueDate = options?.rawDaysToDueDate ?? rawDays + 30
+  const isRentProtecEligible = daysUntilDueDate >= minRentProtecMonths * 28
 
   const annualRateDecimal = annualRatePct / 100
-  const missedMonths = Math.max(0, maxMonths - monthsRemaining)
-  const forcedDepositRatio =
-    productOption === 'RENT_PROTEC' && missedMonths > 0
-      ? Math.min(0.45, Math.max(0.15, (missedMonths / maxMonths) * 0.5))
+  const minimumInitialDepositPct =
+    productOption === 'RENT_PROTEC' ? getRentProtecMinimumDepositPct(daysUntilDueDate) : 0
+  const requiredInitialDepositNaira =
+    productOption === 'RENT_PROTEC'
+      ? Math.round(targetRentNaira * (minimumInitialDepositPct / 100))
       : 0
-  const requiredInitialDepositNaira = Math.round(targetRentNaira * forcedDepositRatio)
   const effectiveInitialNaira =
     planPattern === 'INITIAL_DEPOSIT'
-      ? initialSavedNaira > 0
-        ? initialSavedNaira
-        : productOption === 'RENT_PROTEC'
-          ? requiredInitialDepositNaira
+      ? productOption === 'RENT_PROTEC'
+        ? Math.max(initialSavedNaira, requiredInitialDepositNaira)
+        : initialSavedNaira > 0
+          ? initialSavedNaira
           : 0
       : initialSavedNaira > 0
         ? initialSavedNaira
@@ -405,6 +587,8 @@ export function calculatePayLessPlan(
     monthsRemaining,
     isRentProtecEligible,
     requiredInitialDepositNaira: effectiveInitialNaira,
+    minimumInitialDepositNaira: requiredInitialDepositNaira,
+    minimumInitialDepositPct,
     periodicDepositNaira,
     firstPeriodDepositNaira: periodicDepositNaira,
     lastPeriodDepositNaira,
@@ -454,33 +638,51 @@ export async function breakoutRentVault(vaultId: string): Promise<BreakoutResult
   return res.data
 }
 
-export async function simulateVaultDeposit(accountNumber: string, amountKobo: number) {
+export async function simulateVaultDeposit(
+  accountNumber: string,
+  amountKobo: number,
+  depositKind?: 'MONTHLY' | 'EXTRA_TOPUP' | 'INITIAL_DEPOSIT',
+) {
   if (process.env.NODE_ENV === 'production') {
     throw new Error('Simulated deposits are only available in non-production environments.')
   }
-  const res = await request<{ status: string; reference?: string }>(
-    '/payments/webhooks/rent-savings/paystack',
-    {
-      method: 'POST',
-      body: JSON.stringify({
-        event: 'charge.success',
-        data: {
-          reference: `TEST_DEP_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
-          amount: amountKobo,
-          currency: 'NGN',
-          channel: 'dedicated_nuban',
-          dedicated_account: {
-            account_number: accountNumber,
-          },
-        },
-      }),
-    },
-  )
+  const res = await request<{
+    status: string
+    reference?: string
+    arm_job_id?: string | null
+    arm_job_status?: string | null
+  }>('/rent-vaults/simulate-deposit', {
+    method: 'POST',
+    body: JSON.stringify({
+      account_number: accountNumber,
+      amount_kobo: amountKobo,
+      ...(depositKind ? { deposit_kind: depositKind } : {}),
+    }),
+  })
   return res
 }
 
 export interface OnboardInvestorPayload {
   bvn?: string
+  nin?: string
+  means_of_id_type: MeansOfIdentificationType
+  means_of_id_number?: string
+  means_of_id_issue_date?: string
+  means_of_id_expiry_date?: string
+  means_of_id_doc_key: string
+  means_of_id_mime_type?: string
+  means_of_id_file_name?: string
+  residential_address_number: string
+  residential_street: string
+  residential_town: string
+  residential_state: string
+  utility_bill_issue_date?: string
+  utility_bill_doc_key: string
+  utility_bill_mime_type?: string
+  utility_bill_file_name?: string
+  consent_accepted: boolean
+  terms_version?: string
+  consent_doc_version?: string
   mothers_maiden_name: string
   occupation: string
   source_of_funds: 'Salary' | 'Business' | 'Savings' | 'Investment'
@@ -498,8 +700,37 @@ export interface OnboardInvestorPayload {
   rent_due_date?: string
   cadence?: SavingsCadence
   product_option?: SavingsProductOption
+  lock_mode?: SavingsLockMode
   plan_pattern?: SavingsPlanPattern
   initial_deposit_kobo?: number
+  planned_monthly_deposit_kobo?: number
+  payday_day_of_month?: number
+}
+
+export async function uploadSavingsKycDocument(
+  kind: SavingsKycDocumentKind,
+  file: File,
+): Promise<UploadedKycDocument> {
+  const formData = new FormData()
+  formData.append('kind', kind)
+  formData.append('fileName', file.name)
+  formData.append('file', file)
+
+  const res = await request<{ status: string; data: UploadedKycDocument }>(
+    '/rent-vaults/kyc/upload-document',
+    {
+      method: 'POST',
+      body: formData,
+    },
+  )
+  return res.data
+}
+
+export function getSavingsConsentDocumentUrl(): string {
+  const apiRoot =
+    process.env.NEXT_PUBLIC_API_URL ||
+    (typeof window !== 'undefined' ? `${window.location.origin}/api/v1` : '')
+  return `${apiRoot.replace(/\/$/, '')}/rent-vaults/consent-document`
 }
 
 export async function getSavingsOnboardingPrefill(): Promise<SavingsOnboardingPrefillData> {

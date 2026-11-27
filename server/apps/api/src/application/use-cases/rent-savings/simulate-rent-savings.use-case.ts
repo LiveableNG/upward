@@ -4,6 +4,7 @@ import { Type } from 'class-transformer'
 import { RentSavingsCalculatorEngine } from '../../../domains/rent-savings/rent-savings-calculator.engine'
 import {
   CadenceType,
+  SavingsLockMode,
   SavingsPlanPattern,
   SavingsProductOption,
 } from '../../../domains/rent-savings/rent-vault.types'
@@ -33,6 +34,10 @@ export class SimulateRentSavingsDto {
   product_option?: SavingsProductOption
 
   @IsOptional()
+  @IsIn(['LOCKED', 'FLEXIBLE'])
+  lock_mode?: SavingsLockMode
+
+  @IsOptional()
   @IsIn(['EQUAL', 'INITIAL_DEPOSIT', 'STEP_UP', 'ACCELERATED'])
   plan_pattern?: SavingsPlanPattern
 
@@ -52,10 +57,18 @@ export class SimulateRentSavingsUseCase {
   async execute(dto: SimulateRentSavingsDto) {
     const rates = this.platformRates ? await this.platformRates.getRates() : null
     const productOption: SavingsProductOption = dto.product_option || 'SAVE_AND_EARN'
+    const lockMode: SavingsLockMode =
+      productOption === 'RENT_PROTEC'
+        ? 'LOCKED'
+        : dto.lock_mode === 'FLEXIBLE'
+          ? 'FLEXIBLE'
+          : 'LOCKED'
     const annualYieldRateDecimal =
       productOption === 'RENT_PROTEC'
         ? (rates?.rentProtecRateDecimal ?? 0.1)
-        : (rates?.savingsAnnualRateDecimal ?? 0.14)
+        : lockMode === 'FLEXIBLE'
+          ? (rates?.flexibleSavingsAnnualRateDecimal ?? 0.12)
+          : (rates?.savingsAnnualRateDecimal ?? 0.16)
 
     const result = RentSavingsCalculatorEngine.simulate({
       targetAmountKobo: BigInt(Math.round(dto.target_amount_kobo)),
@@ -65,6 +78,7 @@ export class SimulateRentSavingsUseCase {
         : 0n,
       cadence: dto.cadence,
       productOption,
+      lockMode,
       planPattern: dto.plan_pattern || 'INITIAL_DEPOSIT',
       monthlyIncomeKobo: dto.monthly_income_kobo
         ? BigInt(Math.round(dto.monthly_income_kobo))
@@ -84,11 +98,14 @@ export class SimulateRentSavingsUseCase {
         first_period_deposit_kobo: Number(result.firstPeriodDepositKobo),
         last_period_deposit_kobo: Number(result.lastPeriodDepositKobo),
         required_initial_deposit_kobo: Number(result.requiredInitialDepositKobo),
+        minimum_initial_deposit_kobo: Number(result.minimumInitialDepositKobo),
+        minimum_initial_deposit_pct: result.minimumInitialDepositPct,
         number_of_payments: result.numberOfPayments,
         total_tenant_contribution_kobo: Number(result.totalTenantContributionKobo),
         projected_yield_kobo: Number(result.projectedYieldKobo),
         net_annual_yield_rate: result.netAnnualYieldRate,
         product_option: result.productOption,
+        lock_mode: result.lockMode,
         plan_pattern: result.planPattern,
         is_rent_protec_eligible: result.isRentProtecEligible,
         rent_protec_ineligibility_reason: result.rentProtecIneligibilityReason || null,

@@ -74,4 +74,67 @@ describe('SimulateTransferUseCase (Rent Vault DVA routing)', () => {
       expect.any(String),
     )
   })
+
+  it('credits rent vault atomically via creditVaultAndEnqueueArm when savings webhook service is injected', async () => {
+    const deleteManyMock = jest.fn().mockResolvedValue({ count: 0 })
+    const findFirstVaultMock = jest.fn().mockResolvedValue({
+      id: 42,
+      uuid: 'vault-mote-001',
+      dvaAccountNumber: '1238443844',
+      dvaAccountName: 'Upward / Motelejesu Olawale',
+      dvaBankName: 'Test Bank',
+      dvaCustomerCode: 'CUS_real_test_123',
+    })
+
+    const prismaMock = {
+      upward_rent_vault: {
+        findFirst: findFirstVaultMock,
+      },
+      upward_dedicated_virtual_account: {
+        findUnique: jest.fn(),
+        deleteMany: deleteManyMock,
+      },
+    } as any
+
+    const configServiceMock = {
+      get: jest.fn().mockReturnValue('sk_test_sandbox_123'),
+    } as any
+
+    const processWebhookMock = {
+      execute: jest.fn(),
+    } as any
+
+    const processSavingsWebhookMock = {
+      creditVaultAndEnqueueArm: jest.fn().mockResolvedValue({
+        status: 'success',
+        vault_id: 'vault-mote-001',
+        arm_job_status: 'QUEUED',
+      }),
+    } as any
+
+    const useCase = new SimulateTransferUseCase(
+      prismaMock,
+      configServiceMock,
+      processWebhookMock,
+      processSavingsWebhookMock,
+    )
+    const res = await useCase.execute({
+      beneficiaryBank: 'Test Bank',
+      beneficiaryAccount: '1238443844',
+      amount: 350000,
+      narration: 'Rent savings deposit',
+    })
+
+    expect(res.success).toBe(true)
+    expect(processWebhookMock.execute).not.toHaveBeenCalled()
+    expect(processSavingsWebhookMock.creditVaultAndEnqueueArm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        vaultId: 42,
+        amountKobo: 35000000n,
+        channel: 'dedicated_nuban',
+        narration: 'Rent savings deposit',
+        source: 'DEV_SIMULATION',
+      }),
+    )
+  })
 })

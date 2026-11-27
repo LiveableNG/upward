@@ -592,7 +592,7 @@ export class EmailService {
     subject: string,
     message: string,
     options?: { roles?: string[]; htmlOverride?: string; type?: string },
-  ) {
+  ): Promise<{ attempted: number; sent: number; failed: number }> {
     const whereClause: any = { receivesSystemAlerts: true }
     if (options?.roles && options.roles.length > 0) {
       whereClause.role = { in: options.roles }
@@ -607,7 +607,7 @@ export class EmailService {
       this.logger.warn(
         `No matching admins with receivesSystemAlerts=true${options?.roles?.length ? ` (roles: ${options.roles.join(', ')})` : ''} — skipping system alert: ${subject}`,
       )
-      return
+      return { attempted: 0, sent: 0, failed: 0 }
     }
 
     const html =
@@ -617,7 +617,7 @@ export class EmailService {
       <p>${message}</p>
     </div>`
 
-    await Promise.allSettled(
+    const results = await Promise.allSettled(
       alertAdmins.map(({ email }) =>
         this.sendEmailWithRetry({
           email,
@@ -628,6 +628,18 @@ export class EmailService {
         }),
       ),
     )
+
+    let sent = 0
+    let failed = 0
+    for (const r of results) {
+      if (r.status === 'fulfilled' && r.value?.success) {
+        sent++
+      } else {
+        failed++
+      }
+    }
+
+    return { attempted: alertAdmins.length, sent, failed }
   }
 
   async sendHomeRequestAlertToAdmins(request: {

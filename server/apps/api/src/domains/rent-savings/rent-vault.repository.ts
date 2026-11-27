@@ -23,8 +23,10 @@ export interface CreateVaultDto {
   providerAccountNumber?: string | null
   providerCrmStatus?: string | null
   productOption?: RentVault['productOption']
+  lockMode?: RentVault['lockMode']
   planPattern?: RentVault['planPattern']
   initialDepositKobo?: bigint
+  plannedMonthlyDepositKobo?: bigint
   appliedAnnualRatePct?: number
   insurancePremiumPct?: number
   armPurchaseId?: string | null

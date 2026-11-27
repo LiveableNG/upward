@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -6,6 +7,7 @@ import {
   HttpStatus,
   Inject,
   Param,
+  Patch,
   Post,
   Req,
   Res,
@@ -32,7 +34,23 @@ import {
   OnboardSavingsInvestorUseCase,
   OnboardSavingsInvestorDto,
 } from '../../../application/use-cases/rent-savings/onboard-savings-investor.use-case'
+import {
+  SimulateVaultDepositDto,
+  SimulateVaultDepositUseCase,
+} from '../../../application/use-cases/rent-savings/simulate-vault-deposit.use-case'
 import { VerifyRentVaultFundingUseCase } from '../../../application/use-cases/rent-savings/verify-rent-vault-funding.use-case'
+import {
+  SavingsKycDocumentKind,
+  UploadSavingsKycDocumentUseCase,
+} from '../../../application/use-cases/rent-savings/upload-savings-kyc-document.use-case'
+import {
+  RecordSavingsConsentDto,
+  RecordSavingsConsentUseCase,
+} from '../../../application/use-cases/rent-savings/record-savings-consent.use-case'
+import {
+  GetSavingsConsentDocumentUseCase,
+  GetSavingsKycDocumentUseCase,
+} from '../../../application/use-cases/rent-savings/get-savings-consent-document.use-case'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 
 @Controller('rent-vaults')
@@ -44,9 +62,26 @@ export class RentVaultController {
     private readonly executeSettlementUseCase: ExecuteLandlordSettlementUseCase,
     private readonly breakoutVaultUseCase: BreakoutRentVaultUseCase,
     private readonly onboardInvestorUseCase: OnboardSavingsInvestorUseCase,
+    private readonly simulateVaultDepositUseCase: SimulateVaultDepositUseCase,
     private readonly verifyVaultFundingUseCase: VerifyRentVaultFundingUseCase,
+    private readonly uploadKycDocUseCase: UploadSavingsKycDocumentUseCase,
+    private readonly recordConsentUseCase: RecordSavingsConsentUseCase,
+    private readonly getConsentDocUseCase: GetSavingsConsentDocumentUseCase,
+    private readonly getKycDocUseCase: GetSavingsKycDocumentUseCase,
     @Inject(USER_REPOSITORY) private readonly userRepo: UserRepository,
   ) {}
+
+  private extractRequestMeta(req: any): { ipAddress: string | null; userAgent: string | null } {
+    const forwarded = req?.headers?.['x-forwarded-for']
+    const ipAddress =
+      (typeof forwarded === 'string' ? forwarded.split(',')[0]?.trim() : null) ||
+      req?.ip ||
+      req?.socket?.remoteAddress ||
+      null
+    const userAgent =
+      typeof req?.headers?.['user-agent'] === 'string' ? req.headers['user-agent'] : null
+    return { ipAddress, userAgent }
+  }
 
   private async getNumericUserId(req: any): Promise<number> {
     const rawId = req.user?.id || req.user?.sub
@@ -74,7 +109,7 @@ export class RentVaultController {
   @HttpCode(HttpStatus.CREATED)
   async createVault(@Req() req: any, @Body() dto: CreateRentVaultDto) {
     const userId = await this.getNumericUserId(req)
-    return this.createVaultUseCase.execute(userId, dto)
+    return this.createVaultUseCase.execute(userId, dto, this.extractRequestMeta(req))
   }
 
   @UseGuards(JwtAuthGuard)
@@ -86,39 +121,62 @@ export class RentVaultController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Post('kyc/upload-document')
+  @HttpCode(HttpStatus.CREATED)
+  async uploadKycDocument(@Req() req: any) {
+    if (!req.isMultipart || !req.isMultipart()) {
+      throw new BadRequestException('Request must be multipart/form-data')
+    }
+    const userId = await this.getNumericUserId(req)
+    const data = await req.file()
+    if (!data) {
+      throw new BadRequestException('No document file uploaded.')
+    }
+    const fileBuffer = await data.toBuffer()
+    const fields = (data.fields || {}) as Record<string, any>
+    const kind = String(fields?.kind?.value || '') as SavingsKycDocumentKind
+    const fileName = fields?.fileName?.value ? String(fields.fileName.value) : data.filename
+    return this.uploadKycDocUseCase.execute({
+      userId,
+      kind,
+      fileBuffer,
+      fileName,
+      mimeType: data.mimetype,
+    })
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('kyc/document/:kind')
+  async getKycDocument(
+    @Req() req: any,
+    @Param('kind') kind: string,
+    @Res({ passthrough: true }) res: any,
+  ) {
+    const userId = await this.getNumericUserId(req)
+    return this.getKycDocUseCase.execute(userId, kind, res)
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Post('onboard-investor')
   @HttpCode(HttpStatus.OK)
   async onboardInvestor(@Req() req: any, @Body() dto: OnboardSavingsInvestorDto) {
     const userId = await this.getNumericUserId(req)
-    return this.onboardInvestorUseCase.execute(userId, dto)
+    return this.onboardInvestorUseCase.execute(userId, dto, this.extractRequestMeta(req))
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('consent')
   @HttpCode(HttpStatus.OK)
-  async consentToSavings(
-    @Req() req: any,
-    @Body()
-    body?: {
-      cadence?: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY'
-      product_option?: 'SAVE_AND_EARN' | 'RENT_PROTEC'
-      plan_pattern?: 'EQUAL' | 'INITIAL_DEPOSIT' | 'STEP_UP' | 'ACCELERATED'
-      initial_deposit_kobo?: number
-    },
-  ) {
+  async consentToSavings(@Req() req: any, @Body() dto: RecordSavingsConsentDto) {
     const userId = await this.getNumericUserId(req)
-    await this.userRepo.update(userId, { savingsWalletEnabled: true })
-    if (body?.cadence && ['DAILY', 'WEEKLY', 'MONTHLY', 'QUARTERLY'].includes(body.cadence)) {
-      await this.getMyVaultUseCase.updateCadence(userId, body.cadence, {
-        productOption: body.product_option,
-        planPattern: body.plan_pattern,
-        initialDepositKobo: body.initial_deposit_kobo,
-      })
-    }
-    return {
-      status: 'success',
-      message: 'Rent savings consent recorded successfully',
-    }
+    return this.recordConsentUseCase.execute(userId, dto, this.extractRequestMeta(req))
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('consent-document')
+  async getConsentDocument(@Req() req: any, @Res({ passthrough: true }) res: any) {
+    const userId = await this.getNumericUserId(req)
+    return this.getConsentDocUseCase.execute(userId, res)
   }
 
   @UseGuards(JwtAuthGuard)
@@ -127,6 +185,25 @@ export class RentVaultController {
   async getMyVault(@Req() req: any) {
     const userId = await this.getNumericUserId(req)
     return this.getMyVaultUseCase.execute(userId)
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Patch('me/schedule')
+  @HttpCode(HttpStatus.OK)
+  async updateMyVaultSchedule(
+    @Req() req: any,
+    @Body() body: { payday_day_of_month?: number },
+  ) {
+    const userId = await this.getNumericUserId(req)
+    return this.getMyVaultUseCase.updatePaydayDay(userId, Number(body?.payday_day_of_month ?? 28))
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('simulate-deposit')
+  @HttpCode(HttpStatus.OK)
+  async simulateDeposit(@Req() req: any, @Body() dto: SimulateVaultDepositDto) {
+    const userId = await this.getNumericUserId(req)
+    return this.simulateVaultDepositUseCase.execute(userId, dto)
   }
 
   @UseGuards(JwtAuthGuard)

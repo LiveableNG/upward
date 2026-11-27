@@ -323,17 +323,9 @@ export function HousingFirstHome({
         ? Math.min(100, Math.round((currentSaved / targetRent) * 100))
         : 0
 
-  const projectedInterestTotal = vault?.pay_less_projection?.projected_yield_kobo
-    ? vault.pay_less_projection.projected_yield_kobo / 100
+  const interestEarnedNaira = vault?.accrued_yield_kobo
+    ? vault.accrued_yield_kobo / 100
     : 0
-
-  const accruedYieldFormatted = vault?.accrued_yield_kobo
-    ? projectedInterestTotal > 0
-      ? `+${formatCurrency(vault.accrued_yield_kobo / 100, 'NGN')} earned · Est. +${formatCurrency(projectedInterestTotal, 'NGN')} total`
-      : `+${formatCurrency(vault.accrued_yield_kobo / 100, 'NGN')} returns accrued`
-    : projectedInterestTotal > 0
-      ? `Est. +${formatCurrency(projectedInterestTotal, 'NGN')} returns`
-      : '+₦0 returns accrued'
 
   const daysLeftFormatted =
     vault?.days_remaining !== undefined && vault?.days_remaining !== null
@@ -343,6 +335,11 @@ export function HousingFirstHome({
         : targetRent > 0
           ? 'Rent goal active'
           : 'Set target'
+  const homeStatusParts = [
+    interestEarnedNaira > 0 ? `Interest +${formatCurrency(interestEarnedNaira, 'NGN')}` : '',
+    vault?.is_rent_protec ? 'Protected' : '',
+    daysLeftFormatted,
+  ].filter(Boolean)
 
   const toggleHousingExpanded = () => {
     setHousingExpanded(!isHousingExpanded, housingExpandedKey)
@@ -468,13 +465,7 @@ export function HousingFirstHome({
                 <div className="vault-card__track">
                   <div className="vault-card__fill" style={{ width: `${vaultPct}%` }} />
                 </div>
-                <div className="vault-card__meta">
-                  <span className="vault-card__yield">
-                    {accruedYieldFormatted}
-                    {vault?.is_rent_protec ? ' • Protected' : ''}
-                  </span>
-                  <span>{daysLeftFormatted}</span>
-                </div>
+                <p className="vault-card__meta">{homeStatusParts.join(' · ')}</p>
               </button>
             ) : (
               <button

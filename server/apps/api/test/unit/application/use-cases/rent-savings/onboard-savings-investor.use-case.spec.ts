@@ -36,6 +36,9 @@ describe('OnboardSavingsInvestorUseCase', () => {
     updatedAt: new Date(),
   }
 
+  const MOCK_PORTRAIT_BASE64 =
+    'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+
   beforeEach(() => {
     userRepo = {
       findById: jest.fn().mockResolvedValue(mockUser),
@@ -50,13 +53,13 @@ describe('OnboardSavingsInvestorUseCase', () => {
         lastName: 'Okonkwo',
         dateOfBirth: '1992-04-18',
         gender: 'Male',
-        photo: 'data:image/jpeg;base64,/9j/4AAQSkZJRg...',
+        photo: `data:image/png;base64,${MOCK_PORTRAIT_BASE64}`,
         data: {
           firstName: 'Chinedu',
           lastName: 'Okonkwo',
           dateOfBirth: '1992-04-18',
           gender: 'Male',
-          image: 'data:image/jpeg;base64,/9j/4AAQSkZJRg...',
+          image: `data:image/png;base64,${MOCK_PORTRAIT_BASE64}`,
         },
       }),
     } as any
@@ -71,7 +74,11 @@ describe('OnboardSavingsInvestorUseCase', () => {
 
     paymentGateway = {
       getBanks: jest.fn(),
-      verifyAccountNumber: jest.fn(),
+      verifyAccountNumber: jest.fn().mockResolvedValue({
+        accountNumber: '0123456789',
+        accountName: 'OKONKWO CHINEDU',
+        bankCode: '058',
+      }),
       createDedicatedVirtualAccount: jest.fn(),
       chargeAuthorization: jest.fn(),
       checkTransactionStatus: jest.fn(),
@@ -103,6 +110,7 @@ describe('OnboardSavingsInvestorUseCase', () => {
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
       upward_user_bank_details: {
+        findUnique: jest.fn().mockResolvedValue(null),
         upsert: jest.fn().mockResolvedValue({}),
       },
       upward_user_property: {
@@ -129,35 +137,71 @@ describe('OnboardSavingsInvestorUseCase', () => {
     )
   })
 
+  const validBaseDto = {
+    bvn: '22222222222',
+    nin: '11122233344',
+    means_of_id_type: 'NIN' as const,
+    means_of_id_doc_key: 'users/user-uuid-42/arm-kyc/id_card/nin-slip.jpg',
+    means_of_id_mime_type: 'image/jpeg',
+    means_of_id_file_name: 'nin-slip.jpg',
+    residential_address_number: '14',
+    residential_street: 'Admiralty Way, Lekki Phase 1',
+    residential_town: 'Lekki',
+    residential_state: 'Lagos',
+    utility_bill_doc_key: 'users/user-uuid-42/arm-kyc/utility_bill/ekedc-bill.pdf',
+    utility_bill_mime_type: 'application/pdf',
+    utility_bill_file_name: 'ekedc-bill.pdf',
+    consent_accepted: true,
+    mothers_maiden_name: 'Adewale',
+    occupation: 'Engineer',
+    source_of_funds: 'Salary' as const,
+    income_range: '1M-5M',
+    next_of_kin_name: 'Amaka Okonkwo',
+    next_of_kin_relationship: 'Spouse',
+    next_of_kin_phone: '08099887766',
+    target_amount: 2500000,
+    rent_due_date: '2027-10-15',
+  }
+
   it('should reject invalid BVN length', async () => {
     await expect(
       useCase.execute(42, {
+        ...validBaseDto,
         bvn: '12345',
-        mothers_maiden_name: 'Adewale',
-        occupation: 'Engineer',
-        source_of_funds: 'Salary',
-        next_of_kin_name: 'Amaka Okonkwo',
-        next_of_kin_relationship: 'Spouse',
-        next_of_kin_phone: '08099887766',
-        settlement_bank_code: '058',
-        settlement_account_number: '0123456789',
-        settlement_account_name: 'Chinedu Okonkwo',
       }),
     ).rejects.toThrow(BadRequestException)
   })
 
-  it('should successfully verify with Monnify and dispatch full Bitmask 63 to ARM', async () => {
+  it('should reject missing or invalid NIN even when BVN is valid', async () => {
+    await expect(
+      useCase.execute(42, {
+        ...validBaseDto,
+        nin: '12345',
+      }),
+    ).rejects.toThrow(BadRequestException)
+  })
+
+  it('should reject when T&C and ARM Consent Mandate is not accepted', async () => {
+    await expect(
+      useCase.execute(42, {
+        ...validBaseDto,
+        consent_accepted: false,
+      }),
+    ).rejects.toThrow(BadRequestException)
+  })
+
+  it('should reject KYC documents belonging to a different user (IDOR protection)', async () => {
+    await expect(
+      useCase.execute(42, {
+        ...validBaseDto,
+        utility_bill_doc_key: 'users/other-user-uuid/arm-kyc/utility_bill/stolen.pdf',
+      }),
+    ).rejects.toThrow(BadRequestException)
+  })
+
+  it('should successfully verify BVN and NIN via KYC provider and dispatch real KYC docs to ARM', async () => {
     const result = await useCase.execute(42, {
-      bvn: '22222222222',
-      mothers_maiden_name: 'Adewale',
-      occupation: 'Engineer',
-      source_of_funds: 'Salary',
-      income_range: '1M-5M',
-      next_of_kin_name: 'Amaka Okonkwo',
-      next_of_kin_relationship: 'Spouse',
-      next_of_kin_phone: '08099887766',
-      target_amount: 2500000,
-      rent_due_date: '2027-10-15',
+      ...validBaseDto,
       settlement_bank_code: '058',
       settlement_account_number: '0123456789',
       settlement_account_name: 'Chinedu Okonkwo',
@@ -165,7 +209,13 @@ describe('OnboardSavingsInvestorUseCase', () => {
 
     expect(result.status).toBe('success')
     expect(result.data.is_verified).toBe(true)
+    expect(result.data.has_completed_arm_kyc).toBe(true)
+    expect(result.data.masked_nin).toBe('*******3344')
     expect(result.data.provider).toBe('MONNIFY')
+
+    // Verify BOTH BVN and NIN were verified via provider
+    expect(kycProvider.verify).toHaveBeenCalledWith('BVN', '22222222222', expect.any(Object))
+    expect(kycProvider.verify).toHaveBeenCalledWith('NIN', '11122233344', expect.any(Object))
 
     // Verify user update
     expect(userRepo.update).toHaveBeenCalledWith(
@@ -177,43 +227,49 @@ describe('OnboardSavingsInvestorUseCase', () => {
       }),
     )
 
-    // Verify ARM dispatch with documents extracted from Monnify photo
+    // Verify ARM dispatch with real NIN, real address, and uploaded doc metadata
     expect(armProvider.onboardInvestor).toHaveBeenCalledWith(
       expect.objectContaining({
         customerEmail: 'chinedu@example.com',
+        kycDetails: expect.objectContaining({
+          bvn: '22222222222',
+          nin: '11122233344',
+          meansOfIdentification: 'NIN',
+          idNumber: '11122233344',
+        }),
+        address: expect.objectContaining({
+          addressNumber: '14',
+          streetName: 'Admiralty Way, Lekki Phase 1',
+          town: 'Lekki',
+          residentialStateCode: 'Lagos',
+        }),
         documents: expect.objectContaining({
-          passport: '/9j/4AAQSkZJRg...',
-          bvn_passport: '/9j/4AAQSkZJRg...',
+          passport: MOCK_PORTRAIT_BASE64,
+          bvn_passport: MOCK_PORTRAIT_BASE64,
+          id_card: expect.objectContaining({
+            s3Key: 'users/user-uuid-42/arm-kyc/id_card/nin-slip.jpg',
+            mimeType: 'image/jpeg',
+            fileName: 'nin-slip.jpg',
+          }),
+          utility_bill: expect.objectContaining({
+            s3Key: 'users/user-uuid-42/arm-kyc/utility_bill/ekedc-bill.pdf',
+            mimeType: 'application/pdf',
+            fileName: 'ekedc-bill.pdf',
+          }),
         }),
       }),
     )
   })
 
-  it('should successfully verify without settlement bank details', async () => {
-    const result = await useCase.execute(42, {
-      bvn: '22222222222',
-      mothers_maiden_name: 'Adewale',
-      occupation: 'Engineer',
-      source_of_funds: 'Salary',
-      income_range: '1M-5M',
-      next_of_kin_name: 'Amaka Okonkwo',
-      next_of_kin_relationship: 'Spouse',
-      next_of_kin_phone: '08099887766',
-      target_amount: 2500000,
-      rent_due_date: '2027-10-15',
-    })
-
-    expect(result.status).toBe('success')
-    expect(result.data.is_verified).toBe(true)
-    // Bank upsert should not be called when bank details are omitted
-    expect(prisma.upward_user_bank_details.upsert).not.toHaveBeenCalled()
-    // ARM dispatch should still succeed with bankDetails undefined
-    expect(armProvider.onboardInvestor).toHaveBeenCalledWith(
-      expect.objectContaining({
-        customerEmail: 'chinedu@example.com',
-        bankDetails: undefined,
+  it('should reject KYC when settlement bank details are missing', async () => {
+    await expect(
+      useCase.execute(42, {
+        ...validBaseDto,
       }),
-    )
+    ).rejects.toThrow(BadRequestException)
+
+    expect(userRepo.update).not.toHaveBeenCalled()
+    expect(prisma.upward_user_bank_details.upsert).not.toHaveBeenCalled()
   })
 
   it('should reject if BVN has already been registered and verified by another user', async () => {
@@ -226,17 +282,37 @@ describe('OnboardSavingsInvestorUseCase', () => {
 
     await expect(
       useCase.execute(42, {
-        bvn: '22222222222',
-        mothers_maiden_name: 'Adewale',
-        occupation: 'Engineer',
-        source_of_funds: 'Salary',
-        next_of_kin_name: 'Amaka Okonkwo',
-        next_of_kin_relationship: 'Spouse',
-        next_of_kin_phone: '08099887766',
+        ...validBaseDto,
         settlement_bank_code: '058',
         settlement_account_number: '0123456789',
         settlement_account_name: 'Chinedu Okonkwo',
       }),
     ).rejects.toThrow(BadRequestException)
+  })
+
+  it('should omit Prembly sandbox placeholder photo ("base64 image content") from ARM onboarding payload', async () => {
+    kycProvider.verify.mockResolvedValue({
+      success: true,
+      provider: 'PREMBLY',
+      firstName: 'Chinedu',
+      lastName: 'Okonkwo',
+      dateOfBirth: '1992-04-18',
+      gender: 'Male',
+      photo: 'base64 image content',
+      rawResponse: { image: 'base64 image content' },
+    } as any)
+
+    const result = await useCase.execute(42, {
+      ...validBaseDto,
+      settlement_bank_code: '058',
+      settlement_bank_name: 'Guaranty Trust Bank',
+      settlement_account_number: '0123456789',
+      settlement_account_name: 'Chinedu Okonkwo',
+    })
+    expect(result.status).toBe('success')
+
+    const callArg = (armProvider.onboardInvestor as jest.Mock).mock.calls[0]?.[0]
+    expect(callArg?.documents?.passport).toBeUndefined()
+    expect(callArg?.documents?.bvn_passport).toBeUndefined()
   })
 })

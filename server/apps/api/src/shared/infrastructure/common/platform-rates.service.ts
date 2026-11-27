@@ -1,25 +1,35 @@
 import { BadRequestException, Injectable, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
+export type SavingsMode = 'COMING_SOON' | 'OPT_IN_ONLY' | 'LIVE';
+
 export interface PlatformRatesSnapshot {
   savingsEnabled: boolean;
+  savingsMode: SavingsMode;
   savingsAnnualRatePct: number;
+  flexibleSavingsAnnualRatePct: number;
   rentProtecRatePct: number;
   insurancePremiumPct: number;
   rentProtecMinMonths: number;
   maxSavingsMonths: number;
   savingsAnnualRateDecimal: number;
+  flexibleSavingsAnnualRateDecimal: number;
   rentProtecRateDecimal: number;
   savingsDailyRate: number;
+  flexibleSavingsDailyRate: number;
   rentProtecDailyRate: number;
   insurancePremiumRateDecimal: number;
   partnerName: string;
   partnerShortName: string;
+  fundName: string;
+  fundCode: string;
   updatedAt: string | null;
 }
 
 const DEFAULT_SAVINGS_ENABLED = true;
-const DEFAULT_SAVINGS_ANNUAL_RATE_PCT = 14.0;
+const DEFAULT_SAVINGS_MODE: SavingsMode = 'LIVE';
+const DEFAULT_SAVINGS_ANNUAL_RATE_PCT = 16.0;
+const DEFAULT_FLEXIBLE_SAVINGS_ANNUAL_RATE_PCT = 12.0;
 const DEFAULT_RENT_PROTEC_RATE_PCT = 10.0;
 const DEFAULT_INSURANCE_PREMIUM_PCT = 2.0;
 const DEFAULT_RENT_PROTEC_MIN_MONTHS = 6;
@@ -28,13 +38,19 @@ const DEFAULT_PARTNER_NAME =
   process.env.INVESTMENT_PARTNER_NAME || 'Asset & Resource Management Holding Company (ARM)';
 const DEFAULT_PARTNER_SHORT_NAME =
   process.env.INVESTMENT_PARTNER_SHORT_NAME || 'ARM';
+const DEFAULT_FUND_NAME =
+  process.env.INVESTMENT_FUND_NAME || 'ARM Money Market Fund';
+const DEFAULT_FUND_CODE =
+  process.env.INVESTMENT_FUND_CODE || 'ARMMMF';
 const GLOBAL_KEY = 'GLOBAL';
 const LEGACY_SAVINGS_CONFIG_KEY = 'GLOBAL_DAILY_INTEREST';
 
 @Injectable()
 export class PlatformRatesService implements OnModuleInit {
   private cachedSavingsEnabled = DEFAULT_SAVINGS_ENABLED;
+  private cachedSavingsMode: SavingsMode = DEFAULT_SAVINGS_MODE;
   private cachedSavingsAnnualRatePct = DEFAULT_SAVINGS_ANNUAL_RATE_PCT;
+  private cachedFlexibleSavingsAnnualRatePct = DEFAULT_FLEXIBLE_SAVINGS_ANNUAL_RATE_PCT;
   private cachedRentProtecRatePct = DEFAULT_RENT_PROTEC_RATE_PCT;
   private cachedInsurancePremiumPct = DEFAULT_INSURANCE_PREMIUM_PCT;
   private cachedRentProtecMinMonths = DEFAULT_RENT_PROTEC_MIN_MONTHS;
@@ -44,6 +60,14 @@ export class PlatformRatesService implements OnModuleInit {
   private cachedUpdatedAt: Date | null = null;
 
   constructor(private readonly prisma: PrismaService) {}
+
+  private normalizeSavingsMode(mode?: string | null, savingsEnabled?: boolean | null): SavingsMode {
+    if (mode === 'COMING_SOON' || mode === 'OPT_IN_ONLY' || mode === 'LIVE') {
+      return mode;
+    }
+    if (savingsEnabled === false) return 'COMING_SOON';
+    return DEFAULT_SAVINGS_MODE;
+  }
 
   async onModuleInit() {
     await this.refreshCache();
@@ -55,8 +79,14 @@ export class PlatformRatesService implements OnModuleInit {
         where: { key: GLOBAL_KEY },
       });
       if (record) {
-        this.cachedSavingsEnabled = record.savingsEnabled ?? DEFAULT_SAVINGS_ENABLED;
+        this.cachedSavingsMode = this.normalizeSavingsMode(
+          (record as any).savingsMode,
+          record.savingsEnabled,
+        );
+        this.cachedSavingsEnabled = this.cachedSavingsMode !== 'COMING_SOON';
         this.cachedSavingsAnnualRatePct = record.savingsAnnualRatePct;
+        this.cachedFlexibleSavingsAnnualRatePct =
+          (record as any).flexibleSavingsAnnualRatePct ?? DEFAULT_FLEXIBLE_SAVINGS_ANNUAL_RATE_PCT;
         this.cachedRentProtecRatePct = record.rentProtecRatePct;
         this.cachedInsurancePremiumPct = record.insurancePremiumPct;
         this.cachedRentProtecMinMonths = record.rentProtecMinMonths;
@@ -67,15 +97,23 @@ export class PlatformRatesService implements OnModuleInit {
           data: {
             key: GLOBAL_KEY,
             savingsEnabled: DEFAULT_SAVINGS_ENABLED,
+            savingsMode: DEFAULT_SAVINGS_MODE,
             savingsAnnualRatePct: DEFAULT_SAVINGS_ANNUAL_RATE_PCT,
+            flexibleSavingsAnnualRatePct: DEFAULT_FLEXIBLE_SAVINGS_ANNUAL_RATE_PCT,
             rentProtecRatePct: DEFAULT_RENT_PROTEC_RATE_PCT,
             insurancePremiumPct: DEFAULT_INSURANCE_PREMIUM_PCT,
             rentProtecMinMonths: DEFAULT_RENT_PROTEC_MIN_MONTHS,
             maxSavingsMonths: DEFAULT_MAX_SAVINGS_MONTHS,
           },
         });
-        this.cachedSavingsEnabled = created.savingsEnabled ?? DEFAULT_SAVINGS_ENABLED;
+        this.cachedSavingsMode = this.normalizeSavingsMode(
+          (created as any).savingsMode,
+          created.savingsEnabled,
+        );
+        this.cachedSavingsEnabled = this.cachedSavingsMode !== 'COMING_SOON';
         this.cachedSavingsAnnualRatePct = created.savingsAnnualRatePct;
+        this.cachedFlexibleSavingsAnnualRatePct =
+          (created as any).flexibleSavingsAnnualRatePct ?? DEFAULT_FLEXIBLE_SAVINGS_ANNUAL_RATE_PCT;
         this.cachedRentProtecRatePct = created.rentProtecRatePct;
         this.cachedInsurancePremiumPct = created.insurancePremiumPct;
         this.cachedRentProtecMinMonths = created.rentProtecMinMonths;
@@ -84,7 +122,9 @@ export class PlatformRatesService implements OnModuleInit {
       }
     } catch {
       this.cachedSavingsEnabled = DEFAULT_SAVINGS_ENABLED;
+      this.cachedSavingsMode = DEFAULT_SAVINGS_MODE;
       this.cachedSavingsAnnualRatePct = DEFAULT_SAVINGS_ANNUAL_RATE_PCT;
+      this.cachedFlexibleSavingsAnnualRatePct = DEFAULT_FLEXIBLE_SAVINGS_ANNUAL_RATE_PCT;
       this.cachedRentProtecRatePct = DEFAULT_RENT_PROTEC_RATE_PCT;
       this.cachedInsurancePremiumPct = DEFAULT_INSURANCE_PREMIUM_PCT;
       this.cachedRentProtecMinMonths = DEFAULT_RENT_PROTEC_MIN_MONTHS;
@@ -94,22 +134,29 @@ export class PlatformRatesService implements OnModuleInit {
 
   getCachedRates(): PlatformRatesSnapshot {
     const savingsAnnualRateDecimal = this.cachedSavingsAnnualRatePct / 100;
+    const flexibleSavingsAnnualRateDecimal = this.cachedFlexibleSavingsAnnualRatePct / 100;
     const rentProtecRateDecimal = this.cachedRentProtecRatePct / 100;
     const insurancePremiumRateDecimal = this.cachedInsurancePremiumPct / 100;
     return {
       savingsEnabled: this.cachedSavingsEnabled,
+      savingsMode: this.cachedSavingsMode,
       savingsAnnualRatePct: this.cachedSavingsAnnualRatePct,
+      flexibleSavingsAnnualRatePct: this.cachedFlexibleSavingsAnnualRatePct,
       rentProtecRatePct: this.cachedRentProtecRatePct,
       insurancePremiumPct: this.cachedInsurancePremiumPct,
       rentProtecMinMonths: this.cachedRentProtecMinMonths,
       maxSavingsMonths: this.cachedMaxSavingsMonths,
       savingsAnnualRateDecimal,
+      flexibleSavingsAnnualRateDecimal,
       rentProtecRateDecimal,
       savingsDailyRate: savingsAnnualRateDecimal / 365,
+      flexibleSavingsDailyRate: flexibleSavingsAnnualRateDecimal / 365,
       rentProtecDailyRate: rentProtecRateDecimal / 365,
       insurancePremiumRateDecimal,
       partnerName: this.cachedPartnerName,
       partnerShortName: this.cachedPartnerShortName,
+      fundName: DEFAULT_FUND_NAME,
+      fundCode: DEFAULT_FUND_CODE,
       updatedAt: this.cachedUpdatedAt ? this.cachedUpdatedAt.toISOString() : null,
     };
   }
@@ -120,8 +167,14 @@ export class PlatformRatesService implements OnModuleInit {
         where: { key: GLOBAL_KEY },
       });
       if (record) {
-        this.cachedSavingsEnabled = record.savingsEnabled ?? DEFAULT_SAVINGS_ENABLED;
+        this.cachedSavingsMode = this.normalizeSavingsMode(
+          (record as any).savingsMode,
+          record.savingsEnabled,
+        );
+        this.cachedSavingsEnabled = this.cachedSavingsMode !== 'COMING_SOON';
         this.cachedSavingsAnnualRatePct = record.savingsAnnualRatePct;
+        this.cachedFlexibleSavingsAnnualRatePct =
+          (record as any).flexibleSavingsAnnualRatePct ?? DEFAULT_FLEXIBLE_SAVINGS_ANNUAL_RATE_PCT;
         this.cachedRentProtecRatePct = record.rentProtecRatePct;
         this.cachedInsurancePremiumPct = record.insurancePremiumPct;
         this.cachedRentProtecMinMonths = record.rentProtecMinMonths;
@@ -136,7 +189,9 @@ export class PlatformRatesService implements OnModuleInit {
 
   async updateRates(params: {
     savingsEnabled?: boolean;
+    savingsMode?: SavingsMode;
     savingsAnnualRatePct?: number;
+    flexibleSavingsAnnualRatePct?: number;
     rentProtecRatePct?: number;
     insurancePremiumPct?: number;
     rentProtecMinMonths?: number;
@@ -147,14 +202,30 @@ export class PlatformRatesService implements OnModuleInit {
   }): Promise<PlatformRatesSnapshot> {
     const current = await this.getRates();
 
-    const nextSavingsEnabled =
-      params.savingsEnabled !== undefined
-        ? Boolean(params.savingsEnabled)
-        : current.savingsEnabled;
+    let nextSavingsMode: SavingsMode = current.savingsMode;
+    if (params.savingsMode !== undefined) {
+      if (
+        params.savingsMode !== 'COMING_SOON' &&
+        params.savingsMode !== 'OPT_IN_ONLY' &&
+        params.savingsMode !== 'LIVE'
+      ) {
+        throw new BadRequestException(
+          'savingsMode must be COMING_SOON, OPT_IN_ONLY, or LIVE',
+        );
+      }
+      nextSavingsMode = params.savingsMode;
+    } else if (params.savingsEnabled !== undefined) {
+      nextSavingsMode = params.savingsEnabled ? 'LIVE' : 'COMING_SOON';
+    }
+    const nextSavingsEnabled = nextSavingsMode !== 'COMING_SOON';
     const nextSavingsPct =
       params.savingsAnnualRatePct !== undefined
         ? Number(params.savingsAnnualRatePct)
         : current.savingsAnnualRatePct;
+    const nextFlexibleSavingsPct =
+      params.flexibleSavingsAnnualRatePct !== undefined
+        ? Number(params.flexibleSavingsAnnualRatePct)
+        : current.flexibleSavingsAnnualRatePct;
     const nextRentProtecPct =
       params.rentProtecRatePct !== undefined
         ? Number(params.rentProtecRatePct)
@@ -175,6 +246,13 @@ export class PlatformRatesService implements OnModuleInit {
     if (!Number.isFinite(nextSavingsPct) || nextSavingsPct < 0 || nextSavingsPct > 100) {
       throw new BadRequestException('Save & Earn annual rate must be between 0% and 100%');
     }
+    if (
+      !Number.isFinite(nextFlexibleSavingsPct) ||
+      nextFlexibleSavingsPct < 0 ||
+      nextFlexibleSavingsPct > 100
+    ) {
+      throw new BadRequestException('Flexible Save & Earn annual rate must be between 0% and 100%');
+    }
     if (!Number.isFinite(nextRentProtecPct) || nextRentProtecPct < 0 || nextRentProtecPct > 100) {
       throw new BadRequestException('Rent Protec annual rate must be between 0% and 100%');
     }
@@ -193,7 +271,9 @@ export class PlatformRatesService implements OnModuleInit {
       create: {
         key: GLOBAL_KEY,
         savingsEnabled: nextSavingsEnabled,
+        savingsMode: nextSavingsMode,
         savingsAnnualRatePct: nextSavingsPct,
+        flexibleSavingsAnnualRatePct: nextFlexibleSavingsPct,
         rentProtecRatePct: nextRentProtecPct,
         insurancePremiumPct: nextInsurancePct,
         rentProtecMinMonths: nextMinMonths,
@@ -202,7 +282,9 @@ export class PlatformRatesService implements OnModuleInit {
       },
       update: {
         savingsEnabled: nextSavingsEnabled,
+        savingsMode: nextSavingsMode,
         savingsAnnualRatePct: nextSavingsPct,
+        flexibleSavingsAnnualRatePct: nextFlexibleSavingsPct,
         rentProtecRatePct: nextRentProtecPct,
         insurancePremiumPct: nextInsurancePct,
         rentProtecMinMonths: nextMinMonths,
@@ -229,8 +311,14 @@ export class PlatformRatesService implements OnModuleInit {
       // Non-blocking sync
     }
 
-    this.cachedSavingsEnabled = updated.savingsEnabled ?? nextSavingsEnabled;
+    this.cachedSavingsMode = this.normalizeSavingsMode(
+      (updated as any).savingsMode,
+      updated.savingsEnabled,
+    );
+    this.cachedSavingsEnabled = this.cachedSavingsMode !== 'COMING_SOON';
     this.cachedSavingsAnnualRatePct = updated.savingsAnnualRatePct;
+    this.cachedFlexibleSavingsAnnualRatePct =
+      (updated as any).flexibleSavingsAnnualRatePct ?? DEFAULT_FLEXIBLE_SAVINGS_ANNUAL_RATE_PCT;
     this.cachedRentProtecRatePct = updated.rentProtecRatePct;
     this.cachedInsurancePremiumPct = updated.insurancePremiumPct;
     this.cachedRentProtecMinMonths = updated.rentProtecMinMonths;

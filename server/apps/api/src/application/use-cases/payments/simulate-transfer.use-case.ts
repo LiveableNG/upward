@@ -1,8 +1,9 @@
-import { Injectable, Logger, BadRequestException, ForbiddenException } from '@nestjs/common'
+import { Injectable, Logger, BadRequestException, ForbiddenException, Optional } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { createHmac } from 'node:crypto'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { ProcessPaymentWebhookUseCase } from './process-payment-webhook.use-case'
+import { ProcessPaystackSavingsWebhookUseCase } from '../rent-savings/process-paystack-savings-webhook.use-case'
 import { isProductionRuntime } from '../../../shared/utils/runtime-env'
 
 @Injectable()
@@ -13,6 +14,8 @@ export class SimulateTransferUseCase {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly processWebhook: ProcessPaymentWebhookUseCase,
+    @Optional()
+    private readonly processSavingsWebhook?: ProcessPaystackSavingsWebhookUseCase,
   ) { }
 
   async execute(data: {
@@ -32,6 +35,7 @@ export class SimulateTransferUseCase {
     }
 
     let dva: any = null
+    let matchedVaultId: number | undefined = undefined
     let matchedVaultUuid: string | undefined = undefined
 
     if (this.prisma?.upward_rent_vault) {
@@ -44,6 +48,7 @@ export class SimulateTransferUseCase {
       })
 
       if (rentVault) {
+        matchedVaultId = rentVault.id
         matchedVaultUuid = rentVault.uuid
         dva = {
           id: rentVault.id,
@@ -119,6 +124,33 @@ export class SimulateTransferUseCase {
 
     const reference = `TFD_${data.beneficiaryAccount}_${data.amount}_${Date.now()}`
     const amountKobo = Math.round(data.amount * 100)
+
+    // For Rent Savings Vaults in non-prod DemoBank simulations, credit directly through
+    // the atomic ledger + Postgres outbox + BullMQ pipeline so public webhooks stay 100% Paystack-verified.
+    if (matchedVaultId && this.processSavingsWebhook) {
+      this.logger.log(
+        `[DEV SIMULATOR] Crediting Rent Vault ${matchedVaultUuid} atomically via DemoBank transfer (ref=${reference})`,
+      )
+      const result = await this.processSavingsWebhook.creditVaultAndEnqueueArm({
+        vaultId: matchedVaultId,
+        reference,
+        amountKobo: BigInt(amountKobo),
+        channel: 'dedicated_nuban',
+        narration: data.narration?.trim() || 'Rent savings deposit via simulated bank transfer (dev)',
+        source: 'DEV_SIMULATION',
+        metadata: {
+          simulatedVia: 'DEMO_BANK',
+          beneficiaryBank: data.beneficiaryBank,
+          beneficiaryAccount: data.beneficiaryAccount,
+        },
+      })
+
+      return {
+        success: true,
+        reference,
+        result,
+      }
+    }
 
     const payload = {
       event: 'charge.success',

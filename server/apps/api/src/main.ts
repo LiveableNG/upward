@@ -54,6 +54,7 @@ async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     adapter,
+    { rawBody: true },
   )
 
   if (isDev) {

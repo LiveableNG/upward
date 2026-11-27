@@ -162,12 +162,12 @@ describe('RentSavingsCalculatorEngine', () => {
   })
 
   describe('M-08: Daily Compounding Yield', () => {
-    it('should calculate daily interest accurately at 14.5% p.a.', () => {
+    it('should calculate daily interest accurately at 16.0% p.a.', () => {
       const balanceKobo = 100_000_000n // ₦1,000,000
       const dailyInterest = RentSavingsCalculatorEngine.calculateDailyYield(balanceKobo)
-      // ₦1,000,000 * (0.145 / 365) = ₦397.26 => ~39,726 kobo
-      expect(Number(dailyInterest)).toBeGreaterThanOrEqual(39_000)
-      expect(Number(dailyInterest)).toBeLessThanOrEqual(41_000)
+      // ₦1,000,000 * (0.16 / 365) = ₦438.36 => ~43,836 kobo
+      expect(Number(dailyInterest)).toBeGreaterThanOrEqual(43_000)
+      expect(Number(dailyInterest)).toBeLessThanOrEqual(45_000)
     })
   })
 
