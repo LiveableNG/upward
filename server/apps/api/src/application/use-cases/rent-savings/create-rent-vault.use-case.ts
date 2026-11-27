@@ -1,4 +1,11 @@
-import { Injectable, Inject, BadRequestException, ConflictException, Optional } from '@nestjs/common'
+import {
+  Injectable,
+  Inject,
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Optional,
+} from '@nestjs/common'
 import {
   IsBoolean,
   IsDateString,
@@ -26,6 +33,7 @@ import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.rep
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
 import { PlatformRatesService } from '../../../shared/infrastructure/common/platform-rates.service'
 import { RecordSavingsConsentUseCase } from './record-savings-consent.use-case'
+import { ApplyReservedSavingsCashbackUseCase } from './apply-reserved-savings-cashback.use-case'
 import { isProductionRuntime } from '../../../shared/utils/runtime-env'
 
 export class CreateRentVaultDto {
@@ -98,6 +106,8 @@ export class CreateRentVaultUseCase {
     private readonly prisma: PrismaService,
     @Optional() private readonly platformRates?: PlatformRatesService,
     @Optional() private readonly recordSavingsConsentUseCase?: RecordSavingsConsentUseCase,
+    @Optional()
+    private readonly applyReservedSavingsCashbackUseCase?: ApplyReservedSavingsCashbackUseCase,
   ) {}
 
   async execute(
@@ -105,6 +115,13 @@ export class CreateRentVaultUseCase {
     dto: CreateRentVaultDto,
     requestMeta?: { ipAddress?: string | null; userAgent?: string | null },
   ) {
+    const precheckRates = this.platformRates ? await this.platformRates.getRates() : null
+    if (precheckRates?.savingsMode === 'COMING_SOON') {
+      throw new ForbiddenException(
+        'Rent Savings is not open yet. Indicate your interest in the app to reserve your early-access cashback.',
+      )
+    }
+
     const existingVault = await this.rentVaultRepo.findActiveByUserId(userId)
     if (existingVault) {
       throw new ConflictException('You already have an active rent vault.')
@@ -318,13 +335,22 @@ export class CreateRentVaultUseCase {
       ],
     })
 
+    // Auto-credit any early-interest reserved activation cashback into the newly created vault
+    let appliedCashbackKobo = 0n
+    if (this.applyReservedSavingsCashbackUseCase) {
+      const cashbackRes = await this.applyReservedSavingsCashbackUseCase
+        .execute(userId, vault.id)
+        .catch(() => ({ credited: false, amountKobo: 0n }))
+      appliedCashbackKobo = cashbackRes.amountKobo
+    }
+
     return {
       status: 'success',
       data: {
         vault_id: vault.uuid,
         lock_status: vault.lockStatus,
         target_amount_kobo: Number(vault.targetAmountKobo),
-        current_principal_kobo: Number(vault.currentPrincipalKobo),
+        current_principal_kobo: Number(vault.currentPrincipalKobo + appliedCashbackKobo),
         accrued_yield_kobo: Number(vault.accruedYieldKobo),
         contractual_due_date: vault.contractualDueDate.toISOString().split('T')[0],
         unlockDate: vault.unlockDate.toISOString().split('T')[0],

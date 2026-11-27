@@ -18,6 +18,9 @@ interface CashbackCampaign {
   slotsTotal: number
   slotsUsed: number
   slotsRemaining: number
+  reservedCount?: number
+  creditedCount?: number
+  waitlistedCount?: number
   isActive: boolean
 }
 
@@ -29,6 +32,8 @@ interface EligibleSaver {
   productOption: string
   currentPrincipalNgn: number
   alreadyCredited: boolean
+  hasReservedGrant?: boolean
+  alreadyAllocated?: boolean
   createdAt: string
 }
 
@@ -37,6 +42,8 @@ interface CashbackGrant {
   customerName: string
   customerEmail: string
   amountNgn: number
+  status?: string
+  hasVault?: boolean
   reference: string
   fundingSource: string
   notes: string | null
@@ -170,7 +177,14 @@ export const ActivationCashbackTab: React.FC<ActivationCashbackTabProps> = ({ to
           </div>
 
           <div className="fin-campaign__meta">
-            <span>Disbursed: {fmtNgn(campaign.totalDisbursedNgn)}</span>
+            <span>
+              Allocated: {fmtNgn(campaign.totalDisbursedNgn)}
+              {typeof campaign.reservedCount === 'number' || typeof campaign.creditedCount === 'number'
+                ? ` (${campaign.reservedCount ?? 0} reserved · ${campaign.creditedCount ?? 0} credited${
+                    campaign.waitlistedCount ? ` · ${campaign.waitlistedCount} waitlisted` : ''
+                  })`
+                : ''}
+            </span>
             <span>
               Remaining: <strong style={{ color: '#0f172a' }}>{fmtNgn(campaign.remainingBudgetNgn)}</strong>{' '}
               of {fmtNgn(campaign.budgetCapNgn)}
@@ -295,42 +309,66 @@ export const ActivationCashbackTab: React.FC<ActivationCashbackTabProps> = ({ to
               <thead>
                 <tr>
                   <th>Customer</th>
+                  <th>Status</th>
                   <th className="fin-num">Amount</th>
                   <th>Reference</th>
-                  <th>Funding Source</th>
-                  <th>Credited At</th>
+                  <th>Source</th>
+                  <th>Recorded At</th>
                 </tr>
               </thead>
               <tbody>
                 {grants.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="fin-empty">
-                      No cashback grants disbursed yet.
+                    <td colSpan={6} className="fin-empty">
+                      No cashback grants or interest claims yet.
                     </td>
                   </tr>
                 ) : (
-                  grants.map((g) => (
-                    <tr key={g.uuid}>
-                      <td>
-                        <div className="fin-cell-primary">{g.customerName}</div>
-                        <div className="fin-cell-sub">{g.customerEmail}</div>
-                      </td>
-                      <td className="fin-num fin-text-green">+{fmtNgn(g.amountNgn)}</td>
-                      <td className="fin-mono">{g.reference}</td>
-                      <td>
-                        <span className="fin-pill fin-pill--neutral">{g.fundingSource}</span>
-                      </td>
-                      <td className="fin-text-muted">
-                        {new Date(g.createdAt).toLocaleString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </td>
-                    </tr>
-                  ))
+                  grants.map((g) => {
+                    const statusLabel =
+                      g.status === 'RESERVED'
+                        ? 'Reserved'
+                        : g.status === 'WAITLISTED'
+                          ? 'Waitlisted'
+                          : g.status === 'REVERSED'
+                            ? 'Reversed'
+                            : 'Credited'
+                    const statusClass =
+                      g.status === 'RESERVED'
+                        ? 'fin-pill--clay'
+                        : g.status === 'WAITLISTED'
+                          ? 'fin-pill--neutral'
+                          : 'fin-pill--green'
+                    return (
+                      <tr key={g.uuid}>
+                        <td>
+                          <div className="fin-cell-primary">{g.customerName}</div>
+                          <div className="fin-cell-sub">{g.customerEmail}</div>
+                        </td>
+                        <td>
+                          <span className={`fin-pill ${statusClass}`}>
+                            <span className="fin-pill__dot" /> {statusLabel}
+                          </span>
+                        </td>
+                        <td className="fin-num fin-text-green">
+                          {g.amountNgn > 0 ? `+${fmtNgn(g.amountNgn)}` : '₦0'}
+                        </td>
+                        <td className="fin-mono">{g.reference}</td>
+                        <td>
+                          <span className="fin-pill fin-pill--neutral">{g.fundingSource}</span>
+                        </td>
+                        <td className="fin-text-muted">
+                          {new Date(g.createdAt).toLocaleString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </td>
+                      </tr>
+                    )
+                  })
                 )}
               </tbody>
             </table>

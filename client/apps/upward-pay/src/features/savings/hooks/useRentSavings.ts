@@ -3,6 +3,34 @@ import * as savingsService from '../services/savingsService'
 
 export const RENT_VAULT_QUERY_KEY = ['rent-vault', 'me']
 export const RENT_VAULT_PREFILL_QUERY_KEY = ['rent-vault', 'prefill']
+export const SAVINGS_INTEREST_STATUS_QUERY_KEY = ['savings-interest-status']
+
+export function useSavingsInterestStatus(enabled = true) {
+  return useQuery({
+    queryKey: SAVINGS_INTEREST_STATUS_QUERY_KEY,
+    queryFn: async () => {
+      try {
+        return await savingsService.getSavingsInterestStatus()
+      } catch {
+        return null
+      }
+    },
+    enabled,
+    staleTime: 1000 * 60,
+    retry: false,
+  })
+}
+
+export function useIndicateSavingsInterest() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (source?: string) => savingsService.indicateSavingsInterest(source),
+    onSuccess: (data) => {
+      queryClient.setQueryData(SAVINGS_INTEREST_STATUS_QUERY_KEY, data)
+      queryClient.invalidateQueries({ queryKey: SAVINGS_INTEREST_STATUS_QUERY_KEY })
+    },
+  })
+}
 
 export function useSavingsOnboardingPrefill(enabled = true) {
   return useQuery({
@@ -20,7 +48,7 @@ export function useSavingsOnboardingPrefill(enabled = true) {
   })
 }
 
-export function useRentVault() {
+export function useRentVault(enabled = true) {
   return useQuery({
     queryKey: RENT_VAULT_QUERY_KEY,
     queryFn: async () => {
@@ -34,6 +62,7 @@ export function useRentVault() {
         throw err
       }
     },
+    enabled,
     staleTime: 1000 * 10, // 10 seconds
     refetchInterval: 1000 * 15, // Poll every 15s while mounted so incoming bank transfers reflect automatically
     refetchOnWindowFocus: true,

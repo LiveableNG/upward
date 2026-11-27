@@ -642,6 +642,9 @@ import {
   GetSavingsConsentDocumentUseCase,
   GetSavingsKycDocumentUseCase,
 } from './use-cases/rent-savings/get-savings-consent-document.use-case'
+import { GetSavingsInterestStatusUseCase } from './use-cases/rent-savings/get-savings-interest-status.use-case'
+import { IndicateSavingsInterestUseCase } from './use-cases/rent-savings/indicate-savings-interest.use-case'
+import { ApplyReservedSavingsCashbackUseCase } from './use-cases/rent-savings/apply-reserved-savings-cashback.use-case'
 import { SavingsConsentPdfService } from '../shared/infrastructure/common/rent-savings/savings-consent-pdf.service'
 
 import { TogglePmAllianceEnablementUseCase } from './alliance/use-cases/toggle-pm-alliance-enablement.use-case'
@@ -705,6 +708,9 @@ const UseCases: any[] = [
   RecordSavingsConsentUseCase,
   GetSavingsConsentDocumentUseCase,
   GetSavingsKycDocumentUseCase,
+  GetSavingsInterestStatusUseCase,
+  IndicateSavingsInterestUseCase,
+  ApplyReservedSavingsCashbackUseCase,
 
   TogglePmAllianceEnablementUseCase,
   CreateAllianceQualificationUseCase,

@@ -51,6 +51,11 @@ import {
   GetSavingsConsentDocumentUseCase,
   GetSavingsKycDocumentUseCase,
 } from '../../../application/use-cases/rent-savings/get-savings-consent-document.use-case'
+import { GetSavingsInterestStatusUseCase } from '../../../application/use-cases/rent-savings/get-savings-interest-status.use-case'
+import {
+  IndicateSavingsInterestDto,
+  IndicateSavingsInterestUseCase,
+} from '../../../application/use-cases/rent-savings/indicate-savings-interest.use-case'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 
 @Controller('rent-vaults')
@@ -68,6 +73,8 @@ export class RentVaultController {
     private readonly recordConsentUseCase: RecordSavingsConsentUseCase,
     private readonly getConsentDocUseCase: GetSavingsConsentDocumentUseCase,
     private readonly getKycDocUseCase: GetSavingsKycDocumentUseCase,
+    private readonly getSavingsInterestStatusUseCase: GetSavingsInterestStatusUseCase,
+    private readonly indicateSavingsInterestUseCase: IndicateSavingsInterestUseCase,
     @Inject(USER_REPOSITORY) private readonly userRepo: UserRepository,
   ) {}
 
@@ -177,6 +184,25 @@ export class RentVaultController {
   async getConsentDocument(@Req() req: any, @Res({ passthrough: true }) res: any) {
     const userId = await this.getNumericUserId(req)
     return this.getConsentDocUseCase.execute(userId, res)
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('interest/status')
+  @HttpCode(HttpStatus.OK)
+  async getSavingsInterestStatus(@Req() req: any) {
+    const userId = await this.getNumericUserId(req)
+    return this.getSavingsInterestStatusUseCase.execute(userId)
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('interest')
+  @HttpCode(HttpStatus.OK)
+  async indicateSavingsInterest(
+    @Req() req: any,
+    @Body() dto?: IndicateSavingsInterestDto,
+  ) {
+    const userId = await this.getNumericUserId(req)
+    return this.indicateSavingsInterestUseCase.execute(userId, dto)
   }
 
   @UseGuards(JwtAuthGuard)

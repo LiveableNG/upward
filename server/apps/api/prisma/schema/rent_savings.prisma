@@ -302,10 +302,10 @@ model upward_savings_cashback_grant {
   uuid              String                           @unique @default(uuid())
   campaignId        Int
   userId            Int
-  vaultId           Int
+  vaultId           Int?
   transactionId     Int?
   amountKobo        BigInt
-  status            String                           @default("CREDITED") // CREDITED, REVERSED
+  status            String                           @default("CREDITED") // RESERVED, CREDITED, WAITLISTED, REVERSED
   fundingSource     String                           @default("PAYSTACK_BALANCE")
   reference         String                           @unique
   grantedByAdminId  String?
@@ -314,10 +314,11 @@ model upward_savings_cashback_grant {
 
   campaign          upward_savings_cashback_campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   user              upward_user                      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  vault             upward_rent_vault                @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+  vault             upward_rent_vault?               @relation(fields: [vaultId], references: [id], onDelete: SetNull)
 
   @@unique([campaignId, userId])
   @@index([campaignId])
   @@index([userId])
   @@index([vaultId])
+  @@index([status])
 }

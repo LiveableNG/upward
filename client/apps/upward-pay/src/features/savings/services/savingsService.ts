@@ -769,3 +769,48 @@ export async function onboardSavingsInvestor(
   )
   return res.data
 }
+
+export interface SavingsInterestCampaignSummary {
+  code: string
+  name?: string
+  reward_amount_ngn: number
+  can_win_cashback: boolean
+  slots_remaining: number
+}
+
+export interface SavingsInterestStatusData {
+  has_indicated_interest: boolean
+  grant_status: 'RESERVED' | 'CREDITED' | 'WAITLISTED' | 'REVERSED' | null
+  allocated_amount_ngn: number
+  reference: string | null
+  claimed_at: string | null
+  campaign: SavingsInterestCampaignSummary
+}
+
+export interface IndicateSavingsInterestResult extends SavingsInterestStatusData {
+  already_claimed: boolean
+  won_cashback: boolean
+}
+
+export async function getSavingsInterestStatus(): Promise<SavingsInterestStatusData> {
+  const res = await request<{ status: string; data: SavingsInterestStatusData }>(
+    '/rent-vaults/interest/status',
+    {
+      method: 'GET',
+    },
+  )
+  return res.data
+}
+
+export async function indicateSavingsInterest(
+  source?: string,
+): Promise<IndicateSavingsInterestResult> {
+  const res = await request<{ status: string; data: IndicateSavingsInterestResult }>(
+    '/rent-vaults/interest',
+    {
+      method: 'POST',
+      body: JSON.stringify(source ? { source } : {}),
+    },
+  )
+  return res.data
+}
