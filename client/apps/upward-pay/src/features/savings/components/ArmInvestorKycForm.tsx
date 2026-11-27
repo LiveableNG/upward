@@ -1059,24 +1059,10 @@ export function ArmInvestorKycForm({
           <div>
             <h4 className="arm-kyc-form__section-title">Payout Bank Account</h4>
             <p className="arm-kyc-form__section-sub">
-              Your bank account name must match your BVN legal name, or KYC will fail.
+              Must match your BVN name{expectedFullName ? ` (${expectedFullName})` : ''} or
+              verification will fail.
             </p>
           </div>
-        </div>
-
-        <div className="arm-kyc-form__alert arm-kyc-form__alert--warning">
-          <AlertTriangle size={15} style={{ flexShrink: 0, marginTop: 1 }} />
-          <span>
-            Enter a personal Nigerian bank account registered in your BVN name
-            {expectedFullName ? (
-              <>
-                {' '}
-                (<strong>{expectedFullName}</strong>)
-              </>
-            ) : null}
-            . If the account name does not match your BVN, your KYC verification and ARM onboarding
-            will fail.
-          </span>
         </div>
 
         <div className="rent-calculator__field">
@@ -1148,24 +1134,21 @@ export function ArmInvestorKycForm({
         {resolvingBank ? (
           <div className="arm-kyc-form__field-hint" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <Loader2 size={14} className="animate-spin" />
-            <span>Verifying account name with your bank...</span>
+            <span>Verifying account...</span>
           </div>
         ) : accountNameVal && !bankNameMatchesLegalName && strictBankNameMatch ? (
           <div className="arm-kyc-form__alert" role="alert">
             <AlertCircle size={15} style={{ flexShrink: 0, marginTop: 1 }} />
             <span>
-              Resolved account name (<strong>{accountNameVal}</strong>) does not match your BVN
-              legal name{expectedFullName ? ` (${expectedFullName})` : ''}. Please use an account in
-              your own BVN name or KYC will fail.
+              <strong>{accountNameVal}</strong> does not match your BVN name. Use an account in your
+              own name.
             </span>
           </div>
         ) : accountNameVal && !bankNameMatchesLegalName && !strictBankNameMatch ? (
           <div className="arm-kyc-form__alert arm-kyc-form__alert--warning">
             <AlertTriangle size={15} style={{ flexShrink: 0, marginTop: 1 }} />
             <span>
-              Resolved as <strong>{accountNameVal}</strong> (does not match{' '}
-              {expectedFullName || 'your legal name'}). Allowed in sandbox/staging, but will fail
-              KYC in production.
+              <strong>{accountNameVal}</strong> — name mismatch allowed in test mode only.
             </span>
           </div>
         ) : accountNameVal ? (

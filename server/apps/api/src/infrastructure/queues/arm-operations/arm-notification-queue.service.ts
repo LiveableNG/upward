@@ -9,9 +9,11 @@ import {
   ARM_NOTIFICATION_INITIAL_BACKOFF_MS,
   ARM_NOTIFICATION_MAX_ATTEMPTS,
   ARM_NOTIFICATIONS_QUEUE_NAME,
+  ARM_QUEUE_ENQUEUE_TIMEOUT_MS,
   buildRedisConnectionOptions,
   isQueueDisabledEnvironment,
   toBullMqJobId,
+  withTimeout,
 } from './arm-operations.constants'
 
 @Injectable()
@@ -45,7 +47,7 @@ export class ArmNotificationQueueService
     if (this.queue) return this.queue
 
     const redisUrl = this.configService.get<string>('REDIS_URL') || process.env['REDIS_URL']
-    const connection = buildRedisConnectionOptions(redisUrl)
+    const connection = buildRedisConnectionOptions(redisUrl, { role: 'producer' })
 
     this.queue = new Queue<ArmNotificationJobData>(ARM_NOTIFICATIONS_QUEUE_NAME, {
       connection,
@@ -78,37 +80,46 @@ export class ArmNotificationQueueService
     const bullJobId = toBullMqJobId(`ARM_NOTIFY__${data.armJobUuid}__${data.kind}`)
 
     try {
-      const existing = await queue.getJob(bullJobId)
-      if (existing) {
-        const state = await existing.getState()
-        if (
-          state === 'waiting' ||
-          state === 'active' ||
-          state === 'delayed' ||
-          state === 'prioritized' ||
-          state === 'completed'
-        ) {
+      const enqueued = await withTimeout(
+        (async () => {
+          const existing = await queue.getJob(bullJobId)
+          if (existing) {
+            const state = await existing.getState()
+            if (
+              state === 'waiting' ||
+              state === 'active' ||
+              state === 'delayed' ||
+              state === 'prioritized' ||
+              state === 'completed'
+            ) {
+              return true
+            }
+            // If previously failed after outage, allow outbox reconciler or retry to re-enqueue
+            if (state === 'failed') {
+              await existing.remove().catch(() => {})
+            }
+          }
+
+          await queue.add(data.kind, data, {
+            jobId: bullJobId,
+            attempts: ARM_NOTIFICATION_MAX_ATTEMPTS,
+            backoff: {
+              type: 'exponential',
+              delay: ARM_NOTIFICATION_INITIAL_BACKOFF_MS,
+            },
+          })
           return true
-        }
-        // If previously failed after outage, allow outbox reconciler or retry to re-enqueue
-        if (state === 'failed') {
-          await existing.remove().catch(() => {})
-        }
-      }
-
-      await queue.add(data.kind, data, {
-        jobId: bullJobId,
-        attempts: ARM_NOTIFICATION_MAX_ATTEMPTS,
-        backoff: {
-          type: 'exponential',
-          delay: ARM_NOTIFICATION_INITIAL_BACKOFF_MS,
-        },
-      })
-
-      this.logger.log(
-        `Enqueued ARM notification [${data.kind}] for job ${data.armJobUuid} (bullJobId=${bullJobId})`,
+        })(),
+        ARM_QUEUE_ENQUEUE_TIMEOUT_MS,
+        `enqueueNotification(${bullJobId})`,
       )
-      return true
+
+      if (enqueued) {
+        this.logger.log(
+          `Enqueued ARM notification [${data.kind}] for job ${data.armJobUuid} (bullJobId=${bullJobId})`,
+        )
+      }
+      return enqueued
     } catch (err: any) {
       this.logger.error(
         `Failed to enqueue ARM notification [${data.kind}] for job ${data.armJobUuid} (outbox reconciler will recover): ${err?.message}`,

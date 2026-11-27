@@ -29,7 +29,7 @@ export class ArmNotificationWorkerService implements OnModuleInit, OnModuleDestr
     }
 
     const redisUrl = this.configService.get<string>('REDIS_URL') || process.env['REDIS_URL']
-    const connection = buildRedisConnectionOptions(redisUrl)
+    const connection = buildRedisConnectionOptions(redisUrl, { role: 'worker' })
 
     this.worker = new Worker<ArmNotificationJobData>(
       ARM_NOTIFICATIONS_QUEUE_NAME,

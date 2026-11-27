@@ -239,6 +239,10 @@ describe('Production simulation & mock DVA guards', () => {
           create: jest.fn().mockResolvedValue({ id: 99 }),
         },
         upward_rent_savings_score: { upsert: jest.fn() },
+        upward_user_bank_details: {
+          findUnique: jest.fn().mockResolvedValue(null),
+          upsert: jest.fn().mockResolvedValue({}),
+        },
         upward_user: { update: jest.fn() },
       }
 
@@ -277,6 +281,11 @@ describe('Production simulation & mock DVA guards', () => {
       }
 
       const paymentGateway = {
+        verifyAccountNumber: jest.fn().mockResolvedValue({
+          accountNumber: '0123456789',
+          accountName: 'OKAFOR ADA',
+          bankCode: '058',
+        }),
         createCustomer: jest.fn().mockResolvedValue({ data: { customer_code: 'CUS_123' } }),
         createDedicatedAccount: jest.fn().mockRejectedValue(new Error('Paystack DVA unavailable')),
       }
@@ -317,6 +326,10 @@ describe('Production simulation & mock DVA guards', () => {
         next_of_kin_name: 'Chidi Okafor',
         next_of_kin_relationship: 'Sibling',
         next_of_kin_phone: '08099998888',
+        settlement_bank_code: '058',
+        settlement_bank_name: 'GTBank',
+        settlement_account_number: '0123456789',
+        settlement_account_name: 'OKAFOR ADA',
       })
 
       expect(res.data.dedicated_account).toBeNull()

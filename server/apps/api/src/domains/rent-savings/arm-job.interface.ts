@@ -48,6 +48,9 @@ export interface ArmReconciliationSummary {
   recoveredStale: number
   failedStale: number
   requeuedNotifications?: number
+  processedViaFallback?: number
+  processedNotificationsViaFallback?: number
+  redisReachable?: boolean
 }
 
 export type ArmNotificationKind = 'USER_SUCCESS' | 'ADMIN_SUCCESS' | 'ADMIN_FAILURE'
