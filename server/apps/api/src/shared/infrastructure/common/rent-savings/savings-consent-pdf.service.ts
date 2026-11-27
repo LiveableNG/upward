@@ -2,21 +2,48 @@ import { Injectable } from '@nestjs/common'
 import PDFDocument from 'pdfkit'
 
 /**
- * Editable draft legal versions & disclosures for Upward Rent Savings (ARM Money Market Fund).
- * Legal team can replace the clauses below without changing storage or audit flow.
+ * Approved legal versions & Letter of Consent text for Upward by Goodtenants Limited
+ * Rent Savings (ARM Money Market Fund — ARMMMF).
  */
 export const SAVINGS_LEGAL_DEFAULTS = {
-  TERMS_VERSION: '2026-11-v1-draft',
-  CONSENT_DOC_VERSION: 'ARM-B2B2C-2026-v1-draft',
+  TERMS_VERSION: '2026-11-v1',
+  CONSENT_DOC_VERSION: 'ARM-B2B2C-2026-v1',
+  EFFECTIVE_DATE: 'November, 2026',
+  LEGAL_ENTITY: 'Upward by Goodtenants Limited',
+  REGISTERED_ADDRESS: '2/4, Funsho Street Link, Sabo, Yaba, Lagos State, Nigeria',
   FUND_CODE: 'ARMMMF',
   FUND_NAME: 'ARM Money Market Fund',
-  FUND_MANAGER: 'ARM Investment Managers (Asset & Resource Management Holding Company)',
-  ANNUAL_YIELD_INDICATIVE: '16.0% p.a. (indicative, daily compounding)',
+  FUND_MANAGER: 'Asset & Resource Management Holding Company (ARM)',
+  LETTER_INTRO:
+    'By activating the housing savings and investment feature on the Goodtenants platform (“Platform”), I (“Participating Investor”) give my express, informed, and binding consent to Goodtenants Limited (“Goodtenants”) for savings and investments directed toward housing and housing-related products.',
+  LETTER_SECTIONS: [
+    {
+      heading: 'Fund Management',
+      body: 'I understand that Goodtenants is a technology platform and not a licensed fund manager, and that funds invested toward housing savings goals are placed with Asset & Resource Management Holding Company (ARM) (“Fund Manager”) for investment management.',
+    },
+    {
+      heading: 'Redemptions & Returns',
+      body: 'I authorize and instruct Goodtenants to request, collect, and receive on my behalf all principal redemptions, liquidated savings balances, and accrued investment returns payable by the Fund Manager (ARM) in connection with my savings and investments on the Platform.',
+    },
+    {
+      heading: 'Remittance',
+      body: 'I consent to and authorize the Fund Manager (ARM) to remit all such redemption proceeds and accrued investment returns directly into Goodtenants Limited’s designated corporate bank account. Payment by ARM into Goodtenants’ designated corporate account constitutes a valid discharge of ARM’s payment obligation to me for the sum remitted.',
+    },
+    {
+      heading: 'Application & Disbursement of Funds',
+      body: 'I authorize Goodtenants to hold and apply the funds received on my behalf strictly for my designated housing obligations (including rent, housing deposits, or housing-related products on the Platform), or to remit them to my verified personal bank account upon a valid withdrawal request in accordance with the Upward Rent Savings Terms of Service.',
+    },
+    {
+      heading: 'Digital Execution',
+      body: 'By checking the consent box or clicking “I Agree”, I adopt this Consent as my valid electronic signature and legally binding authorization.',
+    },
+  ],
   MANDATE_CLAUSES: [
-    'I authorize Liveable Smartcity Technologies Limited (Upward / GoodTenants) to collect and transmit my verified KYC details (BVN, NIN, Valid Means of Identification, Residential Address, and Proof of Address) to Asset & Resource Management Holding Company (ARM) for SEC-compliant B2B2C investor onboarding into the ARM Money Market Fund (ARMMMF).',
-    'I expressly authorize Upward / GoodTenants to invest my Rent Savings deposits into units of the ARM Money Market Fund (ARMMMF) and to execute redemptions on my behalf 30 days before my rent due date. Full Lock savings cannot be withdrawn before that date. Flexible savings may be withdrawn earlier when I request it.',
-    'I acknowledge that returns on the ARM Money Market Fund (ARMMMF) are variable market yields (indicatively 16.0% p.a. for Save & Earn) subject to money market performance and applicable SEC regulations. Full Lock savings stay invested until 30 days before my rent due date.',
-    'I confirm that all identification documents and proof of address uploaded by me are genuine, accurate, and belong to me, and I consent to NDPR-compliant data processing for KYC verification and investment administration.',
+    'Fund Management: I understand that Goodtenants is a technology platform and not a licensed fund manager, and that funds invested toward housing savings goals are placed with Asset & Resource Management Holding Company (ARM) (“Fund Manager”) for investment management.',
+    'Redemptions & Returns: I authorize and instruct Goodtenants to request, collect, and receive on my behalf all principal redemptions, liquidated savings balances, and accrued investment returns payable by the Fund Manager (ARM) in connection with my savings and investments on the Platform.',
+    'Remittance: I consent to and authorize the Fund Manager (ARM) to remit all such redemption proceeds and accrued investment returns directly into Goodtenants Limited’s designated corporate bank account. Payment by ARM into Goodtenants’ designated corporate account constitutes a valid discharge of ARM’s payment obligation to me for the sum remitted.',
+    'Application & Disbursement of Funds: I authorize Goodtenants to hold and apply the funds received on my behalf strictly for my designated housing obligations (including rent, housing deposits, or housing-related products on the Platform), or to remit them to my verified personal bank account upon a valid withdrawal request in accordance with the Upward Rent Savings Terms of Service.',
+    'Digital Execution: By checking the consent box or clicking “I Agree”, I adopt this Consent as my valid electronic signature and legally binding authorization.',
   ],
 } as const
 
@@ -45,8 +72,8 @@ export class SavingsConsentPdfService {
         size: 'A4',
         margin: 44,
         info: {
-          Title: `ARM Money Market Fund Consent Mandate - ${data.customerFullName}`,
-          Author: 'Upward by GoodTenants',
+          Title: `Letter of Consent - ${data.customerFullName}`,
+          Author: 'Upward by Goodtenants Limited',
         },
       })
 
@@ -56,111 +83,124 @@ export class SavingsConsentPdfService {
       doc.on('error', reject)
 
       const W = 595.28
+      const contentW = W - 88
       const clay = '#d97757'
       const dark = '#0a0a0f'
-      const textSecondary = '#4a4642'
+      const textSecondary = '#3f3b37'
       const textMuted = '#78716c'
       const surface = '#faf9f5'
       const border = '#e2ddd7'
 
       // Header Banner
-      doc.rect(0, 0, W, 118).fill(surface)
+      doc.rect(0, 0, W, 112).fill(surface)
       doc.rect(0, 0, W, 5).fill(clay)
 
-      doc.font('Helvetica-Bold').fontSize(15).fillColor(clay).text('UPWARD BY GOODTENANTS', 44, 28)
-      doc
-        .font('Helvetica-Bold')
-        .fontSize(17)
-        .fillColor(dark)
-        .text('Customer Investment & Transact Consent Mandate', 44, 50)
-      doc
-        .font('Helvetica')
-        .fontSize(9.5)
-        .fillColor(textSecondary)
-        .text(`${data.fundName} (${data.fundCode})  •  SEC-Regulated B2B2C Savings Program`, 44, 74)
-      doc
-        .font('Helvetica')
-        .fontSize(8)
-        .fillColor(textMuted)
-        .text(
-          `Mandate Ref: ${data.consentUuid}   |   Terms: ${data.termsVersion}   |   Consent Doc: ${data.consentDocVersion}`,
-          44,
-          94,
-        )
-
-      let y = 138
-
-      // Customer Identity Card
-      doc
-        .roundedRect(44, y, W - 88, 126, 8)
-        .fillAndStroke('#ffffff', border)
-
-      doc.font('Helvetica-Bold').fontSize(9.5).fillColor(clay).text('1. INVESTOR & ACCOUNT HOLDER DETAILS', 58, y + 14)
-
-      const leftX = 58
-      const rightX = 315
-      const drawField = (x: number, fy: number, label: string, value: string) => {
-        doc.font('Helvetica').fontSize(7.5).fillColor(textMuted).text(label.toUpperCase(), x, fy)
-        doc
-          .font('Helvetica-Bold')
-          .fontSize(9.5)
-          .fillColor(dark)
-          .text(value || '—', x, fy + 10, { width: 220 })
-      }
-
-      drawField(leftX, y + 32, 'Full Legal Name', data.customerFullName)
-      drawField(rightX, y + 32, 'Email Address', data.customerEmail)
-      drawField(leftX, y + 64, 'BVN (Masked)', data.maskedBvn || 'Verified on file')
-      drawField(rightX, y + 64, 'NIN (Masked)', data.maskedNin || 'Verified on file')
-      drawField(leftX, y + 95, 'Phone Number', data.customerPhone || '—')
-      drawField(rightX, y + 95, 'Residential Address', data.residentialAddress || 'On file')
-
-      y += 146
-
-      // Mandate Clauses
-      doc
-        .font('Helvetica-Bold')
-        .fontSize(10)
-        .fillColor(clay)
-        .text('2. EXPRESS B2B2C AUTHORIZATION & TERMS ACCEPTANCE', 44, y)
-      y += 18
-
+      doc.font('Helvetica-Bold').fontSize(13).fillColor(clay).text('UPWARD BY GOODTENANTS LIMITED', 44, 24)
+      doc.font('Helvetica-Bold').fontSize(17).fillColor(dark).text('LETTER OF CONSENT', 44, 44)
       doc
         .font('Helvetica')
         .fontSize(9)
         .fillColor(textSecondary)
         .text(
-          `Fund Name: ${data.fundName} (${data.fundCode})   |   Fund Manager: ${SAVINGS_LEGAL_DEFAULTS.FUND_MANAGER}`,
+          `${data.fundName} (${data.fundCode})  •  Effective ${SAVINGS_LEGAL_DEFAULTS.EFFECTIVE_DATE}`,
           44,
-          y,
-          { width: W - 88 },
+          67,
         )
-      y += 22
+      doc
+        .font('Helvetica')
+        .fontSize(8)
+        .fillColor(textMuted)
+        .text(
+          `Ref: ${data.consentUuid}   |   Terms: ${data.termsVersion}   |   Consent: ${data.consentDocVersion}`,
+          44,
+          86,
+        )
 
-      SAVINGS_LEGAL_DEFAULTS.MANDATE_CLAUSES.forEach((clause, idx) => {
+      let y = 128
+
+      // To / From & Investor Identity Card
+      doc.roundedRect(44, y, contentW, 128, 8).fillAndStroke('#ffffff', border)
+
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(8.5)
+        .fillColor(clay)
+        .text('1. PARTIES & PARTICIPATING INVESTOR DETAILS', 58, y + 12)
+
+      const leftX = 58
+      const rightX = 315
+      const drawField = (x: number, fy: number, label: string, value: string, width = 225) => {
+        doc.font('Helvetica').fontSize(7).fillColor(textMuted).text(label.toUpperCase(), x, fy)
         doc
           .font('Helvetica-Bold')
           .fontSize(9)
           .fillColor(dark)
-          .text(`${idx + 1}. `, 44, y, { continued: true })
-          .font('Helvetica')
-          .fillColor(textSecondary)
-          .text(clause, { width: W - 88, lineGap: 3 })
-        y = doc.y + 10
-      })
+          .text(value || '—', x, fy + 9, { width })
+      }
 
-      y += 8
+      drawField(
+        leftX,
+        y + 28,
+        'To',
+        `Upward by Goodtenants Limited, ${SAVINGS_LEGAL_DEFAULTS.REGISTERED_ADDRESS}`,
+        245,
+      )
+      drawField(rightX, y + 28, 'From (Participating Investor)', data.customerFullName)
+      drawField(leftX, y + 64, 'Email Address', data.customerEmail)
+      drawField(rightX, y + 64, 'Phone Number', data.customerPhone || '—')
+      drawField(
+        leftX,
+        y + 94,
+        'KYC Identity (BVN / NIN)',
+        `${data.maskedBvn || 'Verified'}  /  ${data.maskedNin || 'Verified'}`,
+      )
+      drawField(rightX, y + 94, 'Residential Address', data.residentialAddress || 'On file')
 
-      // Electronic Signature & Compliance Audit Box
-      doc
-        .roundedRect(44, y, W - 88, 118, 8)
-        .fillAndStroke(surface, border)
+      y += 144
 
+      // Official Letter of Consent Body
       doc
         .font('Helvetica-Bold')
         .fontSize(9.5)
         .fillColor(clay)
-        .text('3. ELECTRONIC CONSENT & AUDIT TRAIL', 58, y + 14)
+        .text('2. EXPRESS CONSENT & AUTHORIZATION', 44, y)
+      y += 16
+
+      doc
+        .font('Helvetica')
+        .fontSize(8.8)
+        .fillColor(textSecondary)
+        .text(SAVINGS_LEGAL_DEFAULTS.LETTER_INTRO, 44, y, { width: contentW, lineGap: 2.5 })
+      y = doc.y + 10
+
+      SAVINGS_LEGAL_DEFAULTS.LETTER_SECTIONS.forEach((section) => {
+        doc
+          .font('Helvetica-Bold')
+          .fontSize(8.8)
+          .fillColor(dark)
+          .text(`${section.heading}: `, 44, y, { continued: true })
+          .font('Helvetica')
+          .fillColor(textSecondary)
+          .text(section.body, { width: contentW, lineGap: 2.5 })
+        y = doc.y + 8
+      })
+
+      y += 6
+
+      // If nearing bottom margin, flow audit box cleanly to next page
+      if (y > 650) {
+        doc.addPage()
+        y = 48
+      }
+
+      // Electronic Signature & Compliance Audit Box
+      doc.roundedRect(44, y, contentW, 112, 8).fillAndStroke(surface, border)
+
+      doc
+        .font('Helvetica-Bold')
+        .fontSize(9)
+        .fillColor(clay)
+        .text('3. ELECTRONIC EXECUTION & AUDIT TRAIL', 58, y + 12)
 
       const signedIso = data.acceptedAt.toISOString()
       const signedWat = data.acceptedAt.toLocaleString('en-NG', {
@@ -169,32 +209,32 @@ export class SavingsConsentPdfService {
         timeStyle: 'long',
       })
 
-      drawField(leftX, y + 34, 'Digitally Accepted By', data.customerFullName)
-      drawField(rightX, y + 34, 'Consent Status', 'CONFIRMED & EXECUTED')
-      drawField(leftX, y + 66, 'Timestamp (WAT / UTC)', `${signedWat} (${signedIso})`)
-      drawField(rightX, y + 66, 'IP Address', data.ipAddress || 'Recorded via session')
+      drawField(leftX, y + 30, 'Digitally Executed By', data.customerFullName)
+      drawField(rightX, y + 30, 'Consent Status', 'CONFIRMED & LEGALLY BINDING')
+      drawField(leftX, y + 60, 'Timestamp (WAT / UTC)', `${signedWat} (${signedIso})`, 245)
+      drawField(rightX, y + 60, 'IP Address', data.ipAddress || 'Recorded via session')
 
       doc
         .font('Helvetica')
-        .fontSize(7.5)
+        .fontSize(7.2)
         .fillColor(textMuted)
         .text(
           `User-Agent: ${(data.userAgent || 'Upward Pay Client').slice(0, 120)}`,
           leftX,
-          y + 98,
-          { width: W - 116 },
+          y + 92,
+          { width: contentW - 28 },
         )
 
       // Footer
       doc
         .font('Helvetica')
-        .fontSize(8)
+        .fontSize(7.8)
         .fillColor(textMuted)
         .text(
-          'Draft Mandate Template — Subject to final Legal wording. Generated electronically by Upward by GoodTenants for ARM Connect B2B2C compliance.',
+          `Upward by Goodtenants Limited  •  ${SAVINGS_LEGAL_DEFAULTS.REGISTERED_ADDRESS}  •  hello@goodtenants.africa`,
           44,
-          785,
-          { width: W - 88, align: 'center' },
+          790,
+          { width: contentW, align: 'center' },
         )
 
       doc.end()

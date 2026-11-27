@@ -1,15 +1,16 @@
 'use client'
 
 import React, { useState } from 'react'
-import { CheckCircle2, FileCheck2, FileText, ShieldCheck } from 'lucide-react'
+import { FileCheck2, FileText, ShieldCheck } from 'lucide-react'
 import { BottomSheetModal } from '@/components/common/BottomSheetModal'
 import {
-  ARM_CONSENT_MANDATE_CLAUSES,
+  LETTER_OF_CONSENT,
+  RENT_SAVINGS_TERMS_HEADER,
   RENT_SAVINGS_TERMS_SECTIONS,
   SAVINGS_CONSENT_DOC_VERSION,
-  SAVINGS_FUND_CODE,
   SAVINGS_FUND_MANAGER,
   SAVINGS_FUND_NAME,
+  SAVINGS_TERMS_EFFECTIVE_DATE,
   SAVINGS_TERMS_VERSION,
 } from '../constants/savingsLegal'
 
@@ -47,7 +48,7 @@ export function SavingsConsentCard({
         <div className="savings-consent__header">
           <ShieldCheck size={16} className="savings-consent__header-icon" />
           <div className="savings-consent__header-copy">
-            <span className="savings-consent__title">Terms</span>
+            <span className="savings-consent__title">Terms &amp; Consent</span>
             <span className="savings-consent__subtitle">
               {fundName} · {annualRatePct}% p.a.
             </span>
@@ -72,7 +73,7 @@ export function SavingsConsentCard({
               className="savings-consent__checkbox"
             />
             <span>
-              I agree to the{' '}
+              I have read, understood, and agree to the{' '}
               <button
                 type="button"
                 className="savings-consent__inline-link"
@@ -81,7 +82,7 @@ export function SavingsConsentCard({
                   setActiveDoc('TERMS')
                 }}
               >
-                Savings Terms
+                Upward Rent Savings Terms of Service
               </button>
               .
             </span>
@@ -96,7 +97,7 @@ export function SavingsConsentCard({
               className="savings-consent__checkbox"
             />
             <span>
-              I agree to the{' '}
+              I adopt and agree to the{' '}
               <button
                 type="button"
                 className="savings-consent__inline-link"
@@ -105,7 +106,7 @@ export function SavingsConsentCard({
                   setActiveDoc('CONSENT')
                 }}
               >
-                ARM Consent
+                Letter of Consent
               </button>
               .
             </span>
@@ -118,51 +119,77 @@ export function SavingsConsentCard({
         onClose={() => setActiveDoc(null)}
         title={
           activeDoc === 'TERMS'
-            ? 'Rent Savings Terms & Conditions'
-            : 'ARM B2B2C Customer Consent Mandate'
+            ? 'Rent Savings Terms of Service'
+            : 'Letter of Consent'
         }
         subtitle={
           activeDoc === 'TERMS'
-            ? `${fundName} (${SAVINGS_FUND_CODE}) · Draft ${SAVINGS_TERMS_VERSION}`
-            : `Managed by ${SAVINGS_FUND_MANAGER} · Draft ${SAVINGS_CONSENT_DOC_VERSION}`
+            ? `Upward by Goodtenants Ltd · Effective ${SAVINGS_TERMS_EFFECTIVE_DATE} (${SAVINGS_TERMS_VERSION})`
+            : `Upward by Goodtenants Limited · ${SAVINGS_FUND_MANAGER} (${SAVINGS_CONSENT_DOC_VERSION})`
         }
         icon={activeDoc === 'TERMS' ? <FileText size={18} /> : <FileCheck2 size={18} />}
-        maxWidth="540px"
+        maxWidth="580px"
       >
         <div className="savings-consent__modal-body">
           {activeDoc === 'TERMS' ? (
-            RENT_SAVINGS_TERMS_SECTIONS.map((section) => (
-              <div key={section.heading} className="savings-consent__modal-section">
-                <h4 className="savings-consent__modal-heading">{section.heading}</h4>
-                <p className="savings-consent__modal-text">{section.body}</p>
+            <>
+              <div className="savings-consent__modal-section">
+                {RENT_SAVINGS_TERMS_HEADER.intro.map((para, i) => (
+                  <p key={i} className="savings-consent__modal-text" style={{ marginBottom: 8 }}>
+                    {para}
+                  </p>
+                ))}
               </div>
-            ))
+              {RENT_SAVINGS_TERMS_SECTIONS.map((section) => (
+                <div key={section.heading} className="savings-consent__modal-section">
+                  <h4 className="savings-consent__modal-heading">{section.heading}</h4>
+                  {section.paragraphs?.map((para, idx) => (
+                    <p
+                      key={idx}
+                      className="savings-consent__modal-text"
+                      style={{ marginBottom: 6 }}
+                    >
+                      {para}
+                    </p>
+                  ))}
+                  {section.bullets && section.bullets.length > 0 && (
+                    <ul style={{ margin: '4px 0 6px 18px', padding: 0 }}>
+                      {section.bullets.map((bullet, idx) => (
+                        <li
+                          key={idx}
+                          className="savings-consent__modal-text"
+                          style={{ marginBottom: 4 }}
+                        >
+                          {bullet}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </>
           ) : (
             <>
               <div className="savings-consent__legal-banner">
                 <ShieldCheck size={16} />
                 <div>
-                  <strong>
-                    {fundName} ({SAVINGS_FUND_CODE}) — B2B2C Transact Mandate
-                  </strong>
-                  <span>Electronic consent recorded with timestamp and downloadable PDF</span>
+                  <strong>To: {LETTER_OF_CONSENT.to.join(' ')}</strong>
+                  <span>From: {LETTER_OF_CONSENT.from}</span>
                 </div>
               </div>
-              <div className="savings-consent__clause-list">
-                {ARM_CONSENT_MANDATE_CLAUSES.map((clause, idx) => (
-                  <div key={idx} className="savings-consent__clause-item">
-                    <CheckCircle2 size={15} className="savings-consent__clause-icon" />
-                    <p className="savings-consent__modal-text">{clause}</p>
-                  </div>
-                ))}
+
+              <div className="savings-consent__modal-section">
+                <p className="savings-consent__modal-text">{LETTER_OF_CONSENT.intro}</p>
               </div>
+
+              {LETTER_OF_CONSENT.sections.map((sec) => (
+                <div key={sec.heading} className="savings-consent__modal-section">
+                  <h4 className="savings-consent__modal-heading">{sec.heading}</h4>
+                  <p className="savings-consent__modal-text">{sec.body}</p>
+                </div>
+              ))}
             </>
           )}
-
-          <p className="savings-consent__draft-note">
-            Draft notice: Legal copy shown for ARM implementation review; final approved wording
-            will update automatically.
-          </p>
 
           <button
             type="button"
@@ -174,7 +201,7 @@ export function SavingsConsentCard({
               setActiveDoc(null)
             }}
           >
-            Accept
+            I Agree
           </button>
         </div>
       </BottomSheetModal>

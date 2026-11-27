@@ -2,15 +2,17 @@
 
 import React from 'react'
 import { useRouter } from 'next/navigation'
-import { FileCheck2, ShieldCheck } from 'lucide-react'
+import { ShieldCheck } from 'lucide-react'
 import { PayPageShell } from '@/features/dashboard/components/payment/PayPageShell'
 import {
-  ARM_CONSENT_MANDATE_CLAUSES,
+  LETTER_OF_CONSENT,
+  RENT_SAVINGS_TERMS_HEADER,
   RENT_SAVINGS_TERMS_SECTIONS,
   SAVINGS_CONSENT_DOC_VERSION,
   SAVINGS_FUND_CODE,
   SAVINGS_FUND_MANAGER,
   SAVINGS_FUND_NAME,
+  SAVINGS_TERMS_EFFECTIVE_DATE,
   SAVINGS_TERMS_VERSION,
 } from '@/features/savings/constants/savingsLegal'
 
@@ -26,7 +28,8 @@ export default function SavingsTermsPage() {
       <div className="legal-document">
         <header className="legal-document__header">
           <p className="legal-document__update-date">
-            Draft Version: {SAVINGS_TERMS_VERSION} · Mandate: {SAVINGS_CONSENT_DOC_VERSION}
+            Effective Date: {SAVINGS_TERMS_EFFECTIVE_DATE} · Version: {SAVINGS_TERMS_VERSION} ·
+            Consent: {SAVINGS_CONSENT_DOC_VERSION}
           </p>
         </header>
 
@@ -41,34 +44,58 @@ export default function SavingsTermsPage() {
             </div>
           </div>
 
-          <h2>Part A — Rent Savings Terms &amp; Conditions</h2>
-          {RENT_SAVINGS_TERMS_SECTIONS.map((sec) => (
-            <div key={sec.heading} style={{ marginBottom: 16 }}>
+          <h2>Part A — Letter of Consent</h2>
+          <p>
+            <strong>To:</strong>
+            <br />
+            {LETTER_OF_CONSENT.to.map((line, i) => (
+              <React.Fragment key={i}>
+                {line}
+                {i < LETTER_OF_CONSENT.to.length - 1 && <br />}
+              </React.Fragment>
+            ))}
+          </p>
+          <p>
+            <strong>From:</strong> {LETTER_OF_CONSENT.from}
+          </p>
+          <p>{LETTER_OF_CONSENT.intro}</p>
+
+          {LETTER_OF_CONSENT.sections.map((sec) => (
+            <div key={sec.heading} style={{ marginBottom: 14 }}>
               <h3>{sec.heading}</h3>
               <p>{sec.body}</p>
             </div>
           ))}
 
-          <h2>Part B — ARM B2B2C Customer Transact Consent Mandate</h2>
-          <p>
-            By confirming the consent checkbox in the Upward app before activating your Rent Savings
-            vault, you electronically execute the following B2B2C investment mandate:
+          <h2 style={{ marginTop: 28 }}>
+            Part B — {RENT_SAVINGS_TERMS_HEADER.entity}: {RENT_SAVINGS_TERMS_HEADER.title}
+          </h2>
+          <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+            Effective Date: {RENT_SAVINGS_TERMS_HEADER.effectiveDate}
           </p>
-          <ul>
-            {ARM_CONSENT_MANDATE_CLAUSES.map((clause, idx) => (
-              <li key={idx}>
-                <FileCheck2
-                  size={13}
-                  style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }}
-                />
-                {clause}
-              </li>
-            ))}
-          </ul>
-          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 20 }}>
-            Note: This is a structured draft document pending final Legal sign-off. A timestamped PDF
-            copy of your signed Consent Mandate is available anytime inside your Rent Savings
-            dashboard.
+          {RENT_SAVINGS_TERMS_HEADER.intro.map((para, i) => (
+            <p key={i}>{para}</p>
+          ))}
+
+          {RENT_SAVINGS_TERMS_SECTIONS.map((sec) => (
+            <div key={sec.heading} style={{ marginBottom: 16 }}>
+              <h3>{sec.heading}</h3>
+              {sec.paragraphs?.map((para, idx) => (
+                <p key={idx}>{para}</p>
+              ))}
+              {sec.bullets && sec.bullets.length > 0 && (
+                <ul>
+                  {sec.bullets.map((bullet, idx) => (
+                    <li key={idx}>{bullet}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
+
+          <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 20 }}>
+            A timestamped PDF copy of your digitally executed Letter of Consent is stored in your
+            account and available anytime inside your Rent Savings dashboard.
           </p>
         </section>
       </div>
