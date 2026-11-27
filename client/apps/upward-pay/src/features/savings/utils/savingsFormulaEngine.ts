@@ -132,7 +132,7 @@ export interface EngineCalculationResult {
 
 export function formatNaira(value: number, showSign = false): string {
   const rounded = Math.round(value)
-  const absFormatted = Math.abs(rounded).toLocaleString('en-NG')
+  const absFormatted = Math.abs(rounded).toLocaleString('en-US')
   if (showSign) {
     if (rounded > 0) return `+₦${absFormatted}`
     if (rounded < 0) return `−₦${absFormatted}`
