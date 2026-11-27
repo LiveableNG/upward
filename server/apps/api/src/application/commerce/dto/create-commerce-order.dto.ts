@@ -1,5 +1,6 @@
 import {
   IsArray,
+  IsBoolean,
   IsInt,
   IsNotEmpty,
   IsOptional,
@@ -49,4 +50,8 @@ export class CreateCommerceOrderDto {
   @IsString()
   @IsOptional()
   discountKobo?: string
+
+  @IsBoolean()
+  @IsOptional()
+  applyVoucher?: boolean
 }

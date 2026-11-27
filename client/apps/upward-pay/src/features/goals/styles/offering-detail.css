@@ -1468,3 +1468,145 @@
   color: var(--text, #1a1714);
   white-space: nowrap;
 }
+
+/* ==========================================================================
+   Sticky Mobile Bottom Action Dock (< 860px, hidden on desktop where sidebar shows)
+   ========================================================================== */
+
+.offering-detail__mobile-dock {
+  display: none;
+}
+
+@media (max-width: 859px) {
+  .offering-detail {
+    padding-bottom: calc(96px + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
+  }
+
+  .offering-detail__price-banner {
+    display: none;
+  }
+
+  .offering-detail__mobile-dock {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 90;
+    padding: 10px var(--shell-px, 16px) calc(10px + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
+    background: color-mix(in srgb, var(--surface, #ffffff) 90%, transparent);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border-top: 1px solid var(--shell-border, #ebe4da);
+    box-shadow: 0 -6px 24px rgba(26, 23, 20, 0.08);
+  }
+
+  .offering-detail__mobile-dock-inner {
+    max-width: 560px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .offering-detail__mobile-dock-price-col {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 2px;
+  }
+
+  .offering-detail__mobile-dock-price {
+    font-size: 15px;
+    font-weight: 800;
+    color: var(--text, #1a1714);
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .offering-detail__mobile-dock-sub {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--text-muted, #7a7268);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .offering-detail__mobile-dock-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .offering-detail__mobile-dock-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 44px;
+    padding: 0 18px;
+    border-radius: 12px;
+    background: var(--clay, #c2501f);
+    color: #ffffff;
+    border: none;
+    font-size: 13.5px;
+    font-weight: 750;
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow: 0 3px 10px rgba(194, 80, 31, 0.25);
+    transition: transform 100ms ease-out;
+  }
+
+  .offering-detail__mobile-dock-primary:active {
+    transform: scale(0.97);
+  }
+
+  .offering-detail__mobile-dock-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    height: 44px;
+    padding: 0 13px;
+    border-radius: 12px;
+    background: var(--surface2, #f5f0e8);
+    color: var(--text, #1a1714);
+    border: 1px solid var(--border-solid, #e6ded3);
+    font-size: 13px;
+    font-weight: 750;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: transform 100ms ease-out;
+  }
+
+  .offering-detail__mobile-dock-secondary:active {
+    transform: scale(0.97);
+  }
+}
+
+@media (max-width: 380px) {
+  .offering-detail__mobile-dock {
+    padding: 9px 12px calc(9px + var(--safe-bottom, env(safe-area-inset-bottom, 0px)));
+  }
+
+  .offering-detail__mobile-dock-price {
+    font-size: 14px;
+  }
+
+  .offering-detail__mobile-dock-primary {
+    height: 42px;
+    padding: 0 14px;
+    font-size: 13px;
+  }
+
+  .offering-detail__mobile-dock-secondary {
+    height: 42px;
+    padding: 0 11px;
+    font-size: 12.5px;
+  }
+}

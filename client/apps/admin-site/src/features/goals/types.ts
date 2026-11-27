@@ -117,6 +117,7 @@ export interface Offering {
   isPublished: boolean
   isFeatured: boolean
   isPromoted?: boolean
+  voucherEligible?: boolean
   promoBadge?: string | null
   promoTitle?: string | null
   promoSubtitle?: string | null

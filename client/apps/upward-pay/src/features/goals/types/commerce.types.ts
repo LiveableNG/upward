@@ -1,6 +1,7 @@
 export type CustomerFulfilmentStatus =
   | 'QUOTE_REQUESTED'
   | 'QUOTE_PROVIDED'
+  | 'QUOTE_DECLINED'
   | 'ORDER_CONFIRMED'
   | 'PROCESSING'
   | 'DISPATCHED'
@@ -40,6 +41,7 @@ export interface CommerceOrderItemDto {
   totalPriceKobo: string
   title: string
   thumbnailUrl?: string | null
+  voucherEligible?: boolean
   snapshotData?: Record<string, any>
 }
 
@@ -135,4 +137,49 @@ export interface TenantOrderSummaryDto {
   primaryStatus: CustomerFulfilmentStatus
   createdAt: string
   paidAt?: string | null
+}
+
+export interface UserVoucherWalletDto {
+  currency: string
+  availableBalanceKobo: string
+  availableBalanceNaira: number
+  reservedBalanceKobo: string
+  reservedBalanceNaira: number
+  lifetimeEarnedKobo: string
+  lifetimeEarnedNaira: number
+  lifetimeRedeemedKobo: string
+  lifetimeRedeemedNaira: number
+}
+
+export interface UserVoucherLedgerEntryDto {
+  id: number
+  uuid: string
+  type:
+    | 'CREDIT_SIGNUP_LINK'
+    | 'CREDIT_GAMING_REWARD'
+    | 'CREDIT_ADMIN_GRANT'
+    | 'RESERVE_ORDER'
+    | 'REDEEM_ORDER'
+    | 'RELEASE_ORDER'
+    | 'ADMIN_REVERSAL'
+  amountKobo: string
+  amountNaira: number
+  balanceAfterKobo: string
+  balanceAfterNaira: number
+  reason?: string | null
+  campaign?: {
+    code: string
+    name: string
+    type: string
+  } | null
+  order?: {
+    uuid: string
+    orderNumber: string
+  } | null
+  createdAt: string
+}
+
+export interface UserVoucherSummaryDto {
+  wallet: UserVoucherWalletDto
+  ledger: UserVoucherLedgerEntryDto[]
 }

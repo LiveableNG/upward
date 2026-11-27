@@ -19,6 +19,7 @@ export type CommercePaymentStatus =
 export type CustomerFulfilmentStatus =
   | 'QUOTE_REQUESTED'
   | 'QUOTE_PROVIDED'
+  | 'QUOTE_DECLINED'
   | 'ORDER_CONFIRMED'
   | 'PROCESSING'
   | 'DISPATCHED'
@@ -35,6 +36,7 @@ export type AdminOperationalStatus =
   | 'AWAITING_VENDOR_CONFIRMATION'
   | 'VENDOR_CONFIRMED'
   | 'VENDOR_DECLINED'
+  | 'QUOTE_DECLINED'
   | 'CARRIER_DISPATCHED'
   | 'TECHNICIAN_ASSIGNED'
   | 'DELIVERED_PENDING_INSPECTION'
@@ -377,6 +379,12 @@ export interface CommerceOrderRepository {
     rating: number
     comment?: string
   }): Promise<CommerceVendorSuborder>
+  applyOrderVoucherDiscount(params: {
+    orderId: number
+    discountKobo: bigint
+    totalAmountKobo: bigint
+    subOrderAllocations: Array<{ subOrderId: number; allocatedDiscountKobo: bigint }>
+  }): Promise<CommerceOrder>
 }
 
 export const COMMERCE_ORDER_REPOSITORY = Symbol('COMMERCE_ORDER_REPOSITORY')

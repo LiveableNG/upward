@@ -60,6 +60,7 @@ export interface TenantOrderItemDto {
   imageUrl?: string | null
   unitPriceKobo: string
   totalPriceKobo: string
+  voucherEligible?: boolean
   snapshotData: Record<string, any>
 }
 

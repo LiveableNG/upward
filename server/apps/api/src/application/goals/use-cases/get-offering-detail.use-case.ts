@@ -37,20 +37,7 @@ export class GetOfferingDetailUseCase {
       throw new NotFoundException(`Offering '${identifier}' not found`)
     }
 
-    let availableVoucherKobo = 0n
-    if (userUuid && this.voucherRepo && this.userRepo) {
-      try {
-        const user = await this.userRepo.findByUuid(userUuid)
-        if (user?.id) {
-          availableVoucherKobo = await this.voucherRepo.getAvailableBalanceKobo(user.id)
-        }
-      } catch {
-        // Non-blocking: fall back to base catalog pricing
-      }
-    }
-
-    offering = applyVoucherPricingToOffering(offering, availableVoucherKobo)
-
+    // Keep honest base catalog pricing; vouchers are opt-in at checkout / service quote payment.
     // Sanitize vendor details for customer-facing privacy
     if (offering.vendor) {
       offering.vendor = {

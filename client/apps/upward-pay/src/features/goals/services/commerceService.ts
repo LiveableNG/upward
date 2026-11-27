@@ -2,7 +2,15 @@ import { request, requestBlob } from '@/lib/api-client'
 import type {
   TenantOrderDetailDto,
   TenantOrderSummaryDto,
+  UserVoucherSummaryDto,
 } from '../types/commerce.types'
+
+export async function fetchUserVoucherSummary(): Promise<UserVoucherSummaryDto> {
+  const res = await request<{ data: UserVoucherSummaryDto }>('/user/vouchers', {
+    method: 'GET',
+  })
+  return res.data
+}
 
 export async function fetchTenantOrders(
   filter: { status?: string; skip?: number; take?: number } = {},
@@ -166,7 +174,9 @@ export async function confirmSubOrderReceipt(
 export interface PreviewCommerceOrderInput {
   items: Array<{ offeringUuid?: string; offeringId?: number; quantity: number }>
   deliveryAddress?: string
+  deliveryZoneTag?: string
   discountKobo?: string
+  applyVoucher?: boolean
 }
 
 export interface PreviewCommerceOrderResult {
@@ -176,6 +186,9 @@ export interface PreviewCommerceOrderResult {
   taxKobo: string
   discountKobo: string
   totalAmountKobo: string
+  availableVoucherKobo?: string
+  voucherEligibleSubtotalKobo?: string
+  appliedVoucherKobo?: string
   deliveryEligible?: boolean
   deliveryMessage?: string
   subOrders: Array<{
@@ -209,9 +222,11 @@ export interface CreateCommerceOrderInput {
   recipientName: string
   recipientPhone: string
   deliveryAddress: string
+  deliveryZoneTag?: string
   deliveryNotes?: string
   items: Array<{ offeringUuid?: string; offeringId?: number; quantity: number }>
   discountKobo?: string
+  applyVoucher?: boolean
 }
 
 export interface CreateCommerceOrderResult {
@@ -240,15 +255,19 @@ export interface InitializeCommercePaymentResult {
   orderNumber: string
   amountKobo: string
   currency: string
+  paidWithVoucher?: boolean
+  discountKobo?: string
 }
 
 export async function initializeCommercePayment(
   orderUuid: string,
+  options?: { applyVoucher?: boolean },
 ): Promise<InitializeCommercePaymentResult> {
   const res = await request<{ data: InitializeCommercePaymentResult }>(
     `/user/commerce/orders/${orderUuid}/pay`,
     {
       method: 'POST',
+      body: JSON.stringify(options?.applyVoucher !== undefined ? { applyVoucher: options.applyVoucher } : {}),
     },
   )
   return res.data

@@ -62,6 +62,8 @@ export class AdminSetServiceQuoteUseCase {
       throw new BadRequestException('Quoted price must be greater than zero')
     }
 
+    const isRevision = subOrder.customerStatus === 'QUOTE_DECLINED'
+
     const updatedOrder = await this.orderRepo.setSubOrderQuotePrice({
       orderId: order.id,
       subOrderId: subOrder.id,
@@ -82,16 +84,24 @@ export class AdminSetServiceQuoteUseCase {
       userId: updatedOrder.userId,
       userEmail: customerUser?.email,
       userPhone: customerUser?.phone || updatedOrder.recipientPhone,
-      title: `Your Price is Ready — ${formattedPrice}`,
-      message: `Your service price of ${formattedPrice} for "${serviceTitle}" (${updatedOrder.orderNumber}) is ready. Tap to review and pay.`,
-      emailSubject: `Your Service Price is Ready (${formattedPrice}) — ${serviceTitle}`,
+      title: isRevision
+        ? `Revised Price Ready — ${formattedPrice}`
+        : `Your Price is Ready — ${formattedPrice}`,
+      message: isRevision
+        ? `We've sent a revised quote of ${formattedPrice} for "${serviceTitle}" (${updatedOrder.orderNumber}). Tap to review and pay.`
+        : `Your service price of ${formattedPrice} for "${serviceTitle}" (${updatedOrder.orderNumber}) is ready. Tap to review and pay.`,
+      emailSubject: isRevision
+        ? `Revised Service Quote (${formattedPrice}) — ${serviceTitle}`
+        : `Your Service Price is Ready (${formattedPrice}) — ${serviceTitle}`,
       emailLines: [
         `Hi ${updatedOrder.recipientName},`,
-        `Great news! Your price for <strong>${serviceTitle}</strong> (Order <strong>${updatedOrder.orderNumber}</strong>) is ready:`,
+        isRevision
+          ? `We've updated your quote for <strong>${serviceTitle}</strong> (Order <strong>${updatedOrder.orderNumber}</strong>):`
+          : `Great news! Your price for <strong>${serviceTitle}</strong> (Order <strong>${updatedOrder.orderNumber}</strong>) is ready:`,
         `<div style="padding:14px 16px;background:#faf8f5;border:1px solid #ece5dc;border-radius:10px;margin:10px 0;"><strong style="font-size:18px;color:#1a1714;">${formattedPrice}</strong>${params.dto.quoteNotes ? `<p style="margin:6px 0 0;font-size:13px;color:#4a4642;">${params.dto.quoteNotes}</p>` : ''}</div>`,
         `Open your order in Upward Pay to complete payment and schedule your service, or decline if you prefer not to proceed.`,
       ],
-      smsText: `Upward: Your price for ${serviceTitle} (${updatedOrder.orderNumber}) is ${formattedPrice}. Open Upward Pay to review & pay.`,
+      smsText: `Upward: ${isRevision ? 'Revised price' : 'Your price'} for ${serviceTitle} (${updatedOrder.orderNumber}) is ${formattedPrice}. Open Upward Pay to review & pay.`,
       url: `/dashboard/lifestyle/orders?uuid=${updatedOrder.uuid}`,
       ctaLabel: `Review & Pay ${formattedPrice}`,
       data: {
@@ -105,7 +115,9 @@ export class AdminSetServiceQuoteUseCase {
       orderUuid: updatedOrder.uuid,
       orderNumber: updatedOrder.orderNumber,
       totalAmountKobo: updatedOrder.totalAmountKobo.toString(),
-      message: `Quote of ${formattedPrice} sent to customer.`,
+      message: isRevision
+        ? `Revised quote of ${formattedPrice} sent to customer.`
+        : `Quote of ${formattedPrice} sent to customer.`,
     }
   }
 }

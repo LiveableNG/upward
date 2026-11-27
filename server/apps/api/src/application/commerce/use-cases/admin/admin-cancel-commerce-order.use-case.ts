@@ -14,8 +14,15 @@ import {
   VOUCHER_REPOSITORY,
   VoucherRepository,
 } from '../../../../domains/vouchers/voucher.repository'
+import {
+  USER_REPOSITORY,
+  UserRepository,
+} from '../../../../domains/users/user.repository'
 import { PrismaService } from '../../../../shared/infrastructure/prisma/prisma.service'
 import { NotificationService } from '../../../../shared/infrastructure/common/notification.service'
+import { EmailService } from '../../../../shared/infrastructure/email/email.service'
+import { SmsService } from '../../../../shared/infrastructure/sms/sms.service'
+import { notifyCustomerCommerceMilestone } from '../../utils/commerce-comms.helper'
 import { AdminCancelOrderDto } from '../../dto/admin-cancel-order.dto'
 
 @Injectable()
@@ -30,6 +37,13 @@ export class AdminCancelCommerceOrderUseCase {
     @Optional()
     @Inject(VOUCHER_REPOSITORY)
     private readonly voucherRepo?: VoucherRepository,
+    @Optional()
+    @Inject(USER_REPOSITORY)
+    private readonly userRepo?: UserRepository,
+    @Optional()
+    private readonly emailService?: EmailService,
+    @Optional()
+    private readonly smsService?: SmsService,
   ) {}
 
   async execute(orderUuid: string, adminId: string | number, dto: AdminCancelOrderDto) {
@@ -121,18 +135,39 @@ export class AdminCancelCommerceOrderUseCase {
       },
     })
 
-    // 5. Send in-app and push notification to the customer
+    // 5. Send in-app, push, and email (with SMS fallback) notification to the customer
     const isPaid = order.paymentStatus === 'PAID'
     const refundNote = isPaid
       ? ' A full refund has been initiated to your original payment method.'
-      : ''
+      : ' No payment was captured for this order.'
 
     try {
-      await this.notificationService.notifyUser(order.userId, {
+      const customerUser = this.userRepo
+        ? await this.userRepo.findById(order.userId)
+        : null
+
+      await notifyCustomerCommerceMilestone({
+        notificationService: this.notificationService,
+        emailService: this.emailService,
+        smsService: this.smsService,
+        userId: order.userId,
+        userEmail: customerUser?.email,
+        userPhone: customerUser?.phone || order.recipientPhone,
         title: `Order Cancelled — #${order.orderNumber}`,
         message: `Your order #${order.orderNumber} has been cancelled: ${reason}.${refundNote}`,
-        type: 'SYSTEM',
+        emailSubject: `Order Cancelled — ${order.orderNumber}`,
+        emailLines: [
+          `Hi ${order.recipientName},`,
+          `Your order <strong>${order.orderNumber}</strong> has been cancelled by Upward Operations.`,
+          `<strong>Reason:</strong> ${reason}`,
+          isPaid
+            ? 'A full refund has been initiated back to your original payment method.'
+            : 'No payment was captured for this order, and any reserved voucher balance has been returned to your wallet.',
+          `If you have any questions, open your order in Upward Pay to reach our support team.`,
+        ],
+        smsText: `Upward: Order ${order.orderNumber} was cancelled (${reason}).${refundNote}`,
         url: `/dashboard/lifestyle/orders?uuid=${order.uuid}`,
+        ctaLabel: 'View Order Details',
         data: {
           orderUuid: order.uuid,
           orderNumber: order.orderNumber,

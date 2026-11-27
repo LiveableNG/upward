@@ -404,7 +404,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
                 status: { notIn: ['CANCELLED', 'REFUNDED'] },
                 subOrders: {
                   some: {
-                    customerStatus: { in: ['QUOTE_REQUESTED', 'QUOTE_PROVIDED'] },
+                    customerStatus: { in: ['QUOTE_REQUESTED', 'QUOTE_PROVIDED', 'QUOTE_DECLINED'] },
                   },
                 },
               },
@@ -1212,10 +1212,18 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
     adminActorId?: string
   }): Promise<CommerceOrder> {
     await this.prisma.$transaction(async (tx) => {
+      const existingSub = await tx.upward_commerce_vendor_suborder.findUnique({
+        where: { id: params.subOrderId },
+        select: { customerStatus: true },
+      })
+      const previousStatus = existingSub?.customerStatus || 'QUOTE_REQUESTED'
+      const isRevisedQuote = previousStatus === 'QUOTE_DECLINED'
+
       // 100% goes to Upward balance — no split payout
       await tx.upward_commerce_order.update({
         where: { id: params.orderId },
         data: {
+          status: 'PENDING',
           itemsSubtotalKobo: params.quotedPriceKobo,
           deliveryFeeKobo: 0n,
           taxKobo: 0n,
@@ -1228,6 +1236,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
         where: { id: params.subOrderId },
         data: {
           customerStatus: 'QUOTE_PROVIDED',
+          operationalStatus: 'AWAITING_VENDOR_CONFIRMATION',
           subtotalKobo: params.quotedPriceKobo,
           deliveryFeeKobo: 0n,
           platformFeeKobo: params.quotedPriceKobo,
@@ -1250,10 +1259,12 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
         data: {
           subOrderId: params.subOrderId,
           status: 'QUOTE_PROVIDED',
-          title: `Your Price is Ready — ${formattedNgn}`,
+          title: isRevisedQuote
+            ? `Revised Price Ready — ${formattedNgn}`
+            : `Your Price is Ready — ${formattedNgn}`,
           description: params.quoteNotes?.trim()
-            ? `Your service price of ${formattedNgn} is ready. Note: ${params.quoteNotes.trim()}`
-            : `Your service price of ${formattedNgn} is ready. Review and complete payment to schedule your service.`,
+            ? `${isRevisedQuote ? 'Your revised service price' : 'Your service price'} of ${formattedNgn} is ready. Note: ${params.quoteNotes.trim()}`
+            : `${isRevisedQuote ? 'Your revised service price' : 'Your service price'} of ${formattedNgn} is ready. Review and complete payment to schedule your service.`,
           isCustomerVisible: true,
           actorType: 'ADMIN',
           actorId: params.adminActorId || 'ADMIN',
@@ -1263,8 +1274,8 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
       await tx.upward_commerce_order_audit.create({
         data: {
           orderId: params.orderId,
-          event: 'SERVICE_QUOTE_PRICE_SET',
-          fromState: 'QUOTE_REQUESTED',
+          event: isRevisedQuote ? 'SERVICE_QUOTE_REVISED' : 'SERVICE_QUOTE_PRICE_SET',
+          fromState: previousStatus,
           toState: 'QUOTE_PROVIDED',
           actorType: 'ADMIN',
           actorId: params.adminActorId || 'ADMIN',
@@ -1296,26 +1307,26 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
       await tx.upward_commerce_order.update({
         where: { id: params.orderId },
         data: {
-          status: 'CANCELLED',
+          status: 'PENDING',
         },
       })
 
       await tx.upward_commerce_vendor_suborder.update({
         where: { id: params.subOrderId },
         data: {
-          customerStatus: 'CANCELLED',
-          operationalStatus: 'CANCELLED_REFUNDED',
+          customerStatus: 'QUOTE_DECLINED' as any,
+          operationalStatus: 'QUOTE_DECLINED' as any,
         },
       })
 
       await tx.upward_commerce_fulfilment_event.create({
         data: {
           subOrderId: params.subOrderId,
-          status: 'CANCELLED',
-          title: 'Price Declined by Customer',
+          status: 'QUOTE_DECLINED' as any,
+          title: 'Quote Declined by Customer',
           description: params.reason?.trim()
-            ? `Customer declined the service price. Reason: ${params.reason.trim()}`
-            : 'Customer declined the service price and cancelled the request.',
+            ? `Customer declined the quote. Reason: ${params.reason.trim()}`
+            : 'Customer declined the quote. Our team can follow up with a revised price or close the request.',
           isCustomerVisible: true,
           actorType: 'TENANT',
           actorId: String(params.userId),
@@ -1327,7 +1338,7 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
           orderId: params.orderId,
           event: 'SERVICE_QUOTE_DECLINED',
           fromState: 'QUOTE_PROVIDED',
-          toState: 'CANCELLED',
+          toState: 'QUOTE_DECLINED',
           actorType: 'TENANT',
           actorId: String(params.userId),
           details: { reason: params.reason || null },
@@ -1363,5 +1374,37 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
       },
     })
     return updated as unknown as CommerceVendorSuborder
+  }
+
+  async applyOrderVoucherDiscount(params: {
+    orderId: number
+    discountKobo: bigint
+    totalAmountKobo: bigint
+    subOrderAllocations: Array<{ subOrderId: number; allocatedDiscountKobo: bigint }>
+  }): Promise<CommerceOrder> {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.upward_commerce_order.update({
+        where: { id: params.orderId },
+        data: {
+          discountKobo: params.discountKobo,
+          totalAmountKobo: params.totalAmountKobo,
+        },
+      })
+
+      for (const alloc of params.subOrderAllocations) {
+        await tx.upward_commerce_vendor_suborder.update({
+          where: { id: alloc.subOrderId },
+          data: {
+            allocatedDiscountKobo: alloc.allocatedDiscountKobo,
+          },
+        })
+      }
+    })
+
+    const updated = await this.findOrderById(params.orderId)
+    if (!updated) {
+      throw new Error(`Order ID ${params.orderId} not found after applying voucher discount`)
+    }
+    return updated
   }
 }
