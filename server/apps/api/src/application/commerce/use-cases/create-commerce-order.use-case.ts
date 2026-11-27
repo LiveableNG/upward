@@ -179,9 +179,9 @@ export class CreateCommerceOrderUseCase {
     }
 
     // 3. Recalculate order pricing server-side using shared engine
-    // Authoritative server-side voucher discount (never trust client-supplied discountKobo)
+    // Authoritative server-side opt-in voucher discount (never trust client-supplied discountKobo)
     let discountKobo = 0n
-    if (voucherEligibleSubtotalKobo > 0n && this.voucherRepo) {
+    if (dto.applyVoucher === true && voucherEligibleSubtotalKobo > 0n && this.voucherRepo) {
       const availableVoucherKobo = await this.voucherRepo.getAvailableBalanceKobo(resolvedUserId)
       if (availableVoucherKobo > 0n) {
         discountKobo =
@@ -285,6 +285,24 @@ export class CreateCommerceOrderUseCase {
         throw new ConflictException(
           'Your voucher balance changed while placing this order. Please refresh and try again.',
         )
+      }
+
+      // 8. Zero-cash 100% voucher-covered order: redeem immediately and mark PAID without Paystack
+      if (pricing.totalAmountKobo === 0n) {
+        const voucherRef = `VOUCHER_${order.orderNumber}`
+        await this.orderRepo.confirmOrderPayment({
+          orderId: order.id,
+          paymentReference: voucherRef,
+          channel: 'voucher',
+          paidAt: new Date(),
+        })
+        await this.voucherRepo.redeemReservedVoucherForOrder(order.id)
+        const confirmedOrder = (await this.orderRepo.findOrderById(order.id)) || order
+        return {
+          message: 'Order confirmed and paid in full using your Upward voucher.',
+          order: this.mapToTenantOrderDetail(confirmedOrder),
+          paymentRequired: false,
+        }
       }
     }
 

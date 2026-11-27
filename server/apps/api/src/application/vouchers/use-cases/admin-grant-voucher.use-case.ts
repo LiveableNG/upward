@@ -4,6 +4,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common'
 import { randomUUID } from 'crypto'
 import {
@@ -12,6 +13,7 @@ import {
 } from '../../../domains/vouchers/voucher.repository'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
 import { EmailService } from '../../../shared/infrastructure/email/email.service'
+import { NotificationService } from '../../../shared/infrastructure/common/notification.service'
 import { AdminGrantVoucherDto } from '../dto/voucher.dto'
 
 @Injectable()
@@ -24,6 +26,8 @@ export class AdminGrantVoucherUseCase {
     @Inject(USER_REPOSITORY)
     private readonly userRepo: UserRepository,
     private readonly emailService: EmailService,
+    @Optional()
+    private readonly notificationService?: NotificationService,
   ) {}
 
   async execute(params: {
@@ -96,6 +100,38 @@ export class AdminGrantVoucherUseCase {
         .catch((err) =>
           this.logger.error(
             `Failed to send gaming reward voucher email to user ${user.uuid}`,
+            err,
+          ),
+        )
+    }
+
+    // Dispatch in-app + push notification when voucher is newly credited
+    if (!result.alreadyApplied && this.notificationService) {
+      const amountNairaVal = Number(amountKobo) / 100
+      const totalBalanceNairaVal = Number(result.wallet.availableBalanceKobo) / 100
+      const formattedAmount = amountNairaVal.toLocaleString('en-NG')
+      const formattedTotal = totalBalanceNairaVal.toLocaleString('en-NG')
+      const notifTitle =
+        entryType === 'CREDIT_GAMING_REWARD'
+          ? `You won a ₦${formattedAmount} Upward Voucher!`
+          : `You received a ₦${formattedAmount} Upward Voucher!`
+      const notifMessage = `₦${formattedAmount} has been added to your voucher balance (Available: ₦${formattedTotal}). Apply it at checkout on any eligible package or service quote.`
+
+      this.notificationService
+        .notifyUser(user.id, {
+          title: notifTitle,
+          message: notifMessage,
+          type: 'VOUCHER',
+          url: '/dashboard/lifestyle',
+          data: {
+            kind: 'VOUCHER_AWARDED',
+            entryUuid: result.entry.uuid,
+            amountNaira: String(amountNairaVal),
+          },
+        })
+        .catch((err) =>
+          this.logger.error(
+            `Failed to send voucher push/in-app notification to user ${user.uuid}`,
             err,
           ),
         )

@@ -27,6 +27,7 @@ import { PostCommerceOrderMessageUseCase } from '../../../application/commerce/u
 import { DeclineServiceQuoteUseCase } from '../../../application/commerce/use-cases/decline-service-quote.use-case'
 import { PreviewCommerceOrderDto } from '../../../application/commerce/dto/preview-commerce-order.dto'
 import { CreateCommerceOrderDto } from '../../../application/commerce/dto/create-commerce-order.dto'
+import { InitializeCommercePaymentDto } from '../../../application/commerce/dto/initialize-commerce-payment.dto'
 import { VerifyCommercePaymentDto } from '../../../application/commerce/dto/verify-commerce-payment.dto'
 import { GetTenantOrdersFilterDto } from '../../../application/commerce/dto/tenant-commerce-order.dto'
 import { CreateCommerceDisputeDto } from '../../../application/commerce/dto/commerce-dispute.dto'
@@ -160,7 +161,11 @@ export class TenantCommerceController {
 
   @Post(':uuid/pay')
   @HttpCode(HttpStatus.OK)
-  async initializePayment(@Req() req: any, @Param('uuid') uuid: string) {
+  async initializePayment(
+    @Req() req: any,
+    @Param('uuid') uuid: string,
+    @Body() dto?: InitializeCommercePaymentDto,
+  ) {
     const userUuid = req.user?.id || req.user?.sub
     if (!userUuid) {
       throw new UnauthorizedException('Authentication required')
@@ -171,6 +176,7 @@ export class TenantCommerceController {
       userUuid,
       orderUuid: uuid,
       ipAddress: typeof ipAddress === 'string' ? ipAddress : undefined,
+      applyVoucher: dto?.applyVoucher,
     })
     return { data }
   }

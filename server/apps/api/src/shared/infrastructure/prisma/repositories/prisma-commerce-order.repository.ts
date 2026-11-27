@@ -1375,4 +1375,36 @@ export class PrismaCommerceOrderRepository implements CommerceOrderRepository {
     })
     return updated as unknown as CommerceVendorSuborder
   }
+
+  async applyOrderVoucherDiscount(params: {
+    orderId: number
+    discountKobo: bigint
+    totalAmountKobo: bigint
+    subOrderAllocations: Array<{ subOrderId: number; allocatedDiscountKobo: bigint }>
+  }): Promise<CommerceOrder> {
+    await this.prisma.$transaction(async (tx) => {
+      await tx.upward_commerce_order.update({
+        where: { id: params.orderId },
+        data: {
+          discountKobo: params.discountKobo,
+          totalAmountKobo: params.totalAmountKobo,
+        },
+      })
+
+      for (const alloc of params.subOrderAllocations) {
+        await tx.upward_commerce_vendor_suborder.update({
+          where: { id: alloc.subOrderId },
+          data: {
+            allocatedDiscountKobo: alloc.allocatedDiscountKobo,
+          },
+        })
+      }
+    })
+
+    const updated = await this.findOrderById(params.orderId)
+    if (!updated) {
+      throw new Error(`Order ID ${params.orderId} not found after applying voucher discount`)
+    }
+    return updated
+  }
 }

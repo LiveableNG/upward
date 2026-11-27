@@ -237,10 +237,11 @@ export class PrismaCommerceRefundRepository implements CommerceRefundRepository 
         },
       })
 
+      // Disputes are tracked independently via upward_commerce_dispute + operationalStatus
+      // and must NEVER overwrite customerStatus or block/regress fulfilment milestones.
       await tx.upward_commerce_vendor_suborder.update({
         where: { id: params.subOrderId },
         data: {
-          customerStatus: 'DISPUTED',
           operationalStatus: 'DISPUTE_LOGGED',
         },
       })

@@ -1,17 +1,18 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Loader2, MapPin, Send, ShieldCheck, Wrench } from 'lucide-react'
+import { Check, Home, Loader2, MapPin, Send, ShieldCheck, Wrench } from 'lucide-react'
 import { BottomSheetModal } from '@/components/common/BottomSheetModal'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
 import { useCreateServiceQuoteOrder } from '../hooks/useCommerceOrders'
 import type { GoalOffering } from '../types/goals.types'
 import { formatShortLocation, type UserDeliveryLocation } from '../utils/deliveryLocation'
+import '../styles/checkout.css'
 
 const serviceQuoteSchema = z.object({
   requestDetails: z
@@ -42,26 +43,59 @@ export const ServiceQuoteModal: React.FC<ServiceQuoteModalProps> = ({
   const toast = useToast()
   const createQuoteMutation = useCreateServiceQuoteOrder()
 
-  const defaultAddress =
-    user?.properties?.[0]?.address ||
-    deliveryLocation?.zoneName ||
-    deliveryLocation?.address ||
-    ''
+  const savedRentalAddresses = useMemo(() => {
+    const seen = new Set<string>()
+    const list: Array<{ id: string; address: string }> = []
+    for (const prop of (user?.properties || []) as Array<any>) {
+      const loc = prop?.location
+      const baseAddr = (loc?.address || prop?.address || '').trim()
+      if (!baseAddr) continue
+      const areaPart = (loc?.subarea || loc?.area || '').trim()
+      const formatted =
+        areaPart && !baseAddr.toLowerCase().includes(areaPart.toLowerCase())
+          ? `${baseAddr}, ${areaPart}`
+          : baseAddr
+      const key = formatted.toLowerCase()
+      if (seen.has(key)) continue
+      seen.add(key)
+      list.push({
+        id: String(prop.id ?? prop.uuid ?? list.length),
+        address: formatted,
+      })
+    }
+    return list
+  }, [user?.properties])
+
   const defaultPhone = user?.phone || ''
 
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<ServiceQuoteFormData>({
     resolver: zodResolver(serviceQuoteSchema),
     defaultValues: {
       requestDetails: '',
-      deliveryAddress: defaultAddress,
+      deliveryAddress: savedRentalAddresses.length === 1 ? savedRentalAddresses[0].address : '',
       recipientPhone: defaultPhone,
     },
   })
+
+  const currentServiceAddress = watch('deliveryAddress')
+
+  useEffect(() => {
+    if (!isOpen) return
+    if (defaultPhone) setValue('recipientPhone', defaultPhone)
+    // Auto-prefill when user has 1 saved rental; leave unselected when 2+ rentals exist
+    if (savedRentalAddresses.length === 1) {
+      setValue('deliveryAddress', savedRentalAddresses[0].address)
+    } else if (savedRentalAddresses.length >= 2) {
+      setValue('deliveryAddress', '')
+    }
+  }, [isOpen, defaultPhone, savedRentalAddresses, setValue])
 
   const onSubmit = async (data: ServiceQuoteFormData) => {
     try {
@@ -166,6 +200,79 @@ export const ServiceQuoteModal: React.FC<ServiceQuoteModalProps> = ({
                 </div>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Service Address (Smart Prefill for 1 rental, Quick-Pick Chips for 2+ rentals) */}
+        <div>
+          <div className="saved-address-picker__header" style={{ marginBottom: 6 }}>
+            <label
+              htmlFor="service-quote-address"
+              style={{
+                display: 'block',
+                fontSize: 13,
+                fontWeight: 700,
+                color: 'var(--text, #1a1714)',
+              }}
+            >
+              Service Address
+            </label>
+            {savedRentalAddresses.length === 1 &&
+              currentServiceAddress?.trim() === savedRentalAddresses[0].address && (
+                <button
+                  type="button"
+                  className="saved-address-picker__clear"
+                  onClick={() => setValue('deliveryAddress', '')}
+                  disabled={createQuoteMutation.isPending}
+                >
+                  Use different
+                </button>
+              )}
+          </div>
+
+          {savedRentalAddresses.length >= 2 && (
+            <div className="saved-address-picker">
+              <span className="saved-address-picker__label">
+                Select which rental needs this service
+              </span>
+              <div className="saved-address-picker__chips">
+                {savedRentalAddresses.map((rental) => {
+                  const isSelected = currentServiceAddress?.trim() === rental.address
+                  return (
+                    <button
+                      key={rental.id}
+                      type="button"
+                      className={`saved-address-picker__chip ${
+                        isSelected ? 'saved-address-picker__chip--selected' : ''
+                      }`}
+                      onClick={() =>
+                        setValue('deliveryAddress', isSelected ? '' : rental.address)
+                      }
+                      disabled={createQuoteMutation.isPending}
+                      title={rental.address}
+                    >
+                      <Home size={13} style={{ flexShrink: 0 }} />
+                      <span className="saved-address-picker__chip-text">
+                        {rental.address}
+                      </span>
+                      {isSelected && <Check size={13} style={{ flexShrink: 0 }} />}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className="checkout-sheet__input-with-icon">
+            <MapPin size={16} className="checkout-sheet__input-icon" />
+            <input
+              id="service-quote-address"
+              type="text"
+              className="checkout-sheet__input checkout-sheet__input--icon"
+              placeholder="e.g. 14 Adeleke Street, Block B Flat 4"
+              disabled={createQuoteMutation.isPending}
+              {...register('deliveryAddress')}
+            />
           </div>
         </div>
 

@@ -14,6 +14,10 @@ import {
   USER_REPOSITORY,
   UserRepository,
 } from '../../../domains/users/user.repository'
+import {
+  VOUCHER_REPOSITORY,
+  VoucherRepository,
+} from '../../../domains/vouchers/voucher.repository'
 import { NotificationService } from '../../../shared/infrastructure/common/notification.service'
 import { EmailService } from '../../../shared/infrastructure/email/email.service'
 import { SmsService } from '../../../shared/infrastructure/sms/sms.service'
@@ -35,6 +39,9 @@ export class DeclineServiceQuoteUseCase {
     private readonly emailService?: EmailService,
     @Optional()
     private readonly smsService?: SmsService,
+    @Optional()
+    @Inject(VOUCHER_REPOSITORY)
+    private readonly voucherRepo?: VoucherRepository,
   ) {}
 
   async execute(params: {
@@ -72,6 +79,14 @@ export class DeclineServiceQuoteUseCase {
 
     if (!['QUOTE_REQUESTED', 'QUOTE_PROVIDED'].includes(subOrder.customerStatus)) {
       throw new BadRequestException('Only pending quote requests can be declined')
+    }
+
+    // Release any reserved voucher credit back to user's wallet if one was held on this quote
+    if (this.voucherRepo && order.discountKobo > 0n) {
+      await this.voucherRepo.releaseReservedVoucherForOrder(
+        order.id,
+        'Released because customer declined service quote',
+      )
     }
 
     await this.orderRepo.declineQuoteOrder({

@@ -4,6 +4,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common'
 import { randomUUID } from 'crypto'
 import {
@@ -18,6 +19,10 @@ import {
   USER_REPOSITORY,
   UserRepository,
 } from '../../../domains/users/user.repository'
+import {
+  VOUCHER_REPOSITORY,
+  VoucherRepository,
+} from '../../../domains/vouchers/voucher.repository'
 import { InitializeCommercePaymentResponse } from '../dto/initialize-commerce-payment.dto'
 
 @Injectable()
@@ -31,6 +36,9 @@ export class InitializeCommercePaymentUseCase {
     private readonly paymentGateway: IPaymentGateway,
     @Inject(USER_REPOSITORY)
     private readonly userRepo: UserRepository,
+    @Optional()
+    @Inject(VOUCHER_REPOSITORY)
+    private readonly voucherRepo?: VoucherRepository,
   ) {}
 
   async execute(params: {
@@ -38,6 +46,7 @@ export class InitializeCommercePaymentUseCase {
     userId?: number | string
     orderUuid: string
     ipAddress?: string
+    applyVoucher?: boolean
   }): Promise<InitializeCommercePaymentResponse> {
     const rawUser = params.userUuid ?? params.userId
     let resolvedUserId: number
@@ -59,7 +68,7 @@ export class InitializeCommercePaymentUseCase {
     }
 
     // 1. Retrieve order and verify tenant ownership
-    const order = await this.orderRepo.findOrderByUuid(params.orderUuid)
+    let order = await this.orderRepo.findOrderByUuid(params.orderUuid)
     if (!order || order.userId !== resolvedUserId) {
       throw new NotFoundException(`Order '${params.orderUuid}' not found`)
     }
@@ -75,6 +84,89 @@ export class InitializeCommercePaymentUseCase {
 
     if (order.status !== 'PENDING') {
       throw new BadRequestException(`Order is not eligible for payment in status ${order.status}`)
+    }
+
+    if (!order.itemsSubtotalKobo || order.itemsSubtotalKobo <= 0n) {
+      throw new BadRequestException('A quoted price has not been set for this service request yet')
+    }
+
+    // 2b. Optional server-authoritative voucher application (e.g. on service quotes or unpaid eligible orders)
+    if (params.applyVoucher === true && order.discountKobo === 0n && this.voucherRepo && order.id) {
+      let eligibleSubtotalKobo = 0n
+      const subOrderEligibleMap = new Map<number, bigint>()
+
+      for (const sub of order.subOrders || []) {
+        let subEligible = 0n
+        for (const it of sub.items || []) {
+          const offering = (it as any).offering
+          if (offering?.voucherEligible && it.totalPriceKobo > 0n) {
+            subEligible += it.totalPriceKobo
+          }
+        }
+        if (subEligible > 0n && sub.id) {
+          eligibleSubtotalKobo += subEligible
+          subOrderEligibleMap.set(sub.id, subEligible)
+        }
+      }
+
+      if (eligibleSubtotalKobo > 0n) {
+        const reserveResult = await this.voucherRepo.reserveVoucherForOrder({
+          userId: resolvedUserId,
+          orderId: order.id,
+          maxAmountKobo: eligibleSubtotalKobo,
+          idempotencyKey: `ORDER_RESERVE:${order.id}`,
+          reason: `Voucher applied to order #${order.orderNumber}`,
+        })
+
+        if (reserveResult.reservedKobo > 0n) {
+          const appliedDiscount = reserveResult.reservedKobo
+          const grossTotal = order.itemsSubtotalKobo + order.deliveryFeeKobo + order.taxKobo
+          const newTotal = grossTotal > appliedDiscount ? grossTotal - appliedDiscount : 0n
+
+          // Proportionally allocate discount across eligible sub-orders
+          const allocations: Array<{ subOrderId: number; allocatedDiscountKobo: bigint }> = []
+          let remainingDiscount = appliedDiscount
+          const entries = Array.from(subOrderEligibleMap.entries())
+          entries.forEach(([subOrderId, subEligible], idx) => {
+            const alloc =
+              idx === entries.length - 1
+                ? remainingDiscount
+                : (appliedDiscount * subEligible) / eligibleSubtotalKobo
+            remainingDiscount -= alloc
+            allocations.push({ subOrderId, allocatedDiscountKobo: alloc })
+          })
+
+          order = await this.orderRepo.applyOrderVoucherDiscount({
+            orderId: order.id,
+            discountKobo: appliedDiscount,
+            totalAmountKobo: newTotal,
+            subOrderAllocations: allocations,
+          })
+        }
+      }
+    }
+
+    // 2c. Handle 100% voucher-covered order (₦0 remaining) without Paystack
+    if (order.totalAmountKobo === 0n && order.discountKobo > 0n && order.id) {
+      const voucherRef = `VOUCHER_${order.orderNumber}`
+      await this.orderRepo.confirmOrderPayment({
+        orderId: order.id,
+        paymentReference: voucherRef,
+        channel: 'voucher',
+        paidAt: new Date(),
+      })
+      if (this.voucherRepo) {
+        await this.voucherRepo.redeemReservedVoucherForOrder(order.id)
+      }
+      return {
+        authorizationUrl: '',
+        reference: voucherRef,
+        orderNumber: order.orderNumber,
+        amountKobo: '0',
+        currency: order.currency,
+        paidWithVoucher: true,
+        discountKobo: order.discountKobo.toString(),
+      }
     }
 
     if (!order.totalAmountKobo || order.totalAmountKobo <= 0n) {
@@ -106,6 +198,7 @@ export class InitializeCommercePaymentUseCase {
         email,
         amount: Number(order.totalAmountKobo) / 100, // Gateway converts Naira amount to kobo internally
         reference: paymentReference,
+        channels: ['bank_transfer'],
         metadata: {
           paymentKind: 'COMMERCE_ORDER',
           orderUuid: order.uuid,

@@ -171,6 +171,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
   padding-top: 10px;
   border-top: 1px solid var(--border);
 }
@@ -180,12 +181,28 @@
   align-items: baseline;
   flex-wrap: wrap;
   gap: 6px;
+  min-width: 0;
+}
+
+.offering-card__price-group--stacked {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.offering-card__actions-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .offering-card__price {
   font-size: 15px;
   font-weight: 800;
   color: var(--text);
+  line-height: 1.2;
 }
 
 .offering-card__compare-price {
