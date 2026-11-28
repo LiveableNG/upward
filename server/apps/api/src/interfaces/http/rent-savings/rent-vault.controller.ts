@@ -32,6 +32,11 @@ import {
   ExecuteLandlordSettlementUseCase,
 } from '../../../application/use-cases/rent-savings/execute-landlord-settlement.use-case'
 import { BreakoutRentVaultUseCase } from '../../../application/use-cases/rent-savings/breakout-rent-vault.use-case'
+import { PreviewBreakoutRentVaultUseCase } from '../../../application/use-cases/rent-savings/preview-breakout-rent-vault.use-case'
+import {
+  WithdrawMaturedRentVaultDto,
+  WithdrawMaturedRentVaultUseCase,
+} from '../../../application/use-cases/rent-savings/withdraw-matured-rent-vault.use-case'
 import {
   OnboardSavingsInvestorUseCase,
   OnboardSavingsInvestorDto,
@@ -71,6 +76,8 @@ export class RentVaultController {
     private readonly disburseAdvanceUseCase: DisburseEmergencyAdvanceUseCase,
     private readonly executeSettlementUseCase: ExecuteLandlordSettlementUseCase,
     private readonly breakoutVaultUseCase: BreakoutRentVaultUseCase,
+    private readonly previewBreakoutVaultUseCase: PreviewBreakoutRentVaultUseCase,
+    private readonly withdrawMaturedVaultUseCase: WithdrawMaturedRentVaultUseCase,
     private readonly onboardInvestorUseCase: OnboardSavingsInvestorUseCase,
     private readonly simulateVaultDepositUseCase: SimulateVaultDepositUseCase,
     private readonly verifyVaultFundingUseCase: VerifyRentVaultFundingUseCase,
@@ -273,11 +280,31 @@ export class RentVaultController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get(':id/breakout/preview')
+  @HttpCode(HttpStatus.OK)
+  async previewBreakoutVault(@Req() req: any, @Param('id') vaultId: string) {
+    const userId = await this.getNumericUserId(req)
+    return this.previewBreakoutVaultUseCase.execute(userId, vaultId)
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Post(':id/breakout')
   @HttpCode(HttpStatus.OK)
   async breakoutVault(@Req() req: any, @Param('id') vaultId: string) {
     const userId = await this.getNumericUserId(req)
     return this.breakoutVaultUseCase.execute(userId, vaultId)
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/withdraw-matured')
+  @HttpCode(HttpStatus.OK)
+  async withdrawMaturedVault(
+    @Req() req: any,
+    @Param('id') vaultId: string,
+    @Body() dto?: WithdrawMaturedRentVaultDto,
+  ) {
+    const userId = await this.getNumericUserId(req)
+    return this.withdrawMaturedVaultUseCase.execute(userId, vaultId, dto)
   }
 
   @Get(':id/receipt.pdf')

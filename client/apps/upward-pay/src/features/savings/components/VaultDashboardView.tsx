@@ -24,6 +24,8 @@ import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
 import { getRentDepositReceipt } from '@/features/payments/services/paymentService'
 import { useUpdateVaultSchedule } from '../hooks/useRentSavings'
 import { FundVaultModal, type VaultFundingMode } from './FundVaultModal'
+import { FairBreakoutModal } from './FairBreakoutModal'
+import { MaturedWithdrawalModal } from './MaturedWithdrawalModal'
 import { readSavingsRentPlan } from '../utils/savingsRentPlan'
 import { ordinalDay, REMINDER_DAYS } from '../utils/reminderDay'
 import {
@@ -114,9 +116,14 @@ interface VaultDashboardViewProps {
     transactions?: VaultTransactionItem[]
   }
   onGoToSettlementHub?: () => void
+  onRestartVault?: () => void
 }
 
-export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboardViewProps) {
+export function VaultDashboardView({
+  vault,
+  onGoToSettlementHub,
+  onRestartVault,
+}: VaultDashboardViewProps) {
   const isInitialPrompt = vault.current_balance_kobo === 0
   const [fundModalMode, setFundModalMode] = useState<VaultFundingMode>(() =>
     isInitialPrompt ? 'INITIAL_DEPOSIT' : vault.current_month_fulfilled ? 'EXTRA_TOPUP' : 'MONTHLY',
@@ -131,6 +138,8 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
     return isInitialPrompt
   })
   const [editingPayday, setEditingPayday] = useState(false)
+  const [showBreakoutModal, setShowBreakoutModal] = useState(false)
+  const [showMaturedWithdrawModal, setShowMaturedWithdrawModal] = useState(false)
   const [downloadingReceiptId, setDownloadingReceiptId] = useState<string | null>(null)
   const [downloadingConsent, setDownloadingConsent] = useState(false)
   const { user } = useAuth()
@@ -629,6 +638,26 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
               Top up any amount
             </button>
           )}
+
+          {!isOptInOnly && currentBalanceNaira > 0 && daysRemaining <= 30 && (
+            <button
+              type="button"
+              className="vault-dashboard__text-action"
+              onClick={() => setShowMaturedWithdrawModal(true)}
+            >
+              Withdraw to My Bank (₦0 Fee)
+            </button>
+          )}
+
+          {!isOptInOnly && currentBalanceNaira > 0 && daysRemaining > 30 && (
+            <button
+              type="button"
+              className="vault-dashboard__text-action"
+              onClick={() => setShowBreakoutModal(true)}
+            >
+              {isFlexiblePlan ? 'Withdraw Savings (₦0 Fee)' : 'Withdraw Early'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -858,6 +887,31 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
         currentBalanceNaira={currentBalanceNaira}
         isInitialDeposit={vault.current_balance_kobo === 0 || isPendingInitialDeposit}
       />
+
+      {showBreakoutModal && (
+        <FairBreakoutModal
+          vaultId={vault.vault_id}
+          principalKobo={vault.principal_kobo ?? vault.current_balance_kobo}
+          accruedYieldKobo={vault.accrued_yield_kobo ?? 0}
+          lockMode={vault.lock_mode ?? 'LOCKED'}
+          productOption={
+            vault.product_option || (vault.is_rent_protec ? 'RENT_PROTEC' : 'SAVE_AND_EARN')
+          }
+          annualRatePct={savingsAnnualRatePct}
+          onClose={() => setShowBreakoutModal(false)}
+          onCompleted={onRestartVault}
+        />
+      )}
+
+      {showMaturedWithdrawModal && (
+        <MaturedWithdrawalModal
+          vaultId={vault.vault_id}
+          principalKobo={vault.principal_kobo ?? vault.current_balance_kobo}
+          accruedYieldKobo={vault.accrued_yield_kobo ?? 0}
+          onClose={() => setShowMaturedWithdrawModal(false)}
+          onRestartVault={onRestartVault}
+        />
+      )}
     </div>
   )
 }

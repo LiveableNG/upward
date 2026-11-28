@@ -1,5 +1,6 @@
 import { RentSavingsCalculatorEngine } from '../../../domains/rent-savings/rent-savings-calculator.engine'
 import { BreakoutRentVaultUseCase } from './breakout-rent-vault.use-case'
+import { PreviewBreakoutRentVaultUseCase } from './preview-breakout-rent-vault.use-case'
 
 describe('Nov 26 Savings Rules — Breakeven Formula, Flexible Exit & DVA Classification', () => {
   describe('Formula-driven Rent Protec minimum upfront deposit d_min(T)', () => {
@@ -122,17 +123,63 @@ describe('Nov 26 Savings Rules — Breakeven Formula, Flexible Exit & DVA Classi
       expect(scoreUpdates).toHaveLength(0)
     })
 
-    it('refuses early withdrawal for Full Lock Save & Earn', async () => {
+    it('allows Full Lock Save & Earn early withdrawal at 10.0% p.a. per-deposit replay with ₦0 admin fee and -30 score penalty', async () => {
+      const now = new Date()
+      const deposit1At = new Date(now.getTime() - 100 * 24 * 60 * 60 * 1000)
+      const deposit2At = new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000)
       const { useCase, createdTxs, scoreUpdates } = buildBreakoutDeps({
         productOption: 'SAVE_AND_EARN',
         lockMode: 'LOCKED',
+        currentPrincipalKobo: 100_000_000n,
+        accruedYieldKobo: 5_000_000n,
       })
 
-      await expect(useCase.execute(7, 'vault-flex-42')).rejects.toThrow(
-        'cannot be withdrawn earlier',
+      // Attach per-deposit ledger to test exact per-deposit replay
+      const rentVaultRepo = (useCase as any).rentVaultRepo
+      rentVaultRepo.findTransactionsByVaultId = jest.fn().mockResolvedValue([
+        {
+          id: 1,
+          type: 'DEPOSIT',
+          principalDeltaKobo: 50_000_000n,
+          createdAt: deposit1At,
+        },
+        {
+          id: 2,
+          type: 'DEPOSIT',
+          principalDeltaKobo: 50_000_000n,
+          createdAt: deposit2At,
+        },
+      ])
+
+      const previewUseCase = new PreviewBreakoutRentVaultUseCase(
+        rentVaultRepo,
+        (useCase as any).rentAdvanceRepo,
       )
-      expect(createdTxs).toHaveLength(0)
-      expect(scoreUpdates).toHaveLength(0)
+      const preview = await previewUseCase.execute(7, 'vault-flex-42')
+      const res = await useCase.execute(7, 'vault-flex-42')
+
+      // Exact per-deposit replay at 10% p.a. (500k for 100d + 500k for 10d)
+      const daily10 = RentSavingsCalculatorEngine.getEffectiveDailyRate(0.1)
+      const expectedYield = Math.round(
+        50_000_000 * (Math.pow(1 + daily10, 100) - 1) +
+          50_000_000 * (Math.pow(1 + daily10, 10) - 1),
+      )
+      // Must be strictly less than compounding all 1M for 100 days
+      const naive100dYield = Math.round(100_000_000 * (Math.pow(1 + daily10, 100) - 1))
+
+      expect(preview.data.tier).toBe('FULL_LOCK')
+      expect(preview.data.recalculation_rate_pct).toBe(10)
+      expect(preview.data.admin_fee_kobo).toBe(0)
+      expect(preview.data.recalculated_base_yield_kobo).toBe(expectedYield)
+      expect(preview.data.recalculated_base_yield_kobo).toBeLessThan(naive100dYield)
+      expect(preview.data.net_payout_kobo).toBe(res.data.net_payout_kobo)
+
+      expect(res.data.tier).toBe('FULL_LOCK')
+      expect(res.data.admin_fee_kobo).toBe(0)
+      expect(res.data.recalculated_base_yield_kobo).toBe(expectedYield)
+      expect(res.data.net_payout_kobo).toBe(100_000_000 + expectedYield)
+      expect(createdTxs[0].type).toBe('BREAKOUT_PAYOUT')
+      expect(scoreUpdates).toHaveLength(1)
     })
 
     it('applies Fair Exit (7.0% base yield + 1.5% admin fee + score penalty) for Rent Protec', async () => {

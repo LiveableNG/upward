@@ -131,12 +131,41 @@ export function useExecuteSettlement() {
   })
 }
 
+export function useBreakoutPreview(vaultId: string | undefined, enabled = false) {
+  return useQuery({
+    queryKey: ['rent-vault-breakout-preview', vaultId],
+    queryFn: () => savingsService.getBreakoutPreview(vaultId!),
+    enabled: Boolean(vaultId) && enabled,
+    staleTime: 15_000,
+    retry: 1,
+  })
+}
+
 export function useBreakoutRentVault() {
   const queryClient = useQueryClient()
   return useMutation({
     mutationFn: (vaultId: string) => savingsService.breakoutRentVault(vaultId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: RENT_VAULT_QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: RENT_VAULT_PREFILL_QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['user'] })
+    },
+  })
+}
+
+export function useWithdrawMaturedRentVault() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ vaultId, reason }: { vaultId: string; reason?: string }) =>
+      savingsService.withdrawMaturedRentVault(vaultId, reason),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: RENT_VAULT_QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: RENT_VAULT_PREFILL_QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['user'] })
     },
   })
 }

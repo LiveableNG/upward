@@ -635,6 +635,8 @@ import { SimulateVaultDepositUseCase } from './use-cases/rent-savings/simulate-v
 import { DisburseEmergencyAdvanceUseCase } from './use-cases/rent-savings/disburse-emergency-advance.use-case'
 import { ExecuteLandlordSettlementUseCase } from './use-cases/rent-savings/execute-landlord-settlement.use-case'
 import { BreakoutRentVaultUseCase } from './use-cases/rent-savings/breakout-rent-vault.use-case'
+import { PreviewBreakoutRentVaultUseCase } from './use-cases/rent-savings/preview-breakout-rent-vault.use-case'
+import { WithdrawMaturedRentVaultUseCase } from './use-cases/rent-savings/withdraw-matured-rent-vault.use-case'
 import { OnboardSavingsInvestorUseCase } from './use-cases/rent-savings/onboard-savings-investor.use-case'
 import { VerifyRentVaultFundingUseCase } from './use-cases/rent-savings/verify-rent-vault-funding.use-case'
 import { UploadSavingsKycDocumentUseCase } from './use-cases/rent-savings/upload-savings-kyc-document.use-case'
@@ -703,6 +705,8 @@ const UseCases: any[] = [
   DisburseEmergencyAdvanceUseCase,
   ExecuteLandlordSettlementUseCase,
   BreakoutRentVaultUseCase,
+  PreviewBreakoutRentVaultUseCase,
+  WithdrawMaturedRentVaultUseCase,
   OnboardSavingsInvestorUseCase,
   VerifyRentVaultFundingUseCase,
   UploadSavingsKycDocumentUseCase,

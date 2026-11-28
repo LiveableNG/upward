@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Award, ArrowRight, TrendingUp, AlertCircle, PlusCircle } from 'lucide-react'
+import { Award, ArrowRight, TrendingUp, AlertCircle, PlusCircle, Landmark } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { useExecuteSettlement, useSavingsOnboardingPrefill } from '../hooks/useRentSavings'
 import type {
@@ -18,6 +18,7 @@ import { useAuth } from '@/features/auth/AuthContext'
 import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
 import { SettlementSuccessModal } from './SettlementSuccessModal'
 import { FundVaultModal } from './FundVaultModal'
+import { MaturedWithdrawalModal } from './MaturedWithdrawalModal'
 
 interface SettlementHubViewProps {
   vault: {
@@ -57,6 +58,7 @@ export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewPr
   const [successData, setSuccessData] = useState<SettlementResultData | null>(null)
   const [landlordNameSubmitted, setLandlordNameSubmitted] = useState<string>('')
   const [showTopUpModal, setShowTopUpModal] = useState(false)
+  const [showMaturedWithdrawModal, setShowMaturedWithdrawModal] = useState(false)
 
   const { error: toastError, success: toastSuccess } = useToast()
   const { user } = useAuth()
@@ -460,6 +462,51 @@ export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewPr
           </button>
         </form>
       </div>
+
+      <div
+        className="rent-calculator__card"
+        style={{
+          marginTop: 14,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 10,
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Landmark size={18} color="var(--clay)" />
+          <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text)', margin: 0 }}>
+            Prefer to withdraw to your bank instead?
+          </h3>
+        </div>
+        <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.45 }}>
+          Your savings have reached maturity. You can withdraw 100% of your principal and interest (
+          <strong>{formatCurrency(currentBalanceNaira, 'NGN')}</strong>) with ₦0 fee to your
+          verified bank account
+          {prefill?.settlement_bank
+            ? ` (${prefill.settlement_bank.bank_name} ••••${prefill.settlement_bank.account_number.slice(-4)})`
+            : ''}
+          . Landlord cashback only applies when paying your landlord directly.
+        </p>
+        <button
+          type="button"
+          className="vault-btn-secondary"
+          disabled={currentBalanceNaira <= 0}
+          onClick={() => setShowMaturedWithdrawModal(true)}
+        >
+          <Landmark size={16} />
+          <span>Withdraw to My Bank (₦0 Fee)</span>
+        </button>
+      </div>
+
+      {showMaturedWithdrawModal && (
+        <MaturedWithdrawalModal
+          vaultId={vault.vault_id}
+          principalKobo={vault.principal_kobo}
+          accruedYieldKobo={vault.accrued_yield_kobo}
+          onClose={() => setShowMaturedWithdrawModal(false)}
+          onRestartVault={onRestartVault}
+        />
+      )}
 
       {successData && (
         <SettlementSuccessModal

@@ -540,10 +540,13 @@ export class RentSavingsCalculatorEngine {
   public static readonly BASE_DAILY_RATE = RentSavingsCalculatorEngine.getEffectiveDailyRate(
     RentSavingsCalculatorEngine.ANNUAL_BASE_EXIT_YIELD,
   )
+  public static readonly BASE_BREAKOUT_YIELD = RentSavingsCalculatorEngine.ANNUAL_BASE_EXIT_YIELD // 7.0% p.a. (Rent Protec)
+  public static readonly FULL_LOCK_EARLY_EXIT_ANNUAL_RATE = 0.1 // 10.0% p.a. (Full Lock early exit)
+  public static readonly FULL_LOCK_EARLY_EXIT_ADMIN_FEE_RATE = 0.0 // 0% admin fee (Full Lock)
   public static readonly ADVANCE_MAX_RATIO = 0.4 // 40% cap
   public static readonly ADVANCE_FACILITY_FEE_RATE = 0.035 // 3.5%
   public static readonly ADVANCE_LATE_FEE_DAILY_RATE = 0.001 // 0.1%/day
-  public static readonly BREAKOUT_ADMIN_FEE_RATE = 0.015 // 1.5%
+  public static readonly BREAKOUT_ADMIN_FEE_RATE = 0.015 // 1.5% (Rent Protec only)
 
   private static toUtcMidnightMs(d: Date): number {
     return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
@@ -888,6 +891,124 @@ export class RentSavingsCalculatorEngine {
       recalculatedYieldKobo,
       adminFeeKobo,
       netPayoutKobo: netPayoutKobo > 0n ? netPayoutKobo : 0n,
+    }
+  }
+
+  /**
+   * Replays each individual principal deposit from its exact UTC deposit date to `asOfDate`
+   * using canonical effective daily compounding at `recalculationAnnualRateDecimal`.
+   *
+   * Eliminates single-`daysHeld` over-payment when a user deposits incrementally over months.
+   * Reconciles deposit sum against `currentPrincipalKobo` (attributing any legacy/untracked
+   * principal to `vaultCreatedAt`, or proportionally scaling if partial principal was reduced).
+   */
+  public static calculatePerDepositEarlyExit(params: {
+    deposits: Array<{ amountKobo: bigint; depositedAt: Date }>
+    currentPrincipalKobo: bigint
+    vaultCreatedAt: Date
+    asOfDate?: Date
+    recalculationAnnualRateDecimal: number
+    adminFeeRateDecimal: number
+  }): {
+    principalKobo: bigint
+    recalculatedYieldKobo: bigint
+    adminFeeKobo: bigint
+    netPayoutKobo: bigint
+    depositCount: number
+    weightedDaysHeld: number
+    recalculationAnnualRatePct: number
+    adminFeeRatePct: number
+  } {
+    const {
+      deposits,
+      currentPrincipalKobo,
+      vaultCreatedAt,
+      recalculationAnnualRateDecimal,
+      adminFeeRateDecimal,
+    } = params
+    const asOf = params.asOfDate ?? new Date()
+    const ratePct = Math.round(Math.max(0, recalculationAnnualRateDecimal) * 1000) / 10
+    const feePct = Math.round(Math.max(0, adminFeeRateDecimal) * 1000) / 10
+
+    if (currentPrincipalKobo <= 0n) {
+      return {
+        principalKobo: 0n,
+        recalculatedYieldKobo: 0n,
+        adminFeeKobo: 0n,
+        netPayoutKobo: 0n,
+        depositCount: 0,
+        weightedDaysHeld: 0,
+        recalculationAnnualRatePct: ratePct,
+        adminFeeRatePct: feePct,
+      }
+    }
+
+    const asOfUtcMs = this.toUtcMidnightMs(asOf)
+    const dailyRate = this.getEffectiveDailyRate(Math.max(0, recalculationAnnualRateDecimal))
+    const validDeposits = deposits.filter((d) => d.amountKobo > 0n)
+
+    let depositSumNum = 0
+    for (const dep of validDeposits) {
+      depositSumNum += Number(dep.amountKobo)
+    }
+
+    const targetPrincipalNum = Number(currentPrincipalKobo)
+    const effectiveEntries: Array<{ amountNum: number; depositedAt: Date }> = []
+
+    if (validDeposits.length === 0 || depositSumNum <= 0) {
+      effectiveEntries.push({ amountNum: targetPrincipalNum, depositedAt: vaultCreatedAt })
+    } else if (depositSumNum > targetPrincipalNum) {
+      const scale = targetPrincipalNum / depositSumNum
+      for (const dep of validDeposits) {
+        effectiveEntries.push({
+          amountNum: Number(dep.amountKobo) * scale,
+          depositedAt: dep.depositedAt,
+        })
+      }
+    } else {
+      for (const dep of validDeposits) {
+        effectiveEntries.push({
+          amountNum: Number(dep.amountKobo),
+          depositedAt: dep.depositedAt,
+        })
+      }
+      const unattributed = targetPrincipalNum - depositSumNum
+      if (unattributed >= 1) {
+        effectiveEntries.push({ amountNum: unattributed, depositedAt: vaultCreatedAt })
+      }
+    }
+
+    let totalYieldNum = 0
+    let weightedDaysSum = 0
+    for (const entry of effectiveEntries) {
+      const depUtcMs = this.toUtcMidnightMs(entry.depositedAt)
+      const daysHeld = Math.max(0, Math.round((asOfUtcMs - depUtcMs) / this.DAY_MS))
+      weightedDaysSum += entry.amountNum * daysHeld
+      if (daysHeld > 0 && dailyRate > 0) {
+        const compoundFactor = Math.pow(1 + dailyRate, daysHeld) - 1
+        totalYieldNum += entry.amountNum * compoundFactor
+      }
+    }
+
+    const recalculatedYieldKobo = BigInt(Math.max(0, Math.round(totalYieldNum)))
+    const adminFeeKobo =
+      adminFeeRateDecimal > 0
+        ? BigInt(Math.round(targetPrincipalNum * Math.max(0, adminFeeRateDecimal)))
+        : 0n
+    const grossPayoutKobo = currentPrincipalKobo + recalculatedYieldKobo
+    const netPayoutKobo = grossPayoutKobo > adminFeeKobo ? grossPayoutKobo - adminFeeKobo : 0n
+    const weightedDaysHeld =
+      targetPrincipalNum > 0 ? Math.round(weightedDaysSum / targetPrincipalNum) : 0
+
+    return {
+      principalKobo: currentPrincipalKobo,
+      recalculatedYieldKobo,
+      adminFeeKobo,
+      netPayoutKobo,
+      depositCount: effectiveEntries.length,
+      weightedDaysHeld,
+      recalculationAnnualRatePct: ratePct,
+      adminFeeRatePct: feePct,
     }
   }
 

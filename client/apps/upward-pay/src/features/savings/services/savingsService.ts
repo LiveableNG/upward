@@ -90,14 +90,68 @@ export interface SimulateRentSavingsData {
   }
 }
 
+export interface BreakoutPayoutDestination {
+  bank_code: string
+  bank_name: string
+  account_number: string
+  account_name: string
+}
+
+export interface BreakoutPreviewData {
+  vault_id: string
+  tier: 'FLEXIBLE' | 'FULL_LOCK' | 'RENT_PROTEC'
+  lock_mode: SavingsLockMode
+  product_option: SavingsProductOption
+  is_matured: boolean
+  days_remaining: number
+  original_principal_kobo: number
+  accrued_yield_kobo: number
+  forfeited_yield_kobo: number
+  recalculated_base_yield_kobo: number
+  recalculation_rate_pct: number
+  admin_fee_rate_pct: number
+  admin_fee_kobo: number
+  advance_deduction_kobo: number
+  premium_recovery_deduction_kobo: number
+  net_payout_kobo: number
+  deposit_count: number
+  weighted_days_held: number
+  score_penalty_points: number
+  payout_destination: BreakoutPayoutDestination | null
+}
+
 export interface BreakoutResultData {
   breakout_reference: string
+  tier?: 'FLEXIBLE' | 'FULL_LOCK' | 'RENT_PROTEC'
+  lock_mode?: SavingsLockMode
   original_principal_kobo: number
   forfeited_yield_kobo: number
   recalculated_base_yield_kobo: number
+  recalculation_rate_pct?: number
+  admin_fee_rate_pct?: number
   admin_fee_kobo: number
   advance_deduction_kobo: number
+  premium_recovery_deduction_kobo?: number
   net_payout_kobo: number
+  deposit_count?: number
+  weighted_days_held?: number
+  score_penalty_points?: number
+  payout_destination?: BreakoutPayoutDestination | null
+}
+
+export interface MaturedWithdrawalResultData {
+  withdrawal_reference: string
+  nip_session_id: string
+  principal_kobo: number
+  accrued_yield_kobo: number
+  advance_deduction_kobo: number
+  premium_recovery_deduction_kobo: number
+  net_payout_kobo: number
+  destination_bank_code: string
+  destination_bank_name: string
+  destination_account_number: string
+  destination_account_name: string
+  payout_status: string
 }
 
 export interface EmergencyAdvanceResultData {
@@ -776,11 +830,35 @@ export async function executeLandlordSettlement(
   return res.data
 }
 
+export async function getBreakoutPreview(vaultId: string): Promise<BreakoutPreviewData> {
+  const res = await request<{ status: string; data: BreakoutPreviewData }>(
+    `/rent-vaults/${vaultId}/breakout/preview`,
+    {
+      method: 'GET',
+    },
+  )
+  return res.data
+}
+
 export async function breakoutRentVault(vaultId: string): Promise<BreakoutResultData> {
   const res = await request<{ status: string; data: BreakoutResultData }>(
     `/rent-vaults/${vaultId}/breakout`,
     {
       method: 'POST',
+    },
+  )
+  return res.data
+}
+
+export async function withdrawMaturedRentVault(
+  vaultId: string,
+  reason?: string,
+): Promise<MaturedWithdrawalResultData> {
+  const res = await request<{ status: string; data: MaturedWithdrawalResultData }>(
+    `/rent-vaults/${vaultId}/withdraw-matured`,
+    {
+      method: 'POST',
+      body: JSON.stringify(reason ? { reason } : {}),
     },
   )
   return res.data

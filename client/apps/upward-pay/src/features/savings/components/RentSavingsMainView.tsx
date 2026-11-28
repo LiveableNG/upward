@@ -410,6 +410,12 @@ export function RentSavingsMainView() {
                   setPinnedSettlementVault(activeVaultForView)
                   setViewMode('SETTLEMENT')
                 }}
+                onRestartVault={() => {
+                  setPinnedSettlementVault(null)
+                  setViewMode('DASHBOARD')
+                  refetch()
+                  refreshUser().catch(() => {})
+                }}
               />
             )}
           </div>

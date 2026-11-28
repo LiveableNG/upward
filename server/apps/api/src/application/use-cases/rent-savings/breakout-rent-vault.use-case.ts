@@ -1,12 +1,4 @@
-import {
-  Injectable,
-  Inject,
-  BadRequestException,
-  NotFoundException,
-  ForbiddenException,
-  Logger,
-  Optional,
-} from '@nestjs/common'
+import { Injectable, Inject, BadRequestException, Logger, Optional } from '@nestjs/common'
 import * as crypto from 'crypto'
 import {
   IRentVaultRepository,
@@ -17,9 +9,9 @@ import {
   RENT_ADVANCE_REPOSITORY,
 } from '../../../domains/rent-savings/rent-advance.repository'
 import { ARM_JOB_QUEUE, IArmJobQueue } from '../../../domains/rent-savings/arm-job.interface'
-import { RentSavingsCalculatorEngine } from '../../../domains/rent-savings/rent-savings-calculator.engine'
 import { AssetManagementProviderRegistry } from '../../../infrastructure/providers/asset-management/asset-management-provider.registry'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
+import { computeEarlyBreakoutQuote } from './breakout-quote.helper'
 
 @Injectable()
 export class BreakoutRentVaultUseCase {
@@ -40,100 +32,53 @@ export class BreakoutRentVaultUseCase {
   ) {}
 
   async execute(userId: number, vaultUuid: string) {
-    const vault = await this.rentVaultRepo.findByUuid(vaultUuid)
-    if (!vault) {
-      throw new NotFoundException('Rent vault not found.')
-    }
-    if (vault.userId !== userId) {
-      throw new ForbiddenException('You do not have access to this rent vault.')
-    }
-    if (vault.lockStatus === 'SETTLED') {
-      throw new BadRequestException('Cannot break out of an already settled vault.')
-    }
-    if (vault.lockStatus === 'BROKEN_OUT') {
-      throw new BadRequestException('This vault has already been broken out.')
-    }
-
     const now = new Date()
-    const daysHeld = Math.max(
-      1,
-      Math.floor((now.getTime() - vault.createdAt.getTime()) / (1000 * 60 * 60 * 24)),
-    )
+    const quote = await computeEarlyBreakoutQuote({
+      userId,
+      vaultUuid,
+      now,
+      rentVaultRepo: this.rentVaultRepo,
+      rentAdvanceRepo: this.rentAdvanceRepo,
+      prisma: this.prisma,
+    })
 
-    const isFlexible =
-      (vault as any).lockMode === 'FLEXIBLE' && vault.productOption !== 'RENT_PROTEC'
-    const isFullLock = !isFlexible && vault.productOption !== 'RENT_PROTEC'
-
-    if (isFullLock) {
-      throw new BadRequestException(
-        'Full Lock savings stay in place until 30 days before your rent due date and cannot be withdrawn earlier.',
-      )
-    }
-
-    // Flexible Save & Earn: 100% principal + 100% accrued yield, ₦0 penalty & ₦0 admin fee.
-    // Rent Protec: Fair Exit recalculation (7.0% p.a. + 1.5% admin fee).
-    const breakout = isFlexible
-      ? {
-          principalKobo: vault.currentPrincipalKobo,
-          recalculatedYieldKobo: vault.accruedYieldKobo,
-          adminFeeKobo: 0n,
-          netPayoutKobo: vault.currentPrincipalKobo + vault.accruedYieldKobo,
-        }
-      : RentSavingsCalculatorEngine.calculateFairBreakout(
-          vault.currentPrincipalKobo,
-          daysHeld,
-        )
-
-    // Check active loan deductions
-    let netPayout = breakout.netPayoutKobo
-    const activeAdvance = await this.rentAdvanceRepo.findActiveByVaultId(vault.id)
-    let advanceDeduction = 0n
-
-    if (activeAdvance && activeAdvance.status === 'ACTIVE') {
-      const outstanding = activeAdvance.totalRepayableKobo - activeAdvance.amountRepaidKobo
-      const penalties = activeAdvance.latePenaltiesKobo
-      advanceDeduction = outstanding + penalties
-      netPayout = netPayout > advanceDeduction ? netPayout - advanceDeduction : 0n
-    }
-
-    // Rent Protec early-exit premium recovery:
-    // If Upward paid the 2% insurance premium upfront and has not yet recovered it
-    // through daily yield spread, recover the remaining unrecovered amount on early exit.
-    let premiumRecoveryDeduction = 0n
-    let treasurySummary: {
-      id: number
-      unrecoveredPremiumKobo: bigint
-      upfrontPremiumObligationKobo: bigint
-    } | null = null
-
-    if (
-      !isFlexible &&
-      vault.productOption === 'RENT_PROTEC' &&
-      this.prisma?.upward_vault_treasury_summary
-    ) {
-      treasurySummary = await this.prisma.upward_vault_treasury_summary.findUnique({
-        where: { vaultId: vault.id },
-        select: {
-          id: true,
-          unrecoveredPremiumKobo: true,
-          upfrontPremiumObligationKobo: true,
-        },
-      })
-      if (treasurySummary && treasurySummary.unrecoveredPremiumKobo > 0n) {
-        premiumRecoveryDeduction =
-          netPayout > treasurySummary.unrecoveredPremiumKobo
-            ? treasurySummary.unrecoveredPremiumKobo
-            : netPayout
-        netPayout = netPayout - premiumRecoveryDeduction
-      }
-    }
+    const {
+      vault,
+      tier,
+      isFlexible,
+      isFullLock,
+      isRentProtec,
+      recalculatedYieldKobo,
+      recalculationAnnualRatePct,
+      adminFeeRatePct,
+      adminFeeKobo,
+      advanceDeductionKobo,
+      activeAdvance,
+      premiumRecoveryDeductionKobo,
+      treasurySummary,
+      netPayoutKobo,
+      depositCount,
+      weightedDaysHeld,
+      scorePenaltyPoints,
+      payoutBank,
+    } = quote
 
     const breakoutReference = `UPW_BREAKOUT_${Date.now()}`
+    const totalVaultBalance = vault.currentPrincipalKobo + vault.accruedYieldKobo
+
+    const txType = isRentProtec ? 'LIQUIDATION_PENALTY' : 'BREAKOUT_PAYOUT'
+    const txAmount = isRentProtec ? adminFeeKobo : netPayoutKobo
+    const narration = isFlexible
+      ? `Flexible savings withdrawal executed: 100% principal & accrued yield returned with ₦0 exit fee`
+      : isFullLock
+        ? `Early Full Lock withdrawal executed: ${recalculationAnnualRatePct.toFixed(1)}% p.a. per-deposit yield applied, ₦0 admin fee`
+        : premiumRecoveryDeductionKobo > 0n
+          ? `Fair exit breakout executed: ${recalculationAnnualRatePct.toFixed(1)}% per-deposit base yield applied, ${adminFeeRatePct.toFixed(1)}% admin fee & unrecovered Rent Protec premium deducted`
+          : `Fair exit breakout executed: ${recalculationAnnualRatePct.toFixed(1)}% per-deposit base yield applied, ${adminFeeRatePct.toFixed(1)}% admin fee deducted`
 
     // Liquidate underlying MMF units via BullMQ durable outbox job (or direct fallback in tests)
     let armWithdrawalId: string | undefined
     let armTransactionId: string | undefined
-    const totalVaultBalance = vault.currentPrincipalKobo + vault.accruedYieldKobo
 
     if (this.prisma && this.armJobQueue) {
       armTransactionId =
@@ -176,25 +121,27 @@ export class BreakoutRentVaultUseCase {
           {
             vaultId: freshVault.id,
             userId,
-            type: isFlexible ? 'BREAKOUT_PAYOUT' : 'LIQUIDATION_PENALTY',
-            amountKobo: isFlexible ? netPayout : breakout.adminFeeKobo,
+            type: txType,
+            amountKobo: txAmount,
             principalDeltaKobo: -freshVault.currentPrincipalKobo,
             yieldDeltaKobo: -freshVault.accruedYieldKobo,
             balanceAfterKobo: 0n,
             reference: breakoutReference,
             channel: 'SYSTEM_YIELD',
-            narration: isFlexible
-              ? `Flexible savings withdrawal executed: 100% principal & accrued yield returned with ₦0 exit fee`
-              : premiumRecoveryDeduction > 0n
-                ? `Fair exit breakout executed: 7.0% base yield applied, 1.5% admin fee & unrecovered Rent Protec premium deducted`
-                : `Fair exit breakout executed: 7.0% base yield applied, 1.5% admin fee deducted`,
+            narration,
             metadata: {
+              tier,
               lockMode: isFlexible ? 'FLEXIBLE' : 'LOCKED',
-              recalculatedYieldKobo: Number(breakout.recalculatedYieldKobo),
-              adminFeeKobo: Number(breakout.adminFeeKobo),
-              advanceDeductionKobo: Number(advanceDeduction),
-              premiumRecoveryDeductionKobo: Number(premiumRecoveryDeduction),
-              netPayoutKobo: Number(netPayout),
+              recalculationRatePct: recalculationAnnualRatePct,
+              adminFeeRatePct,
+              recalculatedYieldKobo: Number(recalculatedYieldKobo),
+              adminFeeKobo: Number(adminFeeKobo),
+              advanceDeductionKobo: Number(advanceDeductionKobo),
+              premiumRecoveryDeductionKobo: Number(premiumRecoveryDeductionKobo),
+              netPayoutKobo: Number(netPayoutKobo),
+              depositCount,
+              weightedDaysHeld,
+              ...(payoutBank ? { payoutBank } : {}),
               armSyncStatus:
                 freshVault.investmentProvider && totalVaultBalance > 0n
                   ? 'QUEUED'
@@ -236,7 +183,11 @@ export class BreakoutRentVaultUseCase {
                 productAccountNumber: freshVault.providerAccountNumber || 'OMNIBUS_FLOAT_01',
                 amountKobo: freshBalance.toString(),
                 armReference: `RED-${breakoutReference}`,
-                reason: 'FAIR_EXIT_BREAKOUT',
+                reason: isFullLock
+                  ? 'FULL_LOCK_EARLY_WITHDRAWAL'
+                  : isFlexible
+                    ? 'FLEXIBLE_WITHDRAWAL'
+                    : 'FAIR_EXIT_BREAKOUT',
               } as any,
             },
           })
@@ -286,22 +237,27 @@ export class BreakoutRentVaultUseCase {
       await this.rentVaultRepo.createTransaction({
         vaultId: vault.id,
         userId,
-        type: isFlexible ? 'BREAKOUT_PAYOUT' : 'LIQUIDATION_PENALTY',
-        amountKobo: isFlexible ? netPayout : breakout.adminFeeKobo,
+        type: txType,
+        amountKobo: txAmount,
         principalDeltaKobo: -vault.currentPrincipalKobo,
         yieldDeltaKobo: -vault.accruedYieldKobo,
         balanceAfterKobo: 0n,
         reference: breakoutReference,
         channel: 'SYSTEM_YIELD',
-        narration: isFlexible
-          ? `Flexible savings withdrawal executed: 100% principal & accrued yield returned with ₦0 exit fee`
-          : `Fair exit breakout executed: 7.0% base yield applied, 1.5% admin fee deducted`,
+        narration,
         metadata: {
+          tier,
           lockMode: isFlexible ? 'FLEXIBLE' : 'LOCKED',
-          recalculatedYieldKobo: Number(breakout.recalculatedYieldKobo),
-          adminFeeKobo: Number(breakout.adminFeeKobo),
-          advanceDeductionKobo: Number(advanceDeduction),
-          netPayoutKobo: Number(netPayout),
+          recalculationRatePct: recalculationAnnualRatePct,
+          adminFeeRatePct,
+          recalculatedYieldKobo: Number(recalculatedYieldKobo),
+          adminFeeKobo: Number(adminFeeKobo),
+          advanceDeductionKobo: Number(advanceDeductionKobo),
+          premiumRecoveryDeductionKobo: Number(premiumRecoveryDeductionKobo),
+          netPayoutKobo: Number(netPayoutKobo),
+          depositCount,
+          weightedDaysHeld,
+          ...(payoutBank ? { payoutBank } : {}),
           ...(armWithdrawalId ? { armWithdrawalId } : {}),
           ...(armTransactionId ? { armTransactionId } : {}),
         },
@@ -317,20 +273,20 @@ export class BreakoutRentVaultUseCase {
 
     // Record internal treasury early-exit premium recovery if applicable
     if (
-      premiumRecoveryDeduction > 0n &&
+      premiumRecoveryDeductionKobo > 0n &&
       treasurySummary &&
       this.prisma?.upward_vault_treasury_summary &&
       this.prisma?.upward_savings_internal_ledger
     ) {
       const nextUnrecovered =
-        treasurySummary.unrecoveredPremiumKobo > premiumRecoveryDeduction
-          ? treasurySummary.unrecoveredPremiumKobo - premiumRecoveryDeduction
+        treasurySummary.unrecoveredPremiumKobo > premiumRecoveryDeductionKobo
+          ? treasurySummary.unrecoveredPremiumKobo - premiumRecoveryDeductionKobo
           : 0n
       await this.prisma.upward_vault_treasury_summary
         .update({
           where: { vaultId: vault.id },
           data: {
-            premiumRecoveredKobo: { increment: premiumRecoveryDeduction },
+            premiumRecoveredKobo: { increment: premiumRecoveryDeductionKobo },
             unrecoveredPremiumKobo: nextUnrecovered,
           },
         })
@@ -342,7 +298,7 @@ export class BreakoutRentVaultUseCase {
             entryType: 'EARLY_EXIT_RECOVERY',
             productOption: vault.productOption || 'RENT_PROTEC',
             principalBaseKobo: vault.currentPrincipalKobo,
-            premiumRecoveryAppliedKobo: premiumRecoveryDeduction,
+            premiumRecoveryAppliedKobo: premiumRecoveryDeductionKobo,
             reference: `EXIT_REC_${breakoutReference}`,
             notes: `Recovered unrecovered upfront 2% Rent Protec premium on Fair Exit breakout`,
           },
@@ -353,15 +309,17 @@ export class BreakoutRentVaultUseCase {
     // Update savings score discipline penalty (-30 points) for LOCKED vaults only
     if (!isFlexible) {
       const currentScore = await this.rentVaultRepo.findSavingsScoreByVaultId(vault.id)
-      const newScore = Math.max(0, (currentScore?.totalScore || 20) - 30)
+      const newScore = Math.max(0, (currentScore?.totalScore || 20) - scorePenaltyPoints)
       await this.rentVaultRepo.upsertSavingsScore(vault.id, userId, {
         loanDisciplinePoints: 0,
         totalScore: newScore,
         historyLog: [
           ...(currentScore?.historyLog || []),
           {
-            reason: 'Fair exit breakout executed prior to maturity',
-            delta: -30,
+            reason: isFullLock
+              ? 'Full Lock early withdrawal executed prior to maturity'
+              : 'Fair exit breakout executed prior to maturity',
+            delta: -scorePenaltyPoints,
             timestamp: now.toISOString(),
           },
         ],
@@ -372,14 +330,28 @@ export class BreakoutRentVaultUseCase {
       status: 'success',
       data: {
         breakout_reference: breakoutReference,
+        tier,
         lock_mode: isFlexible ? 'FLEXIBLE' : 'LOCKED',
         original_principal_kobo: Number(vault.currentPrincipalKobo),
         forfeited_yield_kobo: isFlexible ? 0 : Number(vault.accruedYieldKobo),
-        recalculated_base_yield_kobo: Number(breakout.recalculatedYieldKobo),
-        admin_fee_kobo: Number(breakout.adminFeeKobo),
-        advance_deduction_kobo: Number(advanceDeduction),
-        premium_recovery_deduction_kobo: Number(premiumRecoveryDeduction),
-        net_payout_kobo: Number(netPayout),
+        recalculated_base_yield_kobo: Number(recalculatedYieldKobo),
+        recalculation_rate_pct: recalculationAnnualRatePct,
+        admin_fee_rate_pct: adminFeeRatePct,
+        admin_fee_kobo: Number(adminFeeKobo),
+        advance_deduction_kobo: Number(advanceDeductionKobo),
+        premium_recovery_deduction_kobo: Number(premiumRecoveryDeductionKobo),
+        net_payout_kobo: Number(netPayoutKobo),
+        deposit_count: depositCount,
+        weighted_days_held: weightedDaysHeld,
+        score_penalty_points: scorePenaltyPoints,
+        payout_destination: payoutBank
+          ? {
+              bank_code: payoutBank.bankCode,
+              bank_name: payoutBank.bankName,
+              account_number: payoutBank.accountNumber,
+              account_name: payoutBank.accountName,
+            }
+          : null,
       },
     }
   }
