@@ -13,7 +13,6 @@ import {
   Calendar,
   CheckCircle2,
   Clock,
-  GitCompare,
   RotateCcw,
   ShieldCheck,
   Sparkles,
@@ -123,7 +122,7 @@ function parseDigits(raw: string): number {
 
 export function DailySavingsEnginePage() {
   const [activePreset, setActivePreset] = useState<string>('nov-1-meeting')
-  const [activeTab, setActiveTab] = useState<'compare' | 'dynamic' | 'formula' | 'ledger'>('compare')
+  const [activeTab, setActiveTab] = useState<'formula' | 'ledger' | 'dynamic'>('formula')
   const [showNumbersInFormula, setShowNumbersInFormula] = useState<boolean>(false)
 
   const {
@@ -243,12 +242,11 @@ export function DailySavingsEnginePage() {
           <div>
             <div className="savings-engine__hero-badge">
               <Sparkles size={12} />
-              <span>Daily Compounding Engine · Live Comparison</span>
+              <span>Daily Compounding Engine</span>
             </div>
             <h1 className="savings-engine__title">Daily Rent Savings Simulator</h1>
             <p className="savings-engine__subtitle">
-              Exact calendar-day compounding from every deposit date to T&minus;30 unlock — side by
-              side with the previous monthly model.
+              Exact calendar-day compounding from every deposit date to T&minus;30 unlock.
             </p>
           </div>
 
@@ -587,7 +585,7 @@ export function DailySavingsEnginePage() {
             </form>
           </section>
 
-          {/* RIGHT: Hero Answer + 4 Interactive Tabs */}
+          {/* RIGHT: Hero Answer + 3 Interactive Tabs */}
           <div className="savings-engine__right">
             {/* Hero Answer Card */}
             <section className="savings-engine__answer">
@@ -611,12 +609,9 @@ export function DailySavingsEnginePage() {
                       </>
                     ) : (
                       <>
-                        vs. Old Monthly Engine:{' '}
-                        <strong>
-                          {formatNaira(calc.comparison.monthlyDepositDelta, true)}/mo
-                        </strong>{' '}
-                        ({formatNaira(calc.comparison.monthlyEngineDeposit)} old &rarr;{' '}
-                        {formatNaira(calc.scheduledDeposit)} daily)
+                        Across {calc.numberOfDeposits} deposits ({calc.activeCompoundingDays}d) ·
+                        saves <strong>{formatNaira(calc.depositSavingsFromInterest)}/mo</strong> vs.
+                        plain split
                       </>
                     )}
                   </div>
@@ -695,30 +690,6 @@ export function DailySavingsEnginePage() {
                 <button
                   type="button"
                   role="tab"
-                  aria-selected={activeTab === 'compare'}
-                  className={`savings-engine__tab ${
-                    activeTab === 'compare' ? 'savings-engine__tab--active' : ''
-                  }`}
-                  onClick={() => setActiveTab('compare')}
-                >
-                  <GitCompare size={15} />
-                  <span>Monthly vs. Daily</span>
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={activeTab === 'dynamic'}
-                  className={`savings-engine__tab ${
-                    activeTab === 'dynamic' ? 'savings-engine__tab--active' : ''
-                  }`}
-                  onClick={() => setActiveTab('dynamic')}
-                >
-                  <Activity size={15} />
-                  <span>Late / Missed Catch-Up</span>
-                </button>
-                <button
-                  type="button"
-                  role="tab"
                   aria-selected={activeTab === 'formula'}
                   className={`savings-engine__tab ${
                     activeTab === 'formula' ? 'savings-engine__tab--active' : ''
@@ -740,165 +711,21 @@ export function DailySavingsEnginePage() {
                   <Table2 size={15} />
                   <span>Calendar Ledger</span>
                 </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeTab === 'dynamic'}
+                  className={`savings-engine__tab ${
+                    activeTab === 'dynamic' ? 'savings-engine__tab--active' : ''
+                  }`}
+                  onClick={() => setActiveTab('dynamic')}
+                >
+                  <Activity size={15} />
+                  <span>Late / Missed Catch-Up</span>
+                </button>
               </div>
 
-              {/* TAB 1: Side-by-Side Monthly (Old) vs. Daily (New) Comparison */}
-              {activeTab === 'compare' && (
-                <div className="savings-engine__stack">
-                  <div className="savings-engine__compare-cards">
-                    <div className="savings-engine__model savings-engine__model--ok">
-                      <div className="savings-engine__model-head">
-                        <span>New Daily Engine</span>
-                        <span className="savings-engine__tag savings-engine__tag--ok">
-                          {Math.abs(calc.comparison.dailyRealVariance) < 500
-                            ? 'Exact Target'
-                            : `Variance ${formatNaira(calc.comparison.dailyRealVariance, true)}`}
-                        </span>
-                      </div>
-                      <div className="savings-engine__model-num">
-                        {formatNaira(calc.comparison.dailyEngineDeposit)} / mo
-                      </div>
-                      <div className="savings-engine__model-sub">
-                        Total out-of-pocket:{' '}
-                        <strong>{formatNaira(calc.comparison.dailyEngineTotalCash)}</strong>
-                        <br />
-                        Real balance on {calc.unlockDateLabel}:{' '}
-                        <strong>{formatNaira(calc.comparison.dailyRealBalanceAtUnlock)}</strong>
-                      </div>
-                    </div>
-
-                    <div
-                      className={`savings-engine__model ${
-                        calc.comparison.oldMonthlyRealVariance < -500
-                          ? 'savings-engine__model--bad'
-                          : 'savings-engine__model--warn'
-                      }`}
-                    >
-                      <div className="savings-engine__model-head">
-                        <span>Old Monthly Engine</span>
-                        <span
-                          className={`savings-engine__tag ${
-                            calc.comparison.oldMonthlyRealVariance < -500
-                              ? 'savings-engine__tag--bad'
-                              : 'savings-engine__tag--teal'
-                          }`}
-                        >
-                          {calc.comparison.oldMonthlyRealVariance >= 0
-                            ? `Over by ${formatNaira(calc.comparison.oldMonthlyRealVariance, true)}`
-                            : `Short ${formatNaira(calc.comparison.oldMonthlyRealVariance, true)}`}
-                        </span>
-                      </div>
-                      <div className="savings-engine__model-num">
-                        {formatNaira(calc.comparison.monthlyEngineDeposit)} / mo
-                      </div>
-                      <div className="savings-engine__model-sub">
-                        Total out-of-pocket:{' '}
-                        <strong>{formatNaira(calc.comparison.monthlyEngineTotalCash)}</strong>
-                        <br />
-                        Real balance on {calc.unlockDateLabel}:{' '}
-                        <strong>
-                          {formatNaira(calc.comparison.oldMonthlyRealBalanceAtUnlock)}
-                        </strong>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* MoteleJesu's 2-Tenant Date Proof (Nov 1 vs Nov 20) */}
-                  <div className="savings-engine__calendar-box">
-                    <div className="savings-engine__calendar-head">
-                      <span className="savings-engine__calendar-title">
-                        <Calendar size={14} />
-                        <span>
-                          2-Tenant Proof: Start {calc.twoTenantProof.tenantAStartLabel} vs.{' '}
-                          {calc.twoTenantProof.tenantBStartLabel}
-                        </span>
-                      </span>
-                      <span className="savings-engine__meta">
-                        {calc.twoTenantProof.dayDifference} days apart · same rent due date
-                      </span>
-                    </div>
-
-                    <div className="savings-engine__table-wrap">
-                      <table className="savings-engine__table">
-                        <thead>
-                          <tr>
-                            <th>Metric</th>
-                            <th className="savings-engine__num">
-                              Tenant A ({calc.twoTenantProof.tenantAStartLabel.split(',')[0]})
-                            </th>
-                            <th className="savings-engine__num">
-                              Tenant B ({calc.twoTenantProof.tenantBStartLabel.split(',')[0]})
-                            </th>
-                            <th className="savings-engine__num">Difference</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          <tr>
-                            <td>Old Monthly Engine (fixed)</td>
-                            <td className="savings-engine__num">
-                              {formatNaira(calc.twoTenantProof.oldMonthlyBothDeposit)}/mo
-                            </td>
-                            <td className="savings-engine__num">
-                              {formatNaira(calc.twoTenantProof.oldMonthlyBothDeposit)}/mo
-                            </td>
-                            <td className="savings-engine__num" style={{ color: '#b45309' }}>
-                              ₦0 (ignores 19d!)
-                            </td>
-                          </tr>
-                          <tr>
-                            <td>Old Engine Real Outcome</td>
-                            <td className="savings-engine__num">
-                              {formatNaira(calc.twoTenantProof.tenantAOldRealBalance)}
-                            </td>
-                            <td className="savings-engine__num">
-                              {formatNaira(calc.twoTenantProof.tenantBOldRealBalance)}
-                            </td>
-                            <td className="savings-engine__num" style={{ color: '#b91c1c' }}>
-                              {formatNaira(
-                                calc.twoTenantProof.tenantBOldRealBalance -
-                                  calc.twoTenantProof.tenantAOldRealBalance,
-                                true,
-                              )}
-                            </td>
-                          </tr>
-                          <tr className="savings-engine__row--unlock">
-                            <td>New Daily Engine Target</td>
-                            <td className="savings-engine__num">
-                              <strong>
-                                {formatNaira(calc.twoTenantProof.tenantADailyDeposit)}/mo
-                              </strong>
-                            </td>
-                            <td className="savings-engine__num">
-                              <strong>
-                                {formatNaira(calc.twoTenantProof.tenantBDailyDeposit)}/mo
-                              </strong>
-                            </td>
-                            <td className="savings-engine__num" style={{ color: '#15803d' }}>
-                              <strong>
-                                {formatNaira(calc.twoTenantProof.dailyDepositDifference, true)}/mo
-                              </strong>
-                            </td>
-                          </tr>
-                          <tr>
-                            <td>New Daily Engine Outcome</td>
-                            <td className="savings-engine__num">
-                              {formatNaira(calc.twoTenantProof.tenantADailyBalance)}
-                            </td>
-                            <td className="savings-engine__num">
-                              {formatNaira(calc.twoTenantProof.tenantBDailyBalance)}
-                            </td>
-                            <td className="savings-engine__num" style={{ color: '#15803d' }}>
-                              Both hit {formatNaira(calc.targetRent)}
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* TAB 2: Dynamic Catch-Up / Late / Missed / Early Deposit Simulator */}
+              {/* TAB: Dynamic Catch-Up / Late / Missed / Early Deposit Simulator */}
               {activeTab === 'dynamic' && (
                 <div className="savings-engine__stack">
                   <div className="savings-engine__calendar-box">
