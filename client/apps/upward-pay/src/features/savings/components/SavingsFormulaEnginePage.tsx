@@ -229,10 +229,25 @@ export function SavingsFormulaEnginePage() {
       {/* Slim Header */}
       <header className="savings-engine__topbar">
         <div className="savings-engine__topbar-inner">
-          <Link href="/" className="savings-engine__brand">
-            <UpwardLogo size={24} color="var(--clay)" />
-            <span>Upward</span>
-          </Link>
+          <div className="savings-engine__topbar-left">
+            <Link href="/" className="savings-engine__brand">
+              <UpwardLogo size={24} color="var(--clay)" />
+              <span>Upward</span>
+            </Link>
+
+            <nav className="savings-engine__mode-nav" aria-label="Engine version">
+              <Link
+                href="/savings-engine"
+                className="savings-engine__mode-link savings-engine__mode-link--active"
+                aria-current="page"
+              >
+                Monthly (Old)
+              </Link>
+              <Link href="/savings-engine/daily" className="savings-engine__mode-link">
+                Daily (New)
+              </Link>
+            </nav>
+          </div>
 
           <div className="savings-engine__topbar-actions">
             <button
