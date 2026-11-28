@@ -50,6 +50,7 @@ export class GetUserTransactionsUseCase {
             CASHBACK: 'Rent Savings Cashback',
             SETTLEMENT_DISBURSEMENT: vt.narration || 'Rent Paid from Savings',
             BREAKOUT_PAYOUT: vt.narration || 'Rent Savings Withdrawal',
+            LIQUIDATION_PENALTY: vt.narration || 'Early Savings Withdrawal',
           }
 
           const transactionTypeMap: Record<string, string> = {
@@ -58,14 +59,17 @@ export class GetUserTransactionsUseCase {
             CASHBACK: 'SAVINGS_CASHBACK',
             SETTLEMENT_DISBURSEMENT: 'SAVINGS_SETTLEMENT',
             BREAKOUT_PAYOUT: 'SAVINGS_WITHDRAWAL',
+            LIQUIDATION_PENALTY: 'SAVINGS_WITHDRAWAL',
           }
+
+          const meta = (vt.metadata as Record<string, any> | null) || {}
 
           return {
             id: `vault_${vt.id}`,
             uuid: vt.uuid,
             amount: Number(vt.amountKobo) / 100,
             currency: 'NGN',
-            status: 'SUCCESS',
+            status: meta.payoutStatus === 'PROCESSING_REDEMPTION' ? 'PROCESSING' : 'SUCCESS',
             channel: 'Rent Savings',
             direction: isDebit ? 'debit' : 'credit',
             type: vt.type,
@@ -97,8 +101,28 @@ export class GetUserTransactionsUseCase {
         'PAYOUT_TO_BANK',
       ])
 
+      const vaultRefs = new Set(savingsTxs.map((t) => String(t.reference || '')))
+
       walletTxs = rawWalletTxs
-        .filter((wt) => visibleWalletTypes.has(wt.type) && Math.abs(Number(wt.amount || 0)) > 0)
+        .filter((wt) => {
+          if (!visibleWalletTypes.has(wt.type) || Math.abs(Number(wt.amount || 0)) <= 0) {
+            return false
+          }
+          // Deduplicate vault withdrawal payout ledger rows that are already represented by a
+          // `BREAKOUT_PAYOUT` / `LIQUIDATION_PENALTY` row on `upward_rent_vault_transaction`.
+          if (wt.type === 'PAYOUT_TO_BANK') {
+            const wtMeta = (wt.metadata as Record<string, unknown> | null) || {}
+            const sourceRef = typeof wtMeta.sourceReference === 'string' ? wtMeta.sourceReference : ''
+            const strippedRef = String(wt.reference || '').replace(/^PAYOUT_/, '')
+            if (
+              (sourceRef && vaultRefs.has(sourceRef)) ||
+              (strippedRef && vaultRefs.has(strippedRef))
+            ) {
+              return false
+            }
+          }
+          return true
+        })
         .map((wt) => {
           const meta = (wt.metadata as Record<string, unknown> | null) || {}
           const isDebit = wt.type === 'PAYOUT_TO_BANK' || Number(wt.amount) < 0

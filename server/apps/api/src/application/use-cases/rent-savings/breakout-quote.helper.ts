@@ -18,6 +18,7 @@ export interface ComputedBreakoutQuote {
   principalKobo: bigint
   accruedYieldKobo: bigint
   forfeitedYieldKobo: bigint
+  forfeitedSpreadKobo: bigint
   recalculatedYieldKobo: bigint
   recalculationAnnualRatePct: number
   adminFeeRatePct: number
@@ -31,6 +32,8 @@ export interface ComputedBreakoutQuote {
     upfrontPremiumObligationKobo: bigint
   } | null
   netPayoutKobo: bigint
+  uninvestedArmKobo: bigint
+  armRedeemableBalanceKobo: bigint
   depositCount: number
   weightedDaysHeld: number
   scorePenaltyPoints: number
@@ -134,14 +137,50 @@ export async function computeEarlyBreakoutQuote(params: {
     })
 
     principalKobo = replay.principalKobo
-    recalculatedYieldKobo = replay.recalculatedYieldKobo
+    // Never pay MORE yield on penalized early exit than actually accrued on the vault
+    // (protects against missed accrual cron days or uninvested ARM principal).
+    recalculatedYieldKobo =
+      vault.accruedYieldKobo >= 0n && replay.recalculatedYieldKobo > vault.accruedYieldKobo
+        ? vault.accruedYieldKobo
+        : replay.recalculatedYieldKobo
     adminFeeKobo = replay.adminFeeKobo
-    netPayoutKobo = replay.netPayoutKobo
+    const grossPayoutKobo = principalKobo + recalculatedYieldKobo
+    netPayoutKobo = grossPayoutKobo > adminFeeKobo ? grossPayoutKobo - adminFeeKobo : 0n
     recalculationAnnualRatePct = replay.recalculationAnnualRatePct
     adminFeeRatePct = replay.adminFeeRatePct
     depositCount = replay.depositCount
     weightedDaysHeld = replay.weightedDaysHeld
   }
+
+  const forfeitedSpreadKobo = isFlexible
+    ? 0n
+    : vault.accruedYieldKobo > recalculatedYieldKobo
+      ? vault.accruedYieldKobo - recalculatedYieldKobo
+      : 0n
+
+  // ARM-Backed Principal Guard: subtract pending/failed ARM SUBSCRIBE jobs so we never
+  // attempt to redeem MMF units that were never subscribed (funds still parked on DVA).
+  let uninvestedArmKobo = 0n
+  if (vault.investmentProvider === 'ARM' && prisma?.upward_arm_job?.findMany) {
+    const pendingJobs = await prisma.upward_arm_job
+      .findMany({
+        where: {
+          vaultId: vault.id,
+          jobType: 'SUBSCRIBE',
+          status: { in: ['QUEUED', 'PROCESSING', 'FAILED'] },
+        },
+        select: { amountKobo: true },
+      })
+      .catch(() => [])
+    for (const j of pendingJobs) {
+      if (j?.amountKobo && j.amountKobo > 0n) {
+        uninvestedArmKobo += j.amountKobo
+      }
+    }
+  }
+  const totalVaultBalance = vault.currentPrincipalKobo + vault.accruedYieldKobo
+  const armRedeemableBalanceKobo =
+    totalVaultBalance > uninvestedArmKobo ? totalVaultBalance - uninvestedArmKobo : 0n
 
   // Offset any active emergency advance
   const activeAdvance = await rentAdvanceRepo.findActiveByVaultId(vault.id)
@@ -208,6 +247,7 @@ export async function computeEarlyBreakoutQuote(params: {
     principalKobo,
     accruedYieldKobo: vault.accruedYieldKobo,
     forfeitedYieldKobo: isFlexible ? 0n : vault.accruedYieldKobo,
+    forfeitedSpreadKobo,
     recalculatedYieldKobo,
     recalculationAnnualRatePct,
     adminFeeRatePct,
@@ -217,6 +257,8 @@ export async function computeEarlyBreakoutQuote(params: {
     premiumRecoveryDeductionKobo,
     treasurySummary,
     netPayoutKobo,
+    uninvestedArmKobo,
+    armRedeemableBalanceKobo,
     depositCount,
     weightedDaysHeld,
     scorePenaltyPoints: isFlexible ? 0 : 30,

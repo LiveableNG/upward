@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
-import { AlertTriangle, CheckCircle2, X, Shield, Landmark } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils'
+import { AlertTriangle, CheckCircle2, X, Shield, Landmark, Clock } from 'lucide-react'
 import { useBreakoutPreview, useBreakoutRentVault } from '../hooks/useRentSavings'
 import type {
   BreakoutResultData,
@@ -25,6 +24,15 @@ interface FairBreakoutModalProps {
 }
 
 const emptySubscribe = () => () => {}
+
+function formatExactNaira(kobo: number): string {
+  const naira = kobo / 100
+  const hasKobo = Math.round(Math.abs(kobo)) % 100 !== 0
+  return `₦${naira.toLocaleString('en-NG', {
+    minimumFractionDigits: hasKobo ? 2 : 0,
+    maximumFractionDigits: hasKobo ? 2 : 0,
+  })}`
+}
 
 export function FairBreakoutModal({
   vaultId,
@@ -84,27 +92,29 @@ export function FairBreakoutModal({
   const adminFeeRatePct = preview?.admin_fee_rate_pct ?? (isRentProtec ? 1.5 : 0)
   const scorePenaltyPoints = preview?.score_penalty_points ?? (isFlexible ? 0 : 30)
 
-  const principalNaira = (preview?.original_principal_kobo ?? principalKobo) / 100
-  const accruedYieldNaira = (preview?.accrued_yield_kobo ?? accruedYieldKobo) / 100
-  const recalculatedYieldNaira = (preview?.recalculated_base_yield_kobo ?? (isFlexible ? accruedYieldKobo : 0)) / 100
-  const adminFeeNaira = (preview?.admin_fee_kobo ?? 0) / 100
-  const advanceDeductionNaira = (preview?.advance_deduction_kobo ?? 0) / 100
-  const premiumRecoveryNaira = (preview?.premium_recovery_deduction_kobo ?? 0) / 100
-  const netPayoutNaira =
+  const principalKoboDisplay = preview?.original_principal_kobo ?? principalKobo
+  const accruedYieldKoboDisplay = preview?.accrued_yield_kobo ?? accruedYieldKobo
+  const recalculatedYieldKoboDisplay =
+    preview?.recalculated_base_yield_kobo ?? (isFlexible ? accruedYieldKobo : 0)
+  const adminFeeKoboDisplay = preview?.admin_fee_kobo ?? 0
+  const advanceDeductionKoboDisplay = preview?.advance_deduction_kobo ?? 0
+  const premiumRecoveryKoboDisplay = preview?.premium_recovery_deduction_kobo ?? 0
+  const netPayoutKoboDisplay =
     preview !== undefined
-      ? preview.net_payout_kobo / 100
-      : Math.max(0, principalNaira + recalculatedYieldNaira - adminFeeNaira)
+      ? preview.net_payout_kobo
+      : Math.max(0, principalKoboDisplay + recalculatedYieldKoboDisplay - adminFeeKoboDisplay)
 
   const payoutDestination = breakoutResult?.payout_destination ?? preview?.payout_destination ?? null
+  const isProcessingRedemption = breakoutResult?.payout_status === 'PROCESSING_REDEMPTION'
 
   const handleExecuteBreakout = async () => {
     try {
       const res = await breakoutMutation.mutateAsync(vaultId)
       setBreakoutResult(res)
       toastSuccess(
-        isFlexible
-          ? 'Withdrawal executed! Funds sent to your verified account.'
-          : 'Early withdrawal executed. Funds liquidated.',
+        res.payout_status === 'PROCESSING_REDEMPTION'
+          ? 'Withdrawal submitted! Your funds are being redeemed to your bank account.'
+          : 'Withdrawal completed! Your funds have been sent to your bank account.',
       )
     } catch (err: unknown) {
       const error = err as { message?: string }
@@ -122,9 +132,17 @@ export function FairBreakoutModal({
       <div className="vault-modal-card" onClick={(e) => e.stopPropagation()}>
         <div className="vault-modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <AlertTriangle size={20} color={isFlexible ? 'var(--clay)' : 'var(--warning)'} />
+            {breakoutResult ? (
+              <CheckCircle2 size={20} color="#059669" />
+            ) : (
+              <AlertTriangle size={20} color={isFlexible ? 'var(--clay)' : 'var(--warning)'} />
+            )}
             <span className="vault-modal-title">
-              {isFlexible ? 'Withdraw Flexible Savings' : 'Withdraw Early Before Rent Day'}
+              {breakoutResult
+                ? 'Withdrawal Receipt'
+                : isFlexible
+                  ? 'Withdraw Flexible Savings'
+                  : 'Withdraw Early Before Rent Day'}
             </span>
           </div>
           <button
@@ -143,8 +161,8 @@ export function FairBreakoutModal({
                 width: 56,
                 height: 56,
                 borderRadius: '50%',
-                background: isFlexible ? 'rgba(5, 150, 105, 0.12)' : 'rgba(239, 68, 68, 0.1)',
-                color: isFlexible ? '#059669' : 'var(--error)',
+                background: 'rgba(5, 150, 105, 0.12)',
+                color: '#059669',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -156,17 +174,40 @@ export function FairBreakoutModal({
 
             <div>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text)' }}>
-                {isFlexible ? 'Withdrawal Successful' : 'Early Withdrawal Successful'}
+                {isProcessingRedemption ? 'Withdrawal Submitted' : 'Withdrawal Successful'}
               </h3>
               <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginTop: 4 }}>
                 Reference: {breakoutResult.breakout_reference}
               </p>
             </div>
 
+            {isProcessingRedemption && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '10px 12px',
+                  borderRadius: 'var(--radius-md, 10px)',
+                  background: 'var(--clay-faint)',
+                  fontSize: '0.8rem',
+                  color: 'var(--text-secondary)',
+                  textAlign: 'left',
+                  lineHeight: 1.4,
+                }}
+              >
+                <Clock size={16} color="var(--clay)" style={{ flexShrink: 0 }} />
+                <span>
+                  ARM Money Market Fund redemption queued. Funds settle to your verified bank
+                  account within 24 hours.
+                </span>
+              </div>
+            )}
+
             <div className="vault-fee-breakdown">
               <div className="vault-fee-breakdown__row">
                 <span>Your Savings Returned</span>
-                <span>{formatCurrency(breakoutResult.original_principal_kobo / 100, 'NGN')}</span>
+                <span>{formatExactNaira(breakoutResult.original_principal_kobo)}</span>
               </div>
               <div className="vault-fee-breakdown__row">
                 <span>
@@ -175,7 +216,7 @@ export function FairBreakoutModal({
                     : `Recalculated Interest (${breakoutResult.recalculation_rate_pct ?? recalcRatePct}% p.a.)`}
                 </span>
                 <span style={{ color: 'var(--success)' }}>
-                  +{formatCurrency(breakoutResult.recalculated_base_yield_kobo / 100, 'NGN')}
+                  +{formatExactNaira(breakoutResult.recalculated_base_yield_kobo)}
                 </span>
               </div>
               {breakoutResult.admin_fee_kobo > 0 && (
@@ -184,7 +225,7 @@ export function FairBreakoutModal({
                     Early Withdrawal Fee ({breakoutResult.admin_fee_rate_pct ?? adminFeeRatePct}%)
                   </span>
                   <span style={{ color: 'var(--error)' }}>
-                    -{formatCurrency(breakoutResult.admin_fee_kobo / 100, 'NGN')}
+                    -{formatExactNaira(breakoutResult.admin_fee_kobo)}
                   </span>
                 </div>
               )}
@@ -192,7 +233,7 @@ export function FairBreakoutModal({
                 <div className="vault-fee-breakdown__row">
                   <span>Emergency Cash Deducted</span>
                   <span style={{ color: 'var(--error)' }}>
-                    -{formatCurrency(breakoutResult.advance_deduction_kobo / 100, 'NGN')}
+                    -{formatExactNaira(breakoutResult.advance_deduction_kobo)}
                   </span>
                 </div>
               )}
@@ -200,19 +241,21 @@ export function FairBreakoutModal({
                 <div className="vault-fee-breakdown__row">
                   <span>Unrecovered Rent Protec Premium</span>
                   <span style={{ color: 'var(--error)' }}>
-                    -
-                    {formatCurrency(
-                      (breakoutResult.premium_recovery_deduction_kobo ?? 0) / 100,
-                      'NGN',
-                    )}
+                    -{formatExactNaira(breakoutResult.premium_recovery_deduction_kobo ?? 0)}
+                  </span>
+                </div>
+              )}
+              {payoutDestination && (
+                <div className="vault-fee-breakdown__row">
+                  <span>Destination</span>
+                  <span style={{ fontWeight: 600 }}>
+                    {payoutDestination.bank_name} ••••{payoutDestination.account_number.slice(-4)}
                   </span>
                 </div>
               )}
               <div className="vault-fee-breakdown__row vault-fee-breakdown__row--total">
-                <span>
-                  {payoutDestination ? `Sent to ${payoutDestination.bank_name}` : 'Total Payout'}
-                </span>
-                <span>{formatCurrency(breakoutResult.net_payout_kobo / 100, 'NGN')}</span>
+                <span>Total Payout</span>
+                <span>{formatExactNaira(breakoutResult.net_payout_kobo)}</span>
               </div>
             </div>
 
@@ -224,10 +267,10 @@ export function FairBreakoutModal({
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
             <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
               {isFlexible
-                ? `Your Flexible Save & Earn plan lets you withdraw anytime with ₦0 exit fee and 100% of your accrued ${annualRate}% p.a. interest intact.`
+                ? `Withdrawing closes this savings plan and returns 100% of your principal and accrued ${annualRate}% p.a. interest with ₦0 exit fee.`
                 : isFullLock
-                  ? `Withdrawing before 30 days to rent day adjusts your ${annualRate}% p.a. Full Lock rate to ${recalcRatePct}% p.a. compounded per deposit from each deposit date, with ₦0 admin fee.`
-                  : `Withdrawing from Rent Protec before rent day adjusts your returns to ${recalcRatePct}% p.a. compounded per deposit, applies a ${adminFeeRatePct}% admin fee, and offsets any unrecovered insurance premium.`}
+                  ? `Withdrawing before 30 days to rent day closes this plan and adjusts your ${annualRate}% p.a. Full Lock rate to ${recalcRatePct}% p.a. compounded per deposit from each deposit date, with ₦0 admin fee.`
+                  : `Withdrawing from Rent Protec before rent day closes this plan, adjusts returns to ${recalcRatePct}% p.a. compounded per deposit, applies a ${adminFeeRatePct}% admin fee, and offsets any unrecovered insurance premium.`}
             </p>
 
             {previewQuery.isLoading ? (
@@ -258,13 +301,15 @@ export function FairBreakoutModal({
                 <div className="vault-fee-breakdown">
                   <div className="vault-fee-breakdown__row">
                     <span>Amount Deposited</span>
-                    <span style={{ fontWeight: 600 }}>{formatCurrency(principalNaira, 'NGN')}</span>
+                    <span style={{ fontWeight: 600 }}>
+                      {formatExactNaira(principalKoboDisplay)}
+                    </span>
                   </div>
                   {!isFlexible && (
                     <div className="vault-fee-breakdown__row">
                       <span>Accrued Plan Interest ({annualRate}% p.a.)</span>
                       <span style={{ color: 'var(--text-muted)', textDecoration: 'line-through' }}>
-                        {formatCurrency(accruedYieldNaira, 'NGN')}
+                        {formatExactNaira(accruedYieldKoboDisplay)}
                       </span>
                     </div>
                   )}
@@ -275,7 +320,7 @@ export function FairBreakoutModal({
                         : `Recalculated Interest (${recalcRatePct}% p.a.)`}
                     </span>
                     <span style={{ color: 'var(--success)' }}>
-                      +{formatCurrency(recalculatedYieldNaira, 'NGN')}
+                      +{formatExactNaira(recalculatedYieldKoboDisplay)}
                     </span>
                   </div>
                   <div className="vault-fee-breakdown__row">
@@ -284,29 +329,33 @@ export function FairBreakoutModal({
                         ? `Early Withdrawal Fee (${adminFeeRatePct}%)`
                         : 'Withdrawal Fee'}
                     </span>
-                    <span style={{ color: adminFeeNaira > 0 ? 'var(--error)' : 'var(--success)' }}>
-                      {adminFeeNaira > 0 ? `-${formatCurrency(adminFeeNaira, 'NGN')}` : '₦0'}
+                    <span
+                      style={{
+                        color: adminFeeKoboDisplay > 0 ? 'var(--error)' : 'var(--success)',
+                      }}
+                    >
+                      {adminFeeKoboDisplay > 0 ? `-${formatExactNaira(adminFeeKoboDisplay)}` : '₦0'}
                     </span>
                   </div>
-                  {advanceDeductionNaira > 0 && (
+                  {advanceDeductionKoboDisplay > 0 && (
                     <div className="vault-fee-breakdown__row">
                       <span>Emergency Advance Offset</span>
                       <span style={{ color: 'var(--error)' }}>
-                        -{formatCurrency(advanceDeductionNaira, 'NGN')}
+                        -{formatExactNaira(advanceDeductionKoboDisplay)}
                       </span>
                     </div>
                   )}
-                  {premiumRecoveryNaira > 0 && (
+                  {premiumRecoveryKoboDisplay > 0 && (
                     <div className="vault-fee-breakdown__row">
                       <span>Unrecovered Rent Protec Premium</span>
                       <span style={{ color: 'var(--error)' }}>
-                        -{formatCurrency(premiumRecoveryNaira, 'NGN')}
+                        -{formatExactNaira(premiumRecoveryKoboDisplay)}
                       </span>
                     </div>
                   )}
                   <div className="vault-fee-breakdown__row vault-fee-breakdown__row--total">
                     <span>Exact Amount You Receive</span>
-                    <span>{formatCurrency(netPayoutNaira, 'NGN')}</span>
+                    <span>{formatExactNaira(netPayoutKoboDisplay)}</span>
                   </div>
                 </div>
 
@@ -321,14 +370,21 @@ export function FairBreakoutModal({
                       background: 'var(--surface)',
                       border: '1px solid var(--border)',
                       fontSize: '0.8125rem',
-                      color: 'var(--text-secondary)',
+                      lineHeight: 1.4,
                     }}
                   >
-                    <Landmark size={16} color="var(--clay)" style={{ flexShrink: 0 }} />
-                    <span>
-                      Payout to <strong>{payoutDestination.bank_name}</strong> (••••
-                      {payoutDestination.account_number.slice(-4)})
-                    </span>
+                    <Landmark size={17} color="var(--clay)" style={{ flexShrink: 0 }} />
+                    <div>
+                      {payoutDestination.account_name && (
+                        <div style={{ fontWeight: 700, color: 'var(--text)' }}>
+                          {payoutDestination.account_name}
+                        </div>
+                      )}
+                      <div style={{ color: 'var(--text-secondary)' }}>
+                        {payoutDestination.bank_name} · ••••
+                        {payoutDestination.account_number.slice(-4)}
+                      </div>
+                    </div>
                   </div>
                 )}
               </>

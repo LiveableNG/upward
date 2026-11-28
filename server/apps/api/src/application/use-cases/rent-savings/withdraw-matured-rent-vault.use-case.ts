@@ -97,6 +97,30 @@ export class WithdrawMaturedRentVaultUseCase {
       )
     }
 
+    // ARM-Backed Principal Guard: subtract pending/failed SUBSCRIBE jobs so we never over-redeem ARM units
+    let uninvestedArmKobo = 0n
+    if (vault.investmentProvider === 'ARM' && this.prisma?.upward_arm_job?.findMany) {
+      const pendingJobs = await this.prisma.upward_arm_job
+        .findMany({
+          where: {
+            vaultId: vault.id,
+            jobType: 'SUBSCRIBE',
+            status: { in: ['QUEUED', 'PROCESSING', 'FAILED'] },
+          },
+          select: { amountKobo: true },
+        })
+        .catch(() => [])
+      for (const j of pendingJobs) {
+        if (j?.amountKobo && j.amountKobo > 0n) {
+          uninvestedArmKobo += j.amountKobo
+        }
+      }
+    }
+    const armRedeemableBalanceKobo =
+      totalAccumulatedBalance > uninvestedArmKobo
+        ? totalAccumulatedBalance - uninvestedArmKobo
+        : 0n
+
     // Offset any active emergency advance
     let netPayoutKobo = totalAccumulatedBalance
     const activeAdvance = await this.rentAdvanceRepo.findActiveByVaultId(vault.id)
@@ -133,13 +157,14 @@ export class WithdrawMaturedRentVaultUseCase {
     }
 
     const withdrawalReference = `UPW_MATURED_${Date.now()}`
-    const nipSessionId = `999058${Date.now()}${Math.floor(100000 + Math.random() * 900000)}`
+    const willQueueArmRedeem = Boolean(vault.investmentProvider && armRedeemableBalanceKobo > 0n)
+    const payoutStatus = willQueueArmRedeem ? 'PROCESSING_REDEMPTION' : 'DISBURSED'
 
     let armWithdrawalId: string | undefined
     let armTransactionId: string | undefined
 
     if (this.prisma && this.armJobQueue) {
-      armTransactionId = vault.investmentProvider ? crypto.randomUUID() : undefined
+      armTransactionId = willQueueArmRedeem ? crypto.randomUUID() : undefined
       let queuedArmJob: {
         id: number
         uuid: string
@@ -185,7 +210,7 @@ export class WithdrawMaturedRentVaultUseCase {
             balanceAfterKobo: 0n,
             reference: withdrawalReference,
             channel: 'NIP_TRANSFER',
-            narration: `Matured rent savings withdrawn to ${verifiedBank.bankName} (${verifiedBank.accountNumber})`,
+            narration: `Matured rent savings withdrawn to ${verifiedBank.bankName} (••••${verifiedBank.accountNumber.slice(-4)})`,
             metadata: {
               withdrawalKind: 'MATURED_SELF_WITHDRAWAL',
               reason: dto?.reason || null,
@@ -193,18 +218,61 @@ export class WithdrawMaturedRentVaultUseCase {
               destinationBankName: verifiedBank.bankName,
               destinationAccountNumber: verifiedBank.accountNumber,
               destinationAccountName: verifiedBank.accountName,
-              nipSessionId,
               principalKobo: Number(freshVault.currentPrincipalKobo),
               accruedYieldKobo: Number(freshVault.accruedYieldKobo),
               advanceDeductionKobo: Number(advanceDeductionKobo),
               premiumRecoveryDeductionKobo: Number(premiumRecoveryDeductionKobo),
               netPayoutKobo: Number(netPayoutKobo),
-              armSyncStatus: freshVault.investmentProvider ? 'QUEUED' : 'NOT_APPLICABLE',
+              armRedeemAmountKobo: Number(armRedeemableBalanceKobo),
+              uninvestedArmKobo: Number(uninvestedArmKobo),
+              payoutStatus,
+              armSyncStatus: willQueueArmRedeem ? 'QUEUED' : 'NOT_APPLICABLE',
               ...(armTransactionId ? { armTransactionId } : {}),
             },
           },
           tx,
         )
+
+        // Track explicit outbound bank payout record on upward_wallet_transaction
+        if (netPayoutKobo > 0n && tx.upward_wallet && tx.upward_wallet_transaction) {
+          const userWallet = await tx.upward_wallet.upsert({
+            where: { userId },
+            create: { userId, balance: 0, isActive: true },
+            update: { isActive: true },
+          })
+          const payoutRef = `PAYOUT_${withdrawalReference}`
+          const existingPayout = await tx.upward_wallet_transaction.findUnique({
+            where: { reference: payoutRef },
+          })
+          if (!existingPayout) {
+            await tx.upward_wallet_transaction.create({
+              data: {
+                walletId: userWallet.id,
+                userId,
+                type: 'PAYOUT_TO_BANK',
+                status: willQueueArmRedeem ? 'PENDING' : 'SUCCESS',
+                amount: Number(netPayoutKobo) / 100,
+                reference: payoutRef,
+                narration: `Matured rent savings payout to ${verifiedBank.bankName} (••••${verifiedBank.accountNumber.slice(-4)})`,
+                metadata: {
+                  fundingType: 'PAYOUT_TO_BANK',
+                  holdingLocation: 'USER_BANK',
+                  routingTarget: 'USER_BANK_PAYOUT',
+                  routingStatus: willQueueArmRedeem ? 'HELD' : 'ROUTED',
+                  dvaAccountNumber: freshVault.dvaAccountNumber || null,
+                  sourceVaultId: freshVault.id,
+                  sourceReference: withdrawalReference,
+                  destinationBank: {
+                    bankCode: verifiedBank.bankCode,
+                    bankName: verifiedBank.bankName,
+                    accountNumber: verifiedBank.accountNumber,
+                    accountName: verifiedBank.accountName,
+                  },
+                } as any,
+              },
+            })
+          }
+        }
 
         await this.rentVaultRepo.update(
           freshVault.id,
@@ -216,8 +284,37 @@ export class WithdrawMaturedRentVaultUseCase {
           tx,
         )
 
+        // Advance active rental cycle by +1 year so clicking "Start Next Rent Savings Plan"
+        // pre-fills next year's due date cleanly instead of a date 15 days away.
+        if (tx.upward_user_property) {
+          const activeProp = await tx.upward_user_property
+            .findFirst({
+              where: { userId, isPastTenancy: false },
+              orderBy: { createdAt: 'desc' },
+            })
+            .catch(() => null)
+          if (activeProp?.rentEndDate) {
+            const prevEnd = new Date(activeProp.rentEndDate)
+            const nextEnd = new Date(prevEnd)
+            nextEnd.setUTCFullYear(nextEnd.getUTCFullYear() + 1)
+            await tx.upward_user_property
+              .update({
+                where: { id: activeProp.id },
+                data: {
+                  rentStartDate: prevEnd,
+                  rentEndDate: nextEnd,
+                  amountPaid: 0,
+                  amountRemaining: activeProp.rentAmount,
+                },
+              })
+              .catch(() => {})
+          }
+        }
+
         const freshBalance = freshVault.currentPrincipalKobo + freshVault.accruedYieldKobo
-        if (freshVault.investmentProvider && freshBalance > 0n && armTransactionId) {
+        const freshArmRedeemKobo =
+          freshBalance > uninvestedArmKobo ? freshBalance - uninvestedArmKobo : 0n
+        if (freshVault.investmentProvider && freshArmRedeemKobo > 0n && armTransactionId) {
           const createdJob = await tx.upward_arm_job.create({
             data: {
               idempotencyKey: `ARM_REDEEM__${withdrawalReference}`,
@@ -226,7 +323,7 @@ export class WithdrawMaturedRentVaultUseCase {
               vaultId: freshVault.id,
               userId,
               transactionId: withdrawalTx.id,
-              amountKobo: freshBalance,
+              amountKobo: freshArmRedeemKobo,
               reference: withdrawalReference,
               armTransactionId,
               maxAttempts: 5,
@@ -235,7 +332,7 @@ export class WithdrawMaturedRentVaultUseCase {
                 membershipId: freshVault.providerMembershipId || 'OMNIBUS_MASTER',
                 productCode: 'ARMMMF',
                 productAccountNumber: freshVault.providerAccountNumber || 'OMNIBUS_FLOAT_01',
-                amountKobo: freshBalance.toString(),
+                amountKobo: freshArmRedeemKobo.toString(),
                 armReference: `RED-${withdrawalReference}`,
                 reason: 'MATURED_SELF_WITHDRAWAL',
               } as any,
@@ -262,14 +359,14 @@ export class WithdrawMaturedRentVaultUseCase {
         })
       }
 
-      if (vault.investmentProvider && this.providerRegistry && totalAccumulatedBalance > 0n) {
+      if (vault.investmentProvider && this.providerRegistry && armRedeemableBalanceKobo > 0n) {
         try {
           const provider = this.providerRegistry.getProvider(vault.investmentProvider)
           const redeemRes = await provider.redeem({
             membershipId: vault.providerMembershipId || 'OMNIBUS_MASTER',
             productCode: 'ARMMMF',
             productAccountNumber: vault.providerAccountNumber || 'OMNIBUS_FLOAT_01',
-            amountKobo: totalAccumulatedBalance,
+            amountKobo: armRedeemableBalanceKobo,
             reference: withdrawalReference,
           })
           armWithdrawalId = redeemRes.withdrawalId
@@ -291,7 +388,7 @@ export class WithdrawMaturedRentVaultUseCase {
         balanceAfterKobo: 0n,
         reference: withdrawalReference,
         channel: 'NIP_TRANSFER',
-        narration: `Matured rent savings withdrawn to ${verifiedBank.bankName} (${verifiedBank.accountNumber})`,
+        narration: `Matured rent savings withdrawn to ${verifiedBank.bankName} (••••${verifiedBank.accountNumber.slice(-4)})`,
         metadata: {
           withdrawalKind: 'MATURED_SELF_WITHDRAWAL',
           reason: dto?.reason || null,
@@ -299,12 +396,14 @@ export class WithdrawMaturedRentVaultUseCase {
           destinationBankName: verifiedBank.bankName,
           destinationAccountNumber: verifiedBank.accountNumber,
           destinationAccountName: verifiedBank.accountName,
-          nipSessionId,
           principalKobo: Number(vault.currentPrincipalKobo),
           accruedYieldKobo: Number(vault.accruedYieldKobo),
           advanceDeductionKobo: Number(advanceDeductionKobo),
           premiumRecoveryDeductionKobo: Number(premiumRecoveryDeductionKobo),
           netPayoutKobo: Number(netPayoutKobo),
+          armRedeemAmountKobo: Number(armRedeemableBalanceKobo),
+          uninvestedArmKobo: Number(uninvestedArmKobo),
+          payoutStatus,
           ...(armWithdrawalId ? { armWithdrawalId } : {}),
           ...(armTransactionId ? { armTransactionId } : {}),
         },
@@ -357,17 +456,20 @@ export class WithdrawMaturedRentVaultUseCase {
       status: 'success',
       data: {
         withdrawal_reference: withdrawalReference,
-        nip_session_id: nipSessionId,
         principal_kobo: Number(vault.currentPrincipalKobo),
         accrued_yield_kobo: Number(vault.accruedYieldKobo),
         advance_deduction_kobo: Number(advanceDeductionKobo),
         premium_recovery_deduction_kobo: Number(premiumRecoveryDeductionKobo),
         net_payout_kobo: Number(netPayoutKobo),
+        arm_redemption_kobo: Number(armRedeemableBalanceKobo),
         destination_bank_code: verifiedBank.bankCode,
         destination_bank_name: verifiedBank.bankName,
         destination_account_number: verifiedBank.accountNumber,
         destination_account_name: verifiedBank.accountName,
-        payout_status: 'DISBURSED',
+        payout_status: payoutStatus,
+        estimated_settlement_window: willQueueArmRedeem
+          ? 'Within 24 hours (ARM MMF redemption)'
+          : 'Instant',
       },
     }
   }

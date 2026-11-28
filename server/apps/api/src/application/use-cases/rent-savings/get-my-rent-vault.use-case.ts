@@ -169,7 +169,12 @@ export class GetMyRentVaultUseCase {
           uuid: tx.uuid,
           type: tx.type,
           deposit_classification: depositCls || null,
-          direction: ['SETTLEMENT_DISBURSEMENT', 'BREAKOUT_PAYOUT', 'PENALTY_DEDUCTION'].includes(tx.type)
+          direction: [
+            'SETTLEMENT_DISBURSEMENT',
+            'BREAKOUT_PAYOUT',
+            'LIQUIDATION_PENALTY',
+            'PENALTY_DEDUCTION',
+          ].includes(tx.type)
             ? 'DEBIT'
             : 'CREDIT',
           amount_kobo: Number(tx.amountKobo),
@@ -184,11 +189,16 @@ export class GetMyRentVaultUseCase {
                     ? 'Activation Cashback'
                     : tx.type === 'BREAKOUT_PAYOUT'
                       ? 'Savings Withdrawal'
-                      : 'Savings Activity',
+                      : tx.type === 'LIQUIDATION_PENALTY'
+                        ? 'Early Savings Withdrawal'
+                        : 'Savings Activity',
           narration: tx.narration || 'Rent Savings Transaction',
           reference: tx.reference,
           receipt_url:
-            tx.type === 'SETTLEMENT_DISBURSEMENT' || tx.type === 'DEPOSIT'
+            tx.type === 'SETTLEMENT_DISBURSEMENT' ||
+            tx.type === 'DEPOSIT' ||
+            tx.type === 'BREAKOUT_PAYOUT' ||
+            tx.type === 'LIQUIDATION_PENALTY'
               ? `/api/v1/payments/rent-deposit/receipt/${tx.uuid}?format=pdf`
               : null,
           created_at: tx.createdAt ? new Date(tx.createdAt).toISOString() : now.toISOString(),

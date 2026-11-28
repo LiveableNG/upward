@@ -226,13 +226,15 @@ export function TransactionList() {
     }
     if (
       tx.transactionType === 'SAVINGS_YIELD' ||
-      tx.transactionType === 'SAVINGS_CASHBACK' ||
-      tx.transactionType === 'SAVINGS_WITHDRAWAL'
+      tx.transactionType === 'SAVINGS_CASHBACK'
     ) {
       toast.info('Recorded on your Rent Savings ledger.')
       return
     }
-    if (!isSuccessfulTxStatus(tx.status)) {
+    if (
+      !isSuccessfulTxStatus(tx.status) &&
+      !(tx.transactionType === 'SAVINGS_WITHDRAWAL' && isPendingTxStatus(tx.status))
+    ) {
       toast.info('Receipts are only available for successful payments.')
       return
     }
@@ -385,6 +387,13 @@ export function TransactionList() {
       return (
         <span className="tx-page__row-icon tx-page__row-icon--rent">
           <Home size={17} />
+        </span>
+      )
+    }
+    if (tx.transactionType === 'SAVINGS_WITHDRAWAL') {
+      return (
+        <span className="tx-page__row-icon tx-page__row-icon--rent">
+          <ArrowUpRight size={17} />
         </span>
       )
     }

@@ -146,7 +146,8 @@ export function useBreakoutRentVault() {
   return useMutation({
     mutationFn: (vaultId: string) => savingsService.breakoutRentVault(vaultId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: RENT_VAULT_QUERY_KEY })
+      // NOTE: Intentionally defer RENT_VAULT_QUERY_KEY invalidation until the user closes
+      // the breakout receipt modal so the modal is never unmounted before they read it.
       queryClient.invalidateQueries({ queryKey: RENT_VAULT_PREFILL_QUERY_KEY })
       queryClient.invalidateQueries({ queryKey: ['transactions'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
@@ -161,7 +162,8 @@ export function useWithdrawMaturedRentVault() {
     mutationFn: ({ vaultId, reason }: { vaultId: string; reason?: string }) =>
       savingsService.withdrawMaturedRentVault(vaultId, reason),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: RENT_VAULT_QUERY_KEY })
+      // NOTE: Intentionally defer RENT_VAULT_QUERY_KEY invalidation until the user closes
+      // the matured withdrawal receipt modal so the modal stays mounted cleanly.
       queryClient.invalidateQueries({ queryKey: RENT_VAULT_PREFILL_QUERY_KEY })
       queryClient.invalidateQueries({ queryKey: ['transactions'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })

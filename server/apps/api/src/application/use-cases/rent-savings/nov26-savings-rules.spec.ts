@@ -195,7 +195,32 @@ describe('Nov 26 Savings Rules — Breakeven Formula, Flexible Exit & DVA Classi
       expect(res.data.forfeited_yield_kobo).toBe(5_000_000)
       expect(res.data.net_payout_kobo).toBeLessThan(105_000_000)
       expect(createdTxs[0].type).toBe('LIQUIDATION_PENALTY')
+      expect(createdTxs[0].amountKobo).toBe(BigInt(res.data.net_payout_kobo))
       expect(scoreUpdates).toHaveLength(1)
+    })
+
+    it('rejects early breakout on a matured locked vault and caps recalculated yield at accrued yield', async () => {
+      // 1. Matured Full Lock vault (10 days to due date) cannot accidentally forfeit yield via /breakout
+      const { useCase: maturedUseCase } = buildBreakoutDeps({
+        productOption: 'SAVE_AND_EARN',
+        lockMode: 'LOCKED',
+        contractualDueDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+      })
+      await expect(maturedUseCase.execute(7, 'vault-flex-42')).rejects.toThrow(
+        'already reached maturity',
+      )
+
+      // 2. If cron missed accrual days (accruedYieldKobo = 100_000n), early exit never pays MORE than accruedYieldKobo
+      const { useCase: lowAccrualUseCase } = buildBreakoutDeps({
+        productOption: 'SAVE_AND_EARN',
+        lockMode: 'LOCKED',
+        contractualDueDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000),
+        currentPrincipalKobo: 100_000_000n,
+        accruedYieldKobo: 100_000n, // Only ₦1,000 accrued
+      })
+      const cappedRes = await lowAccrualUseCase.execute(7, 'vault-flex-42')
+      expect(cappedRes.data.recalculated_base_yield_kobo).toBe(100_000)
+      expect(cappedRes.data.net_payout_kobo).toBe(100_100_000)
     })
   })
 

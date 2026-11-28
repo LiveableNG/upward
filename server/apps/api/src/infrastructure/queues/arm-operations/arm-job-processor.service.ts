@@ -603,6 +603,9 @@ export class ArmJobProcessorService {
               metadata: {
                 ...prevMeta,
                 armSyncStatus: 'COMPLETED',
+                ...(prevMeta.payoutStatus === 'PROCESSING_REDEMPTION'
+                  ? { payoutStatus: 'DISBURSED' }
+                  : {}),
                 armWithdrawalId: outcome.armInstructionId,
                 armTransactionId: outcome.armTransactionId,
                 ...(resolvedMembershipId ? { armMembershipId: resolvedMembershipId } : {}),
@@ -611,6 +614,30 @@ export class ArmJobProcessorService {
               } as any,
             },
           })
+        }
+        // Mark any pending bank payout ledger row for this redemption as SUCCESS / ROUTED
+        if (job.reference && tx.upward_wallet_transaction) {
+          const payoutRef = `PAYOUT_${job.reference}`
+          const pendingPayout = await tx.upward_wallet_transaction
+            .findUnique({ where: { reference: payoutRef } })
+            .catch(() => null)
+          if (pendingPayout) {
+            const pMeta = (pendingPayout.metadata as Record<string, unknown>) || {}
+            await tx.upward_wallet_transaction
+              .update({
+                where: { id: pendingPayout.id },
+                data: {
+                  status: 'SUCCESS',
+                  metadata: {
+                    ...pMeta,
+                    routingStatus: 'ROUTED',
+                    routedAt: completedAt.toISOString(),
+                    armWithdrawalId: outcome.armInstructionId,
+                  } as any,
+                },
+              })
+              .catch(() => {})
+          }
         }
       } else if (job.jobType === 'ONBOARD') {
         const membershipId = outcome.result.customerMembershipId

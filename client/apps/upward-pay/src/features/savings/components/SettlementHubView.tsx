@@ -504,6 +504,10 @@ export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewPr
           principalKobo={vault.principal_kobo}
           accruedYieldKobo={vault.accrued_yield_kobo}
           onClose={() => setShowMaturedWithdrawModal(false)}
+          onCompleted={() => {
+            setShowMaturedWithdrawModal(false)
+            onRestartVault()
+          }}
           onRestartVault={onRestartVault}
         />
       )}

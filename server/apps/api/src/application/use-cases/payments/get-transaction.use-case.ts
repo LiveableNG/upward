@@ -187,12 +187,24 @@ export class GetTransactionUseCase {
           const tenantFirst = this.decrypt(vaultTx.user?.firstName)
           const tenantLast = this.decrypt(vaultTx.user?.lastName)
           const tenantName = `${tenantFirst} ${tenantLast}`.trim() || 'Tenant'
-          const landlordName =
-            settlement?.landlordName ||
-            meta.landlordName ||
-            (vaultTx.type === 'DEPOSIT' ? 'Upward Rent Savings' : 'Landlord')
-          const propertyAddress =
-            settlement?.propertyAddress || meta.propertyAddress || null
+          const isWithdrawal =
+            vaultTx.type === 'BREAKOUT_PAYOUT' || vaultTx.type === 'LIQUIDATION_PENALTY'
+          const destBankName = meta.destinationBankName || meta.payoutBank?.bankName || null
+          const destAcctNum = meta.destinationAccountNumber || meta.payoutBank?.accountNumber || null
+          const maskedDest = destBankName
+            ? destAcctNum
+              ? `${destBankName} (••••${String(destAcctNum).slice(-4)})`
+              : destBankName
+            : 'Upward Account'
+
+          const landlordName = isWithdrawal
+            ? maskedDest
+            : settlement?.landlordName ||
+              meta.landlordName ||
+              (vaultTx.type === 'DEPOSIT' ? 'Upward Rent Savings' : 'Landlord')
+          const propertyAddress = isWithdrawal
+            ? null
+            : settlement?.propertyAddress || meta.propertyAddress || null
 
           const resolvedRentEnd = vaultTx.vault?.contractualDueDate
             ? new Date(vaultTx.vault.contractualDueDate)
@@ -201,6 +213,74 @@ export class GetTransactionUseCase {
             ? new Date(resolvedRentEnd.getTime() - 365 * 86_400_000)
             : null
 
+          const withdrawalLineItems = isWithdrawal
+            ? [
+                ...(meta.principalKobo
+                  ? [
+                      {
+                        label: 'Principal Returned',
+                        name: 'Principal Returned',
+                        amount: Number(meta.principalKobo) / 100,
+                        category: 'Rent Savings',
+                      },
+                    ]
+                  : []),
+                ...(meta.recalculatedYieldKobo || meta.accruedYieldKobo
+                  ? [
+                      {
+                        label:
+                          meta.withdrawalKind === 'MATURED_SELF_WITHDRAWAL'
+                            ? 'Interest Kept (100%)'
+                            : `Interest Kept (${meta.recalculationRatePct ?? 10}% p.a.)`,
+                        name:
+                          meta.withdrawalKind === 'MATURED_SELF_WITHDRAWAL'
+                            ? 'Interest Kept (100%)'
+                            : `Interest Kept (${meta.recalculationRatePct ?? 10}% p.a.)`,
+                        amount:
+                          Number(
+                            meta.withdrawalKind === 'MATURED_SELF_WITHDRAWAL'
+                              ? meta.accruedYieldKobo
+                              : (meta.recalculatedYieldKobo ?? meta.accruedYieldKobo),
+                          ) / 100,
+                        category: 'Rent Savings',
+                      },
+                    ]
+                  : []),
+                ...(meta.adminFeeKobo && Number(meta.adminFeeKobo) > 0
+                  ? [
+                      {
+                        label: `Early Withdrawal Fee (${meta.adminFeeRatePct ?? 1.5}%)`,
+                        name: `Early Withdrawal Fee (${meta.adminFeeRatePct ?? 1.5}%)`,
+                        amount: -(Number(meta.adminFeeKobo) / 100),
+                        category: 'Rent Savings',
+                      },
+                    ]
+                  : []),
+              ]
+            : []
+
+          const resolvedLineItems =
+            withdrawalLineItems.length > 0
+              ? withdrawalLineItems
+              : [
+                  {
+                    label:
+                      vaultTx.type === 'SETTLEMENT_DISBURSEMENT'
+                        ? 'Rent Payment (from Savings)'
+                        : isWithdrawal
+                          ? 'Rent Savings Withdrawal'
+                          : 'Rent Savings Deposit',
+                    name:
+                      vaultTx.type === 'SETTLEMENT_DISBURSEMENT'
+                        ? 'Rent Payment (from Savings)'
+                        : isWithdrawal
+                          ? 'Rent Savings Withdrawal'
+                          : 'Rent Savings Deposit',
+                    amount: amountNaira,
+                    category: 'Rent Savings',
+                  },
+                ]
+
           return {
             id: vaultTx.id,
             uuid: vaultTx.uuid,
@@ -208,13 +288,20 @@ export class GetTransactionUseCase {
             amount: amountNaira,
             currency: 'NGN',
             status: isPartial ? 'PARTIAL' : 'PAID',
-            channel: vaultTx.type === 'SETTLEMENT_DISBURSEMENT' ? 'Rent Savings (NIP)' : 'Rent Savings (DVA)',
+            channel:
+              vaultTx.type === 'SETTLEMENT_DISBURSEMENT'
+                ? 'Rent Savings (NIP)'
+                : isWithdrawal
+                  ? 'Rent Savings (Bank Payout)'
+                  : 'Rent Savings (DVA)',
             reference: vaultTx.reference,
             narration:
               vaultTx.narration ||
               (vaultTx.type === 'SETTLEMENT_DISBURSEMENT'
                 ? `Rent payment to ${landlordName}`
-                : 'Rent Savings Deposit'),
+                : isWithdrawal
+                  ? `Rent savings withdrawal to ${maskedDest}`
+                  : 'Rent Savings Deposit'),
             createdAt: vaultTx.createdAt,
             paidAt: vaultTx.createdAt,
             tenantName,
@@ -229,20 +316,7 @@ export class GetTransactionUseCase {
             isPartial,
             rentStartDate: resolvedRentStart,
             rentEndDate: resolvedRentEnd,
-            lineItems: [
-              {
-                label:
-                  vaultTx.type === 'SETTLEMENT_DISBURSEMENT'
-                    ? 'Rent Payment (from Savings)'
-                    : 'Rent Savings Deposit',
-                name:
-                  vaultTx.type === 'SETTLEMENT_DISBURSEMENT'
-                    ? 'Rent Payment (from Savings)'
-                    : 'Rent Savings Deposit',
-                amount: amountNaira,
-                category: 'Rent Savings',
-              },
-            ],
+            lineItems: resolvedLineItems,
             metadata: {
               ...meta,
               nipSessionId: settlement?.nipSessionId || meta.nipSessionId || null,

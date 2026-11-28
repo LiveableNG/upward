@@ -6,6 +6,7 @@ describe('WithdrawMaturedRentVaultUseCase — Matured Tenant Self-Withdrawal (T-
     bankDetails?: Record<string, any> | null
     activeAdvance?: Record<string, any> | null
     unrecoveredPremiumKobo?: bigint
+    uninvestedArmJobs?: Array<{ amountKobo: bigint }>
   }) => {
     const now = new Date()
     const dueIn15Days = new Date(now.getTime() + 15 * 24 * 60 * 60 * 1000)
@@ -68,6 +69,9 @@ describe('WithdrawMaturedRentVaultUseCase — Matured Tenant Self-Withdrawal (T-
     const prisma: any = {
       upward_user_bank_details: {
         findUnique: jest.fn().mockResolvedValue(verifiedBank),
+      },
+      upward_arm_job: {
+        findMany: jest.fn().mockResolvedValue(options?.uninvestedArmJobs ?? []),
       },
       upward_vault_treasury_summary: {
         findUnique: jest
@@ -138,7 +142,8 @@ describe('WithdrawMaturedRentVaultUseCase — Matured Tenant Self-Withdrawal (T-
     expect(res.data.net_payout_kobo).toBe(205_000_000)
     expect(res.data.destination_bank_name).toBe('Guaranty Trust Bank')
     expect(res.data.destination_account_number).toBe('0123456789')
-    expect(res.data.payout_status).toBe('DISBURSED')
+    expect(res.data.payout_status).toBe('PROCESSING_REDEMPTION')
+    expect(res.data.arm_redemption_kobo).toBe(205_000_000)
 
     expect(createdTxs).toHaveLength(1)
     expect(createdTxs[0].type).toBe('BREAKOUT_PAYOUT')
@@ -200,5 +205,18 @@ describe('WithdrawMaturedRentVaultUseCase — Matured Tenant Self-Withdrawal (T-
     expect(res.data.net_payout_kobo).toBe(205_000_000 - 16_000_000 - 2_500_000)
     expect(treasuryLedgerEntries).toHaveLength(1)
     expect(treasuryLedgerEntries[0].entryType).toBe('MATURITY_RECOVERY')
+  })
+
+  it('subtracts uninvested QUEUED/FAILED ARM SUBSCRIBE jobs so it never over-redeems from ARM', async () => {
+    const { useCase, createdArmJobs } = buildDeps({
+      uninvestedArmJobs: [{ amountKobo: 50_000_000n }], // ₦500k still sitting on DVA
+    })
+
+    const res = await useCase.execute(12, 'vault-matured-99')
+
+    expect(res.data.net_payout_kobo).toBe(205_000_000)
+    expect(res.data.arm_redemption_kobo).toBe(155_000_000) // ₦2.05M - ₦500k uninvested
+    expect(createdArmJobs).toHaveLength(1)
+    expect(createdArmJobs[0].amountKobo).toBe(155_000_000n)
   })
 })

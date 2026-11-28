@@ -161,7 +161,7 @@ export function RentSavingsMainView() {
   const isVaultActive =
     vault && vault.lock_status !== 'SETTLED' && vault.lock_status !== 'BROKEN_OUT'
   const effectiveSettlementVault =
-    viewMode === 'SETTLEMENT' ? vault || pinnedSettlementVault : null
+    viewMode === 'SETTLEMENT' ? vault || pinnedSettlementVault : pinnedSettlementVault
 
   const isKycRequired = Boolean(
     user &&
@@ -406,6 +406,8 @@ export function RentSavingsMainView() {
             {viewMode === 'DASHBOARD' && (
               <VaultDashboardView
                 vault={activeVaultForView}
+                onPinVault={() => setPinnedSettlementVault(activeVaultForView)}
+                onUnpinVault={() => setPinnedSettlementVault(null)}
                 onGoToSettlementHub={() => {
                   setPinnedSettlementVault(activeVaultForView)
                   setViewMode('SETTLEMENT')

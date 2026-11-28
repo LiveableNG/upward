@@ -124,8 +124,10 @@ export interface BreakoutResultData {
   breakout_reference: string
   tier?: 'FLEXIBLE' | 'FULL_LOCK' | 'RENT_PROTEC'
   lock_mode?: SavingsLockMode
+  payout_status?: string
   original_principal_kobo: number
   forfeited_yield_kobo: number
+  forfeited_spread_kobo?: number
   recalculated_base_yield_kobo: number
   recalculation_rate_pct?: number
   admin_fee_rate_pct?: number
@@ -133,6 +135,7 @@ export interface BreakoutResultData {
   advance_deduction_kobo: number
   premium_recovery_deduction_kobo?: number
   net_payout_kobo: number
+  arm_redemption_kobo?: number
   deposit_count?: number
   weighted_days_held?: number
   score_penalty_points?: number
@@ -141,17 +144,19 @@ export interface BreakoutResultData {
 
 export interface MaturedWithdrawalResultData {
   withdrawal_reference: string
-  nip_session_id: string
+  nip_session_id?: string
   principal_kobo: number
   accrued_yield_kobo: number
   advance_deduction_kobo: number
   premium_recovery_deduction_kobo: number
   net_payout_kobo: number
+  arm_redemption_kobo?: number
   destination_bank_code: string
   destination_bank_name: string
   destination_account_number: string
   destination_account_name: string
   payout_status: string
+  estimated_settlement_window?: string
 }
 
 export interface EmergencyAdvanceResultData {

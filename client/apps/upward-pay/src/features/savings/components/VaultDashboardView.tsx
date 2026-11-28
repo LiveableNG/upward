@@ -117,12 +117,16 @@ interface VaultDashboardViewProps {
   }
   onGoToSettlementHub?: () => void
   onRestartVault?: () => void
+  onPinVault?: () => void
+  onUnpinVault?: () => void
 }
 
 export function VaultDashboardView({
   vault,
   onGoToSettlementHub,
   onRestartVault,
+  onPinVault,
+  onUnpinVault,
 }: VaultDashboardViewProps) {
   const isInitialPrompt = vault.current_balance_kobo === 0
   const [fundModalMode, setFundModalMode] = useState<VaultFundingMode>(() =>
@@ -591,71 +595,106 @@ export function VaultDashboardView({
         )}
 
         <div className="vault-dashboard__actions">
-          {!isOptInOnly && !monthTargetMet && (
-            <button
-              type="button"
-              className="vault-btn-primary"
-              onClick={() =>
-                openFundingModal(
-                  currentBalanceNaira === 0 || isPendingInitialDeposit
-                    ? 'INITIAL_DEPOSIT'
-                    : 'MONTHLY',
-                )
-              }
-            >
-              <PlusCircle size={17} />
-              <span>{monthlyButtonLabel}</span>
-            </button>
+          {canSettleLandlord && monthTargetMet ? (
+            <>
+              <button
+                type="button"
+                className="vault-btn-primary"
+                onClick={onGoToSettlementHub}
+              >
+                <span>Pay Landlord</span>
+                <ArrowRight size={16} />
+              </button>
+              {!isOptInOnly && (
+                <button
+                  type="button"
+                  className="vault-btn-secondary"
+                  onClick={() => openFundingModal('EXTRA_TOPUP')}
+                >
+                  <span>Top up any amount</span>
+                </button>
+              )}
+            </>
+          ) : (
+            <>
+              {!isOptInOnly && !monthTargetMet && (
+                <button
+                  type="button"
+                  className="vault-btn-primary"
+                  onClick={() =>
+                    openFundingModal(
+                      currentBalanceNaira === 0 || isPendingInitialDeposit
+                        ? 'INITIAL_DEPOSIT'
+                        : 'MONTHLY',
+                    )
+                  }
+                >
+                  <PlusCircle size={17} />
+                  <span>{monthlyButtonLabel}</span>
+                </button>
+              )}
+
+              {!isOptInOnly && monthTargetMet && (
+                <button
+                  type="button"
+                  className="vault-btn-primary"
+                  onClick={() => openFundingModal('EXTRA_TOPUP')}
+                >
+                  <span>Top up any amount</span>
+                </button>
+              )}
+
+              {canSettleLandlord && (
+                <button
+                  type="button"
+                  className="vault-btn-secondary"
+                  onClick={onGoToSettlementHub}
+                >
+                  <span>Pay Landlord</span>
+                  <ArrowRight size={16} />
+                </button>
+              )}
+
+              {!isOptInOnly && currentBalanceNaira > 0 && !monthTargetMet && (
+                <button
+                  type="button"
+                  className="vault-dashboard__text-action"
+                  onClick={() => openFundingModal('EXTRA_TOPUP')}
+                >
+                  Top up any amount
+                </button>
+              )}
+            </>
           )}
 
-          {!isOptInOnly && monthTargetMet && (
-            <button
-              type="button"
-              className="vault-btn-primary"
-              onClick={() => openFundingModal('EXTRA_TOPUP')}
-            >
-              <span>Top up any amount</span>
-            </button>
-          )}
-
-          {canSettleLandlord && (
-            <button
-              type="button"
-              className="vault-btn-secondary"
-              onClick={onGoToSettlementHub}
-            >
-              <span>Pay Landlord</span>
-              <ArrowRight size={16} />
-            </button>
-          )}
-
-          {!isOptInOnly && currentBalanceNaira > 0 && !monthTargetMet && (
+          {currentBalanceNaira > 0 && daysRemaining <= 30 && (
             <button
               type="button"
               className="vault-dashboard__text-action"
-              onClick={() => openFundingModal('EXTRA_TOPUP')}
-            >
-              Top up any amount
-            </button>
-          )}
-
-          {!isOptInOnly && currentBalanceNaira > 0 && daysRemaining <= 30 && (
-            <button
-              type="button"
-              className="vault-dashboard__text-action"
-              onClick={() => setShowMaturedWithdrawModal(true)}
+              onClick={() => {
+                onPinVault?.()
+                setShowMaturedWithdrawModal(true)
+              }}
             >
               Withdraw to My Bank (₦0 Fee)
             </button>
           )}
 
-          {!isOptInOnly && currentBalanceNaira > 0 && daysRemaining > 30 && (
+          {currentBalanceNaira > 0 && daysRemaining > 30 && (
             <button
               type="button"
               className="vault-dashboard__text-action"
-              onClick={() => setShowBreakoutModal(true)}
+              style={
+                isFlexiblePlan
+                  ? undefined
+                  : { color: 'var(--text-muted)', fontSize: '0.8125rem' }
+              }
+              onClick={() => {
+                onPinVault?.()
+                setShowBreakoutModal(true)
+              }}
             >
-              {isFlexiblePlan ? 'Withdraw Savings (₦0 Fee)' : 'Withdraw Early'}
+              {isFlexiblePlan ? 'Withdraw Savings (₦0 Fee)' : 'Need your money early? Withdraw'}
             </button>
           )}
         </div>
@@ -898,7 +937,10 @@ export function VaultDashboardView({
             vault.product_option || (vault.is_rent_protec ? 'RENT_PROTEC' : 'SAVE_AND_EARN')
           }
           annualRatePct={savingsAnnualRatePct}
-          onClose={() => setShowBreakoutModal(false)}
+          onClose={() => {
+            setShowBreakoutModal(false)
+            onUnpinVault?.()
+          }}
           onCompleted={onRestartVault}
         />
       )}
@@ -908,7 +950,11 @@ export function VaultDashboardView({
           vaultId={vault.vault_id}
           principalKobo={vault.principal_kobo ?? vault.current_balance_kobo}
           accruedYieldKobo={vault.accrued_yield_kobo ?? 0}
-          onClose={() => setShowMaturedWithdrawModal(false)}
+          onClose={() => {
+            setShowMaturedWithdrawModal(false)
+            onUnpinVault?.()
+          }}
+          onCompleted={onRestartVault}
           onRestartVault={onRestartVault}
         />
       )}
