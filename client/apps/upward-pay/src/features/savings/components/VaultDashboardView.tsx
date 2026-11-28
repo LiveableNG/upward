@@ -206,32 +206,49 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
   const isTargetReachedEarly = Boolean(
     vault.is_target_reached_early || onTrackStatus === 'TARGET_REACHED',
   )
+  const plannedInitialDepositNaira = Math.round((vault.initial_deposit_kobo ?? 0) / 100)
+  const isPendingInitialDeposit =
+    vault.plan_pattern === 'INITIAL_DEPOSIT' &&
+    plannedInitialDepositNaira > 0 &&
+    currentBalanceNaira < plannedInitialDepositNaira &&
+    !isTargetReachedEarly
+  const remainingInitialDepositNaira = isPendingInitialDeposit
+    ? Math.max(0, Math.round(plannedInitialDepositNaira - currentBalanceNaira))
+    : 0
   const isBehindPlan =
-    currentBalanceNaira > 0 && !isTargetReachedEarly && onTrackStatus === 'BEHIND'
+    currentBalanceNaira > 0 &&
+    !isPendingInitialDeposit &&
+    !isTargetReachedEarly &&
+    onTrackStatus === 'BEHIND'
   const suggestedDepositTodayNaira =
     vault.suggested_deposit_today_kobo !== undefined && vault.suggested_deposit_today_kobo > 0
       ? Math.round(vault.suggested_deposit_today_kobo / 100)
-      : currentMonthRemainingNaira > 0
-        ? currentMonthRemainingNaira
-        : plannedMonthlyNaira
+      : isPendingInitialDeposit
+        ? remainingInitialDepositNaira
+        : currentMonthRemainingNaira > 0
+          ? currentMonthRemainingNaira
+          : plannedMonthlyNaira
   const monthTargetMet =
     isTargetReachedEarly ||
-    (currentBalanceNaira > 0 &&
+    (!isPendingInitialDeposit &&
+      currentBalanceNaira > 0 &&
       plannedMonthlyNaira > 0 &&
       !isBehindPlan &&
       (currentMonthFulfilled || currentMonthRemainingNaira <= 0))
   const monthlyButtonLabel =
     currentBalanceNaira === 0
       ? 'Pay Initial Deposit'
-      : isBehindPlan && suggestedDepositTodayNaira > 0
-        ? `Save ${formatCurrency(suggestedDepositTodayNaira, 'NGN')} to catch up`
-        : currentMonthRemainingNaira > 0 && currentMonthRemainingNaira < plannedMonthlyNaira
-          ? `Save ${formatCurrency(currentMonthRemainingNaira, 'NGN')} to stay on plan`
-          : suggestedDepositTodayNaira > 0
-            ? `Save ${formatCurrency(suggestedDepositTodayNaira, 'NGN')} to stay on plan`
-            : plannedMonthlyNaira > 0
-              ? `Save ${formatCurrency(plannedMonthlyNaira, 'NGN')} to stay on plan`
-              : 'Save to stay on plan'
+      : isPendingInitialDeposit && remainingInitialDepositNaira > 0
+        ? `Complete Initial Deposit (${formatCurrency(remainingInitialDepositNaira, 'NGN')})`
+        : isBehindPlan && suggestedDepositTodayNaira > 0
+          ? `Save ${formatCurrency(suggestedDepositTodayNaira, 'NGN')} to catch up`
+          : currentMonthRemainingNaira > 0 && currentMonthRemainingNaira < plannedMonthlyNaira
+            ? `Save ${formatCurrency(currentMonthRemainingNaira, 'NGN')} to stay on plan`
+            : suggestedDepositTodayNaira > 0
+              ? `Save ${formatCurrency(suggestedDepositTodayNaira, 'NGN')} to stay on plan`
+              : plannedMonthlyNaira > 0
+                ? `Save ${formatCurrency(plannedMonthlyNaira, 'NGN')} to stay on plan`
+                : 'Save to stay on plan'
   const preferredPaydayDay = vault.preferred_payday_day ?? 28
   const currentMonthShort = new Date(nowTimestamp).toLocaleDateString('en-GB', { month: 'short' })
 
@@ -391,7 +408,7 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
                   fontWeight: 700,
                 }}
               >
-                Rent Protec • {savingsAnnualRatePct}% p.a.
+                Rent Protec • Up to {savingsAnnualRatePct}% p.a.
               </span>
             ) : isFlexiblePlan ? (
               <span
@@ -408,7 +425,7 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
                 }}
               >
                 <Unlock size={11} />
-                Flexible • {savingsAnnualRatePct}% p.a.
+                Flexible • Up to {savingsAnnualRatePct}% p.a.
               </span>
             ) : (
               <span
@@ -421,7 +438,7 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
                   fontWeight: 700,
                 }}
               >
-                Full Lock • {savingsAnnualRatePct}% p.a.
+                Full Lock • Up to {savingsAnnualRatePct}% p.a.
               </span>
             )}
             <span className="vault-dashboard__countdown-pill">{daysRemaining} Days Left</span>
@@ -477,6 +494,11 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
                   <>
                     Rent target <strong>reached</strong>
                   </>
+                ) : isPendingInitialDeposit ? (
+                  <>
+                    Initial deposit{' '}
+                    <strong>{formatCurrency(remainingInitialDepositNaira, 'NGN')}</strong> left
+                  </>
                 ) : isBehindPlan && suggestedDepositTodayNaira > 0 ? (
                   <>
                     Stay on plan <strong>{formatCurrency(suggestedDepositTodayNaira, 'NGN')}</strong>
@@ -489,7 +511,7 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
               </span>
               <span
                 className={`vault-monthly-strip__pill ${
-                  isTargetReachedEarly || currentMonthFulfilled
+                  isTargetReachedEarly || (!isPendingInitialDeposit && currentMonthFulfilled)
                     ? 'vault-monthly-strip__pill--paid'
                     : isBehindPlan
                       ? 'vault-monthly-strip__pill--behind'
@@ -498,20 +520,27 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
               >
                 {isTargetReachedEarly
                   ? 'Target reached'
-                  : isBehindPlan
-                    ? 'Catch-up due'
-                    : currentMonthFulfilled
-                      ? `Paid for ${currentMonthShort}`
-                      : currentMonthRemainingNaira > 0 &&
-                          currentMonthRemainingNaira < plannedMonthlyNaira
-                        ? `${formatCurrency(currentMonthRemainingNaira, 'NGN')} left`
-                        : 'This month'}
+                  : isPendingInitialDeposit
+                    ? 'Upfront due'
+                    : isBehindPlan
+                      ? 'Catch-up due'
+                      : currentMonthFulfilled
+                        ? `Paid for ${currentMonthShort}`
+                        : currentMonthRemainingNaira > 0 &&
+                            currentMonthRemainingNaira < plannedMonthlyNaira
+                          ? `${formatCurrency(currentMonthRemainingNaira, 'NGN')} left`
+                          : 'This month'}
               </span>
             </div>
             {isTargetReachedEarly ? (
               <div className="vault-monthly-strip__note">
-                Your balance keeps earning {savingsAnnualRatePct}% p.a. compounded daily until rent
-                day.
+                Your balance keeps earning an indicative {savingsAnnualRatePct}% p.a. (ARM MMF,
+                compounded daily) until rent day.
+              </div>
+            ) : isPendingInitialDeposit ? (
+              <div className="vault-monthly-strip__note">
+                Finish your {formatCurrency(plannedInitialDepositNaira, 'NGN')} upfront deposit to
+                keep your {formatCurrency(plannedMonthlyNaira, 'NGN')}/mo plan on schedule.
               </div>
             ) : isBehindPlan ? (
               <div className="vault-monthly-strip__note">
@@ -558,7 +587,11 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
               type="button"
               className="vault-btn-primary"
               onClick={() =>
-                openFundingModal(currentBalanceNaira === 0 ? 'INITIAL_DEPOSIT' : 'MONTHLY')
+                openFundingModal(
+                  currentBalanceNaira === 0 || isPendingInitialDeposit
+                    ? 'INITIAL_DEPOSIT'
+                    : 'MONTHLY',
+                )
               }
             >
               <PlusCircle size={17} />
@@ -763,6 +796,10 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
         recommendedAmountNaira={(() => {
           const periodicNaira = plannedMonthlyNaira
 
+          if (isPendingInitialDeposit && remainingInitialDepositNaira > 0) {
+            return remainingInitialDepositNaira
+          }
+
           if (vault.current_balance_kobo > 0) {
             if (isBehindPlan && suggestedDepositTodayNaira > 0) {
               return suggestedDepositTodayNaira
@@ -819,7 +856,7 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
         productOption={vault.product_option || (vault.is_rent_protec ? 'RENT_PROTEC' : 'SAVE_AND_EARN')}
         planPattern={vault.plan_pattern || 'INITIAL_DEPOSIT'}
         currentBalanceNaira={currentBalanceNaira}
-        isInitialDeposit={vault.current_balance_kobo === 0}
+        isInitialDeposit={vault.current_balance_kobo === 0 || isPendingInitialDeposit}
       />
     </div>
   )

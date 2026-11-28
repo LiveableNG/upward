@@ -271,15 +271,19 @@ export class GetMyRentVaultUseCase {
     const plannedInitialDepositKobo = BigInt((vault as any).initialDepositKobo ?? 0n)
     const storedPlannedMonthlyKobo = BigInt((vault as any).plannedMonthlyDepositKobo ?? 0n)
     const preferredPaydayDay = vault.paydayDayOfMonth ?? 28
+    const activeCompoundingDaysForThreshold =
+      RentSavingsCalculatorEngine.getRentProtecActiveCompoundingDays(daysRemaining)
     const minimumInitialDepositPct =
       resolvedProductOption === 'RENT_PROTEC'
-        ? RentSavingsCalculatorEngine.getRentProtecActivationThresholdPct(daysRemaining)
+        ? RentSavingsCalculatorEngine.getRentProtecActivationThresholdPct(
+            activeCompoundingDaysForThreshold,
+          )
         : 0
     const minimumInitialDepositKobo =
       resolvedProductOption === 'RENT_PROTEC'
         ? RentSavingsCalculatorEngine.getRentProtecActivationThresholdKobo(
             vault.targetAmountKobo,
-            daysRemaining,
+            activeCompoundingDaysForThreshold,
           )
         : 0n
 
@@ -341,12 +345,15 @@ export class GetMyRentVaultUseCase {
         ? storedPlannedMonthlyKobo
         : BigInt(Math.max(0, Math.round(payLessProjection.periodic_deposit_kobo)))
 
-    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
+    const { cycleStartUtc } = RentSavingsCalculatorEngine.getCurrentCycleWindowUtc(
+      now,
+      preferredPaydayDay,
+    )
     let currentMonthPaidKobo = 0n
     for (const tx of vaultTransactions) {
       if (tx.type !== 'DEPOSIT') continue
       const txDate = tx.createdAt ? new Date(tx.createdAt) : null
-      if (!txDate || txDate < monthStart) continue
+      if (!txDate || txDate < cycleStartUtc) continue
       const cls = (tx.metadata as any)?.depositClassification
       if (cls === 'MONTHLY_CONTRIBUTION' || cls === 'PARTIAL_MONTHLY' || !cls) {
         currentMonthPaidKobo += BigInt(tx.amountKobo ?? 0)
@@ -357,7 +364,7 @@ export class GetMyRentVaultUseCase {
     const currentMonthFulfilled =
       plannedMonthlyKobo > 0n && currentMonthPaidKobo >= plannedMonthlyKobo
 
-    // Live exact-calendar dynamic daily target (reflects today's date, actual balance, and missed/early compounding)
+    // Live exact-calendar dynamic daily target (reflects today's date, actual balance, plan pattern, and missed/early compounding)
     const dynamicDailyTarget =
       daysRemaining > 0 && vault.targetAmountKobo > 0n
         ? RentSavingsCalculatorEngine.calculateDynamicDailyTarget({
@@ -366,6 +373,8 @@ export class GetMyRentVaultUseCase {
             contractualDueDate: vault.contractualDueDate,
             annualNetYieldRate: annualYieldDecimal,
             plannedMonthlyKobo,
+            planPattern: resolvedPlanPattern,
+            initialDepositKobo: plannedInitialDepositKobo,
             paydayDayOfMonth: preferredPaydayDay,
             asOfDate: now,
             maxSavingsMonths: rates?.maxSavingsMonths ?? 11,

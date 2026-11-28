@@ -473,19 +473,22 @@ export class ProcessPaystackSavingsWebhookUseCase {
         const currentBalanceKobo = freshVault.currentPrincipalKobo + freshVault.accruedYieldKobo
         const newBalanceKobo = currentBalanceKobo + amountKobo
         const now = new Date()
-        const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1))
+        const { cycleStartUtc } = RentSavingsCalculatorEngine.getCurrentCycleWindowUtc(
+          now,
+          freshVault.paydayDayOfMonth ?? 28,
+        )
 
         // 3b. Deterministic Deposit Classification (handles direct bank transfers & dual flows):
         //     - INITIAL_DEPOSIT when first deposit on an upfront-deposit vault
-        //     - MONTHLY_CONTRIBUTION / PARTIAL_MONTHLY until this calendar month's target is filled (keeps plannedMonthlyDepositKobo fixed)
-        //     - EXTRA_TOPUP once this month is already filled (or explicitly chosen) -> reduces future monthly payments
+        //     - MONTHLY_CONTRIBUTION / PARTIAL_MONTHLY until this payday cycle's target is filled (keeps plannedMonthlyDepositKobo fixed)
+        //     - EXTRA_TOPUP once this payday cycle is already filled (or explicitly chosen) -> reduces future monthly payments
         let currentMonthAppliedKobo = 0n
         if (tx.upward_rent_vault_transaction?.findMany) {
           const monthDeposits = await tx.upward_rent_vault_transaction.findMany({
             where: {
               vaultId: freshVault.id,
               type: 'DEPOSIT',
-              createdAt: { gte: monthStart },
+              createdAt: { gte: cycleStartUtc },
             },
             select: { amountKobo: true, metadata: true },
           })
@@ -596,12 +599,14 @@ export class ProcessPaystackSavingsWebhookUseCase {
                 (1000 * 60 * 60 * 24),
             ),
           )
+          const activeTermDays =
+            RentSavingsCalculatorEngine.getRentProtecActiveCompoundingDays(termDays)
           const thresholdPct =
-            RentSavingsCalculatorEngine.getRentProtecActivationThresholdPct(termDays)
+            RentSavingsCalculatorEngine.getRentProtecActivationThresholdPct(activeTermDays)
           const thresholdKobo =
             RentSavingsCalculatorEngine.getRentProtecActivationThresholdKobo(
               freshVault.targetAmountKobo,
-              termDays,
+              activeTermDays,
             )
 
           if (newPrincipalKobo >= thresholdKobo) {

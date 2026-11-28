@@ -91,21 +91,27 @@ export class RentSavingsCalculatorEngine {
   public static readonly RENT_PROTEC_TARGET_COST_DECIMAL = 0.0215 // 2.0% upfront premium + 0.15% safety buffer
 
   /**
-   * Algebraic breakeven deposit ratio for Rent Protec coverage activation:
-   *   d_min(T) = clamp((2 * c_target) / (s * (T / 365)) - 1, 0.20, 0.45)
+   * Algebraic breakeven deposit ratio for Rent Protec coverage activation over
+   * ACTUAL active compounding days (`T_active = max(1, daysToDueDate - 30)`):
+   *   d_min(T_active) = clamp((2 * c_target) / (s * (T_active / 365)) - 1, 0.20, 0.45)
    *
-   * - Guarantees zero loss / full spread recovery over term T at spread s.
+   * - Guarantees zero loss / full spread recovery over actual compounding horizon T_active at spread s.
    * - Floor 20% ensures Upward always holds >= 10x the 2% upfront insurance premium.
    * - Examples at s = 6.55%, c_target = 2.15%:
-   *   7-11 months (>= 210d) -> 20%
-   *   6 months (180d)       -> 33%
+   *   8-11 months (T_active >= 210d) -> 20%
+   *   7 months    (T_active = 180d)  -> 33%
+   *   6 months    (T_active = 150d)  -> 45% (clamped cap)
    */
+  static getRentProtecActiveCompoundingDays(daysToDueDate: number): number {
+    return Math.max(1, Math.round(daysToDueDate) - 30)
+  }
+
   static getRentProtecActivationThresholdPct(
-    daysRemaining: number,
+    activeCompoundingDays: number,
     spreadRateDecimal: number = RentSavingsCalculatorEngine.DEFAULT_ARM_SPREAD_DECIMAL,
     targetCostDecimal: number = RentSavingsCalculatorEngine.RENT_PROTEC_TARGET_COST_DECIMAL,
   ): number {
-    const safeDays = Math.max(1, daysRemaining)
+    const safeDays = Math.max(1, activeCompoundingDays)
     const safeSpread = Math.max(0.01, spreadRateDecimal)
     const rawRatio = (2 * targetCostDecimal) / (safeSpread * (safeDays / 365)) - 1
     const clampedRatio = Math.min(0.45, Math.max(0.2, rawRatio))
@@ -114,16 +120,57 @@ export class RentSavingsCalculatorEngine {
 
   static getRentProtecActivationThresholdKobo(
     targetAmountKobo: bigint,
-    daysRemaining: number,
+    activeCompoundingDays: number,
     spreadRateDecimal: number = RentSavingsCalculatorEngine.DEFAULT_ARM_SPREAD_DECIMAL,
     targetCostDecimal: number = RentSavingsCalculatorEngine.RENT_PROTEC_TARGET_COST_DECIMAL,
   ): bigint {
     const pct = this.getRentProtecActivationThresholdPct(
-      daysRemaining,
+      activeCompoundingDays,
       spreadRateDecimal,
       targetCostDecimal,
     )
     return BigInt(Math.round(Number(targetAmountKobo) * (pct / 100)))
+  }
+
+  /**
+   * Computes the user's current contribution cycle window anchored to their chosen
+   * `paydayDayOfMonth` (1..28) with a 5-day early-pay grace window:
+   *   Cycle N = [payday(N) - 5 days, payday(N+1) - 5 days)
+   *
+   * Example (payday = 28th):
+   * - Nov 23 .. Dec 22 belongs to the Nov 28 cycle, so paying on Nov 28 stays fulfilled on Dec 1.
+   * - Dec 23 .. Jan 22 belongs to the Dec 28 cycle.
+   */
+  static getCurrentCycleWindowUtc(
+    asOfDate: Date = new Date(),
+    paydayDayOfMonth: number = 28,
+  ): { cycleStartUtc: Date; cycleEndUtc: Date } {
+    const clampedDay = Math.min(28, Math.max(1, Math.round(paydayDayOfMonth || 28)))
+    const todayMs = this.toUtcMidnightMs(asOfDate)
+    const year = asOfDate.getUTCFullYear()
+    const month = asOfDate.getUTCMonth()
+    const graceMs = 5 * this.DAY_MS
+
+    const thisMonthCycleStartMs = Date.UTC(year, month, clampedDay) - graceMs
+    const nextMonthCycleStartMs = Date.UTC(year, month + 1, clampedDay) - graceMs
+    const prevMonthCycleStartMs = Date.UTC(year, month - 1, clampedDay) - graceMs
+
+    if (todayMs >= nextMonthCycleStartMs) {
+      return {
+        cycleStartUtc: new Date(nextMonthCycleStartMs),
+        cycleEndUtc: new Date(Date.UTC(year, month + 2, clampedDay) - graceMs),
+      }
+    }
+    if (todayMs >= thisMonthCycleStartMs) {
+      return {
+        cycleStartUtc: new Date(thisMonthCycleStartMs),
+        cycleEndUtc: new Date(nextMonthCycleStartMs),
+      }
+    }
+    return {
+      cycleStartUtc: new Date(prevMonthCycleStartMs),
+      cycleEndUtc: new Date(thisMonthCycleStartMs),
+    }
   }
 
   /**
@@ -272,6 +319,8 @@ export class RentSavingsCalculatorEngine {
     contractualDueDate: Date
     annualNetYieldRate: number
     plannedMonthlyKobo?: bigint
+    planPattern?: SavingsPlanPattern
+    initialDepositKobo?: bigint
     paydayDayOfMonth?: number
     asOfDate?: Date
     maxSavingsMonths?: number
@@ -283,6 +332,8 @@ export class RentSavingsCalculatorEngine {
       contractualDueDate,
       annualNetYieldRate,
       plannedMonthlyKobo = 0n,
+      planPattern = 'EQUAL',
+      initialDepositKobo = 0n,
       paydayDayOfMonth = 28,
       asOfDate = new Date(),
       maxSavingsMonths = 11,
@@ -328,19 +379,79 @@ export class RentSavingsCalculatorEngine {
         ? scheduledDates.slice(1)
         : scheduledDates
 
+    // INITIAL_DEPOSIT Day-1 / Pre-Upfront Handling:
+    // If the user chose an upfront deposit plan (e.g. ₦500k upfront + ₦120k/mo) and has not
+    // finished funding their upfront deposit yet (e.g. starting with ₦0 or ₦12k cashback),
+    // suggest completing the remaining upfront deposit rather than falsely flagging them BEHIND.
+    if (
+      planPattern === 'INITIAL_DEPOSIT' &&
+      initialDepositKobo > 0n &&
+      currentBalanceKobo < initialDepositKobo &&
+      activeCompoundingDays > 0
+    ) {
+      const remainingInitialKobo = initialDepositKobo - currentBalanceKobo
+      let futureGrowthSum = 0
+      for (const depMs of effectiveFutureDates) {
+        const d = Math.max(0, Math.round((unlockUtcMs - depMs) / this.DAY_MS))
+        futureGrowthSum += Math.pow(1 + dailyRate, d)
+      }
+      const fvWithInitial = Number(initialDepositKobo) * todayFactor
+      const deficitAfterInitial = Math.max(0, Number(targetAmountKobo) - fvWithInitial)
+      const neededMonthlyAfterInitial =
+        futureGrowthSum > 0 ? BigInt(Math.ceil(deficitAfterInitial / futureGrowthSum)) : 0n
+      const baselineMonthly =
+        plannedMonthlyKobo > 0n ? plannedMonthlyKobo : neededMonthlyAfterInitial
+      const projectedWithInitialAndMonthly =
+        fvWithInitial + Number(baselineMonthly) * futureGrowthSum
+      const projectedBalanceAtUnlockKobo = BigInt(Math.round(projectedWithInitialAndMonthly))
+      const totalAdditionalPrincipal =
+        remainingInitialKobo + baselineMonthly * BigInt(effectiveFutureDates.length)
+      const projectedRemainingYieldKobo =
+        projectedBalanceAtUnlockKobo > currentBalanceKobo + totalAdditionalPrincipal
+          ? projectedBalanceAtUnlockKobo - currentBalanceKobo - totalAdditionalPrincipal
+          : 0n
+
+      return {
+        activeCompoundingDays,
+        remainingScheduledDeposits: effectiveFutureDates.length,
+        dailyRate,
+        suggestedDepositTodayKobo: remainingInitialKobo,
+        catchUpTodayKobo: remainingInitialKobo,
+        spreadRemainingDepositKobo: neededMonthlyAfterInitial,
+        projectedBalanceAtUnlockKobo,
+        projectedRemainingYieldKobo,
+        onTrackStatus: 'ON_TRACK',
+        isTargetReachedEarly: false,
+      }
+    }
+
     // Option A: If depositing TODAY plus all remaining future scheduled paydays after the next one
     const tailDatesAfterToday =
       effectiveFutureDates.length > 1 ? effectiveFutureDates.slice(1) : []
+    const getWeight = (idx: number) =>
+      planPattern === 'STEP_UP'
+        ? Math.pow(1.08, idx)
+        : planPattern === 'ACCELERATED'
+          ? Math.max(0.4, 1 - 0.06 * idx)
+          : 1
+
     let tailGrowthSum = 0
-    for (const depMs of tailDatesAfterToday) {
+    let weightedTailSum = 0
+    for (let i = 0; i < tailDatesAfterToday.length; i++) {
+      const depMs = tailDatesAfterToday[i] ?? unlockUtcMs
       const d = Math.max(0, Math.round((unlockUtcMs - depMs) / this.DAY_MS))
-      tailGrowthSum += Math.pow(1 + dailyRate, d)
+      const factor = Math.pow(1 + dailyRate, d)
+      tailGrowthSum += factor
+      weightedTailSum += getWeight(i + 1) * factor
     }
 
     const deficitAtUnlock = Math.max(0, Number(targetAmountKobo) - fvCurrent)
 
-    // Uniform spread across (deposit today + tail scheduled paydays)
-    const spreadDenomToday = todayFactor + tailGrowthSum
+    // Uniform (or pattern-weighted) spread across (deposit today + tail scheduled paydays)
+    const spreadDenomToday =
+      planPattern === 'STEP_UP' || planPattern === 'ACCELERATED'
+        ? todayFactor + weightedTailSum
+        : todayFactor + tailGrowthSum
     const spreadRemainingDepositKobo =
       spreadDenomToday > 0 ? BigInt(Math.ceil(deficitAtUnlock / spreadDenomToday)) : 0n
 
@@ -354,9 +465,10 @@ export class RentSavingsCalculatorEngine {
 
     // Determine on-track status by comparing baseline plan outcome vs target rent
     let scheduledGrowthSum = 0
-    for (const depMs of effectiveFutureDates) {
+    for (let i = 0; i < effectiveFutureDates.length; i++) {
+      const depMs = effectiveFutureDates[i] ?? unlockUtcMs
       const d = Math.max(0, Math.round((unlockUtcMs - depMs) / this.DAY_MS))
-      scheduledGrowthSum += Math.pow(1 + dailyRate, d)
+      scheduledGrowthSum += getWeight(i) * Math.pow(1 + dailyRate, d)
     }
     const projectedAtBaseline = fvCurrent + Number(baselineMonthly) * scheduledGrowthSum
     const varianceNaira = (projectedAtBaseline - Number(targetAmountKobo)) / 100
@@ -368,19 +480,25 @@ export class RentSavingsCalculatorEngine {
       onTrackStatus = 'AHEAD'
     }
 
-    // Dynamic suggested amount to save today to stay aligned with the plan:
-    // - When BEHIND: show spreadRemainingDepositKobo (or catchUpToday if only 1 deposit left) so the user knows exact catch-up including missed interest.
-    // - When ON_TRACK / AHEAD: show spreadRemainingDepositKobo (which reflects today's exact compounding days).
     const suggestedDepositTodayKobo =
       currentMonthFulfilled
         ? 0n
         : spreadRemainingDepositKobo
 
     const projectedAtDynamic =
-      fvCurrent + Number(suggestedDepositTodayKobo) * todayFactor + Number(spreadRemainingDepositKobo) * tailGrowthSum
+      fvCurrent +
+      Number(suggestedDepositTodayKobo) * todayFactor +
+      Number(spreadRemainingDepositKobo) *
+        (planPattern === 'STEP_UP' || planPattern === 'ACCELERATED'
+          ? weightedTailSum
+          : tailGrowthSum)
     const projectedBalanceAtUnlockKobo = BigInt(Math.round(projectedAtDynamic))
-    const totalAdditionalPrincipal =
-      suggestedDepositTodayKobo + spreadRemainingDepositKobo * BigInt(tailDatesAfterToday.length)
+    let totalAdditionalPrincipal = suggestedDepositTodayKobo
+    for (let i = 0; i < tailDatesAfterToday.length; i++) {
+      totalAdditionalPrincipal += BigInt(
+        Math.ceil(Number(spreadRemainingDepositKobo) * getWeight(i + 1)),
+      )
+    }
     const projectedRemainingYieldKobo =
       projectedBalanceAtUnlockKobo > currentBalanceKobo + totalAdditionalPrincipal
         ? projectedBalanceAtUnlockKobo - currentBalanceKobo - totalAdditionalPrincipal
@@ -446,7 +564,7 @@ export class RentSavingsCalculatorEngine {
     const safeUnlockMs = Math.max(startMs, unlockMs)
 
     if (cadence === 'DAILY') {
-      const days = Math.max(1, Math.min(maxMonths * 31, Math.round((safeUnlockMs - startMs) / this.DAY_MS)))
+      const days = Math.max(1, Math.round((safeUnlockMs - startMs) / this.DAY_MS))
       const dates: number[] = []
       for (let i = 1; i <= days; i++) {
         dates.push(Math.min(safeUnlockMs, startMs + i * this.DAY_MS))
@@ -550,10 +668,11 @@ export class RentSavingsCalculatorEngine {
     // Canonical exact effective daily compounding rate: r_d = (1 + r_a)^(1/365) - 1
     const dailyRate = this.getEffectiveDailyRate(effectiveAnnualYield)
 
-    // Formula-derived minimum upfront deposit for RENT_PROTEC (20% for 7-11mo, 33% for 6mo)
+    // Formula-derived minimum upfront deposit for RENT_PROTEC over actual activeCompoundingDays
+    // (20% for 8-11mo, 33% for 7mo, 45% for 6mo)
     const minimumInitialDepositPct =
       productOption === 'RENT_PROTEC'
-        ? this.getRentProtecActivationThresholdPct(rawDaysRemaining)
+        ? this.getRentProtecActivationThresholdPct(activeCompoundingDays)
         : 0
     const requiredInitialDepositNum =
       productOption === 'RENT_PROTEC'
@@ -684,12 +803,20 @@ export class RentSavingsCalculatorEngine {
   }
 
   /**
-   * Daily yield calculation on active balance
+   * Daily yield calculation on active balance at the given effective annual rate
+   * (defaults to 16.0% p.a. Full Lock). Does not inflate dust balances.
    */
-  public static calculateDailyYield(balanceKobo: bigint): bigint {
+  public static calculateDailyYield(
+    balanceKobo: bigint,
+    annualRateDecimal: number = this.ANNUAL_NET_YIELD,
+  ): bigint {
     if (balanceKobo <= 0n) return 0n
-    const dailyYield = Number(balanceKobo) * this.DAILY_RATE
-    return BigInt(Math.max(1, Math.round(dailyYield)))
+    const dailyRate =
+      annualRateDecimal === this.ANNUAL_NET_YIELD
+        ? this.DAILY_RATE
+        : this.getEffectiveDailyRate(annualRateDecimal)
+    const dailyYield = Math.round(Number(balanceKobo) * dailyRate)
+    return dailyYield > 0 ? BigInt(dailyYield) : 0n
   }
 
   /**

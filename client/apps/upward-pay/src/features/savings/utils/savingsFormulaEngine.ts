@@ -271,9 +271,9 @@ export function computeSavingsEngine(inputs: EngineInputs): EngineCalculationRes
   // Effective monthly compound rate: I = (1 + r_a)^(1/12) - 1
   const monthlyRate = Math.pow(1 + annualRateDecimal, 1 / 12) - 1
 
-  // Rent Protec breakeven upfront floor
+  // Rent Protec breakeven upfront floor over active compounding days
   const minUpfrontPct =
-    inputs.planId === 'RENT_PROTEC' ? getRentProtecMinimumDepositPct(daysUntilRent) : 0
+    inputs.planId === 'RENT_PROTEC' ? getRentProtecMinimumDepositPct(savingDays) : 0
   const minUpfrontNaira =
     inputs.planId === 'RENT_PROTEC' ? Math.round(targetRent * (minUpfrontPct / 100)) : 0
 

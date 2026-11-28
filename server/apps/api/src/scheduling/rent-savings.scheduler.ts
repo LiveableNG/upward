@@ -73,6 +73,53 @@ export class RentSavingsScheduler {
         const totalBalance = vault.currentPrincipalKobo + vault.accruedYieldKobo
         if (totalBalance <= 0n) continue
 
+        // Hard Idempotency Guard: deterministic per-vault, per-day reference guarantees
+        // duplicate cron runs or multi-replica schedules can NEVER double-credit interest.
+        const deterministicRef = `YLD_${vault.id}_${dateStamp}`
+        if (typeof this.rentVaultRepo.findTransactionByReference === 'function') {
+          const alreadyAccruedToday =
+            await this.rentVaultRepo.findTransactionByReference(deterministicRef)
+          if (alreadyAccruedToday) {
+            this.logger.log(
+              `Skipping duplicate daily accrual for vault ${vault.uuid} (${deterministicRef})`,
+            )
+            continue
+          }
+        }
+
+        // ARM-Backed Principal Guard: never accrue synthetic interest on deposits whose ARM
+        // SUBSCRIBE job is still QUEUED/PROCESSING or terminally FAILED (funds parked on DVA).
+        let uninvestedArmKobo = 0n
+        if (vault.investmentProvider === 'ARM' && this.prisma?.upward_arm_job?.findMany) {
+          const pendingArmJobs = await this.prisma.upward_arm_job
+            .findMany({
+              where: {
+                vaultId: vault.id,
+                jobType: 'SUBSCRIBE',
+                status: { in: ['QUEUED', 'PROCESSING', 'FAILED'] },
+              },
+              select: { amountKobo: true },
+            })
+            .catch(() => [])
+          for (const j of pendingArmJobs) {
+            if (j?.amountKobo && j.amountKobo > 0n) {
+              uninvestedArmKobo += j.amountKobo
+            }
+          }
+        }
+
+        const deployedPrincipalKobo =
+          vault.currentPrincipalKobo > uninvestedArmKobo
+            ? vault.currentPrincipalKobo - uninvestedArmKobo
+            : 0n
+        const eligibleCompoundingBalance = deployedPrincipalKobo + vault.accruedYieldKobo
+        if (eligibleCompoundingBalance <= 0n) {
+          this.logger.log(
+            `Vault ${vault.uuid} has ₦0 ARM-deployed balance (uninvested=${Number(uninvestedArmKobo) / 100}); skipping accrual until ARM confirms.`,
+          )
+          continue
+        }
+
         // Check if tenant has an overdue advance; if so, daily yield is frozen per spec
         const overdueAdvance = await this.prisma.upward_rent_advance.findFirst({
           where: {
@@ -120,37 +167,56 @@ export class RentSavingsScheduler {
           customerAnnualRatePct / 100,
         )
 
-        // Customer Liability Ledger: strictly accrues at customer's plan rate (0% visible insurance deduction)
+        // Customer Liability Ledger: exact effective daily compounding (no dust-balance inflation)
         const dailyYieldKobo = BigInt(
-          Math.max(1, Math.round(Number(totalBalance) * customerDailyRate)),
+          Math.round(Number(eligibleCompoundingBalance) * customerDailyRate),
         )
         if (dailyYieldKobo <= 0n) continue
 
-        // Internal Treasury Ledger: gross ARM yield earned on deployed funds vs customer net yield
-        const effectiveGrossRatePct = Math.max(grossArmAnnualRatePct, customerAnnualRatePct)
-        const effectiveGrossDailyRate = Math.max(grossArmDailyRate, customerDailyRate)
+        // Internal Treasury Ledger: TRUE gross ARM yield vs customer net yield (NEVER clamp upward,
+        // so negative spread / yield-compression subsidy is honestly visible to Finance/Admin).
         const grossArmYieldKobo = BigInt(
-          Math.max(Number(dailyYieldKobo), Math.round(Number(totalBalance) * effectiveGrossDailyRate)),
+          Math.round(Number(eligibleCompoundingBalance) * grossArmDailyRate),
         )
-        const yieldSpreadKobo =
-          grossArmYieldKobo > dailyYieldKobo ? grossArmYieldKobo - dailyYieldKobo : 0n
+        const yieldSpreadKobo = grossArmYieldKobo - dailyYieldKobo
+        if (yieldSpreadKobo < 0n) {
+          this.logger.warn(
+            `NEGATIVE SPREAD ALERT on vault ${vault.uuid}: ARM gross ${grossArmAnnualRatePct.toFixed(2)}% < customer ${customerAnnualRatePct.toFixed(2)}% (daily subsidy=${Number(-yieldSpreadKobo) / 100} NGN)`,
+          )
+        }
 
         const newBalance = totalBalance + dailyYieldKobo
 
-        // 1. Customer Liability Ledger: Record daily yield accrual transaction
-        const ref = `YLD_${vault.id}_${dateStamp}_${Math.floor(100 + Math.random() * 900)}`
-        await this.rentVaultRepo.createTransaction({
-          vaultId: vault.id,
-          userId: vault.userId,
-          type: 'YIELD_ACCRUAL',
-          amountKobo: dailyYieldKobo,
-          principalDeltaKobo: 0n,
-          yieldDeltaKobo: dailyYieldKobo,
-          balanceAfterKobo: newBalance,
-          reference: ref,
-          channel: 'SYSTEM_YIELD',
-          narration: `Daily compound yield (${customerAnnualRatePct.toFixed(1)}% p.a.) credited to vault`,
-        })
+        // 1. Customer Liability Ledger: Record daily yield accrual transaction (idempotent on deterministicRef)
+        try {
+          await this.rentVaultRepo.createTransaction({
+            vaultId: vault.id,
+            userId: vault.userId,
+            type: 'YIELD_ACCRUAL',
+            amountKobo: dailyYieldKobo,
+            principalDeltaKobo: 0n,
+            yieldDeltaKobo: dailyYieldKobo,
+            balanceAfterKobo: newBalance,
+            reference: deterministicRef,
+            channel: 'SYSTEM_YIELD',
+            narration: `Daily compound yield (${customerAnnualRatePct.toFixed(1)}% p.a.) credited to vault`,
+            metadata: {
+              eligibleCompoundingBalanceKobo: eligibleCompoundingBalance.toString(),
+              uninvestedArmKobo: uninvestedArmKobo.toString(),
+              grossArmAnnualRatePct,
+              customerAnnualRatePct,
+              yieldSpreadKobo: yieldSpreadKobo.toString(),
+            },
+          })
+        } catch (createErr: any) {
+          if (createErr?.code === 'P2002') {
+            this.logger.log(
+              `Concurrent duplicate accrual atomically blocked by DB unique key (${deterministicRef})`,
+            )
+            continue
+          }
+          throw createErr
+        }
 
         // Increment accrued yield and update lastYieldSyncAt
         await this.rentVaultRepo.incrementBalances(vault.id, 0n, dailyYieldKobo)
@@ -173,10 +239,12 @@ export class RentSavingsScheduler {
                   ),
                 )
               : 300
+            const activeTermDays =
+              RentSavingsCalculatorEngine.getRentProtecActiveCompoundingDays(vaultTermDays)
             const activationThresholdKobo =
               RentSavingsCalculatorEngine.getRentProtecActivationThresholdKobo(
                 vault.targetAmountKobo,
-                vaultTermDays,
+                activeTermDays,
               )
             const isCoverageActivated =
               isRentProtec &&
@@ -196,10 +264,11 @@ export class RentSavingsScheduler {
                 ? existingSummary.unrecoveredPremiumKobo
                 : defaultPremiumObligationKobo
               : defaultPremiumObligationKobo
+            const positiveSpreadKobo = yieldSpreadKobo > 0n ? yieldSpreadKobo : 0n
             const premiumRecoveryAppliedKobo =
-              currentUnrecovered > 0n
-                ? yieldSpreadKobo < currentUnrecovered
-                  ? yieldSpreadKobo
+              currentUnrecovered > 0n && positiveSpreadKobo > 0n
+                ? positiveSpreadKobo < currentUnrecovered
+                  ? positiveSpreadKobo
                   : currentUnrecovered
                 : 0n
             const netMarginDeltaKobo = yieldSpreadKobo - premiumRecoveryAppliedKobo
@@ -247,8 +316,8 @@ export class RentSavingsScheduler {
                 entryDate: now,
                 entryType: 'DAILY_ACCRUAL',
                 productOption: vault.productOption || 'SAVE_AND_EARN',
-                principalBaseKobo: totalBalance,
-                grossArmRatePct: effectiveGrossRatePct,
+                principalBaseKobo: eligibleCompoundingBalance,
+                grossArmRatePct: grossArmAnnualRatePct,
                 customerRatePct: customerAnnualRatePct,
                 grossArmYieldKobo,
                 customerNetYieldKobo: dailyYieldKobo,
@@ -256,10 +325,13 @@ export class RentSavingsScheduler {
                 premiumObligationDeltaKobo: 0n,
                 premiumRecoveryAppliedKobo,
                 netMarginDeltaKobo,
-                reference: `TREAS_${ref}`,
-                notes: isRentProtec
-                  ? `Daily accrual: ARM ${effectiveGrossRatePct.toFixed(2)}% vs Customer ${customerAnnualRatePct.toFixed(1)}% (spread allocated to 2% premium recovery)`
-                  : `Daily accrual: ARM ${effectiveGrossRatePct.toFixed(2)}% vs Customer ${customerAnnualRatePct.toFixed(1)}%`,
+                reference: `TREAS_${deterministicRef}`,
+                notes:
+                  yieldSpreadKobo < 0n
+                    ? `NEGATIVE SPREAD: ARM ${grossArmAnnualRatePct.toFixed(2)}% vs Customer ${customerAnnualRatePct.toFixed(1)}% (platform subsidy booked)`
+                    : isRentProtec
+                      ? `Daily accrual: ARM ${grossArmAnnualRatePct.toFixed(2)}% vs Customer ${customerAnnualRatePct.toFixed(1)}% (spread allocated to 2% premium recovery)`
+                      : `Daily accrual: ARM ${grossArmAnnualRatePct.toFixed(2)}% vs Customer ${customerAnnualRatePct.toFixed(1)}%`,
               },
             })
           } catch (treasuryErr: any) {

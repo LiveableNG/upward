@@ -12,23 +12,57 @@ describe('Nov 26 Savings Rules — Breakeven Formula, Flexible Exit & DVA Classi
       expect(RentSavingsCalculatorEngine.getRentProtecActivationThresholdPct(120)).toBe(45)
     })
 
-    it('enforces the calculated minimum upfront deposit floor in simulate() for RENT_PROTEC', () => {
+    it('enforces the calculated minimum upfront deposit floor over active compounding days (T - 30) in simulate()', () => {
       const asOf = new Date('2026-01-01T00:00:00Z')
+      // 6 months to due date (180d) -> 150 active compounding days -> 45% floor
       const dueIn6Mo = new Date(asOf.getTime() + 180 * 24 * 60 * 60 * 1000)
-      const result = RentSavingsCalculatorEngine.simulate({
+      const result6Mo = RentSavingsCalculatorEngine.simulate({
         targetAmountKobo: 300_000_000n, // NGN 3,000,000
         contractualDueDate: dueIn6Mo,
-        initialDepositKobo: 30_000_000n, // User attempts 10% (below 33% floor)
+        initialDepositKobo: 30_000_000n, // User attempts 10% (below 45% floor)
         cadence: 'MONTHLY',
         productOption: 'RENT_PROTEC',
         planPattern: 'INITIAL_DEPOSIT',
         asOfDate: asOf,
       })
 
-      expect(result.minimumInitialDepositPct).toBe(33)
-      expect(result.minimumInitialDepositKobo).toBe(99_000_000n) // 33% of 3M = NGN 990k
-      expect(result.requiredInitialDepositKobo).toBe(99_000_000n)
-      expect(result.lockMode).toBe('LOCKED')
+      expect(result6Mo.activeCompoundingDays).toBe(150)
+      expect(result6Mo.minimumInitialDepositPct).toBe(45)
+      expect(result6Mo.minimumInitialDepositKobo).toBe(135_000_000n) // 45% of 3M = NGN 1.35M
+      expect(result6Mo.requiredInitialDepositKobo).toBe(135_000_000n)
+      expect(result6Mo.lockMode).toBe('LOCKED')
+
+      // 7 months to due date (210d) -> 180 active compounding days -> 33% floor
+      const dueIn7Mo = new Date(asOf.getTime() + 210 * 24 * 60 * 60 * 1000)
+      const result7Mo = RentSavingsCalculatorEngine.simulate({
+        targetAmountKobo: 300_000_000n,
+        contractualDueDate: dueIn7Mo,
+        initialDepositKobo: 30_000_000n,
+        cadence: 'MONTHLY',
+        productOption: 'RENT_PROTEC',
+        planPattern: 'INITIAL_DEPOSIT',
+        asOfDate: asOf,
+      })
+
+      expect(result7Mo.activeCompoundingDays).toBe(180)
+      expect(result7Mo.minimumInitialDepositPct).toBe(33)
+      expect(result7Mo.minimumInitialDepositKobo).toBe(99_000_000n)
+
+      // 8+ months to due date (240d) -> 210 active compounding days -> 20% floor
+      const dueIn8Mo = new Date(asOf.getTime() + 240 * 24 * 60 * 60 * 1000)
+      const result8Mo = RentSavingsCalculatorEngine.simulate({
+        targetAmountKobo: 300_000_000n,
+        contractualDueDate: dueIn8Mo,
+        initialDepositKobo: 30_000_000n,
+        cadence: 'MONTHLY',
+        productOption: 'RENT_PROTEC',
+        planPattern: 'INITIAL_DEPOSIT',
+        asOfDate: asOf,
+      })
+
+      expect(result8Mo.activeCompoundingDays).toBe(210)
+      expect(result8Mo.minimumInitialDepositPct).toBe(20)
+      expect(result8Mo.minimumInitialDepositKobo).toBe(60_000_000n)
     })
   })
 
@@ -268,6 +302,66 @@ describe('Nov 26 Savings Rules — Breakeven Formula, Flexible Exit & DVA Classi
       expect(dynamic.suggestedDepositTodayKobo).toBe(0n)
       expect(dynamic.projectedRemainingYieldKobo).toBeGreaterThan(0n)
       expect(dynamic.projectedBalanceAtUnlockKobo).toBeGreaterThan(250_000_000n)
+    })
+
+    it('keeps Cycle 2 INITIAL_DEPOSIT saver with ₦12k cashback ON_TRACK and suggests remaining upfront deposit', () => {
+      const asOf = new Date('2026-11-28T00:00:00Z')
+      const dueDate = new Date('2027-12-23T00:00:00Z')
+      const plan = RentSavingsCalculatorEngine.simulate({
+        targetAmountKobo: 250_000_000n, // NGN 2.5M
+        contractualDueDate: dueDate,
+        initialDepositKobo: 50_000_000n, // NGN 500k upfront
+        cadence: 'MONTHLY',
+        productOption: 'SAVE_AND_EARN',
+        planPattern: 'INITIAL_DEPOSIT',
+        paydayDayOfMonth: 28,
+        asOfDate: asOf,
+      })
+
+      // Only ₦12k cashback rolled over so far (< ₦500k initial deposit)
+      const dynamic = RentSavingsCalculatorEngine.calculateDynamicDailyTarget({
+        targetAmountKobo: 250_000_000n,
+        currentBalanceKobo: 1_200_000n,
+        contractualDueDate: dueDate,
+        annualNetYieldRate: 0.16,
+        plannedMonthlyKobo: plan.periodicDepositKobo,
+        planPattern: 'INITIAL_DEPOSIT',
+        initialDepositKobo: 50_000_000n,
+        paydayDayOfMonth: 28,
+        asOfDate: asOf,
+      })
+
+      expect(dynamic.onTrackStatus).toBe('ON_TRACK')
+      expect(dynamic.suggestedDepositTodayKobo).toBe(48_800_000n) // ₦500k - ₦12k = ₦488k
+    })
+
+    it('anchors monthly contribution window to preferred payday (5-day early-pay grace)', () => {
+      // Payday = 28th. User pays on Nov 28. On Dec 1, Nov 28 must still be inside the active window!
+      const dec1 = new Date('2026-12-01T10:00:00Z')
+      const nov28 = new Date('2026-11-28T12:00:00Z')
+      const { cycleStartUtc, cycleEndUtc } = RentSavingsCalculatorEngine.getCurrentCycleWindowUtc(
+        dec1,
+        28,
+      )
+      expect(nov28.getTime()).toBeGreaterThanOrEqual(cycleStartUtc.getTime())
+      expect(nov28.getTime()).toBeLessThan(cycleEndUtc.getTime())
+
+      // By Dec 24 (within 5 days of Dec 28), the new cycle window opens
+      const dec24 = new Date('2026-12-24T10:00:00Z')
+      const nextWin = RentSavingsCalculatorEngine.getCurrentCycleWindowUtc(dec24, 28)
+      expect(nov28.getTime()).toBeLessThan(nextWin.cycleStartUtc.getTime())
+    })
+
+    it('does not truncate DAILY scheduled deposits at maxMonths * 31', () => {
+      const startMs = Date.UTC(2026, 0, 1)
+      const unlockMs = startMs + 350 * 24 * 60 * 60 * 1000
+      const dates = RentSavingsCalculatorEngine.buildScheduledDepositDatesUtc({
+        startMs,
+        unlockMs,
+        cadence: 'DAILY',
+        maxMonths: 11,
+      })
+      expect(dates).toHaveLength(350)
     })
   })
 })

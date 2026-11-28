@@ -459,8 +459,9 @@ export function FundVaultModal({
               {fundingMode === 'MONTHLY' ? (
                 isTargetReachedEarly ? (
                   <>
-                    You&apos;ve already reached your rent target. Any extra top-up still earns{' '}
-                    <strong>{effectiveRatePct}% p.a.</strong> compounded daily until rent day.
+                    You&apos;ve already reached your rent target. Any extra top-up still earns an
+                    indicative <strong>{effectiveRatePct}% p.a.</strong> (ARM MMF, compounded
+                    daily) until rent day.
                   </>
                 ) : onTrackStatus === 'BEHIND' ? (
                   <>
@@ -483,13 +484,14 @@ export function FundVaultModal({
                     <strong>
                       {formatCurrency(currentMonthRemainingNaira - parsedDepositAmount, 'NGN')}
                     </strong>{' '}
-                    left). Starts compounding daily at <strong>{effectiveRatePct}% p.a.</strong>{' '}
-                    from today.
+                    left). Starts compounding daily at an indicative{' '}
+                    <strong>{effectiveRatePct}% p.a.</strong> (ARM MMF) from today.
                   </>
                 ) : (
                   <>
-                    Completes this month&apos;s plan and starts earning{' '}
-                    <strong>{effectiveRatePct}% p.a.</strong> compounded daily from today.
+                    Completes this month&apos;s plan and starts earning an indicative{' '}
+                    <strong>{effectiveRatePct}% p.a.</strong> (ARM MMF, compounded daily) from
+                    today.
                   </>
                 )
               ) : fundingMode === 'EXTRA_TOPUP' ? (

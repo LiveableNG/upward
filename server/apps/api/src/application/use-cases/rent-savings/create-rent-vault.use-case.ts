@@ -250,11 +250,13 @@ export class CreateRentVaultUseCase {
           : (rates?.savingsAnnualRatePct ?? 16.0)
 
     const rawDaysRemaining = RentSavingsCalculatorEngine.calculateDaysRemaining(dueDate, now)
+    const activeCompoundingDays =
+      RentSavingsCalculatorEngine.getRentProtecActiveCompoundingDays(rawDaysRemaining)
     const minRentProtecInitialKobo =
       chosenOption === 'RENT_PROTEC'
         ? RentSavingsCalculatorEngine.getRentProtecActivationThresholdKobo(
             targetAmountKobo,
-            rawDaysRemaining,
+            activeCompoundingDays,
           )
         : 0n
     const providedInitialKobo = dto.initial_deposit_kobo

@@ -403,18 +403,27 @@ export async function consentToSavings(
 }
 
 /**
+ * Active compounding days before the 30-day pre-rent unlock window.
+ * Matches backend RentSavingsCalculatorEngine.getRentProtecActiveCompoundingDays().
+ */
+export function getRentProtecActiveCompoundingDays(daysToDueDate: number): number {
+  return Math.max(1, Math.round(daysToDueDate) - 30)
+}
+
+/**
  * Algebraic breakeven deposit percentage for Rent Protec coverage activation:
- *   d_min(T) = clamp((2 * c_target) / (s * (T / 365)) - 1, 0.20, 0.45)
- * At s = 6.55% spread and c_target = 2.15%:
- *   7-11 months (>= 210 days) -> 20%
- *   6 months (180 days)       -> 33%
+ *   d_min(T_active) = clamp((2 * c_target) / (s * (T_active / 365)) - 1, 0.20, 0.45)
+ * Evaluated over actual active compounding days (due date minus 30-day unlock):
+ *   8-11 months (>= 210 active days) -> 20%
+ *   7 months (180 active days)       -> 33%
+ *   6 months (150 active days)       -> 45%
  */
 export function getRentProtecMinimumDepositPct(
-  daysToDueDate: number,
+  activeCompoundingDays: number,
   spreadRateDecimal = 0.0655,
   targetCostDecimal = 0.0215,
 ): number {
-  const safeDays = Math.max(1, daysToDueDate)
+  const safeDays = Math.max(1, activeCompoundingDays)
   const safeSpread = Math.max(0.01, spreadRateDecimal)
   const rawRatio = (2 * targetCostDecimal) / (safeSpread * (safeDays / 365)) - 1
   const clampedRatio = Math.min(0.45, Math.max(0.2, rawRatio))
@@ -462,7 +471,7 @@ export function buildScheduledDepositDatesUtc(params: {
   const safeUnlockMs = Math.max(startMs, unlockMs)
 
   if (cadence === 'DAILY') {
-    const days = Math.max(1, Math.min(maxMonths * 31, Math.round((safeUnlockMs - startMs) / DAY_MS)))
+    const days = Math.max(1, Math.round((safeUnlockMs - startMs) / DAY_MS))
     const dates: number[] = []
     for (let i = 1; i <= days; i++) {
       dates.push(Math.min(safeUnlockMs, startMs + i * DAY_MS))
@@ -612,7 +621,7 @@ export function calculatePayLessPlan(
   const dailyRate = getEffectiveDailyRate(annualRateDecimal)
 
   const minimumInitialDepositPct =
-    productOption === 'RENT_PROTEC' ? getRentProtecMinimumDepositPct(daysUntilDueDate) : 0
+    productOption === 'RENT_PROTEC' ? getRentProtecMinimumDepositPct(activeCompoundingDays) : 0
   const requiredInitialDepositNaira =
     productOption === 'RENT_PROTEC'
       ? Math.round(targetRentNaira * (minimumInitialDepositPct / 100))

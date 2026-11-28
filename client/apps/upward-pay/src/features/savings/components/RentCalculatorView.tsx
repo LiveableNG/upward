@@ -29,6 +29,7 @@ import {
 import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
 import {
   calculatePayLessPlan,
+  getRentProtecActiveCompoundingDays,
   getRentProtecMinimumDepositPct,
   verifyRentVaultFunding,
   type SavingsCadence,
@@ -321,8 +322,10 @@ export function RentCalculatorView({
 
   const previewRentAmount = targetAmountNaira || 2_500_000
 
-  // Formula-derived minimum upfront deposit for Rent Protec (20% for 7-11mo, 33% for 6mo)
-  const minRentProtecDepositPct = getRentProtecMinimumDepositPct(rawDaysRemaining)
+  // Formula-derived minimum upfront deposit for Rent Protec over active compounding days (T - 30)
+  const minRentProtecDepositPct = getRentProtecMinimumDepositPct(
+    getRentProtecActiveCompoundingDays(rawDaysRemaining),
+  )
   const minRentProtecDepositNaira =
     activeProductOption === 'RENT_PROTEC'
       ? Math.round(previewRentAmount * (minRentProtecDepositPct / 100))
@@ -2022,7 +2025,7 @@ export function RentCalculatorView({
               {activeProductOption === 'RENT_PROTEC' && (
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                   Available on Save &amp; Earn — Rent Protec activates at{' '}
-                  {rawDaysRemaining >= 210 ? '20%' : '25%'} initial deposit.
+                  {minRentProtecDepositPct}% initial deposit.
                 </div>
               )}
             </button>
@@ -2067,7 +2070,7 @@ export function RentCalculatorView({
               {activeProductOption === 'RENT_PROTEC' && (
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                   Available on Save &amp; Earn — Rent Protec activates at{' '}
-                  {rawDaysRemaining >= 210 ? '20%' : '25%'} initial deposit.
+                  {minRentProtecDepositPct}% initial deposit.
                 </div>
               )}
             </button>
