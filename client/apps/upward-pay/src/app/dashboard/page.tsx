@@ -112,17 +112,16 @@ export default function DashboardPage() {
   const firstName = user.firstName || 'User'
   const isNewUser = !hasRentalInfo(user)
   const isIdentityVerified = user.isIdentityVerified || false
-  const totalPaid = (completedPayments || [])
-    .filter((p: any) => {
-      const s = String(p.status || '').toUpperCase()
-      return (
-        p.type !== 'credit' &&
-        (s === 'SUCCESS' || s === 'PAID' || s === 'COMPLETED' || s === 'SETTLED') &&
-        p.transactionType !== 'SAVINGS_WITHDRAWAL'
-      )
-    })
-    .reduce((sum: number, p: any) => sum + p.amount, 0)
-  const currency = completedPayments?.[0]?.currency || 'NGN'
+  const successfulRentPayments = (completedPayments || []).filter((p) => {
+    const s = String(p.status || '').toUpperCase()
+    return (
+      p.type !== 'credit' &&
+      (s === 'SUCCESS' || s === 'PAID' || s === 'COMPLETED' || s === 'SETTLED') &&
+      p.transactionType !== 'SAVINGS_WITHDRAWAL'
+    )
+  })
+  const totalPaid = successfulRentPayments.reduce((sum: number, p) => sum + p.amount, 0)
+  const currency = successfulRentPayments[0]?.currency || completedPayments?.[0]?.currency || 'NGN'
 
   const isCapacitor =
     Capacitor.isNativePlatform() ||
@@ -193,7 +192,7 @@ export default function DashboardPage() {
 
         <div className="desktop-only">
           <StatStrip
-            completedPaymentsCount={completedPayments?.length || 0}
+            completedPaymentsCount={successfulRentPayments.length}
             totalPaid={totalPaid}
             currency={currency}
             pendingCount={pendingPayments.length}

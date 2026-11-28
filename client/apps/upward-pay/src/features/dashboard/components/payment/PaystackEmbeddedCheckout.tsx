@@ -49,6 +49,34 @@ type CheckoutConfig =
       amount: number
     }
 
+// Deduplicate React StrictMode double-mounts / rapid double-clicks on payment initialization
+const inFlightPaymentInits = new Map<
+  string,
+  { promise: ReturnType<typeof api.initializePayment>; expiresAt: number }
+>()
+
+function deduplicatedInitializePayment(
+  payload: Parameters<typeof api.initializePayment>[0],
+) {
+  const key = JSON.stringify({
+    amount: payload.amount,
+    paymentRequestUuid: payload.paymentRequestUuid,
+    lineItems: payload.metadata?.lineItems,
+    excludeBenefits: payload.metadata?.excludeBenefits,
+  })
+  const now = Date.now()
+  const existing = inFlightPaymentInits.get(key)
+  if (existing && existing.expiresAt > now) {
+    return existing.promise
+  }
+  const promise = api.initializePayment(payload).catch((err) => {
+    inFlightPaymentInits.delete(key)
+    throw err
+  })
+  inFlightPaymentInits.set(key, { promise, expiresAt: now + 3500 })
+  return promise
+}
+
 interface PaystackEmbeddedProps {
   email: string
   amount: number
@@ -124,7 +152,7 @@ export default function PaystackEmbeddedCheckout({
             ? `Breakdown: ${parsedLineItems.map((item) => `${item.name} (N${item.amount.toLocaleString()})`).join(', ')}`
             : `${paymentType || 'Rent payment'} for ${propertyAddress || companyName}`
 
-        const res = await api.initializePayment({
+        const res = await deduplicatedInitializePayment({
           amount,
           paymentRequestUuid,
           metadata: {

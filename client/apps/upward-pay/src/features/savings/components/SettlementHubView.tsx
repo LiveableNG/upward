@@ -223,7 +223,7 @@ export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewPr
           >
             {isShortfall
               ? `Your savings cover ${formatCurrency(currentBalanceNaira, 'NGN')} of your ${formatCurrency(targetRentNaira, 'NGN')} rent. Transfer the remaining ${formatCurrency(shortfallNaira, 'NGN')} into your savings account to pay in full, or send your savings now and pay the balance immediately after.`
-              : 'Your rent savings are ready for settlement. Sending rent directly to your landlord generates an official rent receipt and credits your early-bird cashback bonus to your wallet.'}
+              : 'Your rent savings are ready for settlement. Sending rent directly to your landlord generates an official rent receipt and earns you a cashback reward toward your next rent savings plan.'}
           </p>
         </div>
 

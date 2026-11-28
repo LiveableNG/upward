@@ -309,11 +309,14 @@ export class GetMyRentVaultUseCase {
           currentBalanceKobo > 0n
             ? Number(combinedPrincipalKobo) + remainingPrincipalKobo
             : Number(sim.totalTenantContributionKobo)
+        const futureExpectedYieldKobo =
+          daysRemaining <= 30 && currentBalanceKobo > 0n
+            ? Number(currentBalanceKobo) * Math.pow(1 + dailyYieldRate, daysRemaining) -
+              Number(currentBalanceKobo)
+            : Number(sim.projectedYieldKobo)
         const projectedYieldKobo = Math.max(
           Number(vault.accruedYieldKobo),
-          currentBalanceKobo > 0n
-            ? targetAmountNum - totalTenantContributionKobo
-            : Number(sim.projectedYieldKobo),
+          Math.round(Number(vault.accruedYieldKobo) + Math.max(0, futureExpectedYieldKobo)),
         )
         const rentDiscountPct =
           targetAmountNum > 0

@@ -112,27 +112,30 @@ export function RentCalculatorView({
     return ''
   })
 
-  const [prevPropertyId, setPrevPropertyId] = useState<number | string | undefined>(
-    activeProperty?.id,
-  )
-  if (activeProperty?.id !== prevPropertyId) {
-    setPrevPropertyId(activeProperty?.id)
+  const activePropertyDueDate = activeProperty?.rentEndDate
+    ? activeProperty.rentEndDate.split('T')[0]
+    : ''
+  const propertySyncKey = `${activeProperty?.id ?? ''}:${activeProperty?.rentAmount ?? ''}:${activePropertyDueDate}`
+  const [prevPropertySyncKey, setPrevPropertySyncKey] = useState<string>(propertySyncKey)
+  const [userEditedDueDate, setUserEditedDueDate] = useState(false)
+  if (propertySyncKey !== prevPropertySyncKey) {
+    setPrevPropertySyncKey(propertySyncKey)
     if (activeProperty?.rentAmount) {
       setTargetAmountRaw(formatCurrencyInput(activeProperty.rentAmount))
     }
-    if (activeProperty?.rentEndDate) {
-      setContractualDueDate(activeProperty.rentEndDate.split('T')[0])
+    if (activePropertyDueDate && !userEditedDueDate) {
+      setContractualDueDate(activePropertyDueDate)
     }
   }
 
   const targetAmountNaira = parseCurrencyInput(targetAmountRaw) || 0
   const tomorrow = new Date(nowTimestamp + 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-  const activePropertyDueDate = activeProperty?.rentEndDate
-    ? activeProperty.rentEndDate.split('T')[0]
-    : ''
+  const hasServerRentDetails = Boolean(
+    activeProperty?.rentAmount && activePropertyDueDate && activePropertyDueDate >= tomorrow,
+  )
   const hasSavedRent = Boolean(
-    (activeProperty?.rentAmount && activePropertyDueDate && activePropertyDueDate >= tomorrow) ||
-    (targetAmountNaira > 0 && contractualDueDate && contractualDueDate >= tomorrow)
+    hasServerRentDetails ||
+      (targetAmountNaira > 0 && contractualDueDate && contractualDueDate >= tomorrow),
   )
   const [rentConfirmed, setRentConfirmed] = useState(false)
   const hasRentDetails = hasSavedRent || rentConfirmed
@@ -146,13 +149,15 @@ export function RentCalculatorView({
   const [protectionFromBenefit, setProtectionFromBenefit] = useState(false)
   const [rentInputFromBenefit, setRentInputFromBenefit] = useState(false)
 
-  // If activeProperty finishes hydrating after mount while untouched on RENT_INPUT, advance to PROTECTION
+  // If activeProperty finishes hydrating from the server while untouched on RENT_INPUT, advance to PROTECTION.
+  // Never trigger this from the user's own typing on RENT_INPUT (which would jump mid-entry).
   if (
-    hasSavedRent &&
+    hasServerRentDetails &&
     initialStage === 'RENT_INPUT' &&
     stage === 'RENT_INPUT' &&
     !rentConfirmed &&
-    !rentInputFromBenefit
+    !rentInputFromBenefit &&
+    !userEditedDueDate
   ) {
     setInitialStage('PROTECTION')
     setStage('PROTECTION')
@@ -217,14 +222,14 @@ export function RentCalculatorView({
   const hasWaitingCashback = availableCashbackNgn > 0
 
   // If the server prefill has a newer next-cycle due date (e.g. rolled +1 year after paying the
-  // current rent cycle in full), supersede stale localStorage dates automatically and hydrate
-  // repeat-saver defaults (rent amount, payday, and skip RENT_INPUT).
+  // current rent cycle in full), supersede stale cached property/localStorage dates automatically
+  // and hydrate repeat-saver defaults (rent amount, payday, and skip RENT_INPUT).
   const [appliedPrefillDueDate, setAppliedPrefillDueDate] = useState<string | null>(null)
   const prefillDueDate = prefill?.rent_due_date ? prefill.rent_due_date.split('T')[0] : null
   if (
     prefillDueDate &&
     prefillDueDate !== appliedPrefillDueDate &&
-    !activeProperty?.rentEndDate &&
+    !userEditedDueDate &&
     (!contractualDueDate || prefillDueDate > contractualDueDate)
   ) {
     setAppliedPrefillDueDate(prefillDueDate)
@@ -234,6 +239,17 @@ export function RentCalculatorView({
     }
     if (prefill?.previous_payday_day && prefill.previous_payday_day >= 1 && prefill.previous_payday_day <= 28) {
       setPreferredPaydayDay(prefill.previous_payday_day)
+    }
+    if (
+      initialStage === 'RENT_INPUT' &&
+      stage === 'RENT_INPUT' &&
+      !rentConfirmed &&
+      !rentInputFromBenefit &&
+      (targetAmountNaira > 0 || (prefill?.target_rent && prefill.target_rent > 0)) &&
+      prefillDueDate >= tomorrow
+    ) {
+      setInitialStage('PROTECTION')
+      setStage('PROTECTION')
     }
   }
   const onboardMutation = useOnboardSavingsInvestor()
@@ -962,7 +978,10 @@ export function RentCalculatorView({
                 min={tomorrow}
                 className="rent-calculator__input rent-calculator__input--no-prefix"
                 value={contractualDueDate}
-                onChange={(e) => setContractualDueDate(e.target.value)}
+                onChange={(e) => {
+                  setUserEditedDueDate(true)
+                  setContractualDueDate(e.target.value)
+                }}
               />
             </div>
           </div>
@@ -1307,7 +1326,7 @@ export function RentCalculatorView({
             </PayFlowPrimaryButton>
           }
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 18, paddingBottom: 24 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18, paddingBottom: 72 }}>
             {hasWaitingCashback ? (
               <div
                 style={{
@@ -1598,7 +1617,8 @@ export function RentCalculatorView({
                         Fixed monthly deposit
                       </div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: 2 }}>
-                        For {planDepositMetrics.numberOfPayments} months
+                        For {planDepositMetrics.numberOfPayments}{' '}
+                        {planDepositMetrics.numberOfPayments === 1 ? 'month' : 'months'}
                       </div>
                     </div>
                     <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--clay)' }}>

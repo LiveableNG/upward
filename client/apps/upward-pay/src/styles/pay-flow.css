@@ -2297,7 +2297,7 @@
   color: var(--text-secondary, #5c544b);
   letter-spacing: 0.02em;
   font-family: inherit;
-  max-width: 220px;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

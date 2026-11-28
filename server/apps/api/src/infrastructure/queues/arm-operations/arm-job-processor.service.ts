@@ -487,6 +487,10 @@ export class ArmJobProcessorService {
             data: {
               metadata: {
                 ...prevMeta,
+                fundingType: 'ARM_SUBSCRIPTION',
+                holdingLocation: 'ARM_MMF',
+                routingTarget: 'HOLD_IN_DVA',
+                routingStatus: 'ROUTED',
                 armSyncStatus: 'COMPLETED',
                 armPurchaseId: outcome.armInstructionId,
                 armTransactionId: outcome.armTransactionId,
@@ -496,6 +500,69 @@ export class ArmJobProcessorService {
               } as any,
             },
           })
+        }
+
+        // If this SUBSCRIBE job previously failed and parked funds in the user's DVA holding wallet,
+        // release the hold now that ARM confirmed the investment.
+        if (job.userId && tx.upward_wallet && tx.upward_wallet_transaction) {
+          const holdRef = `ARM_HOLD_${job.reference}`
+          const sweepRef = `ARM_SWEEP_${job.reference}`
+          const heldTx = await tx.upward_wallet_transaction.findUnique({
+            where: { reference: holdRef },
+          })
+          const alreadySwept = await tx.upward_wallet_transaction.findUnique({
+            where: { reference: sweepRef },
+          })
+          if (heldTx && !alreadySwept) {
+            const wallet = await tx.upward_wallet.findUnique({
+              where: { userId: job.userId },
+            })
+            if (wallet) {
+              const releaseAmount = Math.min(wallet.balance, heldTx.amount)
+              if (releaseAmount > 0) {
+                await tx.upward_wallet.update({
+                  where: { id: wallet.id },
+                  data: {
+                    balance: Math.max(0, Number((wallet.balance - releaseAmount).toFixed(2))),
+                  },
+                })
+              }
+              const heldMeta = (heldTx.metadata as Record<string, unknown>) || {}
+              await tx.upward_wallet_transaction.update({
+                where: { id: heldTx.id },
+                data: {
+                  metadata: {
+                    ...heldMeta,
+                    routingStatus: 'ROUTED',
+                    routedAt: completedAt.toISOString(),
+                    routedReference: sweepRef,
+                    armInstructionId: outcome.armInstructionId,
+                  } as any,
+                },
+              })
+              await tx.upward_wallet_transaction.create({
+                data: {
+                  walletId: wallet.id,
+                  userId: job.userId,
+                  type: 'SWEEP_TO_ARM',
+                  status: 'SUCCESS',
+                  amount: -Math.abs(heldTx.amount),
+                  reference: sweepRef,
+                  narration: `Retried rent savings deposit invested into ARM Money Market Fund`,
+                  metadata: {
+                    fundingType: 'SWEEP_TO_ARM',
+                    holdingLocation: 'ARM_MMF',
+                    routingTarget: 'HOLD_IN_DVA',
+                    routingStatus: 'ROUTED',
+                    sourceReference: holdRef,
+                    armJobId: job.id,
+                    armJobUuid: job.uuid,
+                    armInstructionId: outcome.armInstructionId,
+                  } as any,
+                },
+              })
+            }
+          }
         }
       } else if (job.jobType === 'REDEEM') {
         if (job.vaultId) {
@@ -649,6 +716,11 @@ export class ArmJobProcessorService {
     job: {
       id: number
       uuid: string
+      jobType?: string
+      userId?: number | null
+      vaultId?: number | null
+      amountKobo?: bigint | null
+      reference?: string
       transactionId: number | null
       notifiedAdminAt: Date | null
     },
@@ -679,12 +751,72 @@ export class ArmJobProcessorService {
           data: {
             metadata: {
               ...prevMeta,
+              ...(job.jobType === 'SUBSCRIBE'
+                ? {
+                    fundingType: 'ARM_SUBSCRIPTION_FALLBACK',
+                    holdingLocation: 'USER_DVA_WALLET',
+                    routingTarget: 'RETRY_ARM_SUBSCRIPTION',
+                    routingStatus: 'FAILED_PENDING_RETRY',
+                  }
+                : {}),
               armSyncStatus: 'FAILED',
               armLastError: errorMessage,
               armFailedAt: failedAt.toISOString(),
             } as any,
           },
         })
+      }
+
+      // When funding ARM fails terminally on a SUBSCRIBE job, record an explicit holding entry
+      // on the user's DVA wallet so operations and reconciliation know the exact funds remain
+      // parked safely on the user's DVA pending ARM retry/redistribution.
+      if (
+        job.jobType === 'SUBSCRIBE' &&
+        job.userId &&
+        job.amountKobo &&
+        job.amountKobo > 0n &&
+        job.reference &&
+        tx.upward_wallet &&
+        tx.upward_wallet_transaction
+      ) {
+        const holdRef = `ARM_HOLD_${job.reference}`
+        const existingHold = await tx.upward_wallet_transaction.findUnique({
+          where: { reference: holdRef },
+        })
+        if (!existingHold) {
+          const amountNaira = Number(job.amountKobo) / 100
+          const userWallet = await tx.upward_wallet.upsert({
+            where: { userId: job.userId },
+            create: { userId: job.userId, balance: 0, isActive: true },
+            update: { isActive: true },
+          })
+          await tx.upward_wallet.update({
+            where: { id: userWallet.id },
+            data: { balance: { increment: amountNaira } },
+          })
+          await tx.upward_wallet_transaction.create({
+            data: {
+              walletId: userWallet.id,
+              userId: job.userId,
+              type: 'ARM_SUBSCRIPTION_FALLBACK',
+              status: 'SUCCESS',
+              amount: amountNaira,
+              reference: holdRef,
+              narration: `Rent savings deposit held safely in your Upward DVA pending investment sync`,
+              metadata: {
+                fundingType: 'ARM_SUBSCRIPTION_FALLBACK',
+                holdingLocation: 'USER_DVA_WALLET',
+                routingTarget: 'RETRY_ARM_SUBSCRIPTION',
+                routingStatus: 'FAILED_PENDING_RETRY',
+                sourceVaultId: job.vaultId || null,
+                sourceReference: job.reference,
+                armJobId: job.id,
+                armJobUuid: job.uuid,
+                armLastError: errorMessage,
+              } as any,
+            },
+          })
+        }
       }
     })
 

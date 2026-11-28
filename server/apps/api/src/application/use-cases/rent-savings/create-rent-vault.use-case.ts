@@ -149,8 +149,37 @@ export class CreateRentVaultUseCase {
     const now = new Date()
     const propDueDate = activeProperty?.rentEndDate ? new Date(activeProperty.rentEndDate) : null
     const dtoDueDate = dto.contractual_due_date ? new Date(dto.contractual_due_date) : null
-    const dueDate =
-      dtoDueDate && !Number.isNaN(dtoDueDate.getTime()) && dtoDueDate.getTime() > now.getTime()
+
+    // Guardrail: if the user already settled a vault for dtoDueDate (or later) and activeProperty
+    // already rolled forward to the next cycle, prevent a stale client date from recreating
+    // a Cycle 2 vault with the already-paid cycle's due date.
+    let useRolledPropDueDate = false
+    if (
+      propDueDate &&
+      !Number.isNaN(propDueDate.getTime()) &&
+      dtoDueDate &&
+      !Number.isNaN(dtoDueDate.getTime()) &&
+      propDueDate.getTime() > dtoDueDate.getTime() &&
+      this.prisma?.upward_rent_vault
+    ) {
+      const settledForDtoCycle = await this.prisma.upward_rent_vault.findFirst({
+        where: {
+          userId,
+          lockStatus: 'SETTLED',
+          contractualDueDate: {
+            gte: new Date(dtoDueDate.getTime() - 7 * 86_400_000),
+          },
+        },
+        select: { id: true },
+      })
+      if (settledForDtoCycle) {
+        useRolledPropDueDate = true
+      }
+    }
+
+    const dueDate = useRolledPropDueDate
+      ? propDueDate!
+      : dtoDueDate && !Number.isNaN(dtoDueDate.getTime()) && dtoDueDate.getTime() > now.getTime()
         ? dtoDueDate
         : propDueDate && !Number.isNaN(propDueDate.getTime())
           ? propDueDate
@@ -392,15 +421,167 @@ export class CreateRentVaultUseCase {
               channel: 'SYSTEM_YIELD',
               narration: `Cashback reward applied to kickstart your next rent savings plan`,
               metadata: {
+                fundingType: 'SWEEP_TO_RENT_VAULT',
+                holdingLocation: 'RENT_VAULT',
+                routingTarget: 'NEXT_RENT_VAULT',
+                routingStatus: 'ROUTED',
                 source: 'SETTLEMENT_CASHBACK_ROLLOVER',
                 sourceSettlementReference: latestCashbackSettlement.settlementReference,
               },
             })
             appliedCashbackKobo += rolloverKobo
+
+            // Reconcile the corresponding held cashback out of the user's DVA holding wallet
+            if (this.prisma.upward_wallet && this.prisma.upward_wallet_transaction) {
+              const heldCashbackRef = `WLT_CBK_${latestCashbackSettlement.settlementReference}`
+              const sweepCashbackRef = `SWEEP_CBK_${latestCashbackSettlement.settlementReference}`
+              const heldCashbackTx = await this.prisma.upward_wallet_transaction
+                .findUnique({ where: { reference: heldCashbackRef } })
+                .catch(() => null)
+              const existingSweep = await this.prisma.upward_wallet_transaction
+                .findUnique({ where: { reference: sweepCashbackRef } })
+                .catch(() => null)
+              if (heldCashbackTx && !existingSweep) {
+                const wallet = await this.prisma.upward_wallet.findUnique({ where: { userId } })
+                if (wallet) {
+                  const sweepNaira = Number(rolloverKobo) / 100
+                  await this.prisma.upward_wallet.update({
+                    where: { id: wallet.id },
+                    data: {
+                      balance: Math.max(0, Number((wallet.balance - Math.min(wallet.balance, sweepNaira)).toFixed(2))),
+                    },
+                  })
+                  const prevMeta = (heldCashbackTx.metadata as Record<string, unknown>) || {}
+                  await this.prisma.upward_wallet_transaction.update({
+                    where: { id: heldCashbackTx.id },
+                    data: {
+                      metadata: {
+                        ...prevMeta,
+                        routingStatus: 'ROUTED',
+                        routedAt: new Date().toISOString(),
+                        targetVaultId: vault.id,
+                      } as any,
+                    },
+                  })
+                  await this.prisma.upward_wallet_transaction.create({
+                    data: {
+                      walletId: wallet.id,
+                      userId,
+                      type: 'SWEEP_TO_RENT_VAULT',
+                      status: 'SUCCESS',
+                      amount: -Math.abs(sweepNaira),
+                      reference: sweepCashbackRef,
+                      narration: `Cashback moved from your Upward DVA into your new Rent Savings plan`,
+                      metadata: {
+                        fundingType: 'SWEEP_TO_RENT_VAULT',
+                        holdingLocation: 'RENT_VAULT',
+                        routingTarget: 'NEXT_RENT_VAULT',
+                        routingStatus: 'ROUTED',
+                        sourceReference: heldCashbackRef,
+                        targetVaultId: vault.id,
+                      } as any,
+                    },
+                  })
+                }
+              }
+            }
           }
         }
       } catch {
         // Non-blocking cashback rollover
+      }
+    }
+
+    // Auto-sweep any unallocated DVA inflows held in the user's DVA wallet with routingTarget = NEXT_RENT_VAULT
+    if (this.prisma?.upward_wallet && this.prisma?.upward_wallet_transaction) {
+      try {
+        const heldInflows = await this.prisma.upward_wallet_transaction.findMany({
+          where: {
+            userId,
+            type: 'UNALLOCATED_DVA_INFLOW',
+            status: 'SUCCESS',
+          },
+          orderBy: { createdAt: 'asc' },
+        })
+        const userWallet = heldInflows.length
+          ? await this.prisma.upward_wallet.findUnique({ where: { userId } })
+          : null
+
+        for (const inflow of heldInflows) {
+          const meta = (inflow.metadata as Record<string, unknown>) || {}
+          if (meta.routingStatus === 'ROUTED' || inflow.amount <= 0) continue
+          const sweepRef = `DVA_SWEEP_${inflow.reference || inflow.uuid}`
+          const alreadySwept = await this.prisma.upward_rent_vault_transaction.findUnique({
+            where: { reference: sweepRef },
+          })
+          if (alreadySwept) continue
+
+          const inflowKobo = BigInt(Math.round(inflow.amount * 100))
+          await this.rentVaultRepo.incrementBalances(vault.id, inflowKobo, 0n)
+          appliedCashbackKobo += inflowKobo
+
+          await this.rentVaultRepo.createTransaction({
+            vaultId: vault.id,
+            userId,
+            type: 'DEPOSIT',
+            amountKobo: inflowKobo,
+            principalDeltaKobo: inflowKobo,
+            yieldDeltaKobo: 0n,
+            balanceAfterKobo: vault.currentPrincipalKobo + appliedCashbackKobo,
+            reference: sweepRef,
+            channel: 'DVA_WALLET_SWEEP',
+            narration: `Held DVA transfer moved into your new Rent Savings plan`,
+            metadata: {
+              fundingType: 'SWEEP_TO_RENT_VAULT',
+              holdingLocation: 'RENT_VAULT',
+              routingTarget: 'NEXT_RENT_VAULT',
+              routingStatus: 'ROUTED',
+              sourceWalletTxUuid: inflow.uuid,
+              sourceReference: inflow.reference,
+            },
+          })
+
+          if (userWallet) {
+            await this.prisma.upward_wallet.update({
+              where: { id: userWallet.id },
+              data: {
+                balance: Math.max(0, Number((userWallet.balance - Math.min(userWallet.balance, inflow.amount)).toFixed(2))),
+              },
+            })
+            await this.prisma.upward_wallet_transaction.update({
+              where: { id: inflow.id },
+              data: {
+                metadata: {
+                  ...meta,
+                  routingStatus: 'ROUTED',
+                  routedAt: new Date().toISOString(),
+                  targetVaultId: vault.id,
+                } as any,
+              },
+            })
+            await this.prisma.upward_wallet_transaction.create({
+              data: {
+                walletId: userWallet.id,
+                userId,
+                type: 'SWEEP_TO_RENT_VAULT',
+                status: 'SUCCESS',
+                amount: -Math.abs(inflow.amount),
+                reference: `WLT_${sweepRef}`,
+                narration: `Held DVA deposit moved into your new Rent Savings plan`,
+                metadata: {
+                  fundingType: 'SWEEP_TO_RENT_VAULT',
+                  holdingLocation: 'RENT_VAULT',
+                  routingTarget: 'NEXT_RENT_VAULT',
+                  routingStatus: 'ROUTED',
+                  sourceReference: inflow.reference,
+                  targetVaultId: vault.id,
+                } as any,
+              },
+            })
+          }
+        }
+      } catch {
+        // Non-blocking held DVA sweep
       }
     }
 

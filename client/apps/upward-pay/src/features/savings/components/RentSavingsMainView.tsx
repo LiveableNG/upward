@@ -314,7 +314,8 @@ export function RentSavingsMainView() {
                 <div className="vault-dashboard__progress-fill" style={{ width: `${pctPaid}%` }} />
               </div>
               <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.45 }}>
-                Once your {formatCurrency(remainingNaira, incompleteRentPayment.currency || 'NGN')} balance is paid, you can start saving towards next year&apos;s rent.
+                Once your {formatCurrency(remainingNaira, incompleteRentPayment.currency || 'NGN')}{' '}
+                balance is paid, you can start saving towards next year&apos;s rent.
               </p>
             </div>
 

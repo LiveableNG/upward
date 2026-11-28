@@ -464,9 +464,18 @@ export class OnboardSavingsInvestorUseCase {
 
     const activeProp = (user.properties || []).find((p: any) => !p.isPastTenancy) || user.properties?.[0]
     const propAddress = activeProp?.location
-      ? [activeProp.location.address, activeProp.location.area, activeProp.location.state]
-          .filter(Boolean)
-          .join(', ')
+      ? (() => {
+          const base = (activeProp.location.address || '').trim()
+          const parts: string[] = base ? [base] : []
+          const seen = base.toLowerCase()
+          for (const extra of [activeProp.location.area, activeProp.location.state]) {
+            const cleaned = (extra || '').trim()
+            if (cleaned && !seen.includes(cleaned.toLowerCase())) {
+              parts.push(cleaned)
+            }
+          }
+          return parts.join(', ') || null
+        })()
       : null
 
     const latestVault = this.prisma?.upward_rent_vault
@@ -680,6 +689,35 @@ export class OnboardSavingsInvestorUseCase {
       }
     }
 
+    // Read user DVA holding wallet balance & funding-type breakdown
+    let dvaHoldingBalanceNgn = 0
+    let availableSurplusNgn = 0
+    let unallocatedDvaNgn = 0
+    let armFallbackHeldNgn = 0
+    if (this.prisma?.upward_wallet && this.prisma?.upward_wallet_transaction) {
+      const userWallet = await this.prisma.upward_wallet
+        .findUnique({
+          where: { userId },
+          include: {
+            transactions: {
+              orderBy: { createdAt: 'desc' },
+              take: 50,
+            },
+          },
+        })
+        .catch(() => null)
+      if (userWallet) {
+        dvaHoldingBalanceNgn = Number(userWallet.balance || 0)
+        for (const wt of userWallet.transactions) {
+          const meta = (wt.metadata as Record<string, unknown> | null) || {}
+          if (meta.routingStatus === 'ROUTED' || Number(wt.amount) <= 0) continue
+          if (wt.type === 'SETTLEMENT_SURPLUS') availableSurplusNgn += Number(wt.amount)
+          else if (wt.type === 'UNALLOCATED_DVA_INFLOW') unallocatedDvaNgn += Number(wt.amount)
+          else if (wt.type === 'ARM_SUBSCRIPTION_FALLBACK') armFallbackHeldNgn += Number(wt.amount)
+        }
+      }
+    }
+
     const strictBankNameMatch =
       isProductionRuntime(process.env.PAYSTACK_SECRET_KEY) ||
       process.env.STRICT_BANK_NAME_MATCH === 'true'
@@ -696,6 +734,10 @@ export class OnboardSavingsInvestorUseCase {
         available_cashback_kobo: Number(availableCashbackKobo),
         available_cashback_ngn: Number(availableCashbackKobo) / 100,
         available_cashback_source: availableCashbackSource,
+        dva_holding_balance_ngn: dvaHoldingBalanceNgn,
+        available_surplus_ngn: availableSurplusNgn,
+        unallocated_dva_ngn: unallocatedDvaNgn,
+        arm_fallback_held_ngn: armFallbackHeldNgn,
         previous_product_option: latestVault?.productOption || null,
         previous_lock_mode: latestVault?.lockMode || null,
         previous_plan_pattern: latestVault?.planPattern || null,

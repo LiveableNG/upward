@@ -149,7 +149,157 @@ export class GetTransactionUseCase {
     })
 
     const tx: any = dbTx || (await this.txRepo.findByUuid(uuid))
-    if (!tx) return null
+    if (!tx) {
+      // Fallback 1: Rent Savings vault transactions (e.g. SETTLEMENT_DISBURSEMENT or DEPOSIT)
+      if (this.prisma?.upward_rent_vault_transaction) {
+        const vaultTx: any = await this.prisma.upward_rent_vault_transaction
+          .findUnique({
+            where: { uuid },
+            include: {
+              vault: true,
+              user: true,
+            },
+          })
+          .catch(() => null)
+
+        if (vaultTx) {
+          const meta = (vaultTx.metadata as Record<string, any> | null) || {}
+          const settlement =
+            vaultTx.type === 'SETTLEMENT_DISBURSEMENT' && this.prisma.upward_rent_settlement
+              ? await this.prisma.upward_rent_settlement
+                  .findFirst({
+                    where: { settlementReference: vaultTx.reference },
+                  })
+                  .catch(() => null)
+              : null
+
+          const amountNaira = Number(vaultTx.amountKobo || 0n) / 100
+          const targetNaira = vaultTx.vault
+            ? Number(vaultTx.vault.targetAmountKobo || 0n) / 100
+            : amountNaira
+          const remainingNaira = meta.remainingBalanceKobo
+            ? Number(BigInt(meta.remainingBalanceKobo)) / 100
+            : Math.max(0, targetNaira - amountNaira)
+          const isPartial =
+            vaultTx.type === 'SETTLEMENT_DISBURSEMENT' &&
+            (Boolean(meta.isPartialSettlement) || remainingNaira > 0)
+
+          const tenantFirst = this.decrypt(vaultTx.user?.firstName)
+          const tenantLast = this.decrypt(vaultTx.user?.lastName)
+          const tenantName = `${tenantFirst} ${tenantLast}`.trim() || 'Tenant'
+          const landlordName =
+            settlement?.landlordName ||
+            meta.landlordName ||
+            (vaultTx.type === 'DEPOSIT' ? 'Upward Rent Savings' : 'Landlord')
+          const propertyAddress =
+            settlement?.propertyAddress || meta.propertyAddress || null
+
+          const resolvedRentEnd = vaultTx.vault?.contractualDueDate
+            ? new Date(vaultTx.vault.contractualDueDate)
+            : null
+          const resolvedRentStart = resolvedRentEnd
+            ? new Date(resolvedRentEnd.getTime() - 365 * 86_400_000)
+            : null
+
+          return {
+            id: vaultTx.id,
+            uuid: vaultTx.uuid,
+            userId: vaultTx.userId,
+            amount: amountNaira,
+            currency: 'NGN',
+            status: isPartial ? 'PARTIAL' : 'PAID',
+            channel: vaultTx.type === 'SETTLEMENT_DISBURSEMENT' ? 'Rent Savings (NIP)' : 'Rent Savings (DVA)',
+            reference: vaultTx.reference,
+            narration:
+              vaultTx.narration ||
+              (vaultTx.type === 'SETTLEMENT_DISBURSEMENT'
+                ? `Rent payment to ${landlordName}`
+                : 'Rent Savings Deposit'),
+            createdAt: vaultTx.createdAt,
+            paidAt: vaultTx.createdAt,
+            tenantName,
+            companyName: landlordName,
+            propertyAddress,
+            rentAmount: targetNaira,
+            totalInvoiceAmount: targetNaira,
+            totalPaidToDate: amountNaira,
+            historicalPaidToDate: amountNaira,
+            remainingBalance: vaultTx.type === 'SETTLEMENT_DISBURSEMENT' ? remainingNaira : 0,
+            historicalRemaining: vaultTx.type === 'SETTLEMENT_DISBURSEMENT' ? remainingNaira : 0,
+            isPartial,
+            rentStartDate: resolvedRentStart,
+            rentEndDate: resolvedRentEnd,
+            lineItems: [
+              {
+                label:
+                  vaultTx.type === 'SETTLEMENT_DISBURSEMENT'
+                    ? 'Rent Payment (from Savings)'
+                    : 'Rent Savings Deposit',
+                name:
+                  vaultTx.type === 'SETTLEMENT_DISBURSEMENT'
+                    ? 'Rent Payment (from Savings)'
+                    : 'Rent Savings Deposit',
+                amount: amountNaira,
+                category: 'Rent Savings',
+              },
+            ],
+            metadata: {
+              ...meta,
+              nipSessionId: settlement?.nipSessionId || meta.nipSessionId || null,
+              source: 'RENT_SAVINGS',
+            },
+          }
+        }
+      }
+
+      // Fallback 2: User DVA holding wallet transactions (surplus, unallocated DVA inflow)
+      if (this.prisma?.upward_wallet_transaction) {
+        const wltTx: any = await this.prisma.upward_wallet_transaction
+          .findUnique({
+            where: { uuid },
+            include: { user: true },
+          })
+          .catch(() => null)
+        if (wltTx) {
+          const amountNaira = Math.abs(Number(wltTx.amount || 0))
+          const tenantName =
+            `${this.decrypt(wltTx.user?.firstName)} ${this.decrypt(wltTx.user?.lastName)}`.trim() ||
+            'Tenant'
+          return {
+            id: wltTx.id,
+            uuid: wltTx.uuid,
+            userId: wltTx.userId,
+            amount: amountNaira,
+            currency: 'NGN',
+            status: 'PAID',
+            channel: 'Upward DVA',
+            reference: wltTx.reference || wltTx.uuid,
+            narration: wltTx.narration || 'Upward DVA Account Activity',
+            createdAt: wltTx.createdAt,
+            paidAt: wltTx.createdAt,
+            tenantName,
+            companyName: 'Upward Account Balance',
+            propertyAddress: null,
+            rentAmount: amountNaira,
+            totalInvoiceAmount: amountNaira,
+            totalPaidToDate: amountNaira,
+            remainingBalance: 0,
+            isPartial: false,
+            lineItems: [
+              {
+                label: wltTx.narration || wltTx.type,
+                name: wltTx.narration || wltTx.type,
+                amount: amountNaira,
+                category: 'Upward DVA',
+              },
+            ],
+            metadata: wltTx.metadata || {},
+          }
+        }
+      }
+
+      return null
+    }
 
     let userProp: any =
       tx.paymentRequest?.userProperty ||

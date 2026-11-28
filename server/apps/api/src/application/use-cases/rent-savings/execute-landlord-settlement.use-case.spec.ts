@@ -7,7 +7,9 @@ describe('ExecuteLandlordSettlementUseCase — Partial Balance & Excess Handling
     const createdNotifications: any[] = []
     const createdSettlements: any[] = []
     const createdTransactions: any[] = []
+    const createdWalletTransactions: any[] = []
     const updatedVaults: any[] = []
+    let walletBalance = 0
 
     const dueDate = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
     const unlockDate = new Date(dueDate.getTime() - 30 * 24 * 60 * 60 * 1000)
@@ -72,6 +74,20 @@ describe('ExecuteLandlordSettlementUseCase — Partial Balance & Excess Handling
           jobType: 'REDEEM',
         }),
       },
+      upward_wallet: {
+        upsert: jest.fn().mockResolvedValue({ id: 501, userId: vault.userId, balance: 0 }),
+        update: jest.fn().mockImplementation(async (args) => {
+          walletBalance += Number(args?.data?.balance?.increment || 0)
+          return { id: 501, balance: walletBalance }
+        }),
+      },
+      upward_wallet_transaction: {
+        findUnique: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockImplementation(async (args) => {
+          createdWalletTransactions.push(args.data)
+          return { id: createdWalletTransactions.length, ...args.data }
+        }),
+      },
     }
 
     const prisma: any = {
@@ -128,6 +144,8 @@ describe('ExecuteLandlordSettlementUseCase — Partial Balance & Excess Handling
       createdNotifications,
       createdSettlements,
       createdTransactions,
+      createdWalletTransactions,
+      getWalletBalance: () => walletBalance,
       updatedVaults,
     }
   }
@@ -180,11 +198,18 @@ describe('ExecuteLandlordSettlementUseCase — Partial Balance & Excess Handling
     expect(createdNotifications[0].url).toBe('/dashboard/pay-rent?paymentUuid=pr-bal-701')
   })
 
-  it('caps landlord payout at target rent and reports surplus_to_wallet_kobo when savings exceed target', async () => {
-    const { useCase, createdPaymentRequests, createdSettlements } = buildDeps({
+  it('caps landlord payout at target rent and holds surplus + cashback in user DVA wallet with explicit funding/routing types', async () => {
+    const {
+      useCase,
+      createdPaymentRequests,
+      createdSettlements,
+      createdWalletTransactions,
+      getWalletBalance,
+    } = buildDeps({
       targetAmountKobo: 600_000_000n,
       currentPrincipalKobo: 600_000_000n,
       accruedYieldKobo: 25_000_000n, // NGN 250,000 surplus
+      dvaAccountNumber: '0299110001',
     })
 
     const res = await useCase.execute(55, 'vault-partial-99', {
@@ -202,5 +227,27 @@ describe('ExecuteLandlordSettlementUseCase — Partial Balance & Excess Handling
     expect(res.data.balance_payment_request_uuid).toBeNull()
     expect(createdSettlements[0].amountPaidToLandlordKobo).toBe(600_000_000n)
     expect(createdPaymentRequests).toHaveLength(0)
+
+    // Verify both surplus and cashback were held explicitly on the user's DVA wallet
+    const surplusTx = createdWalletTransactions.find((t) => t.type === 'SETTLEMENT_SURPLUS')
+    const cashbackTx = createdWalletTransactions.find((t) => t.type === 'SETTLEMENT_CASHBACK')
+    expect(surplusTx).toBeDefined()
+    expect(surplusTx.amount).toBe(250_000)
+    expect(surplusTx.metadata).toMatchObject({
+      fundingType: 'SETTLEMENT_SURPLUS',
+      holdingLocation: 'USER_DVA_WALLET',
+      routingTarget: 'HOLD_IN_DVA',
+      routingStatus: 'HELD',
+      dvaAccountNumber: '0299110001',
+    })
+    expect(cashbackTx).toBeDefined()
+    expect(cashbackTx.amount).toBe(res.data.cashback_credited_kobo / 100)
+    expect(cashbackTx.metadata).toMatchObject({
+      fundingType: 'SETTLEMENT_CASHBACK',
+      holdingLocation: 'USER_DVA_WALLET',
+      routingTarget: 'NEXT_RENT_VAULT',
+      routingStatus: 'HELD',
+    })
+    expect(getWalletBalance()).toBe(250_000 + res.data.cashback_credited_kobo / 100)
   })
 })

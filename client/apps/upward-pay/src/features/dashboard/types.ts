@@ -49,7 +49,15 @@ export interface CompletedPayment {
     | 'SAVINGS_CASHBACK'
     | 'SAVINGS_SETTLEMENT'
     | 'SAVINGS_WITHDRAWAL'
+    | 'SAVINGS_SURPLUS'
+    | 'DVA_HELD_INFLOW'
+    | 'DVA_ARM_FALLBACK'
+    | 'DVA_WALLET_DEPOSIT'
     | 'SAVINGS'
+  fundingType?: string
+  holdingLocation?: string
+  routingTarget?: string
+  routingStatus?: string
   source?: string
   property_address?: string
   lineItems?: any[]

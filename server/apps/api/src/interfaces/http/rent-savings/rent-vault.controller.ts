@@ -6,6 +6,8 @@ import {
   HttpCode,
   HttpStatus,
   Inject,
+  NotFoundException,
+  Optional,
   Param,
   Patch,
   Post,
@@ -57,6 +59,9 @@ import {
   IndicateSavingsInterestUseCase,
 } from '../../../application/use-cases/rent-savings/indicate-savings-interest.use-case'
 import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.repository'
+import { GenerateReceiptPdfUseCase } from '../../../application/use-cases/payments/generate-receipt-pdf.use-case'
+import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
+import { EncryptionService } from '../../../shared/infrastructure/common/encryption.service'
 
 @Controller('rent-vaults')
 export class RentVaultController {
@@ -76,6 +81,9 @@ export class RentVaultController {
     private readonly getSavingsInterestStatusUseCase: GetSavingsInterestStatusUseCase,
     private readonly indicateSavingsInterestUseCase: IndicateSavingsInterestUseCase,
     @Inject(USER_REPOSITORY) private readonly userRepo: UserRepository,
+    @Optional() private readonly generateReceiptPdfUseCase?: GenerateReceiptPdfUseCase,
+    @Optional() private readonly prisma?: PrismaService,
+    @Optional() private readonly encryption?: EncryptionService,
   ) {}
 
   private extractRequestMeta(req: any): { ipAddress: string | null; userAgent: string | null } {
@@ -274,19 +282,85 @@ export class RentVaultController {
 
   @Get(':id/receipt.pdf')
   async downloadReceiptPdf(@Param('id') vaultId: string, @Res() res: Response) {
-    const receiptContent = `
-      UPWARD DIGITAL RENT RECEIPT
-      Statutory Standard: Lagos State Tenancy Law 2011
-      Vault Reference: ${vaultId}
-      Date: ${new Date().toISOString()}
-      Status: DISBURSED & SETTLED
-      Disbursement Rail: Paystack NIP Direct Settlement
-    `
-    res.setHeader('Content-Type', 'text/plain; charset=utf-8')
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="upward_rent_receipt_${vaultId}.txt"`,
-    )
-    return res.send(receiptContent)
+    if (this.prisma && this.generateReceiptPdfUseCase) {
+      const vault = await this.prisma.upward_rent_vault.findUnique({
+        where: { uuid: vaultId },
+        include: {
+          user: true,
+          settlements: {
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+          },
+        },
+      })
+
+      if (!vault) {
+        throw new NotFoundException('Rent savings vault not found')
+      }
+
+      const settlement = vault.settlements[0] || null
+      const tryDecrypt = (val?: string | null) => {
+        if (!val) return ''
+        try {
+          return this.encryption ? this.encryption.decrypt(val) : val
+        } catch {
+          return val
+        }
+      }
+      const tenantName =
+        `${tryDecrypt(vault.user?.firstName)} ${tryDecrypt(vault.user?.lastName)}`.trim() ||
+        'Tenant'
+      const targetNaira = Number(vault.targetAmountKobo || 0n) / 100
+      const paidNaira = settlement
+        ? Number(settlement.amountPaidToLandlordKobo || 0n) / 100
+        : Number((vault.currentPrincipalKobo || 0n) + (vault.accruedYieldKobo || 0n)) / 100
+      const remainingNaira = Math.max(0, targetNaira - paidNaira)
+      const isPartial = remainingNaira > 0
+      const rentEnd = vault.contractualDueDate ? new Date(vault.contractualDueDate) : undefined
+      const rentStart = rentEnd ? new Date(rentEnd.getTime() - 365 * 86_400_000) : undefined
+
+      const pdfBuffer = await this.generateReceiptPdfUseCase.executeBuffer({
+        title: isPartial ? 'Partial Rent Settlement Receipt' : 'Official Rent Payment Receipt',
+        receiptNumber: settlement?.settlementReference || `UPW-${vault.uuid.slice(0, 8).toUpperCase()}`,
+        paidAt: settlement?.createdAt || vault.updatedAt || new Date(),
+        tenantName,
+        landlordName: settlement?.landlordName || 'Landlord',
+        propertyAddress: settlement?.propertyAddress || undefined,
+        paymentType: isPartial ? 'Partial Rent (from Savings)' : 'Annual Rent (from Savings)',
+        amount: paidNaira,
+        currency: 'NGN',
+        reference: settlement?.settlementReference || vault.uuid,
+        channel: settlement?.nipSessionId
+          ? `NIP Direct Settlement (${settlement.nipSessionId})`
+          : 'Upward Rent Savings',
+        type: 'RENT_PAYMENT',
+        status: isPartial ? 'PARTIAL' : 'PAID',
+        rentStartDate: rentStart,
+        rentEndDate: rentEnd,
+        isPartial,
+        rentAmount: targetNaira,
+        totalInvoiceAmount: targetNaira,
+        totalPaidToDate: paidNaira,
+        remainingBalance: remainingNaira,
+        lineItems: [
+          {
+            label: isPartial ? 'Rent Paid from Savings' : 'Annual Rent Settled via Upward',
+            amount: paidNaira,
+            totalAmount: targetNaira,
+            amountPaid: paidNaira,
+            status: isPartial ? 'PARTIAL' : 'PAID',
+          },
+        ],
+      })
+
+      res.setHeader('Content-Type', 'application/pdf')
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="upward_rent_receipt_${vaultId}.pdf"`,
+      )
+      return res.send(pdfBuffer)
+    }
+
+    throw new NotFoundException('Receipt generator is unavailable')
   }
 }

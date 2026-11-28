@@ -104,7 +104,12 @@ export class InitializePaymentUseCase {
     }
 
     const rates = await this.paymentConfig.getDynamicProcessingRates(user.id, userPropertyId, pr?.id)
-    const excludeBenefits = data.metadata?.excludeBenefits === true
+    const hasLineItems = Array.isArray(data.metadata?.lineItems) && data.metadata.lineItems.length > 0
+    const hasBenefitsLineItem =
+      hasLineItems &&
+      data.metadata.lineItems.some((i: any) => (i.label || i.name || '') === 'Upward Benefits')
+    const excludeBenefits =
+      data.metadata?.excludeBenefits === true || (hasLineItems && !hasBenefitsLineItem)
     const isBenefitsOnly =
       data.metadata?.paymentKind === 'BENEFITS_SUBSCRIPTION' ||
       data.metadata?.type === 'BENEFITS_SUBSCRIPTION' ||
@@ -132,7 +137,9 @@ export class InitializePaymentUseCase {
       let clientFee = 0
       if (data.metadata?.lineItems) {
         const feeItems = data.metadata.lineItems.filter((i: any) =>
-          ['Upward Benefits'].includes(i.label || i.name || '')
+          ['Upward Benefits', 'Transaction Fee', 'Transaction fee', 'Processing Fee'].includes(
+            i.label || i.name || '',
+          ),
         )
         if (feeItems.length > 0) {
           clientFee = feeItems.reduce((sum: number, fi: any) => sum + Number(fi.amount || fi.amountPaid || 0), 0)

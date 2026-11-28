@@ -31,7 +31,11 @@ export class GetUserTransactionsUseCase {
       })
 
       savingsTxs = vaultTxs
-        .filter((vt) => Number(vt.amountKobo || 0n) > 0)
+        .filter(
+          (vt) =>
+            Number(vt.amountKobo || 0n) > 0 &&
+            !(vt.type === 'CASHBACK' && String(vt.reference || '').startsWith('CASHBACK_ROLLOVER_')),
+        )
         .map((vt) => {
           const isDebit = [
             'SETTLEMENT_DISBURSEMENT',
@@ -76,6 +80,67 @@ export class GetUserTransactionsUseCase {
         })
     }
 
+    let walletTxs: any[] = []
+    if (this.prisma?.upward_wallet_transaction) {
+      const rawWalletTxs = await this.prisma.upward_wallet_transaction.findMany({
+        where: { userId: user.id! },
+        orderBy: { createdAt: 'desc' },
+      })
+
+      // Expose meaningful DVA holding wallet inflows/payouts (surplus, unallocated DVA deposits,
+      // ARM fallback holds, payouts) while excluding duplicate cashback & internal sweep entries.
+      const visibleWalletTypes = new Set([
+        'SETTLEMENT_SURPLUS',
+        'UNALLOCATED_DVA_INFLOW',
+        'ARM_SUBSCRIPTION_FALLBACK',
+        'WALLET_DEPOSIT',
+        'PAYOUT_TO_BANK',
+      ])
+
+      walletTxs = rawWalletTxs
+        .filter((wt) => visibleWalletTypes.has(wt.type) && Math.abs(Number(wt.amount || 0)) > 0)
+        .map((wt) => {
+          const meta = (wt.metadata as Record<string, unknown> | null) || {}
+          const isDebit = wt.type === 'PAYOUT_TO_BANK' || Number(wt.amount) < 0
+          const narrationMap: Record<string, string> = {
+            SETTLEMENT_SURPLUS: 'Rent Savings Surplus',
+            UNALLOCATED_DVA_INFLOW: 'DVA Account Deposit (Held)',
+            ARM_SUBSCRIPTION_FALLBACK: 'Rent Savings Deposit (Held on DVA)',
+            WALLET_DEPOSIT: 'Upward Account Deposit',
+            PAYOUT_TO_BANK: 'Withdrawal to Bank',
+          }
+          const txTypeMap: Record<string, string> = {
+            SETTLEMENT_SURPLUS: 'SAVINGS_SURPLUS',
+            UNALLOCATED_DVA_INFLOW: 'DVA_HELD_INFLOW',
+            ARM_SUBSCRIPTION_FALLBACK: 'DVA_ARM_FALLBACK',
+            WALLET_DEPOSIT: 'DVA_WALLET_DEPOSIT',
+            PAYOUT_TO_BANK: 'SAVINGS_WITHDRAWAL',
+          }
+
+          return {
+            id: `wallet_${wt.id}`,
+            uuid: wt.uuid,
+            amount: Math.abs(Number(wt.amount)),
+            currency: 'NGN',
+            status: wt.status || 'SUCCESS',
+            channel: 'Upward DVA',
+            direction: isDebit ? 'debit' : 'credit',
+            type: wt.type,
+            transactionType: txTypeMap[wt.type] || 'SAVINGS',
+            fundingType: (meta.fundingType as string) || wt.type,
+            holdingLocation: (meta.holdingLocation as string) || 'USER_DVA_WALLET',
+            routingTarget: (meta.routingTarget as string) || 'HOLD_IN_DVA',
+            routingStatus: (meta.routingStatus as string) || 'HELD',
+            source: 'RENT_SAVINGS',
+            reference: wt.reference || wt.uuid,
+            narration: narrationMap[wt.type] || wt.narration || 'Upward Account Activity',
+            createdAt: wt.createdAt,
+            isManual: false,
+            lineItems: [],
+          }
+        })
+    }
+
     const combined = [
       ...paymentTxs.map((t: any) => ({
         ...t,
@@ -84,6 +149,7 @@ export class GetUserTransactionsUseCase {
         source: 'PAYMENT',
       })),
       ...savingsTxs,
+      ...walletTxs,
     ].sort(
       (a: any, b: any) =>
         new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime(),

@@ -269,9 +269,102 @@ export class ExecuteLandlordSettlementUseCase {
               reference: `CBK_${settlementReference}`,
               channel: 'SYSTEM_YIELD',
               narration: `Gamified rent savings cashback credited (${cashbackResult.earlyBirdApplied ? '1.2x early-bird bonus' : 'standard'})`,
+              metadata: {
+                fundingType: 'SETTLEMENT_CASHBACK',
+                holdingLocation: 'USER_DVA_WALLET',
+                routingTarget: 'NEXT_RENT_VAULT',
+                routingStatus: 'HELD',
+                dvaAccountNumber: freshVault.dvaAccountNumber || null,
+                settlementReference,
+              },
             },
             tx,
           )
+        }
+
+        // Hold settlement surplus and cashback explicitly in the user's DVA holding wallet (`upward_wallet`)
+        // with clear fundingType + routingTarget metadata so funds are never lost and can be routed cleanly.
+        if (
+          (surplusToWalletKobo > 0n || cashbackCreditedKobo > 0n) &&
+          tx.upward_wallet &&
+          tx.upward_wallet_transaction
+        ) {
+          const userWallet = await tx.upward_wallet.upsert({
+            where: { userId },
+            create: { userId, balance: 0, isActive: true },
+            update: { isActive: true },
+          })
+
+          if (surplusToWalletKobo > 0n) {
+            const surplusNaira = Number(surplusToWalletKobo) / 100
+            const surplusRef = `SURPLUS_${settlementReference}`
+            const existingSurplus = await tx.upward_wallet_transaction.findUnique({
+              where: { reference: surplusRef },
+            })
+            if (!existingSurplus) {
+              await tx.upward_wallet.update({
+                where: { id: userWallet.id },
+                data: { balance: { increment: surplusNaira } },
+              })
+              await tx.upward_wallet_transaction.create({
+                data: {
+                  walletId: userWallet.id,
+                  userId,
+                  type: 'SETTLEMENT_SURPLUS',
+                  status: 'SUCCESS',
+                  amount: surplusNaira,
+                  reference: surplusRef,
+                  narration: `Excess rent savings & interest held in your Upward DVA balance`,
+                  metadata: {
+                    fundingType: 'SETTLEMENT_SURPLUS',
+                    holdingLocation: 'USER_DVA_WALLET',
+                    routingTarget:
+                      dto.disburse_surplus_to_wallet === false
+                        ? 'NEXT_RENT_VAULT'
+                        : 'HOLD_IN_DVA',
+                    routingStatus: 'HELD',
+                    dvaAccountNumber: freshVault.dvaAccountNumber || null,
+                    sourceVaultId: vault.id,
+                    settlementReference,
+                  } as any,
+                },
+              })
+            }
+          }
+
+          if (cashbackCreditedKobo > 0n) {
+            const cashbackNaira = Number(cashbackCreditedKobo) / 100
+            const walletCashbackRef = `WLT_CBK_${settlementReference}`
+            const existingCashbackWlt = await tx.upward_wallet_transaction.findUnique({
+              where: { reference: walletCashbackRef },
+            })
+            if (!existingCashbackWlt) {
+              await tx.upward_wallet.update({
+                where: { id: userWallet.id },
+                data: { balance: { increment: cashbackNaira } },
+              })
+              await tx.upward_wallet_transaction.create({
+                data: {
+                  walletId: userWallet.id,
+                  userId,
+                  type: 'SETTLEMENT_CASHBACK',
+                  status: 'SUCCESS',
+                  amount: cashbackNaira,
+                  reference: walletCashbackRef,
+                  narration: `Rent savings cashback held on your Upward DVA for your next rent plan`,
+                  metadata: {
+                    fundingType: 'SETTLEMENT_CASHBACK',
+                    holdingLocation: 'USER_DVA_WALLET',
+                    routingTarget: 'NEXT_RENT_VAULT',
+                    routingStatus: 'HELD',
+                    dvaAccountNumber: freshVault.dvaAccountNumber || null,
+                    sourceVaultId: vault.id,
+                    settlementReference,
+                  } as any,
+                },
+              })
+            }
+          }
         }
 
         await this.rentVaultRepo.update(

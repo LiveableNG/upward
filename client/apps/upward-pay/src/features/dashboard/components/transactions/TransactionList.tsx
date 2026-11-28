@@ -108,6 +108,45 @@ function getTxDisplay(tx: TxListItem): {
       tag: { label: 'Savings', variant: 'neutral' },
     }
   }
+  if (tx.transactionType === 'SAVINGS_SURPLUS') {
+    return {
+      title: 'Rent Savings Surplus',
+      subtitle: 'Held in your Upward DVA balance',
+      tag: { label: 'Surplus', variant: 'reward' },
+    }
+  }
+  if (tx.transactionType === 'DVA_HELD_INFLOW') {
+    return {
+      title: 'DVA Account Deposit',
+      subtitle:
+        tx.routingStatus === 'ROUTED'
+          ? 'Moved into your Rent Savings plan'
+          : 'Held on DVA for your next rent plan',
+      tag: {
+        label: tx.routingStatus === 'ROUTED' ? 'Routed' : 'Held on DVA',
+        variant: 'savings',
+      },
+    }
+  }
+  if (tx.transactionType === 'DVA_ARM_FALLBACK') {
+    return {
+      title: 'Rent Savings Deposit',
+      subtitle:
+        tx.routingStatus === 'ROUTED'
+          ? 'Investment sync completed'
+          : 'Held safely on your DVA pending sync',
+      tag: {
+        label: tx.routingStatus === 'ROUTED' ? 'Synced' : 'Held on DVA',
+        variant: 'future',
+      },
+    }
+  }
+  if (tx.transactionType === 'DVA_WALLET_DEPOSIT') {
+    return {
+      title: 'Upward Account Deposit',
+      tag: { label: 'DVA Balance', variant: 'savings' },
+    }
+  }
 
   const rawTitle = (tx.company_name || 'Rent Payment').trim()
   let title = rawTitle
@@ -323,9 +362,21 @@ export function TransactionList() {
         </span>
       )
     }
-    if (tx.transactionType === 'SAVINGS_DEPOSIT') {
+    if (
+      tx.transactionType === 'SAVINGS_DEPOSIT' ||
+      tx.transactionType === 'DVA_HELD_INFLOW' ||
+      tx.transactionType === 'DVA_ARM_FALLBACK' ||
+      tx.transactionType === 'DVA_WALLET_DEPOSIT'
+    ) {
       return (
         <span className="tx-page__row-icon tx-page__row-icon--savings">
+          <Wallet size={17} />
+        </span>
+      )
+    }
+    if (tx.transactionType === 'SAVINGS_SURPLUS') {
+      return (
+        <span className="tx-page__row-icon tx-page__row-icon--reward">
           <Wallet size={17} />
         </span>
       )
@@ -379,7 +430,9 @@ export function TransactionList() {
               <div className="tx-page__summary-meta">
                 <span className="tx-page__summary-meta-item">
                   <Gift size={13} aria-hidden />
-                  +{formatCurrency(totalRewardsEarned, paymentCurrency)} cashback &amp; interest
+                  <span>
+                    {`+${formatCurrency(totalRewardsEarned, paymentCurrency)} cashback & interest`}
+                  </span>
                 </span>
               </div>
             ) : null}

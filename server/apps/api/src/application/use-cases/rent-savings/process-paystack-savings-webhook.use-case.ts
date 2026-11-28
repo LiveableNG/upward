@@ -302,9 +302,76 @@ export class ProcessPaystackSavingsWebhookUseCase {
     }
 
     if (vault.lockStatus === 'SETTLED' || vault.lockStatus === 'BROKEN_OUT') {
+      const amountNaira = Number(verifiedAmountKobo) / 100
       this.logger.warn(
-        `Verified Paystack deposit ${reference} arrived for closed vault ${vault.uuid} (${vault.lockStatus})`,
+        `Verified Paystack deposit ${reference} (₦${amountNaira}) arrived on DVA for closed vault ${vault.uuid} (${vault.lockStatus}); holding safely in user DVA wallet`,
       )
+
+      if (this.prisma?.upward_wallet && this.prisma?.upward_wallet_transaction) {
+        await this.prisma.$transaction(async (tx) => {
+          const existingHold = await tx.upward_wallet_transaction.findUnique({
+            where: { reference },
+          })
+          if (existingHold) return
+
+          const userWallet = await tx.upward_wallet.upsert({
+            where: { userId: vault.userId },
+            create: { userId: vault.userId, balance: 0, isActive: true },
+            update: { isActive: true },
+          })
+
+          await tx.upward_wallet.update({
+            where: { id: userWallet.id },
+            data: { balance: { increment: amountNaira } },
+          })
+
+          await tx.upward_wallet_transaction.create({
+            data: {
+              walletId: userWallet.id,
+              userId: vault.userId,
+              type: 'UNALLOCATED_DVA_INFLOW',
+              status: 'SUCCESS',
+              amount: amountNaira,
+              reference,
+              narration: `Bank transfer held safely in your Upward DVA balance until your next rent plan starts`,
+              metadata: {
+                fundingType: 'UNALLOCATED_DVA_INFLOW',
+                holdingLocation: 'USER_DVA_WALLET',
+                routingTarget: 'NEXT_RENT_VAULT',
+                routingStatus: 'HELD',
+                dvaAccountNumber: verifiedReceiverAccount || payloadDvaAccount || vault.dvaAccountNumber || null,
+                sourceVaultId: vault.id,
+                paystackVerified: true,
+                paystackVerifiedAt: new Date().toISOString(),
+              } as any,
+            },
+          })
+        })
+
+        if (this.prisma?.upward_notification) {
+          await this.prisma.upward_notification
+            .create({
+              data: {
+                userId: vault.userId,
+                title: 'Funds Held in Your Upward Account',
+                message: `NGN ${amountNaira.toLocaleString()} was received on your dedicated account and is safely held until you start your next Rent Savings plan.`,
+                type: 'PAYMENT',
+                url: '/dashboard/savings',
+              },
+            })
+            .catch(() => {})
+        }
+
+        return {
+          status: 'held_in_dva_wallet',
+          funding_type: 'UNALLOCATED_DVA_INFLOW',
+          routing_target: 'NEXT_RENT_VAULT',
+          amount_kobo: Number(verifiedAmountKobo),
+          vault_id: vault.uuid,
+          reference,
+        }
+      }
+
       return { status: 'vault_closed', vault_id: vault.uuid, reference }
     }
 
