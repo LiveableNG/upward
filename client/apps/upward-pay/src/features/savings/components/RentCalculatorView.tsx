@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   TrendingUp,
@@ -50,6 +50,7 @@ type Stage = 'RENT_INPUT' | 'PROTECTION' | 'BENEFIT' | 'KYC' | 'SUCCESS'
 
 interface RentCalculatorViewProps {
   onSuccess?: () => void
+  onHoldInWizard?: (holding: boolean) => void
   onProceedToSetup?: (config: {
     targetAmountKobo: number
     contractualDueDate: string
@@ -63,6 +64,7 @@ interface RentCalculatorViewProps {
 
 export function RentCalculatorView({
   onSuccess,
+  onHoldInWizard,
   onProceedToSetup,
 }: RentCalculatorViewProps) {
   const { user, refreshUser } = useAuth()
@@ -249,6 +251,8 @@ export function RentCalculatorView({
     account_number: string
     account_name: string
   } | null>(null)
+  const [startingCashbackNgn, setStartingCashbackNgn] = useState<number>(0)
+  const startingBalanceKoboRef = useRef<number>(0)
   const [copiedAccount, setCopiedAccount] = useState(false)
   const [showComparePlans, setShowComparePlans] = useState(false)
   const [showCompareBenefits, setShowCompareBenefits] = useState(false)
@@ -640,6 +644,7 @@ export function RentCalculatorView({
 
   const handleSubmitKyc = async (kycData: ArmInvestorKycSubmitData) => {
     setKycError(null)
+    onHoldInWizard?.(true)
 
     try {
       const res = await onboardMutation.mutateAsync({
@@ -694,10 +699,15 @@ export function RentCalculatorView({
         setCreatedDva(null)
       }
 
+      const initialCreditedKobo = hasWaitingCashback ? availableCashbackNgn * 100 : 0
+      startingBalanceKoboRef.current = initialCreditedKobo
+      setStartingCashbackNgn(hasWaitingCashback ? availableCashbackNgn : 0)
+
       setStage('SUCCESS')
       toastSuccess('Account verified and dedicated rent bank account ready!')
       await refreshUser().catch(() => {})
     } catch (err: unknown) {
+      onHoldInWizard?.(false)
       const error = err as { message?: string }
       const msg = error?.message || 'Verification failed. Please check your information.'
       setKycError(msg)
@@ -707,6 +717,7 @@ export function RentCalculatorView({
 
   const handleActivateRepeatSaverVault = async () => {
     setKycError(null)
+    onHoldInWizard?.(true)
     try {
       const res = (await createVaultMutation.mutateAsync({
         target_amount_kobo: Math.round(targetAmountNaira * 100),
@@ -724,6 +735,8 @@ export function RentCalculatorView({
         payday_day_of_month: preferredPaydayDay,
         consent_accepted: true,
       })) as {
+        current_principal_kobo?: number
+        accrued_yield_kobo?: number
         dedicated_account?: {
           bank_name: string
           account_number: string
@@ -750,6 +763,14 @@ export function RentCalculatorView({
         setCreatedDva(dva)
       }
 
+      const initialCreditedKobo =
+        (res?.current_principal_kobo ?? 0) + (res?.accrued_yield_kobo ?? 0) ||
+        (hasWaitingCashback ? availableCashbackNgn * 100 : 0)
+      startingBalanceKoboRef.current = initialCreditedKobo
+      setStartingCashbackNgn(
+        initialCreditedKobo > 0 ? Math.round(initialCreditedKobo / 100) : 0,
+      )
+
       setStage('SUCCESS')
       toastSuccess(
         hasWaitingCashback
@@ -758,6 +779,7 @@ export function RentCalculatorView({
       )
       await refreshUser().catch(() => {})
     } catch (err: unknown) {
+      onHoldInWizard?.(false)
       const error = err as { message?: string }
       const msg = error?.message || 'Could not activate your next savings plan. Please try again.'
       toastError(msg)
@@ -765,6 +787,7 @@ export function RentCalculatorView({
   }
 
   const handleFinish = async () => {
+    onHoldInWizard?.(false)
     await refreshUser().catch(() => {})
     if (onSuccess) {
       onSuccess()
@@ -777,7 +800,7 @@ export function RentCalculatorView({
     setSuccessVerifyNotice(null)
     try {
       const res = await verifyFundingMutation.mutateAsync()
-      if (res.detected || res.current_balance_kobo > 0) {
+      if (res.detected || res.current_balance_kobo > startingBalanceKoboRef.current) {
         toastSuccess('Deposit received and credited to your Rent Savings wallet!')
         await handleFinish()
         return
@@ -808,7 +831,10 @@ export function RentCalculatorView({
       if (cancelled) return
       try {
         const res = await verifyRentVaultFunding()
-        if (!cancelled && (res.detected || res.current_balance_kobo > 0)) {
+        if (
+          !cancelled &&
+          (res.detected || res.current_balance_kobo > startingBalanceKoboRef.current)
+        ) {
           toastSuccess('Deposit detected and credited to your Rent Savings!')
           handleFinish()
         }
@@ -2145,6 +2171,28 @@ export function RentCalculatorView({
         }
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '4px 0 8px' }}>
+          {startingCashbackNgn > 0 && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '9px 12px',
+                borderRadius: 12,
+                background: '#ECFDF5',
+                border: '1px solid #A7F3D0',
+                color: '#047857',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+              }}
+            >
+              <CheckCircle2 size={15} style={{ flexShrink: 0 }} />
+              <span>
+                <strong>{formatCurrency(startingCashbackNgn, 'NGN')} cashback</strong> is already in
+                your new balance. Top up anytime below.
+              </span>
+            </div>
+          )}
           {/* Amount input */}
           <div>
             <label

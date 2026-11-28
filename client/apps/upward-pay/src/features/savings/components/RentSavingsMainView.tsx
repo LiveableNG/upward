@@ -57,6 +57,8 @@ export function RentSavingsMainView() {
   const { data: pendingPayments = [] } = usePendingPayments()
 
   const [viewMode, setViewMode] = useState<'DASHBOARD' | 'SETTLEMENT'>('DASHBOARD')
+  const [pinnedSettlementVault, setPinnedSettlementVault] = useState<typeof vault | null>(null)
+  const [holdCalculatorView, setHoldCalculatorView] = useState<boolean>(false)
   const [showKycModal, setShowKycModal] = useState<boolean>(false)
   const [bypassPartialBalanceGuard, setBypassPartialBalanceGuard] = useState<boolean>(false)
 
@@ -158,6 +160,8 @@ export function RentSavingsMainView() {
 
   const isVaultActive =
     vault && vault.lock_status !== 'SETTLED' && vault.lock_status !== 'BROKEN_OUT'
+  const effectiveSettlementVault =
+    viewMode === 'SETTLEMENT' ? vault || pinnedSettlementVault : null
 
   const isKycRequired = Boolean(
     user &&
@@ -235,8 +239,8 @@ export function RentSavingsMainView() {
     return null
   }
 
-  if (!isVaultActive) {
-    if (incompleteRentPayment && !bypassPartialBalanceGuard) {
+  if ((!isVaultActive && !effectiveSettlementVault) || holdCalculatorView) {
+    if (!holdCalculatorView && incompleteRentPayment && !bypassPartialBalanceGuard) {
       const paidNaira = Number(incompleteRentPayment.amountPaid || 0)
       const totalNaira = Number(incompleteRentPayment.total_amount || 0)
       const remainingNaira = Math.max(0, totalNaira - paidNaira)
@@ -351,7 +355,9 @@ export function RentSavingsMainView() {
 
     return (
       <RentCalculatorView
+        onHoldInWizard={(holding) => setHoldCalculatorView(holding)}
         onSuccess={() => {
+          setHoldCalculatorView(false)
           refetch()
           refreshUser().catch(() => {})
         }}
@@ -359,13 +365,17 @@ export function RentSavingsMainView() {
     )
   }
 
+  const activeVaultForView = effectiveSettlementVault || vault!
+
   return (
     <PayPageShell
       title={viewMode === 'SETTLEMENT' ? 'Rent Settlement' : 'Rent Savings'}
       showBack
       onBack={() => {
         if (viewMode === 'SETTLEMENT') {
+          setPinnedSettlementVault(null)
           setViewMode('DASHBOARD')
+          refetch()
         } else {
           router.push('/dashboard')
         }
@@ -382,18 +392,23 @@ export function RentSavingsMainView() {
           >
             {viewMode === 'SETTLEMENT' && (
               <SettlementHubView
-                vault={vault}
+                vault={activeVaultForView}
                 onRestartVault={() => {
-                  refetch()
+                  setPinnedSettlementVault(null)
                   setViewMode('DASHBOARD')
+                  refetch()
+                  refreshUser().catch(() => {})
                 }}
               />
             )}
 
             {viewMode === 'DASHBOARD' && (
               <VaultDashboardView
-                vault={vault}
-                onGoToSettlementHub={() => setViewMode('SETTLEMENT')}
+                vault={activeVaultForView}
+                onGoToSettlementHub={() => {
+                  setPinnedSettlementVault(activeVaultForView)
+                  setViewMode('SETTLEMENT')
+                }}
               />
             )}
           </div>

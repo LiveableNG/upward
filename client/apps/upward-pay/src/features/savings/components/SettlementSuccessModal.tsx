@@ -167,7 +167,7 @@ export function SettlementSuccessModal({
                   Cashback Earned: +{formatCurrency(cashbackNaira, 'NGN')}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                  Includes 1.2x early-bird bonus for prompt settlement
+                  Ready to claim toward your next rent savings plan
                 </div>
               </div>
             </div>

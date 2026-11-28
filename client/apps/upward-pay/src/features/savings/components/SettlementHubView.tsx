@@ -71,7 +71,12 @@ export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewPr
   const shortfallNaira = Math.max(0, targetRentNaira - currentBalanceNaira)
   const isShortfall = shortfallNaira > 0
   const surplusNaira = Math.max(0, currentBalanceNaira - targetRentNaira)
-  const estimatedCashbackNaira = isShortfall ? 0 : targetRentNaira * 0.005 * 1.2
+  const isEarlyBirdWindow = vault.days_remaining >= 20 && vault.days_remaining <= 30
+  const baseCashbackRate =
+    targetRentNaira <= 1_500_000 ? 0.0065 : targetRentNaira >= 5_000_000 ? 0.003 : 0.005
+  const estimatedCashbackNaira = isShortfall
+    ? 0
+    : Math.round(targetRentNaira * baseCashbackRate * (isEarlyBirdWindow ? 1.2 : 1))
 
   const {
     register,
@@ -187,7 +192,9 @@ export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewPr
           ) : (
             <div className="settlement-hub-banner__multiplier">
               <Award size={14} />
-              <span>1.2x Early-Bird Cashback Active</span>
+              <span>
+                {isEarlyBirdWindow ? '1.2x Early-Bird Cashback Active' : 'Rent Cashback Active'}
+              </span>
             </div>
           )}
           <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
@@ -424,7 +431,9 @@ export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewPr
               </div>
             ) : (
               <div className="vault-fee-breakdown__row">
-                <span>Estimated 1.2x Cashback Bonus</span>
+                <span>
+                  {isEarlyBirdWindow ? 'Estimated 1.2x Cashback Bonus' : 'Estimated Cashback Reward'}
+                </span>
                 <span style={{ color: 'var(--clay)', fontWeight: 700 }}>
                   +{formatCurrency(estimatedCashbackNaira, 'NGN')}
                 </span>
@@ -457,13 +466,8 @@ export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewPr
           data={successData}
           landlordName={landlordNameSubmitted}
           onClose={() => {
-            const isPartial =
-              Boolean(successData.is_partial_settlement) ||
-              (successData.remaining_balance_kobo ?? 0) > 0
             setSuccessData(null)
-            if (isPartial) {
-              router.push('/dashboard')
-            }
+            router.push('/dashboard')
           }}
           onRestartVault={onRestartVault}
           onPayRemainingBalance={(paymentRequestUuid) => {

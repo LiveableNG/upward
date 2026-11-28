@@ -84,6 +84,10 @@ export function useCreateRentVault() {
       savingsService.createRentVault(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: RENT_VAULT_QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: RENT_VAULT_PREFILL_QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['user'] })
     },
   })
 }
@@ -116,11 +120,13 @@ export function useExecuteSettlement() {
     }) => savingsService.executeLandlordSettlement(vaultId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: RENT_VAULT_QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: RENT_VAULT_PREFILL_QUERY_KEY })
       queryClient.invalidateQueries({ queryKey: ['pending-payments'] })
       queryClient.invalidateQueries({ queryKey: ['pendingPayments'] })
       queryClient.invalidateQueries({ queryKey: ['transactions'] })
       queryClient.invalidateQueries({ queryKey: ['notifications'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      queryClient.invalidateQueries({ queryKey: ['user'] })
     },
   })
 }
@@ -156,6 +162,8 @@ export function useOnboardSavingsInvestor() {
       queryClient.invalidateQueries({ queryKey: ['user'] })
       queryClient.invalidateQueries({ queryKey: RENT_VAULT_QUERY_KEY })
       queryClient.invalidateQueries({ queryKey: RENT_VAULT_PREFILL_QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
     },
   })
 }
@@ -193,6 +201,8 @@ export function useConsentToSavings() {
       queryClient.invalidateQueries({ queryKey: ['user'] })
       queryClient.invalidateQueries({ queryKey: RENT_VAULT_QUERY_KEY })
       queryClient.invalidateQueries({ queryKey: RENT_VAULT_PREFILL_QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
     },
   })
 }
