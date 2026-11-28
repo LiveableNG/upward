@@ -8,8 +8,6 @@ import {
 } from './savingsFormulaEngine'
 import { getRentProtecMinimumDepositPct } from '../services/savingsService'
 
-export type DailyRateConvention = 'EFFECTIVE' | 'NOMINAL'
-
 export interface DailyEngineInputs {
   targetRentNaira: number
   planId: EnginePlanId
@@ -18,7 +16,6 @@ export interface DailyEngineInputs {
   upfrontDepositNaira: number
   depositDay: number // 1..28
   payFirstMonthOnStartDay: boolean
-  rateConvention: DailyRateConvention
   // Extra top-up on a specific date
   enableExtraTopUp: boolean
   extraTopUpDateIso: string
@@ -101,10 +98,6 @@ export interface MonthlyVsDailyComparison {
   oldMonthlyRealVariance: number
   dailyRealBalanceAtUnlock: number
   dailyRealVariance: number
-  /** Nominal (r/365) vs Effective ((1+r)^(1/365)-1) annual yield comparison */
-  effectiveAnnualYieldPct: number
-  nominalCompoundedAnnualYieldPct: number
-  rateConventionDriftNaira: number
 }
 
 export interface DailyEngineCalculationResult {
@@ -112,7 +105,6 @@ export interface DailyEngineCalculationResult {
   planId: EnginePlanId
   annualRatePct: number
   annualRateDecimal: number
-  rateConvention: DailyRateConvention
   dailyRate: number
   effectiveAnnualYieldPct: number
   startDateIso: string
@@ -177,14 +169,13 @@ function formatUtcDate(ms: number, includeYear = false): string {
   return includeYear ? `${base}, ${d.getUTCFullYear()}` : base
 }
 
-export function getDailyCompoundingRate(
-  annualRateDecimal: number,
-  convention: DailyRateConvention,
-): number {
+/**
+ * Exact effective daily compounding rate:
+ *   r_d = (1 + r_a)^(1/365) - 1
+ * Guarantees 365 days of daily compounding equals exactly r_a p.a.
+ */
+export function getDailyCompoundingRate(annualRateDecimal: number): number {
   const safeRate = Math.max(0, annualRateDecimal)
-  if (convention === 'NOMINAL') {
-    return safeRate / 365
-  }
   return Math.pow(1 + safeRate, 1 / 365) - 1
 }
 
@@ -232,7 +223,6 @@ export function computeDailySavingsEngine(
   const plan = ENGINE_PLANS[inputs.planId] ?? ENGINE_PLANS.FULL_LOCK
   const annualRatePct = plan.annualRatePct
   const annualRateDecimal = annualRatePct / 100
-  const rateConvention: DailyRateConvention = inputs.rateConvention || 'EFFECTIVE'
 
   const defaultStartMs = Date.UTC(2026, 10, 1) // Nov 1, 2026
   const defaultRentMs = Date.UTC(2027, 10, 1) // Nov 1, 2027
@@ -245,7 +235,7 @@ export function computeDailySavingsEngine(
   const activeCompoundingDays = Math.max(1, Math.round((unlockMs - startMs) / DAY_MS))
   const isRentProtecEligible = daysUntilRent >= 6 * 28
 
-  const dailyRate = getDailyCompoundingRate(annualRateDecimal, rateConvention)
+  const dailyRate = getDailyCompoundingRate(annualRateDecimal)
   const effectiveAnnualYieldPct = (Math.pow(1 + dailyRate, 365) - 1) * 100
 
   // Rent Protec activation threshold using activeCompoundingDays (exact unlock horizon)
@@ -543,15 +533,6 @@ export function computeDailySavingsEngine(
       oldMonthly.monthlyDeposit * Math.pow(1 + dailyRate, daysToUnlockPerStep[i])
   }
 
-  // Nominal vs Effective convention drift on this exact daily plan
-  const altConvention: DailyRateConvention = rateConvention === 'EFFECTIVE' ? 'NOMINAL' : 'EFFECTIVE'
-  const altDailyRate = getDailyCompoundingRate(annualRateDecimal, altConvention)
-  let altBalance = effectiveUpfront * Math.pow(1 + altDailyRate, activeCompoundingDays)
-  for (let i = 0; i < numberOfDeposits; i++) {
-    altBalance += scheduledDeposit * Math.pow(1 + altDailyRate, daysToUnlockPerStep[i])
-  }
-  const nominalCompoundedAnnualYieldPct = (Math.pow(1 + annualRateDecimal / 365, 365) - 1) * 100
-
   const comparison: MonthlyVsDailyComparison = {
     monthlyEngineDeposit: oldMonthly.monthlyDeposit,
     dailyEngineDeposit: scheduledDeposit,
@@ -565,9 +546,6 @@ export function computeDailySavingsEngine(
     oldMonthlyRealVariance: oldRealBalance - targetRent,
     dailyRealBalanceAtUnlock: closingBalanceAtUnlock,
     dailyRealVariance: balanceVariance,
-    effectiveAnnualYieldPct: annualRatePct,
-    nominalCompoundedAnnualYieldPct,
-    rateConventionDriftNaira: Math.abs(altBalance - closingBalanceAtUnlock),
   }
 
   // MoteleJesu's 2-Tenant Proof (Start Day 1 vs Start Day 20 of the same tenancy month)
@@ -641,7 +619,6 @@ export function computeDailySavingsEngine(
     planId: inputs.planId,
     annualRatePct,
     annualRateDecimal,
-    rateConvention,
     dailyRate,
     effectiveAnnualYieldPct,
     startDateIso: toIsoDateUtc(startMs),

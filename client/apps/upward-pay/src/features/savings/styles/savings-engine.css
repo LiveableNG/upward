@@ -1273,17 +1273,6 @@
   margin-bottom: 8px;
 }
 
-.savings-engine__rate-mode {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid var(--shell-border, #f0e9df);
-  flex-wrap: wrap;
-}
-
 .savings-engine__stack {
   display: flex;
   flex-direction: column;

@@ -30,10 +30,7 @@ import {
   toIsoDateUtc,
   type EnginePlanId,
 } from '../utils/savingsFormulaEngine'
-import {
-  computeDailySavingsEngine,
-  type DailyRateConvention,
-} from '../utils/dailySavingsFormulaEngine'
+import { computeDailySavingsEngine } from '../utils/dailySavingsFormulaEngine'
 import '../styles/savings-engine.css'
 
 const dailyEngineFormSchema = z.object({
@@ -44,7 +41,6 @@ const dailyEngineFormSchema = z.object({
   upfrontDepositNaira: z.number().min(0),
   depositDay: z.number().min(1).max(28),
   payFirstMonthOnStartDay: z.boolean(),
-  rateConvention: z.enum(['EFFECTIVE', 'NOMINAL']),
   enableExtraTopUp: z.boolean(),
   extraTopUpDateIso: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   extraTopUpAmountNaira: z.number().min(0).max(50_000_000),
@@ -67,7 +63,6 @@ const PRESETS: Array<{ id: string; label: string; values: DailyEngineFormValues 
       upfrontDepositNaira: 1_200_000,
       depositDay: 28,
       payFirstMonthOnStartDay: false,
-      rateConvention: 'EFFECTIVE',
       enableExtraTopUp: false,
       extraTopUpDateIso: '2027-02-15',
       extraTopUpAmountNaira: 250_000,
@@ -87,7 +82,6 @@ const PRESETS: Array<{ id: string; label: string; values: DailyEngineFormValues 
       upfrontDepositNaira: 1_200_000,
       depositDay: 28,
       payFirstMonthOnStartDay: false,
-      rateConvention: 'EFFECTIVE',
       enableExtraTopUp: false,
       extraTopUpDateIso: '2027-02-15',
       extraTopUpAmountNaira: 250_000,
@@ -107,7 +101,6 @@ const PRESETS: Array<{ id: string; label: string; values: DailyEngineFormValues 
       upfrontDepositNaira: 400_000,
       depositDay: 28,
       payFirstMonthOnStartDay: false,
-      rateConvention: 'EFFECTIVE',
       enableExtraTopUp: false,
       extraTopUpDateIso: '2027-02-15',
       extraTopUpAmountNaira: 150_000,
@@ -155,7 +148,6 @@ export function DailySavingsEnginePage() {
       upfrontDepositNaira: Number(watched.upfrontDepositNaira) || 0,
       depositDay: Number(watched.depositDay ?? 28),
       payFirstMonthOnStartDay: Boolean(watched.payFirstMonthOnStartDay),
-      rateConvention: (watched.rateConvention as DailyRateConvention) || 'EFFECTIVE',
       enableExtraTopUp: Boolean(watched.enableExtraTopUp),
       extraTopUpDateIso: watched.extraTopUpDateIso || '2027-02-15',
       extraTopUpAmountNaira: Number(watched.extraTopUpAmountNaira) || 0,
@@ -353,35 +345,6 @@ export function DailySavingsEnginePage() {
                       </button>
                     )
                   })}
-                </div>
-
-                {/* Rate Convention Toggle: Effective vs Nominal */}
-                <div className="savings-engine__rate-mode">
-                  <span className="savings-engine__mini-label" style={{ marginBottom: 0 }}>
-                    Daily Rate Basis
-                  </span>
-                  <div className="savings-engine__pill-toggle">
-                    <button
-                      type="button"
-                      className={`savings-engine__pill-btn ${
-                        calc.rateConvention === 'EFFECTIVE' ? 'savings-engine__pill-btn--active' : ''
-                      }`}
-                      onClick={() => setValue('rateConvention', 'EFFECTIVE')}
-                      title="(1 + r)^(1/365) - 1 -> exact advertised annual yield"
-                    >
-                      Effective ({calc.annualRatePct}%)
-                    </button>
-                    <button
-                      type="button"
-                      className={`savings-engine__pill-btn ${
-                        calc.rateConvention === 'NOMINAL' ? 'savings-engine__pill-btn--active' : ''
-                      }`}
-                      onClick={() => setValue('rateConvention', 'NOMINAL')}
-                      title="r / 365 compounded daily -> matches current scheduler"
-                    >
-                      r/365 ({calc.comparison.nominalCompoundedAnnualYieldPct.toFixed(2)}% EAR)
-                    </button>
-                  </div>
                 </div>
               </div>
 
@@ -840,19 +803,6 @@ export function DailySavingsEnginePage() {
                     </div>
                   </div>
 
-                  {/* Rate Convention Insight (Effective vs Nominal r/365) */}
-                  <div className="savings-engine__verdict savings-engine__verdict--neutral">
-                    <strong>Rate Convention Check:</strong> Current scheduler compounds{' '}
-                    <code>r / 365</code> daily (effective{' '}
-                    <strong>{calc.comparison.nominalCompoundedAnnualYieldPct.toFixed(2)}% p.a.</strong>{' '}
-                    on a {calc.annualRatePct}% plan). Effective daily rate{' '}
-                    <code>(1 + r)^(1/365) &minus; 1</code> yields{' '}
-                    <strong>exactly {calc.annualRatePct}.00% p.a.</strong> — a{' '}
-                    <strong>{formatNaira(calc.comparison.rateConventionDriftNaira)}</strong>{' '}
-                    difference by unlock on this plan. Toggle <em>Daily Rate Basis</em> on the left
-                    to inspect both.
-                  </div>
-
                   {/* MoteleJesu's 2-Tenant Date Proof (Nov 1 vs Nov 20) */}
                   <div className="savings-engine__calendar-box">
                     <div className="savings-engine__calendar-head">
@@ -1213,9 +1163,7 @@ export function DailySavingsEnginePage() {
                             Daily compounding rate (r<sub>d</sub>)
                           </div>
                           <div className="savings-engine__step-eq">
-                            {calc.rateConvention === 'EFFECTIVE'
-                              ? `(1 + ${calc.annualRatePct}%)^(1/365) − 1`
-                              : `${calc.annualRatePct}% ÷ 365 (compounded daily)`}
+                            (1 + {calc.annualRatePct}%)^(1/365) &minus; 1
                           </div>
                         </div>
                       </div>
