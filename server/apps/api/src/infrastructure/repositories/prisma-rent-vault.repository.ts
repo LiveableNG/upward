@@ -32,13 +32,20 @@ export class PrismaRentVaultRepository implements IRentVaultRepository {
         lockStatus: data.lockStatus ?? 'LOCKED',
         preferredFundingMethod: data.preferredFundingMethod,
         productOption: data.productOption ?? 'SAVE_AND_EARN',
+        lockMode: data.lockMode ?? 'LOCKED',
         planPattern: data.planPattern ?? 'INITIAL_DEPOSIT',
         initialDepositKobo: data.initialDepositKobo ?? 0n,
+        plannedMonthlyDepositKobo: data.plannedMonthlyDepositKobo ?? 0n,
         appliedAnnualRatePct:
-          data.appliedAnnualRatePct ?? (data.productOption === 'RENT_PROTEC' ? 10.0 : 14.0),
+          data.appliedAnnualRatePct ??
+          (data.productOption === 'RENT_PROTEC'
+            ? 10.0
+            : data.lockMode === 'FLEXIBLE'
+              ? 12.0
+              : 16.0),
         insurancePremiumPct:
           data.insurancePremiumPct ?? (data.productOption === 'RENT_PROTEC' ? 2.0 : 0.0),
-        paydayDayOfMonth: data.paydayDayOfMonth ?? null,
+        paydayDayOfMonth: data.paydayDayOfMonth ?? 28,
         cardAuthorizationCode: data.cardAuthorizationCode ?? null,
         dvaBankName: data.dvaBankName ?? null,
         dvaAccountNumber: data.dvaAccountNumber ?? null,
@@ -113,13 +120,26 @@ export class PrismaRentVaultRepository implements IRentVaultRepository {
 
   async findByDvaAccountNumber(accountNumber: string, tx?: unknown): Promise<RentVault | null> {
     const client = this.getClient(tx)
-    const record = await client.upward_rent_vault.findFirst({
-      where: { dvaAccountNumber: accountNumber },
+    const activeRecord = await client.upward_rent_vault.findFirst({
+      where: {
+        dvaAccountNumber: accountNumber,
+        lockStatus: { in: ['LOCKED', 'SETTLEMENT_READY'] },
+      },
+      orderBy: { createdAt: 'desc' },
       include: {
         savingsScore: true,
       },
     })
-    return record ? this.mapVault(record) : null
+    if (activeRecord) return this.mapVault(activeRecord)
+
+    const fallbackRecord = await client.upward_rent_vault.findFirst({
+      where: { dvaAccountNumber: accountNumber },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        savingsScore: true,
+      },
+    })
+    return fallbackRecord ? this.mapVault(fallbackRecord) : null
   }
 
   async findMaturedLockedVaults(asOfDate: Date, tx?: unknown): Promise<RentVault[]> {
@@ -144,6 +164,21 @@ export class PrismaRentVaultRepository implements IRentVaultRepository {
     if (data.currentPrincipalKobo !== undefined)
       updatePayload.currentPrincipalKobo = data.currentPrincipalKobo
     if (data.accruedYieldKobo !== undefined) updatePayload.accruedYieldKobo = data.accruedYieldKobo
+    if (data.cadence !== undefined) updatePayload.cadence = data.cadence
+    if (data.productOption !== undefined) updatePayload.productOption = data.productOption
+    if (data.lockMode !== undefined) updatePayload.lockMode = data.lockMode
+    if (data.planPattern !== undefined) updatePayload.planPattern = data.planPattern
+    if (data.initialDepositKobo !== undefined)
+      updatePayload.initialDepositKobo = data.initialDepositKobo
+    if (data.plannedMonthlyDepositKobo !== undefined)
+      updatePayload.plannedMonthlyDepositKobo = data.plannedMonthlyDepositKobo
+    if (data.appliedAnnualRatePct !== undefined)
+      updatePayload.appliedAnnualRatePct = data.appliedAnnualRatePct
+    if (data.insurancePremiumPct !== undefined)
+      updatePayload.insurancePremiumPct = data.insurancePremiumPct
+    if (data.contractualDueDate !== undefined)
+      updatePayload.contractualDueDate = data.contractualDueDate
+    if (data.unlockDate !== undefined) updatePayload.unlockDate = data.unlockDate
     if (data.lockStatus !== undefined) updatePayload.lockStatus = data.lockStatus
     if (data.preferredFundingMethod !== undefined)
       updatePayload.preferredFundingMethod = data.preferredFundingMethod
@@ -365,6 +400,13 @@ export class PrismaRentVaultRepository implements IRentVaultRepository {
       currentPrincipalKobo: record.currentPrincipalKobo,
       accruedYieldKobo: record.accruedYieldKobo,
       cadence: record.cadence as RentVault['cadence'],
+      productOption: record.productOption as RentVault['productOption'],
+      lockMode: (record.lockMode || 'LOCKED') as RentVault['lockMode'],
+      planPattern: record.planPattern as RentVault['planPattern'],
+      initialDepositKobo: record.initialDepositKobo,
+      plannedMonthlyDepositKobo: record.plannedMonthlyDepositKobo ?? 0n,
+      appliedAnnualRatePct: record.appliedAnnualRatePct,
+      insurancePremiumPct: record.insurancePremiumPct,
       contractualDueDate: record.contractualDueDate,
       unlockDate: record.unlockDate,
       lockStatus: record.lockStatus as RentVault['lockStatus'],

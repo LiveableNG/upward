@@ -3,6 +3,7 @@ import * as crypto from 'crypto'
 import { isProductionRuntime } from '../../../src/shared/utils/runtime-env'
 import { SimulateTransferUseCase } from '../../../src/application/use-cases/payments/simulate-transfer.use-case'
 import { ProcessPaystackSavingsWebhookUseCase } from '../../../src/application/use-cases/rent-savings/process-paystack-savings-webhook.use-case'
+import { SimulateVaultDepositUseCase } from '../../../src/application/use-cases/rent-savings/simulate-vault-deposit.use-case'
 import { ProcessPaymentWebhookUseCase } from '../../../src/application/use-cases/payments/process-payment-webhook.use-case'
 import { OnboardSavingsInvestorUseCase } from '../../../src/application/use-cases/rent-savings/onboard-savings-investor.use-case'
 
@@ -84,6 +85,8 @@ describe('Production simulation & mock DVA guards', () => {
         { get: () => 'sk_live_secret' } as any,
         {} as any,
         {} as any,
+        {} as any,
+        {} as any,
       )
 
       const payload = {
@@ -102,6 +105,8 @@ describe('Production simulation & mock DVA guards', () => {
 
       const uc = new ProcessPaystackSavingsWebhookUseCase(
         { get: () => '' } as any,
+        {} as any,
+        {} as any,
         {} as any,
         {} as any,
       )
@@ -125,6 +130,8 @@ describe('Production simulation & mock DVA guards', () => {
         { get: () => secret } as any,
         { findTransactionByReference: jest.fn().mockResolvedValue({ id: 1 }) } as any,
         {} as any,
+        {} as any,
+        {} as any,
       )
 
       const payload = {
@@ -139,6 +146,30 @@ describe('Production simulation & mock DVA guards', () => {
         status: 'already_processed',
         reference: 'DEP_OK',
       })
+    })
+  })
+
+  describe('SimulateVaultDepositUseCase', () => {
+    it('blocks simulated vault deposits in production and with live Paystack keys', async () => {
+      process.env.NODE_ENV = 'production'
+      const ucProd = new SimulateVaultDepositUseCase(
+        { get: () => 'sk_test_123' } as any,
+        {} as any,
+        {} as any,
+      )
+      await expect(
+        ucProd.execute(1, { amount_kobo: 500000 }),
+      ).rejects.toThrow(ForbiddenException)
+
+      process.env.NODE_ENV = 'development'
+      const ucLive = new SimulateVaultDepositUseCase(
+        { get: () => 'sk_live_secret' } as any,
+        {} as any,
+        {} as any,
+      )
+      await expect(
+        ucLive.execute(1, { amount_kobo: 500000 }),
+      ).rejects.toThrow(ForbiddenException)
     })
   })
 
@@ -184,10 +215,13 @@ describe('Production simulation & mock DVA guards', () => {
 
       const prisma = {
         upward_kyc_verification: {
-          findFirst: jest.fn().mockResolvedValue({
-            bvnVerified: true,
-            ninVerified: true,
-            idNumberEncrypted: 'enc_22211122233',
+          findFirst: jest.fn().mockImplementation(async (args?: any) => {
+            if (args?.where?.userId?.not) return null
+            return {
+              bvnVerified: true,
+              ninVerified: true,
+              idNumberEncrypted: 'enc_22211122233',
+            }
           }),
           create: jest.fn().mockResolvedValue({ id: 1 }),
           update: jest.fn(),
@@ -205,6 +239,10 @@ describe('Production simulation & mock DVA guards', () => {
           create: jest.fn().mockResolvedValue({ id: 99 }),
         },
         upward_rent_savings_score: { upsert: jest.fn() },
+        upward_user_bank_details: {
+          findUnique: jest.fn().mockResolvedValue(null),
+          upsert: jest.fn().mockResolvedValue({}),
+        },
         upward_user: { update: jest.fn() },
       }
 
@@ -217,6 +255,7 @@ describe('Production simulation & mock DVA guards', () => {
       const userRepo = {
         findById: jest.fn().mockResolvedValue({
           id: 10,
+          uuid: 'user-uuid-10',
           email: 'user@example.com',
           firstName: 'Ada',
           lastName: 'Okafor',
@@ -242,6 +281,11 @@ describe('Production simulation & mock DVA guards', () => {
       }
 
       const paymentGateway = {
+        verifyAccountNumber: jest.fn().mockResolvedValue({
+          accountNumber: '0123456789',
+          accountName: 'OKAFOR ADA',
+          bankCode: '058',
+        }),
         createCustomer: jest.fn().mockResolvedValue({ data: { customer_code: 'CUS_123' } }),
         createDedicatedAccount: jest.fn().mockRejectedValue(new Error('Paystack DVA unavailable')),
       }
@@ -263,12 +307,29 @@ describe('Production simulation & mock DVA guards', () => {
 
       const res = await uc.execute(10, {
         bvn: '22211122233',
+        nin: '11122233344',
+        means_of_id_type: 'NIN',
+        means_of_id_doc_key: 'users/user-uuid-10/arm-kyc/id_card/test-id.jpg',
+        means_of_id_mime_type: 'image/jpeg',
+        means_of_id_file_name: 'nin-slip.jpg',
+        residential_address_number: '14',
+        residential_street: 'Admiralty Way',
+        residential_town: 'Lekki',
+        residential_state: 'Lagos',
+        utility_bill_doc_key: 'users/user-uuid-10/arm-kyc/utility_bill/nepa-bill.pdf',
+        utility_bill_mime_type: 'application/pdf',
+        utility_bill_file_name: 'nepa-bill.pdf',
+        consent_accepted: true,
         mothers_maiden_name: 'Okafor',
         occupation: 'Engineer',
         source_of_funds: 'Salary',
         next_of_kin_name: 'Chidi Okafor',
         next_of_kin_relationship: 'Sibling',
         next_of_kin_phone: '08099998888',
+        settlement_bank_code: '058',
+        settlement_bank_name: 'GTBank',
+        settlement_account_number: '0123456789',
+        settlement_account_name: 'OKAFOR ADA',
       })
 
       expect(res.data.dedicated_account).toBeNull()

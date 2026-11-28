@@ -154,10 +154,13 @@ export class PaystackGateway implements IPaymentGateway {
   async verifyTransaction(reference: string): Promise<TransactionVerification> {
     try {
       this.logger.log(`Verifying transaction: ${reference}`)
-      const res = await fetch(`${this.baseUrl}/transaction/verify/${reference}`, {
-        method: 'GET',
-        headers: this.headers,
-      })
+      const res = await fetch(
+        `${this.baseUrl}/transaction/verify/${encodeURIComponent(reference)}`,
+        {
+          method: 'GET',
+          headers: this.headers,
+        },
+      )
 
       if (!res.ok) {
         const errorBody = await res.text().catch(() => 'No body')
@@ -172,23 +175,52 @@ export class PaystackGateway implements IPaymentGateway {
       }
 
       const data = await res.json()
-      const isSuccess = data.status && data.data && data.data.status === 'success'
+      const txData = data.data
+      const isSuccess = Boolean(data.status && txData && txData.status === 'success')
 
       if (isSuccess) {
+        const rawAmountKobo = BigInt(Math.round(Number(txData.amount || 0)))
+        let parsedMetadata: Record<string, unknown> | undefined
+        if (typeof txData.metadata === 'string' && txData.metadata.trim()) {
+          try {
+            parsedMetadata = JSON.parse(txData.metadata)
+          } catch {
+            parsedMetadata = undefined
+          }
+        } else if (txData.metadata && typeof txData.metadata === 'object') {
+          parsedMetadata = txData.metadata as Record<string, unknown>
+        }
+
+        const receiverAccountNumber =
+          txData.authorization?.receiver_bank_account_number ||
+          txData.dedicated_account?.account_number ||
+          (typeof parsedMetadata?.receiver_account_number === 'string'
+            ? parsedMetadata.receiver_account_number
+            : undefined)
+
         this.logger.log(
-          `Transaction ${reference} verified successfully. Amount: ${data.data.amount}`,
+          `Transaction ${reference} verified successfully. Amount: ${txData.amount}`,
         )
         return {
           status: true,
-          amount: data.data.amount / 100,
-          currency: data.data.currency,
-          fees: data.data.fees / 100, // Paystack returns kobo
+          amount: Number(rawAmountKobo) / 100,
+          amountKobo: rawAmountKobo,
+          currency: txData.currency,
+          fees: typeof txData.fees === 'number' ? txData.fees / 100 : undefined,
+          channel: txData.channel || undefined,
+          reference: txData.reference || reference,
+          gatewayStatus: txData.status,
+          customerCode: txData.customer?.customer_code || undefined,
+          customerEmail: txData.customer?.email || undefined,
+          receiverAccountNumber: receiverAccountNumber ? String(receiverAccountNumber) : undefined,
+          metadata: parsedMetadata,
+          paidAt: txData.paid_at || undefined,
         }
       } else {
         this.logger.warn(
-          `Transaction ${reference} verification returned non-success status: ${data.data?.status}`,
+          `Transaction ${reference} verification returned non-success status: ${txData?.status}`,
         )
-        return { status: false }
+        return { status: false, gatewayStatus: txData?.status }
       }
     } catch (error) {
       this.logger.error(`Error verifying transaction ${reference}:`, error)

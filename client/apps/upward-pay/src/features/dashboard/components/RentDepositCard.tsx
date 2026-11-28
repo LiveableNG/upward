@@ -6,12 +6,12 @@ import { ArrowUpRight, PiggyBank, Building } from 'lucide-react'
 import { api } from '@/lib/api'
 import { formatCurrency } from '@/lib/utils'
 import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
-import { useToast } from '@/components/common/Toast'
+import { useSavingsInterest } from '@/features/savings/context/SavingsInterestContext'
 
 export function RentDepositCard() {
   const router = useRouter()
-  const toast = useToast()
   const { rates: platformRates, isLoading: ratesLoading } = usePlatformRates()
+  const { openSavingsInterestModal } = useSavingsInterest()
 
   const { data: summary } = useQuery({
     queryKey: ['rent-deposit-summary'],
@@ -32,8 +32,11 @@ export function RentDepositCard() {
       className="dashboard__deposit-card"
       onClick={() => {
         if (ratesLoading) return
-        if (platformRates.savingsEnabled === false) {
-          toast.info('Savings is coming soon.')
+        if (
+          platformRates.savingsMode === 'COMING_SOON' ||
+          platformRates.savingsEnabled === false
+        ) {
+          openSavingsInterestModal('rent_deposit_card')
           return
         }
         router.push('/dashboard/savings')

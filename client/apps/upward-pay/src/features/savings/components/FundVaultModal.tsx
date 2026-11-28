@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useSyncExternalStore } from 'react'
+import React, { useState, useEffect, useRef, useSyncExternalStore } from 'react'
 import {
   Copy,
   Check,
@@ -8,22 +8,35 @@ import {
   CheckCircle2,
   Loader2,
 } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useToast } from '@/components/common/Toast'
 import { BottomSheetModal } from '@/components/common/BottomSheetModal'
 import { formatCurrency } from '@/lib/utils'
-import { useSimulateVaultDeposit } from '../hooks/useRentSavings'
+import {
+  RENT_VAULT_QUERY_KEY,
+  useSimulateVaultDeposit,
+  useVerifyVaultFunding,
+} from '../hooks/useRentSavings'
 import {
   calculatePayLessPlan,
+  recalculateReducedMonthlyNaira,
+  verifyRentVaultFunding,
   type SavingsCadence,
   type SavingsPlanPattern,
   type SavingsProductOption,
 } from '../services/savingsService'
 import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
 
+export type VaultFundingMode = 'INITIAL_DEPOSIT' | 'MONTHLY' | 'EXTRA_TOPUP'
+
 interface FundVaultModalProps {
   isOpen: boolean
   onClose: () => void
+  initialFundingMode?: VaultFundingMode
   recommendedAmountNaira?: number
+  plannedMonthlyNaira?: number
+  currentMonthRemainingNaira?: number
+  currentMonthFulfilled?: boolean
   cadence?: SavingsCadence
   dedicatedAccount?: {
     bank_name: string
@@ -44,7 +57,11 @@ const emptySubscribe = () => () => {}
 export function FundVaultModal({
   isOpen,
   onClose,
+  initialFundingMode,
   recommendedAmountNaira,
+  plannedMonthlyNaira = 0,
+  currentMonthRemainingNaira = 0,
+  currentMonthFulfilled = false,
   cadence = 'MONTHLY',
   dedicatedAccount,
   targetAmountNaira,
@@ -56,21 +73,62 @@ export function FundVaultModal({
   isInitialDeposit = false,
 }: FundVaultModalProps) {
   const [copiedField, setCopiedField] = useState<'account' | null>(null)
+  const resolvedDefaultMode: VaultFundingMode =
+    initialFundingMode ||
+    (isInitialDeposit || currentBalanceNaira === 0
+      ? 'INITIAL_DEPOSIT'
+      : currentMonthFulfilled
+        ? 'EXTRA_TOPUP'
+        : 'MONTHLY')
+  const [fundingMode, setFundingMode] = useState<VaultFundingMode>(resolvedDefaultMode)
+  const [prevOpenMode, setPrevOpenMode] = useState<string>(`${isOpen}:${resolvedDefaultMode}`)
+  if (`${isOpen}:${resolvedDefaultMode}` !== prevOpenMode) {
+    setPrevOpenMode(`${isOpen}:${resolvedDefaultMode}`)
+    if (isOpen) {
+      setFundingMode(resolvedDefaultMode)
+    }
+  }
 
-  const defaultInitialAmount =
-    recommendedAmountNaira && recommendedAmountNaira > 0
-      ? recommendedAmountNaira
-      : targetAmountNaira && targetAmountNaira > 0 && (isInitialDeposit || currentBalanceNaira === 0) && planPattern === 'INITIAL_DEPOSIT'
-        ? Math.round(targetAmountNaira * 0.25)
-        : 100_000
+  const defaultAmountForMode = (() => {
+    if (fundingMode === 'EXTRA_TOPUP') {
+      return 100_000
+    }
+    if (fundingMode === 'MONTHLY') {
+      if (currentMonthRemainingNaira > 0) return Math.round(currentMonthRemainingNaira)
+      if (plannedMonthlyNaira > 0) return Math.round(plannedMonthlyNaira)
+    }
+    if (recommendedAmountNaira && recommendedAmountNaira > 0) {
+      return Math.round(recommendedAmountNaira)
+    }
+    if (
+      targetAmountNaira &&
+      targetAmountNaira > 0 &&
+      (isInitialDeposit || currentBalanceNaira === 0) &&
+      planPattern === 'INITIAL_DEPOSIT'
+    ) {
+      return Math.round(targetAmountNaira * 0.2)
+    }
+    return 100_000
+  })()
 
   const [customAmountOverride, setCustomAmountOverride] = useState<string | null>(null)
-  const customAmount = customAmountOverride !== null ? customAmountOverride : defaultInitialAmount.toLocaleString()
-  const [hasPaidNotified, setHasPaidNotified] = useState(false)
+  const [prevRecommended, setPrevRecommended] = useState<string>(`${fundingMode}:${defaultAmountForMode}`)
+  if (`${fundingMode}:${defaultAmountForMode}` !== prevRecommended) {
+    setPrevRecommended(`${fundingMode}:${defaultAmountForMode}`)
+    setCustomAmountOverride(null)
+  }
 
+  const customAmount = customAmountOverride !== null ? customAmountOverride : defaultAmountForMode.toLocaleString()
+  const [hasPaidNotified, setHasPaidNotified] = useState(false)
+  const [verifyNotice, setVerifyNotice] = useState<string | null>(null)
+  const initialBalanceRef = useRef<number>(currentBalanceNaira)
+  const autoDetectedRef = useRef<boolean>(false)
+
+  const queryClient = useQueryClient()
   const { success: toastSuccess, error: toastError } = useToast()
   const { rates: platformRates } = usePlatformRates()
   const simulateMutation = useSimulateVaultDeposit()
+  const verifyMutation = useVerifyVaultFunding()
 
   const isClient = useSyncExternalStore(
     emptySubscribe,
@@ -80,6 +138,8 @@ export function FundVaultModal({
 
   useEffect(() => {
     if (isOpen) {
+      initialBalanceRef.current = currentBalanceNaira
+      autoDetectedRef.current = false
       document.body.style.overflow = 'hidden'
     } else {
       document.body.style.overflow = ''
@@ -89,8 +149,65 @@ export function FundVaultModal({
     }
   }, [isOpen])
 
+  // Auto-detect incoming transfer via live balance update / SSE without needing to click "I Have Transferred"
+  useEffect(() => {
+    if (!isOpen || autoDetectedRef.current) return
+    if (currentBalanceNaira > initialBalanceRef.current) {
+      autoDetectedRef.current = true
+      setHasPaidNotified(true)
+      const delta = currentBalanceNaira - initialBalanceRef.current
+      toastSuccess(`Deposit of ${formatCurrency(delta, 'NGN')} received and credited to your Rent Savings!`)
+      if (typeof window !== 'undefined') {
+        try {
+          sessionStorage.setItem('upward_dismissed_initial_deposit_prompt', 'true')
+        } catch {}
+      }
+      const timer = setTimeout(() => {
+        onClose()
+      }, 900)
+      return () => clearTimeout(timer)
+    }
+  }, [isOpen, currentBalanceNaira, onClose, toastSuccess])
+
+  // Background polling every 6 seconds while modal is open (matching Rent Payment DVA auto-detection)
+  useEffect(() => {
+    if (!isOpen || !dedicatedAccount?.account_number) return
+    let cancelled = false
+
+    const interval = setInterval(async () => {
+      if (cancelled || autoDetectedRef.current) return
+      try {
+        const res = await verifyRentVaultFunding()
+        if (cancelled || autoDetectedRef.current) return
+        const baselineKobo = Math.round(initialBalanceRef.current * 100)
+        if (res.newly_reconciled > 0 || res.current_balance_kobo > baselineKobo) {
+          autoDetectedRef.current = true
+          setHasPaidNotified(true)
+          await queryClient.invalidateQueries({ queryKey: RENT_VAULT_QUERY_KEY })
+          toastSuccess('Deposit detected and credited to your Rent Savings!')
+          if (typeof window !== 'undefined') {
+            try {
+              sessionStorage.setItem('upward_dismissed_initial_deposit_prompt', 'true')
+            } catch {}
+          }
+          setTimeout(() => {
+            if (!cancelled) onClose()
+          }, 900)
+        }
+      } catch {
+        // Silent background check
+      }
+    }, 6000)
+
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [isOpen, dedicatedAccount?.account_number, onClose, queryClient, toastSuccess])
+
   const handleClose = () => {
     setHasPaidNotified(false)
+    setVerifyNotice(null)
     setCustomAmountOverride(null)
     onClose()
   }
@@ -134,8 +251,11 @@ export function FundVaultModal({
       await simulateMutation.mutateAsync({
         accountNumber,
         amountKobo,
+        depositKind: fundingMode,
       })
-      toastSuccess(`Deposit of ${formatCurrency(rawNumber, 'NGN')} credited to your vault!`)
+      toastSuccess(
+        `Deposit of ${formatCurrency(rawNumber, 'NGN')} received! Investing into ARM MMF in the background — we'll notify you once confirmed.`,
+      )
       if (typeof window !== 'undefined') {
         try {
           sessionStorage.setItem('upward_dismissed_initial_deposit_prompt', 'true')
@@ -148,17 +268,36 @@ export function FundVaultModal({
     }
   }
 
-  const handleIHavePaid = () => {
-    setHasPaidNotified(true)
-    toastSuccess('Payment recorded! We will credit your vault as soon as your transfer arrives.')
-    if (typeof window !== 'undefined') {
-      try {
-        sessionStorage.setItem('upward_dismissed_initial_deposit_prompt', 'true')
-      } catch {}
+  const handleIHavePaid = async () => {
+    setVerifyNotice(null)
+    try {
+      const res = await verifyMutation.mutateAsync()
+      await queryClient.invalidateQueries({ queryKey: RENT_VAULT_QUERY_KEY })
+
+      const prevBalanceKobo = Math.round(currentBalanceNaira * 100)
+      if (res.detected || res.current_balance_kobo > prevBalanceKobo) {
+        setHasPaidNotified(true)
+        toastSuccess('Deposit received and credited to your Rent Savings wallet!')
+        if (typeof window !== 'undefined') {
+          try {
+            sessionStorage.setItem('upward_dismissed_initial_deposit_prompt', 'true')
+          } catch {}
+        }
+        setTimeout(() => {
+          onClose()
+        }, 800)
+        return
+      }
+
+      setVerifyNotice(
+        `No bank transfer detected on ${accountNumber} yet. Once your bank completes the transfer, your wallet will update automatically.`,
+      )
+    } catch {
+      await queryClient.invalidateQueries({ queryKey: RENT_VAULT_QUERY_KEY })
+      setVerifyNotice(
+        `No bank transfer detected yet. Once your bank completes the transfer, your wallet will update automatically.`,
+      )
     }
-    setTimeout(() => {
-      onClose()
-    }, 1500)
   }
 
   const parsedDepositAmount = Number(customAmount.replace(/,/g, '')) || 0
@@ -170,33 +309,78 @@ export function FundVaultModal({
       ? platformRates.rentProtecRatePct
       : platformRates.savingsAnnualRatePct)
 
-  const dynamicPlan = calculatePayLessPlan(
+  const initialPlanPreview = calculatePayLessPlan(
     effectiveTargetRent,
     effectiveRunwayDays,
     'MONTHLY',
-    parsedDepositAmount,
+    currentBalanceNaira + parsedDepositAmount,
     effectiveRatePct,
     {
       productOption,
-      planPattern,
+      planPattern: 'INITIAL_DEPOSIT',
       maxMonths: platformRates.maxSavingsMonths,
       minRentProtecMonths: platformRates.rentProtecMinMonths,
       insurancePremiumPct: platformRates.insurancePremiumPct,
     },
   )
 
-  const monthlyDepositNaira = dynamicPlan.periodicDepositNaira
-  const projectedInterestNaira = dynamicPlan.projectedYieldNaira
+  const fixedMonthlyNaira =
+    plannedMonthlyNaira > 0 ? plannedMonthlyNaira : initialPlanPreview.periodicDepositNaira
+  const reducedMonthlyAfterExtraNaira = recalculateReducedMonthlyNaira({
+    targetRentNaira: effectiveTargetRent,
+    newBalanceNaira: currentBalanceNaira + parsedDepositAmount,
+    activeDaysRemaining: effectiveRunwayDays,
+    annualRatePct: effectiveRatePct,
+    currentPlannedMonthlyNaira: fixedMonthlyNaira,
+    maxMonths: platformRates.maxSavingsMonths,
+    currentMonthAlreadyFulfilled: currentMonthFulfilled || fundingMode === 'EXTRA_TOPUP',
+  })
+  const projectedInterestNaira = initialPlanPreview.projectedYieldNaira
+
+  const modalTitle =
+    fundingMode === 'MONTHLY'
+      ? 'Pay Monthly Contribution'
+      : fundingMode === 'EXTRA_TOPUP'
+        ? 'Add Extra Top-Up'
+        : 'Pay Initial Deposit'
 
   return (
     <BottomSheetModal
       isOpen={isOpen}
       onClose={handleClose}
-      title="Make a Deposit"
+      title={modalTitle}
       icon={<Landmark size={20} color="var(--clay)" />}
       maxWidth="480px"
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12, padding: '4px 0 8px' }}>
+        {/* Dual Flow Tabs when user already has savings */}
+        {currentBalanceNaira > 0 && (
+          <div className="fund-mode-tabs" role="tablist" aria-label="Deposit type">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={fundingMode === 'MONTHLY'}
+              className={`fund-mode-tabs__btn ${
+                fundingMode === 'MONTHLY' ? 'fund-mode-tabs__btn--active' : ''
+              }`}
+              onClick={() => setFundingMode('MONTHLY')}
+            >
+              Pay Monthly
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={fundingMode === 'EXTRA_TOPUP'}
+              className={`fund-mode-tabs__btn ${
+                fundingMode === 'EXTRA_TOPUP' ? 'fund-mode-tabs__btn--active' : ''
+              }`}
+              onClick={() => setFundingMode('EXTRA_TOPUP')}
+            >
+              Add Extra Top-Up
+            </button>
+          </div>
+        )}
+
         {/* Compact Amount Input */}
         <div>
           <div className="vault-sandbox-card__input-wrapper" style={{ height: 44 }}>
@@ -209,7 +393,7 @@ export function FundVaultModal({
               inputMode="numeric"
               className="vault-sandbox-card__input"
               style={{ fontSize: '1.2rem', fontWeight: 700 }}
-              placeholder="e.g. 1,000,000"
+              placeholder="e.g. 250,000"
               value={customAmount}
               onChange={(e) => {
                 const digits = e.target.value.replace(/[^0-9]/g, '')
@@ -218,25 +402,99 @@ export function FundVaultModal({
             />
           </div>
 
-          {/* Punchy 1-line benefit pitch */}
+          {fundingMode === 'EXTRA_TOPUP' && (
+            <div className="rent-protec-boost__pills" style={{ marginTop: 8 }}>
+              {[50_000, 100_000, 250_000].map((preset) => (
+                <button
+                  key={preset}
+                  type="button"
+                  className="rent-protec-boost__pill"
+                  onClick={() => setCustomAmountOverride(preset.toLocaleString())}
+                >
+                  ₦{(preset / 1000).toLocaleString()}k
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Predictable impact summary — zero "Est." abbreviations */}
           {parsedDepositAmount > 0 && effectiveTargetRent > 0 && (
             <div
               style={{
                 fontSize: '0.8125rem',
                 color: 'var(--text-secondary)',
-                lineHeight: 1.4,
-                marginTop: 6,
+                lineHeight: 1.45,
+                marginTop: 8,
                 padding: '0 2px',
               }}
             >
-              Pay <strong>{formatCurrency(parsedDepositAmount, 'NGN')}</strong> today, then deposit at least{' '}
-              <strong style={{ color: 'var(--clay)' }}>
-                {formatCurrency(monthlyDepositNaira, 'NGN')}
-              </strong>{' '}
-              monthly for the rest of the year{' '}
-              <span style={{ color: '#059669', fontWeight: 600 }}>
-                (est. +{formatCurrency(projectedInterestNaira, 'NGN')} in returns)
-              </span>.
+              {fundingMode === 'MONTHLY' ? (
+                currentMonthFulfilled ? (
+                  <>
+                    You&apos;ve already completed this month&apos;s{' '}
+                    <strong>{formatCurrency(fixedMonthlyNaira, 'NGN')}</strong> contribution. Switch
+                    to <strong>Add Extra Top-Up</strong> to lower future monthly payments.
+                  </>
+                ) : currentMonthRemainingNaira > 0 &&
+                  parsedDepositAmount < currentMonthRemainingNaira ? (
+                  <>
+                    Counts toward this month&apos;s{' '}
+                    <strong>{formatCurrency(fixedMonthlyNaira, 'NGN')}</strong> target (
+                    <strong>
+                      {formatCurrency(currentMonthRemainingNaira - parsedDepositAmount, 'NGN')}
+                    </strong>{' '}
+                    left for this month). Your monthly plan stays{' '}
+                    <strong style={{ color: 'var(--clay)' }}>
+                      {formatCurrency(fixedMonthlyNaira, 'NGN')}/mo
+                    </strong>
+                    .
+                  </>
+                ) : (
+                  <>
+                    Completes this month&apos;s contribution. Your monthly target stays fixed at{' '}
+                    <strong style={{ color: 'var(--clay)' }}>
+                      {formatCurrency(fixedMonthlyNaira, 'NGN')}/mo
+                    </strong>{' '}
+                    for remaining months.
+                  </>
+                )
+              ) : fundingMode === 'EXTRA_TOPUP' ? (
+                reducedMonthlyAfterExtraNaira > 0 ? (
+                  <>
+                    Adding <strong>{formatCurrency(parsedDepositAmount, 'NGN')}</strong> extra
+                    lowers your future monthly contribution from{' '}
+                    <strong>{formatCurrency(fixedMonthlyNaira, 'NGN')}/mo</strong> to{' '}
+                    <strong style={{ color: '#059669' }}>
+                      {formatCurrency(reducedMonthlyAfterExtraNaira, 'NGN')}/mo
+                    </strong>
+                    .
+                  </>
+                ) : (
+                  <>
+                    Adding <strong>{formatCurrency(parsedDepositAmount, 'NGN')}</strong> completes
+                    your <strong>{formatCurrency(effectiveTargetRent, 'NGN')}</strong> rent savings
+                    target!
+                  </>
+                )
+              ) : initialPlanPreview.periodicDepositNaira > 0 ? (
+                <>
+                  Start with <strong>{formatCurrency(parsedDepositAmount, 'NGN')}</strong> today,
+                  then save a fixed{' '}
+                  <strong style={{ color: 'var(--clay)' }}>
+                    {formatCurrency(initialPlanPreview.periodicDepositNaira, 'NGN')}/mo
+                  </strong>{' '}
+                  <span style={{ color: '#059669', fontWeight: 600 }}>
+                    (expected +{formatCurrency(projectedInterestNaira, 'NGN')} in returns)
+                  </span>
+                  .
+                </>
+              ) : (
+                <>
+                  Adding <strong>{formatCurrency(parsedDepositAmount, 'NGN')}</strong> today
+                  completes your <strong>{formatCurrency(effectiveTargetRent, 'NGN')}</strong> rent
+                  savings target!
+                </>
+              )}
             </div>
           )}
         </div>
@@ -299,6 +557,38 @@ export function FundVaultModal({
           </div>
         )}
 
+        {accountNumber && !hasPaidNotified && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              fontSize: '0.75rem',
+              color: 'var(--text-muted)',
+              padding: '2px 2px 0',
+            }}
+          >
+            <Loader2 size={13} className="animate-spin" color="var(--clay)" style={{ flexShrink: 0 }} />
+            <span>Your deposit will be detected automatically once your transfer completes.</span>
+          </div>
+        )}
+
+        {verifyNotice && (
+          <div
+            style={{
+              padding: '10px 12px',
+              borderRadius: '10px',
+              background: 'rgba(194, 80, 31, 0.06)',
+              border: '1px solid rgba(194, 80, 31, 0.2)',
+              fontSize: '0.75rem',
+              color: 'var(--text-secondary)',
+              lineHeight: 1.45,
+            }}
+          >
+            {verifyNotice}
+          </div>
+        )}
+
         {/* Action Buttons */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 2 }}>
           <button
@@ -306,10 +596,19 @@ export function FundVaultModal({
             className="vault-btn-primary"
             style={{ height: 44 }}
             onClick={handleIHavePaid}
-            disabled={hasPaidNotified || !accountNumber}
+            disabled={hasPaidNotified || verifyMutation.isPending || !accountNumber}
           >
-            <CheckCircle2 size={16} />
-            <span>{hasPaidNotified ? 'Transfer Recorded!' : 'I Have Transferred'}</span>
+            {verifyMutation.isPending ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                <span>Checking Transfer...</span>
+              </>
+            ) : (
+              <>
+                <CheckCircle2 size={16} />
+                <span>{hasPaidNotified ? 'Transfer Confirmed!' : 'I Have Transferred'}</span>
+              </>
+            )}
           </button>
 
           {isNonProd && accountNumber && (

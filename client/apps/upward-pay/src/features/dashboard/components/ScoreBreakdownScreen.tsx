@@ -24,6 +24,7 @@ import { PayPageShell } from '@/features/dashboard/components/payment/PayPageShe
 import { formatCurrency, getPublicWebUrl, copyTextToClipboard } from '@/lib/utils'
 import { useToast } from '@/components/common/Toast'
 import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
+import { useSavingsInterest } from '@/features/savings/context/SavingsInterestContext'
 import { Capacitor } from '@capacitor/core'
 
 function ScoreBreakdownSkeleton() {
@@ -65,7 +66,8 @@ export function ScoreBreakdownScreen() {
   const { user } = useAuth()
   const { data: scoreProfile, isLoading } = useScoreProfile()
   const { rates: platformRates, isLoading: ratesLoading } = usePlatformRates()
-  const { success, error: toastError, info: toastInfo } = useToast()
+  const { openSavingsInterestModal } = useSavingsInterest()
+  const { success, error: toastError } = useToast()
   const [copied, setCopied] = useState(false)
   const [isShareModalOpen, setIsShareModalOpen] = useState(false)
 
@@ -542,8 +544,11 @@ export function ScoreBreakdownScreen() {
               className="score-page__action-card"
               onClick={() => {
                 if (ratesLoading) return
-                if (platformRates.savingsEnabled === false) {
-                  toastInfo('Savings is coming soon.')
+                if (
+                  platformRates.savingsMode === 'COMING_SOON' ||
+                  platformRates.savingsEnabled === false
+                ) {
+                  openSavingsInterestModal('score_breakdown')
                   return
                 }
                 router.push('/dashboard/savings')

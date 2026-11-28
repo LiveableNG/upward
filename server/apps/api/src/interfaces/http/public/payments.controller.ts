@@ -149,9 +149,15 @@ export class PaymentsController {
       userUuid: req.user.id,
     })
 
-    if (req.query?.format === 'pdf' || req.headers?.accept?.includes('application/pdf')) {
+    const acceptHeader = String(req.headers?.accept || '')
+    const isBrowserNavigation =
+      req.query?.format === 'pdf' ||
+      acceptHeader.includes('application/pdf') ||
+      (acceptHeader.includes('text/html') && !acceptHeader.includes('application/json'))
+
+    if (isBrowserNavigation) {
       res.header('Content-Type', 'application/pdf')
-      res.header('Content-Disposition', `attachment; filename="${result.fileName}"`)
+      res.header('Content-Disposition', `inline; filename="${result.fileName}"`)
       return res.send(result.buffer)
     }
 
@@ -479,6 +485,7 @@ export class PaymentsController {
       beneficiaryBank: body.beneficiaryBank,
       beneficiaryAccount: body.beneficiaryAccount,
       amount: Number(body.amount),
+      narration: typeof body.narration === 'string' ? body.narration : undefined,
     })
   }
 
@@ -564,12 +571,31 @@ export class PaymentsController {
         } as MessageEvent);
       });
 
+      const subRentVaultUpdated = this.eventBus.subscribe('rent-vault.updated', (event: any) => {
+        const belongsToUser =
+          event?.userId === userId ||
+          event?.userUuid === userUuid ||
+          String(event?.userId) === userUuid;
+        if (belongsToUser) {
+          subscriber.next({
+            data: {
+              type: 'rent-vault.updated',
+              vaultUuid: event?.vaultUuid,
+              amountKobo: event?.amountKobo,
+              reference: event?.reference,
+              timestamp: Date.now(),
+            },
+          } as MessageEvent);
+        }
+      });
+
       return () => {
         subSucceeded.unsubscribe();
         subRequestCreated.unsubscribe();
         subRequestUpdated.unsubscribe();
         subGoalsUpdated.unsubscribe();
         subCatalogUpdated.unsubscribe();
+        subRentVaultUpdated.unsubscribe();
       };
     });
 

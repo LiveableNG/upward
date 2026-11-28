@@ -363,7 +363,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/dashboard/help') ||
     pathname.startsWith('/lifestyle') ||
     pathname.startsWith('/orders') ||
-    pathname.startsWith('/goals')
+    pathname.startsWith('/goals') ||
+    pathname.startsWith('/savings-engine')
 
   // Rule: Should this request route to the PM app instead of the Pay app?
   let routeToPm = isPmPath || isPmInvite
@@ -553,6 +554,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/lifestyle') ||
     pathname.startsWith('/orders') ||
     pathname.startsWith('/goals') ||
+    pathname.startsWith('/savings-engine') ||
     pathname.startsWith('/.well-known')
 
   if (shouldProxy) {
@@ -792,6 +794,8 @@ export const config = {
     '/orders/:path*',
     '/goals',
     '/goals/:path*',
+    '/savings-engine',
+    '/savings-engine/:path*',
     '/profile/:path*',
     '/pay/:path*',
     '/waitlist/:path*',

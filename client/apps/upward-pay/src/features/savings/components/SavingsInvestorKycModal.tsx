@@ -2,19 +2,15 @@
 
 import React, { useState, useEffect, useSyncExternalStore } from 'react'
 import {
-  Lock,
   ShieldCheck,
   ArrowRight,
-  ArrowLeft,
   CheckCircle2,
   Loader2,
-  AlertCircle,
   Copy,
   Check,
   Landmark,
   TrendingUp,
   Calendar,
-  Zap,
 } from 'lucide-react'
 import {
   useOnboardSavingsInvestor,
@@ -28,6 +24,13 @@ import {
   type SavingsPlanPattern,
   type SavingsProductOption,
 } from '../services/savingsService'
+import {
+  SAVINGS_CONSENT_DOC_VERSION,
+  SAVINGS_FUND_NAME,
+  SAVINGS_TERMS_VERSION,
+} from '../constants/savingsLegal'
+import { ArmInvestorKycForm, type ArmInvestorKycSubmitData } from './ArmInvestorKycForm'
+import { SavingsConsentCard } from './SavingsConsentCard'
 import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
 import { useToast } from '@/components/common/Toast'
 import { BottomSheetModal } from '@/components/common/BottomSheetModal'
@@ -78,12 +81,17 @@ export function SavingsInvestorKycModal({
   })
   const [nowTimestamp] = useState(() => Date.now())
 
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(() => (user?.isIdentityVerified ? 3 : 1))
+  const [step, setStep] = useState<1 | 3 | 4>(() =>
+    prefill?.has_completed_arm_kyc ? 3 : 1,
+  )
+  const [step3AcceptedTerms, setStep3AcceptedTerms] = useState(false)
+  const [step3AcceptedMandate, setStep3AcceptedMandate] = useState(false)
 
-  const [prevVerified, setPrevVerified] = useState(Boolean(user?.isIdentityVerified))
-  if (Boolean(user?.isIdentityVerified) !== prevVerified) {
-    setPrevVerified(Boolean(user?.isIdentityVerified))
-    if (user?.isIdentityVerified && step < 3) {
+  const hasCompletedArmKyc = Boolean(prefill?.has_completed_arm_kyc)
+  const [prevArmKyc, setPrevArmKyc] = useState(hasCompletedArmKyc)
+  if (hasCompletedArmKyc !== prevArmKyc) {
+    setPrevArmKyc(hasCompletedArmKyc)
+    if (hasCompletedArmKyc && step === 1) {
       setStep(3)
     }
   }
@@ -92,30 +100,6 @@ export function SavingsInvestorKycModal({
     (p: { isPastTenancy?: boolean; rentAmount?: number; rentEndDate?: string }) =>
       !p.isPastTenancy && p.rentAmount,
   )
-
-  const [bvn, setBvn] = useState('')
-  const [mothersMaidenName, setMothersMaidenName] = useState('')
-
-  const [occupation, setOccupation] = useState(() => {
-    if (typeof window !== 'undefined' && user?.uuid) {
-      try {
-        const savedPolicy = window.localStorage.getItem(`rent_support_policy_${user.uuid}`)
-        if (savedPolicy) {
-          const parsed = JSON.parse(savedPolicy) as { occupation?: string }
-          if (parsed.occupation) return parsed.occupation
-        }
-      } catch {
-        // Ignore storage read errors
-      }
-    }
-    return ''
-  })
-  const [sourceOfFunds, setSourceOfFunds] = useState<
-    'Salary' | 'Business' | 'Savings' | 'Investment'
-  >('Salary')
-  const [nextOfKinName, setNextOfKinName] = useState('')
-  const [nextOfKinRelationship, setNextOfKinRelationship] = useState('Spouse')
-  const [nextOfKinPhone, setNextOfKinPhone] = useState('')
 
   const [manualRentTarget, setManualRentTarget] = useState<number>(() => {
     const plan = readSavingsRentPlan()
@@ -128,24 +112,15 @@ export function SavingsInvestorKycModal({
   const [prevPrefill, setPrevPrefill] = useState<typeof prefill | null>(null)
   if (prefill && prefill !== prevPrefill && isOpen) {
     setPrevPrefill(prefill)
-    if (prefill.bvn && !bvn) setBvn(prefill.bvn)
-    if (prefill.mothers_maiden_name && !mothersMaidenName) {
-      setMothersMaidenName(prefill.mothers_maiden_name)
-    }
-    if (prefill.occupation && !occupation) setOccupation(prefill.occupation)
-    if (prefill.source_of_funds) setSourceOfFunds(prefill.source_of_funds)
-    if (prefill.next_of_kin_name && !nextOfKinName) setNextOfKinName(prefill.next_of_kin_name)
-    if (prefill.next_of_kin_relationship) {
-      setNextOfKinRelationship(prefill.next_of_kin_relationship)
-    }
-    if (prefill.next_of_kin_phone && !nextOfKinPhone) {
-      setNextOfKinPhone(prefill.next_of_kin_phone)
-    }
     if (prefill.property?.rent_amount && !manualRentTarget) {
       setManualRentTarget(prefill.property.rent_amount)
     }
     if (prefill.property?.rent_end_date && !manualDueDate) {
       setManualDueDate(prefill.property.rent_end_date.split('T')[0])
+    }
+    if (prefill.has_signed_consent) {
+      setStep3AcceptedTerms(true)
+      setStep3AcceptedMandate(true)
     }
   }
 
@@ -341,66 +316,34 @@ export function SavingsInvestorKycModal({
     onClose()
   }
 
-  const handleBvnChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value.replace(/\D/g, '').slice(0, 11)
-    setBvn(val)
-    if (formError) setFormError(null)
-  }
-
-  const handleNextOfKinPhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value.replace(/[^\d+]/g, '').slice(0, 14)
-    setNextOfKinPhone(val)
-    if (formError) setFormError(null)
-  }
-
-  const hasVerifiedBvnOnFile = Boolean(prefill?.has_verified_bvn)
-
-  const handleStep1Next = () => {
-    if (bvn.length !== 11 && !hasVerifiedBvnOnFile) {
-      setFormError('Please enter a valid 11-digit Bank Verification Number.')
-      return
-    }
-    if (!mothersMaidenName.trim()) {
-      setFormError("Mother's Maiden Name is required for regulatory compliance.")
-      return
-    }
+  const handleArmKycSubmit = async (kycData: ArmInvestorKycSubmitData) => {
     setFormError(null)
-    setStep(2)
-  }
-
-  const handleSubmit = async () => {
-    if (!occupation.trim()) {
-      setFormError('Please enter your occupation.')
-      return
-    }
-    if (!nextOfKinName.trim()) {
-      setFormError('Please provide your Next of Kin full legal name.')
-      return
-    }
-    if (!nextOfKinPhone.trim() || nextOfKinPhone.length < 10) {
-      setFormError('Please provide a valid phone number for your Next of Kin.')
-      return
-    }
-
-    setFormError(null)
-
     try {
       const res = await onboardMutation.mutateAsync({
-        bvn: bvn.length === 11 ? bvn : undefined,
-        mothers_maiden_name: mothersMaidenName.trim(),
-        occupation: occupation.trim(),
-        source_of_funds: sourceOfFunds,
-        income_range: prefill?.income_range || '1M-5M',
-        next_of_kin_name: nextOfKinName.trim(),
-        next_of_kin_relationship: nextOfKinRelationship,
-        next_of_kin_phone: nextOfKinPhone.trim(),
+        ...kycData,
         next_of_kin_email: prefill?.next_of_kin_email || undefined,
         next_of_kin_address: prefill?.next_of_kin_address || undefined,
-        settlement_bank_code: prefill?.settlement_bank_code || undefined,
-        settlement_account_number: prefill?.settlement_account_number || undefined,
-        settlement_account_name: prefill?.settlement_account_name || undefined,
-        settlement_bank_name: prefill?.settlement_bank_name || undefined,
-        target_amount: targetRent,
+        settlement_bank_code:
+          kycData.settlement_bank_code ||
+          prefill?.settlement_bank?.bank_code ||
+          prefill?.settlement_bank_code ||
+          undefined,
+        settlement_account_number:
+          kycData.settlement_account_number ||
+          prefill?.settlement_bank?.account_number ||
+          prefill?.settlement_account_number ||
+          undefined,
+        settlement_account_name:
+          kycData.settlement_account_name ||
+          prefill?.settlement_bank?.account_name ||
+          prefill?.settlement_account_name ||
+          undefined,
+        settlement_bank_name:
+          kycData.settlement_bank_name ||
+          prefill?.settlement_bank?.bank_name ||
+          prefill?.settlement_bank_name ||
+          undefined,
+        target_amount: targetRent || undefined,
         rent_due_date: targetDueDate || undefined,
         cadence: selectedCadence,
         product_option: activeProductOption,
@@ -424,8 +367,10 @@ export function SavingsInvestorKycModal({
       } else {
         setCreatedDva(null)
       }
+      setStep3AcceptedTerms(true)
+      setStep3AcceptedMandate(true)
       setStep(3)
-      toastSuccess('Investor profile verified and dedicated Wema account ready!')
+      toastSuccess('Investor KYC verified and your dedicated savings account is ready!')
       refreshUser().catch(() => {})
     } catch (err: unknown) {
       const error = err as { message?: string }
@@ -436,19 +381,8 @@ export function SavingsInvestorKycModal({
     }
   }
 
-  const handleBack = () => {
-    if (step === 4) {
-      setStep(3)
-    } else if (step === 2) {
-      setStep(1)
-    } else if (step === 3 && !user?.isIdentityVerified) {
-      setStep(2)
-    } else {
-      onClose()
-    }
-  }
-
   const isLoading = onboardMutation.isPending
+  const fundDisplayName = platformRates.fundName || SAVINGS_FUND_NAME
 
   if (!isOpen || !isClient || typeof document === 'undefined') return null
 
@@ -464,14 +398,14 @@ export function SavingsInvestorKycModal({
           ? 'Make a Deposit'
           : step === 3
             ? 'Pay Less for Your Next Rent'
-            : 'Identity Verification'
+            : 'Identity'
       }
       subtitle={
         step === 4
           ? undefined
           : step === 3
-            ? `Earn ${savingsAnnualRatePct}% p.a. returns and let interest complete your rent`
-            : `Required by CBN & SEC • ${platformRates.partnerShortName || 'ARM'} Money Market Fund (MMF)`
+            ? `${savingsAnnualRatePct}% p.a.`
+            : undefined
       }
       icon={
         step === 4 ? (
@@ -482,12 +416,12 @@ export function SavingsInvestorKycModal({
           <ShieldCheck size={18} />
         )
       }
-      maxWidth="520px"
+      maxWidth="540px"
       closeOnOverlayClick={!isLoading}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '4px 0 12px' }}>
-        <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
-          {[1, 2, 3, 4].map((s) => (
+        <div style={{ display: 'flex', gap: 6, marginBottom: 4 }}>
+          {[1, 3, 4].map((s) => (
             <div
               key={s}
               style={{
@@ -501,254 +435,17 @@ export function SavingsInvestorKycModal({
           ))}
         </div>
 
-        {formError && (
-          <div
-            className="rent-calculator__affordability"
-            style={{
-              background: 'rgba(239, 68, 68, 0.08)',
-              borderColor: 'rgba(239, 68, 68, 0.3)',
-              color: 'var(--error)',
-              marginBottom: 16,
-            }}
-          >
-            <AlertCircle size={18} style={{ flexShrink: 0 }} />
-            <span style={{ fontSize: '0.8125rem' }}>{formError}</span>
-          </div>
-        )}
-
         {step === 1 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {(hasVerifiedBvnOnFile || prefill?.mothers_maiden_name || prefill?.next_of_kin_name) && (
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 8,
-                  padding: '8px 12px',
-                  borderRadius: '8px',
-                  background: 'rgba(16, 185, 129, 0.08)',
-                  border: '1px solid rgba(16, 185, 129, 0.22)',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  color: '#10b981',
-                }}
-              >
-                <CheckCircle2 size={14} style={{ flexShrink: 0 }} />
-                <span>Details pre-filled from your existing Upward profile</span>
-              </div>
-            )}
-
-            <div className="rent-calculator__field">
-              <label className="rent-calculator__label">Bank Verification Number (BVN)</label>
-              <div className="rent-calculator__input-wrapper">
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  placeholder={
-                    hasVerifiedBvnOnFile && prefill?.masked_bvn
-                      ? `Verified on file (${prefill.masked_bvn})`
-                      : 'Enter 11-digit BVN'
-                  }
-                  className="rent-calculator__input rent-calculator__input--no-prefix"
-                  value={bvn}
-                  onChange={handleBvnChange}
-                  maxLength={11}
-                  disabled={isLoading}
-                />
-              </div>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                {hasVerifiedBvnOnFile && bvn.length !== 11
-                  ? `Verified BVN (${prefill?.masked_bvn}) on file`
-                  : `${bvn.length}/11 digits`}
-              </span>
-            </div>
-
-            <div className="rent-calculator__field">
-              <label className="rent-calculator__label">Mother&apos;s Maiden Name</label>
-              <div className="rent-calculator__input-wrapper">
-                <input
-                  type="text"
-                  placeholder="Mother's birth family name"
-                  className="rent-calculator__input rent-calculator__input--no-prefix"
-                  value={mothersMaidenName}
-                  onChange={(e) => setMothersMaidenName(e.target.value)}
-                  disabled={isLoading}
-                />
-              </div>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Security question to protect your identity and account
-              </span>
-            </div>
-
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '10px 14px',
-                borderRadius: '8px',
-                background: 'var(--surface)',
-                border: '1px solid var(--border)',
-                fontSize: '0.75rem',
-                color: 'var(--text-secondary)',
-              }}
-            >
-              <Lock size={14} color="var(--clay)" style={{ flexShrink: 0 }} />
-              <span>
-                Your details are securely encrypted and verified in real time.
-              </span>
-            </div>
-
-            <button
-              type="button"
-              className="vault-btn-primary"
-              onClick={handleStep1Next}
-              disabled={
-                (bvn.length !== 11 && !hasVerifiedBvnOnFile) ||
-                !mothersMaidenName.trim() ||
-                isLoading
-              }
-            >
-              Continue <ArrowRight size={16} />
-            </button>
-          </div>
-        )}
-
-        {step === 2 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div className="rent-calculator__field">
-              <label className="rent-calculator__label">Occupation / Profession</label>
-              <div className="rent-calculator__input-wrapper">
-                <input
-                  type="text"
-                  placeholder="e.g. Software Engineer, Accountant, Trader"
-                  className="rent-calculator__input rent-calculator__input--no-prefix"
-                  value={occupation}
-                  onChange={(e) => setOccupation(e.target.value)}
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
-
-            <div className="rent-calculator__field">
-              <label className="rent-calculator__label">Primary Source of Income</label>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(4, 1fr)',
-                  gap: 6,
-                }}
-              >
-                {(['Salary', 'Business', 'Savings', 'Investment'] as const).map((source) => (
-                  <button
-                    key={source}
-                    type="button"
-                    onClick={() => setSourceOfFunds(source)}
-                    style={{
-                      padding: '8px 2px',
-                      borderRadius: '8px',
-                      border: `1.5px solid ${sourceOfFunds === source ? 'var(--clay)' : 'var(--border)'}`,
-                      background: sourceOfFunds === source ? 'var(--clay-faint)' : 'transparent',
-                      color: sourceOfFunds === source ? 'var(--clay)' : 'var(--text)',
-                      fontSize: '0.75rem',
-                      fontWeight: 600,
-                      cursor: 'pointer',
-                      transition: 'all 0.15s ease',
-                      textAlign: 'center',
-                    }}
-                  >
-                    {source}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12 }}>
-              <span style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text)' }}>
-                Next of Kin Details
-              </span>
-            </div>
-
-            <div className="rent-calculator__field">
-              <label className="rent-calculator__label">Full Legal Name</label>
-              <div className="rent-calculator__input-wrapper">
-                <input
-                  type="text"
-                  placeholder="Next of kin full name"
-                  className="rent-calculator__input rent-calculator__input--no-prefix"
-                  value={nextOfKinName}
-                  onChange={(e) => setNextOfKinName(e.target.value)}
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div className="rent-calculator__field">
-                <label className="rent-calculator__label">Relationship</label>
-                <select
-                  value={nextOfKinRelationship}
-                  onChange={(e) => setNextOfKinRelationship(e.target.value)}
-                  className="rent-calculator__input rent-calculator__input--no-prefix"
-                  disabled={isLoading}
-                >
-                  <option value="Spouse">Spouse</option>
-                  <option value="Parent">Parent</option>
-                  <option value="Sibling">Sibling</option>
-                  <option value="Child">Child</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-
-              <div className="rent-calculator__field">
-                <label className="rent-calculator__label">Phone Number</label>
-                <div className="rent-calculator__input-wrapper">
-                  <input
-                    type="tel"
-                    placeholder="080XXXXXXXX"
-                    className="rent-calculator__input rent-calculator__input--no-prefix"
-                    value={nextOfKinPhone}
-                    onChange={handleNextOfKinPhoneChange}
-                    disabled={isLoading}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
-              <button
-                type="button"
-                className="vault-btn-secondary"
-                onClick={() => setStep(1)}
-                disabled={isLoading}
-                style={{ flex: 1 }}
-              >
-                <ArrowLeft size={16} />
-                <span>Back</span>
-              </button>
-              <button
-                type="button"
-                className="vault-btn-primary"
-                onClick={handleSubmit}
-                disabled={
-                  !occupation.trim() || !nextOfKinName.trim() || !nextOfKinPhone.trim() || isLoading
-                }
-                style={{ flex: 2 }}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 size={16} className="animate-spin" />
-                    <span>Verifying...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Continue</span>
-                    <ArrowRight size={16} />
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
+          <ArmInvestorKycForm
+            formId="savings-modal-arm-kyc-form"
+            prefill={prefill}
+            annualRatePct={savingsAnnualRatePct}
+            fundName={fundDisplayName}
+            serverError={formError}
+            isSubmitting={isLoading}
+            submitLabel="Continue"
+            onSubmit={handleArmKycSubmit}
+          />
         )}
 
         {step === 3 && (
@@ -1115,7 +812,7 @@ export function SavingsInvestorKycModal({
                 </div>
                 <div>
                   <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', display: 'block' }}>
-                    Est. Returns
+                    Expected Returns
                   </span>
                   <span style={{ fontSize: '0.9375rem', fontWeight: 800, color: '#059669' }}>
                     +{formatCurrency(estimatedYield, 'NGN')}
@@ -1131,16 +828,36 @@ export function SavingsInvestorKycModal({
                   lineHeight: 1.45,
                 }}
               >
-                Save consistently for est. <strong>+{formatCurrency(estimatedYield, 'NGN')} in returns</strong> — earning {savingsAnnualRatePct}% p.a.{activeProductOption === 'RENT_PROTEC' ? ' + Rent Protec cover' : ''} towards your balance by {earlySettlementDateStr} (max {platformRates.maxSavingsMonths} months).
+                Save consistently for expected returns of <strong>+{formatCurrency(estimatedYield, 'NGN')}</strong> — earning {savingsAnnualRatePct}% p.a.{activeProductOption === 'RENT_PROTEC' ? ' + Rent Protec cover' : ''} towards your balance by {earlySettlementDateStr} (max {platformRates.maxSavingsMonths} months).
               </p>
             </div>
+
+            <SavingsConsentCard
+              acceptedTerms={step3AcceptedTerms}
+              acceptedArmMandate={step3AcceptedMandate}
+              onAcceptedTermsChange={setStep3AcceptedTerms}
+              onAcceptedArmMandateChange={setStep3AcceptedMandate}
+              annualRatePct={savingsAnnualRatePct}
+              fundName={fundDisplayName}
+              disabled={consentMutation.isPending}
+            />
 
             <button
               type="button"
               className="vault-btn-primary"
               onClick={async () => {
+                if (!step3AcceptedTerms || !step3AcceptedMandate) {
+                  toastError('Please accept the Rent Savings Terms & Conditions and ARM Consent Mandate.')
+                  return
+                }
                 try {
                   await consentMutation.mutateAsync({
+                    consent_accepted: true,
+                    accepted_terms: true,
+                    accepted_arm_mandate: true,
+                    accepted_lock_policy: true,
+                    terms_version: SAVINGS_TERMS_VERSION,
+                    consent_doc_version: SAVINGS_CONSENT_DOC_VERSION,
                     cadence: selectedCadence,
                     product_option: activeProductOption,
                     plan_pattern: planPattern,
@@ -1150,10 +867,14 @@ export function SavingsInvestorKycModal({
                         : undefined,
                   })
                   await refreshUser()
-                } catch {}
-                setStep(4)
+                  setStep(4)
+                } catch (err: unknown) {
+                  const message =
+                    err instanceof Error ? err.message : 'Could not record consent. Please try again.'
+                  toastError(message)
+                }
               }}
-              disabled={consentMutation.isPending}
+              disabled={!step3AcceptedTerms || !step3AcceptedMandate || consentMutation.isPending}
               style={{ marginTop: 6 }}
             >
               {consentMutation.isPending ? (
@@ -1208,7 +929,7 @@ export function SavingsInvestorKycModal({
                   </strong>{' '}
                   monthly for the rest of the year{' '}
                   <span style={{ color: '#059669', fontWeight: 600 }}>
-                    (est. +{formatCurrency(interestStep4, 'NGN')} in returns)
+                    (expected +{formatCurrency(interestStep4, 'NGN')} in returns)
                   </span>.
                 </div>
               )}

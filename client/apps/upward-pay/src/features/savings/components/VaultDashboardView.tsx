@@ -3,30 +3,37 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import {
-  TrendingUp,
   PlusCircle,
   ShieldCheck,
-  ChevronRight,
   ArrowRight,
   ArrowDownToLine,
   ArrowUpRight,
-  Copy,
-  Check,
   FileText,
+  FileCheck2,
   Receipt,
+  Loader2,
+  Calendar,
+  Unlock,
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
+import { API_BASE } from '@/lib/api-client'
+import { getAccessToken } from '@/lib/auth-token'
 import { useAuth } from '@/features/auth/AuthContext'
 import { useToast } from '@/components/common/Toast'
 import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
-import { FundVaultModal } from './FundVaultModal'
+import { getRentDepositReceipt } from '@/features/payments/services/paymentService'
+import { useUpdateVaultSchedule } from '../hooks/useRentSavings'
+import { FundVaultModal, type VaultFundingMode } from './FundVaultModal'
 import { readSavingsRentPlan } from '../utils/savingsRentPlan'
+import { ordinalDay, REMINDER_DAYS } from '../utils/reminderDay'
 import {
   type SavingsCadence,
+  type SavingsLockMode,
   type SavingsPlanPattern,
   type SavingsProductOption,
   type VaultTransactionItem,
 } from '../services/savingsService'
+import { SAVINGS_FUND_CODE, SAVINGS_FUND_NAME } from '../constants/savingsLegal'
 
 interface VaultDashboardViewProps {
   vault: {
@@ -34,10 +41,29 @@ interface VaultDashboardViewProps {
     lock_status: string
     cadence?: SavingsCadence
     product_option?: SavingsProductOption
+    lock_mode?: SavingsLockMode
     plan_pattern?: SavingsPlanPattern
     initial_deposit_kobo?: number
+    minimum_initial_deposit_kobo?: number
+    minimum_initial_deposit_pct?: number
+    planned_monthly_deposit_kobo?: number
+    current_month_paid_kobo?: number
+    current_month_remaining_kobo?: number
+    current_month_fulfilled?: boolean
+    preferred_payday_day?: number
     is_rent_protec?: boolean
     insurance_premium_pct?: number
+    has_completed_arm_kyc?: boolean
+    address_verification_status?: string | null
+    consent?: {
+      consent_uuid: string
+      terms_version: string
+      consent_doc_version: string
+      fund_code: string
+      fund_name: string
+      accepted_at: string
+      has_document: boolean
+    } | null
     current_balance_kobo: number
     principal_kobo: number
     vault_principal_kobo?: number
@@ -85,6 +111,9 @@ interface VaultDashboardViewProps {
 
 export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboardViewProps) {
   const isInitialPrompt = vault.current_balance_kobo === 0
+  const [fundModalMode, setFundModalMode] = useState<VaultFundingMode>(() =>
+    isInitialPrompt ? 'INITIAL_DEPOSIT' : vault.current_month_fulfilled ? 'EXTRA_TOPUP' : 'MONTHLY',
+  )
   const [showFundModal, setShowFundModal] = useState(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -94,9 +123,12 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
     }
     return isInitialPrompt
   })
-  const [copiedAccount, setCopiedAccount] = useState(false)
+  const [editingPayday, setEditingPayday] = useState(false)
+  const [downloadingReceiptId, setDownloadingReceiptId] = useState<string | null>(null)
+  const [downloadingConsent, setDownloadingConsent] = useState(false)
   const { user } = useAuth()
-  const { success: toastSuccess } = useToast()
+  const { success: toastSuccess, error: toastError } = useToast()
+  const updateScheduleMutation = useUpdateVaultSchedule()
   const [nowTimestamp] = useState(() => Date.now())
   const activeProperty = (user?.properties || []).find(
     (p: { isPastTenancy?: boolean; rentAmount?: number; rentEndDate?: string }) =>
@@ -104,6 +136,33 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
   )
 
   const currentBalanceNaira = vault.current_balance_kobo / 100
+  const depositedPrincipalNaira = (vault.principal_kobo ?? vault.current_balance_kobo) / 100
+  const interestEarnedNaira = (vault.accrued_yield_kobo ?? 0) / 100
+  const expectedReturnsNaira = (vault.pay_less_projection?.projected_yield_kobo ?? 0) / 100
+  const showDeposited =
+    interestEarnedNaira > 0 &&
+    Math.round(depositedPrincipalNaira) !== Math.round(currentBalanceNaira)
+  const balanceStatus: { key: string; text: string; gain?: boolean }[] = []
+  if (showDeposited) {
+    balanceStatus.push({
+      key: 'deposited',
+      text: `Deposited ${formatCurrency(depositedPrincipalNaira, 'NGN')}`,
+    })
+  }
+  if (interestEarnedNaira > 0) {
+    balanceStatus.push({
+      key: 'interest',
+      text: `Interest earned +${formatCurrency(interestEarnedNaira, 'NGN')}`,
+      gain: true,
+    })
+  }
+  if (expectedReturnsNaira > 0) {
+    balanceStatus.push({
+      key: 'expected',
+      text: `Expected by rent day +${formatCurrency(expectedReturnsNaira, 'NGN')}`,
+      gain: true,
+    })
+  }
   const targetAmountNaira = activeProperty?.rentAmount || vault.target_amount_kobo / 100
   const targetDueDate = activeProperty?.rentEndDate || vault.contractual_due_date
   const daysRemaining = targetDueDate
@@ -114,9 +173,42 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
     : vault.days_remaining
 
   const { rates: platformRates } = usePlatformRates()
+  const isFlexiblePlan = vault.lock_mode === 'FLEXIBLE' && !vault.is_rent_protec
   const savingsAnnualRatePct =
     vault.annual_yield_rate_pct ??
-    (vault.is_rent_protec ? platformRates.rentProtecRatePct : platformRates.savingsAnnualRatePct)
+    (vault.is_rent_protec
+      ? platformRates.rentProtecRatePct
+      : isFlexiblePlan
+        ? platformRates.flexibleSavingsAnnualRatePct
+        : platformRates.savingsAnnualRatePct)
+
+  const plannedMonthlyNaira = Math.round(
+    (vault.planned_monthly_deposit_kobo && vault.planned_monthly_deposit_kobo > 0
+      ? vault.planned_monthly_deposit_kobo
+      : vault.pay_less_projection?.periodic_deposit_kobo ?? 0) / 100,
+  )
+  const currentMonthRemainingNaira = Math.round(
+    (vault.current_month_remaining_kobo ??
+      Math.max(
+        0,
+        (vault.planned_monthly_deposit_kobo ?? 0) - (vault.current_month_paid_kobo ?? 0),
+      )) / 100,
+  )
+  const currentMonthFulfilled = Boolean(vault.current_month_fulfilled)
+  const monthTargetMet =
+    currentBalanceNaira > 0 &&
+    plannedMonthlyNaira > 0 &&
+    (currentMonthFulfilled || currentMonthRemainingNaira <= 0)
+  const monthlyButtonLabel =
+    currentBalanceNaira === 0
+      ? 'Pay Initial Deposit'
+      : currentMonthRemainingNaira > 0 && currentMonthRemainingNaira < plannedMonthlyNaira
+        ? `Pay ${formatCurrency(currentMonthRemainingNaira, 'NGN')} left`
+        : plannedMonthlyNaira > 0
+          ? `Pay ${formatCurrency(plannedMonthlyNaira, 'NGN')}`
+          : 'Pay Monthly'
+  const preferredPaydayDay = vault.preferred_payday_day ?? 28
+  const currentMonthShort = new Date(nowTimestamp).toLocaleDateString('en-GB', { month: 'short' })
 
   const targetCompletionPercentage =
     targetAmountNaira > 0
@@ -124,44 +216,146 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
       : vault.target_completion_percentage
 
   const canSettleLandlord = Boolean(onGoToSettlementHub && daysRemaining <= 30)
-
-  const consistencyPoints =
-    vault.savings_score.consistency_points ??
-    Math.min(
-      50,
-      Math.round(((vault.savings_score.cadence_points ?? 0) / 40) * 50) ||
-        (currentBalanceNaira > 0 ? 15 : 10),
-    )
-  const goalPoints =
-    vault.savings_score.goal_points ??
-    Math.min(50, Math.round((targetCompletionPercentage / 100) * 50))
-  const totalScore = Math.min(100, consistencyPoints + goalPoints)
-
   const transactions = vault.transactions || []
 
-  const handleCopyAccount = () => {
-    if (!vault.dedicated_account?.account_number) return
-    navigator.clipboard.writeText(vault.dedicated_account.account_number)
-    setCopiedAccount(true)
-    toastSuccess('Rent savings account number copied!')
-    setTimeout(() => setCopiedAccount(false), 2000)
+  const openFundingModal = (mode: VaultFundingMode) => {
+    setFundModalMode(mode)
+    setShowFundModal(true)
   }
+
+  const handlePaydayChange = async (nextDay: number) => {
+    try {
+      await updateScheduleMutation.mutateAsync(nextDay)
+      toastSuccess(`Reminder set to the ${ordinalDay(nextDay)}. You can still save any day.`)
+      setEditingPayday(false)
+    } catch {
+      toastError('Could not update monthly savings day.')
+    }
+  }
+
+  const handleOpenReceipt = async (tx: VaultTransactionItem) => {
+    if (downloadingReceiptId) return
+    setDownloadingReceiptId(tx.id)
+
+    try {
+      const txIdentifier = tx.uuid || tx.reference || ''
+      if (txIdentifier) {
+        const res = await getRentDepositReceipt(txIdentifier)
+        const receiptUrl: string | undefined = res?.url
+        const fileName: string = res?.fileName || `upward_receipt_${txIdentifier}.pdf`
+
+        if (receiptUrl && receiptUrl.startsWith('data:application/pdf;base64,')) {
+          const base64Data = receiptUrl.split(',')[1] || ''
+          const byteCharacters = atob(base64Data)
+          const byteNumbers = new Array(byteCharacters.length)
+          for (let i = 0; i < byteCharacters.length; i++) {
+            byteNumbers[i] = byteCharacters.charCodeAt(i)
+          }
+          const pdfBlob = new Blob([new Uint8Array(byteNumbers)], { type: 'application/pdf' })
+          const blobUrl = URL.createObjectURL(pdfBlob)
+          const opened = window.open(blobUrl, '_blank', 'noopener,noreferrer')
+          if (!opened) {
+            const link = document.createElement('a')
+            link.href = blobUrl
+            link.download = fileName
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+          }
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000)
+          return
+        }
+
+        if (receiptUrl && /^https?:\/\//i.test(receiptUrl)) {
+          window.open(receiptUrl, '_blank', 'noopener,noreferrer')
+          return
+        }
+      }
+
+      if (tx.receipt_url) {
+        const apiRoot =
+          process.env.NEXT_PUBLIC_API_URL ||
+          (typeof window !== 'undefined' ? `${window.location.origin}/api/v1` : '')
+        const normalizedPath = tx.receipt_url.replace(/^\/api\/v1/, '')
+        const fullUrl = /^https?:\/\//i.test(tx.receipt_url)
+          ? tx.receipt_url
+          : `${apiRoot}${normalizedPath}${tx.receipt_url.includes('?') ? '&' : '?'}format=pdf`
+        window.open(fullUrl, '_blank', 'noopener,noreferrer')
+      }
+    } catch (err: unknown) {
+      const error = err as { message?: string }
+      toastError(error?.message || 'Unable to generate receipt right now.')
+    } finally {
+      setDownloadingReceiptId(null)
+    }
+  }
+
+  const handleOpenConsentPdf = async () => {
+    if (downloadingConsent) return
+    setDownloadingConsent(true)
+    try {
+      const token = getAccessToken()
+      const headers: Record<string, string> = {}
+      if (token) headers.Authorization = `Bearer ${token}`
+      const res = await fetch(`${API_BASE}/rent-vaults/consent-document`, {
+        method: 'GET',
+        credentials: 'include',
+        headers,
+      })
+      if (!res.ok) {
+        throw new Error('Could not open your signed consent mandate yet.')
+      }
+      const blob = await res.blob()
+      const blobUrl = URL.createObjectURL(blob)
+      const opened = window.open(blobUrl, '_blank', 'noopener,noreferrer')
+      if (!opened) {
+        const link = document.createElement('a')
+        link.href = blobUrl
+        link.download = `ARM_MMF_Consent_Mandate.pdf`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+      }
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000)
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : 'Unable to download your signed consent document.'
+      toastError(message)
+    } finally {
+      setDownloadingConsent(false)
+    }
+  }
+
+  const fundDisplayName = platformRates.fundName || SAVINGS_FUND_NAME
+  const isOptInOnly = platformRates.savingsMode === 'OPT_IN_ONLY'
 
   return (
     <div className="rent-savings">
-      <div className="vault-dashboard__hero">
-        <div className="vault-dashboard__top-row">
-          <div className="vault-arm-badge">
-            <ShieldCheck size={14} className="vault-arm-badge__icon" />
-            <span>
-              <strong>Money Market Fund (MMF)</strong> managed by{' '}
-              <strong>
-                {platformRates.partnerName || 'Asset & Resource Management Holding Company (ARM)'}
-              </strong>
+      {isOptInOnly && (
+        <div
+          className="savings-kyc-banner savings-kyc-banner--verified"
+          style={{ marginBottom: 14 }}
+        >
+          <div className="savings-kyc-banner__icon">
+            <ShieldCheck size={18} color="#059669" />
+          </div>
+          <div className="savings-kyc-banner__content">
+            <span className="savings-kyc-banner__title">
+              Activation Opt-In Complete — Deposits Opening Soon
+            </span>
+            <span className="savings-kyc-banner__desc">
+              Your Rent Vault and ARM investor onboarding are locked in. Any activation cashback
+              credited to your vault appears in your balance below, and live deposits will open
+              shortly.
             </span>
           </div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            {vault.is_rent_protec && (
+        </div>
+      )}
+
+      <div className="vault-dashboard__hero">
+        <div className="vault-dashboard__top-row">
+          <div className="vault-dashboard__plan-pills">
+            {vault.is_rent_protec ? (
               <span
                 style={{
                   padding: '3px 8px',
@@ -172,7 +366,37 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
                   fontWeight: 700,
                 }}
               >
-                Rent Protec • Protected
+                Rent Protec • {savingsAnnualRatePct}% p.a.
+              </span>
+            ) : isFlexiblePlan ? (
+              <span
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  padding: '3px 8px',
+                  borderRadius: 999,
+                  background: '#ECFDF5',
+                  color: '#047857',
+                  fontSize: '0.6875rem',
+                  fontWeight: 700,
+                }}
+              >
+                <Unlock size={11} />
+                Flexible • {savingsAnnualRatePct}% p.a.
+              </span>
+            ) : (
+              <span
+                style={{
+                  padding: '3px 8px',
+                  borderRadius: 999,
+                  background: 'var(--clay-faint)',
+                  color: 'var(--clay)',
+                  fontSize: '0.6875rem',
+                  fontWeight: 700,
+                }}
+              >
+                Full Lock • {savingsAnnualRatePct}% p.a.
               </span>
             )}
             <span className="vault-dashboard__countdown-pill">{daysRemaining} Days Left</span>
@@ -180,10 +404,23 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
         </div>
 
         <div className="vault-dashboard__amounts">
-          <span className="vault-dashboard__balance-caption">Total Savings</span>
+          <span className="vault-dashboard__balance-caption">Total Balance</span>
           <span className="vault-dashboard__current-balance">
             {formatCurrency(currentBalanceNaira, 'NGN')}
           </span>
+
+          {balanceStatus.length > 0 && (
+            <p className="vault-dashboard__status-line">
+              {balanceStatus.map((part) => (
+                <span key={part.key} className="vault-dashboard__status-part">
+                  <span className={part.gain ? 'vault-dashboard__status-gain' : undefined}>
+                    {part.text}
+                  </span>
+                </span>
+              ))}
+            </p>
+          )}
+
           <div className="vault-dashboard__target-row">
             <span className="vault-dashboard__target-label">
               Target: {formatCurrency(targetAmountNaira, 'NGN')} due on{' '}
@@ -205,15 +442,86 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
           </div>
         </div>
 
+        {/* Monthly amount, with a reminder day the user can move to any date */}
+        {plannedMonthlyNaira > 0 && (
+          <div className="vault-monthly-strip">
+            <div className="vault-monthly-strip__title-row">
+              <Calendar size={14} color="var(--clay)" />
+              <span className="vault-monthly-strip__label">
+                Monthly <strong>{formatCurrency(plannedMonthlyNaira, 'NGN')}</strong>
+              </span>
+              <span
+                className={`vault-monthly-strip__pill ${
+                  currentMonthFulfilled
+                    ? 'vault-monthly-strip__pill--paid'
+                    : 'vault-monthly-strip__pill--due'
+                }`}
+              >
+                {currentMonthFulfilled
+                  ? `Paid for ${currentMonthShort}`
+                  : currentMonthRemainingNaira > 0 &&
+                      currentMonthRemainingNaira < plannedMonthlyNaira
+                    ? `${formatCurrency(currentMonthRemainingNaira, 'NGN')} left`
+                    : 'This month'}
+              </span>
+            </div>
+            <div className="vault-monthly-strip__sub">
+              <span>Reminder on the {ordinalDay(preferredPaydayDay)}</span>
+              <button
+                type="button"
+                className="vault-monthly-strip__edit-btn"
+                onClick={() => setEditingPayday((v) => !v)}
+              >
+                {editingPayday ? 'Close' : 'Change day'}
+              </button>
+            </div>
+
+            {editingPayday && (
+              <div className="vault-monthly-strip__picker">
+                <label className="vault-monthly-strip__picker-label" htmlFor="vault-reminder-day">
+                  Reminder day
+                </label>
+                <select
+                  id="vault-reminder-day"
+                  className="rent-protec-payday__select"
+                  disabled={updateScheduleMutation.isPending}
+                  value={preferredPaydayDay}
+                  onChange={(e) => handlePaydayChange(Number(e.target.value))}
+                >
+                  {REMINDER_DAYS.map((day) => (
+                    <option key={day} value={day}>
+                      {ordinalDay(day)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="vault-dashboard__actions">
-          <button
-            type="button"
-            className="vault-btn-primary"
-            onClick={() => setShowFundModal(true)}
-          >
-            <PlusCircle size={18} />
-            <span>Add Funds</span>
-          </button>
+          {!isOptInOnly && !monthTargetMet && (
+            <button
+              type="button"
+              className="vault-btn-primary"
+              onClick={() =>
+                openFundingModal(currentBalanceNaira === 0 ? 'INITIAL_DEPOSIT' : 'MONTHLY')
+              }
+            >
+              <PlusCircle size={17} />
+              <span>{monthlyButtonLabel}</span>
+            </button>
+          )}
+
+          {!isOptInOnly && monthTargetMet && (
+            <button
+              type="button"
+              className="vault-btn-primary"
+              onClick={() => openFundingModal('EXTRA_TOPUP')}
+            >
+              <span>Add extra top-up</span>
+            </button>
+          )}
 
           {canSettleLandlord && (
             <button
@@ -225,46 +533,18 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
               <ArrowRight size={16} />
             </button>
           )}
-        </div>
-      </div>
 
-      {vault.dedicated_account?.account_number && (
-        <div className="vault-dva-card">
-          <div className="vault-dva-card__header">
-            <span className="vault-dva-card__title">Personal Rent Account</span>
-            <span className="vault-dva-card__badge">
-              {vault.dedicated_account.bank_name || 'Wema Bank'}
-            </span>
-          </div>
-          <div className="vault-dva-card__number-row">
-            <div className="vault-dva-card__number-block">
-              <span className="vault-dva-card__number">
-                {vault.dedicated_account.account_number}
-              </span>
-              <span className="vault-dva-card__sub-label">
-                {vault.dedicated_account.account_name}
-              </span>
-            </div>
+          {!isOptInOnly && currentBalanceNaira > 0 && !monthTargetMet && (
             <button
               type="button"
-              className={`vault-dva-card__copy-btn ${
-                copiedAccount ? 'vault-dva-card__copy-btn--copied' : ''
-              }`}
-              onClick={handleCopyAccount}
+              className="vault-dashboard__text-action"
+              onClick={() => openFundingModal('EXTRA_TOPUP')}
             >
-              {copiedAccount ? (
-                <>
-                  <Check size={14} /> Copied!
-                </>
-              ) : (
-                <>
-                  <Copy size={14} /> Copy
-                </>
-              )}
+              Add extra top-up
             </button>
-          </div>
+          )}
         </div>
-      )}
+      </div>
 
       {/* Savings Score Card (Commented out)
       <div className="vault-score-card">
@@ -356,14 +636,25 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
                       {formatCurrency(amountNaira, 'NGN')}
                     </span>
                     {tx.receipt_url && (
-                      <a
-                        href={tx.receipt_url}
+                      <button
+                        type="button"
                         className="vault-ledger__receipt-link"
-                        target="_blank"
-                        rel="noreferrer"
+                        onClick={() => handleOpenReceipt(tx)}
+                        disabled={downloadingReceiptId === tx.id}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          cursor: downloadingReceiptId === tx.id ? 'wait' : 'pointer',
+                          padding: 0,
+                        }}
                       >
-                        <FileText size={11} /> Receipt
-                      </a>
+                        {downloadingReceiptId === tx.id ? (
+                          <Loader2 size={11} className="animate-spin" />
+                        ) : (
+                          <FileText size={11} />
+                        )}{' '}
+                        Receipt
+                      </button>
                     )}
                   </div>
                 </div>
@@ -373,21 +664,88 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
         )}
       </div>
 
+      <div className="vault-dashboard__footer">
+        <p className="vault-dashboard__fund-note">
+          <ShieldCheck size={13} aria-hidden />
+          <span>
+            {fundDisplayName} ({SAVINGS_FUND_CODE}), managed by{' '}
+            {platformRates.partnerName || 'Asset & Resource Management Holding Company (ARM)'}
+          </span>
+        </p>
+        <div className="vault-hero-docs">
+          <Link href="/dashboard/legal/savings-terms" className="vault-hero-docs__link">
+            <FileText size={12} />
+            <span>Savings Terms</span>
+          </Link>
+          {vault.consent?.has_document && (
+            <button
+              type="button"
+              className="vault-hero-docs__link"
+              onClick={handleOpenConsentPdf}
+              disabled={downloadingConsent}
+            >
+              {downloadingConsent ? (
+                <Loader2 size={12} className="animate-spin" />
+              ) : (
+                <FileCheck2 size={12} />
+              )}
+              <span>Signed Mandate</span>
+            </button>
+          )}
+        </div>
+      </div>
+
       <FundVaultModal
         isOpen={showFundModal}
         onClose={() => setShowFundModal(false)}
+        initialFundingMode={fundModalMode}
+        plannedMonthlyNaira={plannedMonthlyNaira}
+        currentMonthRemainingNaira={currentMonthRemainingNaira}
+        currentMonthFulfilled={currentMonthFulfilled}
         recommendedAmountNaira={(() => {
-          const savedPlan = readSavingsRentPlan()
+          const periodicNaira = plannedMonthlyNaira
+
+          if (vault.current_balance_kobo > 0) {
+            if (currentMonthRemainingNaira > 0) {
+              return currentMonthRemainingNaira
+            }
+            const remainingToTarget = Math.max(
+              0,
+              Math.round(targetAmountNaira - currentBalanceNaira),
+            )
+            if (remainingToTarget > 0) {
+              return periodicNaira > 0
+                ? Math.min(remainingToTarget, periodicNaira)
+                : remainingToTarget
+            }
+            return periodicNaira > 0 ? periodicNaira : 50_000
+          }
+
+          const maxSensibleInitial =
+            targetAmountNaira > 0 ? Math.round(targetAmountNaira * 0.5) : Infinity
+          const savedPlan = readSavingsRentPlan(user?.id)
+
           if (vault.initial_deposit_kobo && vault.initial_deposit_kobo > 0) {
-            return vault.initial_deposit_kobo / 100
+            const vaultInitialNaira = Math.round(vault.initial_deposit_kobo / 100)
+            if (vaultInitialNaira <= maxSensibleInitial) {
+              return vaultInitialNaira
+            }
           }
+
           if (savedPlan?.initialDeposit && Number(savedPlan.initialDeposit) > 0) {
-            return Number(savedPlan.initialDeposit)
+            const planInit = Math.round(Number(savedPlan.initialDeposit))
+            const matchesRent =
+              !targetAmountNaira || Number(savedPlan.rentAmount || 0) === targetAmountNaira
+            if (matchesRent && planInit <= maxSensibleInitial) {
+              return planInit
+            }
           }
+
           if (vault.plan_pattern === 'EQUAL' || vault.plan_pattern === 'STEP_UP') {
-            return Math.round((vault.pay_less_projection?.periodic_deposit_kobo ?? 0) / 100) || 100_000
+            return periodicNaira || (targetAmountNaira > 0 ? Math.round(targetAmountNaira / 10) : 100_000)
           }
-          return targetAmountNaira > 0 ? Math.round(targetAmountNaira * 0.25) : 100_000
+
+          return targetAmountNaira > 0 ? Math.round(targetAmountNaira * 0.2) : 100_000
         })()}
         cadence="MONTHLY"
         dedicatedAccount={vault.dedicated_account}

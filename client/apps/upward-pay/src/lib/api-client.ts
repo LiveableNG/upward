@@ -121,7 +121,9 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
     }
 
     const isUpload = options.body instanceof FormData
-    const timeoutDuration = isUpload ? 120000 : 15000
+    const isLongRunningExternalFlow =
+      path.includes('/rent-vaults') || path.includes('/payments/webhooks/rent-savings')
+    const timeoutDuration = isUpload ? 120000 : isLongRunningExternalFlow ? 60000 : 15000
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), timeoutDuration)
 
@@ -137,10 +139,11 @@ export async function request<T>(path: string, options: RequestInit = {}): Promi
       res = await fetch(url, fetchOptions)
     } catch (err: any) {
       clearTimeout(timeoutId)
-      console.error(`[api-client] Network error requesting ${url}:`, err)
-      if (err.name === 'AbortError') {
+      if (err?.name === 'AbortError') {
+        console.warn(`[api-client] Request timed out after ${timeoutDuration}ms requesting ${url}`)
         throw new Error('Request timed out. Please check your internet connection and try again.')
       }
+      console.warn(`[api-client] Network error requesting ${url}:`, err)
       if (err.message === 'Load failed' || err.message === 'Failed to fetch') {
         throw new Error('Unable to reach the server. Please check your internet connection and try again.')
       }

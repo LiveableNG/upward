@@ -18,8 +18,8 @@ import {
 import { type UserProfile } from '@/features/auth/types'
 import { type PendingPayment, type CompletedPayment } from '../types'
 import { useRentVault } from '@/features/savings/hooks/useRentSavings'
+import { useSavingsInterest } from '@/features/savings/context/SavingsInterestContext'
 import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
-import { useToast } from '@/components/common/Toast'
 import { formatCurrency, formatDate, formatTime } from '@/lib/utils'
 import { useUserGoals } from '@/features/goals/hooks/useGoals'
 import { ActionCarousel } from './ActionCarousel'
@@ -194,16 +194,22 @@ export function HousingFirstHome({
   onOpenGoals,
 }: HousingFirstHomeProps) {
   const router = useRouter()
-  const toast = useToast()
   const hasMyHome = useHasMyHome()
-  const { data: vault } = useRentVault()
   const { rates: platformRates, isLoading: ratesLoading } = usePlatformRates()
+  const {
+    isSavingsDisabled,
+    interestStatus,
+    hasReservedCashback,
+    reservedCashbackNgn,
+    openSavingsInterestModal,
+  } = useSavingsInterest()
+  const { data: vault } = useRentVault(!isSavingsDisabled)
   const { data: userGoals } = useUserGoals()
 
   const handleOpenRentSavings = () => {
     if (ratesLoading) return
-    if (platformRates.savingsEnabled === false) {
-      toast.info('Savings is coming soon.')
+    if (isSavingsDisabled) {
+      openSavingsInterestModal('home_hero')
       return
     }
     router.push('/dashboard/savings')
@@ -314,7 +320,7 @@ export function HousingFirstHome({
     : 0
 
   // State Separation: Pre-Saving (State A) vs Active Saving Traction (State B)
-  const hasStartedSaving = Boolean(vault && currentSaved > 0)
+  const hasStartedSaving = !isSavingsDisabled && Boolean(vault && currentSaved > 0)
 
   const vaultPct =
     vault?.target_completion_percentage !== undefined && vault?.target_completion_percentage !== null
@@ -323,17 +329,9 @@ export function HousingFirstHome({
         ? Math.min(100, Math.round((currentSaved / targetRent) * 100))
         : 0
 
-  const projectedInterestTotal = vault?.pay_less_projection?.projected_yield_kobo
-    ? vault.pay_less_projection.projected_yield_kobo / 100
+  const interestEarnedNaira = vault?.accrued_yield_kobo
+    ? vault.accrued_yield_kobo / 100
     : 0
-
-  const accruedYieldFormatted = vault?.accrued_yield_kobo
-    ? projectedInterestTotal > 0
-      ? `+${formatCurrency(vault.accrued_yield_kobo / 100, 'NGN')} earned · Est. +${formatCurrency(projectedInterestTotal, 'NGN')} total`
-      : `+${formatCurrency(vault.accrued_yield_kobo / 100, 'NGN')} returns accrued`
-    : projectedInterestTotal > 0
-      ? `Est. +${formatCurrency(projectedInterestTotal, 'NGN')} returns`
-      : '+₦0 returns accrued'
 
   const daysLeftFormatted =
     vault?.days_remaining !== undefined && vault?.days_remaining !== null
@@ -343,6 +341,11 @@ export function HousingFirstHome({
         : targetRent > 0
           ? 'Rent goal active'
           : 'Set target'
+  const homeStatusParts = [
+    interestEarnedNaira > 0 ? `Interest +${formatCurrency(interestEarnedNaira, 'NGN')}` : '',
+    vault?.is_rent_protec ? 'Protected' : '',
+    daysLeftFormatted,
+  ].filter(Boolean)
 
   const toggleHousingExpanded = () => {
     setHousingExpanded(!isHousingExpanded, housingExpandedKey)
@@ -468,13 +471,7 @@ export function HousingFirstHome({
                 <div className="vault-card__track">
                   <div className="vault-card__fill" style={{ width: `${vaultPct}%` }} />
                 </div>
-                <div className="vault-card__meta">
-                  <span className="vault-card__yield">
-                    {accruedYieldFormatted}
-                    {vault?.is_rent_protec ? ' • Protected' : ''}
-                  </span>
-                  <span>{daysLeftFormatted}</span>
-                </div>
+                <p className="vault-card__meta">{homeStatusParts.join(' · ')}</p>
               </button>
             ) : (
               <button
@@ -484,15 +481,23 @@ export function HousingFirstHome({
               >
                 <div className="housing-goal-card__body">
                   <span className="housing-goal-card__tag">
-                    {platformRates.savingsEnabled === false
-                      ? 'SAVE RENT · COMING SOON'
+                    {isSavingsDisabled
+                      ? hasReservedCashback
+                        ? `${formatCurrency(reservedCashbackNgn, 'NGN')} BONUS SAVED`
+                        : interestStatus?.campaign?.can_win_cashback !== false
+                          ? `GET ${formatCurrency(interestStatus?.campaign?.reward_amount_ngn ?? 3000, 'NGN')} BONUS`
+                          : 'COMING SOON'
                       : vault?.is_rent_protec
                         ? 'RENT PROTEC • PROTECTED'
                         : 'SAVE RENT'}
                   </span>
                   <h3 className="housing-goal-card__title">Pay less for my next rent</h3>
                   <p className="housing-goal-card__desc">
-                    Build up savings towards my upcoming rent.
+                    {isSavingsDisabled
+                      ? hasReservedCashback
+                        ? `Your ${formatCurrency(reservedCashbackNgn, 'NGN')} bonus is waiting for when Rent Savings opens.`
+                        : 'Launching soon — tap to grab a bonus towards your next rent.'
+                      : 'Build up savings towards my upcoming rent.'}
                   </p>
                 </div>
                 <ChevronRight size={18} color="#ffffff" style={{ flexShrink: 0 }} />

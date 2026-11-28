@@ -13,6 +13,7 @@ import {
 import { hasRentalInfo, needsIdentityVerification } from '../utils/profileCompletion'
 import { isSavingsWalletEnabled } from '../utils/savingsWallet'
 import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
+import { useSavingsInterest } from '@/features/savings/context/SavingsInterestContext'
 
 export type DashboardFeatureItemView = DashboardFeatureItem & {
   badge?: string
@@ -28,6 +29,7 @@ export function useDashboardFeatureSections() {
   const { user } = useAuth()
   const { enrolments, loaded: rsiLoaded } = useRsiEnrolment()
   const { rates: platformRates } = usePlatformRates()
+  const { hasReservedCashback, reservedCashbackNgn } = useSavingsInterest()
   const { data: benefitsStatus, isError: benefitsError } = useQuery({
     queryKey: ['benefits-status'],
     queryFn: () => api.getBenefitsStatus(),
@@ -73,10 +75,12 @@ export function useDashboardFeatureSections() {
               if (!savingsEnabled) {
                 return {
                   ...item,
-                  href: '#',
-                  comingSoon: true,
-                  description: 'Savings is coming soon',
-                  badge: 'Soon',
+                  href: '/dashboard/savings',
+                  comingSoon: false,
+                  description: hasReservedCashback
+                    ? `₦${reservedCashbackNgn.toLocaleString()} bonus saved for when Rent Savings opens`
+                    : 'Launching soon — tap to get a bonus towards your rent',
+                  badge: hasReservedCashback ? 'Bonus saved' : 'Get bonus',
                 }
               }
               return {
@@ -99,5 +103,14 @@ export function useDashboardFeatureSections() {
     const pendingCount = Object.values(badgeByFeatureId).filter(Boolean).length
 
     return { sections, pendingCount }
-  }, [benefitsError, benefitsStatus, enrolments, platformRates.savingsEnabled, rsiLoaded, user])
+  }, [
+    benefitsError,
+    benefitsStatus,
+    enrolments,
+    hasReservedCashback,
+    platformRates.savingsEnabled,
+    reservedCashbackNgn,
+    rsiLoaded,
+    user,
+  ])
 }

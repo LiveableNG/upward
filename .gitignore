@@ -45,3 +45,6 @@ prisma/migrations/*.sql.bak
 # Capacitor generated
 apps/frontend/ios/
 apps/frontend/android/
+
+# Local non-prod upload fallback
+.uploads/

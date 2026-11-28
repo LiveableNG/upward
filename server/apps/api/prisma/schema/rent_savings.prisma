@@ -6,16 +6,18 @@ model upward_rent_vault {
   currentPrincipalKobo    BigInt                           @default(0)
   accruedYieldKobo        BigInt                           @default(0)
   cadence                 String                           @default("MONTHLY") // WEEKLY, MONTHLY, QUARTERLY
-  productOption           String                           @default("SAVE_AND_EARN") // SAVE_AND_EARN, RENT_PROTEC
-  planPattern             String                           @default("INITIAL_DEPOSIT") // EQUAL, INITIAL_DEPOSIT, STEP_UP, ACCELERATED
-  initialDepositKobo      BigInt                           @default(0)
-  appliedAnnualRatePct    Float                            @default(14.0)
-  insurancePremiumPct     Float                            @default(0)
-  contractualDueDate      DateTime
-  unlockDate              DateTime                         // Strictly contractualDueDate - 30 days
-  lockStatus              String                           @default("LOCKED")  // LOCKED, SETTLEMENT_READY, SETTLED, BROKEN_OUT
-  preferredFundingMethod  String                           @default("DVA")     // DVA, CARD_TOKEN
-  paydayDayOfMonth        Int?
+  productOption             String                           @default("SAVE_AND_EARN") // SAVE_AND_EARN, RENT_PROTEC
+  lockMode                  String                           @default("LOCKED") // LOCKED, FLEXIBLE
+  planPattern               String                           @default("INITIAL_DEPOSIT") // EQUAL, INITIAL_DEPOSIT, STEP_UP, ACCELERATED
+  initialDepositKobo        BigInt                           @default(0)
+  plannedMonthlyDepositKobo BigInt                           @default(0)
+  appliedAnnualRatePct      Float                            @default(16.0)
+  insurancePremiumPct       Float                            @default(0)
+  contractualDueDate        DateTime
+  unlockDate                DateTime                         // Strictly contractualDueDate - 30 days
+  lockStatus                String                           @default("LOCKED")  // LOCKED, SETTLEMENT_READY, SETTLED, BROKEN_OUT
+  preferredFundingMethod    String                           @default("DVA")     // DVA, CARD_TOKEN
+  paydayDayOfMonth          Int?                             @default(28)
   cardAuthorizationCode   String?
   
   // Paystack Dedicated Virtual Account (DVA) Details
@@ -45,6 +47,11 @@ model upward_rent_vault {
   advances                upward_rent_advance[]
   settlements             upward_rent_settlement[]
   savingsScore            upward_rent_savings_score?
+  armJobs                 upward_arm_job[]
+  savingsConsents         upward_savings_consent[]
+  treasurySummary         upward_vault_treasury_summary?
+  internalLedgerEntries   upward_savings_internal_ledger[]
+  cashbackGrants          upward_savings_cashback_grant[]
 
   @@index([userId])
   @@index([lockStatus])
@@ -70,6 +77,7 @@ model upward_rent_vault_transaction {
 
   vault                 upward_rent_vault   @relation(fields: [vaultId], references: [id], onDelete: Cascade)
   user                  upward_user         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  armJobs               upward_arm_job[]
 
   @@index([vaultId])
   @@index([userId])
@@ -153,4 +161,164 @@ model upward_rent_savings_score {
   user                  upward_user       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+}
+
+model upward_arm_job {
+  id               Int       @id @default(autoincrement())
+  uuid             String    @unique @default(uuid())
+  idempotencyKey   String    @unique
+  jobType          String    // SUBSCRIBE, REDEEM, ONBOARD
+  status           String    @default("QUEUED") // QUEUED, PROCESSING, COMPLETED, FAILED
+  vaultId          Int?
+  userId           Int?
+  transactionId    Int?
+  amountKobo       BigInt?
+  reference        String
+  armTransactionId String    @unique
+  armInstructionId String?   // ARM purchaseId, withdrawalId, or customerId — once set, job can never re-execute
+  payload          Json
+  result           Json?
+  attempts         Int       @default(0)
+  maxAttempts      Int       @default(5)
+  lastError        String?   @db.Text
+  lockedAt         DateTime?
+  completedAt      DateTime?
+  failedAt         DateTime?
+  notifiedUserAt   DateTime?
+  notifiedAdminAt  DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @default(now()) @updatedAt
+
+  vault            upward_rent_vault?             @relation(fields: [vaultId], references: [id], onDelete: SetNull)
+  user             upward_user?                   @relation(fields: [userId], references: [id], onDelete: SetNull)
+  transaction      upward_rent_vault_transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([status, lockedAt])
+  @@index([vaultId])
+  @@index([userId])
+  @@index([reference])
+  @@index([transactionId])
+}
+
+model upward_savings_consent {
+  id                 Int                @id @default(autoincrement())
+  uuid               String             @unique @default(uuid())
+  userId             Int
+  vaultId            Int?
+  termsVersion       String
+  consentDocVersion  String
+  fundCode           String             @default("ARMMMF")
+  fundName           String             @default("ARM Money Market Fund")
+  acceptedTerms      Boolean            @default(true)
+  acceptedArmMandate Boolean            @default(true)
+  acceptedLockPolicy Boolean            @default(true)
+  acceptedAt         DateTime           @default(now())
+  ipAddress          String?
+  userAgent          String?
+  consentDocKey      String?
+  consentSnapshot    Json?
+  createdAt          DateTime           @default(now())
+
+  user               upward_user        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vault              upward_rent_vault? @relation(fields: [vaultId], references: [id], onDelete: SetNull)
+
+  @@index([userId, acceptedAt])
+  @@index([vaultId])
+}
+
+model upward_vault_treasury_summary {
+  id                           Int               @id @default(autoincrement())
+  uuid                         String            @unique @default(uuid())
+  vaultId                      Int               @unique
+  productOption                String            @default("SAVE_AND_EARN") // SAVE_AND_EARN, RENT_PROTEC
+  grossArmYieldAccruedKobo     BigInt            @default(0)
+  customerYieldAccruedKobo     BigInt            @default(0)
+  platformSpreadAccruedKobo    BigInt            @default(0)
+  upfrontPremiumObligationKobo BigInt            @default(0) // Upward's upfront 2% insurance premium obligation
+  premiumRecoveredKobo         BigInt            @default(0) // Spread + early-exit recovery applied to premium
+  unrecoveredPremiumKobo       BigInt            @default(0) // max(0, obligation - recovered)
+  netPlatformMarginKobo        BigInt            @default(0) // Spread remaining after premium recovery
+  lastAccrualDate              DateTime?
+  createdAt                    DateTime          @default(now())
+  updatedAt                    DateTime          @default(now()) @updatedAt
+
+  vault                        upward_rent_vault @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+
+  @@index([productOption])
+}
+
+model upward_savings_internal_ledger {
+  id                         Int               @id @default(autoincrement())
+  uuid                       String            @unique @default(uuid())
+  vaultId                    Int
+  entryDate                  DateTime          @default(now())
+  entryType                  String            // DAILY_ACCRUAL, PREMIUM_OBLIGATION, EARLY_EXIT_RECOVERY, MATURITY_SETTLEMENT
+  productOption              String            @default("SAVE_AND_EARN")
+  principalBaseKobo          BigInt            @default(0)
+  grossArmRatePct            Float             @default(0)
+  customerRatePct            Float             @default(0)
+  grossArmYieldKobo          BigInt            @default(0)
+  customerNetYieldKobo       BigInt            @default(0)
+  yieldSpreadKobo            BigInt            @default(0)
+  premiumObligationDeltaKobo BigInt            @default(0)
+  premiumRecoveryAppliedKobo BigInt            @default(0)
+  netMarginDeltaKobo         BigInt            @default(0)
+  reference                  String?           @unique
+  notes                      String?
+  metadata                   Json?
+  createdAt                  DateTime          @default(now())
+
+  vault                      upward_rent_vault @relation(fields: [vaultId], references: [id], onDelete: Cascade)
+
+  @@index([vaultId, entryDate])
+  @@index([entryType])
+  @@index([productOption])
+}
+
+model upward_savings_cashback_campaign {
+  id                  Int                             @id @default(autoincrement())
+  uuid                String                          @unique @default(uuid())
+  code                String                          @unique
+  name                String
+  description         String?
+  rewardAmountKobo    BigInt                          @default(300000) // NGN 3,000
+  budgetCapKobo       BigInt                          @default(5000000) // NGN 50,000
+  totalDisbursedKobo  BigInt                          @default(0)
+  isActive            Boolean                         @default(true)
+  startsAt            DateTime?
+  endsAt              DateTime?
+  createdByAdminId    String?
+  createdAt           DateTime                        @default(now())
+  updatedAt           DateTime                        @default(now()) @updatedAt
+
+  grants              upward_savings_cashback_grant[]
+
+  @@index([isActive])
+}
+
+model upward_savings_cashback_grant {
+  id                Int                              @id @default(autoincrement())
+  uuid              String                           @unique @default(uuid())
+  campaignId        Int
+  userId            Int
+  vaultId           Int?
+  transactionId     Int?
+  amountKobo        BigInt
+  status            String                           @default("CREDITED") // RESERVED, CREDITED, WAITLISTED, REVERSED
+  fundingSource     String                           @default("PAYSTACK_BALANCE")
+  reference         String                           @unique
+  grantedByAdminId  String?
+  notes             String?
+  createdAt         DateTime                         @default(now())
+
+  campaign          upward_savings_cashback_campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user              upward_user                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vault             upward_rent_vault?               @relation(fields: [vaultId], references: [id], onDelete: SetNull)
+
+  @@unique([campaignId, userId])
+  @@index([campaignId])
+  @@index([userId])
+  @@index([vaultId])
+  @@index([status])
 }

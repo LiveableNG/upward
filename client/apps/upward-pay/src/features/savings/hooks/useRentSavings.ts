@@ -3,6 +3,34 @@ import * as savingsService from '../services/savingsService'
 
 export const RENT_VAULT_QUERY_KEY = ['rent-vault', 'me']
 export const RENT_VAULT_PREFILL_QUERY_KEY = ['rent-vault', 'prefill']
+export const SAVINGS_INTEREST_STATUS_QUERY_KEY = ['savings-interest-status']
+
+export function useSavingsInterestStatus(enabled = true) {
+  return useQuery({
+    queryKey: SAVINGS_INTEREST_STATUS_QUERY_KEY,
+    queryFn: async () => {
+      try {
+        return await savingsService.getSavingsInterestStatus()
+      } catch {
+        return null
+      }
+    },
+    enabled,
+    staleTime: 1000 * 60,
+    retry: false,
+  })
+}
+
+export function useIndicateSavingsInterest() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (source?: string) => savingsService.indicateSavingsInterest(source),
+    onSuccess: (data) => {
+      queryClient.setQueryData(SAVINGS_INTEREST_STATUS_QUERY_KEY, data)
+      queryClient.invalidateQueries({ queryKey: SAVINGS_INTEREST_STATUS_QUERY_KEY })
+    },
+  })
+}
 
 export function useSavingsOnboardingPrefill(enabled = true) {
   return useQuery({
@@ -20,7 +48,7 @@ export function useSavingsOnboardingPrefill(enabled = true) {
   })
 }
 
-export function useRentVault() {
+export function useRentVault(enabled = true) {
   return useQuery({
     queryKey: RENT_VAULT_QUERY_KEY,
     queryFn: async () => {
@@ -34,7 +62,10 @@ export function useRentVault() {
         throw err
       }
     },
-    staleTime: 1000 * 30, // 30 seconds
+    enabled,
+    staleTime: 1000 * 10, // 10 seconds
+    refetchInterval: 1000 * 15, // Poll every 15s while mounted so incoming bank transfers reflect automatically
+    refetchOnWindowFocus: true,
     retry: false,
   })
 }
@@ -99,6 +130,18 @@ export function useBreakoutRentVault() {
   })
 }
 
+export function useUploadSavingsKycDocument() {
+  return useMutation({
+    mutationFn: ({
+      kind,
+      file,
+    }: {
+      kind: savingsService.SavingsKycDocumentKind
+      file: File
+    }) => savingsService.uploadSavingsKycDocument(kind, file),
+  })
+}
+
 export function useOnboardSavingsInvestor() {
   const queryClient = useQueryClient()
   return useMutation({
@@ -107,6 +150,7 @@ export function useOnboardSavingsInvestor() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user'] })
       queryClient.invalidateQueries({ queryKey: RENT_VAULT_QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: RENT_VAULT_PREFILL_QUERY_KEY })
     },
   })
 }
@@ -121,19 +165,39 @@ export function useConsentToSavings() {
         | 'MONTHLY'
         | 'QUARTERLY'
         | {
+            consent_accepted?: boolean
+            accepted_terms?: boolean
+            accepted_arm_mandate?: boolean
+            accepted_lock_policy?: boolean
+            terms_version?: string
+            consent_doc_version?: string
             cadence?: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY'
             product_option?: 'SAVE_AND_EARN' | 'RENT_PROTEC'
+            lock_mode?: 'LOCKED' | 'FLEXIBLE'
             plan_pattern?: 'EQUAL' | 'INITIAL_DEPOSIT' | 'STEP_UP' | 'ACCELERATED'
             initial_deposit_kobo?: number
+            payday_day_of_month?: number
           },
     ) => {
       if (typeof input === 'string') {
-        return savingsService.consentToSavings(input)
+        return savingsService.consentToSavings(input, { consent_accepted: true })
       }
       return savingsService.consentToSavings(input?.cadence, input)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user'] })
+      queryClient.invalidateQueries({ queryKey: RENT_VAULT_QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: RENT_VAULT_PREFILL_QUERY_KEY })
+    },
+  })
+}
+
+export function useUpdateVaultSchedule() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (paydayDayOfMonth: number) =>
+      savingsService.updateVaultSchedule(paydayDayOfMonth),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: RENT_VAULT_QUERY_KEY })
     },
   })
@@ -142,8 +206,25 @@ export function useConsentToSavings() {
 export function useSimulateVaultDeposit() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: ({ accountNumber, amountKobo }: { accountNumber: string; amountKobo: number }) =>
-      savingsService.simulateVaultDeposit(accountNumber, amountKobo),
+    mutationFn: ({
+      accountNumber,
+      amountKobo,
+      depositKind,
+    }: {
+      accountNumber: string
+      amountKobo: number
+      depositKind?: 'MONTHLY' | 'EXTRA_TOPUP' | 'INITIAL_DEPOSIT'
+    }) => savingsService.simulateVaultDeposit(accountNumber, amountKobo, depositKind),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: RENT_VAULT_QUERY_KEY })
+    },
+  })
+}
+
+export function useVerifyVaultFunding() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => savingsService.verifyRentVaultFunding(),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: RENT_VAULT_QUERY_KEY })
     },

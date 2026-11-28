@@ -9,16 +9,23 @@ import {
   TrendingUp,
 } from 'lucide-react'
 import { formatCurrency, formatCurrencyInput, parseCurrencyInput } from '@/lib/utils'
-import { useCreateRentVault } from '../hooks/useRentSavings'
+import { useCreateRentVault, useSavingsOnboardingPrefill } from '../hooks/useRentSavings'
 import {
   calculatePayLessPlan,
   type SavingsCadence,
   type SavingsProductOption,
 } from '../services/savingsService'
+import {
+  SAVINGS_CONSENT_DOC_VERSION,
+  SAVINGS_FUND_CODE,
+  SAVINGS_FUND_NAME,
+  SAVINGS_TERMS_VERSION,
+} from '../constants/savingsLegal'
 import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
 import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/features/auth/AuthContext'
 import { SavingsInvestorKycModal } from './SavingsInvestorKycModal'
+import { SavingsConsentCard } from './SavingsConsentCard'
 
 interface VaultSetupFlowProps {
   initialConfig: {
@@ -38,14 +45,18 @@ export function VaultSetupFlow({ initialConfig, onBack, onSuccess }: VaultSetupF
   const productOption: SavingsProductOption = initialConfig.productOption || 'RENT_PROTEC'
   const selectedCadence: SavingsCadence = initialConfig.cadence || 'MONTHLY'
   const [startAmountRaw, setStartAmountRaw] = useState<string>('50,000')
-  const [agreeToLock, setAgreeToLock] = useState<boolean>(false)
+  const [acceptedTerms, setAcceptedTerms] = useState<boolean>(false)
+  const [acceptedArmMandate, setAcceptedArmMandate] = useState<boolean>(false)
   const [isKycModalOpen, setIsKycModalOpen] = useState<boolean>(false)
   const [nowTimestamp] = useState(() => Date.now())
 
-  const { user, refreshUser } = useAuth()
+  const { refreshUser } = useAuth()
+  const { data: prefill } = useSavingsOnboardingPrefill(true)
   const { rates: platformRates } = usePlatformRates()
   const createVaultMutation = useCreateRentVault()
   const { error: toastError, success: toastSuccess } = useToast()
+  const consentComplete = acceptedTerms && acceptedArmMandate
+  const fundDisplayName = platformRates.fundName || SAVINGS_FUND_NAME
 
   const targetAmountNaira = initialConfig.targetAmountKobo / 100
   const initialDepositNaira = parseCurrencyInput(startAmountRaw) || 0
@@ -87,18 +98,21 @@ export function VaultSetupFlow({ initialConfig, onBack, onSuccess }: VaultSetupF
       product_option: productOption,
       initial_deposit_kobo: Math.round(initialDepositNaira * 100),
       preferred_funding_method: 'DVA',
+      consent_accepted: true,
+      terms_version: SAVINGS_TERMS_VERSION,
+      consent_doc_version: SAVINGS_CONSENT_DOC_VERSION,
     })
     toastSuccess('Your Rent Savings plan is now active and locked!')
     onSuccess()
   }
 
   const handleCreate = async () => {
-    if (!agreeToLock) {
-      toastError('Please acknowledge the Rent Lock Agreement to proceed.')
+    if (!consentComplete) {
+      toastError('Please accept the Rent Savings Terms & Conditions and ARM Consent Mandate.')
       return
     }
 
-    if (!user?.isIdentityVerified) {
+    if (!prefill?.has_completed_arm_kyc) {
       setIsKycModalOpen(true)
       return
     }
@@ -152,7 +166,7 @@ export function VaultSetupFlow({ initialConfig, onBack, onSuccess }: VaultSetupF
         <div className="vault-setup__badge" style={{ marginBottom: 10 }}>
           <TrendingUp size={12} color="var(--clay)" />
           <span>
-            {platformRates.partnerShortName || 'ARM'} Money Market Fund (MMF) • {annualRatePct}% p.a.
+            {fundDisplayName} ({SAVINGS_FUND_CODE}) • {annualRatePct}% p.a.
             {productOption === 'RENT_PROTEC' ? ' • Rent Protec' : ' • Save & Earn'}
           </span>
         </div>
@@ -251,7 +265,7 @@ export function VaultSetupFlow({ initialConfig, onBack, onSuccess }: VaultSetupF
             </div>
             <div style={{ textAlign: 'right' }}>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>
-                Est. Interest ({annualRatePct}% p.a.)
+                Expected Interest ({annualRatePct}% p.a.)
               </span>
               <span style={{ fontSize: '1.0625rem', fontWeight: 800, color: '#059669', marginTop: 2, display: 'block' }}>
                 +{formatCurrency(payLessPlan.projectedYieldNaira, 'NGN')}
@@ -276,39 +290,30 @@ export function VaultSetupFlow({ initialConfig, onBack, onSuccess }: VaultSetupF
         </div>
 
         {/* Rent Lock Notice */}
-        <div className="vault-setup__lock-notice" style={{ marginTop: 0, padding: '10px 12px' }}>
+        <div className="vault-setup__lock-notice" style={{ marginTop: 0, marginBottom: 12, padding: '10px 12px' }}>
           <Lock size={15} color="var(--clay)" style={{ flexShrink: 0, marginTop: 1 }} />
           <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-            Funds are locked safely towards rent until 30 days before your rent day.
+            Funds are invested in {fundDisplayName} ({SAVINGS_FUND_CODE}) and locked safely towards
+            rent until 30 days before your rent day.
           </span>
         </div>
 
-        <label
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            marginTop: 14,
-            fontSize: '0.8125rem',
-            color: 'var(--text-secondary)',
-            cursor: 'pointer',
-          }}
-        >
-          <input
-            type="checkbox"
-            checked={agreeToLock}
-            onChange={(e) => setAgreeToLock(e.target.checked)}
-            style={{ width: 18, height: 18, accentColor: 'var(--clay)', cursor: 'pointer' }}
-          />
-          <span>I agree to lock my rent savings until rent day.</span>
-        </label>
+        <SavingsConsentCard
+          acceptedTerms={acceptedTerms}
+          acceptedArmMandate={acceptedArmMandate}
+          onAcceptedTermsChange={setAcceptedTerms}
+          onAcceptedArmMandateChange={setAcceptedArmMandate}
+          annualRatePct={annualRatePct}
+          fundName={fundDisplayName}
+          disabled={createVaultMutation.isPending}
+        />
 
         <button
           type="button"
           className="vault-btn-primary"
           style={{ marginTop: 16, width: '100%' }}
           onClick={handleCreate}
-          disabled={!agreeToLock || createVaultMutation.isPending}
+          disabled={!consentComplete || createVaultMutation.isPending}
         >
           {createVaultMutation.isPending ? (
             'Activating...'

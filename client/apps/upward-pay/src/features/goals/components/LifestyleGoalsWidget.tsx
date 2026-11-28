@@ -6,23 +6,23 @@ import { Target, ArrowRight, CheckCircle2, ShieldCheck, Clock } from 'lucide-rea
 import { useUserGoals, useGoalCategories } from '../hooks/useGoals'
 import { useRentVault } from '@/features/savings/hooks/useRentSavings'
 import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
-import { useToast } from '@/components/common/Toast'
+import { useSavingsInterest } from '@/features/savings/context/SavingsInterestContext'
 import { getGoalTitle } from '../types/goals.types'
 import { formatCurrency } from '@/lib/utils'
 import '../styles/goals.css'
 
 export const LifestyleGoalsWidget: React.FC = () => {
   const router = useRouter()
-  const toast = useToast()
   const { data: userGoals = [], isLoading: isLoadingUserGoals } = useUserGoals()
   const { data: categories = [], isLoading: isLoadingCategories } = useGoalCategories()
   const { data: vault, isLoading: isLoadingVault } = useRentVault()
   const { rates: platformRates, isLoading: ratesLoading } = usePlatformRates()
+  const { openSavingsInterestModal } = useSavingsInterest()
 
   const handleOpenSavings = () => {
     if (ratesLoading) return
-    if (platformRates.savingsEnabled === false) {
-      toast.info('Savings is coming soon.')
+    if (platformRates.savingsMode === 'COMING_SOON' || platformRates.savingsEnabled === false) {
+      openSavingsInterestModal('lifestyle_goals_widget')
       return
     }
     router.push('/dashboard/savings')

@@ -55,10 +55,13 @@ model upward_user {
   savingsGoals          upward_savings_goal[]
   rentVaults            upward_rent_vault[]
   rentVaultTransactions upward_rent_vault_transaction[]
+  savingsConsents       upward_savings_consent[]
+  savingsCashbackGrants upward_savings_cashback_grant[]
   insuranceEnrolments   upward_insurance_enrolment[]
   rentAdvances          upward_rent_advance[]
   rentSettlements       upward_rent_settlement[]
   rentSavingsScores     upward_rent_savings_score[]
+  armJobs               upward_arm_job[]
   supportTickets        upward_support_ticket[]
   transactions          upward_transaction[]
   announcementStates    upward_user_announcement_state[]
@@ -242,6 +245,33 @@ model upward_kyc_verification {
   nextOfKinEmail        String?
   nextOfKinAddress      String?
 
+  // Compulsory NIN (required by ARM regardless of BVN)
+  ninHash               String?
+  ninMasked             String?
+  ninEncrypted          String?
+  ninVerifiedAt         DateTime?
+
+  // Valid Means of Identification (NIN | INTERNATIONAL_PASSPORT | DRIVERS_LICENSE)
+  meansOfIdType         String?
+  meansOfIdNumberEnc    String?
+  meansOfIdNumberMasked String?
+  meansOfIdIssueDate    String?
+  meansOfIdExpiryDate   String?
+  meansOfIdDocKey       String?
+  meansOfIdMimeType     String?
+  meansOfIdFileName     String?
+
+  // Residential Address & Proof of Address (any valid utility bill proving address)
+  residentialAddressNumber  String?
+  residentialStreet         String?
+  residentialTown           String?
+  residentialState          String?
+  utilityBillIssueDate      String?
+  utilityBillDocKey         String?
+  utilityBillMimeType       String?
+  utilityBillFileName       String?
+  addressVerificationStatus String?  @default("SUBMITTED") // SUBMITTED | VERIFIED | REJECTED
+
   // ARM Connect B2B2C Sync Status
   armCustomerMembershipId String?    // Populated once ARM webhook approves member
   armCrmAccountNumber    String?     // ARM CRM Account Number
@@ -255,6 +285,7 @@ model upward_kyc_verification {
 
   @@index([userId])
   @@index([idNumberHash])
+  @@index([ninHash])
   @@index([status])
   @@index([armSyncStatus])
 }

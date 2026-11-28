@@ -17,13 +17,38 @@ import { SavingsInvestorKycModal } from './SavingsInvestorKycModal'
 import { RentCalculatorView } from './RentCalculatorView'
 import { VaultDashboardView } from './VaultDashboardView'
 import { SettlementHubView } from './SettlementHubView'
+import { SavingsInterestContent } from './SavingsInterestModal'
 import '@/styles/savings-v1.css'
+
+function getFriendlySavingsErrorMessage(err: unknown): string {
+  const raw = err instanceof Error ? err.message : ''
+  const normalized = raw.trim().toLowerCase()
+  const isTechnical =
+    !normalized ||
+    normalized.includes('internal server error') ||
+    normalized.includes('failed to fetch') ||
+    normalized.includes('network') ||
+    normalized.includes('timeout') ||
+    normalized.includes('prisma') ||
+    normalized.includes('unexpected token') ||
+    normalized.includes('status code') ||
+    /\b5\d\d\b/.test(normalized)
+
+  if (isTechnical) {
+    return "We're having trouble loading your savings right now. Please try again in a moment."
+  }
+  return raw
+}
 
 export function RentSavingsMainView() {
   const router = useRouter()
-  const { user, refreshUser } = useAuth()
-  const { data: vault, isLoading, error, refetch } = useRentVault()
+  const { user, loading: authLoading, refreshUser } = useAuth()
   const { rates: platformRates, isLoading: ratesLoading } = usePlatformRates()
+  const effectiveSavingsMode =
+    platformRates.savingsMode ||
+    (platformRates.savingsEnabled === false ? 'COMING_SOON' : 'LIVE')
+  const shouldFetchVault = !ratesLoading && effectiveSavingsMode !== 'COMING_SOON'
+  const { data: vault, isLoading, error, refetch } = useRentVault(shouldFetchVault)
 
   const [viewMode, setViewMode] = useState<'DASHBOARD' | 'SETTLEMENT'>('DASHBOARD')
   const [showKycModal, setShowKycModal] = useState<boolean>(false)
@@ -33,7 +58,7 @@ export function RentSavingsMainView() {
       !p.isPastTenancy && p.rentAmount,
   )
 
-  if (isLoading || ratesLoading) {
+  if ((shouldFetchVault && isLoading) || ratesLoading || (authLoading && !user)) {
     return (
       <PayPageShell
         title="Rent Savings"
@@ -52,42 +77,25 @@ export function RentSavingsMainView() {
           }}
         >
           <Loader2 size={32} className="animate-spin" color="var(--clay)" />
-          <span style={{ fontSize: '0.875rem' }}>Loading your Rent Vault...</span>
+          <span style={{ fontSize: '0.875rem' }}>Loading Rent Savings...</span>
         </div>
       </PayPageShell>
     )
   }
 
-  if (platformRates.savingsEnabled === false) {
+  if (effectiveSavingsMode === 'COMING_SOON') {
     return (
       <PayPageShell
         title="Rent Savings"
         showBack
         onBack={() => router.push('/dashboard')}
       >
-        <div className="rent-calculator__card" style={{ textAlign: 'center', padding: '40px 24px' }}>
-          <PiggyBank size={36} color="var(--clay)" style={{ margin: '0 auto 12px' }} />
-          <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text)' }}>
-            Savings Is Coming Soon
-          </h3>
-          <p
-            style={{
-              fontSize: '0.875rem',
-              color: 'var(--text-muted)',
-              marginTop: 6,
-              marginBottom: 20,
-              lineHeight: 1.5,
-            }}
-          >
-            Savings is coming soon. Please check back shortly.
-          </p>
-          <button
-            type="button"
-            className="vault-btn-primary"
-            onClick={() => router.push('/dashboard')}
-          >
-            Back to Home
-          </button>
+        <div className="savings-interest-page">
+          <SavingsInterestContent
+            source="direct_savings_page"
+            secondaryLabel="Back to Home"
+            onDone={() => router.push('/dashboard')}
+          />
         </div>
       </PayPageShell>
     )
@@ -100,24 +108,34 @@ export function RentSavingsMainView() {
         showBack
         onBack={() => router.push('/dashboard')}
       >
-        <div className="rent-calculator__card" style={{ textAlign: 'center', padding: '40px 24px' }}>
-          <AlertCircle size={36} color="var(--error)" style={{ margin: '0 auto 12px' }} />
+        <div className="rent-calculator__card" style={{ textAlign: 'center', padding: '36px 24px' }}>
+          <AlertCircle size={36} color="var(--clay)" style={{ margin: '0 auto 12px' }} />
           <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text)' }}>
-            Unable to Load Rent Vault
+            We couldn&apos;t load Rent Savings
           </h3>
           <p
             style={{
               fontSize: '0.875rem',
-              color: 'var(--text-muted)',
-              marginTop: 4,
-              marginBottom: 20,
+              color: 'var(--text-secondary)',
+              marginTop: 6,
+              marginBottom: 22,
+              lineHeight: 1.5,
             }}
           >
-            {error instanceof Error ? error.message : 'A network error occurred. Please try again.'}
+            {getFriendlySavingsErrorMessage(error)}
           </p>
-          <button type="button" className="vault-btn-primary" onClick={() => refetch()}>
-            Retry
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <button type="button" className="vault-btn-primary" onClick={() => refetch()}>
+              Try again
+            </button>
+            <button
+              type="button"
+              className="savings-interest-modal__btn-secondary"
+              onClick={() => router.push('/dashboard')}
+            >
+              Back to Home
+            </button>
+          </div>
         </div>
       </PayPageShell>
     )
@@ -126,11 +144,18 @@ export function RentSavingsMainView() {
   const isVaultActive =
     vault && vault.lock_status !== 'SETTLED' && vault.lock_status !== 'BROKEN_OUT'
 
-  const isKycRequired = Boolean(user && !user.isIdentityVerified && !vault?.vault_id)
+  const isKycRequired = Boolean(
+    user &&
+      (!user.isIdentityVerified ||
+        (vault && vault.has_completed_arm_kyc === false)),
+  )
   const hasConsented = Boolean(
-    user?.savingsWalletEnabled || isVaultActive || (vault && vault.current_balance_kobo > 0),
+    vault?.consent?.accepted_at ||
+      user?.savingsWalletEnabled ||
+      (vault && vault.current_balance_kobo > 0),
   )
   const shouldBlurActivities = (isKycRequired || !hasConsented) && Boolean(isVaultActive)
+  const fundDisplayName = platformRates.fundName || 'ARM Money Market Fund'
 
   // Only render top banners when the vault is already active (to avoid duplicate headers/buttons before starting)
   const renderKycBanner = () => {
@@ -144,13 +169,13 @@ export function RentSavingsMainView() {
           </div>
           <div className="savings-kyc-banner__content">
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span className="savings-kyc-banner__title">Identity Verification Required</span>
+              <span className="savings-kyc-banner__title">Identity &amp; Address Verification Required</span>
               <span className="savings-kyc-banner__partner">
-                Money Market Fund (MMF) managed by {platformRates.partnerShortName || 'ARM'}
+                {fundDisplayName} (ARMMMF)
               </span>
             </div>
             <span className="savings-kyc-banner__desc">
-              Verify your identity to unlock rent savings and start earning daily compound returns.
+              Complete your BVN, NIN, valid ID, and utility bill verification to invest and earn daily compound returns.
             </span>
           </div>
           <button
@@ -174,7 +199,7 @@ export function RentSavingsMainView() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               <span className="savings-kyc-banner__title">Rent Savings Plan Ready</span>
               <span className="savings-kyc-banner__partner">
-                Money Market Fund (MMF) managed by {platformRates.partnerShortName || 'ARM'}
+                {fundDisplayName} (ARMMMF)
               </span>
             </div>
             <span className="savings-kyc-banner__desc">
