@@ -64,7 +64,9 @@ export class RentSavingsScheduler {
       } catch (rateErr: any) {
         this.logger.warn(`Could not fetch live ARM yield rate, using platform rate: ${rateErr?.message}`)
       }
-      const grossArmDailyRate = grossArmAnnualRatePct / 100 / 365
+      const grossArmDailyRate = RentSavingsCalculatorEngine.getEffectiveDailyRate(
+        grossArmAnnualRatePct / 100,
+      )
       const dateStamp = now.toISOString().split('T')[0]
 
       for (const vault of activeVaults) {
@@ -114,7 +116,9 @@ export class RentSavingsScheduler {
               : isFlexible
                 ? platformRates.flexibleSavingsAnnualRatePct
                 : platformRates.savingsAnnualRatePct
-        const customerDailyRate = customerAnnualRatePct / 100 / 365
+        const customerDailyRate = RentSavingsCalculatorEngine.getEffectiveDailyRate(
+          customerAnnualRatePct / 100,
+        )
 
         // Customer Liability Ledger: strictly accrues at customer's plan rate (0% visible insurance deduction)
         const dailyYieldKobo = BigInt(

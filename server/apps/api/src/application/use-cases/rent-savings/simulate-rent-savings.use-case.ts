@@ -45,6 +45,11 @@ export class SimulateRentSavingsDto {
   @IsNumber()
   @Type(() => Number)
   monthly_income_kobo?: number
+
+  @IsOptional()
+  @IsNumber()
+  @Type(() => Number)
+  payday_day_of_month?: number
 }
 
 @Injectable()
@@ -83,6 +88,7 @@ export class SimulateRentSavingsUseCase {
       monthlyIncomeKobo: dto.monthly_income_kobo
         ? BigInt(Math.round(dto.monthly_income_kobo))
         : undefined,
+      paydayDayOfMonth: dto.payday_day_of_month,
       annualNetYieldRate: annualYieldRateDecimal,
       maxSavingsMonths: rates?.maxSavingsMonths ?? 11,
       rentProtecMinMonths: rates?.rentProtecMinMonths ?? 6,
@@ -93,6 +99,7 @@ export class SimulateRentSavingsUseCase {
       status: 'success',
       data: {
         days_remaining: result.daysRemaining,
+        active_compounding_days: result.activeCompoundingDays,
         months_remaining: result.monthsRemaining,
         periodic_deposit_kobo: Number(result.periodicDepositKobo),
         first_period_deposit_kobo: Number(result.firstPeriodDepositKobo),
@@ -104,6 +111,7 @@ export class SimulateRentSavingsUseCase {
         total_tenant_contribution_kobo: Number(result.totalTenantContributionKobo),
         projected_yield_kobo: Number(result.projectedYieldKobo),
         net_annual_yield_rate: result.netAnnualYieldRate,
+        daily_yield_rate: result.dailyYieldRate,
         product_option: result.productOption,
         lock_mode: result.lockMode,
         plan_pattern: result.planPattern,

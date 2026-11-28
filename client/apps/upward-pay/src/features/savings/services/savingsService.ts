@@ -4,6 +4,7 @@ export type SavingsCadence = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'QUARTERLY'
 export type SavingsProductOption = 'SAVE_AND_EARN' | 'RENT_PROTEC'
 export type SavingsLockMode = 'LOCKED' | 'FLEXIBLE'
 export type SavingsPlanPattern = 'EQUAL' | 'INITIAL_DEPOSIT' | 'STEP_UP' | 'ACCELERATED'
+export type VaultOnTrackStatus = 'TARGET_REACHED' | 'AHEAD' | 'ON_TRACK' | 'BEHIND'
 export type MeansOfIdentificationType = 'NIN' | 'INTERNATIONAL_PASSPORT' | 'DRIVERS_LICENSE'
 export type SavingsKycDocumentKind = 'id_card' | 'utility_bill'
 
@@ -24,6 +25,7 @@ export interface SimulateRentSavingsPayload {
   lock_mode?: SavingsLockMode
   plan_pattern?: SavingsPlanPattern
   monthly_income_kobo?: number
+  payday_day_of_month?: number
 }
 
 export interface CreateVaultPayload {
@@ -59,6 +61,7 @@ export interface ExecuteSettlementPayload {
 
 export interface SimulateRentSavingsData {
   days_remaining: number
+  active_compounding_days?: number
   months_remaining?: number
   periodic_deposit_kobo: number
   first_period_deposit_kobo?: number
@@ -70,6 +73,7 @@ export interface SimulateRentSavingsData {
   total_tenant_contribution_kobo: number
   projected_yield_kobo: number
   net_annual_yield_rate: number
+  daily_yield_rate?: number
   product_option?: SavingsProductOption
   lock_mode?: SavingsLockMode
   plan_pattern?: SavingsPlanPattern
@@ -146,6 +150,12 @@ export interface RentVaultData {
   current_month_paid_kobo?: number
   current_month_remaining_kobo?: number
   current_month_fulfilled?: boolean
+  suggested_deposit_today_kobo?: number
+  catch_up_today_kobo?: number
+  on_track_status?: VaultOnTrackStatus
+  is_target_reached_early?: boolean
+  remaining_scheduled_deposits?: number
+  active_compounding_days?: number
   preferred_payday_day?: number
   is_rent_protec?: boolean
   insurance_premium_pct?: number
@@ -392,9 +402,93 @@ export function getRentProtecMinimumDepositPct(
   return Math.round(clampedRatio * 100)
 }
 
+const DAY_MS = 86_400_000
+
 /**
- * Recomputes the remaining monthly contribution after an Extra Top-Up.
- * Never increases above currentPlannedMonthlyNaira due to calendar rounding.
+ * Canonical effective daily compounding rate:
+ *   r_d = (1 + r_a)^(1/365) - 1
+ * Guarantees 365 days of daily compounding equals exactly r_a effective p.a.
+ */
+export function getEffectiveDailyRate(annualRateDecimal: number): number {
+  return Math.pow(1 + Math.max(0, annualRateDecimal), 1 / 365) - 1
+}
+
+function toUtcMidnightMs(d: Date): number {
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
+}
+
+function parseDueDateUtcMs(dueDateIso?: string, fallbackRunwayDays = 330): number {
+  if (dueDateIso) {
+    const parsed = new Date(dueDateIso)
+    if (!Number.isNaN(parsed.getTime())) {
+      return toUtcMidnightMs(parsed)
+    }
+  }
+  const todayUtc = toUtcMidnightMs(new Date())
+  return todayUtc + (Math.max(1, Math.round(fallbackRunwayDays)) + 30) * DAY_MS
+}
+
+/**
+ * Generates exact UTC calendar deposit timestamps between startMs and unlockMs,
+ * anchored to paydayDayOfMonth (1..28) and capped at maxMonths (11).
+ */
+export function buildScheduledDepositDatesUtc(params: {
+  startMs: number
+  unlockMs: number
+  cadence: SavingsCadence
+  paydayDayOfMonth?: number
+  maxMonths?: number
+}): number[] {
+  const { startMs, unlockMs, cadence, paydayDayOfMonth = 28, maxMonths = 11 } = params
+  const safeUnlockMs = Math.max(startMs, unlockMs)
+
+  if (cadence === 'DAILY') {
+    const days = Math.max(1, Math.min(maxMonths * 31, Math.round((safeUnlockMs - startMs) / DAY_MS)))
+    const dates: number[] = []
+    for (let i = 1; i <= days; i++) {
+      dates.push(Math.min(safeUnlockMs, startMs + i * DAY_MS))
+    }
+    return dates
+  }
+
+  if (cadence === 'WEEKLY') {
+    const maxWeeks = Math.max(1, maxMonths * 4)
+    const dates: number[] = []
+    for (let i = 1; i <= maxWeeks; i++) {
+      const candidate = startMs + i * 7 * DAY_MS
+      if (candidate > safeUnlockMs) break
+      dates.push(candidate)
+    }
+    return dates.length > 0 ? dates : [safeUnlockMs]
+  }
+
+  const startDate = new Date(startMs)
+  const startYear = startDate.getUTCFullYear()
+  const startMonth = startDate.getUTCMonth()
+  const startDay = startDate.getUTCDate()
+  const clampedDay = Math.min(28, Math.max(1, Math.round(paydayDayOfMonth || 28)))
+  const firstMonthOffset = clampedDay > startDay ? 0 : 1
+  const monthStep = cadence === 'QUARTERLY' ? 3 : 1
+  const maxCount =
+    cadence === 'QUARTERLY'
+      ? Math.max(1, Math.floor(maxMonths / 3))
+      : Math.min(11, Math.max(1, maxMonths))
+
+  const dates: number[] = []
+  for (let i = 0; i < 24 && dates.length < maxCount; i++) {
+    const candidateMs = Date.UTC(startYear, startMonth + firstMonthOffset + i * monthStep, clampedDay)
+    if (candidateMs < startMs) continue
+    if (candidateMs > safeUnlockMs) break
+    dates.push(candidateMs)
+  }
+
+  return dates.length > 0 ? dates : [safeUnlockMs]
+}
+
+/**
+ * Recomputes the remaining periodic contribution using exact calendar-day effective compounding:
+ *   r_d = (1 + r_a)^(1/365) - 1
+ * By default never increases above currentPlannedMonthlyNaira on Extra Top-Ups.
  */
 export function recalculateReducedMonthlyNaira(params: {
   targetRentNaira: number
@@ -404,6 +498,9 @@ export function recalculateReducedMonthlyNaira(params: {
   currentPlannedMonthlyNaira?: number
   maxMonths?: number
   currentMonthAlreadyFulfilled?: boolean
+  contractualDueDate?: string
+  paydayDayOfMonth?: number
+  allowIncrease?: boolean
 }): number {
   const {
     targetRentNaira,
@@ -413,38 +510,49 @@ export function recalculateReducedMonthlyNaira(params: {
     currentPlannedMonthlyNaira = 0,
     maxMonths = 11,
     currentMonthAlreadyFulfilled = false,
+    contractualDueDate,
+    paydayDayOfMonth = 28,
+    allowIncrease = false,
   } = params
 
   if (newBalanceNaira >= targetRentNaira) return 0
 
-  const totalRemainingMonths = Math.min(
-    Math.min(11, Math.max(1, maxMonths)),
-    Math.max(1, Math.floor(Math.max(1, activeDaysRemaining) / 30)),
-  )
-  const futurePayments = currentMonthAlreadyFulfilled
-    ? Math.max(1, totalRemainingMonths - 1)
-    : totalRemainingMonths
+  const startUtcMs = toUtcMidnightMs(new Date())
+  const dueUtcMs = parseDueDateUtcMs(contractualDueDate, activeDaysRemaining)
+  const unlockUtcMs = Math.max(startUtcMs, dueUtcMs - 30 * DAY_MS)
+  const activeDays = Math.max(0, Math.round((unlockUtcMs - startUtcMs) / DAY_MS))
+  const dailyRate = getEffectiveDailyRate(annualRatePct / 100)
 
-  const monthlyRate = Math.pow(1 + Math.max(0, annualRatePct) / 100, 1 / 12) - 1
-  const fvCurrent = newBalanceNaira * Math.pow(1 + monthlyRate, totalRemainingMonths)
+  const fvCurrent = newBalanceNaira * Math.pow(1 + dailyRate, activeDays)
   const deficit = Math.max(0, targetRentNaira - fvCurrent)
   if (deficit <= 0) return 0
 
+  const allDates = buildScheduledDepositDatesUtc({
+    startMs: startUtcMs,
+    unlockMs: unlockUtcMs,
+    cadence: 'MONTHLY',
+    paydayDayOfMonth,
+    maxMonths: Math.min(11, Math.max(1, maxMonths)),
+  })
+  const futureDates =
+    currentMonthAlreadyFulfilled && allDates.length > 1 ? allDates.slice(1) : allDates
+
   let discountSum = 0
-  for (let i = 1; i <= futurePayments; i++) {
-    discountSum += Math.pow(1 + monthlyRate, Math.max(0, futurePayments - i))
+  for (const depMs of futureDates) {
+    const daysToUnlock = Math.max(0, Math.round((unlockUtcMs - depMs) / DAY_MS))
+    discountSum += Math.pow(1 + dailyRate, daysToUnlock)
   }
 
   const recomputed = discountSum > 0 ? Math.ceil(deficit / discountSum) : 0
-  if (currentPlannedMonthlyNaira > 0 && recomputed > currentPlannedMonthlyNaira) {
+  if (!allowIncrease && currentPlannedMonthlyNaira > 0 && recomputed > currentPlannedMonthlyNaira) {
     return currentPlannedMonthlyNaira
   }
   return recomputed
 }
 
 /**
- * Rent Protec / Save & Earn compound yield calculator
- * Uses effective monthly rate r_m = (1 + r_a)^(1/12) - 1 and caps horizon at <= 11 months.
+ * Rent Protec / Save & Earn exact calendar-day effective compound yield calculator.
+ * Uses canonical effective daily rate r_d = (1 + r_a)^(1/365) - 1 and releases 30 days before due date.
  */
 export function calculatePayLessPlan(
   targetRentNaira: number,
@@ -459,6 +567,8 @@ export function calculatePayLessPlan(
     minRentProtecMonths?: number
     insurancePremiumPct?: number
     rawDaysToDueDate?: number
+    contractualDueDate?: string
+    paydayDayOfMonth?: number
     customStepStartNaira?: number
     customStepIncrementNaira?: number
   },
@@ -468,14 +578,20 @@ export function calculatePayLessPlan(
   const productOption: SavingsProductOption = options?.productOption ?? 'SAVE_AND_EARN'
   const planPattern: SavingsPlanPattern = options?.planPattern ?? 'INITIAL_DEPOSIT'
 
-  // Active savings horizon capped at <= 11 months (strictly releases 30 days before due date).
+  const startUtcMs = toUtcMidnightMs(new Date())
+  const dueUtcMs = parseDueDateUtcMs(options?.contractualDueDate, runwayDays)
+  const unlockUtcMs = Math.max(startUtcMs, dueUtcMs - 30 * DAY_MS)
+  const activeCompoundingDays = Math.max(1, Math.round((unlockUtcMs - startUtcMs) / DAY_MS))
+
   const rawDays = Math.max(1, Math.round(runwayDays))
-  const monthsRemaining = Math.min(maxMonths, Math.max(1, Math.floor(rawDays / 30)))
-  const days = Math.min(rawDays, maxMonths * 30)
-  const daysUntilDueDate = options?.rawDaysToDueDate ?? rawDays + 30
+  const daysUntilDueDate =
+    options?.rawDaysToDueDate ??
+    Math.max(1, Math.round((dueUtcMs - startUtcMs) / DAY_MS) || rawDays + 30)
   const isRentProtecEligible = daysUntilDueDate >= minRentProtecMonths * 28
 
   const annualRateDecimal = annualRatePct / 100
+  const dailyRate = getEffectiveDailyRate(annualRateDecimal)
+
   const minimumInitialDepositPct =
     productOption === 'RENT_PROTEC' ? getRentProtecMinimumDepositPct(daysUntilDueDate) : 0
   const requiredInitialDepositNaira =
@@ -493,20 +609,24 @@ export function calculatePayLessPlan(
         ? initialSavedNaira
         : 0
 
-  let numberOfPayments = monthsRemaining
-  let periodRate = Math.pow(1 + annualRateDecimal, 1 / 12) - 1
-  if (cadence === 'WEEKLY') {
-    numberOfPayments = Math.max(1, Math.min(maxMonths * 4, Math.floor(days / 7)))
-    periodRate = Math.pow(1 + annualRateDecimal, 1 / 52) - 1
-  } else if (cadence === 'QUARTERLY') {
-    numberOfPayments = Math.max(1, Math.floor(monthsRemaining / 3))
-    periodRate = Math.pow(1 + annualRateDecimal, 1 / 4) - 1
-  } else if (cadence === 'DAILY') {
-    numberOfPayments = Math.max(1, days)
-    periodRate = Math.pow(1 + annualRateDecimal, 1 / 365) - 1
-  }
+  const scheduledDatesMs = buildScheduledDepositDatesUtc({
+    startMs: startUtcMs,
+    unlockMs: unlockUtcMs,
+    cadence,
+    paydayDayOfMonth: options?.paydayDayOfMonth ?? 28,
+    maxMonths,
+  })
+  const numberOfPayments = scheduledDatesMs.length
+  const monthsRemaining =
+    cadence === 'MONTHLY'
+      ? numberOfPayments
+      : Math.min(maxMonths, Math.max(1, Math.floor(activeCompoundingDays / 30)))
 
-  const fvInitial = effectiveInitialNaira * Math.pow(1 + periodRate, numberOfPayments)
+  const daysToUnlockPerPayment = scheduledDatesMs.map((depMs) =>
+    Math.max(0, Math.round((unlockUtcMs - depMs) / DAY_MS)),
+  )
+
+  const fvInitial = effectiveInitialNaira * Math.pow(1 + dailyRate, activeCompoundingDays)
   const deficit = Math.max(0, targetRentNaira - fvInitial)
 
   let schedule: number[] = []
@@ -515,10 +635,10 @@ export function calculatePayLessPlan(
   if (planPattern === 'STEP_UP') {
     let sumDiscount = 0
     let sumIndexDiscount = 0
-    for (let i = 1; i <= numberOfPayments; i++) {
-      const discountFactor = Math.pow(1 + periodRate, numberOfPayments - i)
+    for (let i = 0; i < numberOfPayments; i++) {
+      const discountFactor = Math.pow(1 + dailyRate, daysToUnlockPerPayment[i] ?? 0)
       sumDiscount += discountFactor
-      sumIndexDiscount += (i - 1) * discountFactor
+      sumIndexDiscount += i * discountFactor
     }
 
     let startNaira = 0
@@ -540,8 +660,8 @@ export function calculatePayLessPlan(
       stepIncrementNaira = sumIndexDiscount > 0 ? Math.ceil(rem / sumIndexDiscount) : 0
     }
 
-    for (let i = 1; i <= numberOfPayments; i++) {
-      schedule.push(Math.max(0, startNaira + (i - 1) * stepIncrementNaira))
+    for (let i = 0; i < numberOfPayments; i++) {
+      schedule.push(Math.max(0, startNaira + i * stepIncrementNaira))
     }
   } else {
     const weights: number[] = []
@@ -555,9 +675,8 @@ export function calculatePayLessPlan(
     }
 
     let denominator = 0
-    for (let i = 1; i <= numberOfPayments; i++) {
-      const periodsRemaining = Math.max(0, numberOfPayments - i)
-      denominator += weights[i - 1] * Math.pow(1 + periodRate, periodsRemaining)
+    for (let i = 0; i < numberOfPayments; i++) {
+      denominator += weights[i] * Math.pow(1 + dailyRate, daysToUnlockPerPayment[i] ?? 0)
     }
 
     const basePayment = deficit > 0 && denominator > 0 ? Math.ceil(deficit / denominator) : 0
@@ -570,9 +689,8 @@ export function calculatePayLessPlan(
   const totalTenantContributionNaira = effectiveInitialNaira + totalPeriodicContributionNaira
 
   let futureValue = fvInitial
-  for (let i = 1; i <= numberOfPayments; i++) {
-    futureValue +=
-      (schedule[i - 1] ?? 0) * Math.pow(1 + periodRate, Math.max(0, numberOfPayments - i))
+  for (let i = 0; i < numberOfPayments; i++) {
+    futureValue += (schedule[i] ?? 0) * Math.pow(1 + dailyRate, daysToUnlockPerPayment[i] ?? 0)
   }
   const projectedYieldNaira = Math.max(0, Math.round(futureValue - totalTenantContributionNaira))
   const rentDiscountPct =
@@ -585,6 +703,8 @@ export function calculatePayLessPlan(
     productOption,
     planPattern,
     monthsRemaining,
+    activeCompoundingDays,
+    dailyRate,
     isRentProtecEligible,
     requiredInitialDepositNaira: effectiveInitialNaira,
     minimumInitialDepositNaira: requiredInitialDepositNaira,

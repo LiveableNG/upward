@@ -184,4 +184,90 @@ describe('Nov 26 Savings Rules — Breakeven Formula, Flexible Exit & DVA Classi
       expect(nextMonthly).toBeLessThan(currentPlanned)
     })
   })
+
+  describe('Exact Calendar-Day Effective Compounding & Dynamic Daily Targets', () => {
+    it('compounds canonical effective daily rate over 365 days to exact annual effective rate (16.00%, not 17.35%)', () => {
+      const dailyRate = RentSavingsCalculatorEngine.getEffectiveDailyRate(0.16)
+      const compoundedAnnual = Math.pow(1 + dailyRate, 365) - 1
+      expect(compoundedAnnual).toBeCloseTo(0.16, 10)
+    })
+
+    it('produces different periodic deposits and projected yield for Nov 1 vs Nov 20 start dates on the same due date', () => {
+      const dueDate = new Date('2027-10-31T00:00:00Z')
+      const earlyStart = RentSavingsCalculatorEngine.simulate({
+        targetAmountKobo: 250_000_000n, // NGN 2,500,000
+        contractualDueDate: dueDate,
+        initialDepositKobo: 50_000_000n, // NGN 500,000
+        cadence: 'MONTHLY',
+        productOption: 'SAVE_AND_EARN',
+        planPattern: 'INITIAL_DEPOSIT',
+        paydayDayOfMonth: 28,
+        asOfDate: new Date('2026-11-01T00:00:00Z'),
+      })
+
+      const lateStart = RentSavingsCalculatorEngine.simulate({
+        targetAmountKobo: 250_000_000n,
+        contractualDueDate: dueDate,
+        initialDepositKobo: 50_000_000n,
+        cadence: 'MONTHLY',
+        productOption: 'SAVE_AND_EARN',
+        planPattern: 'INITIAL_DEPOSIT',
+        paydayDayOfMonth: 28,
+        asOfDate: new Date('2026-11-20T00:00:00Z'),
+      })
+
+      expect(earlyStart.activeCompoundingDays).toBeGreaterThan(lateStart.activeCompoundingDays)
+      expect(earlyStart.projectedYieldKobo).toBeGreaterThan(lateStart.projectedYieldKobo)
+      expect(earlyStart.periodicDepositKobo).toBeLessThan(lateStart.periodicDepositKobo)
+    })
+
+    it('increases dynamic daily target when a saver falls behind and flags BEHIND status', () => {
+      const dueDate = new Date('2027-10-31T00:00:00Z')
+      const baseline = RentSavingsCalculatorEngine.simulate({
+        targetAmountKobo: 250_000_000n,
+        contractualDueDate: dueDate,
+        initialDepositKobo: 50_000_000n,
+        cadence: 'MONTHLY',
+        productOption: 'SAVE_AND_EARN',
+        planPattern: 'INITIAL_DEPOSIT',
+        paydayDayOfMonth: 28,
+        asOfDate: new Date('2026-11-01T00:00:00Z'),
+      })
+
+      // 3 months later with still only the initial deposit (missed 3 scheduled deposits + their compounding)
+      const dynamic = RentSavingsCalculatorEngine.calculateDynamicDailyTarget({
+        targetAmountKobo: 250_000_000n,
+        currentBalanceKobo: 52_000_000n,
+        contractualDueDate: dueDate,
+        annualNetYieldRate: 0.16,
+        plannedMonthlyKobo: baseline.periodicDepositKobo,
+        paydayDayOfMonth: 28,
+        asOfDate: new Date('2027-02-15T00:00:00Z'),
+      })
+
+      expect(dynamic.onTrackStatus).toBe('BEHIND')
+      expect(dynamic.isTargetReachedEarly).toBe(false)
+      expect(dynamic.suggestedDepositTodayKobo).toBeGreaterThan(baseline.periodicDepositKobo)
+      expect(dynamic.catchUpTodayKobo).toBeGreaterThan(baseline.periodicDepositKobo)
+    })
+
+    it('flags TARGET_REACHED and isTargetReachedEarly when balance hits rent target before unlock while still projecting yield', () => {
+      const dueDate = new Date('2027-10-31T00:00:00Z')
+      const dynamic = RentSavingsCalculatorEngine.calculateDynamicDailyTarget({
+        targetAmountKobo: 250_000_000n,
+        currentBalanceKobo: 250_000_000n,
+        contractualDueDate: dueDate,
+        annualNetYieldRate: 0.16,
+        plannedMonthlyKobo: 18_000_000n,
+        paydayDayOfMonth: 28,
+        asOfDate: new Date('2027-05-01T00:00:00Z'),
+      })
+
+      expect(dynamic.onTrackStatus).toBe('TARGET_REACHED')
+      expect(dynamic.isTargetReachedEarly).toBe(true)
+      expect(dynamic.suggestedDepositTodayKobo).toBe(0n)
+      expect(dynamic.projectedRemainingYieldKobo).toBeGreaterThan(0n)
+      expect(dynamic.projectedBalanceAtUnlockKobo).toBeGreaterThan(250_000_000n)
+    })
+  })
 })

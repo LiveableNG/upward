@@ -20,7 +20,7 @@ export class MockInvestmentProvider implements IAssetManagementProvider {
     return {
       annualNetYieldRate: 0.16,
       annualGrossYieldRate: 0.18,
-      dailyYieldRate: 0.16 / 365,
+      dailyYieldRate: Math.pow(1 + 0.16, 1 / 365) - 1,
       productCode,
       productName: 'ARM Money Market Fund (Mock)',
       canInvest: true,

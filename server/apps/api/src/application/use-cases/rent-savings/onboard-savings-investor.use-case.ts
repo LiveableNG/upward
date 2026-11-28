@@ -1363,6 +1363,7 @@ export class OnboardSavingsInvestorUseCase {
             productOption: chosenOption,
             lockMode: resolvedLockMode,
             planPattern: chosenOption === 'RENT_PROTEC' ? 'INITIAL_DEPOSIT' : (dto.plan_pattern || 'INITIAL_DEPOSIT'),
+            paydayDayOfMonth: clampReminderDay(dto.payday_day_of_month),
             annualNetYieldRate: resolvedAnnualRatePct / 100,
             maxSavingsMonths: platformRates?.maxSavingsMonths ?? 11,
             rentProtecMinMonths: platformRates?.rentProtecMinMonths ?? 6,

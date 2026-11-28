@@ -457,6 +457,7 @@ export class ProcessPaystackSavingsWebhookUseCase {
             annualNetYieldRate: annualRateDecimal,
             currentPlannedMonthlyKobo: existingPlannedMonthlyKobo,
             asOfDate: now,
+            paydayDayOfMonth: freshVault.paydayDayOfMonth ?? 28,
             currentMonthAlreadyFulfilled:
               classificationResult.classification === 'EXTRA_TOPUP',
           })

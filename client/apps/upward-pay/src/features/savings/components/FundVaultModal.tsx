@@ -24,6 +24,7 @@ import {
   type SavingsCadence,
   type SavingsPlanPattern,
   type SavingsProductOption,
+  type VaultOnTrackStatus,
 } from '../services/savingsService'
 import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
 
@@ -37,6 +38,11 @@ interface FundVaultModalProps {
   plannedMonthlyNaira?: number
   currentMonthRemainingNaira?: number
   currentMonthFulfilled?: boolean
+  suggestedTodayNaira?: number
+  onTrackStatus?: VaultOnTrackStatus
+  isTargetReachedEarly?: boolean
+  contractualDueDate?: string
+  paydayDayOfMonth?: number
   cadence?: SavingsCadence
   dedicatedAccount?: {
     bank_name: string
@@ -62,6 +68,11 @@ export function FundVaultModal({
   plannedMonthlyNaira = 0,
   currentMonthRemainingNaira = 0,
   currentMonthFulfilled = false,
+  suggestedTodayNaira = 0,
+  onTrackStatus = 'ON_TRACK',
+  isTargetReachedEarly = false,
+  contractualDueDate,
+  paydayDayOfMonth = 28,
   cadence = 'MONTHLY',
   dedicatedAccount,
   targetAmountNaira,
@@ -77,7 +88,7 @@ export function FundVaultModal({
     initialFundingMode ||
     (isInitialDeposit || currentBalanceNaira === 0
       ? 'INITIAL_DEPOSIT'
-      : currentMonthFulfilled
+      : isTargetReachedEarly || (currentMonthFulfilled && onTrackStatus !== 'BEHIND')
         ? 'EXTRA_TOPUP'
         : 'MONTHLY')
   const [fundingMode, setFundingMode] = useState<VaultFundingMode>(resolvedDefaultMode)
@@ -94,7 +105,11 @@ export function FundVaultModal({
       return 100_000
     }
     if (fundingMode === 'MONTHLY') {
+      if (onTrackStatus === 'BEHIND' && suggestedTodayNaira > 0) {
+        return Math.round(suggestedTodayNaira)
+      }
       if (currentMonthRemainingNaira > 0) return Math.round(currentMonthRemainingNaira)
+      if (suggestedTodayNaira > 0) return Math.round(suggestedTodayNaira)
       if (plannedMonthlyNaira > 0) return Math.round(plannedMonthlyNaira)
     }
     if (recommendedAmountNaira && recommendedAmountNaira > 0) {
@@ -321,6 +336,8 @@ export function FundVaultModal({
       maxMonths: platformRates.maxSavingsMonths,
       minRentProtecMonths: platformRates.rentProtecMinMonths,
       insurancePremiumPct: platformRates.insurancePremiumPct,
+      contractualDueDate,
+      paydayDayOfMonth,
     },
   )
 
@@ -334,14 +351,18 @@ export function FundVaultModal({
     currentPlannedMonthlyNaira: fixedMonthlyNaira,
     maxMonths: platformRates.maxSavingsMonths,
     currentMonthAlreadyFulfilled: currentMonthFulfilled || fundingMode === 'EXTRA_TOPUP',
+    contractualDueDate,
+    paydayDayOfMonth,
   })
   const projectedInterestNaira = initialPlanPreview.projectedYieldNaira
 
   const modalTitle =
     fundingMode === 'MONTHLY'
-      ? 'Pay Monthly Contribution'
+      ? onTrackStatus === 'BEHIND'
+        ? 'Catch Up on Your Plan'
+        : 'Save to Stay on Plan'
       : fundingMode === 'EXTRA_TOPUP'
-        ? 'Add Extra Top-Up'
+        ? 'Top Up Any Amount'
         : 'Pay Initial Deposit'
 
   return (
@@ -365,7 +386,7 @@ export function FundVaultModal({
               }`}
               onClick={() => setFundingMode('MONTHLY')}
             >
-              Pay Monthly
+              Stay on plan
             </button>
             <button
               type="button"
@@ -376,7 +397,7 @@ export function FundVaultModal({
               }`}
               onClick={() => setFundingMode('EXTRA_TOPUP')}
             >
-              Add Extra Top-Up
+              Top up any amount
             </button>
           </div>
         )}
@@ -429,11 +450,23 @@ export function FundVaultModal({
               }}
             >
               {fundingMode === 'MONTHLY' ? (
-                currentMonthFulfilled ? (
+                isTargetReachedEarly ? (
+                  <>
+                    You&apos;ve already reached your rent target. Any extra top-up still earns{' '}
+                    <strong>{effectiveRatePct}% p.a.</strong> compounded daily until rent day.
+                  </>
+                ) : onTrackStatus === 'BEHIND' ? (
+                  <>
+                    Saving <strong>{formatCurrency(parsedDepositAmount, 'NGN')}</strong> today
+                    begins earning daily compound interest immediately and brings your plan back on
+                    track.
+                  </>
+                ) : currentMonthFulfilled ? (
                   <>
                     You&apos;ve already completed this month&apos;s{' '}
                     <strong>{formatCurrency(fixedMonthlyNaira, 'NGN')}</strong> contribution. Switch
-                    to <strong>Add Extra Top-Up</strong> to lower future monthly payments.
+                    to <strong>Top up any amount</strong> to lower future payments and earn more
+                    daily interest.
                   </>
                 ) : currentMonthRemainingNaira > 0 &&
                   parsedDepositAmount < currentMonthRemainingNaira ? (
@@ -443,26 +476,20 @@ export function FundVaultModal({
                     <strong>
                       {formatCurrency(currentMonthRemainingNaira - parsedDepositAmount, 'NGN')}
                     </strong>{' '}
-                    left for this month). Your monthly plan stays{' '}
-                    <strong style={{ color: 'var(--clay)' }}>
-                      {formatCurrency(fixedMonthlyNaira, 'NGN')}/mo
-                    </strong>
-                    .
+                    left). Starts compounding daily at <strong>{effectiveRatePct}% p.a.</strong>{' '}
+                    from today.
                   </>
                 ) : (
                   <>
-                    Completes this month&apos;s contribution. Your monthly target stays fixed at{' '}
-                    <strong style={{ color: 'var(--clay)' }}>
-                      {formatCurrency(fixedMonthlyNaira, 'NGN')}/mo
-                    </strong>{' '}
-                    for remaining months.
+                    Completes this month&apos;s plan and starts earning{' '}
+                    <strong>{effectiveRatePct}% p.a.</strong> compounded daily from today.
                   </>
                 )
               ) : fundingMode === 'EXTRA_TOPUP' ? (
                 reducedMonthlyAfterExtraNaira > 0 ? (
                   <>
-                    Adding <strong>{formatCurrency(parsedDepositAmount, 'NGN')}</strong> extra
-                    lowers your future monthly contribution from{' '}
+                    Adding <strong>{formatCurrency(parsedDepositAmount, 'NGN')}</strong> today
+                    earns daily compound interest and lowers your future monthly target from{' '}
                     <strong>{formatCurrency(fixedMonthlyNaira, 'NGN')}/mo</strong> to{' '}
                     <strong style={{ color: '#059669' }}>
                       {formatCurrency(reducedMonthlyAfterExtraNaira, 'NGN')}/mo
@@ -471,20 +498,21 @@ export function FundVaultModal({
                   </>
                 ) : (
                   <>
-                    Adding <strong>{formatCurrency(parsedDepositAmount, 'NGN')}</strong> completes
-                    your <strong>{formatCurrency(effectiveTargetRent, 'NGN')}</strong> rent savings
-                    target!
+                    Adding <strong>{formatCurrency(parsedDepositAmount, 'NGN')}</strong> today
+                    reaches your <strong>{formatCurrency(effectiveTargetRent, 'NGN')}</strong> rent
+                    target, and your balance keeps earning daily interest until rent day.
                   </>
                 )
               ) : initialPlanPreview.periodicDepositNaira > 0 ? (
                 <>
                   Start with <strong>{formatCurrency(parsedDepositAmount, 'NGN')}</strong> today,
-                  then save a fixed{' '}
+                  then save{' '}
                   <strong style={{ color: 'var(--clay)' }}>
                     {formatCurrency(initialPlanPreview.periodicDepositNaira, 'NGN')}/mo
                   </strong>{' '}
                   <span style={{ color: '#059669', fontWeight: 600 }}>
-                    (expected +{formatCurrency(projectedInterestNaira, 'NGN')} in returns)
+                    (expected +{formatCurrency(projectedInterestNaira, 'NGN')} in daily compound
+                    returns)
                   </span>
                   .
                 </>
@@ -492,7 +520,7 @@ export function FundVaultModal({
                 <>
                   Adding <strong>{formatCurrency(parsedDepositAmount, 'NGN')}</strong> today
                   completes your <strong>{formatCurrency(effectiveTargetRent, 'NGN')}</strong> rent
-                  savings target!
+                  target!
                 </>
               )}
             </div>

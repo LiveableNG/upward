@@ -238,7 +238,7 @@ export class SimulateDailyNavAccrualUseCase {
     } catch {
       // keep fallback gross rate
     }
-    const grossArmDailyRate = grossArmAnnualRatePct / 100 / 365
+    const grossArmDailyRate = Math.pow(1 + Math.max(0, grossArmAnnualRatePct / 100), 1 / 365) - 1
 
     const whereVault: any = {
       lockStatus: { in: ['LOCKED', 'SETTLEMENT_READY'] },
@@ -277,7 +277,7 @@ export class SimulateDailyNavAccrualUseCase {
             : isFlexible
               ? rates.flexibleSavingsAnnualRatePct
               : rates.savingsAnnualRatePct
-      const customerDailyRate = customerAnnualRatePct / 100 / 365
+      const customerDailyRate = Math.pow(1 + Math.max(0, customerAnnualRatePct / 100), 1 / 365) - 1
       const effectiveGrossRatePct = Math.max(grossArmAnnualRatePct, customerAnnualRatePct)
       const effectiveGrossDailyRate = Math.max(grossArmDailyRate, customerDailyRate)
 

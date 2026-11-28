@@ -110,7 +110,9 @@ export class GetArmPortfolioStatsUseCase {
     const liveRatePct = liveYield?.isLive
       ? Math.round(liveYield.annualNetYieldRate * 10000) / 100
       : 16.0
-    const liveDailyRate = liveYield?.isLive ? liveYield.dailyYieldRate : 0.16 / 365
+    const liveDailyRate = liveYield?.isLive
+      ? liveYield.dailyYieldRate
+      : Math.pow(1 + 0.16, 1 / 365) - 1
     const armLiveCustomersCount = (armOverview?.customers || []).filter(
       (c) => c.status !== 'Failed',
     ).length

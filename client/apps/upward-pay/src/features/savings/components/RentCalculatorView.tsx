@@ -318,6 +318,8 @@ export function RentCalculatorView({
         minRentProtecMonths: platformRates.rentProtecMinMonths,
         insurancePremiumPct: platformRates.insurancePremiumPct,
         rawDaysToDueDate: rawDaysRemaining,
+        contractualDueDate: contractualDueDate || undefined,
+        paydayDayOfMonth: preferredPaydayDay,
       },
     )
   }, [
@@ -326,6 +328,8 @@ export function RentCalculatorView({
     defaultUpfrontForInitialPattern,
     daysRemaining,
     rawDaysRemaining,
+    contractualDueDate,
+    preferredPaydayDay,
     selectedCadence,
     savingsAnnualRatePct,
     activeProductOption,
@@ -346,9 +350,21 @@ export function RentCalculatorView({
         minRentProtecMonths: platformRates.rentProtecMinMonths,
         insurancePremiumPct: platformRates.insurancePremiumPct,
         rawDaysToDueDate: rawDaysRemaining,
+        contractualDueDate: contractualDueDate || undefined,
+        paydayDayOfMonth: preferredPaydayDay,
       },
     )
-  }, [previewRentAmount, daysRemaining, rawDaysRemaining, selectedCadence, savingsAnnualRatePct, activeProductOption, platformRates])
+  }, [
+    previewRentAmount,
+    daysRemaining,
+    rawDaysRemaining,
+    contractualDueDate,
+    preferredPaydayDay,
+    selectedCadence,
+    savingsAnnualRatePct,
+    activeProductOption,
+    platformRates,
+  ])
 
   const planStepUpMetrics = useMemo(() => {
     return calculatePayLessPlan(
@@ -364,6 +380,8 @@ export function RentCalculatorView({
         minRentProtecMonths: platformRates.rentProtecMinMonths,
         insurancePremiumPct: platformRates.insurancePremiumPct,
         rawDaysToDueDate: rawDaysRemaining,
+        contractualDueDate: contractualDueDate || undefined,
+        paydayDayOfMonth: preferredPaydayDay,
         customStepStartNaira:
           stepInputMode === 'START' && customStepStart !== null
             ? (parseCurrencyInput(customStepStart) || 0)
@@ -378,6 +396,8 @@ export function RentCalculatorView({
     previewRentAmount,
     daysRemaining,
     rawDaysRemaining,
+    contractualDueDate,
+    preferredPaydayDay,
     selectedCadence,
     savingsAnnualRatePct,
     activeProductOption,
@@ -443,6 +463,7 @@ export function RentCalculatorView({
       product_option: activeProductOption,
       lock_mode: effectiveLockMode,
       plan_pattern: effectivePlanPattern,
+      payday_day_of_month: preferredPaydayDay,
     })
 
     const persistedDepositNaira =
@@ -547,6 +568,9 @@ export function RentCalculatorView({
             maxMonths: platformRates.maxSavingsMonths,
             minRentProtecMonths: platformRates.rentProtecMinMonths,
             insurancePremiumPct: platformRates.insurancePremiumPct,
+            rawDaysToDueDate: rawDaysRemaining,
+            contractualDueDate: contractualDueDate || undefined,
+            paydayDayOfMonth: preferredPaydayDay,
           },
         )
       : localPlan

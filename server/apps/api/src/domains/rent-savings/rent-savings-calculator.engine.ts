@@ -36,14 +36,31 @@ export interface SimulationInput {
   planPattern?: SavingsPlanPattern
   monthlyIncomeKobo?: bigint
   asOfDate?: Date
+  paydayDayOfMonth?: number
   annualNetYieldRate?: number
   maxSavingsMonths?: number
   rentProtecMinMonths?: number
   insurancePremiumPct?: number
 }
 
+export type VaultOnTrackStatus = 'TARGET_REACHED' | 'AHEAD' | 'ON_TRACK' | 'BEHIND'
+
+export interface DynamicDailyTargetResult {
+  activeCompoundingDays: number
+  remainingScheduledDeposits: number
+  dailyRate: number
+  suggestedDepositTodayKobo: bigint
+  catchUpTodayKobo: bigint
+  spreadRemainingDepositKobo: bigint
+  projectedBalanceAtUnlockKobo: bigint
+  projectedRemainingYieldKobo: bigint
+  onTrackStatus: VaultOnTrackStatus
+  isTargetReachedEarly: boolean
+}
+
 export interface SimulationResult {
   daysRemaining: number
+  activeCompoundingDays: number
   monthsRemaining: number
   periodicDepositKobo: bigint
   firstPeriodDepositKobo: bigint
@@ -55,6 +72,7 @@ export interface SimulationResult {
   totalTenantContributionKobo: bigint
   projectedYieldKobo: bigint
   netAnnualYieldRate: number
+  dailyYieldRate: number
   productOption: SavingsProductOption
   lockMode: SavingsLockMode
   planPattern: SavingsPlanPattern
@@ -176,8 +194,10 @@ export class RentSavingsCalculatorEngine {
   }
 
   /**
-   * Recomputes the remaining fixed monthly contribution after an Extra Top-Up (or higher upfront deposit).
-   * Guarantees the recalculated target is capped at currentPlannedKobo (never increases due to date rounding).
+   * Recomputes the remaining periodic contribution using exact calendar-day compounding:
+   *   r_d = (1 + r_a)^(1/365) - 1
+   * By default caps at currentPlannedMonthlyKobo (never increases on Extra Top-Ups due to rounding);
+   * set `allowIncrease: true` for dynamic catch-up when a saver is behind schedule.
    */
   static recalculateMonthlyTargetKobo(params: {
     targetAmountKobo: bigint
@@ -186,8 +206,10 @@ export class RentSavingsCalculatorEngine {
     annualNetYieldRate: number
     currentPlannedMonthlyKobo?: bigint
     asOfDate?: Date
+    paydayDayOfMonth?: number
     maxSavingsMonths?: number
     currentMonthAlreadyFulfilled?: boolean
+    allowIncrease?: boolean
   }): bigint {
     const {
       targetAmountKobo,
@@ -196,68 +218,294 @@ export class RentSavingsCalculatorEngine {
       annualNetYieldRate,
       currentPlannedMonthlyKobo = 0n,
       asOfDate = new Date(),
+      paydayDayOfMonth = 28,
       maxSavingsMonths = 11,
       currentMonthAlreadyFulfilled = false,
+      allowIncrease = false,
     } = params
 
     if (currentBalanceKobo >= targetAmountKobo) return 0n
 
-    const rawDays = this.calculateDaysRemaining(contractualDueDate, asOfDate)
-    const activeDays = Math.max(1, rawDays - 30)
-    const totalRemainingMonths = Math.min(
-      Math.min(11, Math.max(1, maxSavingsMonths)),
-      Math.max(1, Math.floor(activeDays / 30)),
-    )
-    const futurePayments = currentMonthAlreadyFulfilled
-      ? Math.max(1, totalRemainingMonths - 1)
-      : totalRemainingMonths
+    const startUtcMs = this.toUtcMidnightMs(asOfDate)
+    const dueUtcMs = this.toUtcMidnightMs(contractualDueDate)
+    const unlockUtcMs = dueUtcMs - 30 * this.DAY_MS
+    const activeDays = Math.max(0, Math.round((unlockUtcMs - startUtcMs) / this.DAY_MS))
+    const dailyRate = this.getEffectiveDailyRate(annualNetYieldRate)
 
-    const monthlyRate = Math.pow(1 + Math.max(0, annualNetYieldRate), 1 / 12) - 1
-    const fvCurrent = Number(currentBalanceKobo) * Math.pow(1 + monthlyRate, totalRemainingMonths)
+    const fvCurrent = Number(currentBalanceKobo) * Math.pow(1 + dailyRate, activeDays)
     const deficit = Math.max(0, Number(targetAmountKobo) - fvCurrent)
     if (deficit <= 0) return 0n
 
-    let discountSum = 0
-    for (let i = 1; i <= futurePayments; i++) {
-      discountSum += Math.pow(1 + monthlyRate, Math.max(0, futurePayments - i))
+    const allScheduledDates = this.buildScheduledDepositDatesUtc({
+      startMs: startUtcMs,
+      unlockMs: unlockUtcMs,
+      cadence: 'MONTHLY',
+      paydayDayOfMonth,
+      maxMonths: Math.min(11, Math.max(1, maxSavingsMonths)),
+    })
+
+    const futureDates =
+      currentMonthAlreadyFulfilled && allScheduledDates.length > 1
+        ? allScheduledDates.slice(1)
+        : allScheduledDates
+
+    let dailyGrowthSum = 0
+    for (const depMs of futureDates) {
+      const daysToUnlock = Math.max(0, Math.round((unlockUtcMs - depMs) / this.DAY_MS))
+      dailyGrowthSum += Math.pow(1 + dailyRate, daysToUnlock)
     }
 
-    const recomputed = discountSum > 0 ? BigInt(Math.ceil(deficit / discountSum)) : 0n
-    if (currentPlannedMonthlyKobo > 0n && recomputed > currentPlannedMonthlyKobo) {
+    const recomputed = dailyGrowthSum > 0 ? BigInt(Math.ceil(deficit / dailyGrowthSum)) : 0n
+    if (!allowIncrease && currentPlannedMonthlyKobo > 0n && recomputed > currentPlannedMonthlyKobo) {
       return currentPlannedMonthlyKobo
     }
     return recomputed
   }
 
+  /**
+   * Computes exact dynamic daily stay-on-plan & catch-up contribution based on today's date,
+   * live vault balance, exact days remaining to T-30 unlock, and remaining scheduled paydays.
+   */
+  static calculateDynamicDailyTarget(params: {
+    targetAmountKobo: bigint
+    currentBalanceKobo: bigint
+    contractualDueDate: Date
+    annualNetYieldRate: number
+    plannedMonthlyKobo?: bigint
+    paydayDayOfMonth?: number
+    asOfDate?: Date
+    maxSavingsMonths?: number
+    currentMonthFulfilled?: boolean
+  }): DynamicDailyTargetResult {
+    const {
+      targetAmountKobo,
+      currentBalanceKobo,
+      contractualDueDate,
+      annualNetYieldRate,
+      plannedMonthlyKobo = 0n,
+      paydayDayOfMonth = 28,
+      asOfDate = new Date(),
+      maxSavingsMonths = 11,
+      currentMonthFulfilled = false,
+    } = params
+
+    const startUtcMs = this.toUtcMidnightMs(asOfDate)
+    const dueUtcMs = this.toUtcMidnightMs(contractualDueDate)
+    const unlockUtcMs = dueUtcMs - 30 * this.DAY_MS
+    const activeCompoundingDays = Math.max(0, Math.round((unlockUtcMs - startUtcMs) / this.DAY_MS))
+    const dailyRate = this.getEffectiveDailyRate(annualNetYieldRate)
+    const todayFactor = Math.pow(1 + dailyRate, activeCompoundingDays)
+    const fvCurrent = Number(currentBalanceKobo) * todayFactor
+
+    if (currentBalanceKobo >= targetAmountKobo || fvCurrent >= Number(targetAmountKobo)) {
+      const projectedBal = BigInt(Math.round(fvCurrent))
+      return {
+        activeCompoundingDays,
+        remainingScheduledDeposits: 0,
+        dailyRate,
+        suggestedDepositTodayKobo: 0n,
+        catchUpTodayKobo: 0n,
+        spreadRemainingDepositKobo: 0n,
+        projectedBalanceAtUnlockKobo: projectedBal,
+        projectedRemainingYieldKobo:
+          projectedBal > currentBalanceKobo ? projectedBal - currentBalanceKobo : 0n,
+        onTrackStatus: 'TARGET_REACHED',
+        isTargetReachedEarly: currentBalanceKobo >= targetAmountKobo && activeCompoundingDays > 0,
+      }
+    }
+
+    const scheduledDates = this.buildScheduledDepositDatesUtc({
+      startMs: startUtcMs,
+      unlockMs: unlockUtcMs,
+      cadence: 'MONTHLY',
+      paydayDayOfMonth,
+      maxMonths: Math.min(11, Math.max(1, maxSavingsMonths)),
+    })
+
+    // Remaining future scheduled paydays strictly after today (or after current month if already fulfilled)
+    const effectiveFutureDates =
+      currentMonthFulfilled && scheduledDates.length > 1
+        ? scheduledDates.slice(1)
+        : scheduledDates
+
+    // Option A: If depositing TODAY plus all remaining future scheduled paydays after the next one
+    const tailDatesAfterToday =
+      effectiveFutureDates.length > 1 ? effectiveFutureDates.slice(1) : []
+    let tailGrowthSum = 0
+    for (const depMs of tailDatesAfterToday) {
+      const d = Math.max(0, Math.round((unlockUtcMs - depMs) / this.DAY_MS))
+      tailGrowthSum += Math.pow(1 + dailyRate, d)
+    }
+
+    const deficitAtUnlock = Math.max(0, Number(targetAmountKobo) - fvCurrent)
+
+    // Uniform spread across (deposit today + tail scheduled paydays)
+    const spreadDenomToday = todayFactor + tailGrowthSum
+    const spreadRemainingDepositKobo =
+      spreadDenomToday > 0 ? BigInt(Math.ceil(deficitAtUnlock / spreadDenomToday)) : 0n
+
+    // Catch-up today keeping all future tail deposits fixed at `plannedMonthlyKobo`
+    const baselineMonthly =
+      plannedMonthlyKobo > 0n ? plannedMonthlyKobo : spreadRemainingDepositKobo
+    const fvTailAtBaseline = Number(baselineMonthly) * tailGrowthSum
+    const gapForToday = Math.max(0, deficitAtUnlock - fvTailAtBaseline)
+    const catchUpTodayKobo =
+      todayFactor > 0 ? BigInt(Math.ceil(gapForToday / todayFactor)) : 0n
+
+    // Determine on-track status by comparing baseline plan outcome vs target rent
+    let scheduledGrowthSum = 0
+    for (const depMs of effectiveFutureDates) {
+      const d = Math.max(0, Math.round((unlockUtcMs - depMs) / this.DAY_MS))
+      scheduledGrowthSum += Math.pow(1 + dailyRate, d)
+    }
+    const projectedAtBaseline = fvCurrent + Number(baselineMonthly) * scheduledGrowthSum
+    const varianceNaira = (projectedAtBaseline - Number(targetAmountKobo)) / 100
+
+    let onTrackStatus: VaultOnTrackStatus = 'ON_TRACK'
+    if (varianceNaira < -1_000) {
+      onTrackStatus = 'BEHIND'
+    } else if (varianceNaira > 10_000) {
+      onTrackStatus = 'AHEAD'
+    }
+
+    // Dynamic suggested amount to save today to stay aligned with the plan:
+    // - When BEHIND: show spreadRemainingDepositKobo (or catchUpToday if only 1 deposit left) so the user knows exact catch-up including missed interest.
+    // - When ON_TRACK / AHEAD: show spreadRemainingDepositKobo (which reflects today's exact compounding days).
+    const suggestedDepositTodayKobo =
+      currentMonthFulfilled
+        ? 0n
+        : spreadRemainingDepositKobo
+
+    const projectedAtDynamic =
+      fvCurrent + Number(suggestedDepositTodayKobo) * todayFactor + Number(spreadRemainingDepositKobo) * tailGrowthSum
+    const projectedBalanceAtUnlockKobo = BigInt(Math.round(projectedAtDynamic))
+    const totalAdditionalPrincipal =
+      suggestedDepositTodayKobo + spreadRemainingDepositKobo * BigInt(tailDatesAfterToday.length)
+    const projectedRemainingYieldKobo =
+      projectedBalanceAtUnlockKobo > currentBalanceKobo + totalAdditionalPrincipal
+        ? projectedBalanceAtUnlockKobo - currentBalanceKobo - totalAdditionalPrincipal
+        : 0n
+
+    return {
+      activeCompoundingDays,
+      remainingScheduledDeposits: effectiveFutureDates.length,
+      dailyRate,
+      suggestedDepositTodayKobo,
+      catchUpTodayKobo,
+      spreadRemainingDepositKobo,
+      projectedBalanceAtUnlockKobo,
+      projectedRemainingYieldKobo,
+      onTrackStatus,
+      isTargetReachedEarly: false,
+    }
+  }
+
+  public static readonly DAY_MS = 86_400_000
   public static readonly ANNUAL_NET_YIELD = 0.16 // 16.0% p.a. (Full Lock Save & Earn)
   public static readonly ANNUAL_FLEXIBLE_YIELD = 0.12 // 12.0% p.a. (Flexible Save & Earn)
   public static readonly ANNUAL_BASE_EXIT_YIELD = 0.07 // 7.0% p.a. (Fair Exit)
   public static readonly DAYS_IN_YEAR = 365
-  public static readonly DAILY_RATE =
-    RentSavingsCalculatorEngine.ANNUAL_NET_YIELD / RentSavingsCalculatorEngine.DAYS_IN_YEAR
-  public static readonly BASE_DAILY_RATE =
-    RentSavingsCalculatorEngine.ANNUAL_BASE_EXIT_YIELD / RentSavingsCalculatorEngine.DAYS_IN_YEAR
+
+  /**
+   * Canonical effective daily compounding rate:
+   *   r_d = (1 + r_a)^(1/365) - 1
+   * Guarantees 365 days of daily compounding equals exactly r_a p.a.
+   */
+  public static getEffectiveDailyRate(annualRateDecimal: number): number {
+    const safeRate = Math.max(0, annualRateDecimal)
+    return Math.pow(1 + safeRate, 1 / this.DAYS_IN_YEAR) - 1
+  }
+
+  public static readonly DAILY_RATE = RentSavingsCalculatorEngine.getEffectiveDailyRate(
+    RentSavingsCalculatorEngine.ANNUAL_NET_YIELD,
+  )
+  public static readonly BASE_DAILY_RATE = RentSavingsCalculatorEngine.getEffectiveDailyRate(
+    RentSavingsCalculatorEngine.ANNUAL_BASE_EXIT_YIELD,
+  )
   public static readonly ADVANCE_MAX_RATIO = 0.4 // 40% cap
   public static readonly ADVANCE_FACILITY_FEE_RATE = 0.035 // 3.5%
   public static readonly ADVANCE_LATE_FEE_DAILY_RATE = 0.001 // 0.1%/day
   public static readonly BREAKOUT_ADMIN_FEE_RATE = 0.015 // 1.5%
 
+  private static toUtcMidnightMs(d: Date): number {
+    return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
+  }
+
+  /**
+   * Generates exact UTC calendar deposit timestamps between startMs and unlockMs,
+   * anchored to preferred paydayDayOfMonth (1..28) and capped at maxMonths (11).
+   */
+  public static buildScheduledDepositDatesUtc(params: {
+    startMs: number
+    unlockMs: number
+    cadence: CadenceType
+    paydayDayOfMonth?: number
+    maxMonths?: number
+  }): number[] {
+    const { startMs, unlockMs, cadence, paydayDayOfMonth = 28, maxMonths = 11 } = params
+    const safeUnlockMs = Math.max(startMs, unlockMs)
+
+    if (cadence === 'DAILY') {
+      const days = Math.max(1, Math.min(maxMonths * 31, Math.round((safeUnlockMs - startMs) / this.DAY_MS)))
+      const dates: number[] = []
+      for (let i = 1; i <= days; i++) {
+        dates.push(Math.min(safeUnlockMs, startMs + i * this.DAY_MS))
+      }
+      return dates
+    }
+
+    if (cadence === 'WEEKLY') {
+      const maxWeeks = Math.max(1, maxMonths * 4)
+      const dates: number[] = []
+      for (let i = 1; i <= maxWeeks; i++) {
+        const candidate = startMs + i * 7 * this.DAY_MS
+        if (candidate > safeUnlockMs) break
+        dates.push(candidate)
+      }
+      return dates.length > 0 ? dates : [safeUnlockMs]
+    }
+
+    const startDate = new Date(startMs)
+    const startYear = startDate.getUTCFullYear()
+    const startMonth = startDate.getUTCMonth()
+    const startDay = startDate.getUTCDate()
+    const clampedDay = Math.min(28, Math.max(1, Math.round(paydayDayOfMonth || 28)))
+    const firstMonthOffset = clampedDay > startDay ? 0 : 1
+    const monthStep = cadence === 'QUARTERLY' ? 3 : 1
+    const maxCount = cadence === 'QUARTERLY' ? Math.max(1, Math.floor(maxMonths / 3)) : Math.min(11, Math.max(1, maxMonths))
+
+    const dates: number[] = []
+    for (let i = 0; i < 24 && dates.length < maxCount; i++) {
+      const candidateMs = Date.UTC(startYear, startMonth + firstMonthOffset + i * monthStep, clampedDay)
+      if (candidateMs < startMs) continue
+      if (candidateMs > safeUnlockMs) break
+      dates.push(candidateMs)
+    }
+
+    return dates.length > 0 ? dates : [safeUnlockMs]
+  }
+
   /**
    * Calculates exact difference in calendar days between two dates
    */
   public static calculateDaysRemaining(dueDate: Date, asOfDate: Date = new Date()): number {
-    const start = new Date(asOfDate.getFullYear(), asOfDate.getMonth(), asOfDate.getDate())
-    const end = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate())
-    const diffTime = end.getTime() - start.getTime()
-    return Math.max(0, Math.ceil(diffTime / (1000 * 60 * 60 * 24)))
+    const start = this.toUtcMidnightMs(asOfDate)
+    const end = this.toUtcMidnightMs(dueDate)
+    const diffTime = end - start
+    return Math.max(0, Math.round(diffTime / this.DAY_MS))
   }
 
   /**
-   * Executes the work-backwards simulation engine
+   * Executes the exact calendar-day compounding work-backwards simulation engine:
+   *   r_d = (1 + r_a)^(1/365) - 1
+   *   FV_0 = D * (1 + r_d)^{daysToUnlock}
+   *   P = ceil((R - FV_0) / sum_{k=1..n} w_k * (1 + r_d)^{daysToUnlock_k})
    */
   public static simulate(input: SimulationInput): SimulationResult {
     const today = input.asOfDate || new Date()
-    const rawDaysRemaining = this.calculateDaysRemaining(input.contractualDueDate, today)
+    const startUtcMs = this.toUtcMidnightMs(today)
+    const dueUtcMs = this.toUtcMidnightMs(input.contractualDueDate)
+    const rawDaysRemaining = Math.max(0, Math.round((dueUtcMs - startUtcMs) / this.DAY_MS))
 
     if (rawDaysRemaining <= 0) {
       throw new Error('Contractual due date must be strictly in the future.')
@@ -275,11 +523,12 @@ export class RentSavingsCalculatorEngine {
     const planPattern: SavingsPlanPattern = input.planPattern ?? 'INITIAL_DEPOSIT'
 
     // Rent is released strictly 30 days before contractual due date.
-    // Therefore, the maximum active savings horizon is (due date - 30 days), capped at <= 11 months (Kunle spec: user cannot save for 12 months).
-    const savingsDaysRemaining = Math.max(1, rawDaysRemaining - 30)
+    const unlockUtcMs = Math.max(startUtcMs, dueUtcMs - 30 * this.DAY_MS)
+    const activeCompoundingDays = Math.max(1, Math.round((unlockUtcMs - startUtcMs) / this.DAY_MS))
+    const savingsDaysRemaining = activeCompoundingDays
     const rawMonths = Math.max(1, Math.floor(savingsDaysRemaining / 30))
     const monthsRemaining = Math.min(maxMonths, rawMonths)
-    const daysRemaining = Math.min(savingsDaysRemaining, maxMonths * 30)
+    const daysRemaining = Math.min(savingsDaysRemaining, maxMonths * 31)
 
     const isRentProtecEligible = rawDaysRemaining >= minRentProtecMonths * 28
     const rentProtecIneligibilityReason = !isRentProtecEligible
@@ -298,8 +547,8 @@ export class RentSavingsCalculatorEngine {
             ? 0.12
             : 0.16
 
-    // Exact monthly effective rate: r_m = (1 + r_a)^(1/12) - 1 (Section 3.4)
-    const monthlyRate = Math.pow(1 + effectiveAnnualYield, 1 / 12) - 1
+    // Canonical exact effective daily compounding rate: r_d = (1 + r_a)^(1/365) - 1
+    const dailyRate = this.getEffectiveDailyRate(effectiveAnnualYield)
 
     // Formula-derived minimum upfront deposit for RENT_PROTEC (20% for 7-11mo, 33% for 6mo)
     const minimumInitialDepositPct =
@@ -318,36 +567,27 @@ export class RentSavingsCalculatorEngine {
           ? providedInitialDeposit
           : 0
 
-    // Number of contribution periods based on cadence within <= 11-month window
-    let numberOfPayments = monthsRemaining
-    let periodRate = monthlyRate
-    if (input.cadence === 'WEEKLY') {
-      numberOfPayments = Math.max(1, Math.min(maxMonths * 4, Math.floor(daysRemaining / 7)))
-      periodRate = Math.pow(1 + effectiveAnnualYield, 1 / 52) - 1
-    } else if (input.cadence === 'QUARTERLY') {
-      numberOfPayments = Math.max(1, Math.floor(monthsRemaining / 3))
-      periodRate = Math.pow(1 + effectiveAnnualYield, 1 / 4) - 1
-    } else if (input.cadence === 'DAILY') {
-      numberOfPayments = Math.max(1, daysRemaining)
-      periodRate = Math.pow(1 + effectiveAnnualYield, 1 / 365) - 1
-    } else {
-      numberOfPayments = Math.max(1, Math.min(maxMonths, monthsRemaining))
-      periodRate = monthlyRate
-    }
+    // Exact calendar deposit schedule anchored to paydayDayOfMonth (default 28th)
+    const scheduledDatesMs = this.buildScheduledDepositDatesUtc({
+      startMs: startUtcMs,
+      unlockMs: unlockUtcMs,
+      cadence: input.cadence,
+      paydayDayOfMonth: input.paydayDayOfMonth ?? 28,
+      maxMonths,
+    })
+    const numberOfPayments = scheduledDatesMs.length
 
-    // FV of initial deposit: S_0 * (1 + r)^n
-    const fvInitial = effectiveInitialDeposit * Math.pow(1 + periodRate, numberOfPayments)
+    // Exact daily FV of initial deposit over activeCompoundingDays
+    const fvInitial = effectiveInitialDeposit * Math.pow(1 + dailyRate, activeCompoundingDays)
     const deficit = Math.max(0, targetAmount - fvInitial)
 
-    // Compute weights w_i for each contribution period i = 1..n (end-of-period compounding)
+    // Compute weights w_i for each scheduled deposit i = 1..n
     const weights: number[] = []
     for (let i = 1; i <= numberOfPayments; i++) {
       if (planPattern === 'STEP_UP') {
-        // Start lower and increase by ~8% per step
         const stepFactor = input.cadence === 'WEEKLY' ? 0.02 : 0.08
         weights.push(Math.pow(1 + stepFactor, i - 1))
       } else if (planPattern === 'ACCELERATED') {
-        // Front-load early contributions so more capital compounds longer
         const taperFactor = input.cadence === 'WEEKLY' ? 0.015 : 0.06
         weights.push(Math.max(0.4, 1 - taperFactor * (i - 1)))
       } else {
@@ -356,10 +596,13 @@ export class RentSavingsCalculatorEngine {
     }
 
     let weightedDiscountSum = 0
-    for (let i = 1; i <= numberOfPayments; i++) {
-      const periodsRemaining = Math.max(0, numberOfPayments - i)
-      const w = weights[i - 1] ?? 1
-      weightedDiscountSum += w * Math.pow(1 + periodRate, periodsRemaining)
+    const daysToUnlockPerPayment: number[] = []
+    for (let i = 0; i < numberOfPayments; i++) {
+      const depMs = scheduledDatesMs[i] ?? unlockUtcMs
+      const daysToUnlock = Math.max(0, Math.round((unlockUtcMs - depMs) / this.DAY_MS))
+      daysToUnlockPerPayment.push(daysToUnlock)
+      const w = weights[i] ?? 1
+      weightedDiscountSum += w * Math.pow(1 + dailyRate, daysToUnlock)
     }
 
     const basePayment =
@@ -374,10 +617,14 @@ export class RentSavingsCalculatorEngine {
       effectiveInitialDeposit + totalPeriodicContributionNum,
     )
 
-    const projectedYieldKobo =
-      input.targetAmountKobo > totalTenantContributionKobo
-        ? input.targetAmountKobo - totalTenantContributionKobo
-        : 0n
+    let totalFutureValueNum = fvInitial
+    for (let i = 0; i < numberOfPayments; i++) {
+      totalFutureValueNum +=
+        (schedulePayments[i] ?? 0) * Math.pow(1 + dailyRate, daysToUnlockPerPayment[i] ?? 0)
+    }
+    const projectedYieldKobo = BigInt(
+      Math.max(0, Math.round(totalFutureValueNum - Number(totalTenantContributionKobo))),
+    )
 
     const insurancePct =
       productOption === 'RENT_PROTEC' ? (input.insurancePremiumPct ?? 2.0) : 0
@@ -409,7 +656,8 @@ export class RentSavingsCalculatorEngine {
 
     return {
       daysRemaining,
-      monthsRemaining,
+      activeCompoundingDays,
+      monthsRemaining: numberOfPayments,
       periodicDepositKobo,
       firstPeriodDepositKobo: BigInt(firstPeriodDepositNum),
       lastPeriodDepositKobo: BigInt(lastPeriodDepositNum),
@@ -420,6 +668,7 @@ export class RentSavingsCalculatorEngine {
       totalTenantContributionKobo,
       projectedYieldKobo,
       netAnnualYieldRate: effectiveAnnualYield,
+      dailyYieldRate: dailyRate,
       productOption,
       lockMode,
       planPattern,

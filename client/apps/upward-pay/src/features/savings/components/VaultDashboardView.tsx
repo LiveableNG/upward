@@ -31,6 +31,7 @@ import {
   type SavingsLockMode,
   type SavingsPlanPattern,
   type SavingsProductOption,
+  type VaultOnTrackStatus,
   type VaultTransactionItem,
 } from '../services/savingsService'
 import { SAVINGS_FUND_CODE, SAVINGS_FUND_NAME } from '../constants/savingsLegal'
@@ -50,6 +51,12 @@ interface VaultDashboardViewProps {
     current_month_paid_kobo?: number
     current_month_remaining_kobo?: number
     current_month_fulfilled?: boolean
+    suggested_deposit_today_kobo?: number
+    catch_up_today_kobo?: number
+    on_track_status?: VaultOnTrackStatus
+    is_target_reached_early?: boolean
+    remaining_scheduled_deposits?: number
+    active_compounding_days?: number
     preferred_payday_day?: number
     is_rent_protec?: boolean
     insurance_premium_pct?: number
@@ -195,18 +202,36 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
       )) / 100,
   )
   const currentMonthFulfilled = Boolean(vault.current_month_fulfilled)
+  const onTrackStatus: VaultOnTrackStatus = vault.on_track_status ?? 'ON_TRACK'
+  const isTargetReachedEarly = Boolean(
+    vault.is_target_reached_early || onTrackStatus === 'TARGET_REACHED',
+  )
+  const isBehindPlan =
+    currentBalanceNaira > 0 && !isTargetReachedEarly && onTrackStatus === 'BEHIND'
+  const suggestedDepositTodayNaira =
+    vault.suggested_deposit_today_kobo !== undefined && vault.suggested_deposit_today_kobo > 0
+      ? Math.round(vault.suggested_deposit_today_kobo / 100)
+      : currentMonthRemainingNaira > 0
+        ? currentMonthRemainingNaira
+        : plannedMonthlyNaira
   const monthTargetMet =
-    currentBalanceNaira > 0 &&
-    plannedMonthlyNaira > 0 &&
-    (currentMonthFulfilled || currentMonthRemainingNaira <= 0)
+    isTargetReachedEarly ||
+    (currentBalanceNaira > 0 &&
+      plannedMonthlyNaira > 0 &&
+      !isBehindPlan &&
+      (currentMonthFulfilled || currentMonthRemainingNaira <= 0))
   const monthlyButtonLabel =
     currentBalanceNaira === 0
       ? 'Pay Initial Deposit'
-      : currentMonthRemainingNaira > 0 && currentMonthRemainingNaira < plannedMonthlyNaira
-        ? `Pay ${formatCurrency(currentMonthRemainingNaira, 'NGN')} left`
-        : plannedMonthlyNaira > 0
-          ? `Pay ${formatCurrency(plannedMonthlyNaira, 'NGN')}`
-          : 'Pay Monthly'
+      : isBehindPlan && suggestedDepositTodayNaira > 0
+        ? `Save ${formatCurrency(suggestedDepositTodayNaira, 'NGN')} to catch up`
+        : currentMonthRemainingNaira > 0 && currentMonthRemainingNaira < plannedMonthlyNaira
+          ? `Save ${formatCurrency(currentMonthRemainingNaira, 'NGN')} to stay on plan`
+          : suggestedDepositTodayNaira > 0
+            ? `Save ${formatCurrency(suggestedDepositTodayNaira, 'NGN')} to stay on plan`
+            : plannedMonthlyNaira > 0
+              ? `Save ${formatCurrency(plannedMonthlyNaira, 'NGN')} to stay on plan`
+              : 'Save to stay on plan'
   const preferredPaydayDay = vault.preferred_payday_day ?? 28
   const currentMonthShort = new Date(nowTimestamp).toLocaleDateString('en-GB', { month: 'short' })
 
@@ -442,29 +467,57 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
           </div>
         </div>
 
-        {/* Monthly amount, with a reminder day the user can move to any date */}
-        {plannedMonthlyNaira > 0 && (
+        {/* Monthly amount, with live daily-compounding status & editable reminder day */}
+        {(plannedMonthlyNaira > 0 || isTargetReachedEarly) && (
           <div className="vault-monthly-strip">
             <div className="vault-monthly-strip__title-row">
               <Calendar size={14} color="var(--clay)" />
               <span className="vault-monthly-strip__label">
-                Monthly <strong>{formatCurrency(plannedMonthlyNaira, 'NGN')}</strong>
+                {isTargetReachedEarly ? (
+                  <>
+                    Rent target <strong>reached</strong>
+                  </>
+                ) : isBehindPlan && suggestedDepositTodayNaira > 0 ? (
+                  <>
+                    Stay on plan <strong>{formatCurrency(suggestedDepositTodayNaira, 'NGN')}</strong>
+                  </>
+                ) : (
+                  <>
+                    Monthly <strong>{formatCurrency(plannedMonthlyNaira, 'NGN')}</strong>
+                  </>
+                )}
               </span>
               <span
                 className={`vault-monthly-strip__pill ${
-                  currentMonthFulfilled
+                  isTargetReachedEarly || currentMonthFulfilled
                     ? 'vault-monthly-strip__pill--paid'
-                    : 'vault-monthly-strip__pill--due'
+                    : isBehindPlan
+                      ? 'vault-monthly-strip__pill--behind'
+                      : 'vault-monthly-strip__pill--due'
                 }`}
               >
-                {currentMonthFulfilled
-                  ? `Paid for ${currentMonthShort}`
-                  : currentMonthRemainingNaira > 0 &&
-                      currentMonthRemainingNaira < plannedMonthlyNaira
-                    ? `${formatCurrency(currentMonthRemainingNaira, 'NGN')} left`
-                    : 'This month'}
+                {isTargetReachedEarly
+                  ? 'Target reached'
+                  : isBehindPlan
+                    ? 'Catch-up due'
+                    : currentMonthFulfilled
+                      ? `Paid for ${currentMonthShort}`
+                      : currentMonthRemainingNaira > 0 &&
+                          currentMonthRemainingNaira < plannedMonthlyNaira
+                        ? `${formatCurrency(currentMonthRemainingNaira, 'NGN')} left`
+                        : 'This month'}
               </span>
             </div>
+            {isTargetReachedEarly ? (
+              <div className="vault-monthly-strip__note">
+                Your balance keeps earning {savingsAnnualRatePct}% p.a. compounded daily until rent
+                day.
+              </div>
+            ) : isBehindPlan ? (
+              <div className="vault-monthly-strip__note">
+                Updated today to keep you on track for your rent due date with daily compounding.
+              </div>
+            ) : null}
             <div className="vault-monthly-strip__sub">
               <span>Reminder on the {ordinalDay(preferredPaydayDay)}</span>
               <button
@@ -519,7 +572,7 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
               className="vault-btn-primary"
               onClick={() => openFundingModal('EXTRA_TOPUP')}
             >
-              <span>Add extra top-up</span>
+              <span>Top up any amount</span>
             </button>
           )}
 
@@ -540,7 +593,7 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
               className="vault-dashboard__text-action"
               onClick={() => openFundingModal('EXTRA_TOPUP')}
             >
-              Add extra top-up
+              Top up any amount
             </button>
           )}
         </div>
@@ -702,12 +755,23 @@ export function VaultDashboardView({ vault, onGoToSettlementHub }: VaultDashboar
         plannedMonthlyNaira={plannedMonthlyNaira}
         currentMonthRemainingNaira={currentMonthRemainingNaira}
         currentMonthFulfilled={currentMonthFulfilled}
+        suggestedTodayNaira={suggestedDepositTodayNaira}
+        onTrackStatus={onTrackStatus}
+        isTargetReachedEarly={isTargetReachedEarly}
+        contractualDueDate={targetDueDate}
+        paydayDayOfMonth={preferredPaydayDay}
         recommendedAmountNaira={(() => {
           const periodicNaira = plannedMonthlyNaira
 
           if (vault.current_balance_kobo > 0) {
+            if (isBehindPlan && suggestedDepositTodayNaira > 0) {
+              return suggestedDepositTodayNaira
+            }
             if (currentMonthRemainingNaira > 0) {
               return currentMonthRemainingNaira
+            }
+            if (suggestedDepositTodayNaira > 0) {
+              return suggestedDepositTodayNaira
             }
             const remainingToTarget = Math.max(
               0,

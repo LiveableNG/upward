@@ -263,13 +263,14 @@ export class GetMyRentVaultUseCase {
 
     const annualYieldPct = annualYieldPctForLabels
     const annualYieldDecimal = annualYieldPct / 100
-    const dailyYieldRate = annualYieldDecimal / 365
+    const dailyYieldRate = RentSavingsCalculatorEngine.getEffectiveDailyRate(annualYieldDecimal)
     const insurancePremiumPct =
       (vault as any).insurancePremiumPct ??
       (resolvedProductOption === 'RENT_PROTEC' ? (rates?.insurancePremiumPct ?? 2.0) : 0)
 
     const plannedInitialDepositKobo = BigInt((vault as any).initialDepositKobo ?? 0n)
     const storedPlannedMonthlyKobo = BigInt((vault as any).plannedMonthlyDepositKobo ?? 0n)
+    const preferredPaydayDay = vault.paydayDayOfMonth ?? 28
     const minimumInitialDepositPct =
       resolvedProductOption === 'RENT_PROTEC'
         ? RentSavingsCalculatorEngine.getRentProtecActivationThresholdPct(daysRemaining)
@@ -295,6 +296,7 @@ export class GetMyRentVaultUseCase {
           lockMode: resolvedLockModeEarly,
           planPattern: resolvedPlanPattern,
           asOfDate: now,
+          paydayDayOfMonth: preferredPaydayDay,
           annualNetYieldRate: annualYieldDecimal,
           maxSavingsMonths: rates?.maxSavingsMonths ?? 11,
           rentProtecMinMonths: rates?.rentProtecMinMonths ?? 6,
@@ -309,7 +311,9 @@ export class GetMyRentVaultUseCase {
             : Number(sim.totalTenantContributionKobo)
         const projectedYieldKobo = Math.max(
           Number(vault.accruedYieldKobo),
-          targetAmountNum - totalTenantContributionKobo,
+          currentBalanceKobo > 0n
+            ? targetAmountNum - totalTenantContributionKobo
+            : Number(sim.projectedYieldKobo),
         )
         const rentDiscountPct =
           targetAmountNum > 0
@@ -349,7 +353,22 @@ export class GetMyRentVaultUseCase {
       plannedMonthlyKobo > currentMonthPaidKobo ? plannedMonthlyKobo - currentMonthPaidKobo : 0n
     const currentMonthFulfilled =
       plannedMonthlyKobo > 0n && currentMonthPaidKobo >= plannedMonthlyKobo
-    const preferredPaydayDay = vault.paydayDayOfMonth ?? 28
+
+    // Live exact-calendar dynamic daily target (reflects today's date, actual balance, and missed/early compounding)
+    const dynamicDailyTarget =
+      daysRemaining > 0 && vault.targetAmountKobo > 0n
+        ? RentSavingsCalculatorEngine.calculateDynamicDailyTarget({
+            targetAmountKobo: vault.targetAmountKobo,
+            currentBalanceKobo,
+            contractualDueDate: vault.contractualDueDate,
+            annualNetYieldRate: annualYieldDecimal,
+            plannedMonthlyKobo,
+            paydayDayOfMonth: preferredPaydayDay,
+            asOfDate: now,
+            maxSavingsMonths: rates?.maxSavingsMonths ?? 11,
+            currentMonthFulfilled,
+          })
+        : null
 
     const [latestConsent, latestArmKyc] = this.prisma
       ? await Promise.all([
@@ -387,6 +406,18 @@ export class GetMyRentVaultUseCase {
         minimum_initial_deposit_kobo: Number(minimumInitialDepositKobo),
         minimum_initial_deposit_pct: minimumInitialDepositPct,
         planned_monthly_deposit_kobo: Number(plannedMonthlyKobo),
+        suggested_deposit_today_kobo: dynamicDailyTarget
+          ? Number(dynamicDailyTarget.suggestedDepositTodayKobo)
+          : Number(currentMonthRemainingKobo > 0n ? currentMonthRemainingKobo : plannedMonthlyKobo),
+        catch_up_today_kobo: dynamicDailyTarget
+          ? Number(dynamicDailyTarget.catchUpTodayKobo)
+          : Number(plannedMonthlyKobo),
+        on_track_status: dynamicDailyTarget?.onTrackStatus ?? 'ON_TRACK',
+        is_target_reached_early: dynamicDailyTarget?.isTargetReachedEarly ?? false,
+        remaining_scheduled_deposits:
+          dynamicDailyTarget?.remainingScheduledDeposits ?? payLessProjection.number_of_payments,
+        active_compounding_days:
+          dynamicDailyTarget?.activeCompoundingDays ?? Math.max(0, daysRemaining - 30),
         current_month_paid_kobo: Number(currentMonthPaidKobo),
         current_month_remaining_kobo: Number(currentMonthRemainingKobo),
         current_month_fulfilled: currentMonthFulfilled,

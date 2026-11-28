@@ -87,6 +87,8 @@ export function VaultSetupFlow({ initialConfig, onBack, onSuccess }: VaultSetupF
       maxMonths: platformRates.maxSavingsMonths,
       minRentProtecMonths: platformRates.rentProtecMinMonths,
       insurancePremiumPct: platformRates.insurancePremiumPct,
+      rawDaysToDueDate: daysToDueDate,
+      contractualDueDate: initialConfig.contractualDueDate,
     },
   )
 

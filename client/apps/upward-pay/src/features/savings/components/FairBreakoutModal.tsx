@@ -61,7 +61,7 @@ export function FairBreakoutModal({
   const estimatedAdminFeeNaira = isFlexible ? 0 : principalNaira * 0.015
   const estimatedRecalculatedYieldNaira = isFlexible
     ? accruedYieldNaira
-    : principalNaira * (0.07 / 365) * 30
+    : principalNaira * (Math.pow(1 + 0.07, 30 / 365) - 1)
   const estimatedNetPayoutNaira = Math.max(
     0,
     principalNaira + estimatedRecalculatedYieldNaira - estimatedAdminFeeNaira,

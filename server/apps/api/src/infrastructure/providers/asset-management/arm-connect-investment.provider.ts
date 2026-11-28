@@ -311,7 +311,7 @@ export class ArmConnectInvestmentProvider implements IAssetManagementProvider {
           const metrics: YieldMetrics = {
             annualNetYieldRate: effectiveRate,
             annualGrossYieldRate: effectiveRate + 0.02,
-            dailyYieldRate: effectiveRate / 365,
+            dailyYieldRate: Math.pow(1 + effectiveRate, 1 / 365) - 1,
             productCode: fund.productCode || productCode,
             productName: fund.productName || 'ARM Money Market Fund',
             netAssetValue: fund.netAssetValue || undefined,
@@ -339,7 +339,7 @@ export class ArmConnectInvestmentProvider implements IAssetManagementProvider {
     return {
       annualNetYieldRate: 0.16,
       annualGrossYieldRate: 0.18,
-      dailyYieldRate: 0.16 / 365,
+      dailyYieldRate: Math.pow(1 + 0.16, 1 / 365) - 1,
       productCode,
       productName: 'ARM Money Market Fund',
       canInvest: true,

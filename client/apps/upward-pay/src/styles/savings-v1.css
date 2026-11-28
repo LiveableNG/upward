@@ -3631,6 +3631,17 @@ select.rent-calculator__input:focus {
   color: var(--clay);
 }
 
+.vault-monthly-strip__pill--behind {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.vault-monthly-strip__note {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
 .vault-monthly-strip__picker {
   width: 100%;
   padding-top: 8px;

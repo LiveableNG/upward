@@ -240,6 +240,7 @@ export class CreateRentVaultUseCase {
           lockMode: resolvedLockMode,
           planPattern: effectiveInitialDepositKobo > 0n ? 'INITIAL_DEPOSIT' : 'EQUAL',
           asOfDate: now,
+          paydayDayOfMonth: clampReminderDay(dto.payday_day_of_month),
           annualNetYieldRate: appliedAnnualRatePct / 100,
           maxSavingsMonths: rates?.maxSavingsMonths ?? 11,
           rentProtecMinMonths: rates?.rentProtecMinMonths ?? 6,

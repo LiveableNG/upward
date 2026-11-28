@@ -149,9 +149,10 @@ export class PlatformRatesService implements OnModuleInit {
       savingsAnnualRateDecimal,
       flexibleSavingsAnnualRateDecimal,
       rentProtecRateDecimal,
-      savingsDailyRate: savingsAnnualRateDecimal / 365,
-      flexibleSavingsDailyRate: flexibleSavingsAnnualRateDecimal / 365,
-      rentProtecDailyRate: rentProtecRateDecimal / 365,
+      savingsDailyRate: Math.pow(1 + Math.max(0, savingsAnnualRateDecimal), 1 / 365) - 1,
+      flexibleSavingsDailyRate:
+        Math.pow(1 + Math.max(0, flexibleSavingsAnnualRateDecimal), 1 / 365) - 1,
+      rentProtecDailyRate: Math.pow(1 + Math.max(0, rentProtecRateDecimal), 1 / 365) - 1,
       insurancePremiumRateDecimal,
       partnerName: this.cachedPartnerName,
       partnerShortName: this.cachedPartnerShortName,
@@ -294,7 +295,7 @@ export class PlatformRatesService implements OnModuleInit {
     });
 
     try {
-      const dailyRate = nextSavingsPct / 100 / 365;
+      const dailyRate = Math.pow(1 + Math.max(0, nextSavingsPct / 100), 1 / 365) - 1;
       await this.prisma.upward_savings_config.upsert({
         where: { key: LEGACY_SAVINGS_CONFIG_KEY },
         create: {

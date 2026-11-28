@@ -25,6 +25,10 @@ export interface PlatformRates {
   updatedAt: string | null
 }
 
+function getEffectiveDailyRate(annualRateDecimal: number): number {
+  return Math.pow(1 + Math.max(0, annualRateDecimal), 1 / 365) - 1
+}
+
 export const DEFAULT_PLATFORM_RATES: PlatformRates = {
   savingsEnabled: true,
   savingsMode: 'LIVE',
@@ -37,9 +41,9 @@ export const DEFAULT_PLATFORM_RATES: PlatformRates = {
   savingsAnnualRateDecimal: 0.16,
   flexibleSavingsAnnualRateDecimal: 0.12,
   rentProtecRateDecimal: 0.1,
-  savingsDailyRate: 0.16 / 365,
-  flexibleSavingsDailyRate: 0.12 / 365,
-  rentProtecDailyRate: 0.1 / 365,
+  savingsDailyRate: getEffectiveDailyRate(0.16),
+  flexibleSavingsDailyRate: getEffectiveDailyRate(0.12),
+  rentProtecDailyRate: getEffectiveDailyRate(0.1),
   insurancePremiumRateDecimal: 0.02,
   partnerName: 'Asset & Resource Management Holding Company (ARM)',
   partnerShortName: 'ARM',
@@ -59,6 +63,7 @@ export async function getPlatformRates(): Promise<PlatformRates> {
     ...raw,
     flexibleSavingsAnnualRatePct: flexiblePct,
     flexibleSavingsAnnualRateDecimal: raw.flexibleSavingsAnnualRateDecimal ?? flexiblePct / 100,
-    flexibleSavingsDailyRate: raw.flexibleSavingsDailyRate ?? flexiblePct / 100 / 365,
+    flexibleSavingsDailyRate:
+      raw.flexibleSavingsDailyRate ?? getEffectiveDailyRate(flexiblePct / 100),
   }
 }

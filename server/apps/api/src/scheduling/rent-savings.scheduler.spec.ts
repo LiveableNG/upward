@@ -1,3 +1,4 @@
+import { RentSavingsCalculatorEngine } from '../domains/rent-savings/rent-savings-calculator.engine'
 import { RentSavingsScheduler } from './rent-savings.scheduler'
 
 describe('RentSavingsScheduler — Dual Ledger Daily NAV Accrual', () => {
@@ -50,7 +51,7 @@ describe('RentSavingsScheduler — Dual Ledger Daily NAV Accrual', () => {
       getProvider: jest.fn().mockReturnValue({
         getYieldMetrics: jest.fn().mockResolvedValue({
           annualNetYieldRate: 0.1655,
-          dailyYieldRate: 0.1655 / 365,
+          dailyYieldRate: RentSavingsCalculatorEngine.getEffectiveDailyRate(0.1655),
         }),
       }),
     }
@@ -62,8 +63,8 @@ describe('RentSavingsScheduler — Dual Ledger Daily NAV Accrual', () => {
         savingsAnnualRatePct: 16.0,
         rentProtecRatePct: 10.0,
         insurancePremiumPct: 2.0,
-        savingsDailyRate: 0.16 / 365,
-        rentProtecDailyRate: 0.1 / 365,
+        savingsDailyRate: RentSavingsCalculatorEngine.getEffectiveDailyRate(0.16),
+        rentProtecDailyRate: RentSavingsCalculatorEngine.getEffectiveDailyRate(0.1),
       }),
     }
 
@@ -109,17 +110,21 @@ describe('RentSavingsScheduler — Dual Ledger Daily NAV Accrual', () => {
 
     expect(customerTxs).toHaveLength(2)
 
-    // 1. Customer Liability Ledger: Rent Protec earns 10% daily, zero 2% deduction
+    // 1. Customer Liability Ledger: Rent Protec earns 10% effective p.a. compounded daily, zero 2% deduction
     const rpTx = customerTxs.find((t) => t.vaultId === 1)
-    const expectedRpDaily = BigInt(Math.round(100_000_000 * (0.1 / 365)))
+    const expectedRpDaily = BigInt(
+      Math.round(100_000_000 * RentSavingsCalculatorEngine.getEffectiveDailyRate(0.1)),
+    )
     expect(rpTx.type).toBe('YIELD_ACCRUAL')
     expect(rpTx.principalDeltaKobo).toBe(0n)
     expect(rpTx.yieldDeltaKobo).toBe(expectedRpDaily)
     expect(rpTx.narration).toContain('10.0% p.a.')
 
-    // 2. Customer Liability Ledger: Save & Earn earns 16% daily
+    // 2. Customer Liability Ledger: Save & Earn earns 16% effective p.a. compounded daily
     const seTx = customerTxs.find((t) => t.vaultId === 2)
-    const expectedSeDaily = BigInt(Math.round(100_000_000 * (0.16 / 365)))
+    const expectedSeDaily = BigInt(
+      Math.round(100_000_000 * RentSavingsCalculatorEngine.getEffectiveDailyRate(0.16)),
+    )
     expect(seTx.yieldDeltaKobo).toBe(expectedSeDaily)
     expect(seTx.narration).toContain('16.0% p.a.')
 
