@@ -41,7 +41,16 @@ export interface CompletedPayment {
   paystack_reference: string
   company_name: string
   type?: 'debit' | 'credit'
-  transactionType?: 'PAYMENT' | 'FUTURE_CREDIT'
+  transactionType?:
+    | 'PAYMENT'
+    | 'FUTURE_CREDIT'
+    | 'SAVINGS_DEPOSIT'
+    | 'SAVINGS_YIELD'
+    | 'SAVINGS_CASHBACK'
+    | 'SAVINGS_SETTLEMENT'
+    | 'SAVINGS_WITHDRAWAL'
+    | 'SAVINGS'
+  source?: string
   property_address?: string
   lineItems?: any[]
   isManual?: boolean

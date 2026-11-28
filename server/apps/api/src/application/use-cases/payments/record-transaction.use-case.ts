@@ -249,6 +249,13 @@ export class RecordTransactionUseCase {
           const p = await txClient.upward_user_property.findUnique({ where: { uuid: data.userPropertyUuid } })
           propertyId = p?.id
         }
+        if (!propertyId && user?.id && data.type === 'RENT') {
+          const fallbackProp = await txClient.upward_user_property.findFirst({
+            where: { userId: user.id, isPastTenancy: false },
+            orderBy: { createdAt: 'desc' },
+          })
+          propertyId = fallbackProp?.id
+        }
 
         const benefitsAllocated = (distribution.allocatedItems || []).reduce((sum: number, item: any) => {
           if (item?.name === 'Upward Benefits') {

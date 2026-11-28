@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 import { type UserProfile } from '@/features/auth/types'
 import { type PendingPayment, type CompletedPayment } from '../types'
-import { useRentVault } from '@/features/savings/hooks/useRentSavings'
+import { useRentVault, useSavingsOnboardingPrefill } from '@/features/savings/hooks/useRentSavings'
 import { useSavingsInterest } from '@/features/savings/context/SavingsInterestContext'
 import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
 import { formatCurrency, formatDate, formatTime } from '@/lib/utils'
@@ -27,6 +27,7 @@ import { hasRentalInfo } from '../utils/profileCompletion'
 import { useHasMyHome, type GtActivityBill } from '@/features/my-home/hooks/useMyHome'
 import type { TenantOrderSummaryDto, UserGoal } from '@/features/goals'
 import { AppleIcon, PlayStoreIcon } from '@/components/StoreIcons'
+import { isProofUnderReview } from './payment/propertyPayDisplay'
 
 interface HousingFirstHomeProps {
   user: UserProfile
@@ -204,7 +205,11 @@ export function HousingFirstHome({
     openSavingsInterestModal,
   } = useSavingsInterest()
   const { data: vault } = useRentVault(!isSavingsDisabled)
+  const { data: savingsPrefill } = useSavingsOnboardingPrefill(!isSavingsDisabled && !vault)
   const { data: userGoals } = useUserGoals()
+
+  const availableCashbackNgn = Math.round(savingsPrefill?.available_cashback_ngn || 0)
+  const hasWaitingCashback = !isSavingsDisabled && availableCashbackNgn > 0
 
   const handleOpenRentSavings = () => {
     if (ratesLoading) return
@@ -358,22 +363,56 @@ export function HousingFirstHome({
   )
   const nextPendingPayment =
     pendingPayments && pendingPayments.length > 0 ? pendingPayments[0] : null
-  const recentPayments = completedPayments.slice(0, 4)
+  const incompleteRentPayment =
+    pendingPayments.find((p) => {
+      if ((p as { type?: string }).type === 'refund_alert') return false
+      if (isProofUnderReview(p)) return false
+      const paid = Number(p.amountPaid || 0)
+      const total = Number(p.total_amount || 0)
+      return (p.status === 'PARTIAL' || paid > 0) && total > paid
+    }) ?? null
+  const incompleteRentPaid = incompleteRentPayment ? Number(incompleteRentPayment.amountPaid || 0) : 0
+  const incompleteRentTotal = incompleteRentPayment ? Number(incompleteRentPayment.total_amount || 0) : 0
+  const incompleteRentRemaining = Math.max(0, incompleteRentTotal - incompleteRentPaid)
+  const incompleteRentPct =
+    incompleteRentTotal > 0
+      ? Math.min(100, Math.round((incompleteRentPaid / incompleteRentTotal) * 100))
+      : 0
+  const incompleteRentDueLabel = (() => {
+    const raw = incompleteRentPayment?.due_date || incompleteRentPayment?.dueDate
+    if (!raw) return ''
+    const d = new Date(raw)
+    if (Number.isNaN(d.getTime())) return ''
+    return `Due ${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`
+  })()
+  const recentPayments = completedPayments
+    .filter((tx) => {
+      const s = String(tx.status || '').toUpperCase()
+      return !s || s === 'SUCCESS' || s === 'PAID' || s === 'COMPLETED' || s === 'SETTLED'
+    })
+    .slice(0, 4)
   const pendingGtBillsCount = (gtBillsCount ?? 0) || gtBills.length
 
   // Secondary housing rows. Pinned rows remain visible on the collapsed minimal card.
   const housingRows: HousingRow[] = [
-    {
-      key: 'pay-rent',
-      icon: <CreditCard size={16} strokeWidth={2} />,
-      title: 'Pay my rent now',
-      badge: pendingPaymentsCount > 0 ? `${pendingPaymentsCount} due` : undefined,
-      desc: nextPendingPayment
-        ? `${formatCurrency(nextPendingPayment.total_amount, 'NGN')} due · Instant receipt`
-        : 'Make my rent payment through Upward.',
-      href: '/dashboard/pay-rent',
-      pinned: true,
-    },
+    ...(!incompleteRentPayment || pendingPaymentsCount > 1
+      ? [
+          {
+            key: 'pay-rent',
+            icon: <CreditCard size={16} strokeWidth={2} />,
+            title: 'Pay my rent now',
+            badge: pendingPaymentsCount > 0 ? `${pendingPaymentsCount} due` : undefined,
+            desc: nextPendingPayment
+              ? `${formatCurrency(
+                  Math.max(0, nextPendingPayment.total_amount - (nextPendingPayment.amountPaid || 0)),
+                  'NGN',
+                )} due · Instant receipt`
+              : 'Make my rent payment through Upward.',
+            href: '/dashboard/pay-rent',
+            pinned: true,
+          },
+        ]
+      : []),
     ...(hasMyHome
       ? [
           {
@@ -450,8 +489,43 @@ export function HousingFirstHome({
           </div>
 
           <div className="housing-acc__body">
-            {/* Primary: rent savings traction (State B) or the save-rent goal (State A) */}
-            {hasStartedSaving ? (
+            {/* Primary: Incomplete rent balance takes #1 priority over starting a new savings plan */}
+            {incompleteRentPayment ? (
+              <button
+                type="button"
+                className="vault-card"
+                onClick={() =>
+                  router.push(
+                    `/dashboard/pay-rent?paymentUuid=${encodeURIComponent(incompleteRentPayment.uuid)}`,
+                  )
+                }
+              >
+                <div className="vault-card__top">
+                  <div>
+                    <span className="vault-card__amount">
+                      {formatCurrency(incompleteRentRemaining, incompleteRentPayment.currency || 'NGN')}{' '}
+                      left
+                    </span>
+                    <span className="vault-card__target">
+                      {' '}of {formatCurrency(incompleteRentTotal, incompleteRentPayment.currency || 'NGN')}
+                    </span>
+                  </div>
+                  <span className="vault-card__pct">{incompleteRentPct}% paid</span>
+                </div>
+                <div className="vault-card__track">
+                  <div className="vault-card__fill" style={{ width: `${incompleteRentPct}%` }} />
+                </div>
+                <p className="vault-card__meta">
+                  {[
+                    `Paid ${formatCurrency(incompleteRentPaid, incompleteRentPayment.currency || 'NGN')}`,
+                    incompleteRentDueLabel,
+                    'Pay remaining balance →',
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </p>
+              </button>
+            ) : hasStartedSaving ? (
               <button
                 type="button"
                 className="vault-card"
@@ -487,17 +561,25 @@ export function HousingFirstHome({
                         : interestStatus?.campaign?.can_win_cashback !== false
                           ? `GET ${formatCurrency(interestStatus?.campaign?.reward_amount_ngn ?? 3000, 'NGN')} BONUS`
                           : 'COMING SOON'
-                      : vault?.is_rent_protec
-                        ? 'RENT PROTEC • PROTECTED'
-                        : 'SAVE RENT'}
+                      : hasWaitingCashback
+                        ? 'CASHBACK REWARD'
+                        : vault?.is_rent_protec
+                          ? 'RENT PROTEC • PROTECTED'
+                          : 'SAVE RENT'}
                   </span>
-                  <h3 className="housing-goal-card__title">Pay less for my next rent</h3>
+                  <h3 className="housing-goal-card__title">
+                    {hasWaitingCashback
+                      ? `Claim your ${formatCurrency(availableCashbackNgn, 'NGN')} cashback`
+                      : 'Pay less for my next rent'}
+                  </h3>
                   <p className="housing-goal-card__desc">
                     {isSavingsDisabled
                       ? hasReservedCashback
                         ? `Your ${formatCurrency(reservedCashbackNgn, 'NGN')} bonus is waiting for when Rent Savings opens.`
                         : 'Launching soon — tap to grab a bonus towards your next rent.'
-                      : 'Build up savings towards my upcoming rent.'}
+                      : hasWaitingCashback
+                        ? 'Add it to your next rent savings plan.'
+                        : 'Build up savings towards my upcoming rent.'}
                   </p>
                 </div>
                 <ChevronRight size={18} color="#ffffff" style={{ flexShrink: 0 }} />
@@ -626,12 +708,37 @@ export function HousingFirstHome({
             <div className="housing-recent__list">
               {recentPayments.map((tx) => {
                 const isCredit = tx.type === 'credit'
+                const isSavingsLedgerOnly =
+                  tx.transactionType === 'SAVINGS_YIELD' ||
+                  tx.transactionType === 'SAVINGS_CASHBACK' ||
+                  tx.transactionType === 'SAVINGS_WITHDRAWAL'
+                const cleanTitle =
+                  tx.transactionType === 'SAVINGS_SETTLEMENT'
+                    ? 'Rent Paid from Savings'
+                    : tx.transactionType === 'SAVINGS_CASHBACK'
+                      ? 'Rent Savings Cashback'
+                      : tx.transactionType === 'SAVINGS_DEPOSIT'
+                        ? 'Rent Savings Deposit'
+                        : tx.transactionType === 'SAVINGS_YIELD'
+                          ? 'Daily Interest'
+                          : (tx.company_name || 'Rent Payment').split(' — ')[0]
+                const compactDate = (() => {
+                  const d = new Date(tx.paid_at)
+                  if (Number.isNaN(d.getTime())) return formatDate(tx.paid_at)
+                  return `${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}, ${formatTime(tx.paid_at)}`
+                })()
                 return (
                   <button
                     key={tx.uuid}
                     type="button"
                     className="housing-recent__item"
-                    onClick={() => router.push(`/dashboard/receipts?id=${tx.uuid}`)}
+                    onClick={() =>
+                      router.push(
+                        isSavingsLedgerOnly
+                          ? '/dashboard/transactions'
+                          : `/dashboard/receipts?id=${tx.uuid}`,
+                      )
+                    }
                   >
                     <span
                       className={`housing-recent__icon ${
@@ -641,9 +748,9 @@ export function HousingFirstHome({
                       {isCredit ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
                     </span>
                     <span className="housing-recent__info">
-                      <div className="housing-recent__name">{tx.company_name}</div>
+                      <div className="housing-recent__name">{cleanTitle}</div>
                       <div className="housing-recent__meta">
-                        {tx.channel || 'Paystack'} · {formatDate(tx.paid_at)} · {formatTime(tx.paid_at)}
+                        {tx.channel || 'Paystack'} · {compactDate}
                       </div>
                     </span>
                     <span

@@ -4,7 +4,7 @@ describe('RentSavingsCalculatorEngine', () => {
   const baseDate = new Date('2026-01-01T00:00:00Z')
 
   describe('Work-Backwards Runway Calculations', () => {
-    it('M-03: should calculate 11-month runway (330 days) with T-30 release for ₦2.4M target', () => {
+    it('M-03: should calculate 11-month runway (335 calendar days) with T-30 release for ₦2.4M target', () => {
       const dueDate = new Date('2027-01-01T00:00:00Z') // 365 days
       const targetAmountKobo = 240_000_000n // ₦2,400,000
 
@@ -16,7 +16,7 @@ describe('RentSavingsCalculatorEngine', () => {
         asOfDate: baseDate,
       })
 
-      expect(monthlyRes.daysRemaining).toBe(330)
+      expect(monthlyRes.daysRemaining).toBe(335)
       expect(monthlyRes.numberOfPayments).toBe(11)
       // Expect periodic deposit to be around ₦200k - ₦215k
       expect(Number(monthlyRes.periodicDepositKobo)).toBeGreaterThan(19_500_000)
@@ -33,14 +33,14 @@ describe('RentSavingsCalculatorEngine', () => {
       expect(Number(weeklyRes.periodicDepositKobo)).toBeGreaterThan(4_500_000)
       expect(Number(weeklyRes.periodicDepositKobo)).toBeLessThan(5_500_000)
 
-      // Daily option (330 payments)
+      // Daily option (335 exact calendar days)
       const dailyRes = RentSavingsCalculatorEngine.simulate({
         targetAmountKobo,
         contractualDueDate: dueDate,
         cadence: 'DAILY',
         asOfDate: baseDate,
       })
-      expect(dailyRes.numberOfPayments).toBe(330)
+      expect(dailyRes.numberOfPayments).toBe(335)
       expect(Number(dailyRes.periodicDepositKobo)).toBeGreaterThan(600_000)
       expect(Number(dailyRes.periodicDepositKobo)).toBeLessThan(750_000)
     })
@@ -162,12 +162,11 @@ describe('RentSavingsCalculatorEngine', () => {
   })
 
   describe('M-08: Daily Compounding Yield', () => {
-    it('should calculate daily interest accurately at 16.0% p.a.', () => {
+    it('should calculate daily interest accurately at 16.0% effective p.a.', () => {
       const balanceKobo = 100_000_000n // ₦1,000,000
       const dailyInterest = RentSavingsCalculatorEngine.calculateDailyYield(balanceKobo)
-      // ₦1,000,000 * (0.16 / 365) = ₦438.36 => ~43,836 kobo
-      expect(Number(dailyInterest)).toBeGreaterThanOrEqual(43_000)
-      expect(Number(dailyInterest)).toBeLessThanOrEqual(45_000)
+      // Effective daily rate: (1 + 0.16)^(1/365) - 1 ≈ 0.000406713 => ₦406.71 (40,671 kobo)
+      expect(Number(dailyInterest)).toBe(40_671)
     })
   })
 

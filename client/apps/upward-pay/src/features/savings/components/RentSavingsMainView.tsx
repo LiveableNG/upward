@@ -4,12 +4,17 @@ import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   ArrowLeft,
+  ArrowRight,
   Loader2,
   ShieldCheck,
   AlertCircle,
   PiggyBank,
 } from 'lucide-react'
+import { formatCurrency } from '@/lib/utils'
 import { PayPageShell } from '@/features/dashboard/components/payment/PayPageShell'
+import { usePendingPayments } from '@/features/dashboard/hooks/useDashboard'
+import { type PendingPayment } from '@/features/dashboard/types'
+import { isProofUnderReview } from '@/features/dashboard/components/payment/propertyPayDisplay'
 import { useRentVault } from '../hooks/useRentSavings'
 import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
 import { useAuth } from '@/features/auth/AuthContext'
@@ -49,9 +54,19 @@ export function RentSavingsMainView() {
     (platformRates.savingsEnabled === false ? 'COMING_SOON' : 'LIVE')
   const shouldFetchVault = !ratesLoading && effectiveSavingsMode !== 'COMING_SOON'
   const { data: vault, isLoading, error, refetch } = useRentVault(shouldFetchVault)
+  const { data: pendingPayments = [] } = usePendingPayments()
 
   const [viewMode, setViewMode] = useState<'DASHBOARD' | 'SETTLEMENT'>('DASHBOARD')
   const [showKycModal, setShowKycModal] = useState<boolean>(false)
+  const [bypassPartialBalanceGuard, setBypassPartialBalanceGuard] = useState<boolean>(false)
+
+  const incompleteRentPayment = (pendingPayments || []).find((p: PendingPayment) => {
+    if (p?.type === 'refund_alert') return false
+    if (isProofUnderReview(p)) return false
+    const paid = Number(p?.amountPaid || 0)
+    const total = Number(p?.total_amount || 0)
+    return (p?.status === 'PARTIAL' || paid > 0) && total > paid
+  })
 
   const activeProperty = (user?.properties || []).find(
     (p: { isPastTenancy?: boolean; rentAmount?: number; rentEndDate?: string }) =>
@@ -221,6 +236,119 @@ export function RentSavingsMainView() {
   }
 
   if (!isVaultActive) {
+    if (incompleteRentPayment && !bypassPartialBalanceGuard) {
+      const paidNaira = Number(incompleteRentPayment.amountPaid || 0)
+      const totalNaira = Number(incompleteRentPayment.total_amount || 0)
+      const remainingNaira = Math.max(0, totalNaira - paidNaira)
+      const pctPaid = totalNaira > 0 ? Math.min(100, Math.round((paidNaira / totalNaira) * 100)) : 0
+      const rawDue = incompleteRentPayment.due_date || incompleteRentPayment.dueDate
+      const formattedDue = rawDue
+        ? new Date(rawDue).toLocaleDateString('en-GB', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          })
+        : null
+
+      return (
+        <PayPageShell
+          title="Complete Your Rent"
+          subtitle="Finish your current rent balance before starting a new savings plan."
+          showBack
+          onBack={() => router.push('/dashboard')}
+        >
+          <div className="rent-calculator__card" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 12,
+                  background: 'var(--clay-faint)',
+                  color: 'var(--clay)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <AlertCircle size={20} />
+              </div>
+              <div>
+                <h2 style={{ fontSize: '1.0625rem', fontWeight: 800, color: 'var(--text)', margin: 0 }}>
+                  You have a rent balance to complete
+                </h2>
+                <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', margin: '2px 0 0' }}>
+                  {formattedDue ? `Due ${formattedDue}` : 'Current rent cycle'}
+                </p>
+              </div>
+            </div>
+
+            <div className="vault-fee-breakdown">
+              <div className="vault-fee-breakdown__row">
+                <span>Already Paid</span>
+                <span style={{ fontWeight: 700, color: '#059669' }}>
+                  {formatCurrency(paidNaira, incompleteRentPayment.currency || 'NGN')}
+                </span>
+              </div>
+              <div className="vault-fee-breakdown__row">
+                <span>Total Rent</span>
+                <span style={{ fontWeight: 600 }}>
+                  {formatCurrency(totalNaira, incompleteRentPayment.currency || 'NGN')}
+                </span>
+              </div>
+              <div className="vault-fee-breakdown__row vault-fee-breakdown__row--total">
+                <span>Balance Remaining</span>
+                <span style={{ color: 'var(--clay)', fontWeight: 800 }}>
+                  {formatCurrency(remainingNaira, incompleteRentPayment.currency || 'NGN')}
+                </span>
+              </div>
+            </div>
+
+            <div>
+              <div className="vault-dashboard__progress-bar">
+                <div className="vault-dashboard__progress-fill" style={{ width: `${pctPaid}%` }} />
+              </div>
+              <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 8, lineHeight: 1.45 }}>
+                Once your {formatCurrency(remainingNaira, incompleteRentPayment.currency || 'NGN')} balance is paid, you can start saving towards next year&apos;s rent.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button
+                type="button"
+                className="vault-btn-primary"
+                onClick={() =>
+                  router.push(
+                    `/dashboard/pay-rent?paymentUuid=${encodeURIComponent(incompleteRentPayment.uuid)}`,
+                  )
+                }
+              >
+                <span>Pay Remaining {formatCurrency(remainingNaira, incompleteRentPayment.currency || 'NGN')} Now</span>
+                <ArrowRight size={17} />
+              </button>
+
+              <button
+                type="button"
+                className="vault-btn-secondary"
+                onClick={() => router.push('/dashboard')}
+              >
+                Back to Home
+              </button>
+
+              <button
+                type="button"
+                className="vault-dashboard__text-action"
+                onClick={() => setBypassPartialBalanceGuard(true)}
+              >
+                Save for a future rent cycle instead
+              </button>
+            </div>
+          </div>
+        </PayPageShell>
+      )
+    }
+
     return (
       <RentCalculatorView
         onSuccess={() => {

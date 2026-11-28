@@ -239,24 +239,44 @@ export class PaystackGateway implements IPaymentGateway {
   }): Promise<{ authorizationUrl: string; accessCode?: string; reference: string }> {
     try {
       const safeEmail = this.sanitizeEmail(data.email)
+      const sendInit = (emailToUse: string, extraMeta?: Record<string, unknown>) =>
+        fetch(`${this.baseUrl}/transaction/initialize`, {
+          method: 'POST',
+          headers: this.headers,
+          body: JSON.stringify({
+            email: emailToUse,
+            amount: Math.round(data.amount * 100), // convert to kobo
+            reference: data.reference,
+            metadata: extraMeta ? { ...(data.metadata || {}), ...extraMeta } : data.metadata,
+            subaccount: data.subaccount,
+            channels: data.channels,
+          }),
+        })
+
       this.logger.log(`Initializing transaction ${data.reference} for ${safeEmail}`)
-      const res = await fetch(`${this.baseUrl}/transaction/initialize`, {
-        method: 'POST',
-        headers: this.headers,
-        body: JSON.stringify({
-          email: safeEmail,
-          amount: Math.round(data.amount * 100), // convert to kobo
-          reference: data.reference,
-          metadata: data.metadata,
-          subaccount: data.subaccount,
-          channels: data.channels,
-        }),
-      })
+      let res = await sendInit(safeEmail)
 
       if (!res.ok) {
         const errorText = await res.text()
-        this.logger.error(`Paystack initialize error: ${res.status} - ${errorText}`)
-        throw new Error(`Gateway initialization failed: ${res.status}`)
+        const isInvalidEmailError =
+          res.status === 400 &&
+          safeEmail !== 'tenant@upward.ng' &&
+          errorText.toLowerCase().includes('email')
+
+        if (isInvalidEmailError) {
+          this.logger.warn(
+            `Paystack rejected email "${safeEmail}" for ${data.reference}; retrying with fallback tenant@upward.ng`,
+          )
+          res = await sendInit('tenant@upward.ng', { originalEmail: data.email })
+          if (!res.ok) {
+            const retryErr = await res.text()
+            this.logger.error(`Paystack initialize retry error: ${res.status} - ${retryErr}`)
+            throw new Error(`Gateway initialization failed: ${res.status}`)
+          }
+        } else {
+          this.logger.error(`Paystack initialize error: ${res.status} - ${errorText}`)
+          throw new Error(`Gateway initialization failed: ${res.status}`)
+        }
       }
 
       const responseData = await res.json()
@@ -366,9 +386,9 @@ export class PaystackGateway implements IPaymentGateway {
     phone?: string
   }): Promise<string> {
     try {
-      const safeEmail = this.sanitizeEmail(data.email)
+      let safeEmail = this.sanitizeEmail(data.email)
       this.logger.log(`Creating Paystack customer: ${safeEmail}`)
-      const res = await fetch(`${this.baseUrl}/customer`, {
+      let res = await fetch(`${this.baseUrl}/customer`, {
         method: 'POST',
         headers: this.headers,
         body: JSON.stringify({
@@ -382,7 +402,33 @@ export class PaystackGateway implements IPaymentGateway {
         }),
       })
 
-      const responseData = await res.json()
+      let responseData = await res.json()
+      if (
+        !res.ok &&
+        res.status === 400 &&
+        safeEmail !== 'tenant@upward.ng' &&
+        String(responseData?.message || '').toLowerCase().includes('email')
+      ) {
+        this.logger.warn(
+          `Paystack rejected customer email "${safeEmail}"; retrying with fallback tenant@upward.ng`,
+        )
+        safeEmail = 'tenant@upward.ng'
+        res = await fetch(`${this.baseUrl}/customer`, {
+          method: 'POST',
+          headers: this.headers,
+          body: JSON.stringify({
+            email: safeEmail,
+            first_name: data.firstName,
+            last_name: data.lastName,
+            phone: data.phone,
+            metadata: {
+              source_app: 'upward',
+              originalEmail: data.email,
+            },
+          }),
+        })
+        responseData = await res.json()
+      }
       let customerCode = ''
       if (res.ok) {
         customerCode = responseData.data.customer_code

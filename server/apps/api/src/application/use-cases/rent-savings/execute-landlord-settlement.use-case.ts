@@ -141,11 +141,22 @@ export class ExecuteLandlordSettlementUseCase {
       }
     }
 
-    // Calculate gamified cashback
-    const cashbackResult = RentSavingsCalculatorEngine.calculateCashback(
-      vault.targetAmountKobo,
-      daysRemaining,
-    )
+    // Cap landlord disbursement at target rent so any excess returns to the tenant's wallet,
+    // and track any shortfall when savings only partially cover the target rent.
+    const amountPaidToLandlordKobo =
+      amountToDisburse > vault.targetAmountKobo ? vault.targetAmountKobo : amountToDisburse
+    const surplusToWalletKobo =
+      amountToDisburse > vault.targetAmountKobo ? amountToDisburse - vault.targetAmountKobo : 0n
+    const remainingBalanceKobo =
+      vault.targetAmountKobo > amountPaidToLandlordKobo
+        ? vault.targetAmountKobo - amountPaidToLandlordKobo
+        : 0n
+    const isPartialSettlement = remainingBalanceKobo > 0n
+
+    // Only credit full early-bird cashback when the rent target is fully settled
+    const cashbackResult = isPartialSettlement
+      ? { cashbackKobo: 0n, earlyBirdApplied: false, percentageRate: 0 }
+      : RentSavingsCalculatorEngine.calculateCashback(vault.targetAmountKobo, daysRemaining)
     const cashbackCreditedKobo = cashbackResult.cashbackKobo
 
     const settlementReference = `UPW_SETTLE_${Date.now()}`
@@ -155,6 +166,7 @@ export class ExecuteLandlordSettlementUseCase {
 
     let armWithdrawalId: string | null = null
     let armTransactionId: string | null = null
+    let balancePaymentRequestUuid: string | null = null
     let queuedArmJob: {
       id: number
       uuid: string
@@ -201,7 +213,7 @@ export class ExecuteLandlordSettlementUseCase {
             landlordAccountNumber: dto.landlord_account_number,
             landlordName: dto.landlord_name,
             propertyAddress: dto.property_address || null,
-            amountPaidToLandlordKobo: amountToDisburse,
+            amountPaidToLandlordKobo,
             cashbackCreditedKobo,
             earlyBirdMultiplierApplied: cashbackResult.earlyBirdApplied,
             nipSessionId,
@@ -219,18 +231,24 @@ export class ExecuteLandlordSettlementUseCase {
             vaultId: vault.id,
             userId,
             type: 'SETTLEMENT_DISBURSEMENT',
-            amountKobo: amountToDisburse,
+            amountKobo: amountPaidToLandlordKobo,
             principalDeltaKobo: -freshVault.currentPrincipalKobo,
             yieldDeltaKobo: -freshVault.accruedYieldKobo,
             balanceAfterKobo: 0n,
             reference: settlementReference,
             channel: 'NIP_TRANSFER',
-            narration: `Rent settlement payout to landlord ${dto.landlord_name}`,
+            narration: isPartialSettlement
+              ? `Partial rent payment to ${dto.landlord_name} (₦${(Number(remainingBalanceKobo) / 100).toLocaleString()} balance remaining)`
+              : `Rent settlement payout to landlord ${dto.landlord_name}`,
             metadata: {
               landlordName: dto.landlord_name,
               bankCode: dto.landlord_bank_code,
               accountNumber: dto.landlord_account_number,
               nipSessionId,
+              isPartialSettlement,
+              targetRentKobo: vault.targetAmountKobo.toString(),
+              remainingBalanceKobo: remainingBalanceKobo.toString(),
+              surplusToWalletKobo: surplusToWalletKobo.toString(),
               armSyncStatus: freshVault.investmentProvider ? 'QUEUED' : 'NOT_APPLICABLE',
               ...(armTransactionId ? { armTransactionId } : {}),
             },
@@ -265,6 +283,208 @@ export class ExecuteLandlordSettlementUseCase {
           },
           tx,
         )
+
+        // Maintain/advance a rental profile for both GoodTenants and non-GoodTenants savers
+        // so repeat savers always have their rent amount, landlord account, and next due date tracked.
+        if (tx.upward_user_property) {
+          const targetNairaForProp = Number(vault.targetAmountKobo) / 100
+          const paidNairaForProp = Number(amountPaidToLandlordKobo) / 100
+          const activePropForCycle = await tx.upward_user_property
+            .findFirst({
+              where: { userId, isPastTenancy: false },
+              orderBy: { createdAt: 'desc' },
+            })
+            .catch(() => null)
+
+          if (activePropForCycle && !isPartialSettlement && activePropForCycle.rentEndDate) {
+            const prevEnd = new Date(activePropForCycle.rentEndDate)
+            const nextEnd = new Date(prevEnd)
+            nextEnd.setUTCFullYear(nextEnd.getUTCFullYear() + 1)
+            await tx.upward_user_property
+              .update({
+                where: { id: activePropForCycle.id },
+                data: {
+                  rentStartDate: prevEnd,
+                  rentEndDate: nextEnd,
+                  amountPaid: 0,
+                  amountRemaining: activePropForCycle.rentAmount,
+                },
+              })
+              .catch(() => {})
+          } else if (!activePropForCycle) {
+            try {
+              let locationId: number | null = null
+              if (dto.property_address && tx.upward_location) {
+                const loc = await tx.upward_location.create({
+                  data: {
+                    country: 'Nigeria',
+                    state: 'Lagos',
+                    area: 'Lagos',
+                    address: dto.property_address,
+                  },
+                })
+                locationId = loc.id
+              }
+
+              let manualAccountId: number | null = null
+              if (dto.landlord_account_number && tx.upward_manual_account) {
+                const existingAcc = await tx.upward_manual_account.findFirst({
+                  where: {
+                    accountNumber: dto.landlord_account_number,
+                    bankCode: dto.landlord_bank_code,
+                  },
+                })
+                if (existingAcc) {
+                  manualAccountId = existingAcc.id
+                } else {
+                  const createdAcc = await tx.upward_manual_account.create({
+                    data: {
+                      accountNumber: dto.landlord_account_number,
+                      accountName: dto.landlord_name,
+                      bankName: dto.landlord_bank_code,
+                      bankCode: dto.landlord_bank_code,
+                    },
+                  })
+                  manualAccountId = createdAcc.id
+                }
+              }
+
+              const nextEnd = new Date(vault.contractualDueDate)
+              if (!isPartialSettlement) {
+                nextEnd.setUTCFullYear(nextEnd.getUTCFullYear() + 1)
+              }
+
+              await tx.upward_user_property.create({
+                data: {
+                  userId,
+                  locationId,
+                  manualAccountId,
+                  rentAmount: targetNairaForProp,
+                  currency: 'NGN',
+                  rentStartDate: isPartialSettlement ? null : vault.contractualDueDate,
+                  rentEndDate: nextEnd,
+                  amountPaid: isPartialSettlement ? paidNairaForProp : 0,
+                  amountRemaining: isPartialSettlement
+                    ? Math.max(0, targetNairaForProp - paidNairaForProp)
+                    : targetNairaForProp,
+                  isPastTenancy: false,
+                  rentType: 'Annually',
+                },
+              })
+            } catch {
+              // Non-blocking rental continuity record
+            }
+          }
+        }
+
+        // When savings only partially covered the target rent, create/update a PARTIAL payment request
+        // so completing the remaining rent balance becomes the user's immediate next action.
+        if (isPartialSettlement) {
+          const targetNaira = Number(vault.targetAmountKobo) / 100
+          const paidNaira = Number(amountPaidToLandlordKobo) / 100
+          const remainingNaira = Math.max(0, targetNaira - paidNaira)
+
+          const activeProperty = tx.upward_user_property
+            ? await tx.upward_user_property
+                .findFirst({
+                  where: { userId, isPastTenancy: false },
+                  include: { location: true },
+                  orderBy: { createdAt: 'desc' },
+                })
+                .catch(() => null)
+            : null
+
+          const existingOpenPr =
+            tx.upward_payment_request && activeProperty
+              ? await tx.upward_payment_request
+                  .findFirst({
+                    where: {
+                      userId,
+                      userPropertyId: activeProperty.id,
+                      status: { in: ['PENDING', 'PARTIAL'] },
+                    },
+                    include: { lineItemRecords: true },
+                    orderBy: { createdAt: 'desc' },
+                  })
+                  .catch(() => null)
+              : null
+
+          if (existingOpenPr) {
+            const nextPaid = Math.min(existingOpenPr.amount, (existingOpenPr.amountPaid || 0) + paidNaira)
+            const nextStatus = nextPaid >= existingOpenPr.amount ? 'PAID' : 'PARTIAL'
+            await tx.upward_payment_request.update({
+              where: { id: existingOpenPr.id },
+              data: {
+                amountPaid: nextPaid,
+                status: nextStatus,
+                allowPartial: true,
+                ...(nextStatus === 'PAID' ? { paidAt: now } : {}),
+              },
+            })
+            const rentLine = existingOpenPr.lineItemRecords?.find(
+              (li: any) => !['Processing Fee', 'Transaction Fee', 'Upward Benefits'].includes(li.name),
+            )
+            if (rentLine && tx.upward_payment_line_item) {
+              const lineNextPaid = Math.min(rentLine.totalAmount, (rentLine.amountPaid || 0) + paidNaira)
+              await tx.upward_payment_line_item.update({
+                where: { id: rentLine.id },
+                data: {
+                  amountPaid: lineNextPaid,
+                  status: lineNextPaid >= rentLine.totalAmount ? 'PAID' : 'PARTIAL',
+                },
+              })
+            }
+            balancePaymentRequestUuid = existingOpenPr.uuid
+          } else if (tx.upward_payment_request) {
+            const createdPr = await tx.upward_payment_request.create({
+              data: {
+                userId,
+                userPropertyId: activeProperty?.id ?? null,
+                amount: targetNaira,
+                amountPaid: paidNaira,
+                currency: 'NGN',
+                description: `Rent Balance — ${dto.property_address || activeProperty?.location?.address || dto.landlord_name}`,
+                dueDate: vault.contractualDueDate,
+                rentEndDate: vault.contractualDueDate,
+                status: 'PARTIAL',
+                allowPartial: true,
+                isManual: true,
+                reference: `BAL_${settlementReference}`,
+                subaccountId: activeProperty?.subaccountId ?? null,
+                manualAccountId: activeProperty?.manualAccountId ?? null,
+              },
+            })
+            if (tx.upward_payment_line_item) {
+              await tx.upward_payment_line_item.create({
+                data: {
+                  paymentRequestId: createdPr.id,
+                  name: 'Rent',
+                  totalAmount: targetNaira,
+                  amountPaid: paidNaira,
+                  status: 'PARTIAL',
+                  sortOrder: 0,
+                },
+              })
+            }
+            balancePaymentRequestUuid = createdPr.uuid
+          }
+
+          if (tx.upward_notification) {
+            await tx.upward_notification
+              .create({
+                data: {
+                  userId,
+                  title: 'Complete Your Rent Payment',
+                  message: `You paid ₦${paidNaira.toLocaleString()} from Rent Savings. Pay the remaining ₦${remainingNaira.toLocaleString()} to finish your rent.`,
+                  type: 'PAYMENT',
+                  url: balancePaymentRequestUuid
+                    ? `/dashboard/pay-rent?paymentUuid=${balancePaymentRequestUuid}`
+                    : '/dashboard/pay-rent',
+                },
+              })
+              .catch(() => {})
+          }
+        }
 
         if (freshVault.investmentProvider && armTransactionId) {
           const createdJob = await tx.upward_arm_job.create({
@@ -345,7 +565,7 @@ export class ExecuteLandlordSettlementUseCase {
         landlordAccountNumber: dto.landlord_account_number,
         landlordName: dto.landlord_name,
         propertyAddress: dto.property_address || null,
-        amountPaidToLandlordKobo: amountToDisburse,
+        amountPaidToLandlordKobo,
         cashbackCreditedKobo,
         earlyBirdMultiplierApplied: cashbackResult.earlyBirdApplied,
         nipSessionId,
@@ -360,18 +580,24 @@ export class ExecuteLandlordSettlementUseCase {
         vaultId: vault.id,
         userId,
         type: 'SETTLEMENT_DISBURSEMENT',
-        amountKobo: amountToDisburse,
+        amountKobo: amountPaidToLandlordKobo,
         principalDeltaKobo: -vault.currentPrincipalKobo,
         yieldDeltaKobo: -vault.accruedYieldKobo,
         balanceAfterKobo: 0n,
         reference: settlementReference,
         channel: 'NIP_TRANSFER',
-        narration: `Rent settlement payout to landlord ${dto.landlord_name}`,
+        narration: isPartialSettlement
+          ? `Partial rent payment to ${dto.landlord_name} (₦${(Number(remainingBalanceKobo) / 100).toLocaleString()} balance remaining)`
+          : `Rent settlement payout to landlord ${dto.landlord_name}`,
         metadata: {
           landlordName: dto.landlord_name,
           bankCode: dto.landlord_bank_code,
           accountNumber: dto.landlord_account_number,
           nipSessionId,
+          isPartialSettlement,
+          targetRentKobo: vault.targetAmountKobo.toString(),
+          remainingBalanceKobo: remainingBalanceKobo.toString(),
+          surplusToWalletKobo: surplusToWalletKobo.toString(),
           armWithdrawalId,
           ...(armTransactionId ? { armTransactionId } : {}),
         },
@@ -435,16 +661,19 @@ export class ExecuteLandlordSettlementUseCase {
         .catch(() => {})
     }
 
-    // Award completion points to savings score (+15 points)
+    // Award completion points to savings score (+15 points for full settlement, +5 for partial)
+    const scoreDelta = isPartialSettlement ? 5 : 15
     const currentScore = await this.rentVaultRepo.findSavingsScoreByVaultId(vault.id)
-    const newScore = Math.min(100, (currentScore?.totalScore || 20) + 15)
+    const newScore = Math.min(100, (currentScore?.totalScore || 20) + scoreDelta)
     await this.rentVaultRepo.upsertSavingsScore(vault.id, userId, {
       totalScore: newScore,
       historyLog: [
         ...(currentScore?.historyLog || []),
         {
-          reason: 'Vault successfully settled to landlord',
-          delta: 15,
+          reason: isPartialSettlement
+            ? 'Partial rent payout sent to landlord'
+            : 'Vault successfully settled to landlord',
+          delta: scoreDelta,
           timestamp: now.toISOString(),
         },
       ],
@@ -455,13 +684,18 @@ export class ExecuteLandlordSettlementUseCase {
       data: {
         settlement_reference: settlementReference,
         nip_session_id: nipSessionId,
-        amount_paid_to_landlord_kobo: Number(amountToDisburse),
+        amount_paid_to_landlord_kobo: Number(amountPaidToLandlordKobo),
+        target_rent_kobo: Number(vault.targetAmountKobo),
+        remaining_balance_kobo: Number(remainingBalanceKobo),
+        surplus_to_wallet_kobo: Number(surplusToWalletKobo),
+        is_partial_settlement: isPartialSettlement,
+        balance_payment_request_uuid: balancePaymentRequestUuid,
         cashback_credited_kobo: Number(cashbackCreditedKobo),
         early_bird_bonus_applied: cashbackResult.earlyBirdApplied,
         settlement_status: settlementStatus,
         receipt_download_url: receiptDownloadUrl,
         sms_alert_dispatched: true,
-        upward_score_delta: '+15 Points',
+        upward_score_delta: `+${scoreDelta} Points`,
       },
     }
   }

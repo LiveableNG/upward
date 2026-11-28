@@ -31,6 +31,83 @@ export class GetPendingPaymentsUseCase {
     const pending = await this.paymentRequestRepo.findByUserIdAndStatus(user.id!, 'PENDING')
     const partial = await this.paymentRequestRepo.findByUserIdAndStatus(user.id!, 'PARTIAL')
 
+    // Safety net: if a user recently settled a Rent Savings vault for less than their target rent
+    // (before partial-balance PR creation was added), idempotently ensure a PARTIAL payment request
+    // exists so completing the remaining balance is immediately surfaced on Home & Pay Rent.
+    if (this.prisma.upward_rent_settlement) {
+      try {
+        const recentSettlement = await this.prisma.upward_rent_settlement.findFirst({
+          where: { userId: user.id! },
+          include: { vault: true },
+          orderBy: { createdAt: 'desc' },
+        })
+        if (
+          recentSettlement?.vault &&
+          recentSettlement.vault.lockStatus === 'SETTLED' &&
+          recentSettlement.amountPaidToLandlordKobo > 0n &&
+          recentSettlement.vault.targetAmountKobo > recentSettlement.amountPaidToLandlordKobo
+        ) {
+          const balRef = `BAL_${recentSettlement.settlementReference}`
+          const alreadyTracked = await this.prisma.upward_payment_request.findFirst({
+            where: {
+              userId: user.id!,
+              OR: [
+                { reference: balRef },
+                {
+                  createdAt: { gte: recentSettlement.createdAt },
+                  status: { in: ['PARTIAL', 'PAID'] },
+                },
+              ],
+            },
+          })
+          if (!alreadyTracked) {
+            const activeProperty = await this.prisma.upward_user_property.findFirst({
+              where: { userId: user.id!, isPastTenancy: false },
+              include: { location: true },
+              orderBy: { createdAt: 'desc' },
+            })
+            const targetNaira = Number(recentSettlement.vault.targetAmountKobo) / 100
+            const paidNaira = Number(recentSettlement.amountPaidToLandlordKobo) / 100
+            const createdPr = await this.prisma.upward_payment_request.create({
+              data: {
+                userId: user.id!,
+                userPropertyId: activeProperty?.id ?? null,
+                amount: targetNaira,
+                amountPaid: paidNaira,
+                currency: 'NGN',
+                description: `Rent Balance — ${recentSettlement.propertyAddress || activeProperty?.location?.address || recentSettlement.landlordName}`,
+                dueDate: recentSettlement.vault.contractualDueDate,
+                rentEndDate: recentSettlement.vault.contractualDueDate,
+                status: 'PARTIAL',
+                allowPartial: true,
+                isManual: true,
+                reference: balRef,
+                subaccountId: activeProperty?.subaccountId ?? null,
+                manualAccountId: activeProperty?.manualAccountId ?? null,
+              },
+            })
+            await this.prisma.upward_payment_line_item.create({
+              data: {
+                paymentRequestId: createdPr.id,
+                name: 'Rent',
+                totalAmount: targetNaira,
+                amountPaid: paidNaira,
+                status: 'PARTIAL',
+                sortOrder: 0,
+              },
+            })
+            const refreshedPartial = await this.paymentRequestRepo.findByUserIdAndStatus(
+              user.id!,
+              'PARTIAL',
+            )
+            partial.splice(0, partial.length, ...refreshedPartial)
+          }
+        }
+      } catch {
+        // Non-blocking safety net
+      }
+    }
+
     // Fetch Refund Alerts
     const refundAlerts = await this.prisma.upward_transaction.findMany({
       where: { userId: user.id!, settlementStatus: 'PENDING_REFUND' } as any,

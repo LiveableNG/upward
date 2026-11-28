@@ -476,6 +476,8 @@ export default function PayRentPage() {
       {step === 'payment-method' && (
         <StepPaymentMethod
           amount={payAmount}
+          totalInvoiceAmount={requestedAmount}
+          amountPaidAlready={totalPaidAlready}
           processing={processing || cancelling}
           bankTransferDisabled={!canBankTransfer}
           bankTransferDisabledReason={

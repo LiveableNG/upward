@@ -12,6 +12,7 @@ import { USER_REPOSITORY, UserRepository } from '../../../domains/users/user.rep
 import { ResolveDedicatedAccountUseCase } from './resolve-dedicated-account.use-case'
 import { PaymentConfigurationService } from '../../../shared/infrastructure/common/payment-config.service'
 import { PrismaService } from '../../../shared/infrastructure/prisma/prisma.service'
+import { isProductionRuntime } from '../../../shared/utils/runtime-env'
 
 @Injectable()
 export class InitializePaymentUseCase {
@@ -226,12 +227,14 @@ export class InitializePaymentUseCase {
     }
     this.logger.log(`Paystack Initialization for PR ${pr?.uuid || 'manual'}: Amount ${finalAmountToPay}, LineItems: ${JSON.stringify(metadata.lineItems || [])}`)
 
+    const allowCardChannel =
+      isBenefitsOnly || !isProductionRuntime(process.env.PAYSTACK_SECRET_KEY)
     const initialization = await this.gateway.initializeTransaction({
       email: user.email!,
       amount: finalAmountToPay,
       reference: `PAY-${randomUUID()}`,
       metadata,
-      channels: isBenefitsOnly ? ['card', 'bank', 'bank_transfer', 'ussd'] : ['bank', 'bank_transfer']
+      channels: allowCardChannel ? ['card', 'bank', 'bank_transfer', 'ussd'] : ['bank', 'bank_transfer']
     })
 
     return {

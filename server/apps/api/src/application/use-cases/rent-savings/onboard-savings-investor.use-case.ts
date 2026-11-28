@@ -490,11 +490,142 @@ export class OnboardSavingsInvestorUseCase {
       ? Number(latestVault.targetAmountKobo) / 100
       : activeProp?.rentAmount || null
 
-    const effectiveDueDate = latestVault?.contractualDueDate
-      ? new Date(latestVault.contractualDueDate).toISOString().split('T')[0]
+    let effectiveDueDateObj: Date | null = latestVault?.contractualDueDate
+      ? new Date(latestVault.contractualDueDate)
       : activeProp?.rentEndDate
-        ? new Date(activeProp.rentEndDate).toISOString().split('T')[0]
+        ? new Date(activeProp.rentEndDate)
         : null
+
+    // If the latest rent cycle for this due date has already been paid in full (either via a
+    // full vault settlement or a PAID rent payment request), roll the next due date forward by 1 year.
+    if (effectiveDueDateObj && this.prisma) {
+      let cycleAlreadyPaid = false
+
+      if (latestVault?.lockStatus === 'SETTLED') {
+        const openPartialPr = this.prisma.upward_payment_request
+          ? await this.prisma.upward_payment_request
+              .findFirst({
+                where: {
+                  userId,
+                  status: { in: ['PENDING', 'PARTIAL'] },
+                },
+              })
+              .catch(() => null)
+          : null
+        if (!openPartialPr) {
+          cycleAlreadyPaid = true
+        }
+      }
+
+      if (!cycleAlreadyPaid && this.prisma.upward_payment_request) {
+        const latestPaidPr = await this.prisma.upward_payment_request
+          .findFirst({
+            where: { userId, status: 'PAID' },
+            orderBy: { paidAt: 'desc' },
+          })
+          .catch(() => null)
+        const paidCycleEnd = latestPaidPr?.rentEndDate || latestPaidPr?.dueDate
+        if (paidCycleEnd && new Date(paidCycleEnd).getTime() >= effectiveDueDateObj.getTime() - 7 * 86_400_000) {
+          cycleAlreadyPaid = true
+        }
+      }
+
+      if (cycleAlreadyPaid) {
+        const nextDue = new Date(effectiveDueDateObj)
+        nextDue.setUTCFullYear(nextDue.getUTCFullYear() + 1)
+        const nowMs = Date.now()
+        while (nextDue.getTime() <= nowMs) {
+          nextDue.setUTCFullYear(nextDue.getUTCFullYear() + 1)
+        }
+        effectiveDueDateObj = nextDue
+
+        // Ensure repeat savers who aren't on GoodTenants still have a persistent rental record
+        // with their rolled-forward next due date so Home, Pay Rent, and Savings stay in sync.
+        if (!activeProp && effectiveTargetRent && effectiveTargetRent > 0 && this.prisma.upward_user_property) {
+          try {
+            const latestSettlement = this.prisma.upward_rent_settlement
+              ? await this.prisma.upward_rent_settlement.findFirst({
+                  where: { userId },
+                  orderBy: { createdAt: 'desc' },
+                })
+              : null
+
+            let locationId: number | null = null
+            const addr =
+              latestSettlement?.propertyAddress ||
+              [
+                latestKyc?.residentialAddressNumber,
+                latestKyc?.residentialStreet,
+                latestKyc?.residentialTown,
+              ]
+                .filter(Boolean)
+                .join(', ')
+            if (addr && this.prisma.upward_location) {
+              const loc = await this.prisma.upward_location.create({
+                data: {
+                  country: 'Nigeria',
+                  state: latestKyc?.residentialState || 'Lagos',
+                  area: latestKyc?.residentialTown || 'Lagos',
+                  address: addr,
+                },
+              })
+              locationId = loc.id
+            }
+
+            let manualAccountId: number | null = null
+            if (
+              latestSettlement?.landlordAccountNumber &&
+              this.prisma.upward_manual_account
+            ) {
+              const existingAcc = await this.prisma.upward_manual_account.findFirst({
+                where: {
+                  accountNumber: latestSettlement.landlordAccountNumber,
+                  bankCode: latestSettlement.landlordBankCode,
+                },
+              })
+              if (existingAcc) {
+                manualAccountId = existingAcc.id
+              } else {
+                const createdAcc = await this.prisma.upward_manual_account.create({
+                  data: {
+                    accountNumber: latestSettlement.landlordAccountNumber,
+                    accountName: latestSettlement.landlordName,
+                    bankName: latestSettlement.landlordBankCode,
+                    bankCode: latestSettlement.landlordBankCode,
+                  },
+                })
+                manualAccountId = createdAcc.id
+              }
+            }
+
+            const prevDue = latestVault?.contractualDueDate
+              ? new Date(latestVault.contractualDueDate)
+              : new Date()
+            await this.prisma.upward_user_property.create({
+              data: {
+                userId,
+                locationId,
+                manualAccountId,
+                rentAmount: effectiveTargetRent,
+                currency: 'NGN',
+                rentStartDate: prevDue,
+                rentEndDate: effectiveDueDateObj,
+                amountPaid: 0,
+                amountRemaining: effectiveTargetRent,
+                isPastTenancy: false,
+                rentType: 'Annually',
+              },
+            })
+          } catch {
+            // Non-blocking repeat-saver continuity backfill
+          }
+        }
+      }
+    }
+
+    const effectiveDueDate = effectiveDueDateObj
+      ? effectiveDueDateObj.toISOString().split('T')[0]
+      : null
 
     const hasVerifiedBvn = !!(
       latestKyc?.status === 'VERIFIED' &&
@@ -508,6 +639,46 @@ export class OnboardSavingsInvestorUseCase {
         latestKyc?.utilityBillDocKey &&
         latestKyc?.residentialStreet,
     )
+    const isRepeatSaver = Boolean(hasCompletedArmKyc && latestVault)
+
+    // Compute any unapplied cashback waiting to kickstart the user's next Rent Savings plan
+    // (unapplied settlement cashback from a previous SETTLED vault + any RESERVED activation grant)
+    let availableCashbackKobo = 0n
+    let availableCashbackSource: 'SETTLEMENT_CASHBACK' | 'ACTIVATION_BONUS' | null = null
+    if (this.prisma) {
+      if (this.prisma.upward_rent_settlement && this.prisma.upward_rent_vault_transaction) {
+        const latestCashbackSettlement = await this.prisma.upward_rent_settlement
+          .findFirst({
+            where: { userId, cashbackCreditedKobo: { gt: 0n } },
+            orderBy: { createdAt: 'desc' },
+          })
+          .catch(() => null)
+        if (latestCashbackSettlement) {
+          const rolloverRef = `CASHBACK_ROLLOVER_${latestCashbackSettlement.settlementReference}`
+          const alreadyRolled = await this.prisma.upward_rent_vault_transaction
+            .findUnique({ where: { reference: rolloverRef } })
+            .catch(() => null)
+          if (!alreadyRolled) {
+            availableCashbackKobo += latestCashbackSettlement.cashbackCreditedKobo
+            availableCashbackSource = 'SETTLEMENT_CASHBACK'
+          }
+        }
+      }
+      if (this.prisma.upward_savings_cashback_grant) {
+        const reservedGrant = await this.prisma.upward_savings_cashback_grant
+          .findFirst({
+            where: { userId, status: 'RESERVED' },
+            orderBy: { createdAt: 'desc' },
+          })
+          .catch(() => null)
+        if (reservedGrant && reservedGrant.amountKobo > 0n) {
+          availableCashbackKobo += reservedGrant.amountKobo
+          if (!availableCashbackSource) {
+            availableCashbackSource = 'ACTIVATION_BONUS'
+          }
+        }
+      }
+    }
 
     const strictBankNameMatch =
       isProductionRuntime(process.env.PAYSTACK_SECRET_KEY) ||
@@ -520,6 +691,24 @@ export class OnboardSavingsInvestorUseCase {
         has_verified_bvn: hasVerifiedBvn,
         has_verified_nin: hasVerifiedNin,
         has_completed_arm_kyc: hasCompletedArmKyc,
+        is_repeat_saver: isRepeatSaver,
+        has_previous_vault: Boolean(latestVault),
+        available_cashback_kobo: Number(availableCashbackKobo),
+        available_cashback_ngn: Number(availableCashbackKobo) / 100,
+        available_cashback_source: availableCashbackSource,
+        previous_product_option: latestVault?.productOption || null,
+        previous_lock_mode: latestVault?.lockMode || null,
+        previous_plan_pattern: latestVault?.planPattern || null,
+        previous_payday_day: latestVault?.paydayDayOfMonth || null,
+        previous_dva: latestVault?.dvaAccountNumber
+          ? {
+              bank_name: latestVault.dvaBankName || 'Wema Bank',
+              account_number: latestVault.dvaAccountNumber,
+              account_name:
+                latestVault.dvaAccountName ||
+                `Upward / ${`${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Tenant'}`,
+            }
+          : null,
         has_signed_consent: Boolean(latestConsent),
         consent_accepted_at: latestConsent?.acceptedAt?.toISOString() || null,
         account_holder_first_name: user.firstName || null,

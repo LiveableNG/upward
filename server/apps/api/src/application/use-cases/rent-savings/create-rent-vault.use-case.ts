@@ -63,6 +63,10 @@ export class CreateRentVaultDto {
   lock_mode?: SavingsLockMode
 
   @IsOptional()
+  @IsIn(['EQUAL', 'INITIAL_DEPOSIT', 'STEP_UP', 'ACCELERATED'])
+  plan_pattern?: 'EQUAL' | 'INITIAL_DEPOSIT' | 'STEP_UP' | 'ACCELERATED'
+
+  @IsOptional()
   @IsNumber()
   @Type(() => Number)
   initial_deposit_kobo?: number
@@ -136,15 +140,22 @@ export class CreateRentVaultUseCase {
       : null
 
     const targetAmountKobo =
-      activeProperty?.rentAmount && activeProperty.rentAmount > 0
-        ? BigInt(Math.round(activeProperty.rentAmount * 100))
-        : BigInt(Math.round(dto.target_amount_kobo))
-
-    const dueDate = activeProperty?.rentEndDate
-      ? new Date(activeProperty.rentEndDate)
-      : new Date(dto.contractual_due_date)
+      dto.target_amount_kobo && dto.target_amount_kobo > 0
+        ? BigInt(Math.round(dto.target_amount_kobo))
+        : activeProperty?.rentAmount && activeProperty.rentAmount > 0
+          ? BigInt(Math.round(activeProperty.rentAmount * 100))
+          : 0n
 
     const now = new Date()
+    const propDueDate = activeProperty?.rentEndDate ? new Date(activeProperty.rentEndDate) : null
+    const dtoDueDate = dto.contractual_due_date ? new Date(dto.contractual_due_date) : null
+    const dueDate =
+      dtoDueDate && !Number.isNaN(dtoDueDate.getTime()) && dtoDueDate.getTime() > now.getTime()
+        ? dtoDueDate
+        : propDueDate && !Number.isNaN(propDueDate.getTime())
+          ? propDueDate
+          : new Date(dto.contractual_due_date)
+
     if (dueDate.getTime() <= now.getTime()) {
       throw new BadRequestException('Contractual due date must be in the future.')
     }
@@ -225,6 +236,9 @@ export class CreateRentVaultUseCase {
         ? minRentProtecInitialKobo
         : providedInitialKobo
 
+    const resolvedPlanPattern =
+      dto.plan_pattern || (effectiveInitialDepositKobo > 0n ? 'INITIAL_DEPOSIT' : 'EQUAL')
+
     let plannedMonthlyDepositKobo =
       dto.planned_monthly_deposit_kobo && dto.planned_monthly_deposit_kobo > 0
         ? BigInt(Math.round(dto.planned_monthly_deposit_kobo))
@@ -238,7 +252,7 @@ export class CreateRentVaultUseCase {
           cadence: 'MONTHLY',
           productOption: chosenOption,
           lockMode: resolvedLockMode,
-          planPattern: effectiveInitialDepositKobo > 0n ? 'INITIAL_DEPOSIT' : 'EQUAL',
+          planPattern: resolvedPlanPattern,
           asOfDate: now,
           paydayDayOfMonth: clampReminderDay(dto.payday_day_of_month),
           annualNetYieldRate: appliedAnnualRatePct / 100,
@@ -259,6 +273,7 @@ export class CreateRentVaultUseCase {
       cadence: dto.cadence,
       productOption: chosenOption,
       lockMode: resolvedLockMode,
+      planPattern: resolvedPlanPattern,
       appliedAnnualRatePct,
       initialDepositKobo: effectiveInitialDepositKobo,
       plannedMonthlyDepositKobo,
@@ -270,13 +285,17 @@ export class CreateRentVaultUseCase {
       cardAuthorizationCode: dto.card_authorization_code || null,
       dvaBankName,
       dvaAccountNumber,
-      dvaAccountName,
+      dvaAccountName: existingDvaRecord?.dvaAccountName || dvaAccountName,
+      dvaCustomerCode: existingDvaRecord?.dvaCustomerCode || null,
       dvaAssignmentStatus,
       autoBypassPmApproval: true,
       investmentProvider: 'ARM',
-      providerMembershipId: latestKyc?.armCustomerMembershipId || null,
-      providerAccountNumber: latestKyc?.armCrmAccountNumber || null,
-      providerCrmStatus: latestKyc?.armSyncStatus || 'PENDING',
+      providerMembershipId:
+        latestKyc?.armCustomerMembershipId || existingDvaRecord?.providerMembershipId || null,
+      providerAccountNumber:
+        latestKyc?.armCrmAccountNumber || existingDvaRecord?.providerAccountNumber || null,
+      providerCrmStatus:
+        latestKyc?.armSyncStatus || existingDvaRecord?.providerCrmStatus || 'PENDING',
     })
 
     if (dto.consent_accepted === true && this.recordSavingsConsentUseCase) {
@@ -343,6 +362,46 @@ export class CreateRentVaultUseCase {
         .execute(userId, vault.id)
         .catch(() => ({ credited: false, amountKobo: 0n }))
       appliedCashbackKobo = cashbackRes.amountKobo
+    }
+
+    // Auto-credit any unapplied settlement cashback from a previous cycle into this new vault's principal
+    // (idempotent via unique CASHBACK_ROLLOVER_<settlementRef>) so it starts earning daily interest on Day 1.
+    if (this.prisma?.upward_rent_settlement && this.prisma?.upward_rent_vault_transaction) {
+      try {
+        const latestCashbackSettlement = await this.prisma.upward_rent_settlement.findFirst({
+          where: { userId, cashbackCreditedKobo: { gt: 0n } },
+          orderBy: { createdAt: 'desc' },
+        })
+        if (latestCashbackSettlement) {
+          const rolloverRef = `CASHBACK_ROLLOVER_${latestCashbackSettlement.settlementReference}`
+          const alreadyRolled = await this.prisma.upward_rent_vault_transaction.findUnique({
+            where: { reference: rolloverRef },
+          })
+          if (!alreadyRolled) {
+            const rolloverKobo = latestCashbackSettlement.cashbackCreditedKobo
+            await this.rentVaultRepo.incrementBalances(vault.id, rolloverKobo, 0n)
+            await this.rentVaultRepo.createTransaction({
+              vaultId: vault.id,
+              userId,
+              type: 'CASHBACK',
+              amountKobo: rolloverKobo,
+              principalDeltaKobo: rolloverKobo,
+              yieldDeltaKobo: 0n,
+              balanceAfterKobo: vault.currentPrincipalKobo + appliedCashbackKobo + rolloverKobo,
+              reference: rolloverRef,
+              channel: 'SYSTEM_YIELD',
+              narration: `Cashback reward applied to kickstart your next rent savings plan`,
+              metadata: {
+                source: 'SETTLEMENT_CASHBACK_ROLLOVER',
+                sourceSettlementReference: latestCashbackSettlement.settlementReference,
+              },
+            })
+            appliedCashbackKobo += rolloverKobo
+          }
+        }
+      } catch {
+        // Non-blocking cashback rollover
+      }
     }
 
     return {

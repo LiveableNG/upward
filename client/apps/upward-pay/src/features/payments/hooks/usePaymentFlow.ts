@@ -550,6 +550,29 @@ export function usePaymentFlow(
           setStep('success')
         } else {
           success('Payment successful!')
+          // If the rent invoice is now fully PAID, roll any locally cached next-rent due date forward by 1 year
+          if (res.status === 'PAID' && typeof window !== 'undefined') {
+            try {
+              const paidDueRaw = paymentData?.payment?.rentEndDate || paymentData?.payment?.dueDate
+              const paidDueDate = paidDueRaw ? new Date(paidDueRaw) : null
+              if (paidDueDate && !Number.isNaN(paidDueDate.getTime())) {
+                const nextDue = new Date(paidDueDate)
+                nextDue.setUTCFullYear(nextDue.getUTCFullYear() + 1)
+                const nextDueIso = nextDue.toISOString().split('T')[0]
+
+                const rawPlan = localStorage.getItem('upward_savings_rent_plan')
+                if (rawPlan) {
+                  const parsed = JSON.parse(rawPlan)
+                  if (!parsed.dueDate || parsed.dueDate <= paidDueDate.toISOString().split('T')[0]) {
+                    localStorage.setItem(
+                      'upward_savings_rent_plan',
+                      JSON.stringify({ ...parsed, dueDate: nextDueIso }),
+                    )
+                  }
+                }
+              }
+            } catch {}
+          }
           setStep(!paymentData.hasPassword ? 'onboarding' : 'success')
         }
         // Invalidate and refetch queries to reflect changes immediately

@@ -90,15 +90,15 @@ function buildPaymentAlert(p: PendingPayment): Pick<ActionItem, 'title' | 'meta'
       }
     }
     return {
-      title: isPartial ? 'Partial Payment Remaining' : 'Self-initiated Payment',
+      title: isPartial ? 'Complete Your Rent Payment' : 'Self-initiated Payment',
       meta: `${formatCurrency(displayAmount, p.currency)}${amountSuffix}${duePart ? ` · ${duePart}` : ''}`,
-      urgency: 'pending',
+      urgency: isPartial ? 'critical' : 'pending',
     }
   }
 
   if (isOverdue && isPartial) {
     return {
-      title: 'Overdue Balance',
+      title: 'Overdue Rent Balance',
       meta: `${formatCurrency(remaining, p.currency)} past due${duePart ? ` · ${duePart}` : ''}`,
       urgency: 'critical',
     }
@@ -114,9 +114,9 @@ function buildPaymentAlert(p: PendingPayment): Pick<ActionItem, 'title' | 'meta'
 
   if (isPartial) {
     return {
-      title: 'Balance Remaining',
-      meta: `${formatCurrency(remaining, p.currency)} pending${duePart ? ` · ${duePart}` : ''}`,
-      urgency: 'pending',
+      title: 'Complete Your Rent Payment',
+      meta: `${formatCurrency(remaining, p.currency)} remaining${duePart ? ` · ${duePart}` : ''}`,
+      urgency: 'critical',
     }
   }
 
@@ -255,7 +255,9 @@ export function ActionCarousel({
           ? 'View status'
           : proofRejected
             ? 'Fix payment'
-            : 'Pay Now',
+            : (p.amountPaid || 0) > 0
+              ? 'Pay Balance Now'
+              : 'Pay Now',
         action: () => {
           if (proofPending) {
             router.push('/dashboard/pay-rent')

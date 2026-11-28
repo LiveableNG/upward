@@ -116,6 +116,11 @@ export function useExecuteSettlement() {
     }) => savingsService.executeLandlordSettlement(vaultId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: RENT_VAULT_QUERY_KEY })
+      queryClient.invalidateQueries({ queryKey: ['pending-payments'] })
+      queryClient.invalidateQueries({ queryKey: ['pendingPayments'] })
+      queryClient.invalidateQueries({ queryKey: ['transactions'] })
+      queryClient.invalidateQueries({ queryKey: ['notifications'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] })
     },
   })
 }

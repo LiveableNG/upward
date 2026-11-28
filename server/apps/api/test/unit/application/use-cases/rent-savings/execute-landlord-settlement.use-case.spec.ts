@@ -110,7 +110,8 @@ describe('ExecuteLandlordSettlementUseCase', () => {
     })
 
     expect(result.status).toBe('success')
-    expect(result.data.amount_paid_to_landlord_kobo).toBe(252000000) // 2.4M principal + 120k yield
+    expect(result.data.amount_paid_to_landlord_kobo).toBe(240000000) // capped at ₦2.4M rent target
+    expect(result.data.surplus_to_wallet_kobo).toBe(12000000) // ₦120k excess yield returned to tenant
     expect(result.data.settlement_status).toBe('PAID')
 
     // ARM redemption called for total accumulated balance
@@ -122,11 +123,11 @@ describe('ExecuteLandlordSettlementUseCase', () => {
       }),
     )
 
-    // Settlement created
+    // Settlement created (landlord receives capped rent target)
     expect(rentSettlementRepo.create).toHaveBeenCalledWith(
       expect.objectContaining({
         landlordName: 'Chief Adebayo',
-        amountPaidToLandlordKobo: 252000000n,
+        amountPaidToLandlordKobo: 240000000n,
         settlementStatus: 'PAID',
       }),
     )

@@ -35,6 +35,7 @@ export interface CreateVaultPayload {
   preferred_funding_method: 'DVA' | 'CARD_TOKEN' | 'DIRECT_DEBIT'
   product_option?: SavingsProductOption
   lock_mode?: SavingsLockMode
+  plan_pattern?: SavingsPlanPattern
   initial_deposit_kobo?: number
   planned_monthly_deposit_kobo?: number
   payday_day_of_month?: number
@@ -113,6 +114,10 @@ export interface SettlementResultData {
   settlement_reference: string
   nip_session_id: string
   amount_paid_to_landlord_kobo: number
+  target_rent_kobo?: number
+  remaining_balance_kobo?: number
+  is_partial_settlement?: boolean
+  balance_payment_request_uuid?: string | null
   cashback_credited_kobo: number
   early_bird_bonus_applied: boolean
   settlement_status: string
@@ -224,6 +229,20 @@ export interface SavingsOnboardingPrefillData {
   has_verified_bvn: boolean
   has_verified_nin?: boolean
   has_completed_arm_kyc?: boolean
+  is_repeat_saver?: boolean
+  has_previous_vault?: boolean
+  available_cashback_kobo?: number
+  available_cashback_ngn?: number
+  available_cashback_source?: 'SETTLEMENT_CASHBACK' | 'ACTIVATION_BONUS' | null
+  previous_product_option?: SavingsProductOption | null
+  previous_lock_mode?: SavingsLockMode | null
+  previous_plan_pattern?: SavingsPlanPattern | null
+  previous_payday_day?: number | null
+  previous_dva?: {
+    bank_name: string
+    account_number: string
+    account_name: string
+  } | null
   has_signed_consent?: boolean
   consent_accepted_at?: string | null
   account_holder_first_name?: string | null

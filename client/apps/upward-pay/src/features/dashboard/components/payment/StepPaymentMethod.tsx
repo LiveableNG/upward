@@ -4,6 +4,8 @@ import { formatCurrency } from '@/lib/utils'
 
 type StepPaymentMethodProps = {
   amount: number
+  totalInvoiceAmount?: number
+  amountPaidAlready?: number
   onPayOnline: () => void
   onBankTransfer: () => void
   processing?: boolean
@@ -15,6 +17,8 @@ type StepPaymentMethodProps = {
 
 export function StepPaymentMethod({
   amount,
+  totalInvoiceAmount = 0,
+  amountPaidAlready = 0,
   onPayOnline,
   onBankTransfer,
   processing = false,
@@ -24,11 +28,22 @@ export function StepPaymentMethod({
   cancelling = false,
 }: StepPaymentMethodProps) {
   const busy = processing || cancelling
+  const isCompletingBalance = amountPaidAlready > 0 && totalInvoiceAmount > amountPaidAlready
 
   return (
     <div className="pay-flow__payment-method">
       <p className="pay-flow__payment-method-intro">
-        Paying <strong>{formatCurrency(amount)}</strong> — choose how you&apos;d like to pay.
+        {isCompletingBalance ? (
+          <>
+            Completing your remaining rent balance of <strong>{formatCurrency(amount)}</strong> (
+            {formatCurrency(amountPaidAlready)} already paid of {formatCurrency(totalInvoiceAmount)})
+            — choose how you&apos;d like to pay.
+          </>
+        ) : (
+          <>
+            Paying <strong>{formatCurrency(amount)}</strong> — choose how you&apos;d like to pay.
+          </>
+        )}
       </p>
 
       <button
@@ -41,7 +56,7 @@ export function StepPaymentMethod({
           <CreditCard size={22} />
         </div>
         <div className="pay-flow__method-card-body">
-          <p className="pay-flow__method-card-title">Pay online</p>
+          <p className="pay-flow__method-card-title">Pay now (Bank Transfer, Card or USSD)</p>
           <p className="pay-flow__method-card-desc">Instant payment through Upward · Immediate confirmation</p>
         </div>
       </button>

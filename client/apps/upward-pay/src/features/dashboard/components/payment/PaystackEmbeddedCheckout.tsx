@@ -1,11 +1,53 @@
 'use client'
 
-import React, { useEffect, useState, useRef } from 'react'
+import React, { useEffect, useMemo, useState, useRef } from 'react'
 import { UpwardLogo } from '../../../../components/PoweredByUpward'
 import { api } from '@/lib/api'
 import DedicatedAccountCheckout from './DedicatedAccountCheckout'
 import { useToast } from '@/components/common/Toast'
 import { sessionTracker } from '@/lib/sessionTracker'
+
+interface LineItem {
+  name: string
+  amount: number
+}
+
+interface PaystackTransaction {
+  reference: string
+}
+
+interface PaystackPopupInstance {
+  resumeTransaction: (
+    accessCode: string,
+    callbacks: {
+      onSuccess: (transaction: PaystackTransaction) => void
+      onCancel: () => void
+    },
+  ) => void
+}
+
+type PaystackWindow = Window & {
+  PaystackPop?: new () => PaystackPopupInstance
+}
+
+type CheckoutConfig =
+  | {
+      type: 'PAYSTACK'
+      accessCode: string
+      reference?: string
+      amount: number
+    }
+  | {
+      type: 'DVA'
+      dva: {
+        accountNumber: string
+        accountName: string
+        bankName: string
+        userPropertyId?: number
+      }
+      reference: string
+      amount: number
+    }
 
 interface PaystackEmbeddedProps {
   email: string
@@ -19,18 +61,14 @@ interface PaystackEmbeddedProps {
   subaccount?: string
   onSuccess: (reference: string) => void
   onClose: () => void
-  //eslint-disable-next-line @typescript-eslint/no-explicit-any
-  metadata?: any
-  lineItems?: Array<{ name: string; amount: number }>
+  metadata?: Record<string, unknown>
+  lineItems?: LineItem[]
   gatewayFee?: number
   paymentRequestUuid?: string
 }
 
-
 export default function PaystackEmbeddedCheckout({
-  email,
   amount,
-  currency = 'NGN',
   reference,
   accessCode,
   companyName,
@@ -40,35 +78,50 @@ export default function PaystackEmbeddedCheckout({
   onClose,
   metadata = {},
   lineItems = [],
-  gatewayFee = 0,
   paymentRequestUuid,
 }: PaystackEmbeddedProps) {
   const toast = useToast()
-  const [config, setConfig] = useState<any>(null)
+  const [initializedConfig, setInitializedConfig] = useState<CheckoutConfig | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const openedAccessCodeRef = useRef<string | null>(null)
+  const onSuccessRef = useRef(onSuccess)
+  const onCloseRef = useRef(onClose)
+  const toastRef = useRef(toast)
+
+  const config = useMemo<CheckoutConfig | null>(
+    () =>
+      accessCode
+        ? {
+            type: 'PAYSTACK',
+            accessCode,
+            reference,
+            amount,
+          }
+        : initializedConfig,
+    [accessCode, reference, amount, initializedConfig],
+  )
+
+  useEffect(() => {
+    onSuccessRef.current = onSuccess
+    onCloseRef.current = onClose
+    toastRef.current = toast
+  }, [onSuccess, onClose, toast])
 
   const lineItemsStr = JSON.stringify(lineItems)
   const metadataStr = JSON.stringify(metadata)
 
   useEffect(() => {
-    if (accessCode) {
-      setConfig({
-        type: 'PAYSTACK',
-        accessCode,
-        reference,
-        amount,
-      })
-      return
-    }
+    if (accessCode) return
+    let cancelled = false
 
     async function init() {
       try {
-        const parsedLineItems = JSON.parse(lineItemsStr)
-        const parsedMetadata = JSON.parse(metadataStr)
+        const parsedLineItems = JSON.parse(lineItemsStr) as LineItem[]
+        const parsedMetadata = JSON.parse(metadataStr) as Record<string, unknown>
 
         const description =
           parsedLineItems.length > 0
-            ? `Breakdown: ${parsedLineItems.map((item: any) => `${item.name} (N${item.amount.toLocaleString()})`).join(', ')}`
+            ? `Breakdown: ${parsedLineItems.map((item) => `${item.name} (N${item.amount.toLocaleString()})`).join(', ')}`
             : `${paymentType || 'Rent payment'} for ${propertyAddress || companyName}`
 
         const res = await api.initializePayment({
@@ -83,37 +136,49 @@ export default function PaystackEmbeddedCheckout({
           }
         })
 
-        if (res && res.type === 'DVA') {
-          setConfig({
+        if (cancelled) return
+
+        if (res && res.type === 'DVA' && res.dva) {
+          setInitializedConfig({
             type: 'DVA',
             dva: res.dva,
             reference: res.reference,
-            amount: res.amount
+            amount: res.amount,
           })
         } else if (res && res.type === 'PAYSTACK') {
           if (!res.accessCode) {
             throw new Error('Standard checkout is required, but the payment access code could not be resolved. Please contact support.')
           }
-          setConfig({
+          setInitializedConfig({
             type: 'PAYSTACK',
             accessCode: res.accessCode,
             reference: res.reference,
-            amount: res.amount
+            amount: res.amount,
           })
         } else {
           throw new Error('Direct bank transfer is required for this property, but the payment account could not be resolved. Please contact support.')
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
+        if (cancelled) return
         console.error('Failed to initialize payment:', err)
-        const errorMsg = err.message || 'Failed to connect to payment gateway'
+        const errorMsg =
+          err instanceof Error && err.message
+            ? err.message
+            : 'Failed to connect to payment gateway'
         setError(errorMsg)
-        toast.error(errorMsg, 'Payment Initialization Failed')
+        toastRef.current.error(errorMsg, 'Payment Initialization Failed')
       }
     }
     init()
-  }, [accessCode, amount, companyName, lineItemsStr, metadataStr, paymentRequestUuid, paymentType, propertyAddress, reference])
+
+    return () => {
+      cancelled = true
+    }
+  }, [accessCode, amount, companyName, lineItemsStr, metadataStr, paymentRequestUuid, paymentType, propertyAddress])
 
   useEffect(() => {
+    let cancelled = false
+
     sessionTracker.trackEvent('OPEN_CHECKOUT_MODAL', {
       amount,
       paymentType,
@@ -122,25 +187,37 @@ export default function PaystackEmbeddedCheckout({
     }, 'CHECKOUT_MODAL')
 
     if (config?.type === 'PAYSTACK' && config.accessCode) {
+      if (openedAccessCodeRef.current === config.accessCode) {
+        return
+      }
+      openedAccessCodeRef.current = config.accessCode
+
       const scriptId = 'paystack-inline-js'
-      let script = document.getElementById(scriptId) as HTMLScriptElement
+      let script = document.getElementById(scriptId) as HTMLScriptElement | null
+      const paystackWindow = window as PaystackWindow
 
       const openPaystackPopup = () => {
+        if (cancelled) return
         try {
+          const PaystackPop = paystackWindow.PaystackPop
+          if (!PaystackPop) {
+            throw new Error('Paystack checkout library is not ready.')
+          }
+
           sessionTracker.trackEvent('INITIATE_PAYSTACK', {
             accessCode: config.accessCode,
             amount: config.amount,
             reference: config.reference,
           }, 'PAYSTACK_POPUP')
 
-          const popup = new (window as any).PaystackPop()
+          const popup = new PaystackPop()
           popup.resumeTransaction(config.accessCode, {
-            onSuccess: (transaction: any) => {
+            onSuccess: (transaction: PaystackTransaction) => {
               sessionTracker.trackEvent('PAYMENT_SUCCESS', {
                 reference: transaction.reference,
                 amount: config.amount,
               }, 'PAYMENT_COMPLETE')
-              onSuccess(transaction.reference)
+              onSuccessRef.current(transaction.reference)
             },
             onCancel: () => {
               sessionTracker.trackEvent('PAYSTACK_CLOSED_UNPAID', {
@@ -148,17 +225,22 @@ export default function PaystackEmbeddedCheckout({
                 accessCode: config.accessCode,
                 reference: config.reference,
               }, 'PAYSTACK_CANCELLED')
-              onClose()
-            }
+              onCloseRef.current()
+            },
           })
-        } catch (popupErr: any) {
+        } catch (popupErr: unknown) {
           console.error('Paystack popup error:', popupErr)
+          openedAccessCodeRef.current = null
+          const popupErrMsg =
+            popupErr instanceof Error && popupErr.message
+              ? popupErr.message
+              : 'Failed to open Paystack secure checkout popup'
           sessionTracker.trackEvent('PAYMENT_ERROR', {
-            error: popupErr?.message || 'Failed to open Paystack secure checkout popup',
+            error: popupErrMsg,
             accessCode: config.accessCode,
           }, 'PAYSTACK_ERROR')
           setError('Failed to open Paystack secure checkout popup.')
-          toast.error('Failed to load payment modal', 'Payment Error')
+          toastRef.current.error('Failed to load payment modal', 'Payment Error')
         }
       }
 
@@ -169,24 +251,32 @@ export default function PaystackEmbeddedCheckout({
         script.async = true
         script.onload = openPaystackPopup
         script.onerror = () => {
+          if (cancelled) return
+          openedAccessCodeRef.current = null
           sessionTracker.trackEvent('PAYMENT_ERROR', {
             error: 'Failed to load Paystack payment script from CDN',
           }, 'CDN_ERROR')
           setError('Failed to load Paystack payment library.')
-          toast.error('Could not load Paystack checkout script', 'Network Error')
+          toastRef.current.error('Could not load Paystack checkout script', 'Network Error')
         }
         document.body.appendChild(script)
       } else {
-        if ((window as any).PaystackPop) {
+        if (paystackWindow.PaystackPop) {
           openPaystackPopup()
         } else {
-          script.addEventListener('load', openPaystackPopup)
+          script.addEventListener('load', openPaystackPopup, { once: true })
         }
       }
     }
-  }, [config, onSuccess, onClose, toast, amount, paymentType, companyName, paymentRequestUuid])
+
+    return () => {
+      cancelled = true
+    }
+  }, [config, amount, paymentType, companyName, paymentRequestUuid])
 
   if (config?.type === 'DVA') {
+    const metadataUserPropertyId =
+      typeof metadata?.userPropertyId === 'number' ? metadata.userPropertyId : undefined
     return (
       <DedicatedAccountCheckout
         accountNumber={config.dva.accountNumber}
@@ -196,7 +286,7 @@ export default function PaystackEmbeddedCheckout({
         reference={config.reference}
         companyName={companyName}
         paymentRequestUuid={paymentRequestUuid}
-        userPropertyId={config.dva?.userPropertyId || metadata?.userPropertyId}
+        userPropertyId={config.dva?.userPropertyId ?? metadataUserPropertyId}
         onSuccess={onSuccess}
         onClose={onClose}
       />

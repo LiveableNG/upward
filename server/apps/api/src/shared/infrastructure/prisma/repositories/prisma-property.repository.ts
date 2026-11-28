@@ -17,6 +17,9 @@ export class PrismaPropertyRepository implements PropertyRepository {
   ) {}
 
   async findById(id: number, tx?: Prisma.TransactionClient): Promise<Property | null> {
+    if (id === undefined || id === null || !Number.isFinite(id)) {
+      return null
+    }
     const prisma = tx || this.prisma
     const record = await prisma.upward_user_property.findUnique({
       where: { id },

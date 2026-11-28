@@ -3,11 +3,16 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
-  Filter,
+  Calendar,
   Receipt,
   AlertTriangle,
   ArrowUpRight,
   ArrowDownRight,
+  Gift,
+  TrendingUp,
+  Wallet,
+  Home,
+  XCircle,
   Search,
   X,
 } from 'lucide-react'
@@ -22,12 +27,108 @@ import {
   formatCurrency,
   groupTransactionsByMonth,
   formatTime,
-  formatDate,
 } from '@/lib/utils'
 import { type CompletedPayment } from '../../types'
 
-type TxListItem = CompletedPayment & {
-  source?: 'gt' | 'upward'
+type TxCategoryFilter = 'ALL' | 'RENT' | 'SAVINGS'
+
+type TxListItem = Omit<CompletedPayment, 'source'> & {
+  source?: 'gt' | 'upward' | 'RENT_SAVINGS' | 'PAYMENT'
+}
+
+function isSuccessfulTxStatus(status?: string): boolean {
+  const s = String(status || '').trim().toUpperCase()
+  return s === 'SUCCESS' || s === 'PAID' || s === 'COMPLETED' || s === 'SETTLED'
+}
+
+function isPendingTxStatus(status?: string): boolean {
+  const s = String(status || '').trim().toUpperCase()
+  return s === 'PENDING' || s === 'PROCESSING' || s === 'INITIATED'
+}
+
+function isSavingsLedgerTx(tx: TxListItem): boolean {
+  if (tx.source === 'RENT_SAVINGS') return true
+  return Boolean(tx.transactionType && tx.transactionType.startsWith('SAVINGS'))
+}
+
+function formatCompactDateTime(dateStr?: string): string {
+  if (!dateStr) return ''
+  const parsed = new Date(dateStr)
+  if (Number.isNaN(parsed.getTime())) return ''
+  const dayMonth = parsed.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+  })
+  return `${dayMonth}, ${formatTime(dateStr)}`
+}
+
+function formatFilterDateLabel(dateStr: string): string {
+  const parsed = new Date(`${dateStr}T00:00:00`)
+  if (Number.isNaN(parsed.getTime())) return dateStr
+  return parsed.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  })
+}
+
+function getTxDisplay(tx: TxListItem): {
+  title: string
+  subtitle?: string
+  tag?: { label: string; variant: 'reward' | 'savings' | 'neutral' | 'future' }
+} {
+  if (tx.transactionType === 'SAVINGS_CASHBACK') {
+    return {
+      title: 'Rent Savings Cashback',
+      tag: { label: 'Cashback', variant: 'reward' },
+    }
+  }
+  if (tx.transactionType === 'SAVINGS_YIELD') {
+    return {
+      title: 'Daily Interest',
+      tag: { label: 'Interest', variant: 'reward' },
+    }
+  }
+  if (tx.transactionType === 'SAVINGS_DEPOSIT') {
+    return {
+      title: 'Rent Savings Deposit',
+      tag: { label: 'Savings', variant: 'savings' },
+    }
+  }
+  if (tx.transactionType === 'SAVINGS_SETTLEMENT') {
+    return {
+      title: 'Rent Paid from Savings',
+      subtitle: tx.property_address || undefined,
+      tag: { label: 'From Savings', variant: 'savings' },
+    }
+  }
+  if (tx.transactionType === 'SAVINGS_WITHDRAWAL') {
+    return {
+      title: 'Savings Withdrawal',
+      tag: { label: 'Savings', variant: 'neutral' },
+    }
+  }
+
+  const rawTitle = (tx.company_name || 'Rent Payment').trim()
+  let title = rawTitle
+  let subtitle = tx.property_address || undefined
+
+  if (rawTitle.includes(' — ')) {
+    const [head, ...rest] = rawTitle.split(' — ')
+    title = head.trim()
+    if (!subtitle && rest.length > 0) {
+      subtitle = rest.join(' — ').trim()
+    }
+  }
+
+  let tag: { label: string; variant: 'reward' | 'savings' | 'neutral' | 'future' } | undefined
+  if (tx.transactionType === 'FUTURE_CREDIT') {
+    tag = { label: 'Future Credit', variant: 'future' }
+  } else if (tx.isManual) {
+    tag = { label: 'Manual', variant: 'neutral' }
+  }
+
+  return { title, subtitle, tag }
 }
 
 function parseGtAmount(value: string) {
@@ -56,18 +157,6 @@ function gtToListItem(tx: GtHistoryRow): TxListItem {
   }
 }
 
-function getTypeBadgeLabel(tx: TxListItem): string {
-  if (tx.transactionType === 'FUTURE_CREDIT') return 'Future Credit'
-  if (tx.isManual) return 'Manual'
-  return tx.type || 'debit'
-}
-
-function getTypeBadgeClass(tx: TxListItem, isCredit: boolean): string {
-  if (tx.transactionType === 'FUTURE_CREDIT') return 'tx-page__badge--future'
-  if (tx.isManual) return 'tx-page__badge--manual'
-  return isCredit ? 'tx-page__badge--credit' : 'tx-page__badge--debit'
-}
-
 function formatMonthLabel(monthKey: string): string {
   return monthKey.toUpperCase()
 }
@@ -79,6 +168,7 @@ export function TransactionList() {
   const { transactions: gtTransactions, isLoading: gtLoading } = useAllGtTransactions()
   const [filterDate, setFilterDate] = useState('')
   const [search, setSearch] = useState('')
+  const [category, setCategory] = useState<TxCategoryFilter>('ALL')
   const queryClient = useQueryClient()
   const handleBack = () => router.push('/dashboard')
 
@@ -93,6 +183,18 @@ export function TransactionList() {
   const handleTxClick = (tx: TxListItem) => {
     if (tx.source === 'gt') {
       toast.info('Receipts not available for this transaction.')
+      return
+    }
+    if (
+      tx.transactionType === 'SAVINGS_YIELD' ||
+      tx.transactionType === 'SAVINGS_CASHBACK' ||
+      tx.transactionType === 'SAVINGS_WITHDRAWAL'
+    ) {
+      toast.info('Recorded on your Rent Savings ledger.')
+      return
+    }
+    if (!isSuccessfulTxStatus(tx.status)) {
+      toast.info('Receipts are only available for successful payments.')
       return
     }
     router.push(`/dashboard/receipts?id=${tx.uuid}`)
@@ -118,21 +220,38 @@ export function TransactionList() {
   }
 
   const transactions: TxListItem[] = [
-    ...data.completedPayments.map((tx) => ({ ...tx, source: 'upward' as const })),
+    ...data.completedPayments.map((tx) => ({
+      ...tx,
+      source: (tx.source === 'RENT_SAVINGS' ? 'RENT_SAVINGS' : 'upward') as TxListItem['source'],
+    })),
     ...gtTransactions.map(gtToListItem),
   ]
-  const hasFilters = Boolean(search || filterDate)
+
+  const rentTransactions = transactions.filter(
+    (tx) => !isSavingsLedgerTx(tx) || tx.transactionType === 'SAVINGS_SETTLEMENT',
+  )
+  const savingsTransactions = transactions.filter((tx) => isSavingsLedgerTx(tx))
+
+  const hasFilters = Boolean(search || filterDate || category !== 'ALL')
 
   const filteredTransactions = transactions.filter((tx) => {
+    if (category === 'RENT' && isSavingsLedgerTx(tx) && tx.transactionType !== 'SAVINGS_SETTLEMENT') {
+      return false
+    }
+    if (category === 'SAVINGS' && !isSavingsLedgerTx(tx)) {
+      return false
+    }
     const matchesDate = filterDate ? tx.paid_at?.startsWith(filterDate) : true
-    const q = search.toLowerCase()
+    const q = search.trim().toLowerCase()
+    const display = getTxDisplay(tx)
     const matchesSearch = q
-      ? tx.company_name?.toLowerCase().includes(q) ||
+      ? display.title.toLowerCase().includes(q) ||
+        (display.subtitle || '').toLowerCase().includes(q) ||
+        tx.company_name?.toLowerCase().includes(q) ||
         tx.channel?.toLowerCase().includes(q) ||
         tx.paystack_reference?.toLowerCase().includes(q) ||
         tx.property_address?.toLowerCase().includes(q) ||
-        formatCurrency(tx.amount, tx.currency).toLowerCase().includes(q) ||
-        ((tx.type || 'debit') as string).toLowerCase().includes(q)
+        formatCurrency(tx.amount, tx.currency).toLowerCase().includes(q)
       : true
     return matchesDate && matchesSearch
   })
@@ -144,10 +263,28 @@ export function TransactionList() {
     return dateB - dateA
   })
 
-  const debitPayments = transactions.filter((tx) => tx.type !== 'credit')
-  const totalPaid = debitPayments.reduce((sum, tx) => sum + tx.amount, 0)
-  const paymentCurrency = debitPayments[0]?.currency || transactions[0]?.currency || 'NGN'
-  const paymentCount = debitPayments.length
+  const successfulRentDebits = transactions.filter(
+    (tx) =>
+      tx.type !== 'credit' &&
+      isSuccessfulTxStatus(tx.status) &&
+      tx.transactionType !== 'SAVINGS_WITHDRAWAL',
+  )
+  const totalPaid = successfulRentDebits.reduce((sum, tx) => sum + tx.amount, 0)
+  const paymentCurrency =
+    successfulRentDebits[0]?.currency || transactions[0]?.currency || 'NGN'
+  const paymentCount = successfulRentDebits.length
+
+  const totalRewardsEarned = transactions
+    .filter(
+      (tx) =>
+        isSuccessfulTxStatus(tx.status) &&
+        (tx.transactionType === 'SAVINGS_CASHBACK' || tx.transactionType === 'SAVINGS_YIELD'),
+    )
+    .reduce((sum, tx) => sum + tx.amount, 0)
+
+  const totalSavedCredits = savingsTransactions
+    .filter((tx) => isSuccessfulTxStatus(tx.status) && tx.type === 'credit')
+    .reduce((sum, tx) => sum + tx.amount, 0)
 
   const dateFilter = (
     <div className={`tx-page__filter ${filterDate ? 'tx-page__filter--active' : ''}`}>
@@ -159,141 +296,286 @@ export function TransactionList() {
         aria-label="Filter by date"
       />
       <div className="tx-page__filter-btn" aria-hidden>
-        <Filter size={16} />
+        <Calendar size={17} />
       </div>
     </div>
   )
 
+  const renderTxIcon = (tx: TxListItem, isCredit: boolean, isFailed: boolean) => {
+    if (isFailed) {
+      return (
+        <span className="tx-page__row-icon tx-page__row-icon--failed">
+          <XCircle size={17} />
+        </span>
+      )
+    }
+    if (tx.transactionType === 'SAVINGS_CASHBACK') {
+      return (
+        <span className="tx-page__row-icon tx-page__row-icon--reward">
+          <Gift size={17} />
+        </span>
+      )
+    }
+    if (tx.transactionType === 'SAVINGS_YIELD') {
+      return (
+        <span className="tx-page__row-icon tx-page__row-icon--reward">
+          <TrendingUp size={17} />
+        </span>
+      )
+    }
+    if (tx.transactionType === 'SAVINGS_DEPOSIT') {
+      return (
+        <span className="tx-page__row-icon tx-page__row-icon--savings">
+          <Wallet size={17} />
+        </span>
+      )
+    }
+    if (tx.transactionType === 'SAVINGS_SETTLEMENT') {
+      return (
+        <span className="tx-page__row-icon tx-page__row-icon--rent">
+          <Home size={17} />
+        </span>
+      )
+    }
+    if (isCredit) {
+      return (
+        <span className="tx-page__row-icon tx-page__row-icon--reward">
+          <ArrowUpRight size={17} />
+        </span>
+      )
+    }
+    return (
+      <span className="tx-page__row-icon tx-page__row-icon--rent">
+        <ArrowDownRight size={17} />
+      </span>
+    )
+  }
+
   return (
     <TransactionsPageShell title="Transactions" onBack={handleBack} rightElement={dateFilter}>
       <PullToRefresh onRefresh={handleRefresh}>
-        <div className="tx-page__search">
-        <div className="tx-page__search-wrap">
-          <Search size={16} className="tx-page__search-icon" />
-          <input
-            type="text"
-            className="tx-page__search-field"
-            placeholder="Search name, channel, reference..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-          {search ? (
+        {transactions.length > 0 && !search && !filterDate ? (
+          <section className="tx-page__summary" aria-label="Transaction summary">
+            <div className="tx-page__summary-top">
+              <div>
+                <div className="tx-page__summary-label">
+                  {category === 'SAVINGS' ? 'Total Saved & Earned' : 'Total Rent Paid'}
+                </div>
+                <div className="tx-page__summary-amount">
+                  {formatCurrency(
+                    category === 'SAVINGS' ? totalSavedCredits : totalPaid,
+                    paymentCurrency,
+                  )}
+                </div>
+              </div>
+              <span className="tx-page__summary-pill">
+                {category === 'SAVINGS'
+                  ? `${savingsTransactions.length} ${savingsTransactions.length === 1 ? 'entry' : 'entries'}`
+                  : `${paymentCount} ${paymentCount === 1 ? 'payment' : 'payments'}`}
+              </span>
+            </div>
+
+            {totalRewardsEarned > 0 ? (
+              <div className="tx-page__summary-meta">
+                <span className="tx-page__summary-meta-item">
+                  <Gift size={13} aria-hidden />
+                  +{formatCurrency(totalRewardsEarned, paymentCurrency)} cashback &amp; interest
+                </span>
+              </div>
+            ) : null}
+          </section>
+        ) : null}
+
+        {transactions.length > 0 ? (
+          <div className="tx-page__controls">
+            <div className="tx-page__search-wrap">
+              <Search size={15} className="tx-page__search-icon" />
+              <input
+                type="text"
+                className="tx-page__search-field"
+                placeholder="Search rent, savings, or reference..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              {search ? (
+                <button
+                  type="button"
+                  className="tx-page__search-clear"
+                  onClick={() => setSearch('')}
+                  aria-label="Clear search"
+                >
+                  <X size={14} />
+                </button>
+              ) : null}
+            </div>
+
+            <div className="tx-page__tabs" role="tablist" aria-label="Filter transactions">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={category === 'ALL'}
+                className={`tx-page__tab ${category === 'ALL' ? 'tx-page__tab--active' : ''}`}
+                onClick={() => setCategory('ALL')}
+              >
+                <span>All</span>
+                <span className="tx-page__tab-count">{transactions.length}</span>
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={category === 'RENT'}
+                className={`tx-page__tab ${category === 'RENT' ? 'tx-page__tab--active' : ''}`}
+                onClick={() => setCategory('RENT')}
+              >
+                <span>Rent</span>
+                <span className="tx-page__tab-count">{rentTransactions.length}</span>
+              </button>
+              {savingsTransactions.length > 0 ? (
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={category === 'SAVINGS'}
+                  className={`tx-page__tab ${category === 'SAVINGS' ? 'tx-page__tab--active' : ''}`}
+                  onClick={() => setCategory('SAVINGS')}
+                >
+                  <span>Savings</span>
+                  <span className="tx-page__tab-count">{savingsTransactions.length}</span>
+                </button>
+              ) : null}
+            </div>
+
+            {filterDate ? (
+              <div className="tx-page__date-chip">
+                <Calendar size={12} aria-hidden />
+                <span>{formatFilterDateLabel(filterDate)}</span>
+                <button
+                  type="button"
+                  className="tx-page__date-chip-clear"
+                  onClick={() => setFilterDate('')}
+                  aria-label="Clear date filter"
+                >
+                  <X size={11} />
+                </button>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        {transactions.length === 0 ? (
+          <div className="dash-home__activity-empty">
+            <div className="dash-home__activity-empty-icon">
+              <Receipt size={24} />
+            </div>
+            <div className="dash-home__activity-empty-title">No transactions yet</div>
+            <div className="dash-home__activity-empty-desc">
+              Your rent payments and savings activity will appear here.
+            </div>
             <button
               type="button"
-              className="tx-page__search-clear"
-              onClick={() => setSearch('')}
-              aria-label="Clear search"
+              className="dash-home__activity-empty-btn"
+              onClick={() => router.push('/dashboard/pay-rent')}
             >
-              <X size={15} />
+              Pay Rent Now
             </button>
-          ) : null}
-        </div>
-      </div>
+          </div>
+        ) : filteredTransactions.length === 0 ? (
+          <div className="tx-page__empty-filters">
+            <p>No transactions found{search ? ` for "${search}"` : ''}.</p>
+            <button
+              type="button"
+              className="tx-page__clear-btn"
+              onClick={() => {
+                setSearch('')
+                setFilterDate('')
+                setCategory('ALL')
+              }}
+            >
+              Clear filters
+            </button>
+          </div>
+        ) : (
+          <>
+            {months.map((month) => (
+              <div key={month} className="tx-page__month-group">
+                <div className="tx-page__month-head">
+                  <h2 className="tx-page__month-label">{formatMonthLabel(month)}</h2>
+                  <span className="tx-page__month-count">
+                    {grouped[month].length} {grouped[month].length === 1 ? 'item' : 'items'}
+                  </span>
+                </div>
+                <div className="tx-page__card">
+                  {grouped[month].map((tx) => {
+                    const isCredit = tx.type === 'credit'
+                    const isSuccess = isSuccessfulTxStatus(tx.status)
+                    const isPending = isPendingTxStatus(tx.status)
+                    const isFailed = Boolean(tx.status) && !isSuccess && !isPending
+                    const display = getTxDisplay(tx)
+                    const channelLabel =
+                      tx.channel || (tx.source === 'gt' ? 'Recorded' : 'Paystack')
+                    const compactWhen = formatCompactDateTime(tx.paid_at)
 
-      {transactions.length > 0 && !hasFilters ? (
-        <div className="tx-page__stats">
-          <div className="tx-page__stat">
-            <div className="tx-page__stat-label">Total Paid</div>
-            <div className="tx-page__stat-value">{formatCurrency(totalPaid, paymentCurrency)}</div>
-          </div>
-          <div className="tx-page__stat">
-            <div className="tx-page__stat-label">Payments</div>
-            <div className="tx-page__stat-value">
-              {paymentCount} {paymentCount === 1 ? 'payment' : 'payments'}
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {transactions.length === 0 ? (
-        <div className="dash-home__activity-empty">
-          <div className="dash-home__activity-empty-icon">
-            <Receipt size={24} />
-          </div>
-          <div className="dash-home__activity-empty-title">No transactions yet</div>
-          <div className="dash-home__activity-empty-desc">
-            Your payment history will appear here once you make your first payment.
-          </div>
-          <button
-            type="button"
-            className="dash-home__activity-empty-btn"
-            onClick={() => router.push('/dashboard/pay-rent')}
-          >
-            Pay Rent Now
-          </button>
-        </div>
-      ) : filteredTransactions.length === 0 ? (
-        <div className="tx-page__empty-filters">
-          <p>No transactions found{search ? ` for "${search}"` : ''}.</p>
-          <button
-            type="button"
-            className="tx-page__clear-btn"
-            onClick={() => {
-              setSearch('')
-              setFilterDate('')
-            }}
-          >
-            Clear filters
-          </button>
-        </div>
-      ) : (
-        <>
-          {months.map((month) => (
-            <div key={month} className="tx-page__month-group">
-              <h2 className="tx-page__month-label">{formatMonthLabel(month)}</h2>
-              <div className="dash-home__activity-card">
-                {grouped[month].map((tx) => {
-                  const isCredit = tx.type === 'credit'
-                  return (
-                    <button
-                      key={tx.uuid}
-                      type="button"
-                      className="dash-home__activity-item"
-                      onClick={() => handleTxClick(tx)}
-                    >
-                      <span
-                        className={`dash-home__activity-item-icon ${isCredit ? 'dash-home__activity-item-icon--credit' : 'dash-home__activity-item-icon--debit'}`}
+                    return (
+                      <button
+                        key={tx.uuid}
+                        type="button"
+                        className={`tx-page__row ${isFailed ? 'tx-page__row--failed' : ''}`}
+                        onClick={() => handleTxClick(tx)}
                       >
-                        {isCredit ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
-                      </span>
-                      <span className="dash-home__activity-item-info">
-                        <div className="dash-home__activity-item-title">{tx.company_name}</div>
-                        {tx.property_address ? (
-                          <div className="tx-page__location">{tx.property_address}</div>
-                        ) : null}
-                        <div className="dash-home__activity-item-meta">
-                          {tx.channel || (tx.source === 'gt' ? 'Recorded' : 'Paystack')} · {formatDate(tx.paid_at)} ·{' '}
-                          {formatTime(tx.paid_at)}
-                        </div>
-                        <div className="tx-page__row-badges">
-                          <span className={`tx-page__badge ${getTypeBadgeClass(tx, isCredit)}`}>
-                            {getTypeBadgeLabel(tx)}
-                          </span>
-                        </div>
-                      </span>
-                      <span className="tx-page__row-right">
-                        <span
-                          className={`tx-page__row-amount ${isCredit ? 'tx-page__row-amount--credit' : ''}`}
-                        >
-                          {isCredit ? '+' : '-'}
-                          {formatCurrency(tx.amount, tx.currency)}
-                        </span>
-                        {tx.status ? (
-                          <div className="tx-page__row-status">{tx.status.toLowerCase()}</div>
-                        ) : null}
-                      </span>
-                    </button>
-                  )
-                })}
-              </div>
-            </div>
-          ))}
+                        {renderTxIcon(tx, isCredit, isFailed)}
 
-          {!hasFilters ? (
-            <p className="tx-page__footer">That&apos;s everything so far — keep it up.</p>
-          ) : null}
-        </>
-      )}
+                        <span className="tx-page__row-info">
+                          <span className="tx-page__row-title">{display.title}</span>
+                          {display.subtitle ? (
+                            <span className="tx-page__row-sub">{display.subtitle}</span>
+                          ) : null}
+                          <span className="tx-page__row-meta">
+                            <span>
+                              {channelLabel}
+                              {compactWhen ? ` · ${compactWhen}` : ''}
+                            </span>
+                            {display.tag ? (
+                              <span
+                                className={`tx-page__tag tx-page__tag--${display.tag.variant}`}
+                              >
+                                {display.tag.label}
+                              </span>
+                            ) : null}
+                          </span>
+                        </span>
+
+                        <span className="tx-page__row-right">
+                          <span
+                            className={`tx-page__row-amount ${
+                              isFailed
+                                ? 'tx-page__row-amount--failed'
+                                : isCredit
+                                  ? 'tx-page__row-amount--credit'
+                                  : ''
+                            }`}
+                          >
+                            {isFailed ? '' : isCredit ? '+' : '-'}
+                            {formatCurrency(tx.amount, tx.currency)}
+                          </span>
+                          {isFailed ? (
+                            <span className="tx-page__row-status--failed">Failed</span>
+                          ) : isPending ? (
+                            <span className="tx-page__row-status--pending">Pending</span>
+                          ) : (
+                            <span className="tx-page__row-status">Success</span>
+                          )}
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+
+            {!hasFilters ? (
+              <p className="tx-page__footer">That&apos;s everything so far.</p>
+            ) : null}
+          </>
+        )}
       </PullToRefresh>
     </TransactionsPageShell>
   )

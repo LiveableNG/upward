@@ -1,17 +1,23 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Award, ArrowRight, TrendingUp } from 'lucide-react'
+import { Award, ArrowRight, TrendingUp, AlertCircle, PlusCircle } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 import { useExecuteSettlement, useSavingsOnboardingPrefill } from '../hooks/useRentSavings'
-import type { SettlementResultData } from '../services/savingsService'
+import type {
+  SavingsPlanPattern,
+  SavingsProductOption,
+  SettlementResultData,
+} from '../services/savingsService'
 import { useToast } from '@/components/common/Toast'
 import { useAuth } from '@/features/auth/AuthContext'
 import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
 import { SettlementSuccessModal } from './SettlementSuccessModal'
+import { FundVaultModal } from './FundVaultModal'
 
 interface SettlementHubViewProps {
   vault: {
@@ -22,6 +28,16 @@ interface SettlementHubViewProps {
     target_amount_kobo: number
     contractual_due_date: string
     days_remaining: number
+    annual_yield_rate_pct?: number
+    product_option?: SavingsProductOption
+    plan_pattern?: SavingsPlanPattern
+    preferred_payday_day?: number
+    dedicated_account?: {
+      bank_name: string
+      account_number: string
+      account_name: string
+      assignment_status?: string
+    } | null
   }
   onRestartVault: () => void
 }
@@ -37,20 +53,25 @@ const settlementFormSchema = z.object({
 type SettlementFormData = z.infer<typeof settlementFormSchema>
 
 export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewProps) {
+  const router = useRouter()
   const [successData, setSuccessData] = useState<SettlementResultData | null>(null)
   const [landlordNameSubmitted, setLandlordNameSubmitted] = useState<string>('')
+  const [showTopUpModal, setShowTopUpModal] = useState(false)
 
   const { error: toastError, success: toastSuccess } = useToast()
   const { user } = useAuth()
   const { rates: platformRates } = usePlatformRates()
-  const annualRate = platformRates?.savingsAnnualRatePct ?? 16
+  const annualRate = vault.annual_yield_rate_pct ?? platformRates?.savingsAnnualRatePct ?? 16
   const { data: prefill } = useSavingsOnboardingPrefill(true)
   const settlementMutation = useExecuteSettlement()
 
   const currentBalanceNaira = vault.current_balance_kobo / 100
   const targetRentNaira = vault.target_amount_kobo / 100
+  const amountSendingNowNaira = Math.min(currentBalanceNaira, targetRentNaira)
+  const shortfallNaira = Math.max(0, targetRentNaira - currentBalanceNaira)
+  const isShortfall = shortfallNaira > 0
   const surplusNaira = Math.max(0, currentBalanceNaira - targetRentNaira)
-  const estimatedCashbackNaira = targetRentNaira * 0.005 * 1.2
+  const estimatedCashbackNaira = isShortfall ? 0 : targetRentNaira * 0.005 * 1.2
 
   const {
     register,
@@ -130,7 +151,13 @@ export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewPr
         },
       })
       setSuccessData(res)
-      toastSuccess('Rent settlement authorized! Dispatched to landlord via NIP.')
+      if (res.is_partial_settlement || (res.remaining_balance_kobo ?? 0) > 0) {
+        toastSuccess(
+          `Paid ${formatCurrency((res.amount_paid_to_landlord_kobo || 0) / 100, 'NGN')} from savings. Complete your remaining rent balance next.`,
+        )
+      } else {
+        toastSuccess('Rent settlement authorized! Dispatched to landlord via NIP.')
+      }
     } catch (err: unknown) {
       const error = err as { message?: string }
       toastError(error?.message || 'Settlement failed. Please verify landlord account details.')
@@ -149,10 +176,20 @@ export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewPr
             gap: 8,
           }}
         >
-          <div className="settlement-hub-banner__multiplier">
-            <Award size={14} />
-            <span>1.2x Early-Bird Cashback Active</span>
-          </div>
+          {isShortfall ? (
+            <div
+              className="settlement-hub-banner__multiplier"
+              style={{ background: '#FEF3C7', color: '#B45309' }}
+            >
+              <AlertCircle size={14} />
+              <span>{formatCurrency(shortfallNaira, 'NGN')} Short of Full Rent</span>
+            </div>
+          ) : (
+            <div className="settlement-hub-banner__multiplier">
+              <Award size={14} />
+              <span>1.2x Early-Bird Cashback Active</span>
+            </div>
+          )}
           <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
             {vault.days_remaining} Days to Lease Due Date
           </span>
@@ -167,7 +204,7 @@ export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewPr
               color: 'var(--text)',
             }}
           >
-            Pay Your Landlord (Rent Ready)
+            {isShortfall ? 'Complete & Pay Your Rent' : 'Pay Your Landlord (Rent Ready)'}
           </h2>
           <p
             style={{
@@ -177,9 +214,9 @@ export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewPr
               lineHeight: 1.45,
             }}
           >
-            Your rent savings are ready for settlement. Sending rent directly to your landlord
-            generates an official rent receipt and credits your early-bird cashback bonus to your
-            wallet.
+            {isShortfall
+              ? `Your savings cover ${formatCurrency(currentBalanceNaira, 'NGN')} of your ${formatCurrency(targetRentNaira, 'NGN')} rent. Transfer the remaining ${formatCurrency(shortfallNaira, 'NGN')} into your savings account to pay in full, or send your savings now and pay the balance immediately after.`
+              : 'Your rent savings are ready for settlement. Sending rent directly to your landlord generates an official rent receipt and credits your early-bird cashback bonus to your wallet.'}
           </p>
         </div>
 
@@ -209,6 +246,40 @@ export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewPr
             </div>
           </div>
         </div>
+
+        {isShortfall && (
+          <div
+            style={{
+              background: '#FFF7ED',
+              border: '1px solid rgba(194, 80, 31, 0.25)',
+              borderRadius: 'var(--radius-md, 12px)',
+              padding: '14px 16px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 10,
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text)' }}>
+                Remaining balance needed to pay in full
+              </span>
+              <span style={{ fontSize: '0.9375rem', fontWeight: 800, color: 'var(--clay)' }}>
+                {formatCurrency(shortfallNaira, 'NGN')}
+              </span>
+            </div>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.45 }}>
+              Transfer {formatCurrency(shortfallNaira, 'NGN')} to your dedicated rent account so we can pay your full {formatCurrency(targetRentNaira, 'NGN')} rent in one transfer.
+            </p>
+            <button
+              type="button"
+              className="vault-btn-primary"
+              onClick={() => setShowTopUpModal(true)}
+            >
+              <PlusCircle size={17} />
+              <span>Transfer {formatCurrency(shortfallNaira, 'NGN')} Balance First</span>
+            </button>
+          </div>
+        )}
       </div>
 
       <div
@@ -341,15 +412,24 @@ export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewPr
 
           <div className="vault-fee-breakdown" style={{ marginTop: 8 }}>
             <div className="vault-fee-breakdown__row">
-              <span>Gross Payment to Landlord</span>
-              <span style={{ fontWeight: 700 }}>{formatCurrency(targetRentNaira, 'NGN')}</span>
+              <span>{isShortfall ? 'Sending from Savings Now' : 'Gross Payment to Landlord'}</span>
+              <span style={{ fontWeight: 700 }}>{formatCurrency(amountSendingNowNaira, 'NGN')}</span>
             </div>
-            <div className="vault-fee-breakdown__row">
-              <span>Estimated 1.2x Cashback Bonus</span>
-              <span style={{ color: 'var(--clay)', fontWeight: 700 }}>
-                +{formatCurrency(estimatedCashbackNaira, 'NGN')}
-              </span>
-            </div>
+            {isShortfall ? (
+              <div className="vault-fee-breakdown__row">
+                <span>Remaining Balance to Pay Next</span>
+                <span style={{ color: 'var(--clay)', fontWeight: 700 }}>
+                  {formatCurrency(shortfallNaira, 'NGN')}
+                </span>
+              </div>
+            ) : (
+              <div className="vault-fee-breakdown__row">
+                <span>Estimated 1.2x Cashback Bonus</span>
+                <span style={{ color: 'var(--clay)', fontWeight: 700 }}>
+                  +{formatCurrency(estimatedCashbackNaira, 'NGN')}
+                </span>
+              </div>
+            )}
             <div className="vault-fee-breakdown__row vault-fee-breakdown__row--total">
               <span>NIP Instant Transfer Fee</span>
               <span>₦0.00 (Covered by Upward)</span>
@@ -364,7 +444,9 @@ export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewPr
           >
             {settlementMutation.isPending
               ? 'Executing Transfer...'
-              : 'Authorize Rent Payout (Instant NIP)'}
+              : isShortfall
+                ? `Pay ${formatCurrency(amountSendingNowNaira, 'NGN')} Now & Complete Balance Next`
+                : 'Authorize Rent Payout (Instant NIP)'}
             <ArrowRight size={18} />
           </button>
         </form>
@@ -374,10 +456,44 @@ export function SettlementHubView({ vault, onRestartVault }: SettlementHubViewPr
         <SettlementSuccessModal
           data={successData}
           landlordName={landlordNameSubmitted}
-          onClose={() => setSuccessData(null)}
+          onClose={() => {
+            const isPartial =
+              Boolean(successData.is_partial_settlement) ||
+              (successData.remaining_balance_kobo ?? 0) > 0
+            setSuccessData(null)
+            if (isPartial) {
+              router.push('/dashboard')
+            }
+          }}
           onRestartVault={onRestartVault}
+          onPayRemainingBalance={(paymentRequestUuid) => {
+            setSuccessData(null)
+            if (paymentRequestUuid) {
+              router.push(`/dashboard/pay-rent?paymentUuid=${encodeURIComponent(paymentRequestUuid)}`)
+            } else {
+              router.push('/dashboard/pay-rent')
+            }
+          }}
         />
       )}
+
+      <FundVaultModal
+        isOpen={showTopUpModal}
+        onClose={() => setShowTopUpModal(false)}
+        initialFundingMode="EXTRA_TOPUP"
+        recommendedAmountNaira={Math.ceil(shortfallNaira)}
+        plannedMonthlyNaira={Math.ceil(shortfallNaira)}
+        suggestedTodayNaira={Math.ceil(shortfallNaira)}
+        dedicatedAccount={vault.dedicated_account}
+        targetAmountNaira={targetRentNaira}
+        daysRemaining={Math.max(1, vault.days_remaining)}
+        contractualDueDate={vault.contractual_due_date}
+        paydayDayOfMonth={vault.preferred_payday_day ?? 28}
+        annualRatePct={annualRate}
+        productOption={vault.product_option || 'SAVE_AND_EARN'}
+        planPattern={vault.plan_pattern || 'INITIAL_DEPOSIT'}
+        currentBalanceNaira={currentBalanceNaira}
+      />
     </div>
   )
 }

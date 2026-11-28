@@ -37,9 +37,19 @@ export class GetPublicPaymentDetailsUseCase {
       throw new NotFoundException(`Payment request with UUID ${uuid} not found`)
     }
 
-    const property = await this.propertyRepository.findById(paymentRequest.userPropertyId!)
-    if (!property) {
-      throw new NotFoundException('Associated property not found')
+    let property = paymentRequest.userPropertyId
+      ? await this.propertyRepository.findById(paymentRequest.userPropertyId)
+      : null
+
+    if (!property && paymentRequest.userId) {
+      const fallbackProperty = await this.prisma.upward_user_property.findFirst({
+        where: { userId: paymentRequest.userId },
+        orderBy: [{ isPastTenancy: 'asc' }, { createdAt: 'desc' }],
+        include: { location: true, manualAccount: true },
+      })
+      if (fallbackProperty) {
+        property = fallbackProperty as any
+      }
     }
 
     const user = await this.userRepository.findById(paymentRequest.userId)
@@ -51,12 +61,12 @@ export class GetPublicPaymentDetailsUseCase {
     const paidRequestsCount = paidRequests.filter(pr => pr.id !== paymentRequest.id).length
 
     let company = null
-    if (property.companyId) {
+    if (property?.companyId) {
       company = await this.companyRepository.findById(property.companyId)
     }
 
     let manager = null
-    if (property.managerId) {
+    if (property?.managerId) {
       manager = await this.managerRepository.findById(property.managerId)
     }
 
@@ -65,16 +75,33 @@ export class GetPublicPaymentDetailsUseCase {
 
     const subaccountCode = paymentRequest.subaccount?.subaccountCode || null
 
-    // Company name: prefer company, fallback to manager full name
-    const companyName = company?.name || 
-                        (manager ? `${manager.firstName} ${manager.lastName}` : null)
+    // If this is a balance payment request from a partial Rent Savings settlement, resolve landlord details
+    let settlementLandlordName: string | null = null
+    let settlementPropertyAddress: string | null = null
+    if (paymentRequest.reference?.startsWith('BAL_') && this.prisma.upward_rent_settlement) {
+      const settlementRef = paymentRequest.reference.slice(4)
+      const linkedSettlement = await this.prisma.upward_rent_settlement
+        .findUnique({ where: { settlementReference: settlementRef } })
+        .catch(() => null)
+      if (linkedSettlement) {
+        settlementLandlordName = linkedSettlement.landlordName
+        settlementPropertyAddress = linkedSettlement.propertyAddress
+      }
+    }
+
+    // Company name: prefer company, fallback to manager full name or settlement landlord name
+    const companyName =
+      company?.name ||
+      (manager ? `${manager.firstName} ${manager.lastName}` : null) ||
+      settlementLandlordName ||
+      'Landlord / Property Owner'
 
     // Property location address: compose from location data
-    const location = (property as any).location
+    const location = (property as any)?.location
     const locationAddress = location
       ? [location.address, location.area, location.state, location.country]
           .filter(Boolean).join(', ')
-      : null
+      : settlementPropertyAddress || null
 
     let verifiedRecipientName = null
     if (paymentRequest.subaccount?.accountNumber && paymentRequest.subaccount?.bankCode) {
@@ -115,7 +142,8 @@ export class GetPublicPaymentDetailsUseCase {
       }
     }
 
-    const dynamicRates = await this.paymentConfig.getDynamicProcessingRates(user.id!, paymentRequest.userPropertyId, paymentRequest.id)
+    const effectivePropertyId = paymentRequest.userPropertyId ?? property?.id ?? undefined
+    const dynamicRates = await this.paymentConfig.getDynamicProcessingRates(user.id!, effectivePropertyId, paymentRequest.id)
     const dynamicFee = dynamicRates.transactionFee + (dynamicRates.benefitsPaid ? 0 : dynamicRates.benefitsFee)
 
     const pendingRefundTx = await this.prisma.upward_transaction.findFirst({
@@ -152,13 +180,13 @@ export class GetPublicPaymentDetailsUseCase {
         minAmount: paymentRequest.minAmount || undefined,
         maxPartialAmount: paymentRequest.minAmount ? Math.max(0, (paymentRequest.amount - (paymentRequest.amountPaid || 0)) - paymentRequest.minAmount) : (paymentRequest.amount - (paymentRequest.amountPaid || 0)),
         remainingBalance: paymentRequest.amount - (paymentRequest.amountPaid || 0),
-        rentStartDate: paymentRequest.rentStartDate || property.rentStartDate || null,
-        rentEndDate: paymentRequest.rentEndDate || property.rentEndDate || null,
-        rentType: paymentRequest.rentType || property.rentType || null,
+        rentStartDate: paymentRequest.rentStartDate || property?.rentStartDate || null,
+        rentEndDate: paymentRequest.rentEndDate || property?.rentEndDate || null,
+        rentType: paymentRequest.rentType || property?.rentType || null,
         reference: paymentRequest.reference || null,
         createdAt: paymentRequest.createdAt,
         lineItemRecords: lineItemRecords,
-        verifiedRecipientName: verifiedRecipientName,
+        verifiedRecipientName: verifiedRecipientName || settlementLandlordName,
         processingFee: dynamicFee,
         processingRates: {
           transactionFee: dynamicRates.transactionFee,
@@ -185,18 +213,31 @@ export class GetPublicPaymentDetailsUseCase {
         verificationOn: process.env.VERIFICATION_ON !== 'false',
         hasBankDetails: !!userBankDetails,
       },
-      property: {
-        uuid: property.uuid,
-        rentAmount: property.rentAmount,
-        amountPaid: property.amountPaid,
-        amountRemaining: property.amountRemaining,
-        rentStartDate: property.rentStartDate || null,
-        rentEndDate: property.rentEndDate || null,
-        rentType: property.rentType || null,
-        isPastTenancy: property.isPastTenancy,
-        locationAddress: locationAddress,
-        manualAccount: (property as any).pmManualAccount || (property as any).manualAccount || null,
-      },
+      property: property
+        ? {
+            uuid: property.uuid,
+            rentAmount: property.rentAmount,
+            amountPaid: property.amountPaid,
+            amountRemaining: property.amountRemaining,
+            rentStartDate: property.rentStartDate || null,
+            rentEndDate: property.rentEndDate || null,
+            rentType: property.rentType || null,
+            isPastTenancy: property.isPastTenancy,
+            locationAddress: locationAddress,
+            manualAccount: (property as any).pmManualAccount || (property as any).manualAccount || null,
+          }
+        : {
+            uuid: null,
+            rentAmount: paymentRequest.amount,
+            amountPaid: paymentRequest.amountPaid || 0,
+            amountRemaining: Math.max(0, paymentRequest.amount - (paymentRequest.amountPaid || 0)),
+            rentStartDate: paymentRequest.rentStartDate || null,
+            rentEndDate: paymentRequest.rentEndDate || null,
+            rentType: paymentRequest.rentType || null,
+            isPastTenancy: false,
+            locationAddress: locationAddress,
+            manualAccount: null,
+          },
       company: {
         name: companyName,
       },

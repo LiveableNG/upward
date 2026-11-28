@@ -102,6 +102,13 @@ export function FundVaultModal({
 
   const defaultAmountForMode = (() => {
     if (fundingMode === 'EXTRA_TOPUP') {
+      if (
+        initialFundingMode === 'EXTRA_TOPUP' &&
+        recommendedAmountNaira &&
+        recommendedAmountNaira > 0
+      ) {
+        return Math.round(recommendedAmountNaira)
+      }
       return 100_000
     }
     if (fundingMode === 'MONTHLY') {

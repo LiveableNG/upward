@@ -23,6 +23,7 @@ import {
   useSimulateRentSavings,
   useSavingsOnboardingPrefill,
   useOnboardSavingsInvestor,
+  useCreateRentVault,
   useVerifyVaultFunding,
 } from '../hooks/useRentSavings'
 import { usePlatformRates } from '@/features/payments/hooks/usePlatformRates'
@@ -206,7 +207,35 @@ export function RentCalculatorView({
 
   // KYC Prefill & Form State
   const { data: prefill } = useSavingsOnboardingPrefill(true)
+  const isRepeatSaver = Boolean(
+    prefill?.has_completed_arm_kyc &&
+      (prefill?.is_repeat_saver || prefill?.has_signed_consent || prefill?.has_previous_vault),
+  )
+  const availableCashbackNgn = Math.round(prefill?.available_cashback_ngn || 0)
+  const hasWaitingCashback = availableCashbackNgn > 0
+
+  // If the server prefill has a newer next-cycle due date (e.g. rolled +1 year after paying the
+  // current rent cycle in full), supersede stale localStorage dates automatically and hydrate
+  // repeat-saver defaults (rent amount, payday, and skip RENT_INPUT).
+  const [appliedPrefillDueDate, setAppliedPrefillDueDate] = useState<string | null>(null)
+  const prefillDueDate = prefill?.rent_due_date ? prefill.rent_due_date.split('T')[0] : null
+  if (
+    prefillDueDate &&
+    prefillDueDate !== appliedPrefillDueDate &&
+    !activeProperty?.rentEndDate &&
+    (!contractualDueDate || prefillDueDate > contractualDueDate)
+  ) {
+    setAppliedPrefillDueDate(prefillDueDate)
+    setContractualDueDate(prefillDueDate)
+    if (!targetAmountRaw && prefill?.target_rent && prefill.target_rent > 0) {
+      setTargetAmountRaw(formatCurrencyInput(prefill.target_rent))
+    }
+    if (prefill?.previous_payday_day && prefill.previous_payday_day >= 1 && prefill.previous_payday_day <= 28) {
+      setPreferredPaydayDay(prefill.previous_payday_day)
+    }
+  }
   const onboardMutation = useOnboardSavingsInvestor()
+  const createVaultMutation = useCreateRentVault()
   const verifyFundingMutation = useVerifyVaultFunding()
   const [successVerifyNotice, setSuccessVerifyNotice] = useState<string | null>(null)
   const [isArmKycFormValid, setIsArmKycFormValid] = useState(false)
@@ -676,6 +705,65 @@ export function RentCalculatorView({
     }
   }
 
+  const handleActivateRepeatSaverVault = async () => {
+    setKycError(null)
+    try {
+      const res = (await createVaultMutation.mutateAsync({
+        target_amount_kobo: Math.round(targetAmountNaira * 100),
+        contractual_due_date: contractualDueDate,
+        cadence: 'MONTHLY',
+        preferred_funding_method: 'DVA',
+        product_option: activeProductOption,
+        lock_mode: effectiveLockMode,
+        plan_pattern: effectivePlanPattern,
+        initial_deposit_kobo:
+          effectivePlanPattern === 'INITIAL_DEPOSIT'
+            ? Math.round(currentDepositNairaForCalc * 100)
+            : 0,
+        planned_monthly_deposit_kobo: Math.round(localPlan.periodicDepositNaira * 100),
+        payday_day_of_month: preferredPaydayDay,
+        consent_accepted: true,
+      })) as {
+        dedicated_account?: {
+          bank_name: string
+          account_number: string
+          account_name: string
+        } | null
+        dva_account_number?: string
+        dva_bank_name?: string
+        dva_account_name?: string
+      }
+
+      const dva =
+        res?.dedicated_account ||
+        (res?.dva_account_number
+          ? {
+              bank_name: res.dva_bank_name || 'Wema Bank',
+              account_number: res.dva_account_number,
+              account_name:
+                res.dva_account_name ||
+                `Upward / ${user?.firstName || 'Tenant'} ${user?.lastName || ''}`.trim(),
+            }
+          : prefill?.previous_dva || null)
+
+      if (dva?.account_number) {
+        setCreatedDva(dva)
+      }
+
+      setStage('SUCCESS')
+      toastSuccess(
+        hasWaitingCashback
+          ? `Plan activated! ${formatCurrency(availableCashbackNgn, 'NGN')} cashback has been added to your balance.`
+          : 'Next rent savings plan activated — your dedicated rent account is ready!',
+      )
+      await refreshUser().catch(() => {})
+    } catch (err: unknown) {
+      const error = err as { message?: string }
+      const msg = error?.message || 'Could not activate your next savings plan. Please try again.'
+      toastError(msg)
+    }
+  }
+
   const handleFinish = async () => {
     await refreshUser().catch(() => {})
     if (onSuccess) {
@@ -918,6 +1006,31 @@ export function RentCalculatorView({
             </PayFlowPrimaryButton>
           }
         >
+          {hasWaitingCashback && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '9px 12px',
+                borderRadius: 12,
+                background: '#fff7ed',
+                border: '1px solid rgba(194, 80, 31, 0.2)',
+                marginBottom: 12,
+                fontSize: '0.78rem',
+                color: 'var(--text-secondary)',
+              }}
+            >
+              <CheckCircle2 size={15} color="#059669" style={{ flexShrink: 0 }} />
+              <span>
+                <strong style={{ color: 'var(--clay)' }}>
+                  You have {formatCurrency(availableCashbackNgn, 'NGN')} cashback
+                </strong>{' '}
+                · Added to your balance when you activate
+              </span>
+            </div>
+          )}
+
           <div className="plan-cards">
             {/* Card 1: Save & Earn — Expands in-place to reveal Flexible vs Full Lock */}
             <div
@@ -1144,18 +1257,72 @@ export function RentCalculatorView({
           pinFooter
           footer={
             <PayFlowPrimaryButton
-              disabled={isRentProtecDepositBelowFloor}
+              disabled={isRentProtecDepositBelowFloor || createVaultMutation.isPending}
+              loading={createVaultMutation.isPending}
               onClick={() => {
                 if (isRentProtecDepositBelowFloor) return
+                if (isRepeatSaver) {
+                  handleActivateRepeatSaverVault()
+                  return
+                }
                 setStage('KYC')
               }}
             >
-              Continue
-              <ArrowRight size={18} aria-hidden />
+              {isRepeatSaver
+                ? createVaultMutation.isPending
+                  ? 'Activating...'
+                  : hasWaitingCashback
+                    ? `Activate & Claim ${formatCurrency(availableCashbackNgn, 'NGN')}`
+                    : 'Activate Plan'
+                : hasWaitingCashback
+                  ? `Continue & Claim ${formatCurrency(availableCashbackNgn, 'NGN')}`
+                  : 'Continue'}
+              {!createVaultMutation.isPending && <ArrowRight size={18} aria-hidden />}
             </PayFlowPrimaryButton>
           }
         >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 22, paddingBottom: 24 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 18, paddingBottom: 24 }}>
+            {hasWaitingCashback ? (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '9px 12px',
+                  borderRadius: 12,
+                  background: '#fff7ed',
+                  border: '1px solid rgba(194, 80, 31, 0.2)',
+                  fontSize: '0.78rem',
+                  color: 'var(--text-secondary)',
+                }}
+              >
+                <CheckCircle2 size={15} color="#059669" style={{ flexShrink: 0 }} />
+                <span>
+                  <strong style={{ color: 'var(--clay)' }}>
+                    {formatCurrency(availableCashbackNgn, 'NGN')} cashback included
+                  </strong>{' '}
+                  · Added to your new plan{isRepeatSaver ? ' · No KYC needed' : ''}
+                </span>
+              </div>
+            ) : isRepeatSaver ? (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '9px 12px',
+                  borderRadius: 12,
+                  background: '#ECFDF5',
+                  border: '1px solid #A7F3D0',
+                  color: '#047857',
+                  fontSize: '0.78rem',
+                  fontWeight: 600,
+                }}
+              >
+                <CheckCircle2 size={15} style={{ flexShrink: 0 }} />
+                <span>Already verified · Activate in one tap</span>
+              </div>
+            ) : null}
             {/* Compact Target + Track Summary Bar */}
             <div
               style={{

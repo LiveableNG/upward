@@ -8,23 +8,28 @@ export function TransactionSkeleton() {
   return (
     <TransactionsPageShell title="Transactions" onBack={noop}>
       <div className="tx-page--skeleton">
-        <div className="tx-page__search">
-          <div className="tx-page__skeleton-block" style={{ width: '100%', height: 48, borderRadius: 12 }} />
-        </div>
+        <div
+          className="tx-page__skeleton-block"
+          style={{ width: '100%', height: 112, borderRadius: 18, marginBottom: 16 }}
+        />
 
-        <div className="tx-page__stats">
-          <div className="tx-page__stat">
-            <div className="tx-page__skeleton-block" style={{ width: '55%', height: 11 }} />
+        <div className="tx-page__controls">
+          <div
+            className="tx-page__skeleton-block"
+            style={{ width: '100%', height: 44, borderRadius: 13 }}
+          />
+          <div style={{ display: 'flex', gap: 8 }}>
             <div
               className="tx-page__skeleton-block"
-              style={{ width: '75%', height: 22, marginTop: 10 }}
+              style={{ width: 68, height: 34, borderRadius: 999 }}
             />
-          </div>
-          <div className="tx-page__stat">
-            <div className="tx-page__skeleton-block" style={{ width: '55%', height: 11 }} />
             <div
               className="tx-page__skeleton-block"
-              style={{ width: '60%', height: 22, marginTop: 10 }}
+              style={{ width: 76, height: 34, borderRadius: 999 }}
+            />
+            <div
+              className="tx-page__skeleton-block"
+              style={{ width: 88, height: 34, borderRadius: 999 }}
             />
           </div>
         </div>
@@ -32,25 +37,25 @@ export function TransactionSkeleton() {
         <div className="tx-page__month-group">
           <div
             className="tx-page__skeleton-block"
-            style={{ width: 100, height: 12, marginBottom: 10 }}
+            style={{ width: 108, height: 12, marginBottom: 10 }}
           />
-          <div className="dash-home__activity-card">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="dash-home__activity-item" style={{ pointerEvents: 'none' }}>
+          <div className="tx-page__card">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="tx-page__row" style={{ pointerEvents: 'none' }}>
                 <div
                   className="tx-page__skeleton-block"
-                  style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0 }}
+                  style={{ width: 38, height: 38, borderRadius: 11, flexShrink: 0 }}
                 />
-                <div className="dash-home__activity-item-info" style={{ flex: 1 }}>
+                <div className="tx-page__row-info">
                   <div
                     className="tx-page__skeleton-block"
-                    style={{ width: '62%', height: 14, marginBottom: 6 }}
+                    style={{ width: '58%', height: 14, marginBottom: 6 }}
                   />
-                  <div className="tx-page__skeleton-block" style={{ width: '45%', height: 11 }} />
+                  <div className="tx-page__skeleton-block" style={{ width: '42%', height: 11 }} />
                 </div>
                 <div
                   className="tx-page__skeleton-block"
-                  style={{ width: 72, height: 16, flexShrink: 0 }}
+                  style={{ width: 76, height: 16, flexShrink: 0 }}
                 />
               </div>
             ))}
